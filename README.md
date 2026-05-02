@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend (Slice 6 Scaffold)
 
-## Getting Started
+**Production deployment:** see the monorepo [Deployment guide](../DEPLOYMENT.md) (Next.js env, API URL, Nginx).
 
-First, run the development server:
+---
+
+Admin UI scaffold for Phase 1 Slice 6:
+
+- Email/password and **PIN** login (PIN flow sends `email`, `branchId`, `pin` per OpenAPI)
+- Dashboard shell with **permission-filtered nav** (`users.list` required for Users)
+- **`/users` route guard** — cashiers without `users.list` are redirected to Products
+- **Business settings** — read-only slug/timezone/currency; **PATCH** name, subscription tier, active
+- **Users** — create (status, PIN), rename, assign role, deactivate (gated by permissions)
+- **Products** — item type picker, parent create, search, **variant** table + add variant, patch, delete
+- API client: **UUIDv7** `Idempotency-Key`, refresh on `token_expired`, `X-Tenant-Id` / `X-Tenant-Host`
+- Optional **OpenAPI → TypeScript** codegen (`bun run codegen` → `lib/generated/phase-1-api.ts`)
+- Security headers (frame deny, nosniff, referrer policy) + **Turbopack `root`** to avoid wrong workspace detection
+
+## Setup
+
+Create a `.env.local` file:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+# Required when the browser Host is not a mapped tenant domain (e.g. localhost:3000):
+NEXT_PUBLIC_TENANT_ID=your-business-uuid
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The API returns `400` with *Tenant context missing* if neither a mapped **Host** nor **`X-Tenant-Id`** is present. The app sends `X-Tenant-Id` from `NEXT_PUBLIC_TENANT_ID` or from the login field (stored in `sessionStorage` as `ub.tenantId`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Run
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+bun run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+## OpenAPI types (optional)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Regenerate whenever `../backend/docs/openapi/phase-1.yaml` changes:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+bun run codegen
+```
 
-## Deploy on Vercel
+## Test
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bun test
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Current tests cover API request helper behavior:
+
+- `Idempotency-Key` is added to `POST` and `PATCH`
+- no `Idempotency-Key` on `GET`
+- refresh attempt only happens when Problem+JSON `code` is `token_expired`
+- `X-Tenant-Host` is attached when tenant host is known
+- `X-Tenant-Id` is attached when tenant id is configured
+- mutating requests use **UUIDv7** idempotency keys (`uuid` package)
+
+## Slice 6 manual checks
+
+- **Business**: change name → save → refresh page → name persists.
+- **Cashier**: create user with PIN and cashier role → log out → PIN login → **Users** hidden and `/users` redirects to Products.
+- **Products**: create parent (needs item types), open row, add variant (SKU + variant label), save edits.
+- **Lighthouse** (login): labels + `autocomplete` on fields; security headers help Best Practices (run against local or staging build).
+
+## Auth and Session Keys
+
+The client stores session values in browser storage:
+
+- `ub.accessToken`
+- `ub.refreshToken`
+- `ub.tenantHost` (session storage)
+- `ub.tenantId` (session storage; dev / explicit tenant)
+
+## Tenant Telemetry Header
+
+When `ub.tenantHost` is available, the API client adds:
+
+- `X-Tenant-Host: <tenant-host>`
+
+When `NEXT_PUBLIC_TENANT_ID` or `ub.tenantId` is set, the client adds:
+
+- `X-Tenant-Id: <business-uuid>`
+# ub-front
