@@ -10,6 +10,7 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   type SaDomainRow,
   addSaDomain,
+  deleteSaBusiness,
   fetchSaDomains,
   patchSaBusiness,
   setSaPrimaryDomain,
@@ -109,6 +110,29 @@ function BusinessDetailInner() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDeleteTenant = async () => {
+    if (!businessId) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `Permanently archive tenant “${bizName || businessId}”?\n\nAll users, domains, and sessions for this tenant will be removed from active use.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await deleteSaBusiness(businessId);
+      router.push(APP_ROUTES.superAdminBusinesses);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed.");
     } finally {
       setBusy(false);
     }
@@ -228,6 +252,23 @@ function BusinessDetailInner() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 shadow-sm">
+        <h2 className="text-lg font-medium text-destructive">Delete tenant</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Archives this business and soft-deletes every user under it. Super-admin stays signed in; you will return
+          to the business list.
+        </p>
+        <Button
+          type="button"
+          variant="destructive"
+          className="mt-4"
+          disabled={busy}
+          onClick={() => void onDeleteTenant()}
+        >
+          {busy ? "Working…" : "Delete this tenant"}
+        </Button>
       </section>
     </div>
   );

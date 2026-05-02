@@ -462,7 +462,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Soft-delete tenant, users, and related tenancy data */
+        delete: operations["deleteBusiness"];
         options?: never;
         head?: never;
         patch: operations["updateBusiness"];
@@ -2096,6 +2097,33 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["UserResponse"];
                 };
+            };
+        };
+    };
+    deleteBusiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                businessId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Business not found or already deleted */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

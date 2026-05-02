@@ -150,6 +150,12 @@ export async function patchSaBusiness(
   });
 }
 
+export async function deleteSaBusiness(businessId: string): Promise<void> {
+  await saRequest<unknown>(`${API_ROUTES.superAdminBusinesses}/${businessId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function fetchSaDomains(businessId: string): Promise<SaDomainRow[]> {
   return saRequest<SaDomainRow[]>(
     `${API_ROUTES.superAdminBusinesses}/${businessId}/domains`,

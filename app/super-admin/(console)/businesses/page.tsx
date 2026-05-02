@@ -9,6 +9,7 @@ import {
   type CreateSaBusinessPayload,
   type SaBusinessRow,
   createSaBusiness,
+  deleteSaBusiness,
   fetchSaBusinesses,
 } from "@/lib/super-admin-api";
 
@@ -24,6 +25,8 @@ export default function SuperAdminBusinessesPage() {
   const [countryCode, setCountryCode] = useState("KE");
   const [timezone, setTimezone] = useState("Africa/Nairobi");
   const [tier, setTier] = useState("starter");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const reload = useCallback(async () => {
     setLoadError("");
@@ -72,6 +75,26 @@ export default function SuperAdminBusinessesPage() {
     }
   }
 
+  const onDeleteTenant = async (b: SaBusinessRow) => {
+    if (
+      !window.confirm(
+        `Delete tenant “${b.name}” (${b.slug})?\n\nThis archives the business and all users under it. It cannot be undone from the console.`,
+      )
+    ) {
+      return;
+    }
+    setDeleteError("");
+    setDeletingId(b.id);
+    try {
+      await deleteSaBusiness(b.id);
+      await reload();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-10">
       <div>
@@ -83,6 +106,7 @@ export default function SuperAdminBusinessesPage() {
       </div>
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
+      {deleteError ? <AuthAlert variant="error">{deleteError}</AuthAlert> : null}
 
       <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
         <h2 className="text-lg font-medium">Create tenant</h2>
@@ -183,7 +207,7 @@ export default function SuperAdminBusinessesPage() {
                 <th className="px-3 py-2 font-medium">Tier</th>
                 <th className="px-3 py-2 font-medium">Created</th>
                 <th className="px-3 py-2 font-medium">Tenant ID</th>
-                <th className="px-3 py-2 font-medium" />
+                <th className="px-3 py-2 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -216,6 +240,16 @@ export default function SuperAdminBusinessesPage() {
                         >
                           Domains
                         </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        className="text-destructive hover:text-destructive"
+                        disabled={deletingId !== null}
+                        onClick={() => void onDeleteTenant(b)}
+                      >
+                        {deletingId === b.id ? "Deleting…" : "Delete"}
                       </Button>
                     </td>
                   </tr>
