@@ -1,5 +1,6 @@
 export const APP_ROUTES = {
   login: "/login",
+  authHandoff: "/auth/handoff",
   signup: "/signup",
   verifyEmail: "/verify-email",
   forgotPassword: "/forgot-password",
@@ -51,6 +52,22 @@ export const ERROR_CODES = {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5050";
 
+/** This app in the browser (no trailing slash). Align with APP_PUBLIC_FRONTEND_BASE_URL on the API. */
+export const APP_BASE_URL =
+  process.env.NEXT_PUBLIC_APP_BASE_URL ?? "http://localhost:3000";
+
 /** Business UUID for local dev when Host is not a mapped tenant domain. */
 export const PUBLIC_TENANT_ID =
   process.env.NEXT_PUBLIC_TENANT_ID?.trim() ?? "";
+
+/** Browser origin for slug.{APP_BASE_URL hostname} — keep in sync with backend app.tenancy.slug-domain-suffix (hostname only, no port). */
+export function slugDerivedShopUrl(slug: string): string {
+  const s = slug.trim().toLowerCase();
+  if (!s) {
+    return "";
+  }
+  const base = new URL(APP_BASE_URL);
+  const host = `${s}.${base.hostname}`;
+  const port = base.port ? `:${base.port}` : "";
+  return `${base.protocol}//${host}${port}`;
+}

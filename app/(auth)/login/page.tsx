@@ -14,10 +14,64 @@ import {
   clearSessionTenantId,
   getSessionTenantId,
   getSessionTokens,
+  persistTenantHostFromSlug,
   setSessionTenantId,
 } from "@/lib/auth";
-import { loginWithPassword, loginWithPin } from "@/lib/api";
-import { APP_ROUTES, PUBLIC_TENANT_ID } from "@/lib/config";
+import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
+import { fetchBusiness, loginWithPassword, loginWithPin } from "@/lib/api";
+import { APP_ROUTES, PUBLIC_TENANT_ID, slugDerivedShopUrl } from "@/lib/config";
+
+type LoginRouter = {
+  push: (href: string) => void;
+  replace: (href: string) => void;
+};
+
+async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "push" | "replace"): Promise<void> {
+  let slug: string | null = null;
+  try {
+    const biz = await fetchBusiness();
+    slug = biz.slug?.trim() || null;
+  } catch {
+    /* tenant id header may still work for same-origin navigation */
+  }
+
+  const shopBase = slug ? slugDerivedShopUrl(slug) : "";
+  const targetOrigin = shopBase ? new URL(shopBase).origin : window.location.origin;
+
+  if (!slug || targetOrigin === window.location.origin) {
+    persistTenantHostFromSlug(slug);
+    if (mode === "replace") {
+      router.replace(path);
+    } else {
+      router.push(path);
+    }
+    return;
+  }
+
+  const tokens = getSessionTokens();
+  const tenantId = getSessionTenantId();
+  if (!tokens) {
+    persistTenantHostFromSlug(slug);
+    if (mode === "replace") {
+      router.replace(path);
+    } else {
+      router.push(path);
+    }
+    return;
+  }
+
+  const fragment = encodeAuthHandoffPayload({
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    tenantId: tenantId ?? undefined,
+    nextPath: path,
+  });
+  const nextEnc = encodeURIComponent(path);
+  const slugEnc = encodeURIComponent(slug);
+  window.location.assign(
+    `${shopBase}${APP_ROUTES.authHandoff}?next=${nextEnc}&slug=${slugEnc}#${fragment}`,
+  );
+}
 
 const AUTH_MODE = {
   password: "password",
@@ -38,9 +92,10 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (getSessionTokens()) {
-      router.replace(APP_ROUTES.business);
+    if (!getSessionTokens()) {
+      return;
     }
+    void syncSlugAndNavigate(router, APP_ROUTES.business, "replace");
   }, [router]);
 
   useEffect(() => {
@@ -71,7 +126,7 @@ export default function LoginPage() {
     try {
       persistTenantId(tenantId);
       await loginWithPassword(email, password);
-      router.push(APP_ROUTES.business);
+      await syncSlugAndNavigate(router, APP_ROUTES.business, "push");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed.");
     } finally {
@@ -87,7 +142,7 @@ export default function LoginPage() {
     try {
       persistTenantId(tenantId);
       await loginWithPin(email, pin, branchId);
-      router.push(APP_ROUTES.products);
+      await syncSlugAndNavigate(router, APP_ROUTES.products, "push");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "PIN login failed.");
     } finally {

@@ -67,9 +67,12 @@ export default function SignupPage() {
       if (result.status.toLowerCase() === "active") {
         setSuccessMessage(`Account ready for ${result.email}. You can sign in.`);
       } else {
-        setSuccessMessage(
-          `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`,
-        );
+        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`;
+        const localHint =
+          process.env.NODE_ENV === "development"
+            ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
+            : "";
+        setSuccessMessage(base + localHint);
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Sign up failed.");

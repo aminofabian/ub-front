@@ -12,6 +12,7 @@ import {
   deleteSaBusiness,
   fetchSaBusinesses,
 } from "@/lib/super-admin-api";
+import { slugDerivedShopUrl } from "@/lib/config";
 
 export default function SuperAdminBusinessesPage() {
   const [rows, setRows] = useState<SaBusinessRow[]>([]);
@@ -111,7 +112,12 @@ export default function SuperAdminBusinessesPage() {
       <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
         <h2 className="text-lg font-medium">Create tenant</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Slug must be alphanumeric and hyphens only. Optional primary domain creates the host mapping.
+          Slug drives the default hostname{" "}
+          <code className="rounded bg-muted px-1 text-xs">{"{slug}." + "{parent}"}</code> — parent is the hostname from{" "}
+          <code className="rounded bg-muted px-1 text-xs">NEXT_PUBLIC_APP_BASE_URL</code>, and on the API{" "}
+          <code className="rounded bg-muted px-1 text-xs">app.tenancy.slug-domain-suffix</code> (or{" "}
+          <code className="rounded bg-muted px-1 text-xs">APP_TENANCY_SLUG_DOMAIN_SUFFIX</code>). Use custom domain below only
+          when the tenant has a dedicated host.
         </p>
         <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={onCreate}>
           <label className="sm:col-span-2">
@@ -133,14 +139,20 @@ export default function SuperAdminBusinessesPage() {
               pattern="[a-zA-Z0-9-]+"
               required
             />
+            {slug.trim() ? (
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Default URL preview (no custom domain):{" "}
+                <code className="rounded bg-muted px-1">{slugDerivedShopUrl(slug)}</code>
+              </span>
+            ) : null}
           </label>
           <label>
-            <span className="text-sm font-medium">Primary domain (optional)</span>
+            <span className="text-sm font-medium">Custom domain (optional)</span>
             <input
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={primaryDomain}
               onChange={(ev) => setPrimaryDomain(ev.target.value)}
-              placeholder="acme.example.com"
+              placeholder="Overrides default {slug} hostname, e.g. acme.example.com"
             />
           </label>
           <label>
