@@ -142,6 +142,21 @@ export type CreateItemPayload = {
   description?: string;
 };
 
+/** Body returned from POST /api/v1/items (201). */
+export type ItemCreateResponse = {
+  id: string;
+  name: string;
+  sku: string;
+  active?: boolean;
+};
+
+export type AddItemSupplierLinkPayload = {
+  supplierId: string;
+  supplierSku?: string;
+  defaultCostPrice?: number;
+  setPrimary?: boolean;
+};
+
 export type PatchItemPayload = {
   name?: string;
   barcode?: string;
@@ -497,8 +512,15 @@ export async function fetchItemById(itemId: string): Promise<ItemDetailRecord> {
   return request<ItemDetailRecord>(`${API_ROUTES.items}/${itemId}`);
 }
 
-export async function createItem(payload: CreateItemPayload): Promise<void> {
-  await request(API_ROUTES.items, { method: "POST", body: payload });
+export async function createItem(payload: CreateItemPayload): Promise<ItemCreateResponse> {
+  return request<ItemCreateResponse>(API_ROUTES.items, { method: "POST", body: payload });
+}
+
+export async function addItemSupplierLink(
+  itemId: string,
+  body: AddItemSupplierLinkPayload,
+): Promise<void> {
+  await request(`${API_ROUTES.items}/${itemId}/supplier-links`, { method: "POST", body });
 }
 
 export async function patchItem(
@@ -521,6 +543,251 @@ export async function createItemVariant(
   body: CreateVariantPayload,
 ): Promise<void> {
   await request(`${API_ROUTES.items}/${parentItemId}/variants`, {
+    method: "POST",
+    body,
+  });
+}
+
+export type SpendBySupplierCategoryRow = {
+  supplierId: string;
+  supplierName: string;
+  categoryId: string;
+  categoryName: string;
+  spendTotal: number;
+};
+
+export type PriceCompetitivenessRow = {
+  supplierInvoiceLineId: string;
+  supplierInvoiceId: string;
+  invoicingSupplierId: string;
+  itemId: string;
+  itemSku: string;
+  paidUnitCost: number;
+  primarySupplierId: string;
+  primaryLastCostPrice: number | null;
+  variancePercentVsPrimary: number | null;
+  purchasedFromPrimarySupplier: boolean;
+};
+
+export type SingleSourceRiskRow = {
+  itemId: string;
+  sku: string;
+  name: string;
+  soleSupplierId: string;
+  soleSupplierName: string;
+};
+
+function intelligenceDateQuery(from?: string, to?: string): string {
+  const params = new URLSearchParams();
+  if (from?.trim()) {
+    params.set("from", from.trim());
+  }
+  if (to?.trim()) {
+    params.set("to", to.trim());
+  }
+  const q = params.toString();
+  return q ? `?${q}` : "";
+}
+
+export async function fetchSpendBySupplierCategory(
+  from?: string,
+  to?: string,
+): Promise<SpendBySupplierCategoryRow[]> {
+  return request<SpendBySupplierCategoryRow[]>(
+    `/api/v1/purchasing/intelligence/spend-by-supplier-category${intelligenceDateQuery(from, to)}`,
+  );
+}
+
+export async function fetchPriceCompetitiveness(
+  from?: string,
+  to?: string,
+): Promise<PriceCompetitivenessRow[]> {
+  return request<PriceCompetitivenessRow[]>(
+    `/api/v1/purchasing/intelligence/price-competitiveness${intelligenceDateQuery(from, to)}`,
+  );
+}
+
+export async function fetchSingleSourceRisk(): Promise<SingleSourceRiskRow[]> {
+  return request<SingleSourceRiskRow[]>(
+    "/api/v1/purchasing/intelligence/single-source-risk",
+  );
+}
+
+export type ApAgingBuckets = {
+  current: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  daysOver90: number;
+};
+
+export type ApAgingTotalsResponse = {
+  asOf: string;
+  buckets: ApAgingBuckets;
+  totalOpen: number;
+  totalSupplierPrepaymentBalance: number;
+};
+
+export async function fetchApAging(
+  asOf?: string,
+  supplierId?: string,
+): Promise<ApAgingTotalsResponse> {
+  const params = new URLSearchParams();
+  if (asOf?.trim()) {
+    params.set("asOf", asOf.trim());
+  }
+  if (supplierId?.trim()) {
+    params.set("supplierId", supplierId.trim());
+  }
+  const q = params.toString();
+  return request<ApAgingTotalsResponse>(
+    `/api/v1/purchasing/ap-aging${q ? `?${q}` : ""}`,
+  );
+}
+
+export type OpenSupplierInvoiceRow = {
+  id: string;
+  supplierId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  grandTotal: number;
+  openBalance: number;
+};
+
+export async function fetchOpenSupplierInvoices(
+  supplierId?: string,
+): Promise<OpenSupplierInvoiceRow[]> {
+  const params = new URLSearchParams();
+  if (supplierId?.trim()) {
+    params.set("supplierId", supplierId.trim());
+  }
+  const q = params.toString();
+  return request<OpenSupplierInvoiceRow[]>(
+    `/api/v1/purchasing/open-supplier-invoices${q ? `?${q}` : ""}`,
+  );
+}
+
+export type PostSupplierPaymentAllocationLine = {
+  supplierInvoiceId: string;
+  amount: number;
+};
+
+export type PostSupplierPaymentPayload = {
+  supplierId: string;
+  paidAt: string;
+  paymentMethod: string;
+  paymentAmount: number;
+  creditApplied: number;
+  reference?: string;
+  notes?: string;
+  allocations: PostSupplierPaymentAllocationLine[];
+};
+
+export type PostSupplierPaymentResult = {
+  supplierPaymentId: string;
+  journalEntryId: string;
+  totalAllocated: number;
+  supplierPrepaymentBalanceAfter: number;
+};
+
+export async function postSupplierPayment(
+  body: PostSupplierPaymentPayload,
+): Promise<PostSupplierPaymentResult> {
+  return request<PostSupplierPaymentResult>("/api/v1/purchasing/supplier-payments", {
+    method: "POST",
+    body,
+  });
+}
+
+export type SupplierRecord = {
+  id: string;
+  name: string;
+  code: string | null;
+  supplierType: string;
+  vatPin: string | null;
+  taxExempt: boolean;
+  creditTermsDays: number | null;
+  creditLimit: number | null;
+  rating: number | null;
+  status: string;
+  notes: string | null;
+  paymentMethodPreferred: string | null;
+  paymentDetails: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SupplierContactRecord = {
+  id: string;
+  name: string | null;
+  roleLabel: string | null;
+  phone: string | null;
+  email: string | null;
+  primaryContact: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateSupplierPayload = {
+  name: string;
+  code?: string;
+  supplierType?: string;
+  status?: string;
+  notes?: string;
+};
+
+export type PatchSupplierPayload = {
+  name?: string;
+  supplierType?: string;
+  status?: string;
+  notes?: string;
+};
+
+export type CreateSupplierContactPayload = {
+  name?: string;
+  roleLabel?: string;
+  phone?: string;
+  email?: string;
+  primaryContact?: boolean;
+};
+
+export async function fetchSuppliers(): Promise<SupplierRecord[]> {
+  const path = `/api/v1/suppliers?${DEFAULT_PAGE_QUERY}`;
+  const payload = await request<unknown>(path);
+  return extractPageContent<SupplierRecord>(payload);
+}
+
+export async function fetchSupplierById(supplierId: string): Promise<SupplierRecord> {
+  return request<SupplierRecord>(`/api/v1/suppliers/${supplierId}`);
+}
+
+export async function createSupplier(body: CreateSupplierPayload): Promise<SupplierRecord> {
+  return request<SupplierRecord>("/api/v1/suppliers", { method: "POST", body });
+}
+
+export async function patchSupplier(
+  supplierId: string,
+  body: PatchSupplierPayload,
+): Promise<SupplierRecord> {
+  return request<SupplierRecord>(`/api/v1/suppliers/${supplierId}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export async function fetchSupplierContacts(
+  supplierId: string,
+): Promise<SupplierContactRecord[]> {
+  return request<SupplierContactRecord[]>(`/api/v1/suppliers/${supplierId}/contacts`);
+}
+
+export async function createSupplierContact(
+  supplierId: string,
+  body: CreateSupplierContactPayload,
+): Promise<SupplierContactRecord> {
+  return request<SupplierContactRecord>(`/api/v1/suppliers/${supplierId}/contacts`, {
     method: "POST",
     body,
   });

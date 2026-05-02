@@ -11,6 +11,10 @@ export const APP_ROUTES = {
   branches: "/branches",
   users: "/users",
   products: "/products",
+  suppliers: "/suppliers",
+  purchasingIntelligence: "/purchasing/intelligence",
+  purchasingApAging: "/purchasing/ap-aging",
+  purchasingRecordPayment: "/purchasing/record-payment",
 } as const;
 
 export const API_ROUTES = {

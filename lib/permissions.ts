@@ -7,6 +7,12 @@ export const Permission = {
   UsersAssignRole: "users.assign_role",
   CatalogItemsRead: "catalog.items.read",
   CatalogItemsWrite: "catalog.items.write",
+  CatalogItemsLinkSuppliers: "catalog.items.link_suppliers",
+  PurchasingIntelligenceRead: "purchasing.intelligence.read",
+  PurchasingPaymentRead: "purchasing.payment.read",
+  PurchasingPaymentWrite: "purchasing.payment.write",
+  SuppliersRead: "suppliers.read",
+  SuppliersWrite: "suppliers.write",
 } as const;
 
 export function hasPermission(

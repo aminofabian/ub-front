@@ -24,6 +24,10 @@ type DashboardContextValue = {
   refreshSession: () => Promise<void>;
   canListUsers: boolean;
   canManageBusinessSettings: boolean;
+  canViewPurchasingIntelligence: boolean;
+  canViewApAging: boolean;
+  canViewSuppliers: boolean;
+  canRecordSupplierPayment: boolean;
 };
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -59,6 +63,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         me?.permissions,
         Permission.BusinessManageSettings,
       ),
+      canViewPurchasingIntelligence: hasPermission(
+        me?.permissions,
+        Permission.PurchasingIntelligenceRead,
+      ),
+      canViewApAging: hasPermission(me?.permissions, Permission.PurchasingPaymentRead),
+      canViewSuppliers: hasPermission(me?.permissions, Permission.SuppliersRead),
+      canRecordSupplierPayment: hasPermission(me?.permissions, Permission.PurchasingPaymentWrite),
     }),
     [me, business, loading, refreshSession],
   );

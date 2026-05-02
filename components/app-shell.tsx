@@ -16,6 +16,10 @@ const ALL_NAV_ITEMS = [
   BRANCHES_LINK,
   { href: APP_ROUTES.users, label: "Users" },
   { href: APP_ROUTES.products, label: "Products" },
+  { href: APP_ROUTES.suppliers, label: "Suppliers" },
+  { href: APP_ROUTES.purchasingIntelligence, label: "Supplier intelligence" },
+  { href: APP_ROUTES.purchasingApAging, label: "AP aging" },
+  { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment" },
 ] as const;
 
 type AppShellProps = {
@@ -25,11 +29,32 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { business, me, loading, canListUsers } = useDashboard();
+  const {
+    business,
+    me,
+    loading,
+    canListUsers,
+    canViewPurchasingIntelligence,
+    canViewApAging,
+    canViewSuppliers,
+    canRecordSupplierPayment,
+  } = useDashboard();
 
   const navItems = ALL_NAV_ITEMS.filter((item) => {
     if (item.href === APP_ROUTES.users) {
       return canListUsers;
+    }
+    if (item.href === APP_ROUTES.suppliers) {
+      return canViewSuppliers;
+    }
+    if (item.href === APP_ROUTES.purchasingIntelligence) {
+      return canViewPurchasingIntelligence;
+    }
+    if (item.href === APP_ROUTES.purchasingApAging) {
+      return canViewApAging;
+    }
+    if (item.href === APP_ROUTES.purchasingRecordPayment) {
+      return canRecordSupplierPayment;
     }
     return true;
   });

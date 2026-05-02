@@ -3,26 +3,35 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/components/dashboard-provider";
 import {
+  addItemSupplierLink,
   createItem,
   createItemVariant,
   deleteItem,
   fetchItemById,
   fetchItemTypes,
   fetchItems,
+  fetchSuppliers,
   patchItem,
   type CreateVariantPayload,
   type ItemDetailRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
   type PatchItemPayload,
+  type SupplierRecord,
 } from "@/lib/api";
+import { hasPermission, Permission } from "@/lib/permissions";
 
 type ParentDraft = {
   name: string;
   sku: string;
   barcode: string;
   itemTypeId: string;
+  supplierId: string;
+  supplierSku: string;
+  defaultCostPrice: string;
+  setPrimarySupplier: boolean;
 };
 
 const EMPTY_PARENT: ParentDraft = {
@@ -30,6 +39,10 @@ const EMPTY_PARENT: ParentDraft = {
   sku: "",
   barcode: "",
   itemTypeId: "",
+  supplierId: "",
+  supplierSku: "",
+  defaultCostPrice: "",
+  setPrimarySupplier: true,
 };
 
 type VariantDraft = {
@@ -47,8 +60,14 @@ const EMPTY_VARIANT: VariantDraft = {
 };
 
 export default function ProductsPage() {
+  const { me } = useDashboard();
+  const canLinkSupplier = hasPermission(me?.permissions, Permission.CatalogItemsLinkSuppliers);
+  const canListSuppliers = hasPermission(me?.permissions, Permission.SuppliersRead);
+
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [items, setItems] = useState<ItemSummaryRecord[]>([]);
+  const [suppliersForLink, setSuppliersForLink] = useState<SupplierRecord[]>([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [parentDraft, setParentDraft] = useState<ParentDraft>(EMPTY_PARENT);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -65,6 +84,20 @@ export default function ProductsPage() {
     setItemTypes(types);
     setItems(rows);
   }, [search]);
+
+  const loadSuppliersForLink = useCallback(async () => {
+    if (!canListSuppliers) {
+      return;
+    }
+    setSuppliersLoading(true);
+    try {
+      setSuppliersForLink(await fetchSuppliers());
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to load suppliers.");
+    } finally {
+      setSuppliersLoading(false);
+    }
+  }, [canListSuppliers]);
 
   useEffect(() => {
     loadTypesAndItems().catch((error) =>
@@ -111,19 +144,51 @@ export default function ProductsPage() {
   const onCreateParent = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage("");
+    const savedItemTypeId = parentDraft.itemTypeId;
     try {
-      await createItem({
+      const created = await createItem({
         name: parentDraft.name,
         sku: parentDraft.sku,
         itemTypeId: parentDraft.itemTypeId,
         barcode: parentDraft.barcode || undefined,
       });
-      setParentDraft((previous) => ({
-        ...EMPTY_PARENT,
-        itemTypeId: previous.itemTypeId,
-      }));
+      const supplierChosen = parentDraft.supplierId.trim();
+      if (canLinkSupplier && supplierChosen) {
+        const costRaw = parentDraft.defaultCostPrice.trim();
+        let defaultCostPrice: number | undefined;
+        if (costRaw) {
+          const n = Number(costRaw);
+          if (!Number.isFinite(n)) {
+            throw new Error("Default cost must be a valid number.");
+          }
+          defaultCostPrice = n;
+        }
+        try {
+          await addItemSupplierLink(created.id, {
+            supplierId: supplierChosen,
+            setPrimary: parentDraft.setPrimarySupplier,
+            supplierSku: parentDraft.supplierSku.trim() || undefined,
+            defaultCostPrice,
+          });
+        } catch (linkErr) {
+          await loadTypesAndItems();
+          setSelectedId(created.id);
+          setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedItemTypeId });
+          setMessage(
+            linkErr instanceof Error
+              ? `Product created. Supplier link failed: ${linkErr.message}`
+              : "Product created but supplier link failed.",
+          );
+          return;
+        }
+      }
+      setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedItemTypeId });
       await loadTypesAndItems();
-      setMessage("Product created.");
+      setMessage(
+        canLinkSupplier && supplierChosen
+          ? "Product created and linked to supplier."
+          : "Product created.",
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Create product failed.");
     }
@@ -193,7 +258,10 @@ export default function ProductsPage() {
       <header>
         <h2 className="text-xl font-semibold">Products</h2>
         <p className="text-sm text-muted-foreground">
-          Parent items, variants, search, update, and soft-delete (scaffold).
+          Parent items, variants, search, update, and soft-delete. When creating a parent, you can optionally
+          link a supplier if you have{" "}
+          <code className="text-xs">{Permission.CatalogItemsLinkSuppliers}</code> (and typically{" "}
+          <code className="text-xs">{Permission.SuppliersRead}</code> to pick from a list).
         </p>
       </header>
 
@@ -267,6 +335,98 @@ export default function ProductsPage() {
           }
           aria-label="New product barcode"
         />
+        {canLinkSupplier ? (
+          <>
+            <div className="md:col-span-6 mt-2 border-t pt-3">
+              <p className="text-sm font-medium">Optional supplier link</p>
+              <p className="text-xs text-muted-foreground">
+                After create, the product is linked via{" "}
+                <code className="text-[10px]">POST /items/&#123;id&#125;/supplier-links</code>. Leave supplier
+                empty to skip.
+              </p>
+            </div>
+            {canListSuppliers ? (
+              <div className="md:col-span-6 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={suppliersLoading}
+                  onClick={() => void loadSuppliersForLink()}
+                >
+                  {suppliersLoading ? "Loading suppliers…" : "Load suppliers"}
+                </Button>
+              </div>
+            ) : null}
+            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Supplier</span>
+              <select
+                className="rounded-md border bg-background px-3 py-2 text-sm"
+                value={
+                  suppliersForLink.some((s) => s.id === parentDraft.supplierId)
+                    ? parentDraft.supplierId
+                    : ""
+                }
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, supplierId: event.target.value }))
+                }
+              >
+                <option value="">— None —</option>
+                {suppliersForLink.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Supplier ID (override / paste)</span>
+              <input
+                className="rounded-md border bg-background px-3 py-2 font-mono text-xs"
+                placeholder="UUID"
+                value={parentDraft.supplierId}
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, supplierId: event.target.value }))
+                }
+                aria-label="Supplier ID"
+              />
+            </label>
+            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Supplier SKU (optional)</span>
+              <input
+                className="rounded-md border bg-background px-3 py-2 text-sm"
+                value={parentDraft.supplierSku}
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, supplierSku: event.target.value }))
+                }
+                aria-label="Supplier SKU"
+              />
+            </label>
+            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Default cost (optional)</span>
+              <input
+                className="rounded-md border bg-background px-3 py-2 text-sm"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={parentDraft.defaultCostPrice}
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, defaultCostPrice: event.target.value }))
+                }
+                aria-label="Default cost from supplier"
+              />
+            </label>
+            <label className="md:col-span-6 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={parentDraft.setPrimarySupplier}
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, setPrimarySupplier: event.target.checked }))
+                }
+              />
+              Set as primary supplier for this item
+            </label>
+          </>
+        ) : null}
         <Button
           className="md:col-span-2 md:w-fit"
           type="submit"
