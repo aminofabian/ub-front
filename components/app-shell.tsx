@@ -18,6 +18,7 @@ const ALL_NAV_ITEMS = [
   { href: APP_ROUTES.products, label: "Products" },
   { href: APP_ROUTES.categories, label: "Categories" },
   { href: APP_ROUTES.suppliers, label: "Suppliers" },
+  { href: APP_ROUTES.customers, label: "Customers" },
   { href: APP_ROUTES.purchasingIntelligence, label: "Supplier intelligence" },
   { href: APP_ROUTES.purchasingApAging, label: "AP aging" },
   { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment" },
@@ -26,7 +27,10 @@ const ALL_NAV_ITEMS = [
   { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
   { href: APP_ROUTES.pricing, label: "Pricing" },
   { href: APP_ROUTES.shifts, label: "Shifts" },
+  { href: APP_ROUTES.salesReports, label: "Sales by category" },
+  { href: APP_ROUTES.storefrontWebOrders, label: "Pickup orders (web)" },
   { href: APP_ROUTES.salesQuick, label: "Quick sale" },
+  { href: APP_ROUTES.cashier, label: "Cashier (PWA)" },
 ] as const;
 
 type AppShellProps = {
@@ -45,12 +49,15 @@ export function AppShell({ children }: AppShellProps) {
     canViewPurchasingIntelligence,
     canViewApAging,
     canViewSuppliers,
+    canViewCustomers,
     canRecordSupplierPayment,
     canViewInventoryValuation,
     canViewInventoryTransfers,
     canViewStockTake,
     canViewPricing,
     canViewShifts,
+    canViewSalesIntelligence,
+    canViewStorefrontOrders,
     canQuickSale,
   } = useDashboard();
 
@@ -63,6 +70,9 @@ export function AppShell({ children }: AppShellProps) {
     }
     if (item.href === APP_ROUTES.suppliers) {
       return canViewSuppliers;
+    }
+    if (item.href === APP_ROUTES.customers) {
+      return canViewCustomers;
     }
     if (item.href === APP_ROUTES.purchasingIntelligence) {
       return canViewPurchasingIntelligence;
@@ -88,7 +98,16 @@ export function AppShell({ children }: AppShellProps) {
     if (item.href === APP_ROUTES.shifts) {
       return canViewShifts;
     }
+    if (item.href === APP_ROUTES.salesReports) {
+      return canViewSalesIntelligence;
+    }
+    if (item.href === APP_ROUTES.storefrontWebOrders) {
+      return canViewStorefrontOrders;
+    }
     if (item.href === APP_ROUTES.salesQuick) {
+      return canQuickSale;
+    }
+    if (item.href === APP_ROUTES.cashier) {
       return canQuickSale;
     }
     return true;

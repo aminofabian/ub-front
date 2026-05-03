@@ -19,9 +19,12 @@ const SKIP_OUT_HEADERS = new Set([
 ]);
 
 function normalizeBackendOrigin(): string | null {
-  const raw = process.env.BACKEND_ORIGIN?.trim();
-  if (!raw) return null;
-  return raw.replace(/\/+$/, "");
+  const keys = ["BACKEND_ORIGIN", "API_BACKEND_ORIGIN"] as const;
+  for (const key of keys) {
+    const raw = process.env[key]?.trim();
+    if (raw) return raw.replace(/\/+$/, "");
+  }
+  return null;
 }
 
 function targetUrl(req: NextRequest, segments: string[] | undefined): URL | null {
@@ -59,7 +62,10 @@ export async function proxyToBackend(
     return NextResponse.json(
       {
         title: "Missing BACKEND_ORIGIN",
-        detail: "Set BACKEND_ORIGIN on the Next.js server and restart.",
+        detail:
+          "The Next.js server needs the real API URL (server-only env, not NEXT_PUBLIC_*). " +
+          "Set BACKEND_ORIGIN=https://your-api.example.com in your host (e.g. Vercel → Project → Settings → Environment Variables), then redeploy. " +
+          "Locally: BACKEND_ORIGIN in .env.local and restart next dev.",
       },
       { status: 502, headers: { "Content-Type": "application/problem+json" } },
     );
@@ -67,13 +73,14 @@ export async function proxyToBackend(
 
   const method = req.method.toUpperCase();
   const headers = buildUpstreamHeaders(req);
-  let body: string | undefined;
-  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-    body = await req.text();
-  }
-
   const init: RequestInit = { method, headers };
-  if (body !== undefined) init.body = body;
+
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+    const buf = await req.arrayBuffer();
+    if (buf.byteLength > 0) {
+      init.body = buf;
+    }
+  }
 
   let upstream: Response;
   try {

@@ -15,6 +15,7 @@ export const Permission = {
   SuppliersRead: "suppliers.read",
   SuppliersWrite: "suppliers.write",
   InventoryRead: "inventory.read",
+  InventoryWrite: "inventory.write",
   InventoryTransfer: "inventory.transfer",
   StocktakeRead: "stocktake.read",
   StocktakeRun: "stocktake.run",
@@ -29,6 +30,14 @@ export const Permission = {
   SalesVoidOwn: "sales.void.own",
   SalesVoidAny: "sales.void.any",
   SalesRefundCreate: "sales.refund.create",
+  SalesIntelligenceRead: "sales.intelligence.read",
+  StorefrontOrdersRead: "storefront.orders.read",
+  CreditsCustomersRead: "credits.customers.read",
+  CreditsCustomersWrite: "credits.customers.write",
+  CreditsWalletWrite: "credits.wallet.write",
+  CreditsClaimsIssue: "credits.claims.issue",
+  CreditsClaimsReview: "credits.claims.review",
+  PaymentsStkInitiate: "payments.stk.initiate",
 } as const;
 
 export function hasPermission(

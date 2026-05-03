@@ -66,17 +66,43 @@ export type ItemSummaryRecord = {
   variantName?: string;
   variantOfItemId?: string;
   categoryId?: string | null;
+  imageKey?: string | null;
+  /** HTTPS URL for list thumbnails (from API: cover or first gallery image). */
+  thumbnailUrl?: string | null;
   active?: boolean;
+  /** When true, item may appear in the public storefront catalog (Phase 15). */
+  webPublished?: boolean;
 };
+
+/** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
+export function itemListThumbnailUrl(row: ItemSummaryRecord): string | null {
+  const thumb = row.thumbnailUrl?.trim();
+  if (thumb) {
+    return thumb;
+  }
+  const key = row.imageKey?.trim();
+  if (key?.startsWith("http")) {
+    return key;
+  }
+  return null;
+}
 
 export type ItemImageRecord = {
   id: string;
-  s3Key: string;
+  s3Key?: string | null;
+  secureUrl?: string | null;
+  publicId?: string | null;
+  provider?: string | null;
   width?: number | null;
   height?: number | null;
   sortOrder: number;
   contentType?: string | null;
   altText?: string | null;
+  bytes?: number | null;
+  format?: string | null;
+  assetSignature?: string | null;
+  predominantColorHex?: string | null;
+  phash?: string | null;
   createdAt?: string;
 };
 
@@ -102,14 +128,55 @@ export type ItemTypeRecord = {
   label: string;
 };
 
+export type CategorySupplierSummaryRecord = {
+  supplierId: string;
+  supplierName: string;
+  sortOrder: number;
+  primary?: boolean;
+};
+
+export type CategoryTaxSummaryRecord = {
+  id: string;
+  name: string;
+  ratePercent: number | string;
+  inclusive: boolean;
+};
+
 export type CategoryRecord = {
   id: string;
   name: string;
   slug: string;
   position: number;
-  icon: string;
+  icon: string | null;
   parentId: string | null;
   active: boolean;
+  description?: string | null;
+  defaultMarkupPct?: number | string | null;
+  defaultTaxRateId?: string | null;
+  defaultTaxRate?: CategoryTaxSummaryRecord | null;
+  imageKey: string | null;
+  thumbnailUrl: string | null;
+  linkedSuppliers: CategorySupplierSummaryRecord[];
+};
+
+export type CategoryTreeNodeRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  position: number;
+  depth: number;
+  active: boolean;
+  thumbnailUrl: string | null;
+  description: string;
+  childCount: number;
+  children: CategoryTreeNodeRecord[];
+};
+
+export type CategoryLinkedPriceRuleRecord = {
+  ruleId: string;
+  ruleName: string;
+  precedence: number;
 };
 
 export type CreateCategoryPayload = {
@@ -117,15 +184,34 @@ export type CreateCategoryPayload = {
   parentId?: string;
   icon?: string;
   position?: number;
+  description?: string;
+  defaultMarkupPct?: number | string;
+  defaultTaxRateId?: string;
 };
 
 export type PatchCategoryPayload = {
   name?: string;
   slug?: string;
   parentId?: string;
+  /** Clears parent (top-level category). Takes precedence over {@link parentId}. */
+  root?: boolean;
   active?: boolean;
   position?: number;
   icon?: string;
+  description?: string;
+  clearDescription?: boolean;
+  defaultMarkupPct?: number | string;
+  clearDefaultMarkup?: boolean;
+  defaultTaxRateId?: string;
+  clearDefaultTaxRate?: boolean;
+};
+
+export type StorefrontSettingsRecord = {
+  enabled: boolean;
+  catalogBranchId?: string | null;
+  label?: string | null;
+  announcement?: string | null;
+  featuredItemIds: string[];
 };
 
 export type BusinessRecord = {
@@ -137,6 +223,7 @@ export type BusinessRecord = {
   timezone?: string;
   active?: boolean;
   subscriptionTier?: string;
+  storefront?: StorefrontSettingsRecord;
 };
 
 export type BranchRecord = {
@@ -166,10 +253,19 @@ export type UserListFilters = {
   branchId?: string;
 };
 
+export type StorefrontPatchPayload = {
+  enabled?: boolean;
+  catalogBranchId?: string | null;
+  label?: string | null;
+  announcement?: string | null;
+  featuredItemIds?: string[] | null;
+};
+
 export type PatchBusinessPayload = {
   name?: string;
   subscriptionTier?: string;
   active?: boolean;
+  storefront?: StorefrontPatchPayload;
 };
 
 export type CreateUserPayload = {
@@ -219,7 +315,10 @@ export type PatchItemPayload = {
   barcode?: string;
   description?: string;
   active?: boolean;
+  webPublished?: boolean;
   bundlePrice?: number;
+  bundleQty?: number;
+  bundleName?: string;
   imageKey?: string;
   categoryId?: string;
 };
@@ -258,6 +357,23 @@ export type CreateVariantPayload = {
   variantName: string;
   name?: string;
   barcode?: string;
+  description?: string;
+  categoryId?: string;
+  aisleId?: string;
+  unitType?: string;
+  isWeighed?: boolean;
+  isSellable?: boolean;
+  isStocked?: boolean;
+  minStockLevel?: number;
+  reorderLevel?: number;
+  reorderQty?: number;
+  imageKey?: string;
+};
+
+export type InventoryMutationResponseRecord = {
+  journalEntryId?: string | null;
+  stockMovementId?: string | null;
+  inventoryBatchId?: string | null;
 };
 
 const IDEMPOTENCY_METHODS: RequestMethod[] = ["POST", "PATCH"];
@@ -426,6 +542,42 @@ async function request<T>(
 
   if (response.status === 204) {
     return {} as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+async function requestMultipartJson<T>(path: string, form: FormData): Promise<T> {
+  const execute = async () => {
+    const session = getSessionTokens();
+    const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
+    const headers = new Headers(headersInit);
+    headers.delete("Content-Type");
+    return fetch(`${API_BASE_URL}${path}`, { method: "POST", headers, body: form });
+  };
+
+  let response = await execute();
+  if (response.status === 401) {
+    const payload = await response.clone().json().catch(() => ({}));
+    const problem = parseProblem(payload);
+    if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
+      response = await execute();
+    } else {
+      const title = getProblemTitle(payload);
+      if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+        signOutClientAndRedirectToLogin();
+      }
+      throw new Error(title);
+    }
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const title = getProblemTitle(payload);
+    if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+      signOutClientAndRedirectToLogin();
+    }
+    throw new Error(title);
   }
 
   return (await response.json()) as T;
@@ -633,6 +785,39 @@ export async function fetchCategories(): Promise<CategoryRecord[]> {
   return request<CategoryRecord[]>(API_ROUTES.categories);
 }
 
+export async function fetchCategoryTree(): Promise<CategoryTreeNodeRecord[]> {
+  return request<CategoryTreeNodeRecord[]>(`${API_ROUTES.categories}/tree`);
+}
+
+export async function fetchCategoryChildren(categoryId: string): Promise<CategoryRecord[]> {
+  return request<CategoryRecord[]>(
+    `${API_ROUTES.categories}/${encodeURIComponent(categoryId.trim())}/children`,
+  );
+}
+
+export async function fetchCategoryPriceRules(categoryId: string): Promise<CategoryLinkedPriceRuleRecord[]> {
+  return request<CategoryLinkedPriceRuleRecord[]>(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/price-rules`,
+  );
+}
+
+export async function postCategoryPriceRule(
+  categoryId: string,
+  body: { ruleId: string; precedence?: number },
+): Promise<CategoryLinkedPriceRuleRecord> {
+  return request<CategoryLinkedPriceRuleRecord>(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/price-rules`,
+    { method: "POST", body },
+  );
+}
+
+export async function deleteCategoryPriceRule(categoryId: string, ruleId: string): Promise<void> {
+  await request(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/price-rules/${encodeURIComponent(ruleId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function createCategory(
   payload: CreateCategoryPayload,
 ): Promise<CategoryRecord> {
@@ -647,6 +832,66 @@ export async function patchCategory(
     method: "PATCH",
     body,
   });
+}
+
+export async function fetchCategoryImages(categoryId: string): Promise<ItemImageRecord[]> {
+  return request<ItemImageRecord[]>(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/images`,
+  );
+}
+
+export async function uploadCategoryImageToCloudinary(
+  categoryId: string,
+  file: File,
+  opts?: { altText?: string; primary?: boolean },
+): Promise<ItemImageRecord> {
+  const form = new FormData();
+  form.append("file", file);
+  if (opts?.altText?.trim()) {
+    form.append("altText", opts.altText.trim());
+  }
+  if (opts?.primary === false) {
+    form.append("primary", "false");
+  }
+  return requestMultipartJson<ItemImageRecord>(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/images/upload`,
+    form,
+  );
+}
+
+export async function deleteCategoryImage(categoryId: string, imageId: string): Promise<void> {
+  await request(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/images/${encodeURIComponent(imageId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function postCategorySupplierLink(
+  categoryId: string,
+  body: { supplierId: string; sortOrder?: number; primary?: boolean },
+): Promise<CategorySupplierSummaryRecord> {
+  return request<CategorySupplierSummaryRecord>(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/supplier-links`,
+    { method: "POST", body },
+  );
+}
+
+export async function patchCategorySupplierLink(
+  categoryId: string,
+  supplierId: string,
+  body: { primary: boolean },
+): Promise<CategorySupplierSummaryRecord> {
+  return request<CategorySupplierSummaryRecord>(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/supplier-links/${encodeURIComponent(supplierId.trim())}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deleteCategorySupplierLink(categoryId: string, supplierId: string): Promise<void> {
+  await request(
+    `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/supplier-links/${encodeURIComponent(supplierId.trim())}`,
+    { method: "DELETE" },
+  );
 }
 
 export async function createUser(payload: CreateUserPayload): Promise<void> {
@@ -671,10 +916,21 @@ export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
 }
 
-export async function fetchItems(search?: string): Promise<ItemSummaryRecord[]> {
+export type FetchItemsOpts = {
+  categoryId?: string;
+  includeCategoryDescendants?: boolean;
+};
+
+export async function fetchItems(search?: string, opts?: FetchItemsOpts): Promise<ItemSummaryRecord[]> {
   const params = new URLSearchParams(DEFAULT_PAGE_QUERY);
   if (search?.trim()) {
     params.set("search", search.trim());
+  }
+  if (opts?.categoryId?.trim()) {
+    params.set("categoryId", opts.categoryId.trim());
+    if (opts.includeCategoryDescendants) {
+      params.set("includeCategoryDescendants", "true");
+    }
   }
   const path = `${API_ROUTES.items}?${params.toString()}`;
   const payload = await request<unknown>(path);
@@ -732,6 +988,32 @@ export async function patchItem(
   await request(`${API_ROUTES.items}/${itemId}`, { method: "PATCH", body });
 }
 
+export async function uploadItemImageToCloudinary(
+  itemId: string,
+  file: File,
+  opts?: { altText?: string; primary?: boolean },
+): Promise<ItemImageRecord> {
+  const form = new FormData();
+  form.append("file", file);
+  if (opts?.altText?.trim()) {
+    form.append("altText", opts.altText.trim());
+  }
+  if (opts?.primary === false) {
+    form.append("primary", "false");
+  }
+  return requestMultipartJson<ItemImageRecord>(
+    `/api/v1/items/${encodeURIComponent(itemId.trim())}/images/upload`,
+    form,
+  );
+}
+
+export async function deleteItemImage(itemId: string, imageId: string): Promise<void> {
+  await request(
+    `/api/v1/items/${encodeURIComponent(itemId.trim())}/images/${encodeURIComponent(imageId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function deleteItem(
   itemId: string,
   cascadeVariants = false,
@@ -743,10 +1025,32 @@ export async function deleteItem(
 export async function createItemVariant(
   parentItemId: string,
   body: CreateVariantPayload,
-): Promise<void> {
-  await request(`${API_ROUTES.items}/${parentItemId}/variants`, {
+): Promise<ItemCreateResponse> {
+  return request<ItemCreateResponse>(`${API_ROUTES.items}/${parentItemId}/variants`, {
     method: "POST",
     body,
+  });
+}
+
+export async function postStockIncrease(body: {
+  branchId: string;
+  itemId: string;
+  quantity: number | string;
+  unitCost: number | string;
+  notes?: string | null;
+}): Promise<InventoryMutationResponseRecord> {
+  const payload: Record<string, unknown> = {
+    branchId: body.branchId.trim(),
+    itemId: body.itemId.trim(),
+    quantity: body.quantity,
+    unitCost: body.unitCost,
+  };
+  if (body.notes?.trim()) {
+    payload.notes = body.notes.trim();
+  }
+  return request<InventoryMutationResponseRecord>("/api/v1/inventory/stock-increase", {
+    method: "POST",
+    body: payload,
   });
 }
 
@@ -813,6 +1117,68 @@ export async function fetchSingleSourceRisk(): Promise<SingleSourceRiskRow[]> {
   return request<SingleSourceRiskRow[]>(
     "/api/v1/purchasing/intelligence/single-source-risk",
   );
+}
+
+export type RevenueByCategoryRow = {
+  categoryId: string;
+  categoryName: string;
+  netRevenue: number | string;
+};
+
+export async function fetchSalesRevenueByCategory(
+  from?: string,
+  to?: string,
+): Promise<RevenueByCategoryRow[]> {
+  return request<RevenueByCategoryRow[]>(
+    `/api/v1/sales/intelligence/revenue-by-category${intelligenceDateQuery(from, to)}`,
+  );
+}
+
+export type WebOrderSummary = {
+  id: string;
+  status: string;
+  grandTotal: number | string;
+  currency: string;
+  customerName: string;
+  customerPhone: string;
+  catalogBranchId: string;
+  catalogBranchName: string;
+  createdAt: string;
+};
+
+export type WebOrderLineSnapshot = {
+  itemId: string;
+  itemName: string;
+  variantName: string | null;
+  quantity: number | string;
+  unitPrice: number | string;
+  lineTotal: number | string;
+  lineIndex: number;
+};
+
+export type WebOrderDetail = {
+  id: string;
+  cartId: string;
+  status: string;
+  grandTotal: number | string;
+  currency: string;
+  catalogBranchId: string;
+  catalogBranchName: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  notes: string | null;
+  createdAt: string;
+  lines: WebOrderLineSnapshot[];
+};
+
+export async function fetchWebOrders(page = 0, size = 50): Promise<WebOrderSummary[]> {
+  const payload = await request<unknown>(`/api/v1/web-orders?page=${page}&size=${size}`);
+  return extractPageContent<WebOrderSummary>(payload);
+}
+
+export async function fetchWebOrderDetail(orderId: string): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(`/api/v1/web-orders/${encodeURIComponent(orderId.trim())}`);
 }
 
 export type ApAgingBuckets = {
@@ -1164,7 +1530,12 @@ export async function postCloseShift(
   });
 }
 
-export type SalePaymentMethod = "cash" | "mpesa_manual";
+export type SalePaymentMethod =
+  | "cash"
+  | "mpesa_manual"
+  | "customer_credit"
+  | "customer_wallet"
+  | "loyalty_redeem";
 
 export type PostSaleLinePayload = {
   itemId: string;
@@ -1180,6 +1551,8 @@ export type PostSalePaymentPayload = {
 
 export type PostSalePayload = {
   branchId: string;
+  /** Required when any payment uses `customer_credit` (tab / AR). */
+  customerId?: string | null;
   lines: PostSaleLinePayload[];
   payments: PostSalePaymentPayload[];
   /** ISO-8601 instant when the cashier completed the sale (offline-safe; server may clamp skew). */
@@ -1208,6 +1581,7 @@ export type SalePaymentResponseRecord = {
 export type SaleRecord = {
   id: string;
   branchId: string;
+  customerId?: string | null;
   shiftId: string;
   status: string;
   grandTotal: number | string;
@@ -1288,6 +1662,10 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
   const soldAt = body.clientSoldAt?.trim();
   if (soldAt) {
     payload.clientSoldAt = soldAt;
+  }
+  const cust = body.customerId?.trim();
+  if (cust) {
+    payload.customerId = cust;
   }
   return payload;
 }
@@ -1541,6 +1919,7 @@ export type CreateSupplierPayload = {
 
 export type PatchSupplierPayload = {
   name?: string;
+  code?: string;
   supplierType?: string;
   status?: string;
   notes?: string;
@@ -1589,6 +1968,197 @@ export async function createSupplierContact(
   body: CreateSupplierContactPayload,
 ): Promise<SupplierContactRecord> {
   return request<SupplierContactRecord>(`/api/v1/suppliers/${supplierId}/contacts`, {
+    method: "POST",
+    body,
+  });
+}
+
+export type CustomerPhoneRecord = {
+  id: string;
+  phone: string;
+  primary: boolean;
+  createdAt: string;
+};
+
+export type CreditAccountSummaryRecord = {
+  balanceOwed: number | string;
+  walletBalance: number | string;
+  loyaltyPoints: number;
+  creditLimit: number | string | null;
+  version: number;
+};
+
+export type CustomerRecord = {
+  id: string;
+  name: string;
+  email: string | null;
+  notes: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  phones: CustomerPhoneRecord[];
+  credit: CreditAccountSummaryRecord;
+};
+
+export type CreateCustomerPayload = {
+  name: string;
+  email?: string | null;
+  notes?: string | null;
+  creditLimit?: number | string | null;
+  phones: { phone: string; primary?: boolean | null }[];
+};
+
+export async function fetchCustomers(phone?: string): Promise<CustomerRecord[]> {
+  const params = new URLSearchParams({ page: "0", size: "100" });
+  const q = phone?.trim();
+  if (q) {
+    params.set("phone", q);
+  }
+  const payload = await request<unknown>(`/api/v1/customers?${params}`);
+  return extractPageContent<CustomerRecord>(payload);
+}
+
+export async function fetchCustomerById(customerId: string): Promise<CustomerRecord> {
+  return request<CustomerRecord>(`/api/v1/customers/${customerId}`);
+}
+
+export type CreditStatementLineRecord = {
+  at: string;
+  kind: string;
+  debit: number | string;
+  credit: number | string;
+  memo: string;
+};
+
+export type CreditStatementRecord = {
+  customerId: string;
+  customerName: string;
+  balanceOwed: number | string;
+  walletBalance: number | string;
+  loyaltyPoints: number;
+  lines: CreditStatementLineRecord[];
+};
+
+export async function fetchCustomerCreditStatement(
+  customerId: string,
+): Promise<CreditStatementRecord> {
+  return request<CreditStatementRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/credit-statement`,
+  );
+}
+
+export async function postCustomerWalletTopUp(
+  customerId: string,
+  body: { amount: number | string },
+): Promise<void> {
+  return request<void>(`/api/v1/customers/${encodeURIComponent(customerId)}/wallet/top-ups`, {
+    method: "POST",
+    body: { amount: body.amount },
+  });
+}
+
+export type IssuePaymentClaimResponseRecord = {
+  claimId: string;
+  plaintextToken: string;
+};
+
+export async function issueCustomerPaymentClaim(
+  customerId: string,
+): Promise<IssuePaymentClaimResponseRecord> {
+  return request<IssuePaymentClaimResponseRecord>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/payment-claims`,
+    { method: "POST" },
+  );
+}
+
+export type PublicPaymentClaimRecord = {
+  id: string;
+  businessId: string;
+  creditAccountId: string;
+  status: string;
+  submittedAmount: number | string | null;
+  submittedReference: string | null;
+  creditNote: string | null;
+  approvedJournalId: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listSubmittedPaymentClaims(): Promise<PublicPaymentClaimRecord[]> {
+  return request<PublicPaymentClaimRecord[]>("/api/v1/credits/payment-claims/submitted");
+}
+
+export async function approvePaymentClaim(claimId: string): Promise<void> {
+  return request<void>(`/api/v1/credits/payment-claims/${encodeURIComponent(claimId)}/approve`, {
+    method: "POST",
+  });
+}
+
+export async function submitPublicPaymentClaim(
+  plaintextToken: string,
+  body: { amount: number | string; reference?: string | null },
+): Promise<void> {
+  return request<void>(
+    `/api/v1/public/credits/payment-claims/${encodeURIComponent(plaintextToken)}`,
+    {
+      method: "POST",
+      body: {
+        amount: body.amount,
+        reference: body.reference?.trim() || null,
+      },
+    },
+  );
+}
+
+export type MpesaStkIntentResponseRecord = {
+  intentId: string;
+  checkoutRequestId: string;
+  status: string;
+  amount: number | string;
+};
+
+export async function initiateMpesaStkIntent(
+  body: { customerId: string; amount: number | string },
+  idempotencyKey: string,
+): Promise<MpesaStkIntentResponseRecord> {
+  return request<MpesaStkIntentResponseRecord>("/api/v1/payments/mpesa/stk/intents", {
+    method: "POST",
+    body,
+    idempotencyKey,
+  });
+}
+
+export async function simulateMpesaStkComplete(body: {
+  businessId: string;
+  intentId: string;
+  secret?: string | null;
+}): Promise<void> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const secret = body.secret?.trim();
+  if (secret) {
+    headers.set("X-Mpesa-Simulate-Secret", secret);
+  }
+  try {
+    const resp = await fetch(`${API_BASE_URL}/webhooks/mpesa/stk/complete`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ businessId: body.businessId, intentId: body.intentId }),
+    });
+    if (!resp.ok) {
+      const payload = await resp.json().catch(() => ({}));
+      throw new Error(getProblemTitle(payload));
+    }
+  } catch (e) {
+    if (e instanceof Error && /Cannot reach API/.test(e.message)) {
+      throw e;
+    }
+    throw e instanceof Error ? e : new Error("STK simulate failed.");
+  }
+}
+
+export async function createCustomer(body: CreateCustomerPayload): Promise<CustomerRecord> {
+  return request<CustomerRecord>("/api/v1/customers", {
     method: "POST",
     body,
   });

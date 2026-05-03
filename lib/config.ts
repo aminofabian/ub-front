@@ -13,6 +13,7 @@ export const APP_ROUTES = {
   products: "/products",
   categories: "/categories",
   suppliers: "/suppliers",
+  customers: "/customers",
   purchasingIntelligence: "/purchasing/intelligence",
   purchasingApAging: "/purchasing/ap-aging",
   purchasingRecordPayment: "/purchasing/record-payment",
@@ -21,8 +22,19 @@ export const APP_ROUTES = {
   inventoryStockTake: "/inventory/stock-take",
   pricing: "/pricing",
   shifts: "/shifts",
+  salesReports: "/sales/reports",
+  storefrontWebOrders: "/storefront/web-orders",
   salesQuick: "/sales/quick",
+  cashier: "/cashier",
+  shop: "/shop",
+  shopCart: "/shop/cart",
+  shopCheckout: "/shop/checkout",
 } as const;
+
+/** Public product detail (Phase 15 storefront). */
+export function shopItemPath(itemId: string): string {
+  return `/shop/items/${encodeURIComponent(itemId)}`;
+}
 
 export const API_ROUTES = {
   login: "/api/v1/auth/login",

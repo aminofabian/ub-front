@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -14,6 +16,7 @@ import {
   fetchSupplierContacts,
   fetchSupplierItemLinks,
   fetchSuppliers,
+  itemListThumbnailUrl,
   patchSupplier,
   postItemSupplierLinkSetPrimary,
   type CreateSupplierContactPayload,
@@ -26,19 +29,88 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-type PatchDraft = {
+const SUPPLIER_STATUS_OPTIONS = ["active", "inactive", "blocked"] as const;
+
+type SupplierProfileDraft = {
   name: string;
+  code: string;
   supplierType: string;
   status: string;
   notes: string;
 };
 
-const EMPTY_PATCH: PatchDraft = {
+const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
   name: "",
+  code: "",
   supplierType: "distributor",
   status: "active",
   notes: "",
 };
+
+function SupplierProfileFields({
+  draft,
+  onDraftChange,
+}: {
+  draft: SupplierProfileDraft;
+  onDraftChange: (partial: Partial<SupplierProfileDraft>) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <label className="flex flex-col gap-1 sm:col-span-2">
+        <span className="text-muted-foreground">Name</span>
+        <input
+          className="rounded border bg-background px-2 py-1.5"
+          value={draft.name}
+          onChange={(e) => onDraftChange({ name: e.target.value })}
+          required
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-muted-foreground">Code (optional)</span>
+        <input
+          className="rounded border bg-background px-2 py-1.5"
+          value={draft.code}
+          onChange={(e) => onDraftChange({ code: e.target.value })}
+          maxLength={64}
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-muted-foreground">Type</span>
+        <input
+          className="rounded border bg-background px-2 py-1.5"
+          value={draft.supplierType}
+          onChange={(e) => onDraftChange({ supplierType: e.target.value })}
+          placeholder="e.g. distributor"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-muted-foreground">Status</span>
+        <select
+          className="rounded border bg-background px-2 py-1.5"
+          value={draft.status}
+          onChange={(e) => onDraftChange({ status: e.target.value })}
+        >
+          {(SUPPLIER_STATUS_OPTIONS as readonly string[]).includes(draft.status) ? null : (
+            <option value={draft.status}>{draft.status}</option>
+          )}
+          {SUPPLIER_STATUS_OPTIONS.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 sm:col-span-2">
+        <span className="text-muted-foreground">Notes</span>
+        <textarea
+          className="min-h-[4rem] rounded border bg-background px-2 py-1.5"
+          value={draft.notes}
+          onChange={(e) => onDraftChange({ notes: e.target.value })}
+        />
+      </label>
+    </div>
+  );
+}
 
 export default function SuppliersPage() {
   const { me } = useDashboard();
@@ -56,8 +128,8 @@ export default function SuppliersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SupplierRecord | null>(null);
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
-  const [patchDraft, setPatchDraft] = useState<PatchDraft>(EMPTY_PATCH);
-  const [createName, setCreateName] = useState("");
+  const [patchDraft, setPatchDraft] = useState<SupplierProfileDraft>(EMPTY_SUPPLIER_PROFILE);
+  const [createDraft, setCreateDraft] = useState<SupplierProfileDraft>(EMPTY_SUPPLIER_PROFILE);
   const [contactDraft, setContactDraft] = useState<CreateSupplierContactPayload>({
     name: "",
     email: "",
@@ -111,6 +183,7 @@ export default function SuppliersPage() {
       setItemLinks(links);
       setPatchDraft({
         name: d.name,
+        code: d.code ?? "",
         supplierType: d.supplierType,
         status: d.status,
         notes: d.notes ?? "",
@@ -147,14 +220,21 @@ export default function SuppliersPage() {
 
   const onCreate = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!createName.trim()) {
+    if (!createDraft.name.trim()) {
       return;
     }
     setFeedback(null);
     try {
-      const body: CreateSupplierPayload = { name: createName.trim() };
+      const codeTrim = createDraft.code.trim();
+      const body: CreateSupplierPayload = {
+        name: createDraft.name.trim(),
+        ...(codeTrim ? { code: codeTrim } : {}),
+        supplierType: createDraft.supplierType.trim() || undefined,
+        status: createDraft.status.trim() || undefined,
+        notes: createDraft.notes.trim() || undefined,
+      };
       const created = await createSupplier(body);
-      setCreateName("");
+      setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
       await refreshList();
       await onSelectSupplier(created.id);
       setFeedback({ text: "Supplier created.", kind: "success" });
@@ -173,8 +253,10 @@ export default function SuppliersPage() {
     }
     setFeedback(null);
     try {
+      const codeTrim = patchDraft.code.trim();
       const next = await patchSupplier(selectedId, {
         name: patchDraft.name.trim(),
+        code: codeTrim.length > 0 ? codeTrim : "",
         supplierType: patchDraft.supplierType.trim() || undefined,
         status: patchDraft.status.trim() || undefined,
         notes: patchDraft.notes.trim() || undefined,
@@ -328,10 +410,9 @@ export default function SuppliersPage() {
       <header className="space-y-1">
         <h2 className="text-xl font-semibold">Suppliers</h2>
         <p className="text-sm text-muted-foreground">
-          Click a supplier to edit details, contacts, and (with catalog access) link products. One supplier can
-          supply many products; each product can have many suppliers. Linking uses{" "}
-          <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code> with this
-          supplier&apos;s id.
+          Create a supplier with full profile fields below, or pick one from the list to edit contacts and (with
+          catalog access) linked products. One supplier can supply many products; linking uses{" "}
+          <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code>.
         </p>
       </header>
 
@@ -352,20 +433,18 @@ export default function SuppliersPage() {
       </div>
 
       {canWrite ? (
-        <form
-          onSubmit={onCreate}
-          className="flex flex-wrap items-end gap-2 rounded-md border bg-muted/20 p-4"
-        >
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">New supplier name</span>
-            <input
-              className="rounded border bg-background px-2 py-1.5"
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-              required
-            />
-          </label>
-          <Button type="submit">Create</Button>
+        <form onSubmit={onCreate} className="space-y-3 rounded-md border bg-muted/20 p-4">
+          <div>
+            <h3 className="text-sm font-medium">New supplier</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Uses the same fields as Details—only name is required; everything else is optional at create time.
+            </p>
+          </div>
+          <SupplierProfileFields
+            draft={createDraft}
+            onDraftChange={(partial) => setCreateDraft((d) => ({ ...d, ...partial }))}
+          />
+          <Button type="submit">Create supplier</Button>
         </form>
       ) : null}
 
@@ -412,7 +491,10 @@ export default function SuppliersPage() {
 
         <div className="space-y-6">
           {!detail ? (
-            <p className="text-sm text-muted-foreground">Select a supplier from the list.</p>
+            <p className="text-sm text-muted-foreground">
+              Select a supplier from the list
+              {canWrite ? ", or create one above." : "."}
+            </p>
           ) : (
             <>
               <div className="rounded-md border p-4 text-sm">
@@ -422,53 +504,41 @@ export default function SuppliersPage() {
                     <dt className="inline">ID </dt>
                     <dd className="inline font-mono text-xs text-foreground">{detail.id}</dd>
                   </div>
-                  <div>
-                    <dt className="inline">Code </dt>
-                    <dd className="inline text-foreground">{detail.code ?? "—"}</dd>
-                  </div>
                 </dl>
-                {canWrite ? (
-                  <form className="mt-4 space-y-2 border-t pt-4" onSubmit={onPatchSave}>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Name</span>
-                      <input
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={patchDraft.name}
-                        onChange={(e) => setPatchDraft((p) => ({ ...p, name: e.target.value }))}
-                        required
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Type</span>
-                      <input
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={patchDraft.supplierType}
-                        onChange={(e) => setPatchDraft((p) => ({ ...p, supplierType: e.target.value }))}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Status</span>
-                      <select
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={patchDraft.status}
-                        onChange={(e) => setPatchDraft((p) => ({ ...p, status: e.target.value }))}
-                      >
-                        <option value="active">active</option>
-                        <option value="inactive">inactive</option>
-                        <option value="blocked">blocked</option>
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Notes</span>
-                      <textarea
-                        className="min-h-[4rem] rounded border bg-background px-2 py-1.5"
-                        value={patchDraft.notes}
-                        onChange={(e) => setPatchDraft((p) => ({ ...p, notes: e.target.value }))}
-                      />
-                    </label>
+                {!canWrite ? (
+                  <dl className="mt-3 grid gap-2 border-t pt-3">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Name</dt>
+                      <dd className="text-foreground">{detail.name}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Code</dt>
+                      <dd className="text-foreground">{detail.code ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Type</dt>
+                      <dd className="text-foreground">{detail.supplierType ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Status</dt>
+                      <dd className="text-foreground">{detail.status}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Notes</dt>
+                      <dd className="whitespace-pre-wrap text-foreground">
+                        {detail.notes?.trim() ? detail.notes : "—"}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <form className="mt-4 space-y-3 border-t pt-4" onSubmit={onPatchSave}>
+                    <SupplierProfileFields
+                      draft={patchDraft}
+                      onDraftChange={(partial) => setPatchDraft((p) => ({ ...p, ...partial }))}
+                    />
                     <Button type="submit">Save changes</Button>
                   </form>
-                ) : null}
+                )}
               </div>
 
               {canReadCatalog ? (
@@ -552,18 +622,36 @@ export default function SuppliersPage() {
                       />
                       {productHits.length > 0 ? (
                         <ul className="max-h-40 max-w-md overflow-auto rounded border bg-background text-xs">
-                          {productHits.map((h) => (
-                            <li key={h.id}>
-                              <button
-                                type="button"
-                                className={`w-full px-2 py-1.5 text-left hover:bg-accent ${pickedItemId === h.id ? "bg-accent" : ""}`}
-                                onClick={() => setPickedItemId(h.id)}
-                              >
-                                {h.name}{" "}
-                                <span className="text-muted-foreground">{h.sku}</span>
-                              </button>
-                            </li>
-                          ))}
+                          {productHits.map((h) => {
+                            const thumb = itemListThumbnailUrl(h);
+                            return (
+                              <li key={h.id}>
+                                <button
+                                  type="button"
+                                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-accent ${pickedItemId === h.id ? "bg-accent" : ""}`}
+                                  onClick={() => setPickedItemId(h.id)}
+                                >
+                                  {thumb ? (
+                                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded border bg-muted">
+                                      <Image
+                                        src={thumb}
+                                        alt=""
+                                        width={32}
+                                        height={32}
+                                        className="object-cover"
+                                      />
+                                    </span>
+                                  ) : (
+                                    <span className="h-8 w-8 shrink-0 rounded border border-dashed border-muted-foreground/25 bg-muted/30" />
+                                  )}
+                                  <span className="min-w-0">
+                                    {h.name}{" "}
+                                    <span className="text-muted-foreground">{h.sku}</span>
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : null}
                       <div className="flex flex-wrap items-end gap-2">

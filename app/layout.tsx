@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { TenantHostSync } from "@/components/tenant-host-sync";
@@ -14,9 +14,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#171717",
+};
+
 export const metadata: Metadata = {
   title: "UB Admin — Phase 1",
   description: "Tenant admin: business, users, and catalog (Slice 6 scaffold).",
+  appleWebApp: {
+    capable: true,
+    title: "UB Cashier",
+  },
 };
 
 export default function RootLayout({

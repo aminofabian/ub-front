@@ -28,6 +28,8 @@ type DashboardContextValue = {
   canManageBusinessSettings: boolean;
   canViewPurchasingIntelligence: boolean;
   canViewApAging: boolean;
+  canViewCustomers: boolean;
+  canManageCustomers: boolean;
   canViewSuppliers: boolean;
   canRecordSupplierPayment: boolean;
   canViewInventoryValuation: boolean;
@@ -35,6 +37,8 @@ type DashboardContextValue = {
   canViewStockTake: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
+  canViewSalesIntelligence: boolean;
+  canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
 };
 
@@ -82,6 +86,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       ),
       canViewApAging: hasPermission(me?.permissions, Permission.PurchasingPaymentRead),
       canViewSuppliers: hasPermission(me?.permissions, Permission.SuppliersRead),
+      canViewCustomers: hasPermission(me?.permissions, Permission.CreditsCustomersRead),
+      canManageCustomers: hasPermission(me?.permissions, Permission.CreditsCustomersWrite),
       canRecordSupplierPayment: hasPermission(me?.permissions, Permission.PurchasingPaymentWrite),
       canViewInventoryValuation: hasPermission(me?.permissions, Permission.InventoryRead),
       canViewInventoryTransfers: hasPermission(me?.permissions, Permission.InventoryTransfer),
@@ -97,6 +103,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         hasPermission(me?.permissions, Permission.ShiftsOpen) ||
         hasPermission(me?.permissions, Permission.ShiftsClose) ||
         hasPermission(me?.permissions, Permission.ShiftsRead),
+      canViewSalesIntelligence: hasPermission(
+        me?.permissions,
+        Permission.SalesIntelligenceRead,
+      ),
+      canViewStorefrontOrders: hasPermission(me?.permissions, Permission.StorefrontOrdersRead),
       canQuickSale: hasPermission(me?.permissions, Permission.SalesSell),
     }),
     [me, business, loading, refreshSession],

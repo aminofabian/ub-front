@@ -1,13 +1,32 @@
 import type { MetadataRoute } from "next";
 
+const THEME_COLOR = "#171717";
+const BACKGROUND_COLOR = "#fafafa";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "UB Palmart",
-    short_name: "UB",
-    description: "Admin and cashier flows",
-    start_url: "/",
+    name: "UB Cashier",
+    short_name: "UB POS",
+    description: "Offline-capable quick sale for Universal Business.",
+    start_url: "/cashier",
+    scope: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#ffffff",
+    orientation: "portrait-primary",
+    background_color: BACKGROUND_COLOR,
+    theme_color: THEME_COLOR,
+    icons: [
+      {
+        src: "/cashier-icon.svg",
+        type: "image/svg+xml",
+        sizes: "512x512",
+        purpose: "any",
+      },
+      {
+        src: "/cashier-icon.svg",
+        type: "image/svg+xml",
+        sizes: "512x512",
+        purpose: "maskable",
+      },
+    ],
   };
 }
