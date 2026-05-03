@@ -12,10 +12,15 @@ const HEADER_ALLOWLIST = [
   "x-test-role-id",
 ] as const;
 
+// Node's fetch auto-decodes gzip/br bodies, so `upstream.body` is already
+// plain bytes. Forwarding the upstream's encoding/length headers would label
+// decompressed bytes as compressed → browser fails with ERR_CONTENT_DECODING_FAILED.
 const SKIP_OUT_HEADERS = new Set([
   "connection",
   "keep-alive",
   "transfer-encoding",
+  "content-encoding",
+  "content-length",
 ]);
 
 function normalizeBackendOrigin(): string | null {
