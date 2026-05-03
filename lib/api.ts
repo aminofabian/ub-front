@@ -732,6 +732,40 @@ export async function updateBusiness(body: PatchBusinessPayload): Promise<void> 
   await request(API_ROUTES.businessMe, { method: "PATCH", body });
 }
 
+export type DomainRecord = {
+  id: string;
+  businessId: string;
+  domain: string;
+  primary: boolean;
+  active: boolean;
+};
+
+const MY_DOMAINS_PATH = "/api/v1/businesses/me/domains";
+
+export async function fetchMyDomains(): Promise<DomainRecord[]> {
+  return request<DomainRecord[]>(MY_DOMAINS_PATH);
+}
+
+export async function addMyDomain(domain: string): Promise<DomainRecord> {
+  return request<DomainRecord>(MY_DOMAINS_PATH, {
+    method: "POST",
+    body: { domain },
+  });
+}
+
+export async function setMyPrimaryDomain(domainId: string): Promise<DomainRecord> {
+  return request<DomainRecord>(
+    `${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}/primary`,
+    { method: "POST" },
+  );
+}
+
+export async function deleteMyDomain(domainId: string): Promise<void> {
+  await request(`${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}`, {
+    method: "DELETE",
+  });
+}
+
 function usersListQuery(filters?: UserListFilters): string {
   const params = new URLSearchParams(DEFAULT_PAGE_QUERY);
   const status = filters?.status?.trim();

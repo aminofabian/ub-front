@@ -13,6 +13,7 @@ const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
 
 const ALL_NAV_ITEMS = [
   { href: APP_ROUTES.business, label: "Business settings" },
+  { href: APP_ROUTES.businessDomains, label: "Domains" },
   BRANCHES_LINK,
   { href: APP_ROUTES.users, label: "Users" },
   { href: APP_ROUTES.products, label: "Products" },
@@ -45,6 +46,7 @@ export function AppShell({ children }: AppShellProps) {
     me,
     loading,
     canListUsers,
+    canManageBusinessSettings,
     canViewCategories,
     canViewPurchasingIntelligence,
     canViewApAging,
@@ -62,6 +64,9 @@ export function AppShell({ children }: AppShellProps) {
   } = useDashboard();
 
   const navItems = ALL_NAV_ITEMS.filter((item) => {
+    if (item.href === APP_ROUTES.businessDomains) {
+      return canManageBusinessSettings;
+    }
     if (item.href === APP_ROUTES.users) {
       return canListUsers;
     }

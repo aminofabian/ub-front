@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import ShopWindow from "@/components/storefront/shop-window";
@@ -8,14 +7,7 @@ import ShopWindowSkeleton from "@/components/storefront/shop-window-skeleton";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { fetchPublicStorefront, storefrontSlugFromEnv } from "@/lib/public-storefront";
-
-function shouldRedirectRootToShop(host: string | null): boolean {
-  if (!host) {
-    return false;
-  }
-  const normalized = host.toLowerCase().split(":")[0];
-  return normalized === "kiosk.localhost";
-}
+import { resolveStorefrontSlugFromHost } from "@/lib/storefront-slug";
 
 async function HomeShopWindow({ slug }: { slug: string }) {
   const data = await fetchPublicStorefront(slug);
@@ -38,9 +30,8 @@ function HomeShopWindowSlot() {
 }
 
 export default async function HomePage() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  if (shouldRedirectRootToShop(host)) {
+  const hostSlug = await resolveStorefrontSlugFromHost();
+  if (hostSlug) {
     redirect(APP_ROUTES.shop);
   }
 

@@ -65,7 +65,15 @@ export type PublicCategoryListPayload = {
   categories: PublicCategory[];
 };
 
+export type PublicHostResolvePayload = {
+  slug: string;
+  businessId: string;
+  businessName: string;
+  storefrontEnabled: boolean;
+};
+
 const DEFAULT_REVALIDATE_SEC = 60;
+const HOST_RESOLVE_REVALIDATE_SEC = 30;
 
 export function storefrontSlugFromEnv(): string | null {
   const s = process.env.NEXT_PUBLIC_STOREFRONT_SLUG?.trim();
@@ -186,6 +194,30 @@ export async function fetchPublicCategories(
       return null;
     }
     return (await res.json()) as PublicCategoryListPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicHostResolve(
+  host: string,
+): Promise<PublicHostResolvePayload | null> {
+  const base = backendOrigin();
+  const h = host.trim();
+  if (!base || !h) {
+    return null;
+  }
+  const u = new URL(`${base}/api/v1/public/host/resolve`);
+  u.searchParams.set("host", h);
+  try {
+    const res = await fetch(u.toString(), {
+      next: { revalidate: HOST_RESOLVE_REVALIDATE_SEC },
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as PublicHostResolvePayload;
   } catch {
     return null;
   }
