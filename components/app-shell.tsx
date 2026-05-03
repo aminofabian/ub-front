@@ -16,10 +16,17 @@ const ALL_NAV_ITEMS = [
   BRANCHES_LINK,
   { href: APP_ROUTES.users, label: "Users" },
   { href: APP_ROUTES.products, label: "Products" },
+  { href: APP_ROUTES.categories, label: "Categories" },
   { href: APP_ROUTES.suppliers, label: "Suppliers" },
   { href: APP_ROUTES.purchasingIntelligence, label: "Supplier intelligence" },
   { href: APP_ROUTES.purchasingApAging, label: "AP aging" },
   { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment" },
+  { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
+  { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
+  { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
+  { href: APP_ROUTES.pricing, label: "Pricing" },
+  { href: APP_ROUTES.shifts, label: "Shifts" },
+  { href: APP_ROUTES.salesQuick, label: "Quick sale" },
 ] as const;
 
 type AppShellProps = {
@@ -34,15 +41,25 @@ export function AppShell({ children }: AppShellProps) {
     me,
     loading,
     canListUsers,
+    canViewCategories,
     canViewPurchasingIntelligence,
     canViewApAging,
     canViewSuppliers,
     canRecordSupplierPayment,
+    canViewInventoryValuation,
+    canViewInventoryTransfers,
+    canViewStockTake,
+    canViewPricing,
+    canViewShifts,
+    canQuickSale,
   } = useDashboard();
 
   const navItems = ALL_NAV_ITEMS.filter((item) => {
     if (item.href === APP_ROUTES.users) {
       return canListUsers;
+    }
+    if (item.href === APP_ROUTES.categories) {
+      return canViewCategories;
     }
     if (item.href === APP_ROUTES.suppliers) {
       return canViewSuppliers;
@@ -55,6 +72,24 @@ export function AppShell({ children }: AppShellProps) {
     }
     if (item.href === APP_ROUTES.purchasingRecordPayment) {
       return canRecordSupplierPayment;
+    }
+    if (item.href === APP_ROUTES.inventoryValuation) {
+      return canViewInventoryValuation;
+    }
+    if (item.href === APP_ROUTES.inventoryTransfers) {
+      return canViewInventoryTransfers;
+    }
+    if (item.href === APP_ROUTES.inventoryStockTake) {
+      return canViewStockTake;
+    }
+    if (item.href === APP_ROUTES.pricing) {
+      return canViewPricing;
+    }
+    if (item.href === APP_ROUTES.shifts) {
+      return canViewShifts;
+    }
+    if (item.href === APP_ROUTES.salesQuick) {
+      return canQuickSale;
     }
     return true;
   });

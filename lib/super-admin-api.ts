@@ -36,7 +36,11 @@ export type SaDomainRow = {
 };
 
 function getNetworkErrorMessage(): string {
-  return `Cannot reach API at ${API_BASE_URL}. Start backend or set NEXT_PUBLIC_API_BASE_URL.`;
+  const via =
+    API_BASE_URL.length > 0
+      ? API_BASE_URL
+      : "this app’s origin (configure BACKEND_ORIGIN for the Next.js proxy)";
+  return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN, or set NEXT_PUBLIC_API_BASE_URL for direct API calls.`;
 }
 
 export async function loginSuperAdmin(email: string, password: string): Promise<SuperAdminLoginResult> {

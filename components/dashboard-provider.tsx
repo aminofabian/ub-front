@@ -23,11 +23,19 @@ type DashboardContextValue = {
   loading: boolean;
   refreshSession: () => Promise<void>;
   canListUsers: boolean;
+  canViewCategories: boolean;
+  canManageCategories: boolean;
   canManageBusinessSettings: boolean;
   canViewPurchasingIntelligence: boolean;
   canViewApAging: boolean;
   canViewSuppliers: boolean;
   canRecordSupplierPayment: boolean;
+  canViewInventoryValuation: boolean;
+  canViewInventoryTransfers: boolean;
+  canViewStockTake: boolean;
+  canViewPricing: boolean;
+  canViewShifts: boolean;
+  canQuickSale: boolean;
 };
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -59,6 +67,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       loading,
       refreshSession,
       canListUsers: hasPermission(me?.permissions, Permission.UsersList),
+      canViewCategories: hasPermission(me?.permissions, Permission.CatalogItemsRead),
+      canManageCategories: hasPermission(
+        me?.permissions,
+        Permission.CatalogCategoriesWrite,
+      ),
       canManageBusinessSettings: hasPermission(
         me?.permissions,
         Permission.BusinessManageSettings,
@@ -70,6 +83,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       canViewApAging: hasPermission(me?.permissions, Permission.PurchasingPaymentRead),
       canViewSuppliers: hasPermission(me?.permissions, Permission.SuppliersRead),
       canRecordSupplierPayment: hasPermission(me?.permissions, Permission.PurchasingPaymentWrite),
+      canViewInventoryValuation: hasPermission(me?.permissions, Permission.InventoryRead),
+      canViewInventoryTransfers: hasPermission(me?.permissions, Permission.InventoryTransfer),
+      canViewStockTake:
+        hasPermission(me?.permissions, Permission.StocktakeRead) ||
+        hasPermission(me?.permissions, Permission.StocktakeRun) ||
+        hasPermission(me?.permissions, Permission.StocktakeApprove),
+      canViewPricing:
+        hasPermission(me?.permissions, Permission.PricingRead) ||
+        hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
+        hasPermission(me?.permissions, Permission.PricingRulesManage),
+      canViewShifts:
+        hasPermission(me?.permissions, Permission.ShiftsOpen) ||
+        hasPermission(me?.permissions, Permission.ShiftsClose) ||
+        hasPermission(me?.permissions, Permission.ShiftsRead),
+      canQuickSale: hasPermission(me?.permissions, Permission.SalesSell),
     }),
     [me, business, loading, refreshSession],
   );

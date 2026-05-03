@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -9,13 +9,17 @@ import {
   createItem,
   createItemVariant,
   deleteItem,
+  fetchCategories,
   fetchItemById,
+  fetchItemSupplierLinks,
   fetchItemTypes,
   fetchItems,
   fetchSuppliers,
   patchItem,
+  type CategoryRecord,
   type CreateVariantPayload,
   type ItemDetailRecord,
+  type ItemSupplierLinkRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
   type PatchItemPayload,
@@ -23,11 +27,47 @@ import {
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
+type ProductEditDraft = {
+  name?: string;
+  barcode?: string;
+  description?: string;
+  active?: boolean;
+  bundlePriceStr: string;
+  imageKey: string;
+  categoryId: string;
+};
+
+const EMPTY_EDIT_DRAFT: ProductEditDraft = {
+  bundlePriceStr: "",
+  imageKey: "",
+  active: true,
+  categoryId: "",
+};
+
+function toNumber(value: number | string | null | undefined): number | null {
+  if (value == null || value === "") {
+    return null;
+  }
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatAmount(value: number | null | undefined): string {
+  if (value == null) {
+    return "—";
+  }
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 type ParentDraft = {
   name: string;
   sku: string;
   barcode: string;
   itemTypeId: string;
+  categoryId: string;
   supplierId: string;
   supplierSku: string;
   defaultCostPrice: string;
@@ -39,6 +79,7 @@ const EMPTY_PARENT: ParentDraft = {
   sku: "",
   barcode: "",
   itemTypeId: "",
+  categoryId: "",
   supplierId: "",
   supplierSku: "",
   defaultCostPrice: "",
@@ -65,6 +106,7 @@ export default function ProductsPage() {
   const canListSuppliers = hasPermission(me?.permissions, Permission.SuppliersRead);
 
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [items, setItems] = useState<ItemSummaryRecord[]>([]);
   const [suppliersForLink, setSuppliersForLink] = useState<SupplierRecord[]>([]);
   const [suppliersLoading, setSuppliersLoading] = useState(false);
@@ -72,17 +114,32 @@ export default function ProductsPage() {
   const [parentDraft, setParentDraft] = useState<ParentDraft>(EMPTY_PARENT);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ItemDetailRecord | null>(null);
-  const [patchDraft, setPatchDraft] = useState<PatchItemPayload>({});
+  const [supplierLinks, setSupplierLinks] = useState<ItemSupplierLinkRecord[]>([]);
+  const [patchDraft, setPatchDraft] = useState<ProductEditDraft>(EMPTY_EDIT_DRAFT);
   const [variantDraft, setVariantDraft] = useState<VariantDraft>(EMPTY_VARIANT);
   const [message, setMessage] = useState("");
 
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+  }, [categories]);
+
+  const categoryById = useMemo(() => {
+    const map = new Map<string, CategoryRecord>();
+    for (const c of categories) {
+      map.set(c.id, c);
+    }
+    return map;
+  }, [categories]);
+
   const loadTypesAndItems = useCallback(async () => {
-    const [types, rows] = await Promise.all([
+    const [types, rows, cats] = await Promise.all([
       fetchItemTypes(),
       fetchItems(search.trim() || undefined),
+      fetchCategories(),
     ]);
     setItemTypes(types);
     setItems(rows);
+    setCategories(cats);
   }, [search]);
 
   const loadSuppliersForLink = useCallback(async () => {
@@ -117,21 +174,49 @@ export default function ProductsPage() {
   useEffect(() => {
     if (!selectedId) {
       setDetail(null);
+      setSupplierLinks([]);
+      setPatchDraft(EMPTY_EDIT_DRAFT);
       return;
     }
-    fetchItemById(selectedId)
-      .then((row) => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await fetchItemById(selectedId);
+        if (cancelled) {
+          return;
+        }
         setDetail(row);
         setPatchDraft({
           name: row.name,
           barcode: row.barcode,
           description: row.description,
-          active: row.active,
+          active: row.active ?? true,
+          bundlePriceStr:
+            row.bundlePrice != null && row.bundlePrice !== ""
+              ? String(row.bundlePrice)
+              : "",
+          imageKey: row.imageKey ?? "",
+          categoryId: row.categoryId ?? "",
         });
-      })
-      .catch((error) =>
-        setMessage(error instanceof Error ? error.message : "Failed to load item."),
-      );
+        try {
+          const links = await fetchItemSupplierLinks(selectedId);
+          if (!cancelled) {
+            setSupplierLinks(links);
+          }
+        } catch {
+          if (!cancelled) {
+            setSupplierLinks([]);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : "Failed to load item.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedId]);
 
   const onSearchSubmit = (event: React.FormEvent) => {
@@ -146,11 +231,13 @@ export default function ProductsPage() {
     setMessage("");
     const savedItemTypeId = parentDraft.itemTypeId;
     try {
+      const categoryChosen = parentDraft.categoryId.trim();
       const created = await createItem({
         name: parentDraft.name,
         sku: parentDraft.sku,
         itemTypeId: parentDraft.itemTypeId,
         barcode: parentDraft.barcode || undefined,
+        ...(categoryChosen ? { categoryId: categoryChosen } : {}),
       });
       const supplierChosen = parentDraft.supplierId.trim();
       if (canLinkSupplier && supplierChosen) {
@@ -200,11 +287,45 @@ export default function ProductsPage() {
       return;
     }
     setMessage("");
+    const body: PatchItemPayload = {
+      name: patchDraft.name,
+      barcode: patchDraft.barcode,
+      description: patchDraft.description,
+      active: patchDraft.active,
+      imageKey: patchDraft.imageKey,
+      categoryId: patchDraft.categoryId.trim(),
+    };
+    const bps = patchDraft.bundlePriceStr.trim();
+    if (bps) {
+      const n = Number(bps);
+      if (!Number.isFinite(n)) {
+        setMessage("Bundle price must be a valid number.");
+        return;
+      }
+      body.bundlePrice = n;
+    }
     try {
-      await patchItem(selectedId, patchDraft);
+      await patchItem(selectedId, body);
       await loadTypesAndItems();
       const next = await fetchItemById(selectedId);
       setDetail(next);
+      try {
+        setSupplierLinks(await fetchItemSupplierLinks(selectedId));
+      } catch {
+        setSupplierLinks([]);
+      }
+      setPatchDraft({
+        name: next.name,
+        barcode: next.barcode,
+        description: next.description,
+        active: next.active ?? true,
+        bundlePriceStr:
+          next.bundlePrice != null && next.bundlePrice !== ""
+            ? String(next.bundlePrice)
+            : "",
+        imageKey: next.imageKey ?? "",
+        categoryId: next.categoryId ?? "",
+      });
       setMessage("Product updated.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Update failed.");
@@ -228,6 +349,11 @@ export default function ProductsPage() {
       setVariantDraft(EMPTY_VARIANT);
       const next = await fetchItemById(selectedId);
       setDetail(next);
+      try {
+        setSupplierLinks(await fetchItemSupplierLinks(selectedId));
+      } catch {
+        setSupplierLinks([]);
+      }
       await loadTypesAndItems();
       setMessage("Variant created.");
     } catch (error) {
@@ -252,6 +378,16 @@ export default function ProductsPage() {
   };
 
   const variantRows = detail?.variants ?? [];
+  const sortedImages = detail?.images
+    ? [...detail.images].sort((a, b) => a.sortOrder - b.sortOrder)
+    : [];
+  const sellPrice = detail ? toNumber(detail.bundlePrice) : null;
+  const primaryLink = supplierLinks.find((l) => l.primary);
+  const primaryCost = primaryLink ? toNumber(primaryLink.defaultCostPrice) : null;
+  const marginPct =
+    sellPrice != null && sellPrice > 0 && primaryCost != null
+      ? ((sellPrice - primaryCost) / sellPrice) * 100
+      : null;
 
   return (
     <section className="space-y-8">
@@ -335,6 +471,25 @@ export default function ProductsPage() {
           }
           aria-label="New product barcode"
         />
+        <label className="text-sm font-medium md:col-span-6" htmlFor="parent-category">
+          Category (optional)
+        </label>
+        <select
+          id="parent-category"
+          className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-3"
+          value={parentDraft.categoryId}
+          onChange={(event) =>
+            setParentDraft((previous) => ({ ...previous, categoryId: event.target.value }))
+          }
+        >
+          <option value="">— None —</option>
+          {sortedCategories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+              {!category.active ? " (inactive)" : ""}
+            </option>
+          ))}
+        </select>
         {canLinkSupplier ? (
           <>
             <div className="md:col-span-6 mt-2 border-t pt-3">
@@ -449,23 +604,38 @@ export default function ProductsPage() {
           <ul className="max-h-80 divide-y overflow-y-auto text-sm">
             {items
               .filter((row) => !row.variantOfItemId)
-              .map((row) => (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    className={`flex w-full flex-col items-start px-3 py-2 text-left hover:bg-muted/40 ${
-                      selectedId === row.id ? "bg-muted/50" : ""
-                    }`}
-                    onClick={() => setSelectedId(row.id)}
-                  >
-                    <span className="font-medium">{row.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {row.sku}
-                      {row.barcode ? ` · ${row.barcode}` : ""}
-                    </span>
-                  </button>
-                </li>
-              ))}
+              .map((row) => {
+                const category =
+                  row.categoryId != null && row.categoryId !== ""
+                    ? categoryById.get(row.categoryId)
+                    : undefined;
+                const categoryLabel =
+                  category != null
+                    ? `${category.name}${!category.active ? " (inactive)" : ""}`
+                    : row.categoryId
+                      ? "Unknown category"
+                      : null;
+                return (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      className={`flex w-full flex-col items-start px-3 py-2 text-left hover:bg-muted/40 ${
+                        selectedId === row.id ? "bg-muted/50" : ""
+                      }`}
+                      onClick={() => setSelectedId(row.id)}
+                    >
+                      <span className="font-medium">{row.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {row.sku}
+                        {row.barcode ? ` · ${row.barcode}` : ""}
+                      </span>
+                      {categoryLabel ? (
+                        <span className="text-xs text-muted-foreground">{categoryLabel}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
           </ul>
         </div>
 
@@ -477,6 +647,85 @@ export default function ProductsPage() {
           ) : (
             <>
               <h3 className="text-sm font-semibold">Edit selected</h3>
+              <p className="text-xs text-muted-foreground">
+                SKU <span className="font-mono">{detail.sku}</span>
+                {detail.variantName ? ` · variant: ${detail.variantName}` : ""}
+              </p>
+              {(sortedImages.length > 0 || detail.imageKey) && (
+                <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-xs">
+                  <p className="font-medium text-foreground">Images</p>
+                  {detail.imageKey ? (
+                    <p className="mt-1 text-muted-foreground">
+                      Cover key: <span className="font-mono break-all">{detail.imageKey}</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-muted-foreground">No cover image key set.</p>
+                  )}
+                  {sortedImages.length > 0 ? (
+                    <ul className="mt-2 space-y-1">
+                      {sortedImages.map((img) => (
+                        <li key={img.id} className="font-mono text-[11px] break-all">
+                          #{img.sortOrder} {img.s3Key}
+                          {img.width && img.height ? ` (${img.width}×${img.height})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-muted-foreground">No gallery rows (POST register image API).</p>
+                  )}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>
+                  Bundle / list price: <strong className="text-foreground">{formatAmount(sellPrice)}</strong>
+                </span>
+                {primaryLink ? (
+                  <span>
+                    Primary supplier cost:{" "}
+                    <strong className="text-foreground">{formatAmount(primaryCost)}</strong>
+                    {marginPct != null ? (
+                      <span className="text-muted-foreground"> ({marginPct.toFixed(1)}% margin)</span>
+                    ) : null}
+                  </span>
+                ) : supplierLinks.length === 0 ? (
+                  <span>No supplier links.</span>
+                ) : (
+                  <span>Mark a primary supplier to compare cost.</span>
+                )}
+              </div>
+              {supplierLinks.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                    Supplier links
+                  </h4>
+                  <div className="mt-2 overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="py-1 pr-2">Supplier</th>
+                          <th className="py-1 pr-2">Primary</th>
+                          <th className="py-1 pr-2">Supplier SKU</th>
+                          <th className="py-1 pr-2">Default cost</th>
+                          <th className="py-1">Active</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {supplierLinks.map((link) => (
+                          <tr key={link.id} className="border-b border-muted/50">
+                            <td className="py-1 pr-2">{link.supplierName}</td>
+                            <td className="py-1 pr-2">{link.primary ? "Yes" : "—"}</td>
+                            <td className="py-1 pr-2">{link.supplierSku ?? "—"}</td>
+                            <td className="py-1 pr-2">
+                              {formatAmount(toNumber(link.defaultCostPrice))}
+                            </td>
+                            <td className="py-1">{link.active ? "Yes" : "No"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               <form className="space-y-2" onSubmit={onPatchItem}>
                 <input
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -497,6 +746,59 @@ export default function ProductsPage() {
                   }
                   aria-label="Barcode"
                 />
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  <span>Category</span>
+                  <select
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground"
+                    value={patchDraft.categoryId}
+                    onChange={(event) =>
+                      setPatchDraft((previous) => ({
+                        ...previous,
+                        categoryId: event.target.value,
+                      }))
+                    }
+                    aria-label="Product category"
+                  >
+                    <option value="">— None —</option>
+                    {sortedCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                        {!category.active ? " (inactive)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  <span>Bundle / selling price (optional)</span>
+                  <input
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground"
+                    inputMode="decimal"
+                    placeholder="Leave empty to leave unchanged on save"
+                    value={patchDraft.bundlePriceStr}
+                    onChange={(event) =>
+                      setPatchDraft((previous) => ({
+                        ...previous,
+                        bundlePriceStr: event.target.value,
+                      }))
+                    }
+                    aria-label="Bundle price"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  <span>Image key (S3 key / cover)</span>
+                  <input
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono text-foreground"
+                    placeholder="Optional — clear field and save to unset"
+                    value={patchDraft.imageKey}
+                    onChange={(event) =>
+                      setPatchDraft((previous) => ({
+                        ...previous,
+                        imageKey: event.target.value,
+                      }))
+                    }
+                    aria-label="Image key"
+                  />
+                </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"

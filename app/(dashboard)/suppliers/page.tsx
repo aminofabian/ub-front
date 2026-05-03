@@ -1,19 +1,26 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
+  addItemSupplierLink,
   createSupplier,
   createSupplierContact,
+  deleteItemSupplierLink,
+  fetchItems,
   fetchSupplierById,
   fetchSupplierContacts,
+  fetchSupplierItemLinks,
   fetchSuppliers,
   patchSupplier,
+  postItemSupplierLinkSetPrimary,
   type CreateSupplierContactPayload,
   type CreateSupplierPayload,
+  type ItemSummaryRecord,
   type SupplierContactRecord,
+  type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -37,6 +44,8 @@ export default function SuppliersPage() {
   const { me } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
+  const canReadCatalog = hasPermission(me?.permissions, Permission.CatalogItemsRead);
+  const canLinkProducts = hasPermission(me?.permissions, Permission.CatalogItemsLinkSuppliers);
 
   const selectionRef = useRef<string | null>(null);
   const [feedback, setFeedback] = useState<{ text: string; kind: "error" | "success" } | null>(
@@ -54,6 +63,14 @@ export default function SuppliersPage() {
     email: "",
     phone: "",
   });
+  const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [productHits, setProductHits] = useState<ItemSummaryRecord[]>([]);
+  const [pickedItemId, setPickedItemId] = useState("");
+  const [linkSku, setLinkSku] = useState("");
+  const [linkCostStr, setLinkCostStr] = useState("");
+  const [linkPrimary, setLinkPrimary] = useState(false);
+  const [linksBusy, setLinksBusy] = useState(false);
 
   const refreshList = useCallback(async () => {
     setListLoading(true);
@@ -74,16 +91,24 @@ export default function SuppliersPage() {
     selectionRef.current = id;
     setSelectedId(id);
     setFeedback(null);
+    setProductSearch("");
+    setProductHits([]);
+    setPickedItemId("");
+    setLinkSku("");
+    setLinkCostStr("");
+    setLinkPrimary(false);
     try {
-      const [d, c] = await Promise.all([
+      const [d, c, links] = await Promise.all([
         fetchSupplierById(id),
         fetchSupplierContacts(id),
+        canReadCatalog ? fetchSupplierItemLinks(id) : Promise.resolve([]),
       ]);
       if (selectionRef.current !== id) {
         return;
       }
       setDetail(d);
       setContacts(c);
+      setItemLinks(links);
       setPatchDraft({
         name: d.name,
         supplierType: d.supplierType,
@@ -94,6 +119,7 @@ export default function SuppliersPage() {
       if (selectionRef.current === id) {
         setDetail(null);
         setContacts([]);
+        setItemLinks([]);
         setFeedback({
           text: error instanceof Error ? error.message : "Failed to load supplier.",
           kind: "error",
@@ -101,6 +127,23 @@ export default function SuppliersPage() {
       }
     }
   };
+
+  useEffect(() => {
+    if (!selectedId || !canReadCatalog) {
+      return;
+    }
+    const q = productSearch.trim();
+    if (!q) {
+      setProductHits([]);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      fetchItems(q)
+        .then(setProductHits)
+        .catch(() => setProductHits([]));
+    }, 320);
+    return () => window.clearTimeout(t);
+  }, [selectedId, productSearch, canReadCatalog]);
 
   const onCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -147,6 +190,103 @@ export default function SuppliersPage() {
     }
   };
 
+  const refreshItemLinks = useCallback(async () => {
+    if (!selectedId || !canReadCatalog) {
+      return;
+    }
+    try {
+      setItemLinks(await fetchSupplierItemLinks(selectedId));
+    } catch {
+      /* keep existing list */
+    }
+  }, [selectedId, canReadCatalog]);
+
+  const onLinkProduct = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedId || !pickedItemId.trim()) {
+      return;
+    }
+    if (!canLinkProducts) {
+      return;
+    }
+    setLinksBusy(true);
+    setFeedback(null);
+    try {
+      const costRaw = linkCostStr.trim();
+      let defaultCostPrice: number | undefined;
+      if (costRaw.length > 0) {
+        const n = Number(costRaw);
+        if (!Number.isFinite(n) || n < 0) {
+          setFeedback({ text: "Default cost must be a valid non-negative number.", kind: "error" });
+          setLinksBusy(false);
+          return;
+        }
+        defaultCostPrice = n;
+      }
+      await addItemSupplierLink(pickedItemId.trim(), {
+        supplierId: selectedId,
+        supplierSku: linkSku.trim() || undefined,
+        defaultCostPrice,
+        setPrimary: linkPrimary || undefined,
+      });
+      setPickedItemId("");
+      setLinkSku("");
+      setLinkCostStr("");
+      setLinkPrimary(false);
+      setProductSearch("");
+      setProductHits([]);
+      await refreshItemLinks();
+      setFeedback({ text: "Product linked to this supplier.", kind: "success" });
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : "Link failed.",
+        kind: "error",
+      });
+    } finally {
+      setLinksBusy(false);
+    }
+  };
+
+  const onRemoveLink = async (row: SupplierItemLinkRecord) => {
+    if (!canLinkProducts) {
+      return;
+    }
+    setLinksBusy(true);
+    setFeedback(null);
+    try {
+      await deleteItemSupplierLink(row.itemId, row.id);
+      await refreshItemLinks();
+      setFeedback({ text: "Link removed.", kind: "success" });
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : "Remove link failed.",
+        kind: "error",
+      });
+    } finally {
+      setLinksBusy(false);
+    }
+  };
+
+  const onSetPrimaryLink = async (row: SupplierItemLinkRecord) => {
+    if (!canLinkProducts || !row.active) {
+      return;
+    }
+    setLinksBusy(true);
+    setFeedback(null);
+    try {
+      await postItemSupplierLinkSetPrimary(row.itemId, row.id);
+      await refreshItemLinks();
+      setFeedback({ text: "Primary supplier updated for that product.", kind: "success" });
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : "Could not set primary.",
+        kind: "error",
+      });
+    } finally {
+      setLinksBusy(false);
+    }
+  };
+
   const onAddContact = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedId) {
@@ -188,8 +328,10 @@ export default function SuppliersPage() {
       <header className="space-y-1">
         <h2 className="text-xl font-semibold">Suppliers</h2>
         <p className="text-sm text-muted-foreground">
-          List your suppliers, open one for editable fields and contacts. Click <strong>Refresh list</strong> to
-          load. Uses <code className="text-xs">GET/PATCH /api/v1/suppliers</code>.
+          Click a supplier to edit details, contacts, and (with catalog access) link products. One supplier can
+          supply many products; each product can have many suppliers. Linking uses{" "}
+          <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code> with this
+          supplier&apos;s id.
         </p>
       </header>
 
@@ -328,6 +470,147 @@ export default function SuppliersPage() {
                   </form>
                 ) : null}
               </div>
+
+              {canReadCatalog ? (
+                <div className="rounded-md border p-4 text-sm">
+                  <h3 className="mb-2 font-medium">Linked products</h3>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Items that reference this supplier. Primary flag is per product (one primary supplier per item).
+                  </p>
+                  {itemLinks.length === 0 ? (
+                    <p className="text-muted-foreground">No linked products yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded border">
+                      <table className="w-full text-left text-xs">
+                        <thead className="border-b bg-muted/40">
+                          <tr>
+                            <th className="px-2 py-1.5 font-medium">Product</th>
+                            <th className="px-2 py-1.5 font-medium">SKU</th>
+                            <th className="px-2 py-1.5 font-medium">Primary</th>
+                            <th className="px-2 py-1.5 font-medium">Supplier SKU</th>
+                            <th className="px-2 py-1.5 font-medium">Default cost</th>
+                            {canLinkProducts ? (
+                              <th className="px-2 py-1.5 font-medium">Actions</th>
+                            ) : null}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {itemLinks.map((row) => (
+                            <tr key={row.id} className="border-b border-muted/50 last:border-0">
+                              <td className="px-2 py-1.5">
+                                <span className="font-medium">{row.itemName || row.itemId}</span>
+                              </td>
+                              <td className="px-2 py-1.5 font-mono text-[11px]">{row.sku || "—"}</td>
+                              <td className="px-2 py-1.5">{row.primary ? "Yes" : "—"}</td>
+                              <td className="px-2 py-1.5">{row.supplierSku ?? "—"}</td>
+                              <td className="px-2 py-1.5 tabular-nums">
+                                {row.defaultCostPrice != null && row.defaultCostPrice !== ""
+                                  ? String(row.defaultCostPrice)
+                                  : "—"}
+                              </td>
+                              {canLinkProducts ? (
+                                <td className="px-2 py-1.5">
+                                  <div className="flex flex-wrap gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-[11px]"
+                                      disabled={linksBusy || row.primary || !row.active}
+                                      onClick={() => void onSetPrimaryLink(row)}
+                                    >
+                                      Set primary
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 text-[11px] text-destructive"
+                                      disabled={linksBusy}
+                                      onClick={() => void onRemoveLink(row)}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </td>
+                              ) : null}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {canLinkProducts ? (
+                    <form className="mt-4 space-y-2 border-t pt-4" onSubmit={(e) => void onLinkProduct(e)}>
+                      <p className="text-xs font-medium text-muted-foreground">Link another product</p>
+                      <input
+                        className="w-full max-w-md rounded border bg-background px-2 py-1.5"
+                        placeholder="Search catalog by name or SKU…"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                      />
+                      {productHits.length > 0 ? (
+                        <ul className="max-h-40 max-w-md overflow-auto rounded border bg-background text-xs">
+                          {productHits.map((h) => (
+                            <li key={h.id}>
+                              <button
+                                type="button"
+                                className={`w-full px-2 py-1.5 text-left hover:bg-accent ${pickedItemId === h.id ? "bg-accent" : ""}`}
+                                onClick={() => setPickedItemId(h.id)}
+                              >
+                                {h.name}{" "}
+                                <span className="text-muted-foreground">{h.sku}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <div className="flex flex-wrap items-end gap-2">
+                        <label className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground">Supplier SKU (optional)</span>
+                          <input
+                            className="rounded border bg-background px-2 py-1.5"
+                            value={linkSku}
+                            onChange={(e) => setLinkSku(e.target.value)}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground">Default cost (optional)</span>
+                          <input
+                            className="w-28 rounded border bg-background px-2 py-1.5 tabular-nums"
+                            inputMode="decimal"
+                            value={linkCostStr}
+                            onChange={(e) => setLinkCostStr(e.target.value)}
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={linkPrimary}
+                            onChange={(e) => setLinkPrimary(e.target.checked)}
+                          />
+                          Set as primary for this item
+                        </label>
+                      </div>
+                      <Button type="submit" disabled={linksBusy || !pickedItemId.trim()}>
+                        {linksBusy ? "Saving…" : "Link selected product"}
+                      </Button>
+                    </form>
+                  ) : (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      You need{" "}
+                      <code className="rounded bg-muted px-1">{Permission.CatalogItemsLinkSuppliers}</code> to
+                      add or remove links from here.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  <code className="text-xs">{Permission.CatalogItemsRead}</code> is required to view or manage
+                  product links on this screen.
+                </div>
+              )}
 
               <div className="rounded-md border p-4 text-sm">
                 <h3 className="mb-2 font-medium">Contacts</h3>

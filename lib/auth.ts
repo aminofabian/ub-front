@@ -1,6 +1,6 @@
 "use client";
 
-import { APP_BASE_URL, STORAGE_KEYS } from "@/lib/config";
+import { APP_BASE_URL, APP_ROUTES, STORAGE_KEYS } from "@/lib/config";
 
 export type SessionTokens = {
   accessToken: string;
@@ -29,6 +29,15 @@ export function setSessionTokens(tokens: SessionTokens): void {
 export function clearSessionTokens(): void {
   window.localStorage.removeItem(STORAGE_KEYS.accessToken);
   window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+}
+
+/** Clears tokens and sends the user to login (e.g. unusable access JWT). */
+export function signOutClientAndRedirectToLogin(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  clearSessionTokens();
+  window.location.assign(APP_ROUTES.login);
 }
 
 export function setSessionTenantId(id: string): void {
