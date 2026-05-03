@@ -66,12 +66,19 @@ export const PROBLEM_TITLES = {
   invalidOrExpiredAccessToken: "Invalid or expired access token",
 } as const;
 
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";
+const API_BROWSER_DIRECT =
+  process.env.NEXT_PUBLIC_API_BROWSER_DIRECT === "true";
+
 /**
- * Browser API origin. Empty → same-origin `/api/...` (proxied by Next.js when `BACKEND_ORIGIN` is set).
- * Set `NEXT_PUBLIC_API_BASE_URL` only for direct browser→API calls (needs CORS on the API).
+ * Base for `fetch` to the backend. Default is empty → same-origin `/api/v1/...` handled by
+ * `app/api/v1/[[...path]]` (set server-only `BACKEND_ORIGIN` to the real API).
+ *
+ * `NEXT_PUBLIC_API_BASE_URL` alone does nothing — avoids shipping cross-origin URLs to production
+ * by mistake. For direct browser→API (needs CORS), set `NEXT_PUBLIC_API_BROWSER_DIRECT=true` too.
  */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "";
+  API_BROWSER_DIRECT && RAW_API_BASE_URL.length > 0 ? RAW_API_BASE_URL : "";
 
 /** This app in the browser (no trailing slash). Align with APP_PUBLIC_FRONTEND_BASE_URL on the API. */
 export const APP_BASE_URL =

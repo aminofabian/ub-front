@@ -40,7 +40,7 @@ function getNetworkErrorMessage(): string {
     API_BASE_URL.length > 0
       ? API_BASE_URL
       : "this app’s origin (configure BACKEND_ORIGIN for the Next.js proxy)";
-  return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN, or set NEXT_PUBLIC_API_BASE_URL for direct API calls.`;
+  return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
 
 export async function loginSuperAdmin(email: string, password: string): Promise<SuperAdminLoginResult> {
