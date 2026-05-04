@@ -22,9 +22,9 @@ const COPY: Record<Status, { heading: string; body: string }> = {
 
 export function TenantStatusPage({ status }: { status: Status }) {
   const tenant = useOptionalTenant();
-  const display = tenant?.branding.displayName ?? tenant?.tenantName ?? "Workspace";
-  const primary = tenant?.branding.primaryColor ?? undefined;
-  const logo = tenant?.branding.logoUrl ?? null;
+  const display = tenant?.branding?.displayName ?? tenant?.tenantName ?? "Workspace";
+  const primary = tenant?.branding?.primaryColor ?? undefined;
+  const logo = tenant?.branding?.logoUrl ?? null;
   const { heading, body } = COPY[status];
 
   return (

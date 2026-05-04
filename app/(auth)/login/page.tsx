@@ -83,8 +83,8 @@ type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 
 export default function LoginPage() {
   const tenant = useOptionalTenant();
-  const passwordMinLength = tenant?.authConfig.passwordPolicy.minLength ?? 8;
-  const tenantGreeting = tenant?.branding.displayName ?? tenant?.tenantName ?? null;
+  const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
+  const tenantGreeting = tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
   const [tenantId, setTenantId] = useState("");
   const [email, setEmail] = useState("");

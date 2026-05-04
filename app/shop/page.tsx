@@ -73,13 +73,13 @@ export default async function ShopPage({ searchParams }: PageProps) {
 
   const categories = categoriesPayload?.categories ?? [];
   const branchHint = storefront?.catalogBranchName;
-  const heroTitle = tenant?.branding.displayName ?? tenant?.tenantName ?? "Browse products";
+  const heroTitle = tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
   const announcement = storefront?.announcement?.trim() || null;
-  const primaryRaw = tenant?.branding.primaryColor?.trim() ?? "";
+  const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
   const primary = isHexColor(primaryRaw) ? primaryRaw : null;
-  const accentRaw = tenant?.branding.accentColor?.trim() ?? "";
+  const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
   const accentHex = isHexColor(accentRaw) ? accentRaw : null;
-  const logoUrl = tenant?.branding.logoUrl ?? null;
+  const logoUrl = tenant?.branding?.logoUrl ?? null;
 
   // Featured fallback: use the first storefront items if the tenant hasn't curated featured.
   const featured: PublicCatalogItemCard[] =

@@ -29,10 +29,10 @@ export default async function ShopLayout({
 
   const title =
     storefront?.label?.trim() || storefront?.businessName || tenant?.tenantName || "Shop";
-  const headerTitle = tenant?.branding.displayName ?? title;
-  const logoUrl = tenant?.branding.logoUrl ?? null;
-  const primaryRaw = tenant?.branding.primaryColor?.trim() ?? "";
-  const accentRaw = tenant?.branding.accentColor?.trim() ?? "";
+  const headerTitle = tenant?.branding?.displayName ?? title;
+  const logoUrl = tenant?.branding?.logoUrl ?? null;
+  const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
+  const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
   const primary = isHexColor(primaryRaw) ? primaryRaw : null;
   const accent = isHexColor(accentRaw) ? accentRaw : null;
   const categories = categoriesPayload?.categories ?? [];

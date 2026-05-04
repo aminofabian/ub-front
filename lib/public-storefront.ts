@@ -230,6 +230,103 @@ export async function fetchPublicCategories(
   }
 }
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+/**
+ * Coerces the host-resolve JSON into a complete {@link TenantContext}. Older
+ * API versions or partial payloads may omit nested objects; without this,
+ * `tenant.branding.displayName` throws at runtime on the platform host.
+ */
+export function normalizeTenantContext(raw: unknown): TenantContext | null {
+  const o = asObject(raw);
+  if (!o) {
+    return null;
+  }
+  const tenantId = String(o.tenantId ?? "").trim();
+  if (!tenantId) {
+    return null;
+  }
+  const tenantName = String(o.tenantName ?? "Tenant").trim() || "Tenant";
+  const slug =
+    String(o.slug ?? "")
+      .trim()
+      .toLowerCase() || tenantName.toLowerCase().replace(/\s+/g, "-");
+
+  const statusRaw = String(o.status ?? "ACTIVE").toUpperCase();
+  const status: TenantStatus =
+    statusRaw === "SUSPENDED" || statusRaw === "INACTIVE" ? statusRaw : "ACTIVE";
+
+  const b = asObject(o.branding);
+  const branding: TenantBranding = {
+    displayName:
+      typeof b?.displayName === "string" && b.displayName.trim().length > 0
+        ? b.displayName.trim()
+        : tenantName,
+    logoUrl: typeof b?.logoUrl === "string" && b.logoUrl.trim() ? b.logoUrl.trim() : null,
+    faviconUrl:
+      typeof b?.faviconUrl === "string" && b.faviconUrl.trim() ? b.faviconUrl.trim() : null,
+    primaryColor:
+      typeof b?.primaryColor === "string" && b.primaryColor.trim() ? b.primaryColor.trim() : null,
+    accentColor:
+      typeof b?.accentColor === "string" && b.accentColor.trim() ? b.accentColor.trim() : null,
+  };
+
+  const a = asObject(o.authConfig);
+  const pp = asObject(a?.passwordPolicy);
+  const passwordPolicy: TenantPasswordPolicy = {
+    minLength:
+      typeof pp?.minLength === "number" && Number.isFinite(pp.minLength)
+        ? Math.max(1, Math.min(128, pp.minLength as number))
+        : 8,
+    requireNumber: pp?.requireNumber === true,
+    requireSymbol: pp?.requireSymbol === true,
+  };
+  const methodsRaw = a?.methods;
+  const methods =
+    Array.isArray(methodsRaw) && methodsRaw.length > 0
+      ? methodsRaw.filter((m): m is string => typeof m === "string")
+      : ["password"];
+  const ssoRaw = a?.ssoProviders;
+  const ssoProviders = Array.isArray(ssoRaw)
+    ? ssoRaw.filter((m): m is string => typeof m === "string")
+    : [];
+  const authConfig: TenantAuthConfig = {
+    methods,
+    ssoProviders,
+    passwordPolicy,
+  };
+
+  const ff = asObject(o.featureFlags);
+  const featureFlags: Record<string, boolean> = ff
+    ? Object.fromEntries(
+        Object.entries(ff).filter(([, v]) => typeof v === "boolean") as [string, boolean][],
+      )
+    : {};
+
+  const storefrontEnabled = o.storefrontEnabled === true;
+  const resolvedAt =
+    typeof o.resolvedAt === "string" && o.resolvedAt.trim()
+      ? o.resolvedAt.trim()
+      : new Date().toISOString();
+
+  return {
+    tenantId,
+    tenantName,
+    slug,
+    status,
+    branding,
+    authConfig,
+    featureFlags,
+    storefrontEnabled,
+    resolvedAt,
+  };
+}
+
 export async function fetchTenantContext(
   host: string,
 ): Promise<TenantContext | null> {
@@ -248,7 +345,7 @@ export async function fetchTenantContext(
     if (!res.ok) {
       return null;
     }
-    return (await res.json()) as TenantContext;
+    return normalizeTenantContext(await res.json());
   } catch {
     return null;
   }

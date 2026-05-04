@@ -61,7 +61,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const tenant = useOptionalTenant();
-  const tenantTitle = tenant?.branding.displayName ?? tenant?.tenantName ?? "UB Admin";
+  const tenantTitle = tenant?.branding?.displayName ?? tenant?.tenantName ?? "UB Admin";
   const featureFlags = tenant?.featureFlags;
   const {
     business,

@@ -37,20 +37,46 @@ export function ShopHeroMart({
   const accent =
     accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
 
+  /** Dark hero surfaces derived from tenant primary (falls back to fixed greens in className). */
+  const heroSurfaces = primary
+    ? ({
+        "--hero-bg": `color-mix(in srgb, ${primary} 72%, rgb(2 6 23))`,
+        "--hero-panel-from": `color-mix(in srgb, ${primary} 48%, rgb(2 6 23))`,
+        "--hero-panel-to": `color-mix(in srgb, ${primary} 14%, rgb(2 6 23))`,
+        "--hero-fade-edge": `color-mix(in srgb, ${primary} 78%, rgb(2 6 23))`,
+      } as Record<string, string>)
+    : undefined;
+
   const headline = tagline?.trim() || `Everyday Essentials.`;
   const subhead = "Close to You.";
   const body =
     "Quality products, low prices,\ndelivered fast to your doorstep.";
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-[#0b1d12] text-white shadow-xl">
+    <section
+      className={cn(
+        "relative overflow-hidden rounded-2xl text-white shadow-xl",
+        !primary && "bg-[#0b1d12]",
+      )}
+      style={
+        primary
+          ? { ...heroSurfaces, backgroundColor: "var(--hero-bg)" }
+          : undefined
+      }
+    >
       <div className="grid min-h-[260px] gap-0 sm:min-h-[300px] sm:grid-cols-[1.05fr_1.4fr]">
         <div className="relative z-10 flex flex-col justify-center gap-5 px-6 py-8 sm:px-10 sm:py-10">
           <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
             <span className="block">{headline}</span>
             <span
               className="block"
-              style={accent ? { color: accent } : { color: "#fb923c" }}
+              style={
+                accent
+                  ? { color: accent }
+                  : primary
+                    ? { color: `color-mix(in srgb, ${primary} 55%, white)` }
+                    : { color: "#fb923c" }
+              }
             >
               {subhead}
             </span>
@@ -69,7 +95,10 @@ export function ShopHeroMart({
                 accent
                   ? { backgroundColor: accent, color: "#fff" }
                   : primary
-                    ? { backgroundColor: primary, color: "#fff" }
+                    ? {
+                        backgroundColor: `color-mix(in srgb, ${primary} 82%, white)`,
+                        color: `color-mix(in srgb, ${primary} 8%, rgb(2 6 23))`,
+                      }
                     : undefined
               }
             >
@@ -92,17 +121,37 @@ export function ShopHeroMart({
             {[0, 1, 2, 3].map((i) => (
               <span
                 key={i}
-                className={cn(
-                  "h-1.5 rounded-full transition-all",
-                  i === 0 ? "w-6 bg-white" : "w-1.5 bg-white/40",
-                )}
+                className={cn("h-1.5 rounded-full transition-all", i === 0 ? "w-6" : "w-1.5")}
+                style={
+                  i === 0
+                    ? {
+                        backgroundColor: accent
+                          ? accent
+                          : primary
+                            ? `color-mix(in srgb, white 88%, ${primary})`
+                            : "rgb(255 255 255)",
+                      }
+                    : { backgroundColor: "rgb(255 255 255 / 0.35)" }
+                }
                 aria-hidden
               />
             ))}
             <span className="sr-only">Slide 1 of 4</span>
           </div>
         </div>
-        <div className="relative min-h-[200px] overflow-hidden bg-gradient-to-br from-[#1f3a26] to-[#0b1d12]">
+        <div
+          className={cn(
+            "relative min-h-[200px] overflow-hidden",
+            !primary && "bg-gradient-to-br from-[#1f3a26] to-[#0b1d12]",
+          )}
+          style={
+            primary
+              ? {
+                  background: `linear-gradient(to bottom right, var(--hero-panel-from), var(--hero-panel-to))`,
+                }
+              : undefined
+          }
+        >
           {showcaseImage ? (
             <Image
               src={showcaseImage}
@@ -118,7 +167,17 @@ export function ShopHeroMart({
           )}
           {/* Soft inset edge to blend dark panel into image */}
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0b1d12] to-transparent sm:w-24"
+            className={cn(
+              "pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r to-transparent sm:w-24",
+              !primary && "from-[#0b1d12]",
+            )}
+            style={
+              primary
+                ? {
+                    background: `linear-gradient(to right, var(--hero-fade-edge), transparent)`,
+                  }
+                : undefined
+            }
             aria-hidden
           />
         </div>
