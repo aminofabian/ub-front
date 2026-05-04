@@ -3,9 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
+import { Building2, LayoutGrid, Package, Tags } from "lucide-react";
 
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardLoading,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   createCategory,
   deleteCategoryImage,
@@ -669,17 +679,21 @@ export default function CategoriesPage() {
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return <DashboardLoading label="Loading categories…" />;
   }
 
   if (!canViewCategories) {
     return (
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <p className="text-sm text-muted-foreground">
-          You need <code className="text-xs">catalog.items.read</code> to view this page.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Categories"
+        description={
+          <>
+            You need <code className="text-xs">catalog.items.read</code> to view this page.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
@@ -687,16 +701,30 @@ export default function CategoriesPage() {
   const supplierChoices = supplierRows.filter((s) => !linkedSupplierIds.has(s.id));
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <p className="text-sm text-muted-foreground">
-          Organize products into a tree. Upload a <span className="font-medium text-foreground">cover image</span>{" "}
-          for kiosk or storefront rails; link{" "}
-          <span className="font-medium text-foreground">suppliers</span> who anchor this aisle (reporting and ops).
-          Editing needs <code className="text-xs">catalog.categories.write</code>; linking suppliers also needs{" "}
-          <code className="text-xs">suppliers.read</code> to pick them.
-        </p>
+    <div className={DASHBOARD_MAX_WIDE}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={LayoutGrid}
+          eyebrow="Catalog"
+          title="Categories"
+          description={
+            <>
+              Organize products into a tree. Upload a <span className="font-medium text-foreground">cover image</span>{" "}
+              for kiosk or storefront rails; link{" "}
+              <span className="font-medium text-foreground">suppliers</span> who anchor this aisle (reporting and ops).
+              Editing needs <code className="text-xs">catalog.categories.write</code>; linking suppliers also needs{" "}
+              <code className="text-xs">suppliers.read</code> to pick them.
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.products, label: "Products", desc: "Items & variants", icon: Package },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Vendors", icon: Building2 },
+            { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & margins", icon: Tags },
+          ]}
+        />
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -705,15 +733,7 @@ export default function CategoriesPage() {
         </Button>
       </div>
 
-      {feedback ? (
-        <p
-          className={
-            feedback.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
-          }
-        >
-          {feedback.text}
-        </p>
-      ) : null}
+      {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
 
       {canManageCategories ? (
         <form
@@ -1348,6 +1368,7 @@ export default function CategoriesPage() {
         Tip: inactive categories stay in the tree for editing but can be hidden wherever products are filtered by
         active category.
       </p>
-    </section>
+      </div>
+    </div>
   );
 }

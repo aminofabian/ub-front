@@ -2,9 +2,17 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Building2, CircleDollarSign, LayoutGrid, Package } from "lucide-react";
 
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   addItemSupplierLink,
   createItem,
@@ -797,15 +805,29 @@ export default function ProductsPage() {
       : null;
 
   return (
-    <section className="space-y-8">
-      <header>
-        <h2 className="text-xl font-semibold">Products</h2>
-        <p className="text-sm text-muted-foreground">
-          Parent items, variants, search, update, and soft-delete. When creating a parent, you can optionally
-          link a supplier if you have{" "}
-          <code className="text-xs">{Permission.CatalogItemsLinkSuppliers}</code> (and typically{" "}
-          <code className="text-xs">{Permission.SuppliersRead}</code> to pick from a list).
-        </p>
+    <div className={DASHBOARD_MAX_WIDE}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={Package}
+          eyebrow="Catalog"
+          title="Products"
+          description={
+            <>
+              Parent items, variants, search, update, and soft-delete. When creating a parent, you can optionally
+              link a supplier if you have{" "}
+              <code className="text-xs">{Permission.CatalogItemsLinkSuppliers}</code> (and typically{" "}
+              <code className="text-xs">{Permission.SuppliersRead}</code> to pick from a list).
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.categories, label: "Categories", desc: "Tree & aisles", icon: LayoutGrid },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Costs & links", icon: Building2 },
+            { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & sell price", icon: CircleDollarSign },
+          ]}
+        />
       </header>
 
       <form className="flex flex-wrap items-end gap-2" onSubmit={onSearchSubmit}>
@@ -2045,7 +2067,8 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-    </section>
+      {message ? <DashboardNotice text={message} /> : null}
+      </div>
+    </div>
   );
 }

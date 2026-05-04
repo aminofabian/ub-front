@@ -3,9 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
+import { Building2, CircleDollarSign, LayoutGrid, Package, Truck } from "lucide-react";
 
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   addItemSupplierLink,
   createSupplier,

@@ -1,10 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Globe,
+  ImageIcon,
+  Loader2,
+  Lock,
+  MapPin,
+  Palette,
+  RefreshCw,
+  Save,
+  Sparkles,
+} from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
+import { APP_ROUTES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import {
   clearMyBrandingFavicon,
   clearMyBrandingLogo,
@@ -32,7 +50,7 @@ type FormState = {
   accentColor: string;
 };
 
-type Notice = { tone: "info" | "error"; text: string } | null;
+type Feedback = { kind: "success" | "error"; text: string } | null;
 
 function emptyForm(): FormState {
   return {
@@ -61,8 +79,6 @@ function normalizeHex(raw: string | null | undefined): string | null {
 }
 
 function buildPatch(next: FormState): BrandingPatchPayload {
-  // Backend semantics: null means "no change", empty string means "clear".
-  // We always send the user's current value so the API mirrors the form.
   return {
     displayName: next.displayName.trim(),
     faviconUrl: next.faviconUrl.trim(),
@@ -73,6 +89,22 @@ function buildPatch(next: FormState): BrandingPatchPayload {
 
 function messageFor(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback;
+}
+
+function inputClass() {
+  return cn(
+    "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors",
+    "placeholder:text-muted-foreground/70",
+    "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+  );
+}
+
+function labelClass() {
+  return "text-sm font-medium leading-none text-foreground";
+}
+
+function hintClass() {
+  return "text-xs leading-relaxed text-muted-foreground";
 }
 
 function ColorField({
@@ -88,28 +120,28 @@ function ColorField({
 }) {
   const valid = HEX_REGEX.test(value);
   return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium" htmlFor={htmlId}>
+    <div className="space-y-2">
+      <label className={labelClass()} htmlFor={htmlId}>
         {label}
       </label>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input
           id={htmlId}
           type="color"
           value={valid ? value : "#000000"}
           onChange={(e) => onChange(e.target.value.toUpperCase())}
-          className="h-9 w-12 cursor-pointer rounded border bg-background"
+          className="h-10 w-14 cursor-pointer rounded-lg border border-input bg-background shadow-sm"
         />
         <input
           aria-label={`${label} hex value`}
-          className="w-32 rounded-md border bg-background px-3 py-2 font-mono text-sm uppercase"
+          className={cn(inputClass(), "w-36 max-w-full font-mono text-sm uppercase")}
           value={value}
           maxLength={7}
           onChange={(e) => onChange(e.target.value)}
           placeholder="#000000"
         />
         {valid ? null : (
-          <span className="text-xs text-destructive">Use #RRGGBB</span>
+          <span className="text-xs font-medium text-destructive">Use #RRGGBB</span>
         )}
       </div>
     </div>
@@ -128,50 +160,54 @@ function BrandingPreview({
   const accent = HEX_REGEX.test(form.accentColor) ? form.accentColor : DEFAULT_ACCENT;
   const faviconPreview = form.faviconUrl.trim() || null;
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-medium">Live preview</h3>
+    <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2 text-primary">
+        <Sparkles className="size-4" aria-hidden />
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">Live preview</h2>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">Approximates your public shop header.</p>
       <div
-        className="rounded-lg border p-4 shadow-sm"
-        style={{ borderColor: primary }}
+        className="mt-4 rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
+        style={{ borderColor: `${primary}55` }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {logoUrl ? (
             <Image
               src={logoUrl}
               alt="Logo preview"
               width={48}
               height={48}
-              className="h-12 w-12 rounded object-contain"
+              className="size-12 rounded-lg border border-border/60 object-contain"
               unoptimized
             />
           ) : (
             <div
-              className="flex h-12 w-12 items-center justify-center rounded text-base font-semibold text-white"
+              className="flex size-12 items-center justify-center rounded-lg text-lg font-bold text-white shadow-sm"
               style={{ backgroundColor: primary }}
             >
               {display.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               {faviconPreview ? (
                 <Image
                   src={faviconPreview}
                   alt=""
                   width={20}
                   height={20}
-                  className="h-5 w-5 rounded-sm border border-border/60 object-contain"
+                  className="size-5 rounded border border-border/60 object-contain"
                   unoptimized
                 />
               ) : null}
-              <p className="text-base font-semibold" style={{ color: primary }}>
+              <p className="truncate text-base font-semibold" style={{ color: primary }}>
                 {display}
               </p>
             </div>
-            <p className="text-xs text-muted-foreground">Storefront header preview</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Header + favicon as shoppers see them</p>
           </div>
           <span
-            className="rounded-full px-3 py-1 text-xs font-medium text-white"
+            className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
             style={{ backgroundColor: accent }}
           >
             Sale
@@ -202,52 +238,41 @@ function LogoSection({
     event.target.value = "";
   };
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium">Logo</label>
-      <div className="flex items-center gap-4">
+    <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="size-4 text-muted-foreground" aria-hidden />
+        <h2 className="text-lg font-semibold tracking-tight">Logo</h2>
+      </div>
+      <p className={cn(hintClass(), "mt-1")}>Shown in the shop header and emails. Square assets look sharpest.</p>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
         {logoUrl ? (
           <Image
             src={logoUrl}
             alt="Current logo"
-            width={64}
-            height={64}
-            className="h-16 w-16 rounded border bg-muted object-contain"
+            width={80}
+            height={80}
+            className="size-20 rounded-xl border border-border/60 bg-muted/30 object-contain shadow-sm"
             unoptimized
           />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded border border-dashed bg-muted text-xs text-muted-foreground">
-            None
+          <div className="flex size-20 items-center justify-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
+            No logo
           </div>
         )}
-        <div className="space-x-2">
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPTED_LOGO_TYPES}
-            className="hidden"
-            onChange={onPick}
-          />
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-          >
+        <div className="flex flex-wrap gap-2">
+          <input ref={inputRef} type="file" accept={ACCEPTED_LOGO_TYPES} className="hidden" onChange={onPick} />
+          <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
             {logoUrl ? "Replace logo" : "Upload logo"}
           </Button>
           {logoUrl ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void onClear()}
-            >
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void onClear()}>
               Remove
             </Button>
           ) : null}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        PNG, JPEG, WEBP, or SVG. Max 4&nbsp;MB. Square images render best.
+      <p className={cn(hintClass(), "mt-3")}>
+        PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB
       </p>
     </div>
   );
@@ -274,66 +299,94 @@ function FaviconSection({
   };
   const trimmed = faviconUrl?.trim() ?? "";
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium">Favicon</label>
-      <div className="flex items-center gap-4">
+    <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2">
+        <Globe className="size-4 text-muted-foreground" aria-hidden />
+        <h2 className="text-lg font-semibold tracking-tight">Favicon file</h2>
+      </div>
+      <p className={cn(hintClass(), "mt-1")}>Browser tab icon. Prefer 32×32 or 48×48.</p>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
         {trimmed ? (
           <Image
             src={trimmed}
             alt="Current favicon"
-            width={48}
-            height={48}
-            className="h-12 w-12 rounded border bg-muted object-contain"
+            width={56}
+            height={56}
+            className="size-14 rounded-xl border border-border/60 bg-muted/30 object-contain shadow-sm"
             unoptimized
           />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed bg-muted text-xs text-muted-foreground">
+          <div className="flex size-14 items-center justify-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
             None
           </div>
         )}
-        <div className="space-x-2">
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPTED_FAVICON_TYPES}
-            className="hidden"
-            onChange={onPick}
-          />
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-          >
+        <div className="flex flex-wrap gap-2">
+          <input ref={inputRef} type="file" accept={ACCEPTED_FAVICON_TYPES} className="hidden" onChange={onPick} />
+          <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
             {trimmed ? "Replace favicon" : "Upload favicon"}
           </Button>
           {trimmed ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => void onClear()}
-            >
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void onClear()}>
               Remove
             </Button>
           ) : null}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        PNG, ICO, or WEBP. Max 512&nbsp;KB. 32×32 or 48×48 works well in browser tabs.
-      </p>
+      <p className={cn(hintClass(), "mt-3")}>PNG, ICO, or WEBP · max 512&nbsp;KB</p>
     </div>
   );
 }
 
 function LockedNotice() {
   return (
-    <section className="max-w-2xl space-y-3">
-      <h2 className="text-xl font-semibold">Branding</h2>
-      <p className="text-sm text-muted-foreground">
-        Ask an owner or admin (permission <code>business.manage_settings</code>) to update your storefront
-        branding.
-      </p>
-    </section>
+    <div className="mx-auto max-w-lg py-16">
+      <div className="rounded-2xl border border-border/80 bg-card p-8 text-center shadow-sm">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Lock className="size-6" aria-hidden />
+        </div>
+        <h1 className="mt-4 text-lg font-semibold tracking-tight">Branding is restricted</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Ask an owner or admin with <span className="font-mono text-xs">business.manage_settings</span> to update
+          storefront branding, or open another area you have access to.
+        </p>
+        <Button asChild className="mt-6" variant="outline">
+          <Link href={APP_ROUTES.business}>Back to business settings</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RelatedLinks() {
+  const links = [
+    { href: APP_ROUTES.business, label: "Business", desc: "Core settings & storefront", icon: Building2 },
+    { href: APP_ROUTES.businessDomains, label: "Domains", desc: "Custom hostnames", icon: Globe },
+    { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },
+  ] as const;
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      {links.map(({ href, label, desc, icon: Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className={cn(
+            "group flex items-start gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-all",
+            "hover:border-primary/25 hover:bg-accent/40 hover:shadow-md",
+          )}
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+            <Icon className="size-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1 text-sm font-semibold">
+              {label}
+              <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
+          </span>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -341,41 +394,58 @@ export default function BrandingPage() {
   const { canManageBusinessSettings } = useDashboard();
   const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
-  const [notice, setNotice] = useState<Notice>(null);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [faviconBusy, setFaviconBusy] = useState(false);
 
-  useEffect(() => {
-    fetchBusiness()
+  const load = useCallback(() => {
+    return fetchBusiness()
       .then((next) => {
+        setLoadFailed(false);
+        setFeedback(null);
         setSnapshot(next);
         setForm(formFromBranding(next.branding));
       })
-      .catch((error) =>
-        setNotice({ tone: "error", text: messageFor(error, "Failed to load business.") }),
-      );
+      .catch((error) => {
+        setLoadFailed(true);
+        setSnapshot(null);
+        setFeedback({
+          kind: "error",
+          text: messageFor(error, "Could not load branding."),
+        });
+      });
   }, []);
+
+  useEffect(() => {
+    if (!canManageBusinessSettings) {
+      return;
+    }
+    void load();
+  }, [canManageBusinessSettings, load]);
 
   if (!canManageBusinessSettings) {
     return <LockedNotice />;
   }
 
+  const isLoading = snapshot === null && !loadFailed;
+
   const onSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!HEX_REGEX.test(form.primaryColor) || !HEX_REGEX.test(form.accentColor)) {
-      setNotice({ tone: "error", text: "Colors must be #RRGGBB." });
+      setFeedback({ kind: "error", text: "Colors must be valid #RRGGBB hex values." });
       return;
     }
     setIsSaving(true);
-    setNotice(null);
+    setFeedback(null);
     try {
       const next = await updateMyBranding(buildPatch(form));
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setNotice({ tone: "info", text: "Branding saved." });
+      setFeedback({ kind: "success", text: "Branding saved." });
     } catch (error) {
-      setNotice({ tone: "error", text: messageFor(error, "Save failed.") });
+      setFeedback({ kind: "error", text: messageFor(error, "Save failed.") });
     } finally {
       setIsSaving(false);
     }
@@ -383,18 +453,18 @@ export default function BrandingPage() {
 
   const onLogoUpload = async (file: File) => {
     if (file.size > MAX_LOGO_BYTES) {
-      setNotice({ tone: "error", text: "Logo exceeds the 4 MB limit." });
+      setFeedback({ kind: "error", text: "Logo exceeds the 4 MB limit." });
       return;
     }
     setLogoBusy(true);
-    setNotice(null);
+    setFeedback(null);
     try {
       const next = await uploadMyBrandingLogo(file);
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setNotice({ tone: "info", text: "Logo updated." });
+      setFeedback({ kind: "success", text: "Logo updated." });
     } catch (error) {
-      setNotice({ tone: "error", text: messageFor(error, "Upload failed.") });
+      setFeedback({ kind: "error", text: messageFor(error, "Upload failed.") });
     } finally {
       setLogoBusy(false);
     }
@@ -402,14 +472,14 @@ export default function BrandingPage() {
 
   const onLogoClear = async () => {
     setLogoBusy(true);
-    setNotice(null);
+    setFeedback(null);
     try {
       const next = await clearMyBrandingLogo();
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setNotice({ tone: "info", text: "Logo removed." });
+      setFeedback({ kind: "success", text: "Logo removed." });
     } catch (error) {
-      setNotice({ tone: "error", text: messageFor(error, "Could not remove logo.") });
+      setFeedback({ kind: "error", text: messageFor(error, "Could not remove logo.") });
     } finally {
       setLogoBusy(false);
     }
@@ -417,18 +487,18 @@ export default function BrandingPage() {
 
   const onFaviconUpload = async (file: File) => {
     if (file.size > MAX_FAVICON_BYTES) {
-      setNotice({ tone: "error", text: "Favicon exceeds the 512 KB limit." });
+      setFeedback({ kind: "error", text: "Favicon exceeds the 512 KB limit." });
       return;
     }
     setFaviconBusy(true);
-    setNotice(null);
+    setFeedback(null);
     try {
       const next = await uploadMyBrandingFavicon(file);
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setNotice({ tone: "info", text: "Favicon updated." });
+      setFeedback({ kind: "success", text: "Favicon updated." });
     } catch (error) {
-      setNotice({ tone: "error", text: messageFor(error, "Favicon upload failed.") });
+      setFeedback({ kind: "error", text: messageFor(error, "Favicon upload failed.") });
     } finally {
       setFaviconBusy(false);
     }
@@ -436,14 +506,14 @@ export default function BrandingPage() {
 
   const onFaviconClear = async () => {
     setFaviconBusy(true);
-    setNotice(null);
+    setFeedback(null);
     try {
       const next = await clearMyBrandingFavicon();
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setNotice({ tone: "info", text: "Favicon removed." });
+      setFeedback({ kind: "success", text: "Favicon removed." });
     } catch (error) {
-      setNotice({ tone: "error", text: messageFor(error, "Could not remove favicon.") });
+      setFeedback({ kind: "error", text: messageFor(error, "Could not remove favicon.") });
     } finally {
       setFaviconBusy(false);
     }
@@ -452,52 +522,109 @@ export default function BrandingPage() {
   const logoUrl = snapshot?.branding?.logoUrl ?? null;
   const faviconUrl = snapshot?.branding?.faviconUrl ?? form.faviconUrl;
 
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 py-24">
+        <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
+        <p className="text-sm text-muted-foreground">Loading branding…</p>
+      </div>
+    );
+  }
+
+  if (loadFailed && !snapshot) {
+    return (
+      <div className="mx-auto max-w-lg py-16">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+            <AlertCircle className="size-6" aria-hidden />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold tracking-tight">Could not load branding</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
+          <Button
+            className="mt-6 gap-2"
+            variant="outline"
+            onClick={() => {
+              setLoadFailed(false);
+              setFeedback(null);
+              void load();
+            }}
+          >
+            <RefreshCw className="size-4" aria-hidden />
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section className="max-w-3xl space-y-6">
-      <header>
-        <h2 className="text-xl font-semibold">Branding</h2>
-        <p className="text-sm text-muted-foreground">
-          Customize how your storefront and dashboard greet customers and staff.
-          Changes apply to the public shop, login pages, and emails within a minute.
-        </p>
+    <div className="mx-auto max-w-3xl space-y-8 pb-16">
+      <header className="space-y-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-primary">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+              <Palette className="size-4" aria-hidden />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary/90">Appearance</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Branding</h1>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Logo, colors, and display name for your storefront, sign-in screens, and tenant emails. File uploads apply
+            immediately; text fields use <span className="font-mono text-xs">Save</span> below.
+          </p>
+        </div>
+        <RelatedLinks />
       </header>
+
+      {feedback ? (
+        <div
+          role="status"
+          className={cn(
+            "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm",
+            feedback.kind === "success" &&
+              "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-950 dark:text-emerald-100",
+            feedback.kind === "error" && "border-destructive/30 bg-destructive/5 text-destructive",
+          )}
+        >
+          {feedback.kind === "success" ? (
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          ) : (
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          )}
+          <span>{feedback.text}</span>
+        </div>
+      ) : null}
 
       <BrandingPreview form={form} logoUrl={logoUrl} />
 
-      <LogoSection
-        logoUrl={logoUrl}
-        busy={logoBusy}
-        onUpload={onLogoUpload}
-        onClear={onLogoClear}
-      />
+      <LogoSection logoUrl={logoUrl} busy={logoBusy} onUpload={onLogoUpload} onClear={onLogoClear} />
 
-      <FaviconSection
-        faviconUrl={faviconUrl}
-        busy={faviconBusy}
-        onUpload={onFaviconUpload}
-        onClear={onFaviconClear}
-      />
+      <FaviconSection faviconUrl={faviconUrl} busy={faviconBusy} onUpload={onFaviconUpload} onClear={onFaviconClear} />
 
-      <form className="space-y-5" onSubmit={onSave}>
+      <form className="space-y-6 rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6" onSubmit={onSave}>
+        <div className="border-b border-border/60 pb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Text & colors</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Saved together when you click Save branding.</p>
+        </div>
+
         <div className="space-y-2">
-          <label className="block text-sm font-medium" htmlFor="branding-name">
+          <label className={labelClass()} htmlFor="branding-name">
             Display name
           </label>
           <input
             id="branding-name"
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            className={inputClass()}
             value={form.displayName}
             maxLength={255}
             onChange={(e) => setForm((s) => ({ ...s, displayName: e.target.value }))}
             placeholder={snapshot?.name ?? "Your storefront name"}
           />
-          <p className="text-xs text-muted-foreground">
-            Shown across the storefront header, login screens, and tenant emails.
-            Falls back to your business name when empty.
+          <p className={hintClass()}>
+            Shown in the shop header and login. Falls back to your legal business name when empty.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           <ColorField
             label="Primary color"
             htmlId="branding-primary"
@@ -513,39 +640,39 @@ export default function BrandingPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium" htmlFor="branding-favicon">
-            Favicon URL (optional)
+          <label className={labelClass()} htmlFor="branding-favicon">
+            Favicon URL <span className="font-normal text-muted-foreground">(optional)</span>
           </label>
           <input
             id="branding-favicon"
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            className={inputClass()}
             value={form.faviconUrl}
             maxLength={1024}
             onChange={(e) => setForm((s) => ({ ...s, faviconUrl: e.target.value }))}
             placeholder="https://cdn.example.com/favicon.png"
           />
-          <p className="text-xs text-muted-foreground">
-            Use upload above for hosted favicons, or paste an external URL here and save.
-          </p>
+          <p className={hintClass()}>Use the upload section above for hosted files, or paste an external HTTPS URL here.</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button disabled={isSaving} type="submit">
-            {isSaving ? "Saving..." : "Save branding"}
+        <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <Button disabled={isSaving} type="submit" size="lg" className="w-full gap-2 sm:w-auto">
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save className="size-4" aria-hidden />
+                Save branding
+              </>
+            )}
           </Button>
-          {notice ? (
-            <p
-              className={
-                notice.tone === "error"
-                  ? "text-sm text-destructive"
-                  : "text-sm text-muted-foreground"
-              }
-            >
-              {notice.text}
-            </p>
-          ) : null}
+          <p className="text-center text-xs text-muted-foreground sm:text-left">
+            <span className="font-mono">PATCH …/businesses/me/branding</span> · logo & favicon use multipart uploads
+          </p>
         </div>
       </form>
-    </section>
+    </div>
   );
 }
