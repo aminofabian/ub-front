@@ -21,6 +21,7 @@ type NavItem = {
 
 const ALL_NAV_ITEMS: readonly NavItem[] = [
   { href: APP_ROUTES.business, label: "Business settings" },
+  { href: APP_ROUTES.businessBranding, label: "Branding" },
   { href: APP_ROUTES.businessDomains, label: "Domains" },
   BRANCHES_LINK,
   { href: APP_ROUTES.users, label: "Users" },
@@ -89,6 +90,9 @@ export function AppShell({ children }: AppShellProps) {
       return false;
     }
     if (item.href === APP_ROUTES.businessDomains) {
+      return canManageBusinessSettings;
+    }
+    if (item.href === APP_ROUTES.businessBranding) {
       return canManageBusinessSettings;
     }
     if (item.href === APP_ROUTES.users) {

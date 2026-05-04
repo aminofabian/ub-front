@@ -32,7 +32,11 @@ export function TenantStatusPage({ status }: { status: Status }) {
       <div className="w-full max-w-md rounded-2xl border border-border/70 bg-card/95 p-10 text-center shadow-sm">
         {logo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt={`${display} logo`} className="mx-auto mb-6 h-12 w-auto" />
+          <img
+            src={logo}
+            alt={`${display} logo`}
+            className="mx-auto mb-6 max-h-12 w-auto max-w-[min(100%,16rem)] object-contain"
+          />
         ) : (
           <p
             className="mb-6 text-xs font-semibold uppercase tracking-[0.25em]"

@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { ShopAisleGrid } from "@/components/storefront/shop-aisle-grid";
 import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more";
-import ShopCategoryNav from "@/components/storefront/shop-category-nav";
-import ShopSearchBar from "@/components/storefront/shop-search-bar";
+import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
+import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
+import { ShopTrustStrip } from "@/components/storefront/shop-trust-strip";
 import { APP_BASE_URL } from "@/lib/config";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import {
   fetchPublicCatalogItems,
   fetchPublicCategories,
   fetchPublicStorefront,
+  type PublicCatalogItemCard,
 } from "@/lib/public-storefront";
 
 type PageProps = {
   searchParams: Promise<{ q?: string; categoryId?: string }>;
 };
+
+function isHexColor(value: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(value.trim());
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const slug = await resolveStorefrontSlug();
@@ -67,55 +74,73 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const categories = categoriesPayload?.categories ?? [];
   const branchHint = storefront?.catalogBranchName;
   const heroTitle = tenant?.branding.displayName ?? tenant?.tenantName ?? "Browse products";
-  const eyebrow = tenant ? "Online catalog" : "Online catalog";
-  const eyebrowStyle = tenant?.branding.primaryColor
-    ? { color: tenant.branding.primaryColor }
-    : undefined;
+  const announcement = storefront?.announcement?.trim() || null;
+  const primaryRaw = tenant?.branding.primaryColor?.trim() ?? "";
+  const primary = isHexColor(primaryRaw) ? primaryRaw : null;
+  const accentRaw = tenant?.branding.accentColor?.trim() ?? "";
+  const accentHex = isHexColor(accentRaw) ? accentRaw : null;
+  const logoUrl = tenant?.branding.logoUrl ?? null;
+
+  // Featured fallback: use the first storefront items if the tenant hasn't curated featured.
+  const featured: PublicCatalogItemCard[] =
+    storefront?.featured?.length && storefront.featured.length > 0
+      ? storefront.featured
+      : list.items.slice(0, 4);
+
+  const showcaseImage =
+    featured[0]?.imageUrl ||
+    storefront?.featured?.[0]?.imageUrl ||
+    null;
 
   return (
-    <div className="bg-gradient-to-b from-muted/25 to-background px-4 py-8 dark:from-muted/10">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col gap-1">
-          <p
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-primary"
-            style={eyebrowStyle}
-          >
-            {eyebrow}
-          </p>
-          {tenant?.branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={tenant.branding.logoUrl}
-              alt={`${heroTitle} logo`}
-              className="mt-2 h-10 w-auto"
+    <div className="bg-[oklch(0.985_0.002_90)] dark:bg-background">
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 sm:pb-20 sm:pt-6">
+        <div className="grid gap-5 lg:grid-cols-12 lg:gap-6 lg:items-start">
+          <main className="min-w-0 space-y-6 lg:col-span-9">
+            <ShopHeroMart
+              title={heroTitle}
+              tagline={announcement}
+              branchHint={branchHint}
+              primaryHex={primary}
+              accentHex={accentHex}
+              showcaseImage={showcaseImage}
+              logoUrl={logoUrl}
             />
-          ) : null}
-          <h1 className="text-2xl font-semibold tracking-tight">{heroTitle}</h1>
-          {branchHint ? (
-            <p className="text-sm text-muted-foreground">Prices from {branchHint}</p>
-          ) : null}
-        </div>
 
-        <div className="mt-6">
-          <ShopSearchBar defaultQuery={q} categoryId={categoryId} />
-        </div>
+            <ShopTrustStrip primaryHex={primary} />
 
-        <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
-          <aside className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-[14rem] lg:shrink-0">
-            <ShopCategoryNav categories={categories} activeCategoryId={categoryId} q={q} />
+            <ShopAisleGrid
+              categories={categories}
+              primaryHex={primary}
+              accentHex={accentHex}
+            />
+
+            <section id="shop-catalog">
+              <ShopCatalogWithMore
+                key={`${q ?? ""}\0${categoryId ?? ""}`}
+                slug={slug}
+                currency={list.currency}
+                initialItems={list.items}
+                initialNextCursor={list.nextCursor}
+                q={q}
+                categoryId={categoryId}
+                primaryHex={primary}
+                accentHex={accentHex}
+              />
+            </section>
+          </main>
+
+          <aside className="lg:col-span-3">
+            <div className="lg:sticky lg:top-28">
+              <ShopSidebarWidgets
+                slug={slug}
+                currency={list.currency}
+                featured={featured}
+                primaryHex={primary}
+                accentHex={accentHex}
+              />
+            </div>
           </aside>
-
-          <div className="min-w-0 flex-1">
-            <ShopCatalogWithMore
-              key={`${q ?? ""}\0${categoryId ?? ""}`}
-              slug={slug}
-              currency={list.currency}
-              initialItems={list.items}
-              initialNextCursor={list.nextCursor}
-              q={q}
-              categoryId={categoryId}
-            />
-          </div>
         </div>
       </div>
     </div>

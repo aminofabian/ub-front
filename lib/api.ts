@@ -214,6 +214,14 @@ export type StorefrontSettingsRecord = {
   featuredItemIds: string[];
 };
 
+export type BrandingRecord = {
+  displayName?: string | null;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+};
+
 export type BusinessRecord = {
   id?: string;
   name: string;
@@ -224,6 +232,7 @@ export type BusinessRecord = {
   active?: boolean;
   subscriptionTier?: string;
   storefront?: StorefrontSettingsRecord;
+  branding?: BrandingRecord;
 };
 
 export type BranchRecord = {
@@ -266,6 +275,14 @@ export type PatchBusinessPayload = {
   subscriptionTier?: string;
   active?: boolean;
   storefront?: StorefrontPatchPayload;
+};
+
+export type BrandingPatchPayload = {
+  displayName?: string | null;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
 };
 
 export type CreateUserPayload = {
@@ -730,6 +747,28 @@ export async function fetchBusiness(): Promise<BusinessRecord> {
 
 export async function updateBusiness(body: PatchBusinessPayload): Promise<void> {
   await request(API_ROUTES.businessMe, { method: "PATCH", body });
+}
+
+const MY_BRANDING_PATH = "/api/v1/businesses/me/branding";
+
+export async function updateMyBranding(
+  body: BrandingPatchPayload,
+): Promise<BusinessRecord> {
+  return request<BusinessRecord>(MY_BRANDING_PATH, { method: "PATCH", body });
+}
+
+export async function uploadMyBrandingLogo(
+  file: File,
+): Promise<BusinessRecord> {
+  const form = new FormData();
+  form.append("file", file);
+  return requestMultipartJson<BusinessRecord>(`${MY_BRANDING_PATH}/logo`, form);
+}
+
+export async function clearMyBrandingLogo(): Promise<BusinessRecord> {
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/logo`, {
+    method: "DELETE",
+  });
 }
 
 export type DomainRecord = {

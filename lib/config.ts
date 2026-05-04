@@ -8,6 +8,7 @@ export const APP_ROUTES = {
   superAdminLogin: "/super-admin/login",
   superAdminBusinesses: "/super-admin/businesses",
   business: "/business",
+  businessBranding: "/business/branding",
   businessDomains: "/business/domains",
   branches: "/branches",
   users: "/users",
