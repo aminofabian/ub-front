@@ -10,11 +10,13 @@ import {
   Wine,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import type { PublicCategory } from "@/lib/public-storefront";
 import { shopListPath } from "@/lib/shop-url";
 import { APP_ROUTES } from "@/lib/config";
+import { categoryIconImageUrl } from "@/lib/utils";
 
 const ICON_BY_KEYWORD: Array<{ test: RegExp; icon: LucideIcon }> = [
   { test: /drink|beverage|water|juice|soda/i, icon: Beer },
@@ -73,7 +75,18 @@ export function ShopAisleGrid({
           const Icon = pickIcon(c.name);
           const tint = i % 2 === 0 ? primary : accent;
           const tintFallback = i % 2 === 0 ? "var(--color-primary)" : "#fb923c";
-          return <AisleCard key={c.id} href={shopListPath({ categoryId: c.id })} label={c.name} Icon={Icon} tint={tint} tintFallback={tintFallback} />;
+          const customIconSrc = categoryIconImageUrl(c.icon ?? null);
+          return (
+            <AisleCard
+              key={c.id}
+              href={shopListPath({ categoryId: c.id })}
+              label={c.name}
+              Icon={Icon}
+              customIconSrc={customIconSrc}
+              tint={tint}
+              tintFallback={tintFallback}
+            />
+          );
         })}
         {showOffers ? (
           <AisleCard
@@ -94,6 +107,7 @@ function AisleCard({
   href,
   label,
   Icon,
+  customIconSrc,
   tint,
   tintFallback,
   promo,
@@ -101,6 +115,7 @@ function AisleCard({
   href: string;
   label: string;
   Icon: LucideIcon;
+  customIconSrc?: string | null;
   tint: string | null;
   tintFallback: string;
   promo?: boolean;
@@ -116,11 +131,24 @@ function AisleCard({
           className="relative flex aspect-[4/3] items-center justify-center"
           style={{ background: `linear-gradient(160deg, ${color}26 0%, ${color}10 100%)` }}
         >
-          <Icon
-            className="h-10 w-10 opacity-90 transition group-hover:scale-110 sm:h-12 sm:w-12"
-            aria-hidden
-            style={{ color }}
-          />
+          {customIconSrc ? (
+            <span className="relative h-14 w-14 overflow-hidden rounded-xl border border-white/20 bg-white/90 shadow-inner sm:h-16 sm:w-16 dark:bg-white/95">
+              <Image
+                src={customIconSrc}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="64px"
+                unoptimized
+              />
+            </span>
+          ) : (
+            <Icon
+              className="h-10 w-10 opacity-90 transition group-hover:scale-110 sm:h-12 sm:w-12"
+              aria-hidden
+              style={{ color }}
+            />
+          )}
           {promo ? (
             <span
               className="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow"

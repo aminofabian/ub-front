@@ -16,7 +16,17 @@ type CashierShellProps = {
 export function CashierShell({ children }: CashierShellProps) {
   const router = useRouter();
   const online = useOnlineStatus();
-  const { business, loading } = useDashboard();
+  const {
+    business,
+    loading,
+    branches,
+    branchId,
+    setBranchId,
+    branchesLoading,
+    canQuickSale,
+  } = useDashboard();
+
+  const showBranchPicker = canQuickSale;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -35,6 +45,31 @@ export function CashierShell({ children }: CashierShellProps) {
             </span>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {showBranchPicker ? (
+              <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className="hidden sm:inline">Branch</span>
+                <select
+                  className="h-8 max-w-[10rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  disabled={branchesLoading || branches.length === 0}
+                  aria-label="Select branch"
+                >
+                  {branches.length === 0 ? (
+                    <option value="">{branchesLoading ? "Loading…" : "No branches"}</option>
+                  ) : (
+                    <>
+                      {!branchId ? <option value="">Select…</option> : null}
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              </label>
+            ) : null}
             <Button asChild variant="ghost" size="sm" className="h-8 text-xs">
               <Link href={APP_ROUTES.salesQuick}>Admin quick sale</Link>
             </Button>

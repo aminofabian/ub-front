@@ -11,7 +11,6 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
-  fetchBranches,
   fetchCategoryTree,
   fetchCurrentShift,
   fetchCustomerById,
@@ -21,7 +20,6 @@ import {
   itemListThumbnailUrl,
   postVoidSale,
   tryPostSaleWithRetries,
-  type BranchRecord,
   type CategoryTreeNodeRecord,
   type CustomerRecord,
   type ItemSummaryRecord,
@@ -38,6 +36,14 @@ import {
   flushSaleOutbox,
   isSaleOutboxSupported,
 } from "@/lib/sale-outbox";
+import {
+  getTopProducts,
+  recordSaleLines,
+  seedTopProductsIfEmpty,
+  tileHue,
+  type TopProductRecord,
+} from "@/lib/top-products";
+import { CashierPosLayout } from "./cashier-pos-layout";
 
 type CartLine = {
   key: string;
@@ -45,6 +51,7 @@ type CartLine = {
   label: string;
   quantity: string;
   unitPrice: string;
+  item: ItemSummaryRecord;
 };
 
 function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
@@ -87,7 +94,14 @@ type QuickSaleWorkspaceProps = {
 };
 
 export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProps) {
-  const { me, business } = useDashboard();
+  const {
+    me,
+    business,
+    branches,
+    branchId,
+    setBranchId,
+    branchesLoading,
+  } = useDashboard();
   const online = useOnlineStatus();
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
   const canBrowseCategories = hasPermission(me?.permissions, Permission.CatalogItemsRead);
@@ -96,8 +110,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
 
-  const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [branchId, setBranchId] = useState("");
+  const [topProducts, setTopProducts] = useState<TopProductRecord[]>([]);
   const [search, setSearch] = useState("");
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
   const [searchBanner, setSearchBanner] = useState<string | null>(null);
@@ -164,27 +177,39 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     }
   }, [customerPhoneQuery, online]);
 
+  const refreshTopProducts = useCallback(() => {
+    setTopProducts(getTopProducts(business?.id ?? null, 8));
+  }, [business?.id]);
+
   useEffect(() => {
     if (!canSell) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from localStorage on mount.
+    refreshTopProducts();
+  }, [canSell, refreshTopProducts]);
+
+  useEffect(() => {
+    if (!canSell || !canBrowseCategories || !online) {
+      return;
+    }
+    if (topProducts.length > 0) {
+      return;
+    }
     let cancelled = false;
-    fetchBranches()
-      .then((list) => {
-        if (!cancelled) {
-          const active = list.filter((b) => b.active);
-          setBranches(active);
-          const def = me?.branchId?.trim();
-          if (def && active.some((b) => b.id === def)) {
-            setBranchId(def);
-          }
+    fetchItems()
+      .then((items) => {
+        if (cancelled) {
+          return;
         }
+        seedTopProductsIfEmpty(business?.id ?? null, items);
+        refreshTopProducts();
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [canSell, me?.branchId]);
+  }, [canSell, canBrowseCategories, online, topProducts.length, business?.id, refreshTopProducts]);
 
   useEffect(() => {
     if (!canSell || !canBrowseCategories || !online) {
@@ -368,20 +393,25 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     return roundMoney2(t);
   }, [lines]);
 
-  const addLine = useCallback((item: ItemSummaryRecord) => {
-    setLines((prev) => [
-      ...prev,
-      {
-        key: crypto.randomUUID(),
-        itemId: item.id,
-        label: [item.name, item.sku ? `(${item.sku})` : ""].filter(Boolean).join(" "),
-        quantity: "1",
-        unitPrice: "",
-      },
-    ]);
-    setSearch("");
-    setHits([]);
-  }, []);
+  const addLine = useCallback(
+    (item: ItemSummaryRecord, qty: number = 1, unitPrice: string = "") => {
+      const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+      setLines((prev) => [
+        ...prev,
+        {
+          key: crypto.randomUUID(),
+          itemId: item.id,
+          label: [item.name, item.sku ? `(${item.sku})` : ""].filter(Boolean).join(" "),
+          quantity: String(safeQty),
+          unitPrice: unitPrice ?? "",
+          item,
+        },
+      ]);
+      setSearch("");
+      setHits([]);
+    },
+    [],
+  );
 
   const removeLine = useCallback((key: string) => {
     setLines((prev) => prev.filter((l) => l.key !== key));
@@ -514,6 +544,16 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       clientSoldAt: new Date().toISOString(),
     };
 
+    const linesSnapshot = lines.map((line) => ({
+      item: line.item,
+      qty: parseQty(line.quantity) ?? 1,
+    }));
+
+    const recordTopSellers = () => {
+      recordSaleLines(business?.id ?? null, linesSnapshot);
+      refreshTopProducts();
+    };
+
     const clearCartUi = () => {
       setLines([]);
       setMpesaRef("");
@@ -543,6 +583,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       setLoading(true);
       try {
         await enqueuePendingSale(idem, salePayload);
+        recordTopSellers();
         clearCartUi();
         setVoidNotes("");
         await refreshOutbox();
@@ -576,6 +617,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       if (result.ok) {
         setLastSale(result.sale);
         setVoidNotes("");
+        recordTopSellers();
         clearCartUi();
         setNotice(
           `Sale ${result.sale.id} recorded. Grand total ${grandTotal.toFixed(2)} ${business?.currency?.trim() || "KES"}.`,
@@ -606,6 +648,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         }
         try {
           await enqueuePendingSale(idem, salePayload);
+          recordTopSellers();
           clearCartUi();
           setVoidNotes("");
           await refreshOutbox();
@@ -635,6 +678,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     selectedCustomer,
     business,
     refreshOutbox,
+    refreshTopProducts,
   ]);
 
   const onVoidLastSale = useCallback(async () => {
@@ -681,6 +725,10 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
 
   const isCashier = variant === "cashier";
   const heading = isCashier ? "Cashier" : "Quick sale";
+  const activeBranchName = useMemo(
+    () => branches.find((b) => b.id === branchId)?.name ?? "",
+    [branches, branchId],
+  );
 
   if (!canSell) {
     if (!isCashier) {
@@ -708,38 +756,100 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   }
 
   const currency = business?.currency?.trim() || "KES";
+  const branchSelected = Boolean(branchId && branches.some((b) => b.id === branchId));
+
+  if (isCashier) {
+    return (
+      <CashierPosLayout
+        online={online}
+        currency={currency}
+        activeBranchName={activeBranchName}
+        branchesLoading={branchesLoading}
+        branchSelected={branchSelected}
+        search={search}
+        setSearch={setSearch}
+        hits={hits}
+        searchBanner={searchBanner}
+        topProducts={topProducts}
+        addLine={addLine}
+        canBrowseCategories={canBrowseCategories}
+        categoryRoots={categoryRoots}
+        visibleCategoryTiles={visibleCategoryTiles}
+        categoryBrowseStack={categoryBrowseStack}
+        setCategoryBrowseStack={setCategoryBrowseStack}
+        applySubtreeFilter={applySubtreeFilter}
+        clearCategoryFilter={clearCategoryFilter}
+        categoryFilterId={categoryFilterId}
+        categoryFilterLabel={categoryFilterLabel}
+        categoryTreeBusy={categoryTreeBusy}
+        categoryBrowseParentId={categoryBrowseParentId}
+        cart={{
+          lines,
+          grandTotal,
+          removeLine,
+          updateLine,
+          payMethod,
+          setPayMethod,
+          mpesaRef,
+          setMpesaRef,
+          splitPay,
+          setSplitPay,
+          cashSplitStr,
+          setCashSplitStr,
+          mpesaSplitStr,
+          setMpesaSplitStr,
+          splitMpesaRef,
+          setSplitMpesaRef,
+          canLookupCustomers,
+          customerPhoneQuery,
+          setCustomerPhoneQuery,
+          customerHits,
+          customerSearchBusy,
+          onSearchCustomers: () => void onSearchCustomers(),
+          selectedCustomer,
+          setSelectedCustomer,
+          onComplete: () => void onComplete().catch(() => undefined),
+          loading,
+          outboxCount,
+          outboxBusy,
+          onRetryOutbox: () => void onRetryOutbox().catch(() => undefined),
+          error,
+          notice,
+          canVoid,
+          lastSale,
+          lastSaleCustomerName,
+          voidNotes,
+          setVoidNotes,
+          onVoidLastSale: () => void onVoidLastSale().catch(() => undefined),
+          voidLoading,
+          onDownloadReceiptPdf: () =>
+            void onDownloadReceiptPdf().catch(() => undefined),
+          receiptLoading,
+        }}
+      />
+    );
+  }
 
   return (
-    <section className={cn("space-y-8", !isCashier && "mx-auto max-w-6xl pb-16")}>
+    <section className={cn("space-y-8", "mx-auto max-w-6xl pb-16")}>
       <header className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold">{heading}</h2>
-          {!isCashier ? (
-            <span
-              className={`rounded px-2 py-0.5 text-xs font-medium ${online ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}
-            >
-              {online ? "Online" : "Offline"}
-            </span>
-          ) : null}
+          <span
+            className={`rounded px-2 py-0.5 text-xs font-medium ${online ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}
+          >
+            {online ? "Online" : "Offline"}
+          </span>
         </div>
-        {isCashier ? (
-          <p className="text-sm text-muted-foreground">
-            Add this URL to your home screen for a standalone cashier app. Offline sales queue on-device and sync with
-            the same <code className="text-xs">Idempotency-Key</code> when you are online with an open shift. Voiding
-            follows <code className="text-xs">{Permission.SalesVoidOwn}</code> /{" "}
-            <code className="text-xs">{Permission.SalesVoidAny}</code>.
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Installable PWA: open <span className="font-medium text-foreground">/cashier</span> to install a compact
-            cashier shell. When offline, sales can be queued on-device (IndexedDB) and replayed with the same{" "}
-            <code className="text-xs">Idempotency-Key</code> once you are online with an open shift. Catalog search
-            uses a short TTL read-through cache for stale/offline hints. Cash increases expected drawer closing; M-Pesa
-            (manual) posts to clearing without moving the drawer. Voiding reverses the last completed sale only while
-            the same shift is still open (<code className="text-xs">{Permission.SalesVoidOwn}</code> /{" "}
-            <code className="text-xs">{Permission.SalesVoidAny}</code>).
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          Installable PWA: open <span className="font-medium text-foreground">/cashier</span> to install a compact
+          cashier shell. When offline, sales can be queued on-device (IndexedDB) and replayed with the same{" "}
+          <code className="text-xs">Idempotency-Key</code> once you are online with an open shift. Catalog search
+          uses a short TTL read-through cache for stale/offline hints. Cash increases expected drawer closing; M-Pesa
+          (manual) posts to clearing without moving the drawer. Voiding reverses the last completed sale only while
+          the same shift is still open (<code className="text-xs">{Permission.SalesVoidOwn}</code> /{" "}
+          <code className="text-xs">{Permission.SalesVoidAny}</code>).
+        </p>
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/20 p-4">
@@ -749,6 +859,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
             className="rounded border bg-background px-2 py-1.5"
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
+            disabled={branchesLoading || branches.length === 0}
           >
             <option value="">—</option>
             {branches.map((b) => (
@@ -759,6 +870,47 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           </select>
         </label>
       </div>
+
+      {topProducts.length > 0 ? (
+        <section
+          aria-label="Top selling products"
+          className="space-y-3 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-rose-50 to-sky-50 p-4 shadow-sm dark:border-amber-200/20 dark:from-amber-950/20 dark:via-rose-950/20 dark:to-sky-950/20"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-base font-bold leading-none text-amber-700 dark:text-amber-300"
+              >
+                ★
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold leading-tight">Top sellers</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  One tap to add to cart · ranked by recent sales on this device
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {topProducts.map((p, idx) => (
+              <TopSellerTile
+                key={p.id}
+                product={p}
+                rank={idx}
+                onAdd={() =>
+                  addLine({
+                    id: p.id,
+                    name: p.name,
+                    sku: p.sku ?? "",
+                    thumbnailUrl: p.thumbnailUrl ?? null,
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {canBrowseCategories ? (
         <div className="space-y-3 rounded-md border bg-muted/20 p-4">
@@ -1280,5 +1432,83 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
     </section>
+  );
+}
+
+type TopSellerTileProps = {
+  product: TopProductRecord;
+  rank: number;
+  onAdd: () => void;
+};
+
+function TopSellerTile({ product, rank, onAdd }: TopSellerTileProps) {
+  const hue = tileHue(product.id);
+  const tileStyle: React.CSSProperties = {
+    backgroundImage: `linear-gradient(135deg, hsl(${hue} 80% 94%), hsl(${(hue + 35) % 360} 78% 84%))`,
+  };
+  const accentColor = `hsl(${hue} 65% 28%)`;
+  const sold = product.count;
+  const qtyLabel = product.qty >= 100
+    ? `${Math.round(product.qty)}`
+    : product.qty.toFixed(product.qty >= 10 ? 0 : 1);
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      style={tileStyle}
+      className={cn(
+        "group relative flex h-[7.75rem] flex-col justify-between overflow-hidden rounded-xl",
+        "border border-white/60 p-3 text-left shadow-sm transition-all",
+        "hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+      )}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/40 blur-2xl transition-opacity group-hover:opacity-90"
+      />
+      <div className="relative flex items-start justify-between gap-2">
+        <span
+          className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide shadow-sm backdrop-blur"
+          style={{ color: accentColor }}
+        >
+          {rank === 0 ? "★ Top" : `#${rank + 1}`}
+        </span>
+        {product.thumbnailUrl ? (
+          <span className="relative h-9 w-9 overflow-hidden rounded-md border border-white/70 bg-white/85 shadow-sm">
+            <Image
+              src={product.thumbnailUrl}
+              alt=""
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          </span>
+        ) : (
+          <span
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/50 bg-white/60 text-sm font-bold shadow-sm"
+            style={{ color: accentColor }}
+            aria-hidden
+          >
+            {product.name.trim().charAt(0).toUpperCase() || "?"}
+          </span>
+        )}
+      </div>
+      <div className="relative space-y-0.5">
+        <p
+          className="line-clamp-2 text-[13px] font-semibold leading-snug"
+          style={{ color: accentColor }}
+        >
+          {product.name}
+        </p>
+        <p className="text-[10px] uppercase tracking-wide text-foreground/60">
+          {product.sku ? product.sku : "no sku"}
+        </p>
+        <p className="text-[10px] font-medium text-foreground/70">
+          {sold > 0 ? `Sold ×${sold} · qty ${qtyLabel}` : "Suggested pick"}
+        </p>
+      </div>
+    </button>
   );
 }

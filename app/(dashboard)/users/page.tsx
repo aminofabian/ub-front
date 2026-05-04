@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
   Building2,
-  CheckCircle2,
   Filter,
   Loader2,
   MapPin,
@@ -19,6 +18,12 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  DASHBOARD_MAX,
+  DashboardFeedback,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
+import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -125,6 +130,8 @@ export default function UsersPage() {
   const [firstLoadDone, setFirstLoadDone] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [inviteDrawerOpen, setInviteDrawerOpen] = useState(false);
+  const skipInviteDrawerResetAfterCreate = useRef(false);
   const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
@@ -171,6 +178,24 @@ export default function UsersPage() {
     void loadData();
   }, [loadData]);
 
+  const resetInviteDraft = useCallback(() => {
+    setDraft({
+      ...DEFAULT_DRAFT,
+      roleId: roles[0]?.id ?? "",
+    });
+  }, [roles]);
+
+  const onInviteDrawerOpenChange = (open: boolean) => {
+    if (!open) {
+      if (skipInviteDrawerResetAfterCreate.current) {
+        skipInviteDrawerResetAfterCreate.current = false;
+      } else {
+        resetInviteDraft();
+      }
+    }
+    setInviteDrawerOpen(open);
+  };
+
   const onCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreating(true);
@@ -186,6 +211,8 @@ export default function UsersPage() {
       setDraft((previous) => ({ ...DEFAULT_DRAFT, roleId: previous.roleId }));
       await loadData();
       await refreshSession();
+      skipInviteDrawerResetAfterCreate.current = true;
+      setInviteDrawerOpen(false);
       setFeedback({ kind: "success", text: "User created." });
     } catch (error) {
       setFeedback({
@@ -301,340 +328,379 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 pb-16">
-      <header className="space-y-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-              <UsersIcon className="size-4" aria-hidden />
-            </span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary/90">Team</span>
+    <>
+      <div className={DASHBOARD_MAX}>
+        <div className="space-y-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <DashboardPageHero
+              icon={UsersIcon}
+              eyebrow="Team"
+              title="Users"
+              description={
+                <>
+                  Invite staff, assign roles, and manage access. What you can do here depends on your permissions
+                  (create, update, assign role, deactivate). Use{" "}
+                  <span className="font-medium text-foreground">Invite user</span> to add someone from the drawer.
+                </>
+              }
+            />
+            {canCreate ? (
+              <Button
+                type="button"
+                size="lg"
+                className="gap-2 self-start shadow-md lg:shrink-0"
+                disabled={creating || roles.length === 0}
+                onClick={() => {
+                  skipInviteDrawerResetAfterCreate.current = false;
+                  setInviteDrawerOpen(true);
+                }}
+              >
+                <UserPlus className="size-4" aria-hidden />
+                Invite user
+              </Button>
+            ) : null}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Users</h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Invite staff, assign roles, and manage access. What you can do here depends on your permissions (create,
-            update, assign role, deactivate).
+
+          <RelatedLinks />
+
+          {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+
+          <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center gap-2 border-b border-border/60 pb-4">
+              <Filter className="size-4 text-muted-foreground" aria-hidden />
+              <h2 className="text-lg font-semibold tracking-tight">Filters</h2>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">Narrow the list; filters reload results from the server.</p>
+            <div className="mt-4 flex flex-wrap items-end gap-4">
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[12rem]">
+                <span className="text-xs font-medium text-muted-foreground">Status</span>
+                <select
+                  className={selectClass()}
+                  value={filterStatus}
+                  onChange={(event) => setFilterStatus(event.target.value)}
+                  aria-label="Filter by status"
+                >
+                  {USER_STATUS_FILTERS.map((option) => (
+                    <option key={option.value || "all"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[14rem]">
+                <span className="text-xs font-medium text-muted-foreground">Role</span>
+                <select
+                  className={selectClass()}
+                  value={filterRoleId}
+                  onChange={(event) => setFilterRoleId(event.target.value)}
+                  aria-label="Filter by role"
+                >
+                  <option value="">All roles</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[14rem]">
+                <span className="text-xs font-medium text-muted-foreground">Branch</span>
+                <select
+                  className={selectClass()}
+                  value={filterBranchId}
+                  onChange={(event) => setFilterBranchId(event.target.value)}
+                  aria-label="Filter by branch"
+                >
+                  <option value="">All branches</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                className="shrink-0"
+                onClick={() => {
+                  setFilterStatus("");
+                  setFilterRoleId("");
+                  setFilterBranchId("");
+                }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+            <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
+              <h2 className="text-sm font-semibold text-foreground">Directory</h2>
+              <p className="text-xs text-muted-foreground">
+                {users.length} user{users.length === 1 ? "" : "s"} in this view
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-border/60 bg-muted/20">
+                  <tr>
+                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Name</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Email</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Role</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Status</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id} className="border-b border-border/40 last:border-0">
+                      <td className="px-4 py-3 align-top sm:px-5">
+                        {canUpdate ? (
+                          <div className="flex max-w-xs flex-col gap-2">
+                            <input
+                              className={cn(inputClass(), "text-sm")}
+                              value={editingName[user.id] ?? user.name}
+                              onChange={(event) =>
+                                setEditingName((previous) => ({
+                                  ...previous,
+                                  [user.id]: event.target.value,
+                                }))
+                              }
+                              aria-label={`Edit name for ${user.email}`}
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              type="button"
+                              className="w-fit gap-1.5"
+                              disabled={savingNameId === user.id}
+                              onClick={() => void onSaveName(user.id)}
+                            >
+                              {savingNameId === user.id ? (
+                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                              ) : (
+                                <Save className="size-3.5" aria-hidden />
+                              )}
+                              Save name
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="font-medium">{user.name}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 align-top text-muted-foreground sm:px-5">
+                        <span className="break-all">{user.email}</span>
+                      </td>
+                      <td className="px-4 py-3 align-top sm:px-5">
+                        <p className="text-xs font-medium text-foreground">{user.role?.name ?? "—"}</p>
+                        {canAssign ? (
+                          <div className="mt-2 flex max-w-[14rem] flex-col gap-2">
+                            <select
+                              className={cn(selectClass(), "text-xs")}
+                              value={roleChange[user.id] ?? user.role?.id ?? ""}
+                              onChange={(event) =>
+                                setRoleChange((previous) => ({
+                                  ...previous,
+                                  [user.id]: event.target.value,
+                                }))
+                              }
+                              aria-label={`Role for ${user.email}`}
+                            >
+                              {roles.length === 0 ? (
+                                <option value={user.role?.id ?? ""}>
+                                  {user.role?.name ?? "Loading roles…"}
+                                </option>
+                              ) : null}
+                              {roles.map((role) => (
+                                <option key={role.id} value={role.id}>
+                                  {role.name}
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              type="button"
+                              className="w-fit gap-1.5 text-xs"
+                              disabled={savingRoleId === user.id}
+                              onClick={() => void onAssignRole(user.id)}
+                            >
+                              {savingRoleId === user.id ? (
+                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                              ) : null}
+                              Save role
+                            </Button>
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 align-top sm:px-5">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize",
+                            user.status === "active"
+                              ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 align-top sm:px-5">
+                        {canDeactivate ? (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            type="button"
+                            className="gap-1.5"
+                            disabled={deactivatingId === user.id}
+                            onClick={() => void onDeactivate(user.id)}
+                          >
+                            {deactivatingId === user.id ? (
+                              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <UserX className="size-3.5" aria-hidden />
+                            )}
+                            Deactivate
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {users.length === 0 ? (
+              <p className="border-t border-border/60 px-5 py-10 text-center text-sm text-muted-foreground">
+                No users match these filters.
+              </p>
+            ) : null}
+          </section>
+
+          <p className="text-xs text-muted-foreground">
+            <span className="font-mono">GET …/users</span> with filters · changes may require a session refresh for other
+            tabs
           </p>
         </div>
-        <RelatedLinks />
-      </header>
-
-      {feedback ? (
-        <div
-          role="status"
-          className={cn(
-            "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm",
-            feedback.kind === "success" &&
-              "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-950 dark:text-emerald-100",
-            feedback.kind === "error" && "border-destructive/30 bg-destructive/5 text-destructive",
-          )}
-        >
-          {feedback.kind === "success" ? (
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-          ) : (
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-          )}
-          <span>{feedback.text}</span>
-        </div>
-      ) : null}
-
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 pb-4">
-          <Filter className="size-4 text-muted-foreground" aria-hidden />
-          <h2 className="text-lg font-semibold tracking-tight">Filters</h2>
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">Narrow the list; filters reload results from the server.</p>
-        <div className="mt-4 flex flex-wrap items-end gap-4">
-          <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[12rem]">
-            <span className="text-xs font-medium text-muted-foreground">Status</span>
-            <select
-              className={selectClass()}
-              value={filterStatus}
-              onChange={(event) => setFilterStatus(event.target.value)}
-              aria-label="Filter by status"
-            >
-              {USER_STATUS_FILTERS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[14rem]">
-            <span className="text-xs font-medium text-muted-foreground">Role</span>
-            <select
-              className={selectClass()}
-              value={filterRoleId}
-              onChange={(event) => setFilterRoleId(event.target.value)}
-              aria-label="Filter by role"
-            >
-              <option value="">All roles</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[14rem]">
-            <span className="text-xs font-medium text-muted-foreground">Branch</span>
-            <select
-              className={selectClass()}
-              value={filterBranchId}
-              onChange={(event) => setFilterBranchId(event.target.value)}
-              aria-label="Filter by branch"
-            >
-              <option value="">All branches</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button
-            type="button"
-            variant="secondary"
-            className="shrink-0"
-            onClick={() => {
-              setFilterStatus("");
-              setFilterRoleId("");
-              setFilterBranchId("");
-            }}
-          >
-            Clear filters
-          </Button>
-        </div>
-      </section>
+      </div>
 
       {canCreate ? (
-        <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-primary/[0.04] to-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-center gap-2">
-            <UserPlus className="size-4 text-primary" aria-hidden />
-            <h2 className="text-lg font-semibold tracking-tight">Invite user</h2>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">Creates the account and sends them down your configured flow.</p>
-          <form className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-12" onSubmit={onCreateUser}>
-            <input
-              className={cn(inputClass(), "md:col-span-3")}
-              placeholder="Full name"
-              value={draft.name}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, name: event.target.value }))
-              }
-              required
-              aria-label="New user name"
-            />
-            <input
-              className={cn(inputClass(), "md:col-span-3")}
-              placeholder="Email"
-              type="email"
-              value={draft.email}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, email: event.target.value }))
-              }
-              required
-              aria-label="New user email"
-            />
-            <select
-              className={cn(selectClass(), "md:col-span-2")}
-              value={draft.roleId}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, roleId: event.target.value }))
-              }
-              aria-label="Role for new user"
+        <FormDrawer
+          open={inviteDrawerOpen}
+          onOpenChange={onInviteDrawerOpenChange}
+          title="Invite user"
+          description="Creates the account and sends them through your configured onboarding flow."
+          contextLabel="Team"
+          icon={<UserPlus className="size-5 text-primary" aria-hidden />}
+          width="wide"
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" disabled={creating} onClick={() => onInviteDrawerOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="invite-user-form" disabled={creating || roles.length === 0}>
+                {creating ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Creating…
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="size-4" aria-hidden />
+                    Create user
+                  </>
+                )}
+              </Button>
+            </div>
+          }
+        >
+          <form id="invite-user-form" className="space-y-6" onSubmit={onCreateUser}>
+            <FormDrawerFields
+              legend="Account"
+              hint="Email must be unique in your workspace. PIN is optional for cashier-style access."
             >
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className={cn(selectClass(), "md:col-span-2")}
-              value={draft.status}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, status: event.target.value }))
-              }
-              aria-label="Status for new user"
-            >
-              <option value="active">active</option>
-              <option value="invited">invited</option>
-            </select>
-            <input
-              className={cn(inputClass(), "md:col-span-2")}
-              placeholder="PIN (4–6 digits, optional)"
-              inputMode="numeric"
-              pattern="\d{4,6}"
-              value={draft.pin}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, pin: event.target.value }))
-              }
-              aria-label="PIN for cashier-style user"
-            />
-            <Button className="md:col-span-12 md:w-fit" type="submit" disabled={creating} size="lg">
-              {creating ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Creating…
-                </>
-              ) : (
-                <>
-                  <UserPlus className="size-4" aria-hidden />
-                  Create user
-                </>
-              )}
-            </Button>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  Full name
+                  <input
+                    className={inputClass()}
+                    placeholder="Jane Doe"
+                    value={draft.name}
+                    onChange={(event) =>
+                      setDraft((previous) => ({ ...previous, name: event.target.value }))
+                    }
+                    required
+                    autoComplete="name"
+                    aria-label="New user name"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  Email
+                  <input
+                    className={inputClass()}
+                    placeholder="jane@company.com"
+                    type="email"
+                    value={draft.email}
+                    onChange={(event) =>
+                      setDraft((previous) => ({ ...previous, email: event.target.value }))
+                    }
+                    required
+                    autoComplete="email"
+                    aria-label="New user email"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  Role
+                  <select
+                    className={selectClass()}
+                    value={draft.roleId}
+                    onChange={(event) =>
+                      setDraft((previous) => ({ ...previous, roleId: event.target.value }))
+                    }
+                    aria-label="Role for new user"
+                  >
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  Status
+                  <select
+                    className={selectClass()}
+                    value={draft.status}
+                    onChange={(event) =>
+                      setDraft((previous) => ({ ...previous, status: event.target.value }))
+                    }
+                    aria-label="Status for new user"
+                  >
+                    <option value="active">active</option>
+                    <option value="invited">invited</option>
+                  </select>
+                </label>
+                <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  PIN <span className="font-normal text-muted-foreground/80">(optional, 4–6 digits)</span>
+                  <input
+                    className={inputClass()}
+                    placeholder="For kiosk / cashier-style users"
+                    inputMode="numeric"
+                    pattern="\d{4,6}"
+                    value={draft.pin}
+                    onChange={(event) =>
+                      setDraft((previous) => ({ ...previous, pin: event.target.value }))
+                    }
+                    aria-label="PIN for cashier-style user"
+                  />
+                </label>
+              </div>
+            </FormDrawerFields>
           </form>
-        </section>
+        </FormDrawer>
       ) : null}
-
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
-          <h2 className="text-sm font-semibold text-foreground">Directory</h2>
-          <p className="text-xs text-muted-foreground">{users.length} user{users.length === 1 ? "" : "s"} in this view</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/20">
-              <tr>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Name</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Email</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Role</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Status</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-b border-border/40 last:border-0">
-                  <td className="px-4 py-3 align-top sm:px-5">
-                    {canUpdate ? (
-                      <div className="flex max-w-xs flex-col gap-2">
-                        <input
-                          className={cn(inputClass(), "text-sm")}
-                          value={editingName[user.id] ?? user.name}
-                          onChange={(event) =>
-                            setEditingName((previous) => ({
-                              ...previous,
-                              [user.id]: event.target.value,
-                            }))
-                          }
-                          aria-label={`Edit name for ${user.email}`}
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          type="button"
-                          className="w-fit gap-1.5"
-                          disabled={savingNameId === user.id}
-                          onClick={() => void onSaveName(user.id)}
-                        >
-                          {savingNameId === user.id ? (
-                            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                          ) : (
-                            <Save className="size-3.5" aria-hidden />
-                          )}
-                          Save name
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="font-medium">{user.name}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 align-top text-muted-foreground sm:px-5">
-                    <span className="break-all">{user.email}</span>
-                  </td>
-                  <td className="px-4 py-3 align-top sm:px-5">
-                    <p className="text-xs font-medium text-foreground">{user.role?.name ?? "—"}</p>
-                    {canAssign ? (
-                      <div className="mt-2 flex max-w-[14rem] flex-col gap-2">
-                        <select
-                          className={cn(selectClass(), "text-xs")}
-                          value={roleChange[user.id] ?? user.role?.id ?? ""}
-                          onChange={(event) =>
-                            setRoleChange((previous) => ({
-                              ...previous,
-                              [user.id]: event.target.value,
-                            }))
-                          }
-                          aria-label={`Role for ${user.email}`}
-                        >
-                          {roles.length === 0 ? (
-                            <option value={user.role?.id ?? ""}>
-                              {user.role?.name ?? "Loading roles…"}
-                            </option>
-                          ) : null}
-                          {roles.map((role) => (
-                            <option key={role.id} value={role.id}>
-                              {role.name}
-                            </option>
-                          ))}
-                        </select>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          type="button"
-                          className="w-fit gap-1.5 text-xs"
-                          disabled={savingRoleId === user.id}
-                          onClick={() => void onAssignRole(user.id)}
-                        >
-                          {savingRoleId === user.id ? (
-                            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                          ) : null}
-                          Save role
-                        </Button>
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 align-top sm:px-5">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                        user.status === "active"
-                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 align-top sm:px-5">
-                    {canDeactivate ? (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        type="button"
-                        className="gap-1.5"
-                        disabled={deactivatingId === user.id}
-                        onClick={() => void onDeactivate(user.id)}
-                      >
-                        {deactivatingId === user.id ? (
-                          <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          <UserX className="size-3.5" aria-hidden />
-                        )}
-                        Deactivate
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {users.length === 0 ? (
-          <p className="border-t border-border/60 px-5 py-10 text-center text-sm text-muted-foreground">
-            No users match these filters.
-          </p>
-        ) : null}
-      </section>
-
-      <p className="text-xs text-muted-foreground">
-        <span className="font-mono">GET …/users</span> with filters · changes may require a session refresh for other tabs
-      </p>
-    </div>
+    </>
   );
 }

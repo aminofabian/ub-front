@@ -7,19 +7,24 @@ import {
   AlertCircle,
   ArrowRight,
   Building2,
-  CheckCircle2,
   Globe,
-  ImageIcon,
   Loader2,
   Lock,
   MapPin,
   Palette,
+  Pencil,
   RefreshCw,
   Save,
   Sparkles,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  DASHBOARD_MAX,
+  DashboardFeedback,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
+import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -238,13 +243,8 @@ function LogoSection({
     event.target.value = "";
   };
   return (
-    <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-      <div className="flex items-center gap-2">
-        <ImageIcon className="size-4 text-muted-foreground" aria-hidden />
-        <h2 className="text-lg font-semibold tracking-tight">Logo</h2>
-      </div>
-      <p className={cn(hintClass(), "mt-1")}>Shown in the shop header and emails. Square assets look sharpest.</p>
-      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         {logoUrl ? (
           <Image
             src={logoUrl}
@@ -271,9 +271,7 @@ function LogoSection({
           ) : null}
         </div>
       </div>
-      <p className={cn(hintClass(), "mt-3")}>
-        PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB
-      </p>
+      <p className={hintClass()}>PNG, JPEG, WEBP, or SVG · max 4&nbsp;MB</p>
     </div>
   );
 }
@@ -299,13 +297,8 @@ function FaviconSection({
   };
   const trimmed = faviconUrl?.trim() ?? "";
   return (
-    <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-      <div className="flex items-center gap-2">
-        <Globe className="size-4 text-muted-foreground" aria-hidden />
-        <h2 className="text-lg font-semibold tracking-tight">Favicon file</h2>
-      </div>
-      <p className={cn(hintClass(), "mt-1")}>Browser tab icon. Prefer 32×32 or 48×48.</p>
-      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         {trimmed ? (
           <Image
             src={trimmed}
@@ -332,7 +325,7 @@ function FaviconSection({
           ) : null}
         </div>
       </div>
-      <p className={cn(hintClass(), "mt-3")}>PNG, ICO, or WEBP · max 512&nbsp;KB</p>
+      <p className={hintClass()}>PNG, ICO, or WEBP · max 512&nbsp;KB</p>
     </div>
   );
 }
@@ -399,6 +392,8 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [faviconBusy, setFaviconBusy] = useState(false);
+  const [brandingDrawerOpen, setBrandingDrawerOpen] = useState(false);
+  const skipDrawerResetAfterSave = useRef(false);
 
   const load = useCallback(() => {
     return fetchBusiness()
@@ -425,6 +420,24 @@ export default function BrandingPage() {
     void load();
   }, [canManageBusinessSettings, load]);
 
+  const resetFormFromSnapshot = useCallback(() => {
+    if (!snapshot) {
+      return;
+    }
+    setForm(formFromBranding(snapshot.branding));
+  }, [snapshot]);
+
+  const onBrandingDrawerOpenChange = (open: boolean) => {
+    if (!open) {
+      if (skipDrawerResetAfterSave.current) {
+        skipDrawerResetAfterSave.current = false;
+      } else {
+        resetFormFromSnapshot();
+      }
+    }
+    setBrandingDrawerOpen(open);
+  };
+
   if (!canManageBusinessSettings) {
     return <LockedNotice />;
   }
@@ -441,8 +454,10 @@ export default function BrandingPage() {
     setFeedback(null);
     try {
       const next = await updateMyBranding(buildPatch(form));
+      skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
+      setBrandingDrawerOpen(false);
       setFeedback({ kind: "success", text: "Branding saved." });
     } catch (error) {
       setFeedback({ kind: "error", text: messageFor(error, "Save failed.") });
@@ -557,122 +572,157 @@ export default function BrandingPage() {
     );
   }
 
+  const drawerBusy = isSaving || logoBusy || faviconBusy;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8 pb-16">
-      <header className="space-y-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-primary">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-              <Palette className="size-4" aria-hidden />
-            </span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-primary/90">Appearance</span>
+    <>
+      <div className={DASHBOARD_MAX}>
+        <div className="space-y-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <DashboardPageHero
+              icon={Palette}
+              eyebrow="Appearance"
+              title="Branding"
+              description={
+                <>
+                  Logo, colors, and display name for your storefront, sign-in screens, and tenant emails. Logo and
+                  favicon uploads apply immediately; display name and colors save from the drawer with{" "}
+                  <span className="font-medium text-foreground">Save branding</span>.
+                </>
+              }
+            />
+            <Button
+              type="button"
+              size="lg"
+              className="gap-2 self-start shadow-md lg:shrink-0"
+              disabled={!snapshot || drawerBusy}
+              onClick={() => {
+                skipDrawerResetAfterSave.current = false;
+                setBrandingDrawerOpen(true);
+              }}
+            >
+              <Pencil className="size-4" aria-hidden />
+              Edit branding
+            </Button>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Branding</h1>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Logo, colors, and display name for your storefront, sign-in screens, and tenant emails. File uploads apply
-            immediately; text fields use <span className="font-mono text-xs">Save</span> below.
-          </p>
+
+          <RelatedLinks />
+
+          {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+
+          <BrandingPreview form={form} logoUrl={logoUrl} />
         </div>
-        <RelatedLinks />
-      </header>
+      </div>
 
-      {feedback ? (
-        <div
-          role="status"
-          className={cn(
-            "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm",
-            feedback.kind === "success" &&
-              "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-950 dark:text-emerald-100",
-            feedback.kind === "error" && "border-destructive/30 bg-destructive/5 text-destructive",
-          )}
-        >
-          {feedback.kind === "success" ? (
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-          ) : (
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-          )}
-          <span>{feedback.text}</span>
-        </div>
-      ) : null}
+      <FormDrawer
+        open={brandingDrawerOpen}
+        onOpenChange={onBrandingDrawerOpenChange}
+        title="Edit branding"
+        description={
+          <>
+            Logo and favicon files upload right away. Display name, colors, and favicon URL use{" "}
+            <span className="font-mono text-xs">PATCH …/businesses/me/branding</span> when you save.
+          </>
+        }
+        contextLabel="Appearance"
+        icon={<Palette className="size-5 text-primary" aria-hidden />}
+        width="wide"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={drawerBusy}
+              onClick={() => onBrandingDrawerOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="branding-edit-form" disabled={isSaving || logoBusy || faviconBusy}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" aria-hidden />
+                  Save branding
+                </>
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <form id="branding-edit-form" className="space-y-6" onSubmit={onSave}>
+          <FormDrawerFields
+            legend="Logo"
+            hint="Shown in the shop header and emails. Square assets look sharpest."
+          >
+            <LogoSection logoUrl={logoUrl} busy={logoBusy} onUpload={onLogoUpload} onClear={onLogoClear} />
+          </FormDrawerFields>
 
-      <BrandingPreview form={form} logoUrl={logoUrl} />
+          <FormDrawerFields
+            legend="Favicon file"
+            hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately."
+          >
+            <FaviconSection faviconUrl={faviconUrl} busy={faviconBusy} onUpload={onFaviconUpload} onClear={onFaviconClear} />
+          </FormDrawerFields>
 
-      <LogoSection logoUrl={logoUrl} busy={logoBusy} onUpload={onLogoUpload} onClear={onLogoClear} />
+          <FormDrawerFields
+            legend="Text & colors"
+            hint="Display name, palette, and optional favicon URL — saved together when you click Save branding."
+          >
+            <div className="space-y-2">
+              <label className={labelClass()} htmlFor="branding-name">
+                Display name
+              </label>
+              <input
+                id="branding-name"
+                className={inputClass()}
+                value={form.displayName}
+                maxLength={255}
+                onChange={(e) => setForm((s) => ({ ...s, displayName: e.target.value }))}
+                placeholder={snapshot?.name ?? "Your storefront name"}
+              />
+              <p className={hintClass()}>
+                Shown in the shop header and login. Falls back to your legal business name when empty.
+              </p>
+            </div>
 
-      <FaviconSection faviconUrl={faviconUrl} busy={faviconBusy} onUpload={onFaviconUpload} onClear={onFaviconClear} />
+            <div className="grid gap-6 sm:grid-cols-2">
+              <ColorField
+                label="Primary color"
+                htmlId="branding-primary"
+                value={form.primaryColor}
+                onChange={(v) => setForm((s) => ({ ...s, primaryColor: v }))}
+              />
+              <ColorField
+                label="Accent color"
+                htmlId="branding-accent"
+                value={form.accentColor}
+                onChange={(v) => setForm((s) => ({ ...s, accentColor: v }))}
+              />
+            </div>
 
-      <form className="space-y-6 rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6" onSubmit={onSave}>
-        <div className="border-b border-border/60 pb-4">
-          <h2 className="text-lg font-semibold tracking-tight">Text & colors</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Saved together when you click Save branding.</p>
-        </div>
-
-        <div className="space-y-2">
-          <label className={labelClass()} htmlFor="branding-name">
-            Display name
-          </label>
-          <input
-            id="branding-name"
-            className={inputClass()}
-            value={form.displayName}
-            maxLength={255}
-            onChange={(e) => setForm((s) => ({ ...s, displayName: e.target.value }))}
-            placeholder={snapshot?.name ?? "Your storefront name"}
-          />
-          <p className={hintClass()}>
-            Shown in the shop header and login. Falls back to your legal business name when empty.
-          </p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2">
-          <ColorField
-            label="Primary color"
-            htmlId="branding-primary"
-            value={form.primaryColor}
-            onChange={(v) => setForm((s) => ({ ...s, primaryColor: v }))}
-          />
-          <ColorField
-            label="Accent color"
-            htmlId="branding-accent"
-            value={form.accentColor}
-            onChange={(v) => setForm((s) => ({ ...s, accentColor: v }))}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className={labelClass()} htmlFor="branding-favicon">
-            Favicon URL <span className="font-normal text-muted-foreground">(optional)</span>
-          </label>
-          <input
-            id="branding-favicon"
-            className={inputClass()}
-            value={form.faviconUrl}
-            maxLength={1024}
-            onChange={(e) => setForm((s) => ({ ...s, faviconUrl: e.target.value }))}
-            placeholder="https://cdn.example.com/favicon.png"
-          />
-          <p className={hintClass()}>Use the upload section above for hosted files, or paste an external HTTPS URL here.</p>
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <Button disabled={isSaving} type="submit" size="lg" className="w-full gap-2 sm:w-auto">
-            {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Save className="size-4" aria-hidden />
-                Save branding
-              </>
-            )}
-          </Button>
-          <p className="text-center text-xs text-muted-foreground sm:text-left">
-            <span className="font-mono">PATCH …/businesses/me/branding</span> · logo & favicon use multipart uploads
-          </p>
-        </div>
-      </form>
-    </div>
+            <div className="space-y-2">
+              <label className={labelClass()} htmlFor="branding-favicon">
+                Favicon URL <span className="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <input
+                id="branding-favicon"
+                className={inputClass()}
+                value={form.faviconUrl}
+                maxLength={1024}
+                onChange={(e) => setForm((s) => ({ ...s, faviconUrl: e.target.value }))}
+                placeholder="https://cdn.example.com/favicon.png"
+              />
+              <p className={hintClass()}>
+                Use the upload section above for hosted files, or paste an external HTTPS URL here.
+              </p>
+            </div>
+          </FormDrawerFields>
+        </form>
+      </FormDrawer>
+    </>
   );
 }

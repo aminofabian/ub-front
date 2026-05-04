@@ -1,18 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
   Building2,
-  CheckCircle2,
   Clock,
   Coins,
   Globe,
   Loader2,
   MapPin,
   Palette,
+  Pencil,
   RefreshCw,
   Save,
   Shield,
@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  DASHBOARD_MAX,
+  DashboardFeedback,
+  DashboardPageHero,
+} from "@/components/dashboard-page-ui";
+import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -111,6 +117,8 @@ export default function BusinessPage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
+  const skipDrawerResetAfterSave = useRef(false);
 
   const load = useCallback(() => {
     return fetchBusiness()
@@ -169,8 +177,15 @@ export default function BusinessPage() {
       }
       await updateBusiness(body);
       const next = await fetchBusiness();
+      skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
+      setEditable({
+        name: String(next.name ?? ""),
+        subscriptionTier: String(next.subscriptionTier ?? "starter"),
+        active: Boolean(next.active ?? true),
+      });
       setStorefront(storefrontFromRecord(next));
+      setSettingsDrawerOpen(false);
       setFeedback({ kind: "success", text: "Your changes were saved." });
     } catch (error) {
       setFeedback({
@@ -188,6 +203,29 @@ export default function BusinessPage() {
     canManageBusinessSettings &&
     storefront.enabled &&
     (activeBranches.length === 0 || !storefront.catalogBranchId.trim());
+
+  const resetFormFromSnapshot = useCallback(() => {
+    if (!snapshot) {
+      return;
+    }
+    setEditable({
+      name: String(snapshot.name ?? ""),
+      subscriptionTier: String(snapshot.subscriptionTier ?? "starter"),
+      active: Boolean(snapshot.active ?? true),
+    });
+    setStorefront(storefrontFromRecord(snapshot));
+  }, [snapshot]);
+
+  const onSettingsDrawerOpenChange = (open: boolean) => {
+    if (!open) {
+      if (skipDrawerResetAfterSave.current) {
+        skipDrawerResetAfterSave.current = false;
+      } else {
+        resetFormFromSnapshot();
+      }
+    }
+    setSettingsDrawerOpen(open);
+  };
 
   const relatedLinks = (
     <div className="grid gap-2 sm:grid-cols-3">
@@ -255,80 +293,119 @@ export default function BusinessPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 pb-16">
-      <header className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-primary">
-              <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-                <Shield className="size-4" aria-hidden />
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary/90">Account</span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Business settings</h1>
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Name, billing tier, and storefront controls for your organization. Read-only identifiers below are set
-              by your workspace; change editable fields and save when you are done.
-            </p>
+    <>
+      <div className={DASHBOARD_MAX}>
+        <div className="space-y-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <DashboardPageHero
+              icon={Shield}
+              eyebrow="Account"
+              title="Business settings"
+              description={
+                <>
+                  Name, billing tier, and storefront controls for your organization. Workspace identifiers below are
+                  read-only; use <span className="font-medium text-foreground">Edit settings</span> to change what you
+                  can edit, then save from the drawer.
+                </>
+              }
+            />
+            <Button
+              type="button"
+              size="lg"
+              className="gap-2 self-start shadow-md lg:shrink-0"
+              disabled={!snapshot || isSaving}
+              onClick={() => {
+                skipDrawerResetAfterSave.current = false;
+                setSettingsDrawerOpen(true);
+              }}
+            >
+              <Pencil className="size-4" aria-hidden />
+              Edit settings
+            </Button>
           </div>
+
+          {canManageBusinessSettings ? relatedLinks : null}
+
+          {feedback && !loadFailed ? (
+            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+          ) : null}
+
+          {snapshot ? (
+            <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-card/80 p-1 shadow-sm">
+              <div className="rounded-[calc(1rem-2px)] bg-card/90 p-5 sm:p-6">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Workspace</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  These values are managed separately from editable settings in the drawer.
+                </p>
+                <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {[
+                    { label: "Slug", value: snapshot.slug ?? "—", icon: Globe },
+                    { label: "Timezone", value: snapshot.timezone ?? "—", icon: Clock },
+                    { label: "Currency", value: snapshot.currency ?? "—", icon: Coins },
+                    { label: "Country", value: snapshot.countryCode ?? "—", icon: MapPin },
+                  ].map(({ label, value, icon: Icon }) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3"
+                    >
+                      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <div className="min-w-0">
+                        <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                        <dd className="truncate font-mono text-sm font-medium text-foreground">{value}</dd>
+                      </div>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </section>
+          ) : null}
         </div>
-        {canManageBusinessSettings ? relatedLinks : null}
-      </header>
+      </div>
 
-      {feedback && !loadFailed ? (
-        <div
-          role="status"
-          className={cn(
-            "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm",
-            feedback.kind === "success" &&
-              "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-950 dark:text-emerald-100",
-            feedback.kind === "error" && "border-destructive/30 bg-destructive/5 text-destructive",
-          )}
-        >
-          {feedback.kind === "success" ? (
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-          ) : (
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-          )}
-          <span>{feedback.text}</span>
-        </div>
-      ) : null}
-
-      {snapshot ? (
-        <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-card/80 p-1 shadow-sm">
-          <div className="rounded-[calc(1rem-2px)] bg-card/90 p-5 sm:p-6">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Workspace</h2>
-            <p className="mt-1 text-sm text-muted-foreground">These values are managed separately from the form below.</p>
-            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-              {[
-                { label: "Slug", value: snapshot.slug ?? "—", icon: Globe },
-                { label: "Timezone", value: snapshot.timezone ?? "—", icon: Clock },
-                { label: "Currency", value: snapshot.currency ?? "—", icon: Coins },
-                { label: "Country", value: snapshot.countryCode ?? "—", icon: MapPin },
-              ].map(({ label, value, icon: Icon }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3"
-                >
-                  <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <div className="min-w-0">
-                    <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-                    <dd className="truncate font-mono text-sm font-medium text-foreground">{value}</dd>
-                  </div>
-                </div>
-              ))}
-            </dl>
+      <FormDrawer
+        open={settingsDrawerOpen}
+        onOpenChange={onSettingsDrawerOpenChange}
+        title="Edit business settings"
+        description={
+          <>
+            Changes are sent to <span className="font-mono text-xs">PATCH /businesses/me</span>. Close without saving
+            to discard edits.
+          </>
+        }
+        contextLabel="Account"
+        icon={<Shield className="size-5 text-primary" aria-hidden />}
+        width="wide"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSaving}
+              onClick={() => onSettingsDrawerOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="business-settings-form" disabled={isSaving || Boolean(storefrontNeedsBranch)}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" aria-hidden />
+                  Save changes
+                </>
+              )}
+            </Button>
           </div>
-        </section>
-      ) : null}
-
-      <form className="space-y-10" onSubmit={onSave}>
-        <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-          <div className="border-b border-border/60 pb-4">
-            <h2 className="text-lg font-semibold tracking-tight">Profile & billing</h2>
-            <p className="mt-1 text-sm text-muted-foreground">How your business appears internally and your plan label.</p>
-          </div>
-          <div className="mt-6 space-y-6">
+        }
+      >
+        <form id="business-settings-form" className="space-y-6" onSubmit={onSave}>
+          <FormDrawerFields
+            legend="Profile & billing"
+            hint="How your business appears internally and your plan label."
+          >
             <div className="space-y-2">
               <label className={labelClass()} htmlFor="biz-name">
                 Business name
@@ -405,45 +482,24 @@ export default function BusinessPage() {
                 </span>
               </label>
             </div>
-          </div>
-        </section>
+          </FormDrawerFields>
 
-        {canManageBusinessSettings ? (
-          <section
-            className={cn(
-              "overflow-hidden rounded-2xl border shadow-sm transition-colors",
-              storefront.enabled
-                ? "border-primary/20 bg-gradient-to-b from-primary/[0.04] to-card"
-                : "border-border/80 bg-card",
-            )}
-          >
-            <div className="border-b border-border/60 bg-muted/20 px-5 py-4 sm:px-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background shadow-sm ring-1 ring-border/60">
-                    <Store className="size-5 text-primary" aria-hidden />
-                  </span>
-                  <div>
-                    <h2 className="text-lg font-semibold tracking-tight">Online storefront</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Public catalog and pickup flow (Phase 15). Prices follow the branch you choose.
-                    </p>
-                  </div>
-                </div>
-                <label className="flex cursor-pointer items-center gap-2 self-start rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50 sm:self-center">
-                  <input
-                    type="checkbox"
-                    className="size-4 rounded border-input text-primary focus:ring-ring"
-                    checked={storefront.enabled}
-                    onChange={(event) =>
-                      setStorefront((s) => ({ ...s, enabled: event.target.checked }))
-                    }
-                  />
-                  Enable storefront
-                </label>
-              </div>
-            </div>
-            <div className="space-y-5 p-5 sm:p-6">
+          {canManageBusinessSettings ? (
+            <FormDrawerFields
+              legend="Online storefront"
+              hint="Public catalog and pickup flow. Prices follow the branch you choose."
+            >
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-input text-primary focus:ring-ring"
+                  checked={storefront.enabled}
+                  onChange={(event) =>
+                    setStorefront((s) => ({ ...s, enabled: event.target.checked }))
+                  }
+                />
+                Enable storefront
+              </label>
               <div className="space-y-2">
                 <label className={labelClass()} htmlFor="sf-branch">
                   Catalog branch
@@ -523,34 +579,10 @@ export default function BusinessPage() {
                   <p className={hintClass()}>Paste product UUIDs from your catalog to pin them on the storefront home.</p>
                 </div>
               </div>
-            </div>
-          </section>
-        ) : null}
-
-        <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            disabled={isSaving || Boolean(storefrontNeedsBranch)}
-            type="submit"
-            size="lg"
-            className="w-full gap-2 sm:w-auto"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Save className="size-4" aria-hidden />
-                Save changes
-              </>
-            )}
-          </Button>
-          <p className="text-center text-xs text-muted-foreground sm:text-left">
-            Updates apply to <span className="font-mono text-muted-foreground/90">PATCH /businesses/me</span>
-          </p>
-        </div>
-      </form>
-    </div>
+            </FormDrawerFields>
+          ) : null}
+        </form>
+      </FormDrawer>
+    </>
   );
 }

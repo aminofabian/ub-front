@@ -59,6 +59,8 @@ export type PublicCategory = {
   name: string;
   parentId: string | null;
   slug: string;
+  /** Emoji / key, or HTTPS URL for a custom icon image (Cloudinary). */
+  icon?: string | null;
 };
 
 export type PublicCategoryListPayload = {

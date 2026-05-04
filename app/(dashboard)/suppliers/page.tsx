@@ -1,17 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
-import { CircleDollarSign, LayoutGrid, Package, Truck } from "lucide-react";
+import { CircleDollarSign, LayoutGrid, Package, Plus, Truck } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
+  DashboardLoading,
   DashboardPageHero,
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
+import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -55,6 +58,64 @@ const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
   status: "active",
   notes: "",
 };
+
+function formatShortDate(iso: string | null | undefined): string {
+  if (!iso?.trim()) {
+    return "—";
+  }
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function SupplierCommercialSection({ s }: { s: SupplierRecord }) {
+  const rows: { label: string; value: ReactNode }[] = [
+    { label: "VAT PIN", value: s.vatPin?.trim() || "—" },
+    { label: "Tax exempt", value: s.taxExempt ? "Yes" : "No" },
+    {
+      label: "Credit terms",
+      value: s.creditTermsDays != null ? `${s.creditTermsDays} days` : "—",
+    },
+    {
+      label: "Credit limit",
+      value: s.creditLimit != null && Number.isFinite(s.creditLimit) ? String(s.creditLimit) : "—",
+    },
+    { label: "Rating", value: s.rating != null ? String(s.rating) : "—" },
+    { label: "Preferred payment", value: s.paymentMethodPreferred?.trim() || "—" },
+    {
+      label: "Payment details",
+      value: s.paymentDetails?.trim() ? (
+        <span className="whitespace-pre-wrap text-sm">{s.paymentDetails}</span>
+      ) : (
+        "—"
+      ),
+    },
+    { label: "Record version", value: String(s.version) },
+    { label: "Created", value: formatShortDate(s.createdAt) },
+    { label: "Last updated", value: formatShortDate(s.updatedAt) },
+  ];
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/10 p-4 text-sm">
+      <h3 className="mb-1 font-medium text-foreground">Commercial &amp; payments</h3>
+      <p className="mb-3 text-xs text-muted-foreground">
+        From your ERP / provisioning profile. These fields are not editable on this screen yet.
+      </p>
+      <dl className="grid gap-3 sm:grid-cols-2">
+        {rows.map(({ label, value }) => (
+          <div key={label}>
+            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
 
 function SupplierProfileFields({
   draft,
@@ -122,7 +183,7 @@ function SupplierProfileFields({
 }
 
 export default function SuppliersPage() {
-  const { me } = useDashboard();
+  const { me, loading } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
   const canReadCatalog = hasPermission(me?.permissions, Permission.CatalogItemsRead);
@@ -141,6 +202,7 @@ export default function SuppliersPage() {
   const [createDraft, setCreateDraft] = useState<SupplierProfileDraft>(EMPTY_SUPPLIER_PROFILE);
   const [contactDraft, setContactDraft] = useState<CreateSupplierContactPayload>({
     name: "",
+    roleLabel: "",
     email: "",
     phone: "",
   });
@@ -152,6 +214,23 @@ export default function SuppliersPage() {
   const [linkCostStr, setLinkCostStr] = useState("");
   const [linkPrimary, setLinkPrimary] = useState(false);
   const [linksBusy, setLinksBusy] = useState(false);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
+  const skipCreateDrawerResetAfterCreate = useRef(false);
+
+  const resetCreateDraft = useCallback(() => {
+    setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
+  }, []);
+
+  const onCreateDrawerOpenChange = (open: boolean) => {
+    if (!open) {
+      if (skipCreateDrawerResetAfterCreate.current) {
+        skipCreateDrawerResetAfterCreate.current = false;
+      } else {
+        resetCreateDraft();
+      }
+    }
+    setCreateDrawerOpen(open);
+  };
 
   const refreshList = useCallback(async () => {
     setListLoading(true);
@@ -167,6 +246,13 @@ export default function SuppliersPage() {
       setListLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (loading || !canRead) {
+      return;
+    }
+    void refreshList();
+  }, [loading, canRead, refreshList]);
 
   const onSelectSupplier = async (id: string) => {
     selectionRef.current = id;
@@ -246,6 +332,8 @@ export default function SuppliersPage() {
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
       await refreshList();
       await onSelectSupplier(created.id);
+      skipCreateDrawerResetAfterCreate.current = true;
+      setCreateDrawerOpen(false);
       setFeedback({ text: "Supplier created.", kind: "success" });
     } catch (error) {
       setFeedback({
@@ -387,10 +475,11 @@ export default function SuppliersPage() {
     try {
       await createSupplierContact(selectedId, {
         name: contactDraft.name?.trim() || undefined,
+        roleLabel: contactDraft.roleLabel?.trim() || undefined,
         email: contactDraft.email?.trim() || undefined,
         phone: contactDraft.phone?.trim() || undefined,
       });
-      setContactDraft({ name: "", email: "", phone: "" });
+      setContactDraft({ name: "", roleLabel: "", email: "", phone: "" });
       setContacts(await fetchSupplierContacts(selectedId));
       setFeedback({ text: "Contact added.", kind: "success" });
     } catch (error) {
@@ -400,6 +489,10 @@ export default function SuppliersPage() {
       });
     }
   };
+
+  if (loading) {
+    return <DashboardLoading label="Loading session…" />;
+  }
 
   if (!canRead) {
     return (
@@ -422,18 +515,36 @@ export default function SuppliersPage() {
     <div className={DASHBOARD_MAX_WIDE}>
       <div className="space-y-8">
       <header className="space-y-4">
-        <DashboardPageHero
-          icon={Truck}
-          eyebrow="Purchasing"
-          title="Suppliers"
-          description={
-            <>
-              Create a supplier with full profile fields below, or pick one from the list to edit contacts and (with
-              catalog access) linked products. One supplier can supply many products; linking uses{" "}
-              <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code>.
-            </>
-          }
-        />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <DashboardPageHero
+            icon={Truck}
+            eyebrow="Purchasing"
+            title="Suppliers"
+            description={
+              <>
+                Use <span className="font-medium text-foreground">New supplier</span> to open the drawer with profile
+                fields, or pick one from the list to edit details, contacts, and (with catalog access) linked products.
+                Linking uses{" "}
+                <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code>.
+              </>
+            }
+          />
+          {canWrite ? (
+            <Button
+              type="button"
+              size="lg"
+              className="gap-2 self-start shadow-md lg:shrink-0"
+              disabled={listLoading}
+              onClick={() => {
+                skipCreateDrawerResetAfterCreate.current = false;
+                setCreateDrawerOpen(true);
+              }}
+            >
+              <Plus className="size-4" aria-hidden />
+              New supplier
+            </Button>
+          ) : null}
+        </div>
         <DashboardQuickLinks
           links={[
             { href: APP_ROUTES.products, label: "Products", desc: "Link items", icon: Package },
@@ -451,28 +562,13 @@ export default function SuppliersPage() {
         </Button>
       </div>
 
-      {canWrite ? (
-        <form onSubmit={onCreate} className="space-y-3 rounded-md border bg-muted/20 p-4">
-          <div>
-            <h3 className="text-sm font-medium">New supplier</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Uses the same fields as Details—only name is required; everything else is optional at create time.
-            </p>
-          </div>
-          <SupplierProfileFields
-            draft={createDraft}
-            onDraftChange={(partial) => setCreateDraft((d) => ({ ...d, ...partial }))}
-          />
-          <Button type="submit">Create supplier</Button>
-        </form>
-      ) : null}
-
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="overflow-hidden rounded-md border">
           <table className="w-full text-left text-sm">
             <thead className="border-b bg-muted/40">
               <tr>
                 <th className="px-3 py-2 font-medium">Name</th>
+                <th className="px-3 py-2 font-medium">Code</th>
                 <th className="px-3 py-2 font-medium">Type</th>
                 <th className="px-3 py-2 font-medium">Status</th>
               </tr>
@@ -480,8 +576,8 @@ export default function SuppliersPage() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">
-                    No suppliers. Refresh or create one.
+                  <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                    No suppliers. Refresh{canWrite ? " or use New supplier in the header" : ""}.
                   </td>
                 </tr>
               ) : (
@@ -499,6 +595,7 @@ export default function SuppliersPage() {
                         {row.name}
                       </button>
                     </td>
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.code?.trim() || "—"}</td>
                     <td className="px-3 py-2 text-muted-foreground">{row.supplierType}</td>
                     <td className="px-3 py-2">{row.status}</td>
                   </tr>
@@ -512,45 +609,97 @@ export default function SuppliersPage() {
           {!detail ? (
             <p className="text-sm text-muted-foreground">
               Select a supplier from the list
-              {canWrite ? ", or create one above." : "."}
+              {canWrite ? ", or use New supplier in the header." : "."}
             </p>
           ) : (
             <>
               <div className="rounded-md border p-4 text-sm">
-                <h3 className="mb-2 font-medium">Details</h3>
-                <dl className="grid gap-1 text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Supplier</p>
+                <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold tracking-tight text-foreground">{detail.name}</h3>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                      <span className="font-mono text-foreground">{detail.code?.trim() || "—"}</span>
+                      <span aria-hidden>·</span>
+                      <span>{detail.supplierType}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+                      detail.status === "active"
+                        ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {detail.status}
+                  </span>
+                </div>
+                {(() => {
+                  const p = contacts.find((c) => c.primaryContact);
+                  if (!p) {
+                    return null;
+                  }
+                  const hasAny = Boolean(p.name?.trim() || p.roleLabel?.trim() || p.email?.trim() || p.phone?.trim());
+                  if (!hasAny) {
+                    return null;
+                  }
+                  return (
+                    <p className="mt-3 border-t border-border/40 pt-3 text-xs leading-relaxed text-muted-foreground">
+                      <span className="font-medium text-foreground">Primary contact</span>
+                      {p.name?.trim() ? (
+                        <>
+                          {" · "}
+                          <span className="text-foreground">{p.name.trim()}</span>
+                        </>
+                      ) : null}
+                      {p.roleLabel?.trim() ? <span> · {p.roleLabel.trim()}</span> : null}
+                      {p.email?.trim() ? (
+                        <>
+                          {" · "}
+                          <a
+                            href={`mailto:${p.email.trim()}`}
+                            className="text-primary underline-offset-2 hover:underline"
+                          >
+                            {p.email.trim()}
+                          </a>
+                        </>
+                      ) : null}
+                      {p.phone?.trim() ? (
+                        <>
+                          {" · "}
+                          <a
+                            href={`tel:${p.phone.trim().replace(/\s+/g, "")}`}
+                            className="text-primary underline-offset-2 hover:underline"
+                          >
+                            {p.phone.trim()}
+                          </a>
+                        </>
+                      ) : null}
+                    </p>
+                  );
+                })()}
+                <dl className="mt-3 grid gap-1 border-t border-border/40 pt-3 text-muted-foreground">
                   <div>
-                    <dt className="inline">ID </dt>
-                    <dd className="inline font-mono text-xs text-foreground">{detail.id}</dd>
+                    <dt className="inline text-xs font-medium">ID </dt>
+                    <dd className="inline font-mono text-[11px] text-foreground">{detail.id}</dd>
                   </div>
                 </dl>
+                <div className="mt-4">
+                  <SupplierCommercialSection s={detail} />
+                </div>
                 {!canWrite ? (
-                  <dl className="mt-3 grid gap-2 border-t pt-3">
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Name</dt>
-                      <dd className="text-foreground">{detail.name}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Code</dt>
-                      <dd className="text-foreground">{detail.code ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Type</dt>
-                      <dd className="text-foreground">{detail.supplierType ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Status</dt>
-                      <dd className="text-foreground">{detail.status}</dd>
-                    </div>
+                  <dl className="mt-4 grid gap-2 border-t pt-4">
                     <div>
                       <dt className="text-xs text-muted-foreground">Notes</dt>
-                      <dd className="whitespace-pre-wrap text-foreground">
+                      <dd className="whitespace-pre-wrap text-sm text-foreground">
                         {detail.notes?.trim() ? detail.notes : "—"}
                       </dd>
                     </div>
                   </dl>
                 ) : (
                   <form className="mt-4 space-y-3 border-t pt-4" onSubmit={onPatchSave}>
+                    <p className="text-xs font-medium text-muted-foreground">Editable profile</p>
                     <SupplierProfileFields
                       draft={patchDraft}
                       onDraftChange={(partial) => setPatchDraft((p) => ({ ...p, ...partial }))}
@@ -558,6 +707,106 @@ export default function SuppliersPage() {
                     <Button type="submit">Save changes</Button>
                   </form>
                 )}
+              </div>
+
+              <div className="rounded-md border p-4 text-sm">
+                <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h3 className="font-medium text-foreground">Contacts</h3>
+                    <p className="text-xs text-muted-foreground">People and ordering touchpoints for this vendor.</p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground tabular-nums">
+                    {contacts.length} total
+                  </span>
+                </div>
+                {contacts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No contacts yet.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {contacts.map((c) => (
+                      <li
+                        key={c.id}
+                        className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-sm shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">{c.name?.trim() || "Unnamed contact"}</p>
+                            {c.roleLabel?.trim() ? (
+                              <p className="text-xs text-muted-foreground">{c.roleLabel.trim()}</p>
+                            ) : null}
+                          </div>
+                          {c.primaryContact ? (
+                            <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              Primary
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 flex flex-col gap-1 text-xs">
+                          {c.email?.trim() ? (
+                            <a
+                              href={`mailto:${c.email.trim()}`}
+                              className="w-fit max-w-full truncate text-primary underline-offset-2 hover:underline"
+                            >
+                              {c.email.trim()}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">No email on file</span>
+                          )}
+                          {c.phone?.trim() ? (
+                            <a
+                              href={`tel:${c.phone.trim().replace(/\s+/g, "")}`}
+                              className="w-fit text-primary underline-offset-2 hover:underline"
+                            >
+                              {c.phone.trim()}
+                            </a>
+                          ) : null}
+                        </div>
+                        <p className="mt-2 font-mono text-[10px] text-muted-foreground/80">{c.id}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {canWrite ? (
+                  <form className="mt-4 space-y-3 border-t pt-4" onSubmit={onAddContact}>
+                    <p className="text-xs font-medium text-muted-foreground">Add contact</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        placeholder="Name"
+                        className="rounded border bg-background px-2 py-1.5"
+                        value={contactDraft.name ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({ ...d, name: e.target.value }))
+                        }
+                      />
+                      <input
+                        placeholder="Role / title (optional)"
+                        className="rounded border bg-background px-2 py-1.5"
+                        value={contactDraft.roleLabel ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({ ...d, roleLabel: e.target.value }))
+                        }
+                      />
+                      <input
+                        placeholder="Email"
+                        type="email"
+                        className="rounded border bg-background px-2 py-1.5"
+                        value={contactDraft.email ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({ ...d, email: e.target.value }))
+                        }
+                      />
+                      <input
+                        placeholder="Phone"
+                        className="rounded border bg-background px-2 py-1.5"
+                        value={contactDraft.phone ?? ""}
+                        onChange={(e) =>
+                          setContactDraft((d) => ({ ...d, phone: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <Button type="submit">Add contact</Button>
+                  </form>
+                ) : null}
               </div>
 
               {canReadCatalog ? (
@@ -718,60 +967,43 @@ export default function SuppliersPage() {
                   product links on this screen.
                 </div>
               )}
-
-              <div className="rounded-md border p-4 text-sm">
-                <h3 className="mb-2 font-medium">Contacts</h3>
-                <ul className="space-y-2">
-                  {contacts.length === 0 ? (
-                    <li className="text-muted-foreground">No contacts.</li>
-                  ) : (
-                    contacts.map((c) => (
-                      <li key={c.id} className="rounded bg-muted/30 px-2 py-1">
-                        {[c.name, c.email, c.phone].filter(Boolean).join(" · ") || c.id}
-                        {c.primaryContact ? (
-                          <span className="ml-2 text-xs text-muted-foreground">(primary)</span>
-                        ) : null}
-                      </li>
-                    ))
-                  )}
-                </ul>
-                {canWrite ? (
-                  <form className="mt-4 space-y-2 border-t pt-4" onSubmit={onAddContact}>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <input
-                        placeholder="Name"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.name ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, name: e.target.value }))
-                        }
-                      />
-                      <input
-                        placeholder="Email"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.email ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, email: e.target.value }))
-                        }
-                      />
-                      <input
-                        placeholder="Phone"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.phone ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, phone: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <Button type="submit">Add contact</Button>
-                  </form>
-                ) : null}
-              </div>
             </>
           )}
         </div>
       </div>
       </div>
+
+      {canWrite ? (
+        <FormDrawer
+          open={createDrawerOpen}
+          onOpenChange={onCreateDrawerOpenChange}
+          title="New supplier"
+          description="Only name is required; code, type, status, and notes are optional at create time—same fields as Details."
+          contextLabel="Purchasing"
+          icon={<Truck className="size-5 text-primary" aria-hidden />}
+          width="wide"
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onCreateDrawerOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="new-supplier-form">
+                <Plus className="size-4" aria-hidden />
+                Create supplier
+              </Button>
+            </div>
+          }
+        >
+          <form id="new-supplier-form" className="space-y-6" onSubmit={onCreate}>
+            <FormDrawerFields legend="Profile" hint="Matches the fields you can edit after selecting a supplier.">
+              <SupplierProfileFields
+                draft={createDraft}
+                onDraftChange={(partial) => setCreateDraft((d) => ({ ...d, ...partial }))}
+              />
+            </FormDrawerFields>
+          </form>
+        </FormDrawer>
+      ) : null}
     </div>
   );
 }

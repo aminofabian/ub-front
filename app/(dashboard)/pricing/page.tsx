@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CircleDollarSign, Package, Tags, Truck } from "lucide-react";
+import { CircleDollarSign, Package, Percent, Plus, Tags, Truck } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -10,6 +10,7 @@ import {
   DashboardPageHero,
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
+import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -86,6 +87,9 @@ export default function PricingPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [suggestDrawerOpen, setSuggestDrawerOpen] = useState(false);
+  const [rulesTaxDrawerOpen, setRulesTaxDrawerOpen] = useState(false);
+  const [sellDrawerOpen, setSellDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!allowed) {
@@ -168,6 +172,7 @@ export default function PricingPage() {
       });
       setLastSellingPrice(res);
       setNotice("Selling price saved.");
+      setSellDrawerOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -207,6 +212,7 @@ export default function PricingPage() {
       setNewRuleActive(true);
       setNotice("Price rule created.");
       await reloadReadData();
+      setRulesTaxDrawerOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create rule failed.");
     } finally {
@@ -275,6 +281,7 @@ export default function PricingPage() {
       setTaxActive(true);
       setNotice("Tax rate created.");
       await reloadReadData();
+      setRulesTaxDrawerOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create tax rate failed.");
     } finally {
@@ -304,17 +311,59 @@ export default function PricingPage() {
     <div className={DASHBOARD_MAX_WIDE}>
       <div className="space-y-10">
       <header className="space-y-4">
-        <DashboardPageHero
-          icon={CircleDollarSign}
-          eyebrow="Commercial"
-          title="Pricing"
-          description={
-            <>
-              Suggested sell price uses the latest landed cost and active margin rules. Selling prices are
-              effective-dated rows ({currency}).
-            </>
-          }
-        />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <DashboardPageHero
+            icon={CircleDollarSign}
+            eyebrow="Commercial"
+            title="Pricing"
+            description={
+              <>
+                Suggested sell price uses the latest landed cost and active margin rules. Selling prices are
+                effective-dated rows ({currency}). Use the actions on the right to open forms in a drawer.
+              </>
+            }
+          />
+          <div className="flex flex-wrap gap-2 self-start lg:shrink-0">
+            {canRead ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                className="gap-2 shadow-sm"
+                disabled={loading}
+                onClick={() => setSuggestDrawerOpen(true)}
+              >
+                <CircleDollarSign className="size-4" aria-hidden />
+                Suggest price
+              </Button>
+            ) : null}
+            {canManageRules ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                className="gap-2 shadow-sm"
+                disabled={loading}
+                onClick={() => setRulesTaxDrawerOpen(true)}
+              >
+                <Percent className="size-4" aria-hidden />
+                {"Rules & tax"}
+              </Button>
+            ) : null}
+            {canSetSell ? (
+              <Button
+                type="button"
+                size="lg"
+                className="gap-2 shadow-md"
+                disabled={loading}
+                onClick={() => setSellDrawerOpen(true)}
+              >
+                <Plus className="size-4" aria-hidden />
+                Set selling price
+              </Button>
+            ) : null}
+          </div>
+        </div>
         <DashboardQuickLinks
           links={[
             { href: APP_ROUTES.products, label: "Products", desc: "Items", icon: Package },
@@ -326,58 +375,12 @@ export default function PricingPage() {
 
       {canRead ? (
         <div className="space-y-4 rounded-md border bg-muted/20 p-4">
-          <h3 className="text-sm font-medium">Suggest sell price</h3>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Item ID</span>
-              <input
-                className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
-                value={suggestItemId}
-                onChange={(e) => setSuggestItemId(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Supplier ID (optional)</span>
-              <input
-                className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
-                value={suggestSupplierId}
-                onChange={(e) => setSuggestSupplierId(e.target.value)}
-              />
-            </label>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={loading}
-              onClick={() => onSuggest().catch(() => undefined)}
-            >
-              Suggest
-            </Button>
-          </div>
-          {suggestion ? (
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Latest unit cost</dt>
-                <dd className="tabular-nums">{num(suggestion.latestUnitCost)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Margin %</dt>
-                <dd className="tabular-nums">{num(suggestion.marginPercent)}</dd>
-              </div>
-              <div className="flex justify-between gap-2 sm:col-span-2">
-                <dt className="text-muted-foreground">Rule</dt>
-                <dd>{suggestion.ruleName ?? "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-2 sm:col-span-2">
-                <dt className="text-muted-foreground">Suggested sell</dt>
-                <dd className="text-right font-semibold tabular-nums">
-                  {num(suggestion.suggestedSellPrice)}
-                </dd>
-              </div>
-              {suggestion.note ? (
-                <div className="sm:col-span-2 text-muted-foreground">{suggestion.note}</div>
-              ) : null}
-            </dl>
-          ) : null}
+          <h3 className="text-sm font-medium">Reference</h3>
+          <p className="text-xs text-muted-foreground">
+            Margin rules and tax rates for this business.{" "}
+            <span className="font-medium text-foreground">Suggest price</span> in the header runs a cost-to-sell
+            lookup for an item.
+          </p>
 
           <div className="space-y-2">
             <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -452,24 +455,112 @@ export default function PricingPage() {
         </div>
       ) : null}
 
-      {canManageRules ? (
-        <div className="space-y-6 rounded-md border bg-muted/20 p-4">
-          <h3 className="text-sm font-medium">Manage rules &amp; tax</h3>
-          {!canRead ? (
-            <p className="text-xs text-muted-foreground">
-              You can create records here. Listing rules and tax rates needs{" "}
-              <code className="rounded bg-muted px-0.5">{Permission.PricingRead}</code>.
-            </p>
-          ) : null}
-
-          <div className="space-y-3">
-            <h4 className="text-xs font-medium text-muted-foreground">New margin rule</h4>
-            <p className="text-xs text-muted-foreground">
-              Rule type is fixed to <code className="rounded bg-muted px-0.5">MARGIN_PERCENT</code> (params:{" "}
-              <code className="rounded bg-muted px-0.5">marginPercent</code>).
-            </p>
+      {canRead ? (
+        <FormDrawer
+          open={suggestDrawerOpen}
+          onOpenChange={setSuggestDrawerOpen}
+          title="Suggest sell price"
+          description="Uses latest landed cost and active margin rules for the item (optional supplier narrows costing)."
+          contextLabel="Commercial"
+          icon={<CircleDollarSign className="size-5 text-primary" aria-hidden />}
+          width="wide"
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setSuggestDrawerOpen(false)}>
+                Close
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loading}
+                onClick={() => onSuggest().catch(() => undefined)}
+              >
+                Run suggestion
+              </Button>
+            </div>
+          }
+        >
+          <FormDrawerFields legend="Inputs" hint="Paste item UUID from catalog; supplier UUID is optional.">
             <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm">
+                <span className="text-muted-foreground">Item ID</span>
+                <input
+                  className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
+                  value={suggestItemId}
+                  onChange={(e) => setSuggestItemId(e.target.value)}
+                />
+              </label>
+              <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm">
+                <span className="text-muted-foreground">Supplier ID (optional)</span>
+                <input
+                  className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
+                  value={suggestSupplierId}
+                  onChange={(e) => setSuggestSupplierId(e.target.value)}
+                />
+              </label>
+            </div>
+          </FormDrawerFields>
+          {suggestion ? (
+            <FormDrawerFields legend="Result">
+              <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Latest unit cost</dt>
+                  <dd className="tabular-nums">{num(suggestion.latestUnitCost)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Margin %</dt>
+                  <dd className="tabular-nums">{num(suggestion.marginPercent)}</dd>
+                </div>
+                <div className="flex justify-between gap-2 sm:col-span-2">
+                  <dt className="text-muted-foreground">Rule</dt>
+                  <dd>{suggestion.ruleName ?? "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-2 sm:col-span-2">
+                  <dt className="text-muted-foreground">Suggested sell</dt>
+                  <dd className="text-right font-semibold tabular-nums">
+                    {num(suggestion.suggestedSellPrice)}
+                  </dd>
+                </div>
+                {suggestion.note ? (
+                  <div className="sm:col-span-2 text-muted-foreground">{suggestion.note}</div>
+                ) : null}
+              </dl>
+            </FormDrawerFields>
+          ) : null}
+        </FormDrawer>
+      ) : null}
+
+      {canManageRules ? (
+        <FormDrawer
+          open={rulesTaxDrawerOpen}
+          onOpenChange={setRulesTaxDrawerOpen}
+          title="Rules & tax"
+          description={
+            <>
+              {!canRead ? (
+                <span>
+                  Listing rules and tax on the main page needs{" "}
+                  <code className="rounded bg-muted px-0.5 text-xs">{Permission.PricingRead}</code>. You can still
+                  create records here.
+                </span>
+              ) : (
+                <span>
+                  Rule type is fixed to <code className="rounded bg-muted px-0.5 text-xs">MARGIN_PERCENT</code>{" "}
+                  (JSON param <code className="rounded bg-muted px-0.5 text-xs">marginPercent</code>).
+                </span>
+              )}
+            </>
+          }
+          contextLabel="Commercial"
+          icon={<Percent className="size-5 text-primary" aria-hidden />}
+          width="wide"
+        >
+          <FormDrawerFields
+            legend="New margin rule"
+            hint="Name and margin % are required. Toggle Active before create if you want the rule off."
+          >
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-sm">
                 <span className="text-muted-foreground">Name</span>
                 <input
                   className="rounded border bg-background px-2 py-1.5"
@@ -504,13 +595,15 @@ export default function PricingPage() {
                 Create rule
               </Button>
             </div>
-          </div>
+          </FormDrawerFields>
 
-          <div className="space-y-3 border-t pt-4">
-            <h4 className="text-xs font-medium text-muted-foreground">Update margin rule</h4>
+          <FormDrawerFields
+            legend="Update margin rule"
+            hint={!canRead ? "Read permission is required to list rules in this drawer." : undefined}
+          >
             {!canRead || rules.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                {canRead ? "No rules yet — create one above." : "Requires read access to list rules."}
+                {canRead ? "No rules yet — create one above." : "Requires read access to pick a rule."}
               </p>
             ) : (
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -574,12 +667,11 @@ export default function PricingPage() {
                 </Button>
               </div>
             )}
-          </div>
+          </FormDrawerFields>
 
-          <div className="space-y-3 border-t pt-4">
-            <h4 className="text-xs font-medium text-muted-foreground">New tax rate</h4>
+          <FormDrawerFields legend="New tax rate" hint="Rate is a non-negative percent. Inclusive affects how tax is presented on receipts.">
             <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-sm">
                 <span className="text-muted-foreground">Name</span>
                 <input
                   className="rounded border bg-background px-2 py-1.5"
@@ -606,11 +698,7 @@ export default function PricingPage() {
                 Inclusive
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={taxActive}
-                  onChange={(e) => setTaxActive(e.target.checked)}
-                />
+                <input type="checkbox" checked={taxActive} onChange={(e) => setTaxActive(e.target.checked)} />
                 Active
               </label>
               <Button
@@ -622,80 +710,101 @@ export default function PricingPage() {
                 Create tax rate
               </Button>
             </div>
-          </div>
-        </div>
+          </FormDrawerFields>
+        </FormDrawer>
       ) : null}
 
       {canSetSell ? (
-        <div className="space-y-4 rounded-md border bg-muted/20 p-4">
-          <h3 className="text-sm font-medium">Set selling price</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span className="text-muted-foreground">Item ID</span>
-              <input
-                className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
-                value={sellItemId}
-                onChange={(e) => setSellItemId(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Branch (optional)</span>
-              <select
-                className="rounded border bg-background px-2 py-1.5"
-                value={sellBranchId}
-                onChange={(e) => setSellBranchId(e.target.value)}
-              >
-                <option value="">All / default</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Price</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                className="rounded border bg-background px-2 py-1.5 tabular-nums"
-                value={sellPrice}
-                onChange={(e) => setSellPrice(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Effective from</span>
-              <input
-                type="date"
-                className="rounded border bg-background px-2 py-1.5"
-                value={sellEffectiveFrom}
-                onChange={(e) => setSellEffectiveFrom(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span className="text-muted-foreground">Notes (optional)</span>
-              <input
-                className="rounded border bg-background px-2 py-1.5"
-                value={sellNotes}
-                onChange={(e) => setSellNotes(e.target.value)}
-              />
-            </label>
-          </div>
-          <Button
-            type="button"
-            disabled={loading}
-            onClick={() => onSetSellingPrice().catch(() => undefined)}
+        <FormDrawer
+          open={sellDrawerOpen}
+          onOpenChange={setSellDrawerOpen}
+          title="Set selling price"
+          description={`Effective-dated price row in ${currency}. Branch is optional when pricing is shared.`}
+          contextLabel="Commercial"
+          icon={<Plus className="size-5 text-primary" aria-hidden />}
+          width="wide"
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setSellDrawerOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="pricing-sell-form" disabled={loading}>
+                Save selling price
+              </Button>
+            </div>
+          }
+        >
+          <form
+            id="pricing-sell-form"
+            className="space-y-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onSetSellingPrice().catch(() => undefined);
+            }}
           >
-            Save selling price
-          </Button>
+            <FormDrawerFields legend="Price row">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                  <span className="text-muted-foreground">Item ID</span>
+                  <input
+                    className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
+                    value={sellItemId}
+                    onChange={(e) => setSellItemId(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-muted-foreground">Branch (optional)</span>
+                  <select
+                    className="rounded border bg-background px-2 py-1.5"
+                    value={sellBranchId}
+                    onChange={(e) => setSellBranchId(e.target.value)}
+                  >
+                    <option value="">All / default</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-muted-foreground">Price</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="rounded border bg-background px-2 py-1.5 tabular-nums"
+                    value={sellPrice}
+                    onChange={(e) => setSellPrice(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-muted-foreground">Effective from</span>
+                  <input
+                    type="date"
+                    className="rounded border bg-background px-2 py-1.5"
+                    value={sellEffectiveFrom}
+                    onChange={(e) => setSellEffectiveFrom(e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                  <span className="text-muted-foreground">Notes (optional)</span>
+                  <input
+                    className="rounded border bg-background px-2 py-1.5"
+                    value={sellNotes}
+                    onChange={(e) => setSellNotes(e.target.value)}
+                  />
+                </label>
+              </div>
+            </FormDrawerFields>
+          </form>
           {lastSellingPrice ? (
             <p className="text-xs text-muted-foreground">
-              Saved row {lastSellingPrice.id}: {String(lastSellingPrice.price)} from{" "}
+              Last saved row {lastSellingPrice.id}: {String(lastSellingPrice.price)} from{" "}
               {lastSellingPrice.effectiveFrom}
               {lastSellingPrice.effectiveTo ? ` to ${lastSellingPrice.effectiveTo}` : ""}.
             </p>
           ) : null}
-        </div>
+        </FormDrawer>
       ) : null}
 
       {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
