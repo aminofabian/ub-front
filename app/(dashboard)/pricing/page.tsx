@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CircleDollarSign, Package, Tags, Truck } from "lucide-react";
 
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchPriceRules,
@@ -275,26 +284,44 @@ export default function PricingPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Pricing</h2>
-        <p className="text-sm text-muted-foreground">
-          You need{" "}
-          <code className="text-xs">{Permission.PricingRead}</code>,{" "}
-          <code className="text-xs">{Permission.PricingSellPriceSet}</code>, or{" "}
-          <code className="text-xs">{Permission.PricingRulesManage}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Pricing"
+        description={
+          <>
+            You need{" "}
+            <code className="text-xs">{Permission.PricingRead}</code>,{" "}
+            <code className="text-xs">{Permission.PricingSellPriceSet}</code>, or{" "}
+            <code className="text-xs">{Permission.PricingRulesManage}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-10">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Pricing</h2>
-        <p className="text-sm text-muted-foreground">
-          Suggested sell price uses the latest landed cost and active margin rules. Selling prices are
-          effective-dated rows ({currency}).
-        </p>
+    <div className={DASHBOARD_MAX_WIDE}>
+      <div className="space-y-10">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={CircleDollarSign}
+          eyebrow="Commercial"
+          title="Pricing"
+          description={
+            <>
+              Suggested sell price uses the latest landed cost and active margin rules. Selling prices are
+              effective-dated rows ({currency}).
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.products, label: "Products", desc: "Items", icon: Package },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Costs", icon: Truck },
+            { href: APP_ROUTES.categories, label: "Categories", desc: "Margins", icon: Tags },
+          ]}
+        />
       </header>
 
       {canRead ? (
@@ -671,8 +698,9 @@ export default function PricingPage() {
         </div>
       ) : null}
 
-      {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-    </section>
+      {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      </div>
+    </div>
   );
 }

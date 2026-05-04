@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ArrowRightLeft, BarChart3, ClipboardList, MapPin } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchItems,
@@ -169,26 +178,39 @@ export default function StockTakePage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Stock take</h2>
-        <p className="text-sm text-muted-foreground">
-          You need at least one of{" "}
-          <code className="text-xs">{Permission.StocktakeRead}</code>,{" "}
-          <code className="text-xs">{Permission.StocktakeRun}</code>, or{" "}
-          <code className="text-xs">{Permission.StocktakeApprove}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Stock take"
+        description={
+          <>
+            You need at least one of{" "}
+            <code className="text-xs">{Permission.StocktakeRead}</code>,{" "}
+            <code className="text-xs">{Permission.StocktakeRun}</code>, or{" "}
+            <code className="text-xs">{Permission.StocktakeApprove}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Stock take</h2>
-        <p className="text-sm text-muted-foreground">
-          Start a count session for a branch, enter counted quantities, close to open adjustment requests, then
-          approve or reject each variance.
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={ClipboardList}
+          eyebrow="Inventory"
+          title="Stock take"
+          description="Start a count session for a branch, enter counted quantities, close to open adjustment requests, then approve or reject each variance."
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.inventoryValuation, label: "Valuation", desc: "Value on hand", icon: BarChart3 },
+            { href: APP_ROUTES.inventoryTransfers, label: "Transfers", desc: "Move stock", icon: ArrowRightLeft },
+            { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },
+          ]}
+        />
       </header>
 
       {canRun ? (

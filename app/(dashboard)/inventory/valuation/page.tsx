@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ArrowRightLeft, BarChart3, ClipboardList, Package } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchInventoryValuation,
@@ -77,25 +86,43 @@ export default function InventoryValuationPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Stock valuation</h2>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view inventory valuation. Ask an administrator to grant{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.InventoryRead}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Stock valuation"
+        description={
+          <>
+            You do not have permission to view inventory valuation. Ask an administrator to grant{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.InventoryRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Stock valuation</h2>
-        <p className="text-sm text-muted-foreground">
-          Extension value is Σ(quantity remaining × unit cost) per active batch. Filter by branch or view all
-          branches; totals use the same basis as the API report. Choose a branch and click{" "}
-          <strong>Refresh</strong> to load.
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={BarChart3}
+          eyebrow="Inventory"
+          title="Stock valuation"
+          description={
+            <>
+              Extension value is Σ(quantity remaining × unit cost) per active batch. Filter by branch or view all
+              branches; totals use the same basis as the API report. Choose a branch and click <strong>Refresh</strong>{" "}
+              to load.
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.inventoryTransfers, label: "Transfers", desc: "Move stock", icon: ArrowRightLeft },
+            { href: APP_ROUTES.inventoryStockTake, label: "Stock take", desc: "Counts", icon: ClipboardList },
+            { href: APP_ROUTES.products, label: "Products", desc: "Catalog", icon: Package },
+          ]}
+        />
       </header>
 
       <form
@@ -129,7 +156,7 @@ export default function InventoryValuationPage() {
         </Button>
       </form>
 
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <DashboardNotice text={message} /> : null}
 
       {data ? (
         <div className="space-y-4">
@@ -175,6 +202,7 @@ export default function InventoryValuationPage() {
       ) : (
         <p className="text-sm text-muted-foreground">No report loaded yet.</p>
       )}
-    </section>
+      </div>
+    </div>
   );
 }

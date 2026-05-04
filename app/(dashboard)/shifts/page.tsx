@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Building2, Clock, MapPin, Receipt } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchCurrentShift,
@@ -137,28 +146,47 @@ export default function ShiftsPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Shifts</h2>
-        <p className="text-sm text-muted-foreground">
-          You need one of{" "}
-          <code className="text-xs">{Permission.ShiftsOpen}</code>,{" "}
-          <code className="text-xs">{Permission.ShiftsClose}</code>, or{" "}
-          <code className="text-xs">{Permission.ShiftsRead}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Shifts"
+        description={
+          <>
+            You need one of{" "}
+            <code className="text-xs">{Permission.ShiftsOpen}</code>,{" "}
+            <code className="text-xs">{Permission.ShiftsClose}</code>, or{" "}
+            <code className="text-xs">{Permission.ShiftsRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   const currency = business?.currency?.trim() || "KES";
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Shifts</h2>
-        <p className="text-sm text-muted-foreground">
-          Open a drawer shift per branch, refresh to see the active shift, then close with a physical count.
-          Expected closing includes cash sales from Quick sale; M-Pesa (manual) does not change the drawer expectation ({currency}).
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={Clock}
+          eyebrow="Operations"
+          title="Shifts"
+          description={
+            <>
+              Open a drawer shift per branch, refresh to see the active shift, then close with a physical count.
+              Expected closing includes cash sales from Quick sale; M-Pesa (manual) does not change the drawer expectation (
+              {currency}).
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },
+            { href: APP_ROUTES.salesQuick, label: "Quick sale", desc: "POS", icon: Receipt },
+            { href: APP_ROUTES.business, label: "Business", desc: "Settings", icon: Building2 },
+          ]}
+        />
       </header>
 
       <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/20 p-4">
@@ -277,8 +305,9 @@ export default function ShiftsPage() {
         </p>
       )}
 
-      {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-    </section>
+      {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      </div>
+    </div>
   );
 }

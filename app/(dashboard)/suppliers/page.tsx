@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
-import { Building2, CircleDollarSign, LayoutGrid, Package, Truck } from "lucide-react";
+import { CircleDollarSign, LayoutGrid, Package, Truck } from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -403,37 +403,47 @@ export default function SuppliersPage() {
 
   if (!canRead) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Suppliers</h2>
-        <p className="text-sm text-muted-foreground">
-          You need{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.SuppliersRead}</code> to view
-          suppliers.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Suppliers"
+        description={
+          <>
+            You need{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.SuppliersRead}</code> to view
+            suppliers.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Suppliers</h2>
-        <p className="text-sm text-muted-foreground">
-          Create a supplier with full profile fields below, or pick one from the list to edit contacts and (with
-          catalog access) linked products. One supplier can supply many products; linking uses{" "}
-          <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code>.
-        </p>
+    <div className={DASHBOARD_MAX_WIDE}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={Truck}
+          eyebrow="Purchasing"
+          title="Suppliers"
+          description={
+            <>
+              Create a supplier with full profile fields below, or pick one from the list to edit contacts and (with
+              catalog access) linked products. One supplier can supply many products; linking uses{" "}
+              <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code>.
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.products, label: "Products", desc: "Link items", icon: Package },
+            { href: APP_ROUTES.categories, label: "Categories", desc: "Aisles", icon: LayoutGrid },
+            { href: APP_ROUTES.purchasingIntelligence, label: "Intelligence", desc: "Spend", icon: CircleDollarSign },
+          ]}
+        />
       </header>
 
-      {feedback ? (
-        <p
-          className={
-            feedback.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
-          }
-        >
-          {feedback.text}
-        </p>
-      ) : null}
+      {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" disabled={listLoading} onClick={() => void refreshList()}>
@@ -761,6 +771,7 @@ export default function SuppliersPage() {
           )}
         </div>
       </div>
-    </section>
+      </div>
+    </div>
   );
 }

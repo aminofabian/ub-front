@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BarChart3, ClipboardList, MapPin, Package } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   postCompleteStockTransfer,
@@ -107,25 +116,38 @@ export default function InventoryTransfersPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Stock transfers</h2>
-        <p className="text-sm text-muted-foreground">
-          You need{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.InventoryTransfer}</code> to
-          create or complete transfers.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Stock transfers"
+        description={
+          <>
+            You need{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.InventoryTransfer}</code> to create
+            or complete transfers.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Stock transfers</h2>
-        <p className="text-sm text-muted-foreground">
-          Create a draft transfer, then complete it to move stock between branches (same business). Lines use
-          catalog item IDs and decimal quantities.
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={MapPin}
+          eyebrow="Inventory"
+          title="Stock transfers"
+          description="Create a draft transfer, then complete it to move stock between branches (same business). Lines use catalog item IDs and decimal quantities."
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.inventoryValuation, label: "Valuation", desc: "Extension value", icon: BarChart3 },
+            { href: APP_ROUTES.inventoryStockTake, label: "Stock take", desc: "Counts", icon: ClipboardList },
+            { href: APP_ROUTES.products, label: "Products", desc: "Item IDs", icon: Package },
+          ]}
+        />
       </header>
 
       <div className="space-y-4 rounded-md border bg-muted/20 p-4">
@@ -248,16 +270,12 @@ export default function InventoryTransfersPage() {
       </div>
 
       {message ? (
-        <p
-          className={
-            /created|completed|Draft/i.test(message)
-              ? "text-sm text-muted-foreground"
-              : "text-sm text-destructive"
-          }
-        >
-          {message}
-        </p>
+        <DashboardFeedback
+          kind={/created|completed|Draft/i.test(message) ? "success" : "error"}
+          text={message}
+        />
       ) : null}
-    </section>
+      </div>
+    </div>
   );
 }
