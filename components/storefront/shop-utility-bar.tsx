@@ -1,8 +1,17 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
+import { logoutRemote } from "@/lib/api";
+import { clearSessionTokens, getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
+
+function readSignedIn(): boolean {
+  return getSessionTokens() != null;
+}
 
 export function ShopUtilityBar({
   primaryHex,
@@ -11,6 +20,31 @@ export function ShopUtilityBar({
   primaryHex: string | null;
   locationHint?: string | null;
 }) {
+  const [signedIn, setSignedIn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const sync = useCallback(() => {
+    setSignedIn(readSignedIn());
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, [sync]);
+
+  const onSignOut = useCallback(async () => {
+    await logoutRemote().catch(() => {});
+    clearSessionTokens();
+    setSignedIn(false);
+    window.location.reload();
+  }, []);
+
   const resolvedPrimary =
     primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim()) ? primaryHex.trim() : null;
   const hint =
@@ -57,12 +91,35 @@ export function ShopUtilityBar({
           <span className="text-white/40" aria-hidden>
             |
           </span>
-          <Link
-            href={APP_ROUTES.login}
-            className="rounded px-2 py-0.5 font-semibold transition hover:bg-white/10"
-          >
-            Login / Sign up
-          </Link>
+          {!mounted ? (
+            <span className="rounded px-2 py-0.5 font-semibold opacity-70">…</span>
+          ) : signedIn ? (
+            <>
+              <Link
+                href={APP_ROUTES.business}
+                className="rounded px-2 py-0.5 transition hover:bg-white/10"
+              >
+                Dashboard
+              </Link>
+              <span className="text-white/40" aria-hidden>
+                |
+              </span>
+              <button
+                type="button"
+                className="rounded px-2 py-0.5 font-semibold transition hover:bg-white/10"
+                onClick={() => void onSignOut()}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <Link
+              href={APP_ROUTES.login}
+              className="rounded px-2 py-0.5 font-semibold transition hover:bg-white/10"
+            >
+              Login / Sign up
+            </Link>
+          )}
         </nav>
       </div>
     </div>

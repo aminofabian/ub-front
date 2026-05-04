@@ -59,7 +59,7 @@ export async function StorefrontCatalogHome({
       <ShopUnavailable
         title="Storefront is not enabled"
         host={tenant?.tenantName ?? slug}
-        reason={`The catalog API rejected slug "${slug}". Likely the business has no slug, the storefront is disabled, the catalog branch is missing or inactive, or the backend is unreachable from this deployment (check BACKEND_ORIGIN).`}
+        reason={`The catalog API did not return data for slug "${slug}". Common causes: storefront disabled in Business → Branding, no active catalog branch, or BACKEND_ORIGIN / network misconfiguration. If you set NEXT_PUBLIC_STOREFRONT_SLUG, it must be the real business slug (letters, numbers, hyphens only) — never "/" or a URL path.`}
       />
     );
   }

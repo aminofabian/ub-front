@@ -106,9 +106,39 @@ export type TenantContext = {
 const DEFAULT_REVALIDATE_SEC = 60;
 const HOST_RESOLVE_REVALIDATE_SEC = 60;
 
+/** Matches backend `Business` slug rules (lowercase alnum + hyphens). */
+const PUBLIC_STOREFRONT_SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/**
+ * Returns a safe catalog path slug, or `null` if the value cannot be used in
+ * `/api/v1/public/businesses/{slug}/…` (e.g. `"/"`, `".."`, empty, or stray
+ * punctuation). Prevents env typos like `NEXT_PUBLIC_STOREFRONT_SLUG=/` from
+ * breaking the storefront with a misleading "catalog rejected slug" error.
+ */
+export function sanitizeStorefrontSlug(raw: string | null | undefined): string | null {
+  const s = (raw ?? "").trim().toLowerCase();
+  if (!s || s === "/" || s === "." || s === "..") {
+    return null;
+  }
+  return PUBLIC_STOREFRONT_SLUG_RE.test(s) ? s : null;
+}
+
+function slugifyTenantNameForCatalog(name: string): string {
+  const base = name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]+/g, "")
+    .replace(/^-+|-+$/g, "");
+  const cleaned = sanitizeStorefrontSlug(base);
+  if (cleaned) {
+    return cleaned;
+  }
+  return "store";
+}
+
 export function storefrontSlugFromEnv(): string | null {
-  const s = process.env.NEXT_PUBLIC_STOREFRONT_SLUG?.trim();
-  return s || null;
+  return sanitizeStorefrontSlug(process.env.NEXT_PUBLIC_STOREFRONT_SLUG);
 }
 
 export function formatDisplayPrice(currency: string, amount: number | null): string {
@@ -137,7 +167,7 @@ export async function fetchPublicStorefront(
   slug: string,
 ): Promise<PublicStorefrontPayload | null> {
   const base = backendOrigin();
-  const s = slug.trim();
+  const s = sanitizeStorefrontSlug(slug);
   if (!base || !s) {
     return null;
   }
@@ -164,7 +194,7 @@ export async function fetchPublicCatalogItems(
   opts?: { cursor?: string | null; limit?: number; q?: string | null; categoryId?: string | null },
 ): Promise<PublicCatalogListPayload | null> {
   const base = backendOrigin();
-  const s = slug.trim();
+  const s = sanitizeStorefrontSlug(slug);
   if (!base || !s) {
     return null;
   }
@@ -208,7 +238,7 @@ export async function fetchPublicCategories(
   slug: string,
 ): Promise<PublicCategoryListPayload | null> {
   const base = backendOrigin();
-  const s = slug.trim();
+  const s = sanitizeStorefrontSlug(slug);
   if (!base || !s) {
     return null;
   }
@@ -252,10 +282,8 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     return null;
   }
   const tenantName = String(o.tenantName ?? "Tenant").trim() || "Tenant";
-  const slug =
-    String(o.slug ?? "")
-      .trim()
-      .toLowerCase() || tenantName.toLowerCase().replace(/\s+/g, "-");
+  const slugFromApi = sanitizeStorefrontSlug(String(o.slug ?? ""));
+  const slug = slugFromApi ?? slugifyTenantNameForCatalog(tenantName);
 
   const statusRaw = String(o.status ?? "ACTIVE").toUpperCase();
   const status: TenantStatus =
@@ -356,7 +384,7 @@ export async function fetchPublicItemDetail(
   itemId: string,
 ): Promise<PublicCatalogItemDetail | null> {
   const base = backendOrigin();
-  const s = slug.trim();
+  const s = sanitizeStorefrontSlug(slug);
   const id = itemId.trim();
   if (!base || !s || !id) {
     return null;

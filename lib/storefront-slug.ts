@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import {
   fetchTenantContext,
+  sanitizeStorefrontSlug,
   storefrontSlugFromEnv,
   type TenantContext,
 } from "@/lib/public-storefront";
@@ -97,7 +98,7 @@ export async function resolveStorefrontSlug(): Promise<string | null> {
     return envSlug;
   }
   const ctx = await resolveTenantContext();
-  return ctx?.slug ?? null;
+  return sanitizeStorefrontSlug(ctx?.slug ?? null);
 }
 
 /** Host-only resolver, skips env so the admin host does not get redirected. */
