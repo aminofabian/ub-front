@@ -97,7 +97,12 @@ export async function proxyToBackend(
     );
   }
 
-  const out = new NextResponse(upstream.body, {
+  // 204/205/304 must not carry a body. Passing `upstream.body` here can hang or
+  // break the client (e.g. POST /api/v1/auth/resend-verification → 204 No Content).
+  const status = upstream.status;
+  const proxyBody = status === 204 || status === 205 || status === 304 ? null : upstream.body;
+
+  const out = new NextResponse(proxyBody, {
     status: upstream.status,
     statusText: upstream.statusText,
   });

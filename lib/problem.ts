@@ -35,6 +35,12 @@ const GENERIC_PROBLEM_TITLES = new Set([
   "Internal Server Error",
 ]);
 
+/** Prefer machine-readable detail for types where the title alone is easy to confuse with auth failures. */
+const PROBLEM_TYPES_WHERE_DETAIL_IS_PRIMARY = new Set([
+  "urn:problem:tenant-not-found",
+  "urn:problem:tenant-not-active",
+]);
+
 export function getProblemTitle(payload: unknown): string {
   const problem = parseProblem(payload);
   if (!problem) {
@@ -42,6 +48,9 @@ export function getProblemTitle(payload: unknown): string {
   }
 
   const detail = problem.detail?.trim();
+  if (detail && PROBLEM_TYPES_WHERE_DETAIL_IS_PRIMARY.has(problem.type)) {
+    return detail;
+  }
   if (detail && GENERIC_PROBLEM_TITLES.has(problem.title)) {
     return detail;
   }
