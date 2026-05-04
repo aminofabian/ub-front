@@ -5,7 +5,7 @@ import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more"
 import ShopCategoryNav from "@/components/storefront/shop-category-nav";
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { APP_BASE_URL } from "@/lib/config";
-import { resolveStorefrontSlug } from "@/lib/storefront-slug";
+import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import {
   fetchPublicCatalogItems,
   fetchPublicCategories,
@@ -49,7 +49,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const q = sp.q?.trim() || undefined;
   const categoryId = sp.categoryId?.trim() || undefined;
 
-  const [list, categoriesPayload, storefront] = await Promise.all([
+  const [list, categoriesPayload, storefront, tenant] = await Promise.all([
     fetchPublicCatalogItems(slug, {
       limit: 24,
       q,
@@ -57,6 +57,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
     }),
     fetchPublicCategories(slug),
     fetchPublicStorefront(slug),
+    resolveTenantContext(),
   ]);
 
   if (!list) {
@@ -65,15 +66,31 @@ export default async function ShopPage({ searchParams }: PageProps) {
 
   const categories = categoriesPayload?.categories ?? [];
   const branchHint = storefront?.catalogBranchName;
+  const heroTitle = tenant?.branding.displayName ?? tenant?.tenantName ?? "Browse products";
+  const eyebrow = tenant ? "Online catalog" : "Online catalog";
+  const eyebrowStyle = tenant?.branding.primaryColor
+    ? { color: tenant.branding.primaryColor }
+    : undefined;
 
   return (
     <div className="bg-gradient-to-b from-muted/25 to-background px-4 py-8 dark:from-muted/10">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Online catalog
+          <p
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+            style={eyebrowStyle}
+          >
+            {eyebrow}
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Browse products</h1>
+          {tenant?.branding.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={tenant.branding.logoUrl}
+              alt={`${heroTitle} logo`}
+              className="mt-2 h-10 w-auto"
+            />
+          ) : null}
+          <h1 className="text-2xl font-semibold tracking-tight">{heroTitle}</h1>
           {branchHint ? (
             <p className="text-sm text-muted-foreground">Prices from {branchHint}</p>
           ) : null}

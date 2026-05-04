@@ -5,13 +5,21 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { logoutRemote } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
 
-const ALL_NAV_ITEMS = [
+type NavItem = {
+  href: string;
+  label: string;
+  /** Tenant feature flag the item depends on. Item is hidden when the flag exists and is false. */
+  featureFlag?: string;
+};
+
+const ALL_NAV_ITEMS: readonly NavItem[] = [
   { href: APP_ROUTES.business, label: "Business settings" },
   { href: APP_ROUTES.businessDomains, label: "Domains" },
   BRANCHES_LINK,
@@ -29,10 +37,20 @@ const ALL_NAV_ITEMS = [
   { href: APP_ROUTES.pricing, label: "Pricing" },
   { href: APP_ROUTES.shifts, label: "Shifts" },
   { href: APP_ROUTES.salesReports, label: "Sales by category" },
-  { href: APP_ROUTES.storefrontWebOrders, label: "Pickup orders (web)" },
+  { href: APP_ROUTES.storefrontWebOrders, label: "Pickup orders (web)", featureFlag: "shop" },
   { href: APP_ROUTES.salesQuick, label: "Quick sale" },
   { href: APP_ROUTES.cashier, label: "Cashier (PWA)" },
-] as const;
+];
+
+function featureFlagAllows(flags: Record<string, boolean> | undefined, key: string | undefined): boolean {
+  if (!key) {
+    return true;
+  }
+  if (!flags || !(key in flags)) {
+    return true;
+  }
+  return flags[key] === true;
+}
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -41,6 +59,9 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const tenant = useOptionalTenant();
+  const tenantTitle = tenant?.branding.displayName ?? tenant?.tenantName ?? "UB Admin";
+  const featureFlags = tenant?.featureFlags;
   const {
     business,
     me,
@@ -64,6 +85,9 @@ export function AppShell({ children }: AppShellProps) {
   } = useDashboard();
 
   const navItems = ALL_NAV_ITEMS.filter((item) => {
+    if (!featureFlagAllows(featureFlags, item.featureFlag)) {
+      return false;
+    }
     if (item.href === APP_ROUTES.businessDomains) {
       return canManageBusinessSettings;
     }
@@ -130,7 +154,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-muted/30">
       <aside className="w-64 border-r bg-background p-4">
-        <h1 className="text-lg font-semibold">UB Admin</h1>
+        <h1 className="text-lg font-semibold">{tenantTitle}</h1>
         <nav className="mt-6 flex flex-col gap-1">
           {navItems.map((item) => (
             <Link

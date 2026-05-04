@@ -9,6 +9,7 @@ import { AuthBranding } from "@/components/auth/auth-branding";
 import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import { TenantIdField } from "@/components/auth/tenant-id-field";
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
@@ -81,6 +82,9 @@ const AUTH_MODE = {
 type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 
 export default function LoginPage() {
+  const tenant = useOptionalTenant();
+  const passwordMinLength = tenant?.authConfig.passwordPolicy.minLength ?? 8;
+  const tenantGreeting = tenant?.branding.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
   const [tenantId, setTenantId] = useState("");
   const [email, setEmail] = useState("");
@@ -155,7 +159,7 @@ export default function LoginPage() {
       <AuthBranding />
       <AuthCard>
         <AuthPageHeader
-          title="Sign in"
+          title={tenantGreeting ? `Sign in to ${tenantGreeting}` : "Sign in"}
           description="Use email and password for owners and staff, or PIN for cashiers on a branch."
         />
 
@@ -221,8 +225,12 @@ export default function LoginPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
+              minLength={passwordMinLength}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Minimum {passwordMinLength} characters.
+            </p>
             <Button className="w-full" disabled={isSubmitting} type="submit">
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>

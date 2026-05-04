@@ -65,15 +65,46 @@ export type PublicCategoryListPayload = {
   categories: PublicCategory[];
 };
 
-export type PublicHostResolvePayload = {
+export type TenantStatus = "ACTIVE" | "SUSPENDED" | "INACTIVE";
+
+export type TenantBranding = {
+  displayName: string;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+};
+
+export type TenantPasswordPolicy = {
+  minLength: number;
+  requireNumber: boolean;
+  requireSymbol: boolean;
+};
+
+export type TenantAuthConfig = {
+  methods: string[];
+  ssoProviders: string[];
+  passwordPolicy: TenantPasswordPolicy;
+};
+
+/**
+ * Single tenant-context payload returned by the public host-resolve endpoint.
+ * Drives storefront branding, auth-method UI, and feature gates.
+ */
+export type TenantContext = {
+  tenantId: string;
+  tenantName: string;
   slug: string;
-  businessId: string;
-  businessName: string;
+  status: TenantStatus;
+  branding: TenantBranding;
+  authConfig: TenantAuthConfig;
+  featureFlags: Record<string, boolean>;
   storefrontEnabled: boolean;
+  resolvedAt: string;
 };
 
 const DEFAULT_REVALIDATE_SEC = 60;
-const HOST_RESOLVE_REVALIDATE_SEC = 30;
+const HOST_RESOLVE_REVALIDATE_SEC = 60;
 
 export function storefrontSlugFromEnv(): string | null {
   const s = process.env.NEXT_PUBLIC_STOREFRONT_SLUG?.trim();
@@ -199,9 +230,9 @@ export async function fetchPublicCategories(
   }
 }
 
-export async function fetchPublicHostResolve(
+export async function fetchTenantContext(
   host: string,
-): Promise<PublicHostResolvePayload | null> {
+): Promise<TenantContext | null> {
   const base = backendOrigin();
   const h = host.trim();
   if (!base || !h) {
@@ -217,7 +248,7 @@ export async function fetchPublicHostResolve(
     if (!res.ok) {
       return null;
     }
-    return (await res.json()) as PublicHostResolvePayload;
+    return (await res.json()) as TenantContext;
   } catch {
     return null;
   }

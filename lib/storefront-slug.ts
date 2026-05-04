@@ -3,8 +3,9 @@ import "server-only";
 import { headers } from "next/headers";
 
 import {
-  fetchPublicHostResolve,
+  fetchTenantContext,
   storefrontSlugFromEnv,
+  type TenantContext,
 } from "@/lib/public-storefront";
 
 const LOCALHOST_SUFFIX = ".localhost";
@@ -31,13 +32,62 @@ function localStorefrontSlug(hostname: string): string | null {
   return candidate || null;
 }
 
-async function slugFromHostname(hostname: string): Promise<string | null> {
-  const local = localStorefrontSlug(hostname);
-  if (local) {
-    return local;
+/**
+ * Synthesises a minimal {@link TenantContext} for `<slug>.localhost` so dev
+ * workflow keeps working without a `domains` row. Production hosts always go
+ * through the backend resolver.
+ */
+function localTenantFallback(hostname: string): TenantContext | null {
+  const slug = localStorefrontSlug(hostname);
+  if (!slug) {
+    return null;
   }
-  const resolved = await fetchPublicHostResolve(hostname);
-  return resolved?.slug ?? null;
+  const display = slug.charAt(0).toUpperCase() + slug.slice(1);
+  return {
+    tenantId: `local-${slug}`,
+    tenantName: display,
+    slug,
+    status: "ACTIVE",
+    branding: {
+      displayName: display,
+      logoUrl: null,
+      faviconUrl: null,
+      primaryColor: null,
+      accentColor: null,
+    },
+    authConfig: {
+      methods: ["password"],
+      ssoProviders: [],
+      passwordPolicy: { minLength: 8, requireNumber: false, requireSymbol: false },
+    },
+    featureFlags: {},
+    storefrontEnabled: true,
+    resolvedAt: new Date().toISOString(),
+  };
+}
+
+async function tenantFromHostname(hostname: string): Promise<TenantContext | null> {
+  const resolved = await fetchTenantContext(hostname);
+  if (resolved) {
+    return resolved;
+  }
+  return localTenantFallback(hostname);
+}
+
+/**
+ * Single source of tenant context for server components. Resolution order:
+ * 1. Backend resolve API for the incoming `Host`/`X-Forwarded-Host`.
+ * 2. `*.localhost` fallback for dev (synthesised in-process).
+ *
+ * Returns `null` only when no host can be determined or the backend returns
+ * an unknown host outside the localhost convention.
+ */
+export async function resolveTenantContext(): Promise<TenantContext | null> {
+  const hostname = await requestHostname();
+  if (!hostname) {
+    return null;
+  }
+  return tenantFromHostname(hostname);
 }
 
 /** Resolution order: env slug → host-based. Use for the storefront pages. */
@@ -46,18 +96,12 @@ export async function resolveStorefrontSlug(): Promise<string | null> {
   if (envSlug) {
     return envSlug;
   }
-  const hostname = await requestHostname();
-  if (!hostname) {
-    return null;
-  }
-  return slugFromHostname(hostname);
+  const ctx = await resolveTenantContext();
+  return ctx?.slug ?? null;
 }
 
 /** Host-only resolver, skips env so the admin host does not get redirected. */
 export async function resolveStorefrontSlugFromHost(): Promise<string | null> {
-  const hostname = await requestHostname();
-  if (!hostname) {
-    return null;
-  }
-  return slugFromHostname(hostname);
+  const ctx = await resolveTenantContext();
+  return ctx?.slug ?? null;
 }

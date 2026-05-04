@@ -30,6 +30,8 @@ export const APP_ROUTES = {
   shop: "/shop",
   shopCart: "/shop/cart",
   shopCheckout: "/shop/checkout",
+  tenantSuspended: "/_status/suspended",
+  tenantInactive: "/_status/inactive",
 } as const;
 
 /** Public product detail (Phase 15 storefront). */

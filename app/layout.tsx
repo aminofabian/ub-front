@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import type { ReactNode } from "react";
 
+import { TenantProvider } from "@/components/providers/tenant-provider";
 import { TenantHostSync } from "@/components/tenant-host-sync";
+import { TenantStatusPage } from "@/components/storefront/tenant-status-page";
+import type { TenantContext } from "@/lib/public-storefront";
+import { resolveTenantContext } from "@/lib/storefront-slug";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,11 +32,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+function renderBody(tenant: TenantContext | null, children: ReactNode): ReactNode {
+  if (tenant && tenant.status !== "ACTIVE") {
+    return <TenantStatusPage status={tenant.status} />;
+  }
+  return children;
+}
+
+function withTenantProvider(tenant: TenantContext | null, children: ReactNode): ReactNode {
+  if (!tenant) {
+    return children;
+  }
+  return <TenantProvider value={tenant}>{children}</TenantProvider>;
+}
+
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
+  const tenant = await resolveTenantContext();
+  const body = renderBody(tenant, children);
+
   return (
     <html
       lang="en"
@@ -39,7 +59,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TenantHostSync />
-        {children}
+        {withTenantProvider(tenant, body)}
       </body>
     </html>
   );
