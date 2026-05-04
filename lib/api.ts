@@ -801,6 +801,18 @@ export async function clearMyBrandingLogo(): Promise<BusinessRecord> {
   });
 }
 
+export async function uploadMyBrandingFavicon(file: File): Promise<BusinessRecord> {
+  const form = new FormData();
+  form.append("file", file);
+  return requestMultipartJson<BusinessRecord>(`${MY_BRANDING_PATH}/favicon`, form);
+}
+
+export async function clearMyBrandingFavicon(): Promise<BusinessRecord> {
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/favicon`, {
+    method: "DELETE",
+  });
+}
+
 export type DomainRecord = {
   id: string;
   businessId: string;

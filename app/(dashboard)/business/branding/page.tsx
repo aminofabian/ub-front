@@ -6,9 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import {
+  clearMyBrandingFavicon,
   clearMyBrandingLogo,
   fetchBusiness,
   updateMyBranding,
+  uploadMyBrandingFavicon,
   uploadMyBrandingLogo,
   type BrandingPatchPayload,
   type BrandingRecord,
@@ -20,6 +22,8 @@ const DEFAULT_PRIMARY = "#0F766E";
 const DEFAULT_ACCENT = "#F59E0B";
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+const ACCEPTED_FAVICON_TYPES = "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,.ico";
+const MAX_FAVICON_BYTES = 512 * 1024;
 
 type FormState = {
   displayName: string;
@@ -122,6 +126,7 @@ function BrandingPreview({
   const display = form.displayName.trim() || "Your storefront";
   const primary = HEX_REGEX.test(form.primaryColor) ? form.primaryColor : DEFAULT_PRIMARY;
   const accent = HEX_REGEX.test(form.accentColor) ? form.accentColor : DEFAULT_ACCENT;
+  const faviconPreview = form.faviconUrl.trim() || null;
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-medium">Live preview</h3>
@@ -148,9 +153,21 @@ function BrandingPreview({
             </div>
           )}
           <div className="flex-1">
-            <p className="text-base font-semibold" style={{ color: primary }}>
-              {display}
-            </p>
+            <div className="flex items-center gap-2">
+              {faviconPreview ? (
+                <Image
+                  src={faviconPreview}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 rounded-sm border border-border/60 object-contain"
+                  unoptimized
+                />
+              ) : null}
+              <p className="text-base font-semibold" style={{ color: primary }}>
+                {display}
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground">Storefront header preview</p>
           </div>
           <span
@@ -236,6 +253,78 @@ function LogoSection({
   );
 }
 
+function FaviconSection({
+  faviconUrl,
+  busy,
+  onUpload,
+  onClear,
+}: {
+  faviconUrl: string | null | undefined;
+  busy: boolean;
+  onUpload: (file: File) => Promise<void>;
+  onClear: () => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      void onUpload(file);
+    }
+    event.target.value = "";
+  };
+  const trimmed = faviconUrl?.trim() ?? "";
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium">Favicon</label>
+      <div className="flex items-center gap-4">
+        {trimmed ? (
+          <Image
+            src={trimmed}
+            alt="Current favicon"
+            width={48}
+            height={48}
+            className="h-12 w-12 rounded border bg-muted object-contain"
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed bg-muted text-xs text-muted-foreground">
+            None
+          </div>
+        )}
+        <div className="space-x-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_FAVICON_TYPES}
+            className="hidden"
+            onChange={onPick}
+          />
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {trimmed ? "Replace favicon" : "Upload favicon"}
+          </Button>
+          {trimmed ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void onClear()}
+            >
+              Remove
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        PNG, ICO, or WEBP. Max 512&nbsp;KB. 32×32 or 48×48 works well in browser tabs.
+      </p>
+    </div>
+  );
+}
+
 function LockedNotice() {
   return (
     <section className="max-w-2xl space-y-3">
@@ -255,6 +344,7 @@ export default function BrandingPage() {
   const [notice, setNotice] = useState<Notice>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [faviconBusy, setFaviconBusy] = useState(false);
 
   useEffect(() => {
     fetchBusiness()
@@ -325,7 +415,42 @@ export default function BrandingPage() {
     }
   };
 
+  const onFaviconUpload = async (file: File) => {
+    if (file.size > MAX_FAVICON_BYTES) {
+      setNotice({ tone: "error", text: "Favicon exceeds the 512 KB limit." });
+      return;
+    }
+    setFaviconBusy(true);
+    setNotice(null);
+    try {
+      const next = await uploadMyBrandingFavicon(file);
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setNotice({ tone: "info", text: "Favicon updated." });
+    } catch (error) {
+      setNotice({ tone: "error", text: messageFor(error, "Favicon upload failed.") });
+    } finally {
+      setFaviconBusy(false);
+    }
+  };
+
+  const onFaviconClear = async () => {
+    setFaviconBusy(true);
+    setNotice(null);
+    try {
+      const next = await clearMyBrandingFavicon();
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setNotice({ tone: "info", text: "Favicon removed." });
+    } catch (error) {
+      setNotice({ tone: "error", text: messageFor(error, "Could not remove favicon.") });
+    } finally {
+      setFaviconBusy(false);
+    }
+  };
+
   const logoUrl = snapshot?.branding?.logoUrl ?? null;
+  const faviconUrl = snapshot?.branding?.faviconUrl ?? form.faviconUrl;
 
   return (
     <section className="max-w-3xl space-y-6">
@@ -344,6 +469,13 @@ export default function BrandingPage() {
         busy={logoBusy}
         onUpload={onLogoUpload}
         onClear={onLogoClear}
+      />
+
+      <FaviconSection
+        faviconUrl={faviconUrl}
+        busy={faviconBusy}
+        onUpload={onFaviconUpload}
+        onClear={onFaviconClear}
       />
 
       <form className="space-y-5" onSubmit={onSave}>
@@ -392,6 +524,9 @@ export default function BrandingPage() {
             onChange={(e) => setForm((s) => ({ ...s, faviconUrl: e.target.value }))}
             placeholder="https://cdn.example.com/favicon.png"
           />
+          <p className="text-xs text-muted-foreground">
+            Use upload above for hosted favicons, or paste an external URL here and save.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
