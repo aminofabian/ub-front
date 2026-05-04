@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 
 import { ShopAisleGrid } from "@/components/storefront/shop-aisle-grid";
 import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more";
 import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
 import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
 import { ShopTrustStrip } from "@/components/storefront/shop-trust-strip";
+import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import { APP_BASE_URL } from "@/lib/config";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 import {
@@ -48,15 +49,29 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ShopPage({ searchParams }: PageProps) {
   const sp = await searchParams;
+  const tenant = await resolveTenantContext();
   const slug = await resolveStorefrontSlug();
+
   if (!slug) {
-    notFound();
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "this domain";
+    return (
+      <ShopUnavailable
+        title="Storefront not configured"
+        host={host}
+        reason={
+          tenant
+            ? `Domain "${host}" is mapped to tenant "${tenant.tenantName}", but no storefront slug is set. Open Business → Branding (or contact platform support) to assign a slug.`
+            : `Domain "${host}" is not mapped to any tenant yet. Add an active row in domains pointing to your business, or set NEXT_PUBLIC_STOREFRONT_SLUG on this Next.js deployment.`
+        }
+      />
+    );
   }
 
   const q = sp.q?.trim() || undefined;
   const categoryId = sp.categoryId?.trim() || undefined;
 
-  const [list, categoriesPayload, storefront, tenant] = await Promise.all([
+  const [list, categoriesPayload, storefront] = await Promise.all([
     fetchPublicCatalogItems(slug, {
       limit: 24,
       q,
@@ -64,11 +79,16 @@ export default async function ShopPage({ searchParams }: PageProps) {
     }),
     fetchPublicCategories(slug),
     fetchPublicStorefront(slug),
-    resolveTenantContext(),
   ]);
 
   if (!list) {
-    notFound();
+    return (
+      <ShopUnavailable
+        title="Storefront is not enabled"
+        host={tenant?.tenantName ?? slug}
+        reason={`The catalog API rejected slug "${slug}". Likely the business has no slug, the storefront is disabled, the catalog branch is missing or inactive, or the backend is unreachable from this deployment (check BACKEND_ORIGIN).`}
+      />
+    );
   }
 
   const categories = categoriesPayload?.categories ?? [];
