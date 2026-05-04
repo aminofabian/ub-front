@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { BarChart3, CreditCard, LineChart, Truck } from "lucide-react";
 
+import {
+  DASHBOARD_MAX_WIDE,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchPriceCompetitiveness,
   fetchSingleSourceRisk,
@@ -64,28 +73,43 @@ export default function PurchasingIntelligencePage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Supplier intelligence</h2>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view purchasing intelligence. Ask an administrator to grant{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">
-            {Permission.PurchasingIntelligenceRead}
-          </code>
-          .
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Supplier intelligence"
+        description={
+          <>
+            You do not have permission to view purchasing intelligence. Ask an administrator to grant{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PurchasingIntelligenceRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Supplier intelligence</h2>
-        <p className="text-sm text-muted-foreground">
-          Spend by supplier and category, unit price vs primary supplier last cost, and sellable items with a
-          single active supplier link. Leave dates empty to use the default rolling window (last 90 days ending
-          today). Click <strong>Refresh</strong> to load or reload all sections.
-        </p>
+    <div className={DASHBOARD_MAX_WIDE}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={LineChart}
+          eyebrow="Purchasing"
+          title="Supplier intelligence"
+          description={
+            <>
+              Spend by supplier and category, unit price vs primary supplier last cost, and sellable items with a
+              single active supplier link. Leave dates empty for the default rolling window (last 90 days). Click{" "}
+              <strong>Refresh</strong> to load all sections.
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.purchasingApAging, label: "AP aging", desc: "Balances", icon: BarChart3 },
+            { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment", desc: "Cash & alloc", icon: CreditCard },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Directory", icon: Truck },
+          ]}
+        />
       </header>
 
       <form
@@ -120,7 +144,7 @@ export default function PurchasingIntelligencePage() {
         </Button>
       </form>
 
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <DashboardNotice text={message} /> : null}
 
       <div className="space-y-2">
         <h3 className="text-lg font-medium">Spend by supplier & category</h3>
@@ -225,6 +249,7 @@ export default function PurchasingIntelligencePage() {
           </table>
         </div>
       </div>
-    </section>
+      </div>
+    </div>
   );
 }

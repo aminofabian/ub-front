@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Building2, Package, Receipt, ShoppingBag } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -52,31 +60,45 @@ export default function StorefrontWebOrdersPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Pickup orders (web)</h2>
-        <p className="text-sm text-muted-foreground">
-          You need permission{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.StorefrontOrdersRead}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Pickup orders (web)"
+        description={
+          <>
+            You need permission{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.StorefrontOrdersRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">Pickup orders (web)</h2>
-          <p className="text-sm text-muted-foreground">
-            Guest checkout requests from your online storefront (payment confirmation comes next).
-          </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-4">
+          <DashboardPageHero
+            icon={ShoppingBag}
+            eyebrow="Storefront"
+            title="Pickup orders (web)"
+            description="Guest checkout requests from your online storefront (payment confirmation comes next)."
+          />
+          <DashboardQuickLinks
+            links={[
+              { href: APP_ROUTES.business, label: "Business", desc: "Storefront toggles", icon: Building2 },
+              { href: APP_ROUTES.products, label: "Products", desc: "Catalog", icon: Package },
+              { href: APP_ROUTES.salesQuick, label: "Quick sale", desc: "In-store POS", icon: Receipt },
+            ]}
+          />
         </div>
-        <Button type="button" variant="outline" disabled={loading} onClick={() => void load()}>
+        <Button type="button" variant="outline" disabled={loading} onClick={() => void load()} className="shrink-0">
           {loading ? "Refreshing…" : "Refresh"}
         </Button>
       </header>
 
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <DashboardNotice text={message} /> : null}
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full min-w-[44rem] text-left text-sm">
@@ -126,6 +148,7 @@ export default function StorefrontWebOrdersPage() {
           </tbody>
         </table>
       </div>
-    </section>
+      </div>
+    </div>
   );
 }

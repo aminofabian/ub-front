@@ -4,8 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
 
+import { DashboardAccessDenied, DashboardFeedback } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   fetchBranches,
@@ -680,6 +683,20 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const heading = isCashier ? "Cashier" : "Quick sale";
 
   if (!canSell) {
+    if (!isCashier) {
+      return (
+        <DashboardAccessDenied
+          title={heading}
+          description={
+            <>
+              You need <code className="text-xs">{Permission.SalesSell}</code> to record POS sales.
+            </>
+          }
+          backHref={APP_ROUTES.business}
+          backLabel="Business settings"
+        />
+      );
+    }
     return (
       <section className="max-w-xl space-y-2">
         <h2 className="text-xl font-semibold">{heading}</h2>
@@ -693,7 +710,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const currency = business?.currency?.trim() || "KES";
 
   return (
-    <section className="space-y-8">
+    <section className={cn("space-y-8", !isCashier && "mx-auto max-w-6xl pb-16")}>
       <header className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold">{heading}</h2>
@@ -1260,8 +1277,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           ) : null}
         </div>
       ) : null}
-      {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
     </section>
   );
 }

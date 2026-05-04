@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { BarChart3, CreditCard, LineChart, Truck } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import { fetchApAging, type ApAgingTotalsResponse } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
@@ -39,26 +48,39 @@ export default function ApAgingPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">AP aging</h2>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view accounts payable aging. Ask an administrator to grant{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PurchasingPaymentRead}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="AP aging"
+        description={
+          <>
+            You do not have permission to view accounts payable aging. Ask an administrator to grant{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PurchasingPaymentRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   const b = data?.buckets;
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">AP aging</h2>
-        <p className="text-sm text-muted-foreground">
-          Open balances on posted supplier invoices by due-date bucket (as of the date you choose; leave empty
-          for today UTC). Optional supplier filters the invoice set. Click <strong>Refresh</strong> to load.
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={BarChart3}
+          eyebrow="Purchasing"
+          title="AP aging"
+          description="Open balances on posted supplier invoices by due-date bucket. Leave as-of empty for today UTC. Optional supplier ID filters the set. Click Refresh to load."
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.purchasingIntelligence, label: "Intelligence", desc: "Spend & risk", icon: LineChart },
+            { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment", desc: "Allocations", icon: CreditCard },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Directory", icon: Truck },
+          ]}
+        />
       </header>
 
       <form
@@ -94,7 +116,7 @@ export default function ApAgingPage() {
         </Button>
       </form>
 
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <DashboardNotice text={message} /> : null}
 
       {data ? (
         <div className="space-y-4">
@@ -138,7 +160,8 @@ export default function ApAgingPage() {
       ) : (
         <p className="text-sm text-muted-foreground">No data loaded yet.</p>
       )}
-    </section>
+      </div>
+    </div>
   );
 }
 

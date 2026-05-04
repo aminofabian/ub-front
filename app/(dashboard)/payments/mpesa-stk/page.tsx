@@ -1,9 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Building2, List, Smartphone } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import { fetchCustomers, initiateMpesaStkIntent, simulateMpesaStkComplete } from "@/lib/api";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -107,29 +116,40 @@ export default function MpesaStkPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2 p-6">
-        <h1 className="text-xl font-semibold">M-Pesa STK</h1>
-        <p className="text-sm text-muted-foreground">
-          You need permission{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PaymentsStkInitiate}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="M-Pesa STK"
+        description={
+          <>
+            You need permission{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PaymentsStkInitiate}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="mx-auto max-w-2xl space-y-6 p-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold">M-Pesa STK</h1>
-        <p className="text-sm text-muted-foreground">
-          Create an STK intent for a customer wallet top-up. This slice includes a dev-only simulate helper.
-        </p>
-      </div>
+    <div className={DASHBOARD_MAX}>
+      <div className="mx-auto max-w-2xl space-y-6">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={Smartphone}
+          eyebrow="Payments"
+          title="M-Pesa STK"
+          description="Create an STK intent for a customer wallet top-up. This slice includes a dev-only simulate helper."
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.customers, label: "Customers", desc: "Lookup", icon: List },
+            { href: APP_ROUTES.business, label: "Business", desc: "Workspace", icon: Building2 },
+          ]}
+        />
+      </header>
 
       {message ? (
-        <p className={message.kind === "ok" ? "text-sm text-green-700" : "text-sm text-destructive"}>
-          {message.text}
-        </p>
+        <DashboardFeedback kind={message.kind === "ok" ? "success" : "error"} text={message.text} />
       ) : null}
 
       <div className="rounded-md border p-4 space-y-4">
@@ -231,7 +251,8 @@ export default function MpesaStkPage() {
           </div>
         </div>
       </div>
-    </section>
+      </div>
+    </div>
   );
 }
 

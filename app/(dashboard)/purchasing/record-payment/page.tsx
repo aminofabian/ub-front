@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { BarChart3, CreditCard, LineChart, Truck } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchOpenSupplierInvoices,
   fetchSuppliers,
@@ -152,37 +161,47 @@ export default function RecordSupplierPaymentPage() {
 
   if (!canRead) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Record supplier payment</h2>
-        <p className="text-sm text-muted-foreground">
-          You need{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PurchasingPaymentRead}</code>{" "}
-          (and usually <code className="text-xs">{Permission.PurchasingPaymentWrite}</code> to post).
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Record supplier payment"
+        description={
+          <>
+            You need{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.PurchasingPaymentRead}</code> (and
+            usually <code className="text-xs">{Permission.PurchasingPaymentWrite}</code> to post).
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Record supplier payment</h2>
-        <p className="text-sm text-muted-foreground">
-          Load open posted invoices for a supplier, allocate amounts, then post cash (and optional supplier
-          credit). Methods: <code className="text-xs">cash</code>, <code className="text-xs">bank</code>,{" "}
-          <code className="text-xs">mpesa</code>. Cash + credit must cover total allocations.
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={CreditCard}
+          eyebrow="Purchasing"
+          title="Record supplier payment"
+          description={
+            <>
+              Load open posted invoices for a supplier, allocate amounts, then post cash (and optional supplier
+              credit). Methods: <code className="text-xs">cash</code>, <code className="text-xs">bank</code>,{" "}
+              <code className="text-xs">mpesa</code>. Cash + credit must cover total allocations.
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.purchasingApAging, label: "AP aging", desc: "Open balances", icon: BarChart3 },
+            { href: APP_ROUTES.purchasingIntelligence, label: "Intelligence", desc: "Spend", icon: LineChart },
+            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Directory", icon: Truck },
+          ]}
+        />
       </header>
 
-      {feedback ? (
-        <p
-          className={
-            feedback.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
-          }
-        >
-          {feedback.text}
-        </p>
-      ) : null}
+      {feedback ? <DashboardFeedback kind={feedback.kind} text={feedback.text} /> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -320,6 +339,7 @@ export default function RecordSupplierPaymentPage() {
           )}
         </form>
       )}
-    </section>
+      </div>
+    </div>
   );
 }

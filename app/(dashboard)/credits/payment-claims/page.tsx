@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Building2, ClipboardCheck, List } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import { approvePaymentClaim, listSubmittedPaymentClaims, type PublicPaymentClaimRecord } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 

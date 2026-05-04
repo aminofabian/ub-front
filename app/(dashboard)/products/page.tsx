@@ -2,7 +2,17 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, CircleDollarSign, LayoutGrid, Package } from "lucide-react";
+import {
+  Building2,
+  Camera,
+  CircleDollarSign,
+  LayoutGrid,
+  Layers,
+  Package,
+  PackagePlus,
+  PencilLine,
+  Sparkles,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX_WIDE,
@@ -10,6 +20,7 @@ import {
   DashboardPageHero,
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
+import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -44,6 +55,10 @@ import {
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
+import { VariantDrawerForm } from "./variant-drawer-form";
+
+type ProductDrawerId = "create-parent" | "edit-product" | "photos" | "add-variant";
+
 type ProductEditDraft = {
   name?: string;
   barcode?: string;
@@ -58,6 +73,7 @@ type ProductEditDraft = {
 const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   bundlePriceStr: "",
   imageKey: "",
+  description: "",
   active: true,
   webPublished: false,
   categoryId: "",
@@ -307,6 +323,7 @@ export default function ProductsPage() {
   const [variantCreateBusy, setVariantCreateBusy] = useState(false);
   const [catalogImageAlt, setCatalogImageAlt] = useState("");
   const [catalogImagePrimary, setCatalogImagePrimary] = useState(true);
+  const [activeDrawer, setActiveDrawer] = useState<ProductDrawerId | null>(null);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
@@ -502,6 +519,8 @@ export default function ProductsPage() {
       }
       setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedItemTypeId });
       await loadTypesAndItems();
+      setSelectedId(created.id);
+      setActiveDrawer(null);
       setMessage(
         canLinkSupplier && supplierChosen
           ? "Product created and linked to supplier."
@@ -559,6 +578,7 @@ export default function ProductsPage() {
         imageKey: next.imageKey ?? "",
         categoryId: next.categoryId ?? "",
       });
+      setActiveDrawer(null);
       setMessage("Product updated.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Update failed.");
@@ -728,6 +748,7 @@ export default function ProductsPage() {
         setSupplierLinks([]);
       }
       await loadTypesAndItems();
+      setActiveDrawer(null);
       setMessage(["Variant created.", ...warnings].filter(Boolean).join(" "));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Variant create failed.");
@@ -745,6 +766,7 @@ export default function ProductsPage() {
       await deleteItem(selectedId, false);
       setSelectedId(null);
       setDetail(null);
+      setActiveDrawer(null);
       await loadTypesAndItems();
       setMessage("Item deleted.");
     } catch (error) {
@@ -805,6 +827,7 @@ export default function ProductsPage() {
       : null;
 
   return (
+    <>
     <div className={DASHBOARD_MAX_WIDE}>
       <div className="space-y-8">
       <header className="space-y-4">
@@ -814,216 +837,65 @@ export default function ProductsPage() {
           title="Products"
           description={
             <>
-              Parent items, variants, search, update, and soft-delete. When creating a parent, you can optionally
-              link a supplier if you have{" "}
-              <code className="text-xs">{Permission.CatalogItemsLinkSuppliers}</code> (and typically{" "}
-              <code className="text-xs">{Permission.SuppliersRead}</code> to pick from a list).
+              Search the shelf, then refine details in slide-over panels — tuned for kiosk-style speed. Parent items
+              hold variants; supplier links need{" "}
+              <code className="text-xs">{Permission.CatalogItemsLinkSuppliers}</code>
+              {canListSuppliers ? (
+                <>
+                  {" "}
+                  and <code className="text-xs">{Permission.SuppliersRead}</code> to pick vendors.
+                </>
+              ) : (
+                "."
+              )}
             </>
           }
         />
-        <DashboardQuickLinks
-          links={[
-            { href: APP_ROUTES.categories, label: "Categories", desc: "Tree & aisles", icon: LayoutGrid },
-            { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Costs & links", icon: Building2 },
-            { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & sell price", icon: CircleDollarSign },
-          ]}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <DashboardQuickLinks
+            links={[
+              { href: APP_ROUTES.categories, label: "Categories", desc: "Tree & aisles", icon: LayoutGrid },
+              { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Costs & links", icon: Building2 },
+              { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & sell price", icon: CircleDollarSign },
+            ]}
+          />
+          <Button
+            type="button"
+            size="lg"
+            className="gap-2 shadow-md sm:shrink-0"
+            disabled={itemTypes.length === 0}
+            onClick={() => setActiveDrawer("create-parent")}
+          >
+            <PackagePlus className="size-4" />
+            New product
+          </Button>
+        </div>
       </header>
 
-      <form className="flex flex-wrap items-end gap-2" onSubmit={onSearchSubmit}>
-        <label className="text-sm font-medium" htmlFor="product-search">
-          Search
-        </label>
-        <input
-          id="product-search"
-          className="min-w-[200px] rounded-md border bg-background px-3 py-2 text-sm"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Name, SKU, barcode…"
-        />
-        <Button type="submit" variant="secondary">
-          Search
-        </Button>
-      </form>
-
-      <form
-        className="grid max-w-4xl grid-cols-1 gap-3 md:grid-cols-6"
-        onSubmit={onCreateParent}
-      >
-        <label className="text-sm font-medium md:col-span-6" htmlFor="item-type">
-          New parent — item type
-        </label>
-        <select
-          id="item-type"
-          className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-2"
-          value={parentDraft.itemTypeId}
-          onChange={(event) =>
-            setParentDraft((previous) => ({
-              ...previous,
-              itemTypeId: event.target.value,
-            }))
-          }
-          required
-        >
-          {itemTypes.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.label} ({type.key})
-            </option>
-          ))}
-        </select>
-        <input
-          className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-2"
-          placeholder="Name"
-          value={parentDraft.name}
-          onChange={(event) =>
-            setParentDraft((previous) => ({ ...previous, name: event.target.value }))
-          }
-          required
-          aria-label="New product name"
-        />
-        <input
-          className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-1"
-          placeholder="SKU"
-          value={parentDraft.sku}
-          onChange={(event) =>
-            setParentDraft((previous) => ({ ...previous, sku: event.target.value }))
-          }
-          required
-          aria-label="New product SKU"
-        />
-        <input
-          className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-1"
-          placeholder="Barcode"
-          value={parentDraft.barcode}
-          onChange={(event) =>
-            setParentDraft((previous) => ({ ...previous, barcode: event.target.value }))
-          }
-          aria-label="New product barcode"
-        />
-        <label className="text-sm font-medium md:col-span-6" htmlFor="parent-category">
-          Category (optional)
-        </label>
-        <select
-          id="parent-category"
-          className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-3"
-          value={parentDraft.categoryId}
-          onChange={(event) =>
-            setParentDraft((previous) => ({ ...previous, categoryId: event.target.value }))
-          }
-        >
-          <option value="">— None —</option>
-          {sortedCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-              {!category.active ? " (inactive)" : ""}
-            </option>
-          ))}
-        </select>
-        {canLinkSupplier ? (
-          <>
-            <div className="md:col-span-6 mt-2 border-t pt-3">
-              <p className="text-sm font-medium">Optional supplier link</p>
-              <p className="text-xs text-muted-foreground">
-                After create, the product is linked via{" "}
-                <code className="text-[10px]">POST /items/&#123;id&#125;/supplier-links</code>. Leave supplier
-                empty to skip.
-              </p>
-            </div>
-            {canListSuppliers ? (
-              <div className="md:col-span-6 flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={suppliersLoading}
-                  onClick={() => void loadSuppliersForLink()}
-                >
-                  {suppliersLoading ? "Loading suppliers…" : "Load suppliers"}
-                </Button>
-              </div>
-            ) : null}
-            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Supplier</span>
-              <select
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-                value={
-                  suppliersForLink.some((s) => s.id === parentDraft.supplierId)
-                    ? parentDraft.supplierId
-                    : ""
-                }
-                onChange={(event) =>
-                  setParentDraft((p) => ({ ...p, supplierId: event.target.value }))
-                }
-              >
-                <option value="">— None —</option>
-                {suppliersForLink.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Supplier ID (override / paste)</span>
-              <input
-                className="rounded-md border bg-background px-3 py-2 font-mono text-xs"
-                placeholder="UUID"
-                value={parentDraft.supplierId}
-                onChange={(event) =>
-                  setParentDraft((p) => ({ ...p, supplierId: event.target.value }))
-                }
-                aria-label="Supplier ID"
-              />
-            </label>
-            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Supplier SKU (optional)</span>
-              <input
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-                value={parentDraft.supplierSku}
-                onChange={(event) =>
-                  setParentDraft((p) => ({ ...p, supplierSku: event.target.value }))
-                }
-                aria-label="Supplier SKU"
-              />
-            </label>
-            <label className="md:col-span-3 flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">Default cost (optional)</span>
-              <input
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={parentDraft.defaultCostPrice}
-                onChange={(event) =>
-                  setParentDraft((p) => ({ ...p, defaultCostPrice: event.target.value }))
-                }
-                aria-label="Default cost from supplier"
-              />
-            </label>
-            <label className="md:col-span-6 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={parentDraft.setPrimarySupplier}
-                onChange={(event) =>
-                  setParentDraft((p) => ({ ...p, setPrimarySupplier: event.target.checked }))
-                }
-              />
-              Set as primary supplier for this item
-            </label>
-          </>
-        ) : null}
-        <Button
-          className="md:col-span-2 md:w-fit"
-          type="submit"
-          disabled={itemTypes.length === 0}
-        >
-          Create parent product
-        </Button>
-        {itemTypes.length === 0 ? (
-          <p className="md:col-span-6 text-sm text-destructive">
-            No item types in tenant — seed catalog (Slice 4) before creating products.
-          </p>
-        ) : null}
-      </form>
+      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/15 p-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <form className="flex min-w-0 flex-1 flex-wrap items-end gap-2" onSubmit={onSearchSubmit}>
+          <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm font-medium" htmlFor="product-search">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Sparkles className="size-3.5 opacity-70" aria-hidden />
+              Find on shelf
+            </span>
+            <input
+              id="product-search"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Name, SKU, barcode…"
+            />
+          </label>
+          <Button type="submit" variant="secondary">
+            Search
+          </Button>
+        </form>
+        <p className="text-xs text-muted-foreground sm:max-w-xs sm:text-right">
+          Tip: open <strong className="text-foreground">New product</strong> to add a parent row, then add options
+          (variants) from the inspector.
+        </p>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-md border bg-background">
@@ -1092,146 +964,119 @@ export default function ProductsPage() {
 
         <div className="space-y-4 rounded-md border bg-background p-4">
           {!detail ? (
-            <p className="text-sm text-muted-foreground">
-              Select a parent product to edit or add variants.
-            </p>
+            <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+              <div className="flex size-16 items-center justify-center rounded-2xl border border-dashed border-primary/25 bg-primary/[0.03]">
+                <Package className="size-8 text-muted-foreground" aria-hidden />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Nothing selected yet</p>
+                <p className="max-w-sm text-xs text-muted-foreground">
+                  Tap a parent row on the left, or open{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                    disabled={itemTypes.length === 0}
+                    onClick={() => setActiveDrawer("create-parent")}
+                  >
+                    New product
+                  </button>{" "}
+                  to start fresh.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={itemTypes.length === 0}
+                onClick={() => setActiveDrawer("create-parent")}
+                className="gap-2"
+              >
+                <PackagePlus className="size-4" />
+                Add parent product
+              </Button>
+            </div>
           ) : (
             <>
-              <h3 className="text-sm font-semibold">Edit selected</h3>
-              <p className="text-xs text-muted-foreground">
-                SKU <span className="font-mono">{detail.sku}</span>
-                {detail.variantName ? ` · variant: ${detail.variantName}` : ""}
-              </p>
-              <div className="space-y-4 rounded-xl border border-violet-200/60 bg-gradient-to-br from-violet-50/50 via-background to-amber-50/35 p-4 dark:border-violet-900/40 dark:from-violet-950/25 dark:to-amber-950/15">
-                <div>
-                  <p className="text-sm font-semibold tracking-tight text-foreground">Chromatic shelf</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Binaries stay on Cloudinary; UB stores the secure URL, public id, size, dominant colour sample,
-                    and a perceptual hash for clever duplicate detection later.
-                  </p>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 gap-3">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-muted shadow-inner">
+                    {coverImageUrl(detail) ? (
+                      <Image
+                        src={coverImageUrl(detail)!}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Package className="size-6 text-muted-foreground/50" aria-hidden />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <h3 className="truncate text-base font-semibold tracking-tight">{detail.name}</h3>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {detail.sku}
+                      {detail.variantName ? ` · ${detail.variantName}` : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {detail.active === false ? (
+                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                          Inactive
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                          Active
+                        </span>
+                      )}
+                      {detail.webPublished ? (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          Online shop
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
-                {coverImageUrl(detail) ? (
-                  <div
-                    className="relative h-40 w-full max-w-sm overflow-hidden rounded-lg border-2 border-background shadow-xl"
-                    style={{
-                      boxShadow: `0 18px 42px -16px ${sortedImages.find((i) => i.predominantColorHex)?.predominantColorHex ?? "rgba(99,102,241,0.45)"}`,
-                    }}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setActiveDrawer("edit-product")}
                   >
-                    <Image
-                      src={coverImageUrl(detail)!}
-                      alt="Cover"
-                      fill
-                      className="object-cover"
-                      sizes="320px"
-                      priority
-                    />
-                  </div>
-                ) : detail.imageKey ? (
-                  <p className="text-xs text-muted-foreground">
-                    Cover (legacy / non-URL):{" "}
-                    <span className="font-mono break-all text-foreground">{detail.imageKey}</span>
-                  </p>
-                ) : null}
-                <form className="flex flex-col gap-2 border-t border-dashed border-muted-foreground/25 pt-3" onSubmit={(e) => onUploadCatalogImage(e).catch(() => undefined)}>
-                  <p className="text-xs font-medium text-foreground">Beam a new photo</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="max-w-full text-xs file:mr-2 file:rounded file:border file:bg-background file:px-2 file:py-1"
-                    onChange={(event) => setPendingCatalogImage(event.target.files?.[0] ?? null)}
-                  />
-                  {pendingCatalogImage ? (
-                    <p className="text-[11px] text-muted-foreground">Selected: {pendingCatalogImage.name}</p>
-                  ) : null}
-                  <input
-                    className="rounded-md border bg-background px-2 py-1.5 text-sm"
-                    placeholder="Alt text (optional)"
-                    value={catalogImageAlt}
-                    onChange={(event) => setCatalogImageAlt(event.target.value)}
-                  />
-                  <label className="flex items-center gap-2 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={catalogImagePrimary}
-                      onChange={(event) => setCatalogImagePrimary(event.target.checked)}
-                    />
-                    Set as cover / listing thumbnail
-                  </label>
-                  <Button type="submit" size="sm" className="w-fit" disabled={catalogImageUploadBusy || !pendingCatalogImage}>
-                    {catalogImageUploadBusy ? "Uploading…" : "Upload to Cloudinary"}
+                    <PencilLine className="size-3.5" />
+                    Details
                   </Button>
-                  <p className="text-[10px] text-muted-foreground">
-                    Requires Cloudinary on the API (<code className="text-[10px]">APP_MEDIA_CLOUDINARY_ENABLED</code>
-                    ). Otherwise you will see a service unavailable message.
-                  </p>
-                </form>
-                {sortedImages.length > 0 ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {sortedImages.map((img) => {
-                      const url = galleryImageUrl(img);
-                      const accent = img.predominantColorHex?.trim() ?? "#818cf8";
-                      return (
-                        <figure
-                          key={img.id}
-                          className="relative overflow-hidden rounded-lg border bg-background p-2 shadow-sm transition hover:shadow-md"
-                          style={{ borderColor: `${accent}66` }}
-                        >
-                          {url ? (
-                            <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
-                              <Image
-                                src={url}
-                                alt={img.altText ?? "Product"}
-                                fill
-                                className="object-cover"
-                                sizes="180px"
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex aspect-square items-center justify-center rounded-md bg-muted text-[10px] text-muted-foreground">
-                              No preview
-                            </div>
-                          )}
-                          <figcaption className="mt-2 space-y-1 pr-16 text-[10px] text-muted-foreground">
-                            <div className="font-mono text-[9px] break-all text-foreground">
-                              {img.provider === "cloudinary" ? img.publicId ?? img.s3Key : img.s3Key}
-                            </div>
-                            {img.phash ? (
-                              <div>
-                                Visual fingerprint · <span className="font-mono">{img.phash.slice(0, 14)}…</span>
-                              </div>
-                            ) : null}
-                            {img.bytes != null ? (
-                              <div>
-                                {(img.bytes / 1024).toFixed(1)} KB
-                                {img.format ? ` · ${img.format}` : ""}
-                                {img.width && img.height ? ` · ${img.width}×${img.height}` : ""}
-                              </div>
-                            ) : null}
-                          </figcaption>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute bottom-2 right-2 h-7 text-xs text-destructive hover:text-destructive"
-                            onClick={() => onRemoveGalleryImage(img.id).catch(() => undefined)}
-                          >
-                            Remove
-                          </Button>
-                        </figure>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No gallery slots yet — upload above or use the legacy register API.</p>
-                )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setActiveDrawer("photos")}
+                  >
+                    <Camera className="size-3.5" />
+                    Photos
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 shadow-sm"
+                    onClick={() => setActiveDrawer("add-variant")}
+                  >
+                    <Layers className="size-3.5" />
+                    Add option
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+
+              <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
                 <span>
-                  Bundle / list price: <strong className="text-foreground">{formatAmount(sellPrice)}</strong>
+                  Shelf price: <strong className="text-foreground">{formatAmount(sellPrice)}</strong>
                 </span>
                 {primaryLink ? (
                   <span>
-                    Primary supplier cost:{" "}
+                    Primary cost:{" "}
                     <strong className="text-foreground">{formatAmount(primaryCost)}</strong>
                     {marginPct != null ? (
                       <span className="text-muted-foreground"> ({marginPct.toFixed(1)}% margin)</span>
@@ -1240,9 +1085,10 @@ export default function ProductsPage() {
                 ) : supplierLinks.length === 0 ? (
                   <span>No supplier links.</span>
                 ) : (
-                  <span>Mark a primary supplier to compare cost.</span>
+                  <span>Pick a primary supplier to see margin.</span>
                 )}
               </div>
+
               {supplierLinks.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold uppercase text-muted-foreground">
@@ -1276,125 +1122,18 @@ export default function ProductsPage() {
                   </div>
                 </div>
               )}
-              <form className="space-y-2" onSubmit={onPatchItem}>
-                <input
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={patchDraft.name ?? ""}
-                  onChange={(event) =>
-                    setPatchDraft((previous) => ({ ...previous, name: event.target.value }))
-                  }
-                  aria-label="Product name"
-                />
-                <input
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={patchDraft.barcode ?? ""}
-                  onChange={(event) =>
-                    setPatchDraft((previous) => ({
-                      ...previous,
-                      barcode: event.target.value,
-                    }))
-                  }
-                  aria-label="Barcode"
-                />
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  <span>Category</span>
-                  <select
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground"
-                    value={patchDraft.categoryId}
-                    onChange={(event) =>
-                      setPatchDraft((previous) => ({
-                        ...previous,
-                        categoryId: event.target.value,
-                      }))
-                    }
-                    aria-label="Product category"
-                  >
-                    <option value="">— None —</option>
-                    {sortedCategories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                        {!category.active ? " (inactive)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  <span>Bundle / selling price (optional)</span>
-                  <input
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground"
-                    inputMode="decimal"
-                    placeholder="Leave empty to leave unchanged on save"
-                    value={patchDraft.bundlePriceStr}
-                    onChange={(event) =>
-                      setPatchDraft((previous) => ({
-                        ...previous,
-                        bundlePriceStr: event.target.value,
-                      }))
-                    }
-                    aria-label="Bundle price"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  <span>Cover URL / legacy key (optional override)</span>
-                  <input
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono text-foreground"
-                    placeholder="HTTPS cover or legacy key — Cloudinary uploads set this automatically"
-                    value={patchDraft.imageKey}
-                    onChange={(event) =>
-                      setPatchDraft((previous) => ({
-                        ...previous,
-                        imageKey: event.target.value,
-                      }))
-                    }
-                    aria-label="Image key"
-                  />
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={patchDraft.active ?? true}
-                    onChange={(event) =>
-                      setPatchDraft((previous) => ({
-                        ...previous,
-                        active: event.target.checked,
-                      }))
-                    }
-                  />
-                  Active
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={patchDraft.webPublished ?? false}
-                    onChange={(event) =>
-                      setPatchDraft((previous) => ({
-                        ...previous,
-                        webPublished: event.target.checked,
-                      }))
-                    }
-                  />
-                  Show on online shop (when storefront is enabled)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="submit">Save changes</Button>
-                  <Button type="button" variant="destructive" onClick={onDeleteItem}>
-                    Delete
-                  </Button>
-                </div>
-              </form>
 
-              <div className="mt-8 rounded-xl border bg-card/50 p-4 shadow-sm">
+              <div className="rounded-xl border bg-card/50 p-4 shadow-sm">
                 <h4 className="text-sm font-semibold text-foreground">Options (variants)</h4>
                 <p className="mt-1 max-w-prose text-xs text-muted-foreground">
-                  Each row is a separate SKU shoppers can buy (for example size, color, or flavor). You only need a
-                  unique SKU and an option label; expand a section when you want shelf price, starting stock, vendor
-                  cost, or a photo.
+                  Each row is a sellable SKU. Use <strong className="text-foreground">Add option</strong> for sizes,
+                  flavours, or multipacks — only SKU and label are required to start.
                 </p>
                 <div className="mt-3 overflow-x-auto rounded-lg border bg-background">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b bg-muted/40">
-                        <th className="py-2 pl-3 pr-2 w-10" aria-label="Photo" />
+                        <th className="w-10 py-2 pl-3 pr-2" aria-label="Photo" />
                         <th className="py-2 pr-2 font-medium">Name</th>
                         <th className="py-2 pr-2 font-medium">Option</th>
                         <th className="py-2 pr-2 font-medium">SKU</th>
@@ -1405,7 +1144,7 @@ export default function ProductsPage() {
                       {variantRows.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="py-8 text-center text-xs text-muted-foreground">
-                            No options yet — create the first one below.
+                            No options yet — open Add option to create one.
                           </td>
                         </tr>
                       ) : (
@@ -1439,628 +1178,6 @@ export default function ProductsPage() {
                     </tbody>
                   </table>
                 </div>
-
-                <form className="mt-5 space-y-4" onSubmit={onAddVariant}>
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-foreground">Basics</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">
-                          SKU <span className="text-destructive">*</span>
-                        </span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder="e.g. TEESHIRT-RED-M"
-                          value={variantDraft.sku}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              sku: event.target.value,
-                            }))
-                          }
-                          required
-                          autoComplete="off"
-                          aria-label="Variant SKU"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">
-                          Option label <span className="text-destructive">*</span>
-                        </span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder="e.g. Red / Medium / 500 ml"
-                          value={variantDraft.variantName}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              variantName: event.target.value,
-                            }))
-                          }
-                          required
-                          autoComplete="off"
-                          aria-label="Variant option label"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                        <span className="font-medium text-muted-foreground">Barcode (scan or type)</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder="Optional"
-                          value={variantDraft.barcode}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              barcode: event.target.value,
-                            }))
-                          }
-                          aria-label="Variant barcode"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                        <span className="font-medium text-muted-foreground">Name on receipts &amp; search</span>
-                        <span className="font-normal text-muted-foreground/90">
-                          Leave blank to reuse the parent product name.
-                        </span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder="Optional — defaults to parent name"
-                          value={variantDraft.name}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              name: event.target.value,
-                            }))
-                          }
-                          aria-label="Variant display name"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <details className="group rounded-lg border bg-background open:pb-1">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                        aria-hidden
-                      >
-                        ▸
-                      </span>
-                      Description, category, unit &amp; cover image link
-                    </summary>
-                    <div className="space-y-3 border-t px-3 py-3 sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0">
-                      <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                        <span className="font-medium text-muted-foreground">Description</span>
-                        <textarea
-                          className={`${VARIANT_INPUT_CLASS} min-h-[5rem] resize-y`}
-                          placeholder="Optional — defaults to parent description"
-                          value={variantDraft.description}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              description: event.target.value,
-                            }))
-                          }
-                          aria-label="Variant description"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Category</span>
-                        <select
-                          className={VARIANT_INPUT_CLASS}
-                          value={variantDraft.categoryId}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              categoryId: event.target.value,
-                            }))
-                          }
-                          aria-label="Variant category"
-                        >
-                          <option value="">Same as parent product</option>
-                          {sortedCategories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Unit</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder="each, kg, box… — blank matches parent"
-                          value={variantDraft.unitType}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              unitType: event.target.value,
-                            }))
-                          }
-                          aria-label="Variant unit type"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                        <span className="font-medium text-muted-foreground">Cover image URL</span>
-                        <span className="font-normal text-muted-foreground/90">
-                          Use a full https link, or leave blank to inherit the parent image.
-                        </span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder="https://…"
-                          value={variantDraft.imageKey}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              imageKey: event.target.value,
-                            }))
-                          }
-                          aria-label="Variant cover image URL"
-                        />
-                      </label>
-                    </div>
-                  </details>
-
-                  <details className="group rounded-lg border bg-background open:pb-1">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                        aria-hidden
-                      >
-                        ▸
-                      </span>
-                      Reorder reminders
-                    </summary>
-                    <div className="grid gap-3 border-t px-3 py-3 sm:grid-cols-3">
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Warn when below</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          inputMode="decimal"
-                          placeholder="Min on hand"
-                          value={variantDraft.minStockLevel}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              minStockLevel: event.target.value,
-                            }))
-                          }
-                          aria-label="Min stock level"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Reorder at</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          inputMode="decimal"
-                          placeholder="Level"
-                          value={variantDraft.reorderLevel}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              reorderLevel: event.target.value,
-                            }))
-                          }
-                          aria-label="Reorder level"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Suggest order qty</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          inputMode="decimal"
-                          placeholder="Units"
-                          value={variantDraft.reorderQty}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              reorderQty: event.target.value,
-                            }))
-                          }
-                          aria-label="Reorder quantity"
-                        />
-                      </label>
-                    </div>
-                  </details>
-
-                  <details className="group rounded-lg border bg-background open:pb-1">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                        aria-hidden
-                      >
-                        ▸
-                      </span>
-                      Multipack or bundle pricing
-                    </summary>
-                    <div className="space-y-2 border-t px-3 py-3 sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0">
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Items in pack</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          inputMode="numeric"
-                          placeholder="e.g. 6"
-                          value={variantDraft.bundleQty}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              bundleQty: event.target.value,
-                            }))
-                          }
-                          aria-label="Bundle quantity"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">
-                          Price for the pack{currencyCode ? ` (${currencyCode})` : ""}
-                        </span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          inputMode="decimal"
-                          placeholder="Optional"
-                          value={variantDraft.bundlePrice}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              bundlePrice: event.target.value,
-                            }))
-                          }
-                          aria-label="Bundle price"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                        <span className="font-medium text-muted-foreground">Pack label</span>
-                        <input
-                          className={VARIANT_INPUT_CLASS}
-                          placeholder='e.g. "6-pack"'
-                          value={variantDraft.bundleName}
-                          onChange={(event) =>
-                            setVariantDraft((previous) => ({
-                              ...previous,
-                              bundleName: event.target.value,
-                            }))
-                          }
-                          aria-label="Bundle name"
-                        />
-                      </label>
-                    </div>
-                  </details>
-
-                  <details className="group rounded-lg border bg-background open:pb-1">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                        aria-hidden
-                      >
-                        ▸
-                      </span>
-                      Regular selling price
-                      {!canSetSellPrice ? (
-                        <span className="ml-auto text-xs font-normal text-muted-foreground">
-                          (needs pricing access)
-                        </span>
-                      ) : null}
-                    </summary>
-                    <div className="space-y-3 border-t px-3 py-3">
-                      <p className="text-xs text-muted-foreground">
-                        Sets what cashiers charge from this date. Leave empty if you set prices elsewhere.
-                      </p>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 text-xs">
-                          <span className="font-medium text-muted-foreground">
-                            Price{currencyCode ? ` (${currencyCode})` : ""}
-                          </span>
-                          <input
-                            className={VARIANT_INPUT_CLASS}
-                            inputMode="decimal"
-                            placeholder="Optional"
-                            value={variantDraft.sellingPrice}
-                            onChange={(event) =>
-                              setVariantDraft((previous) => ({
-                                ...previous,
-                                sellingPrice: event.target.value,
-                              }))
-                            }
-                            aria-label="Selling price"
-                            disabled={!canSetSellPrice}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-1.5 text-xs">
-                          <span className="font-medium text-muted-foreground">Effective from</span>
-                          <input
-                            className={VARIANT_INPUT_CLASS}
-                            type="date"
-                            value={variantDraft.sellEffectiveFrom}
-                            onChange={(event) =>
-                              setVariantDraft((previous) => ({
-                                ...previous,
-                                sellEffectiveFrom: event.target.value,
-                              }))
-                            }
-                            aria-label="Price effective from"
-                            disabled={!canSetSellPrice}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                          <span className="font-medium text-muted-foreground">Only at this branch</span>
-                          <span className="font-normal text-muted-foreground/90">
-                            Leave as “All locations” unless this price is branch-specific.
-                          </span>
-                          <select
-                            className={VARIANT_INPUT_CLASS}
-                            value={variantDraft.sellBranchId}
-                            onChange={(event) =>
-                              setVariantDraft((previous) => ({
-                                ...previous,
-                                sellBranchId: event.target.value,
-                              }))
-                            }
-                            aria-label="Branch for selling price"
-                            disabled={!canSetSellPrice}
-                          >
-                            <option value="">All locations</option>
-                            {branches.map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {b.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                    </div>
-                  </details>
-
-                  {canLinkSupplier ? (
-                    <details className="group rounded-lg border bg-background open:pb-1">
-                      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                        <span
-                          className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                          aria-hidden
-                        >
-                          ▸
-                        </span>
-                        Supplier &amp; buy cost
-                      </summary>
-                      <div className="space-y-3 border-t px-3 py-3">
-                        <p className="text-xs text-muted-foreground">
-                          Link this variant to who you purchase from and your usual unit cost. Load suppliers if the
-                          list is empty.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={suppliersLoading || !canListSuppliers}
-                            onClick={() => void loadSuppliersForLink()}
-                          >
-                            {suppliersLoading ? "Loading…" : "Refresh supplier list"}
-                          </Button>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                            <span className="font-medium text-muted-foreground">Supplier</span>
-                            <select
-                              className={VARIANT_INPUT_CLASS}
-                              value={
-                                suppliersForLink.some((s) => s.id === variantDraft.supplierId)
-                                  ? variantDraft.supplierId
-                                  : ""
-                              }
-                              onChange={(event) =>
-                                setVariantDraft((previous) => ({
-                                  ...previous,
-                                  supplierId: event.target.value,
-                                }))
-                              }
-                            >
-                              <option value="">— None —</option>
-                              {suppliersForLink.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                            <span className="font-medium text-muted-foreground">Supplier ID (advanced)</span>
-                            <span className="font-normal text-muted-foreground/90">
-                              Paste a UUID only if the vendor is not in the dropdown.
-                            </span>
-                            <input
-                              className={`${VARIANT_INPUT_CLASS} font-mono text-xs`}
-                              placeholder="Optional"
-                              value={variantDraft.supplierId}
-                              onChange={(event) =>
-                                setVariantDraft((previous) => ({
-                                  ...previous,
-                                  supplierId: event.target.value,
-                                }))
-                              }
-                              aria-label="Supplier ID"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1.5 text-xs">
-                            <span className="font-medium text-muted-foreground">Their SKU for this item</span>
-                            <input
-                              className={VARIANT_INPUT_CLASS}
-                              placeholder="Optional"
-                              value={variantDraft.supplierSku}
-                              onChange={(event) =>
-                                setVariantDraft((previous) => ({
-                                  ...previous,
-                                  supplierSku: event.target.value,
-                                }))
-                              }
-                              aria-label="Supplier SKU"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1.5 text-xs">
-                            <span className="font-medium text-muted-foreground">
-                              Your buy price per unit{currencyCode ? ` (${currencyCode})` : ""}
-                            </span>
-                            <input
-                              className={VARIANT_INPUT_CLASS}
-                              inputMode="decimal"
-                              placeholder="Optional"
-                              value={variantDraft.defaultCostPrice}
-                              onChange={(event) =>
-                                setVariantDraft((previous) => ({
-                                  ...previous,
-                                  defaultCostPrice: event.target.value,
-                                }))
-                              }
-                              aria-label="Buy cost"
-                            />
-                          </label>
-                          <label className="flex items-center gap-2 text-xs sm:col-span-2">
-                            <input
-                              type="checkbox"
-                              checked={variantDraft.setPrimarySupplier}
-                              onChange={(event) =>
-                                setVariantDraft((previous) => ({
-                                  ...previous,
-                                  setPrimarySupplier: event.target.checked,
-                                }))
-                              }
-                            />
-                            <span className="text-foreground">Make this the main supplier for this variant</span>
-                          </label>
-                        </div>
-                      </div>
-                    </details>
-                  ) : null}
-
-                  <details className="group rounded-lg border bg-background open:pb-1">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                        aria-hidden
-                      >
-                        ▸
-                      </span>
-                      Starting stock at a branch
-                      {!canInventoryWrite ? (
-                        <span className="ml-auto text-xs font-normal text-muted-foreground">
-                          (needs inventory access)
-                        </span>
-                      ) : null}
-                    </summary>
-                    <div className="space-y-3 border-t px-3 py-3">
-                      <p className="text-xs text-muted-foreground">
-                        Records an opening quantity when the variant is created. Unit cost is your landed cost per
-                        unit (you can match buy price above).
-                      </p>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 text-xs">
-                          <span className="font-medium text-muted-foreground">Quantity</span>
-                          <input
-                            className={VARIANT_INPUT_CLASS}
-                            inputMode="decimal"
-                            placeholder="Optional"
-                            value={variantDraft.openingQty}
-                            onChange={(event) =>
-                              setVariantDraft((previous) => ({
-                                ...previous,
-                                openingQty: event.target.value,
-                              }))
-                            }
-                            aria-label="Opening quantity"
-                            disabled={!canInventoryWrite}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-1.5 text-xs">
-                          <span className="font-medium text-muted-foreground">Branch</span>
-                          <select
-                            className={VARIANT_INPUT_CLASS}
-                            value={variantDraft.openingBranchId}
-                            onChange={(event) =>
-                              setVariantDraft((previous) => ({
-                                ...previous,
-                                openingBranchId: event.target.value,
-                              }))
-                            }
-                            aria-label="Branch for opening stock"
-                            disabled={!canInventoryWrite}
-                          >
-                            <option value="">Choose branch…</option>
-                            {branches.map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {b.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="flex flex-col gap-1.5 text-xs sm:col-span-2">
-                          <span className="font-medium text-muted-foreground">
-                            Unit cost{currencyCode ? ` (${currencyCode})` : ""}
-                          </span>
-                          <span className="font-normal text-muted-foreground/90">
-                            Required when adding quantity. If you set buy price above, it can be reused here.
-                          </span>
-                          <input
-                            className={VARIANT_INPUT_CLASS}
-                            inputMode="decimal"
-                            placeholder="Optional if buy price is set"
-                            value={variantDraft.openingUnitCost}
-                            onChange={(event) =>
-                              setVariantDraft((previous) => ({
-                                ...previous,
-                                openingUnitCost: event.target.value,
-                              }))
-                            }
-                            aria-label="Opening unit cost"
-                            disabled={!canInventoryWrite}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </details>
-
-                  <details className="group rounded-lg border bg-background open:pb-1">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className="text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-                        aria-hidden
-                      >
-                        ▸
-                      </span>
-                      Upload a photo
-                    </summary>
-                    <div className="border-t px-3 py-3">
-                      <label className="flex flex-col gap-1.5 text-xs">
-                        <span className="font-medium text-muted-foreground">Image file</span>
-                        <span className="font-normal text-muted-foreground/90">
-                          Saved to the new variant after it is created (shown in catalog &amp; quick sale).
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="text-sm file:mr-3 file:rounded file:border file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0] ?? null;
-                            setPendingVariantImage(file);
-                          }}
-                          aria-label="Variant photo file"
-                        />
-                        {pendingVariantImage ? (
-                          <span className="text-xs text-muted-foreground">
-                            Selected: {pendingVariantImage.name}
-                          </span>
-                        ) : null}
-                      </label>
-                    </div>
-                  </details>
-
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <Button type="submit" size="sm" disabled={variantCreateBusy}>
-                      {variantCreateBusy ? "Creating…" : "Create variant"}
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                      Required fields: SKU and option label only.
-                    </span>
-                  </div>
-                </form>
               </div>
             </>
           )}
@@ -2070,5 +1187,559 @@ export default function ProductsPage() {
       {message ? <DashboardNotice text={message} /> : null}
       </div>
     </div>
+
+    <FormDrawer
+      open={activeDrawer === "create-parent"}
+      onOpenChange={(open) => {
+        if (!open) setActiveDrawer(null);
+      }}
+      title="New parent product"
+      description="Name it, scan or type a SKU, optionally drop it into a category — then fold open supplier chips if you buy from someone specific."
+      contextLabel="Catalog · Step 1"
+      icon={<PackagePlus className="size-5 text-primary" aria-hidden />}
+      footer={
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-parent-form" disabled={itemTypes.length === 0}>
+            Create product
+          </Button>
+        </div>
+      }
+    >
+      <form id="create-parent-form" className="space-y-5" onSubmit={onCreateParent}>
+        {itemTypes.length === 0 ? (
+          <p className="text-sm text-destructive">
+            No item types in tenant — seed catalog (Slice 4) before creating products.
+          </p>
+        ) : null}
+        <FormDrawerFields legend="Identity" hint="These land on the till grid immediately after save.">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground" htmlFor="drawer-item-type">
+            Item type
+            <select
+              id="drawer-item-type"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+              value={parentDraft.itemTypeId}
+              onChange={(event) =>
+                setParentDraft((previous) => ({
+                  ...previous,
+                  itemTypeId: event.target.value,
+                }))
+              }
+              required
+            >
+              {itemTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.label} ({type.key})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Display name
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              placeholder="Customer-facing title"
+              value={parentDraft.name}
+              onChange={(event) =>
+                setParentDraft((previous) => ({ ...previous, name: event.target.value }))
+              }
+              required
+              aria-label="New product name"
+            />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              SKU
+              <input
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono"
+                placeholder="Internal code"
+                value={parentDraft.sku}
+                onChange={(event) =>
+                  setParentDraft((previous) => ({ ...previous, sku: event.target.value }))
+                }
+                required
+                aria-label="New product SKU"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              Barcode
+              <input
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono"
+                placeholder="Optional"
+                value={parentDraft.barcode}
+                onChange={(event) =>
+                  setParentDraft((previous) => ({ ...previous, barcode: event.target.value }))
+                }
+                aria-label="New product barcode"
+              />
+            </label>
+          </div>
+        </FormDrawerFields>
+
+        <FormDrawerFields legend="Merchandising" hint="Categories power kiosk rails and shop navigation.">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground" htmlFor="drawer-parent-category">
+            Category
+            <select
+              id="drawer-parent-category"
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              value={parentDraft.categoryId}
+              onChange={(event) =>
+                setParentDraft((previous) => ({ ...previous, categoryId: event.target.value }))
+              }
+            >
+              <option value="">— None —</option>
+              {sortedCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                  {!category.active ? " (inactive)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        </FormDrawerFields>
+
+        {canLinkSupplier ? (
+          <FormDrawerFields
+            legend="Supplier shortcut"
+            hint={
+              <>
+                Optional live link via{" "}
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">POST /supplier-links</code>. Leave
+                blank to wire vendors later.
+              </>
+            }
+          >
+            {canListSuppliers ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={suppliersLoading}
+                onClick={() => void loadSuppliersForLink()}
+              >
+                {suppliersLoading ? "Loading suppliers…" : "Load suppliers"}
+              </Button>
+            ) : null}
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              Supplier
+              <select
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                value={
+                  suppliersForLink.some((s) => s.id === parentDraft.supplierId)
+                    ? parentDraft.supplierId
+                    : ""
+                }
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, supplierId: event.target.value }))
+                }
+              >
+                <option value="">— None —</option>
+                {suppliersForLink.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              Supplier ID (override)
+              <input
+                className="rounded-lg border border-input bg-background px-3 py-2 font-mono text-xs"
+                placeholder="UUID"
+                value={parentDraft.supplierId}
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, supplierId: event.target.value }))
+                }
+                aria-label="Supplier ID"
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Supplier SKU
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  value={parentDraft.supplierSku}
+                  onChange={(event) =>
+                    setParentDraft((p) => ({ ...p, supplierSku: event.target.value }))
+                  }
+                  aria-label="Supplier SKU"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Default cost
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={parentDraft.defaultCostPrice}
+                  onChange={(event) =>
+                    setParentDraft((p) => ({ ...p, defaultCostPrice: event.target.value }))
+                  }
+                  aria-label="Default cost from supplier"
+                />
+              </label>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={parentDraft.setPrimarySupplier}
+                onChange={(event) =>
+                  setParentDraft((p) => ({ ...p, setPrimarySupplier: event.target.checked }))
+                }
+              />
+              Set as primary supplier
+            </label>
+          </FormDrawerFields>
+        ) : null}
+      </form>
+    </FormDrawer>
+
+    <FormDrawer
+      open={activeDrawer === "edit-product" && detail !== null}
+      onOpenChange={(open) => {
+        if (!open) setActiveDrawer(null);
+      }}
+      title="Product details"
+      description={
+        detail
+          ? `Editing SKU ${detail.sku}${detail.variantName ? ` · ${detail.variantName}` : ""}`
+          : ""
+      }
+      contextLabel="Inspector"
+      icon={<PencilLine className="size-5 text-primary" aria-hidden />}
+      footer={
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+            Close
+          </Button>
+          <Button type="submit" form="edit-product-form">
+            Save changes
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => void onDeleteItem()}>
+            Delete
+          </Button>
+        </div>
+      }
+    >
+      {detail ? (
+        <form id="edit-product-form" className="space-y-4" onSubmit={onPatchItem}>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Name
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              value={patchDraft.name ?? ""}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({ ...previous, name: event.target.value }))
+              }
+              aria-label="Product name"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Barcode
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono"
+              value={patchDraft.barcode ?? ""}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  barcode: event.target.value,
+                }))
+              }
+              aria-label="Barcode"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Long description
+            <textarea
+              className="min-h-[6rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              value={patchDraft.description ?? ""}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  description: event.target.value,
+                }))
+              }
+              aria-label="Product description"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Category
+            <select
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+              value={patchDraft.categoryId}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  categoryId: event.target.value,
+                }))
+              }
+              aria-label="Product category"
+            >
+              <option value="">— None —</option>
+              {sortedCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                  {!category.active ? " (inactive)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Bundle / selling price (optional)
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground"
+              inputMode="decimal"
+              placeholder="Leave empty to leave unchanged on save"
+              value={patchDraft.bundlePriceStr}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  bundlePriceStr: event.target.value,
+                }))
+              }
+              aria-label="Bundle price"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Cover URL / legacy key
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm text-foreground"
+              placeholder="HTTPS cover or legacy key"
+              value={patchDraft.imageKey}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  imageKey: event.target.value,
+                }))
+              }
+              aria-label="Image key"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={patchDraft.active ?? true}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  active: event.target.checked,
+                }))
+              }
+            />
+            Active
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={patchDraft.webPublished ?? false}
+              onChange={(event) =>
+                setPatchDraft((previous) => ({
+                  ...previous,
+                  webPublished: event.target.checked,
+                }))
+              }
+            />
+            Show on online shop (when storefront is enabled)
+          </label>
+        </form>
+      ) : null}
+    </FormDrawer>
+
+    <FormDrawer
+      open={activeDrawer === "photos" && detail !== null}
+      onOpenChange={(open) => {
+        if (!open) setActiveDrawer(null);
+      }}
+      title="Photo studio"
+      description="Upload once — we stash Cloudinary metadata plus a colour accent you will see shimmer on cards."
+      contextLabel="Media"
+      icon={<Camera className="size-5 text-primary" aria-hidden />}
+      footer={
+        <p className="text-[11px] text-muted-foreground">
+          Requires{" "}
+          <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
+            APP_MEDIA_CLOUDINARY_ENABLED
+          </code>{" "}
+          on the API.
+        </p>
+      }
+    >
+      {detail ? (
+        <div className="space-y-5">
+          <div className="space-y-3 rounded-xl border border-violet-200/60 bg-gradient-to-br from-violet-50/50 via-background to-amber-50/35 p-4 dark:border-violet-900/40 dark:from-violet-950/25 dark:to-amber-950/15">
+            <div>
+              <p className="text-sm font-semibold tracking-tight text-foreground">Live cover</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Dominant colours paint subtle shadows around thumbnails across kiosk lanes.
+              </p>
+            </div>
+            {coverImageUrl(detail) ? (
+              <div
+                className="relative mx-auto h-44 w-full max-w-sm overflow-hidden rounded-xl border-2 border-background shadow-xl"
+                style={{
+                  boxShadow: `0 18px 42px -16px ${sortedImages.find((i) => i.predominantColorHex)?.predominantColorHex ?? "rgba(99,102,241,0.45)"}`,
+                }}
+              >
+                <Image
+                  src={coverImageUrl(detail)!}
+                  alt="Cover"
+                  fill
+                  className="object-cover"
+                  sizes="320px"
+                  priority
+                />
+              </div>
+            ) : detail.imageKey ? (
+              <p className="text-xs text-muted-foreground">
+                Cover (legacy):{" "}
+                <span className="font-mono break-all text-foreground">{detail.imageKey}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">No hero image yet — beam one in below.</p>
+            )}
+          </div>
+
+          <form
+            className="space-y-3 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/10 p-4"
+            onSubmit={(e) => onUploadCatalogImage(e).catch(() => undefined)}
+          >
+            <p className="text-sm font-medium text-foreground">Beam a new photo</p>
+            <input
+              type="file"
+              accept="image/*"
+              className="max-w-full text-xs file:mr-2 file:rounded file:border file:bg-background file:px-2 file:py-1"
+              onChange={(event) => setPendingCatalogImage(event.target.files?.[0] ?? null)}
+            />
+            {pendingCatalogImage ? (
+              <p className="text-[11px] text-muted-foreground">Selected: {pendingCatalogImage.name}</p>
+            ) : null}
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              placeholder="Alt text (optional)"
+              value={catalogImageAlt}
+              onChange={(event) => setCatalogImageAlt(event.target.value)}
+            />
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={catalogImagePrimary}
+                onChange={(event) => setCatalogImagePrimary(event.target.checked)}
+              />
+              Set as cover / listing thumbnail
+            </label>
+            <Button type="submit" size="sm" className="w-fit" disabled={catalogImageUploadBusy || !pendingCatalogImage}>
+              {catalogImageUploadBusy ? "Uploading…" : "Upload to Cloudinary"}
+            </Button>
+          </form>
+
+          {sortedImages.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {sortedImages.map((img) => {
+                const url = galleryImageUrl(img);
+                const accent = img.predominantColorHex?.trim() ?? "#818cf8";
+                return (
+                  <figure
+                    key={img.id}
+                    className="relative overflow-hidden rounded-lg border bg-background p-2 shadow-sm transition hover:shadow-md"
+                    style={{ borderColor: `${accent}66` }}
+                  >
+                    {url ? (
+                      <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
+                        <Image
+                          src={url}
+                          alt={img.altText ?? "Product"}
+                          fill
+                          className="object-cover"
+                          sizes="180px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex aspect-square items-center justify-center rounded-md bg-muted text-[10px] text-muted-foreground">
+                        No preview
+                      </div>
+                    )}
+                    <figcaption className="mt-2 space-y-1 pr-14 text-[10px] text-muted-foreground">
+                      <div className="font-mono text-[9px] break-all text-foreground">
+                        {img.provider === "cloudinary" ? img.publicId ?? img.s3Key : img.s3Key}
+                      </div>
+                      {img.phash ? (
+                        <div>
+                          Fingerprint · <span className="font-mono">{img.phash.slice(0, 14)}…</span>
+                        </div>
+                      ) : null}
+                      {img.bytes != null ? (
+                        <div>
+                          {(img.bytes / 1024).toFixed(1)} KB
+                          {img.format ? ` · ${img.format}` : ""}
+                          {img.width && img.height ? ` · ${img.width}×${img.height}` : ""}
+                        </div>
+                      ) : null}
+                    </figcaption>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute bottom-2 right-2 h-7 text-xs text-destructive hover:text-destructive"
+                      onClick={() => onRemoveGalleryImage(img.id).catch(() => undefined)}
+                    >
+                      Remove
+                    </Button>
+                  </figure>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No gallery slots yet.</p>
+          )}
+        </div>
+      ) : null}
+    </FormDrawer>
+
+    <FormDrawer
+      open={activeDrawer === "add-variant" && detail !== null}
+      onOpenChange={(open) => {
+        if (!open) setActiveDrawer(null);
+      }}
+      title="Add an option"
+      description="Spin up another sellable SKU under this parent — fold advanced pricing or stock open only when you need it."
+      contextLabel="Variants · Step 2"
+      icon={<Layers className="size-5 text-primary" aria-hidden />}
+      width="wide"
+      footer={
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="add-variant-form" disabled={variantCreateBusy}>
+            {variantCreateBusy ? "Creating…" : "Create variant"}
+          </Button>
+        </div>
+      }
+    >
+      {detail ? (
+        <VariantDrawerForm
+          variantDraft={variantDraft}
+          setVariantDraft={setVariantDraft}
+          sortedCategories={sortedCategories}
+          branches={branches}
+          suppliersForLink={suppliersForLink}
+          suppliersLoading={suppliersLoading}
+          loadSuppliersForLink={loadSuppliersForLink}
+          canLinkSupplier={canLinkSupplier}
+          canListSuppliers={canListSuppliers}
+          canSetSellPrice={canSetSellPrice}
+          canInventoryWrite={canInventoryWrite}
+          currencyCode={currencyCode}
+          pendingVariantImage={pendingVariantImage}
+          setPendingVariantImage={setPendingVariantImage}
+          onSubmit={onAddVariant}
+          inputClassName={VARIANT_INPUT_CLASS}
+        />
+      ) : null}
+    </FormDrawer>
+
+    </>
   );
 }

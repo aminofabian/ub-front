@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Building2, CreditCard, List, Users } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -173,37 +181,59 @@ export default function CustomerCreditStatementPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2 p-6">
-        <h1 className="text-xl font-semibold">Customer statement</h1>
-        <p className="text-sm text-muted-foreground">
-          You need permission{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.CreditsCustomersRead}</code>.
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Customer statement"
+        description={
+          <>
+            You need permission{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.CreditsCustomersRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.customers}
+        backLabel="Customers"
+      />
     );
   }
 
   if (!customerKey.trim()) {
     return (
-      <section className="max-w-xl space-y-2 p-6">
-        <h1 className="text-xl font-semibold">Customer statement</h1>
-        <p className="text-sm text-muted-foreground">Missing customer id.</p>
-      </section>
+      <DashboardAccessDenied
+        title="Customer statement"
+        description="Missing customer id in the URL."
+        backHref={APP_ROUTES.customers}
+        backLabel="Customers"
+      />
     );
   }
 
   return (
-    <section className="space-y-6 p-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" size="sm" asChild>
-          <Link href={APP_ROUTES.customers}>← Customers</Link>
-        </Button>
-        <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-          Refresh
-        </Button>
-      </div>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-6">
+      <header className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={APP_ROUTES.customers}>← Customers</Link>
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+            Refresh
+          </Button>
+        </div>
+        <DashboardPageHero
+          icon={Users}
+          eyebrow="Credit"
+          title="Customer statement"
+          description="Wallet, loyalty, credit lines, and activity for this customer. Resolve ambiguous phone matches when prompted."
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.customers, label: "Customers", desc: "Directory", icon: List },
+            { href: "/credits/payment-claims", label: "Payment claims", desc: "Review", icon: CreditCard },
+            { href: APP_ROUTES.business, label: "Business", desc: "Settings", icon: Building2 },
+          ]}
+        />
+      </header>
 
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <DashboardNotice text={message} /> : null}
 
       {phoneMatches.length > 1 && !resolvedCustomerId.trim() ? (
         <div className="rounded-md border p-4">
@@ -359,7 +389,8 @@ export default function CustomerCreditStatementPage() {
       ) : (
         <p className="text-sm text-muted-foreground">No data.</p>
       )}
-    </section>
+      </div>
+    </div>
   );
 }
 

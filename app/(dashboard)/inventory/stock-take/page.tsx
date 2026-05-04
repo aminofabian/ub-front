@@ -462,16 +462,12 @@ export default function StockTakePage() {
       ) : null}
 
       {message ? (
-        <p
-          className={
-            /started|loaded|saved|closed|approved|rejected/i.test(message)
-              ? "text-sm text-muted-foreground"
-              : "text-sm text-destructive"
-          }
-        >
-          {message}
-        </p>
+        <DashboardFeedback
+          kind={/started|loaded|saved|closed|approved|rejected/i.test(message) ? "success" : "error"}
+          text={message}
+        />
       ) : null}
-    </section>
+      </div>
+    </div>
   );
 }

@@ -1,9 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { LayoutGrid, Package, Receipt, ShoppingCart } from "lucide-react";
 
+import {
+  DASHBOARD_MAX,
+  DashboardAccessDenied,
+  DashboardNotice,
+  DashboardPageHero,
+  DashboardQuickLinks,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import { fetchSalesRevenueByCategory, type RevenueByCategoryRow } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
@@ -42,31 +51,46 @@ export default function SalesReportsPage() {
 
   if (!allowed) {
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">Sales by category</h2>
-        <p className="text-sm text-muted-foreground">
-          You do not have permission to view this report. Ask an administrator to grant{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">
-            {Permission.SalesIntelligenceRead}
-          </code>
-          .
-        </p>
-      </section>
+      <DashboardAccessDenied
+        title="Sales by category"
+        description={
+          <>
+            You do not have permission to view this report. Ask an administrator to grant{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.SalesIntelligenceRead}</code>.
+          </>
+        }
+        backHref={APP_ROUTES.business}
+        backLabel="Business settings"
+      />
     );
   }
 
   const currency = business?.currency?.trim() ?? "";
 
   return (
-    <section className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold">Sales by category</h2>
-        <p className="text-sm text-muted-foreground">
-          Net POS revenue rolled up by catalog category (sale line totals minus refunds in the selected window).
-          Sale rows use each sale&apos;s date; refunds use the refund date. Leave dates empty for the default
-          rolling window (last 90 days ending today).
-          {currency ? ` Amounts use business currency (${currency}).` : ""}
-        </p>
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-8">
+      <header className="space-y-4">
+        <DashboardPageHero
+          icon={ShoppingCart}
+          eyebrow="Sales"
+          title="Sales by category"
+          description={
+            <>
+              Net POS revenue rolled up by catalog category (sale line totals minus refunds in the selected window).
+              Sale rows use each sale&apos;s date; refunds use the refund date. Leave dates empty for the default
+              rolling window (last 90 days ending today).
+              {currency ? ` Amounts use business currency (${currency}).` : ""}
+            </>
+          }
+        />
+        <DashboardQuickLinks
+          links={[
+            { href: APP_ROUTES.salesQuick, label: "Quick sale", desc: "POS", icon: Receipt },
+            { href: APP_ROUTES.categories, label: "Categories", desc: "Rollup keys", icon: LayoutGrid },
+            { href: APP_ROUTES.products, label: "Products", desc: "Catalog", icon: Package },
+          ]}
+        />
       </header>
 
       <form
@@ -101,7 +125,7 @@ export default function SalesReportsPage() {
         </Button>
       </form>
 
-      {message ? <p className="text-sm text-destructive">{message}</p> : null}
+      {message ? <DashboardNotice text={message} /> : null}
 
       <div className="space-y-2">
         <h3 className="text-lg font-medium">Net revenue by category</h3>
@@ -132,6 +156,7 @@ export default function SalesReportsPage() {
           </table>
         </div>
       </div>
-    </section>
+      </div>
+    </div>
   );
 }
