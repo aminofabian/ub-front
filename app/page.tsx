@@ -1,40 +1,32 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { redirect } from "next/navigation";
 
-import ShopWindow from "@/components/storefront/shop-window";
-import ShopWindowSkeleton from "@/components/storefront/shop-window-skeleton";
+import { StorefrontCatalogHome } from "@/components/storefront/storefront-catalog-home";
+import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
-import { fetchPublicStorefront, storefrontSlugFromEnv } from "@/lib/public-storefront";
 import { resolveStorefrontSlugFromHost } from "@/lib/storefront-slug";
 
-async function HomeShopWindow({ slug }: { slug: string }) {
-  const data = await fetchPublicStorefront(slug);
-  if (!data) {
-    return null;
-  }
-  return <ShopWindow data={data} />;
-}
+type PageProps = {
+  searchParams: Promise<{ q?: string; categoryId?: string }>;
+};
 
-function HomeShopWindowSlot() {
-  const slug = storefrontSlugFromEnv();
-  if (!slug) {
-    return null;
-  }
-  return (
-    <Suspense fallback={<ShopWindowSkeleton />}>
-      <HomeShopWindow slug={slug} />
-    </Suspense>
-  );
-}
-
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: PageProps) {
   const hostSlug = await resolveStorefrontSlugFromHost();
+
+  // Tenant-mapped host → render the storefront in place at `/`.
   if (hostSlug) {
-    redirect(APP_ROUTES.shop);
+    const sp = await searchParams;
+    return (
+      <StorefrontShell>
+        <StorefrontCatalogHome
+          q={sp.q?.trim() || undefined}
+          categoryId={sp.categoryId?.trim() || undefined}
+        />
+      </StorefrontShell>
+    );
   }
 
+  // Platform/admin host (no tenant mapping) → admin landing.
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 via-background to-muted/40 dark:from-slate-950 dark:via-background dark:to-slate-900/50">
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
@@ -68,8 +60,6 @@ export default async function HomePage() {
           </p>
         </div>
       </div>
-
-      <HomeShopWindowSlot />
     </div>
   );
 }
