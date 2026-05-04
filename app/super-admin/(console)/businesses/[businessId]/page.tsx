@@ -11,6 +11,7 @@ import {
   type SaDomainRow,
   addSaDomain,
   deleteSaBusiness,
+  deleteSaDomain,
   fetchSaDomains,
   patchSaBusiness,
   setSaPrimaryDomain,
@@ -86,6 +87,33 @@ function BusinessDetailInner() {
       await loadDomains();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not set primary.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDeleteDomain = async (row: SaDomainRow) => {
+    if (!businessId) {
+      return;
+    }
+    if (row.primary) {
+      setError("Promote another domain to primary before deleting this one.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete domain “${row.domain}”?\n\nThis stops routing the host to this tenant. Active sessions on that host will be redirected to the primary domain on next request.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await deleteSaDomain(businessId, row.id);
+      await loadDomains();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete domain.");
     } finally {
       setBusy(false);
     }
@@ -234,17 +262,34 @@ function BusinessDetailInner() {
                     <td className="px-3 py-2">{d.primary ? "Yes" : "—"}</td>
                     <td className="px-3 py-2">{d.active ? "Yes" : "No"}</td>
                     <td className="px-3 py-2 text-right">
-                      {!d.primary ? (
+                      <div className="flex justify-end gap-2">
+                        {!d.primary ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => void onSetPrimary(d.id)}
+                          >
+                            Make primary
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          disabled={busy}
-                          onClick={() => void onSetPrimary(d.id)}
+                          className="text-destructive hover:text-destructive disabled:text-muted-foreground"
+                          disabled={busy || d.primary}
+                          title={
+                            d.primary
+                              ? "Promote another domain first to delete the primary"
+                              : "Delete this domain mapping"
+                          }
+                          onClick={() => void onDeleteDomain(d)}
                         >
-                          Make primary
+                          Delete
                         </Button>
-                      ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))

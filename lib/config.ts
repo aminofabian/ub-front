@@ -115,3 +115,25 @@ export function slugDerivedShopUrl(slug: string): string {
   const port = base.port ? `:${base.port}` : "";
   return `${base.protocol}//${host}${port}`;
 }
+
+/**
+ * Browser origin for an explicit tenant hostname (e.g. the active primary
+ * domain). Reuses the protocol+port from {@link APP_BASE_URL} so localhost dev
+ * keeps `http://...:3000` while production hosts get the canonical https URL.
+ *
+ * Returns `""` when the host is blank, already an absolute URL we cannot parse,
+ * or contains anything other than a hostname/port pair — callers should fall
+ * back to {@link slugDerivedShopUrl} in that case.
+ */
+export function hostDerivedShopUrl(hostname: string | null | undefined): string {
+  const raw = (hostname ?? "").trim().toLowerCase();
+  if (!raw) {
+    return "";
+  }
+  if (raw.includes("/") || raw.includes(" ")) {
+    return "";
+  }
+  const base = new URL(APP_BASE_URL);
+  const port = base.port ? `:${base.port}` : "";
+  return `${base.protocol}//${raw}${port}`;
+}

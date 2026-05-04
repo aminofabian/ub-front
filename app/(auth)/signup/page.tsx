@@ -26,6 +26,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [verificationLink, setVerificationLink] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
@@ -60,19 +61,30 @@ export default function SignupPage() {
     setIsSubmitting(true);
     setErrorMessage("");
     setSuccessMessage("");
+    setVerificationLink(null);
 
     try {
       persistTenantId(tenantId);
       const result = await registerAccount(name.trim(), email.trim(), password);
       if (result.status.toLowerCase() === "active") {
+        setVerificationLink(null);
         setSuccessMessage(`Account ready for ${result.email}. You can sign in.`);
       } else {
-        const base = `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`;
-        const localHint =
-          process.env.NODE_ENV === "development"
-            ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
-            : "";
-        setSuccessMessage(base + localHint);
+        const link = result.verificationUrl?.trim();
+        if (link) {
+          setSuccessMessage(
+            `Verify your email for ${result.email}. Use the link below (shown because the API is configured to return it when mail is unavailable).`,
+          );
+          setVerificationLink(link);
+        } else {
+          const base = `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`;
+          const localHint =
+            process.env.NODE_ENV === "development"
+              ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
+              : "";
+          setSuccessMessage(base + localHint);
+          setVerificationLink(null);
+        }
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Sign up failed.");
@@ -143,6 +155,18 @@ export default function SignupPage() {
         {successMessage ? (
           <div className="mt-4 space-y-3">
             <AuthAlert variant="success">{successMessage}</AuthAlert>
+            {verificationLink ? (
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+                <p className="font-medium text-foreground">Verification link</p>
+                <a
+                  href={verificationLink}
+                  className="mt-2 block break-all text-primary underline underline-offset-2"
+                >
+                  Open in this browser
+                </a>
+                <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{verificationLink}</p>
+              </div>
+            ) : null}
             <Button variant="outline" className="w-full" asChild>
               <Link href={APP_ROUTES.login}>Go to sign in</Link>
             </Button>

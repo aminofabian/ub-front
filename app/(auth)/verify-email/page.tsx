@@ -28,6 +28,7 @@ function VerifyEmailContent() {
   const [resendEmail, setResendEmail] = useState("");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [resendLink, setResendLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const autoVerifyStarted = useRef(false);
 
@@ -97,12 +98,21 @@ function VerifyEmailContent() {
     setBusy(true);
     setErrorMessage("");
     setMessage("");
+    setResendLink(null);
     try {
       persistTenantId(tenantId);
-      await resendVerificationEmail(resendEmail.trim());
-      setMessage(
-        "If that email has a pending registration for this tenant, we sent a new link.",
-      );
+      const out = await resendVerificationEmail(resendEmail.trim());
+      if (out.verificationUrl?.trim()) {
+        setMessage(
+          "A new verification link was issued. Open it below (shown because the API is configured to return it when mail is unavailable).",
+        );
+        setResendLink(out.verificationUrl.trim());
+      } else {
+        setResendLink(null);
+        setMessage(
+          "If that email has a pending registration for this tenant, we sent a new link.",
+        );
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Could not resend.");
     } finally {
@@ -149,8 +159,20 @@ function VerifyEmailContent() {
         )}
 
         {message ? (
-          <div className="mt-4">
+          <div className="mt-4 space-y-3">
             <AuthAlert variant="success">{message}</AuthAlert>
+            {resendLink ? (
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+                <p className="font-medium text-foreground">Verification link</p>
+                <a
+                  href={resendLink}
+                  className="mt-2 block break-all text-primary underline underline-offset-2"
+                >
+                  Open in this browser
+                </a>
+                <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{resendLink}</p>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {errorMessage ? (

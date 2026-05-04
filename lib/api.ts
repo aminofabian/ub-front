@@ -233,6 +233,12 @@ export type BusinessRecord = {
   subscriptionTier?: string;
   storefront?: StorefrontSettingsRecord;
   branding?: BrandingRecord;
+  /**
+   * Hostname of the active primary domain mapping, when one is set. The login
+   * page prefers this for cross-origin handoff so a tenant lands on its chosen
+   * primary host instead of the slug-derived `{slug}.{platform}` fallback.
+   */
+  primaryDomain?: string | null;
 };
 
 export type BranchRecord = {
@@ -673,6 +679,12 @@ export type RegisterResponse = {
   userId: string;
   email: string;
   status: string;
+  /** Present when backend sets APP_AUTH_RETURN_VERIFICATION_LINK=true (invited signups only). */
+  verificationUrl?: string | null;
+};
+
+export type ResendVerificationResult = {
+  verificationUrl?: string;
 };
 
 export async function registerAccount(
@@ -695,12 +707,30 @@ export async function verifyEmailAddress(token: string): Promise<void> {
   });
 }
 
-export async function resendVerificationEmail(email: string): Promise<void> {
-  await request(API_ROUTES.resendVerification, {
-    method: "POST",
-    body: { email },
-    requiresAuth: false,
-  });
+export async function resendVerificationEmail(email: string): Promise<ResendVerificationResult> {
+  const headersInit = buildRequestHeaders(false, undefined, "POST");
+  const headers = new Headers(headersInit);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${API_ROUTES.resendVerification}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new Error(getNetworkErrorMessage());
+  }
+  if (response.status === 204) {
+    return {};
+  }
+  if (response.ok && response.status === 200) {
+    const payload = (await response.json()) as { verificationUrl?: unknown };
+    const verificationUrl =
+      typeof payload.verificationUrl === "string" ? payload.verificationUrl : undefined;
+    return { verificationUrl };
+  }
+  const payload = await response.json().catch(() => ({}));
+  throw new Error(getProblemTitle(payload));
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

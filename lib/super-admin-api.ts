@@ -180,3 +180,10 @@ export async function setSaPrimaryDomain(businessId: string, domainId: string): 
     { method: "POST" },
   );
 }
+
+export async function deleteSaDomain(businessId: string, domainId: string): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/domains/${domainId}`,
+    { method: "DELETE" },
+  );
+}

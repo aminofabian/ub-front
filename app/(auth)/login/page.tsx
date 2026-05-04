@@ -20,7 +20,12 @@ import {
 } from "@/lib/auth";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import { fetchBusiness, loginWithPassword, loginWithPin } from "@/lib/api";
-import { APP_ROUTES, PUBLIC_TENANT_ID, slugDerivedShopUrl } from "@/lib/config";
+import {
+  APP_ROUTES,
+  PUBLIC_TENANT_ID,
+  hostDerivedShopUrl,
+  slugDerivedShopUrl,
+} from "@/lib/config";
 
 type LoginRouter = {
   push: (href: string) => void;
@@ -29,14 +34,20 @@ type LoginRouter = {
 
 async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "push" | "replace"): Promise<void> {
   let slug: string | null = null;
+  let primaryHost: string | null = null;
   try {
     const biz = await fetchBusiness();
     slug = biz.slug?.trim() || null;
+    primaryHost = biz.primaryDomain?.trim() || null;
   } catch {
     /* tenant id header may still work for same-origin navigation */
   }
 
-  const shopBase = slug ? slugDerivedShopUrl(slug) : "";
+  // Prefer the tenant's chosen primary domain over the slug-derived host.
+  // This keeps redirects on the canonical hostname even when an old slug
+  // mapping (e.g. `test.palmart.co.ke`) has been deleted in super-admin.
+  const shopBase =
+    hostDerivedShopUrl(primaryHost) || (slug ? slugDerivedShopUrl(slug) : "");
   const targetOrigin = shopBase ? new URL(shopBase).origin : window.location.origin;
 
   if (!slug || targetOrigin === window.location.origin) {
