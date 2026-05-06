@@ -8,13 +8,15 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
 import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
-import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
-import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
+import {
+  AUTH_TENANT_RESOLVE_ERROR,
+  useTenantIdPrefill,
+} from "@/lib/auth-tenant-prefill";
 import { resendVerificationEmail, verifyEmailAddress } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
@@ -23,7 +25,7 @@ function VerifyEmailContent() {
   const router = useRouter();
   const tokenFromQuery = searchParams.get("token") ?? "";
 
-  const [tenantId, setTenantId] = useTenantIdPrefill();
+  const [, ensureTenantResolved] = useTenantIdPrefill();
   const [manualToken, setManualToken] = useState("");
   const [resendEmail, setResendEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -50,17 +52,25 @@ function VerifyEmailContent() {
     setBusy(true);
     setErrorMessage("");
     setMessage("");
-    verifyEmailAddress(token)
-      .then(() => {
+    void (async () => {
+      try {
+        const id = await ensureTenantResolved();
+        if (!id?.trim()) {
+          autoVerifyStarted.current = false;
+          setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+          return;
+        }
+        await verifyEmailAddress(token);
         setMessage("Your email is verified. You can sign in.");
         router.replace(APP_ROUTES.login);
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         autoVerifyStarted.current = false;
         setErrorMessage(error instanceof Error ? error.message : "Verification failed.");
-      })
-      .finally(() => setBusy(false));
-  }, [tokenFromQuery, router]);
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }, [tokenFromQuery, router, ensureTenantResolved]);
 
   const onVerifyManual = async () => {
     const token = manualToken.trim();
@@ -72,6 +82,12 @@ function VerifyEmailContent() {
     setErrorMessage("");
     setMessage("");
     try {
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       await verifyEmailAddress(token);
       setMessage("Your email is verified. You can sign in.");
       router.replace(APP_ROUTES.login);
@@ -89,7 +105,12 @@ function VerifyEmailContent() {
     setMessage("");
     setResendLink(null);
     try {
-      persistTenantId(tenantId);
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       const out = await resendVerificationEmail(resendEmail.trim());
       if (out.verificationUrl?.trim()) {
         setMessage(
@@ -117,10 +138,8 @@ function VerifyEmailContent() {
       <AuthCard>
         <AuthPageHeader
           title="Verify email"
-          description="Open the link from your email, paste the token, or resend the message. Resend uses the business ID below."
+          description="Open the link from your email, paste the token, or resend the message for this shop."
         />
-
-        <TenantIdField value={tenantId} onChange={setTenantId} />
 
         {showManualForm ? (
           <>

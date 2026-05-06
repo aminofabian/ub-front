@@ -8,7 +8,6 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
 import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
-import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +17,10 @@ import {
   persistTenantHostFromSlug,
   setSessionTenantId,
 } from "@/lib/auth";
-import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
+import {
+  AUTH_TENANT_RESOLVE_ERROR,
+  useTenantIdPrefill,
+} from "@/lib/auth-tenant-prefill";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import { fetchBusiness, loginWithPassword, loginWithPin } from "@/lib/api";
 import {
@@ -97,7 +99,7 @@ function LoginPageContent() {
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const tenantGreeting = tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
-  const [tenantId, setTenantId] = useTenantIdPrefill();
+  const [, ensureTenantResolved] = useTenantIdPrefill();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
@@ -128,7 +130,12 @@ function LoginPageContent() {
     setErrorMessage("");
 
     try {
-      persistTenantId(tenantId);
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       await loginWithPassword(email, password);
       await syncSlugAndNavigate(router, APP_ROUTES.business, "push");
     } catch (error) {
@@ -144,7 +151,12 @@ function LoginPageContent() {
     setErrorMessage("");
 
     try {
-      persistTenantId(tenantId);
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       await loginWithPin(email, pin, branchId);
       await syncSlugAndNavigate(router, APP_ROUTES.products, "push");
     } catch (error) {
@@ -162,8 +174,6 @@ function LoginPageContent() {
           title={tenantGreeting ? `Sign in to ${tenantGreeting}` : "Sign in"}
           description="Use email and password for owners and staff, or PIN for cashiers on a branch."
         />
-
-        <TenantIdField value={tenantId} onChange={setTenantId} />
 
         <p className="mt-4 text-sm">
           New here?{" "}

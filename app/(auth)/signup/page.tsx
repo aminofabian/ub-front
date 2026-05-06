@@ -8,19 +8,21 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
 import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
-import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
   getSessionTokens,
   setSessionTenantId,
 } from "@/lib/auth";
-import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
+import {
+  AUTH_TENANT_RESOLVE_ERROR,
+  useTenantIdPrefill,
+} from "@/lib/auth-tenant-prefill";
 import { registerAccount } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
 function SignupPageContent() {
-  const [tenantId, setTenantId] = useTenantIdPrefill();
+  const [, ensureTenantResolved] = useTenantIdPrefill();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,7 +55,12 @@ function SignupPageContent() {
     setVerificationLink(null);
 
     try {
-      persistTenantId(tenantId);
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       const result = await registerAccount(name.trim(), email.trim(), password);
       if (result.status.toLowerCase() === "active") {
         setVerificationLink(null);
@@ -90,13 +97,11 @@ function SignupPageContent() {
           title="Create account"
           description={
             <>
-              Join an existing business using its tenant ID. You&apos;ll get the{" "}
+              Join an existing business on this shop. You&apos;ll get the{" "}
               <strong className="font-medium text-foreground">viewer</strong> role until an owner changes it.
             </>
           }
         />
-
-        <TenantIdField value={tenantId} onChange={setTenantId} />
 
         <form className="mt-5 space-y-3" onSubmit={onSubmit}>
           <label className="text-sm font-medium" htmlFor="signup-name">

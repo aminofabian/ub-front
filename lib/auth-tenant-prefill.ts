@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { fetchTenantIdForHost } from "@/lib/api";
 import {
@@ -33,8 +33,8 @@ export function hostnameFromShopUrlInput(raw: string): string | null {
 }
 
 function pickHostForResolve(urlQ: string | null, hostQ: string | null): string | null {
-  const queryFirst = urlQ?.trim() || hostQ?.trim() || "";
-  const fromQuery = hostnameFromShopUrlInput(queryFirst);
+  const queryCombined = [urlQ, hostQ].map((s) => s?.trim()).find((s) => s && s.length > 0) ?? "";
+  const fromQuery = hostnameFromShopUrlInput(queryCombined);
   if (fromQuery) {
     return fromQuery;
   }
@@ -48,16 +48,57 @@ function pickHostForResolve(urlQ: string | null, hostQ: string | null): string |
   return h;
 }
 
+/** Shown when hostname / session cannot supply tenant context (e.g. bare localhost without ?url=). */
+export const AUTH_TENANT_RESOLVE_ERROR =
+  "Could not determine your business from this page. Open it from your shop’s address, or add ?url= with your shop URL (needed on bare localhost).";
+
+/**
+ * Ensures `sessionStorage` has tenant id (and host when resolved from a hostname), using env,
+ * existing session, or public host resolve. Call from auth submit handlers and token flows.
+ */
+export async function resolveTenantForAuthContext(
+  urlQ: string | null,
+  hostQ: string | null,
+): Promise<string | null> {
+  if (PUBLIC_TENANT_ID.length > 0) {
+    setSessionTenantId(PUBLIC_TENANT_ID);
+    return PUBLIC_TENANT_ID;
+  }
+  const stored = getSessionTenantId()?.trim();
+  if (stored) {
+    return stored;
+  }
+  const host = pickHostForResolve(urlQ, hostQ);
+  if (!host) {
+    return null;
+  }
+  const id = (await fetchTenantIdForHost(host))?.trim() ?? "";
+  if (!id) {
+    return null;
+  }
+  setSessionTenantId(id);
+  persistSessionTenantHost(host);
+  return id;
+}
+
 /**
  * Prefills tenant UUID on auth pages from session, `NEXT_PUBLIC_TENANT_ID`,
  * or `GET /api/v1/public/host/resolve?host=…` using the current hostname
  * or `?url=` / `?host=` query parameters.
  */
-export function useTenantIdPrefill(): [string, Dispatch<SetStateAction<string>>] {
+export function useTenantIdPrefill(): readonly [string, () => Promise<string | null>] {
   const searchParams = useSearchParams();
   const urlQ = searchParams.get("url");
   const hostQ = searchParams.get("host");
   const [tenantId, setTenantId] = useState("");
+
+  const ensureTenantResolved = useCallback(async (): Promise<string | null> => {
+    const id = await resolveTenantForAuthContext(urlQ, hostQ);
+    if (id) {
+      setTenantId(id);
+    }
+    return id;
+  }, [urlQ, hostQ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,5 +135,5 @@ export function useTenantIdPrefill(): [string, Dispatch<SetStateAction<string>>]
     };
   }, [urlQ, hostQ]);
 
-  return [tenantId, setTenantId];
+  return [tenantId, ensureTenantResolved] as const;
 }

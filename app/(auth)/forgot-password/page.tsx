@@ -7,18 +7,20 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
 import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
-import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
-import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
+import {
+  AUTH_TENANT_RESOLVE_ERROR,
+  useTenantIdPrefill,
+} from "@/lib/auth-tenant-prefill";
 import { requestPasswordReset } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
 function ForgotPasswordPageContent() {
-  const [tenantId, setTenantId] = useTenantIdPrefill();
+  const [, ensureTenantResolved] = useTenantIdPrefill();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -38,7 +40,12 @@ function ForgotPasswordPageContent() {
     setIsSubmitting(true);
     setErrorMessage("");
     try {
-      persistTenantId(tenantId);
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       await requestPasswordReset(email.trim());
       setDone(true);
     } catch (error) {
@@ -56,8 +63,6 @@ function ForgotPasswordPageContent() {
           title="Forgot password"
           description="We’ll email a reset link if this address has a password on this tenant. For security we always show the same confirmation."
         />
-
-        <TenantIdField value={tenantId} onChange={setTenantId} />
 
         {done ? (
           <div className="mt-5">
