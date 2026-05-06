@@ -6,7 +6,7 @@ import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-butto
 import { Button } from "@/components/ui/button";
 import { shopItemPath } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
-import { formatDisplayPrice } from "@/lib/public-storefront";
+import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
 
 export default function ShopProductGrid({
   items,
@@ -55,6 +55,7 @@ export default function ShopProductGrid({
       {items.map((item) => {
         const title = item.variantName ? `${item.name} · ${item.variantName}` : item.name;
         const priceLabel = formatDisplayPrice(currency, item.price);
+        const stockLabel = formatStoreQty(item.qtyOnHand);
 
         return (
           <li key={item.id}>
@@ -86,17 +87,24 @@ export default function ShopProductGrid({
                 >
                   {title}
                 </Link>
-                <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-                  <span className="text-sm font-bold tabular-nums tracking-tight text-foreground">
-                    {priceLabel}
-                  </span>
-                  {slug ? (
+                <div className="mt-auto flex flex-col gap-0.5 pt-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold tabular-nums tracking-tight text-foreground">
+                      {priceLabel}
+                    </span>
+                    {slug ? (
                     <ShopQuickAddButton
                       slug={slug}
                       itemId={item.id}
                       ariaLabel={`Add ${title} to basket`}
                       accentHex={accentHex}
                     />
+                  ) : null}
+                  </div>
+                  {stockLabel ? (
+                    <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                      {stockLabel}
+                    </p>
                   ) : null}
                 </div>
               </div>

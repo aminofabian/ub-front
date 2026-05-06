@@ -38,23 +38,27 @@ export default function ShopAddToCart({ slug, itemId }: Props) {
         setError("Could not start a cart. Try again.");
         return;
       }
-      let updated = await upsertWebCartLine(s, cartId, id, qty);
-      if (!updated) {
-        clearWebCartHandle();
-        cartId = (await ensureWebCartId(s)) ?? null;
-        if (!cartId) {
-          setError("Could not start a cart. Try again.");
+      try {
+        let updated = await upsertWebCartLine(s, cartId, id, qty);
+        if (!updated) {
+          clearWebCartHandle();
+          cartId = (await ensureWebCartId(s)) ?? null;
+          if (!cartId) {
+            setError("Could not start a cart. Try again.");
+            return;
+          }
+          updated = await upsertWebCartLine(s, cartId, id, qty);
+        }
+        if (!updated) {
+          setError("Could not update cart. Try again.");
           return;
         }
-        updated = await upsertWebCartLine(s, cartId, id, qty);
+        notifyWebCartChanged();
+        setMessage(`Added ${qty} to your cart.`);
+        setQty(1);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not update cart.");
       }
-      if (!updated) {
-        setError("Could not update cart. Try again.");
-        return;
-      }
-      notifyWebCartChanged();
-      setMessage(`Added ${qty} to your cart.`);
-      setQty(1);
     } finally {
       setBusy(false);
     }

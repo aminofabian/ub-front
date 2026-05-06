@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   type SalePaymentMethod,
   type SaleRecord,
 } from "@/lib/api";
+import { cashierItemPrimaryLabel, posSearchItemDetailLine } from "@/lib/cashier-item-display";
 import { Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +59,8 @@ export type CashierCartDrawerProps = {
   online: boolean;
   currency: string;
   branchSelected: boolean;
+  /** Business brand CSS variables (dialog is portaled). */
+  brandTheme: CSSProperties;
 
   lines: CartLineLike[];
   grandTotal: number;
@@ -126,9 +130,14 @@ function PayChip({
         "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
         "disabled:cursor-not-allowed disabled:opacity-50",
         active
-          ? "border-transparent bg-primary text-primary-foreground shadow-sm"
+          ? "border-transparent shadow-sm text-[var(--pos-primary-ink)]"
           : "border-border bg-background hover:bg-muted",
       )}
+      style={
+        active
+          ? { backgroundColor: "var(--pos-primary)", borderColor: "transparent" }
+          : undefined
+      }
     >
       {children}
     </button>
@@ -142,6 +151,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     online,
     currency,
     branchSelected,
+    brandTheme,
     lines,
     grandTotal,
     removeLine,
@@ -196,11 +206,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
       <DialogContent
         side="right"
         className="flex h-full w-full max-w-md flex-col gap-0 p-0"
+        style={brandTheme}
         showCloseButton
       >
-        <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
+        <div
+          className="flex items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--pos-primary)_14%,var(--border))] px-5 py-4"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--pos-glow) 28%, var(--card)), var(--card))",
+          }}
+        >
           <DialogHeader className="space-y-0.5">
-            <DialogTitle className="text-base">Cart</DialogTitle>
+            <DialogTitle className="text-base text-[var(--pos-primary)]">Cart</DialogTitle>
             <DialogDescription className="text-xs">
               {lines.length === 0
                 ? "No items yet — tap a tile or search to add."
@@ -224,6 +241,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 const thumb = itemListThumbnailUrl(line.item);
                 const subtotal = lineSubtotal(line);
                 const qNum = Number(line.quantity) || 0;
+                const lineTitle = cashierItemPrimaryLabel(line.item);
+                const lineDetail = posSearchItemDetailLine(line.item);
                 return (
                   <li
                     key={line.key}
@@ -246,18 +265,16 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border bg-muted text-base font-semibold text-muted-foreground"
                           aria-hidden
                         >
-                          {line.item.name.trim().charAt(0).toUpperCase() || "?"}
+                          {lineTitle.trim().charAt(0).toUpperCase() || "?"}
                         </span>
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-2 text-sm font-medium leading-tight">
-                          {line.item.name}
+                          {lineTitle}
                         </p>
-                        {line.item.sku ? (
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                            {line.item.sku}
-                          </p>
-                        ) : null}
+                        <p className="break-all text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {lineDetail}
+                        </p>
                       </div>
                       <Button
                         type="button"
@@ -496,7 +513,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           className={cn(
                             "w-full rounded-md border px-2 py-1.5 text-left text-xs",
                             selectedCustomer?.id === c.id
-                              ? "border-primary bg-primary/10"
+                              ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
                               : "border-transparent bg-background hover:bg-muted/40",
                           )}
                           onClick={() => setSelectedCustomer(c)}
@@ -513,7 +530,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   </ul>
                 ) : null}
                 {selectedCustomer ? (
-                  <div className="rounded-md bg-primary/5 p-2 text-xs">
+                  <div className="rounded-md bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)] p-2 text-xs">
                     <p>
                       Selected: <span className="font-medium">{selectedCustomer.name}</span>
                     </p>
@@ -625,12 +642,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           ) : null}
         </div>
 
-        <div className="border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+        <div className="border-t border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/85">
           <div className="mb-3 flex items-baseline justify-between">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+            <span className="text-xs uppercase tracking-wide text-[var(--pos-primary)]">
               Total
             </span>
-            <span className="text-2xl font-bold tabular-nums">
+            <span className="text-2xl font-bold tabular-nums text-[var(--pos-primary)]">
               {grandTotal.toFixed(2)}{" "}
               <span className="text-sm font-medium text-muted-foreground">{currency}</span>
             </span>
@@ -643,7 +660,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           <Button
             type="button"
             size="lg"
-            className="h-12 w-full text-base"
+            className="h-12 w-full text-base bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] shadow-md hover:bg-[var(--pos-primary)] hover:opacity-90"
             disabled={loading || lines.length === 0 || !branchSelected}
             onClick={onComplete}
           >

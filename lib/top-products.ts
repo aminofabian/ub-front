@@ -10,6 +10,8 @@ export type TopProductRecord = {
   name: string;
   sku?: string;
   thumbnailUrl?: string | null;
+  /** Last seen branch on-hand when this row was updated from catalog (optional). */
+  stockQty?: number | string | null;
   /** Number of separate cart-add events. */
   count: number;
   /** Sum of quantities sold (rounded to 4 decimals). */
@@ -74,17 +76,21 @@ function writeStore(businessId: string | undefined | null, store: Store): void {
   }
 }
 
-type ItemLike = Pick<ItemSummaryRecord, "id" | "name" | "sku" | "thumbnailUrl">;
+type ItemLike = Pick<ItemSummaryRecord, "id" | "name" | "sku" | "thumbnailUrl" | "stockQty">;
 
 function mergeMeta(existing: TopProductRecord | undefined, item: ItemLike): {
   name: string;
   sku?: string;
   thumbnailUrl: string | null;
+  stockQty?: number | string | null;
 } {
+  const stockQty =
+    item.stockQty !== undefined ? item.stockQty : existing?.stockQty;
   return {
     name: item.name?.trim() || existing?.name || "Item",
     sku: item.sku?.trim() || existing?.sku,
     thumbnailUrl: item.thumbnailUrl ?? existing?.thumbnailUrl ?? null,
+    ...(stockQty !== undefined ? { stockQty } : {}),
   };
 }
 
@@ -143,45 +149,17 @@ export function recordSaleLines(
   writeStore(businessId, store);
 }
 
-/** Seed entries from a fresh catalog list when no usage history exists yet. */
-export function seedTopProductsIfEmpty(
-  businessId: string | undefined | null,
-  items: ReadonlyArray<ItemLike>,
-): void {
-  if (typeof window === "undefined" || items.length === 0) {
-    return;
-  }
-  const store = readStore(businessId);
-  if (Object.keys(store.entries).length > 0) {
-    return;
-  }
-  let stamp = Date.now();
-  for (const item of items.slice(0, 10)) {
-    const id = item.id?.trim();
-    if (!id) {
-      continue;
-    }
-    store.entries[id] = {
-      id,
-      name: item.name?.trim() || "Item",
-      sku: item.sku?.trim(),
-      thumbnailUrl: item.thumbnailUrl ?? null,
-      count: 0,
-      qty: 0,
-      lastUsedAt: stamp--,
-    };
-  }
-  store.updatedAt = Date.now();
-  writeStore(businessId, store);
-}
-
-/** Return the top products by count, then qty, then recency. */
+/**
+ * Return the top products by count, then qty, then recency.
+ * Only includes rows with real activity (cart adds / completed sales on this browser).
+ * Data lives in localStorage under {@link storageKey}; it is not the server catalog.
+ */
 export function getTopProducts(
   businessId: string | undefined | null,
   limit = 8,
 ): TopProductRecord[] {
   const store = readStore(businessId);
-  const list = Object.values(store.entries);
+  const list = Object.values(store.entries).filter((e) => e.count > 0 || e.qty > 0);
   list.sort(
     (a, b) =>
       b.count - a.count || b.qty - a.qty || b.lastUsedAt - a.lastUsedAt,

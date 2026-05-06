@@ -6,7 +6,7 @@ import { ShopNewsletterCard } from "@/components/storefront/shop-newsletter-card
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { APP_ROUTES, shopItemPath } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
-import { formatDisplayPrice } from "@/lib/public-storefront";
+import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
 function isHex(v: string | null | undefined): v is string {
@@ -195,6 +195,7 @@ function TopPicksCard({
             ? `${item.name} ${item.variantName}`
             : item.name;
           const price = formatDisplayPrice(currency, item.price);
+          const stock = formatStoreQty(item.qtyOnHand);
           return (
             <li key={item.id} className="flex items-center gap-3 py-2.5">
               <Link
@@ -226,6 +227,11 @@ function TopPicksCard({
                 <p className="mt-0.5 text-[13px] font-bold tabular-nums text-foreground">
                   {price}
                 </p>
+                {stock ? (
+                  <p className="mt-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                    {stock}
+                  </p>
+                ) : null}
               </div>
               <ShopQuickAddButton
                 slug={slug}

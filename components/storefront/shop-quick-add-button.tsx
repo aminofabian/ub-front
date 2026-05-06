@@ -30,6 +30,7 @@ export function ShopQuickAddButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
   const accent =
     accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
 
@@ -40,24 +41,32 @@ export function ShopQuickAddButton({
       return;
     }
     setBusy(true);
+    setHint(null);
     try {
       let cartId = (await ensureWebCartId(s)) ?? null;
       if (!cartId) {
+        setHint("Could not start a cart.");
         return;
       }
-      let updated = await upsertWebCartLine(s, cartId, id, 1);
-      if (!updated) {
-        clearWebCartHandle();
-        cartId = (await ensureWebCartId(s)) ?? null;
-        if (!cartId) {
-          return;
+      try {
+        let updated = await upsertWebCartLine(s, cartId, id, 1);
+        if (!updated) {
+          clearWebCartHandle();
+          cartId = (await ensureWebCartId(s)) ?? null;
+          if (!cartId) {
+            setHint("Could not start a cart.");
+            return;
+          }
+          updated = await upsertWebCartLine(s, cartId, id, 1);
         }
-        updated = await upsertWebCartLine(s, cartId, id, 1);
-      }
-      if (updated) {
-        notifyWebCartChanged();
-        setDone(true);
-        window.setTimeout(() => setDone(false), 1200);
+        if (updated) {
+          notifyWebCartChanged();
+          setDone(true);
+          window.setTimeout(() => setDone(false), 1200);
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Could not add to cart.";
+        setHint(msg);
       }
     } finally {
       setBusy(false);
@@ -65,27 +74,34 @@ export function ShopQuickAddButton({
   }
 
   return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      disabled={busy}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        void add();
-      }}
-      className={cn(
-        "inline-flex items-center justify-center rounded-md text-white shadow-sm transition hover:brightness-110 active:scale-95 disabled:opacity-70",
-        size === "sm" ? "h-7 w-7" : "h-8 w-8",
-        !accent && "bg-primary",
-      )}
-      style={accent ? { backgroundColor: accent } : undefined}
-    >
-      {done ? (
-        <Check className={size === "sm" ? "h-4 w-4" : "h-4 w-4"} aria-hidden />
-      ) : (
-        <Plus className={size === "sm" ? "h-4 w-4" : "h-4 w-4"} aria-hidden />
-      )}
-    </button>
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        disabled={busy}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void add();
+        }}
+        className={cn(
+          "inline-flex items-center justify-center rounded-md text-white shadow-sm transition hover:brightness-110 active:scale-95 disabled:opacity-70",
+          size === "sm" ? "h-7 w-7" : "h-8 w-8",
+          !accent && "bg-primary",
+        )}
+        style={accent ? { backgroundColor: accent } : undefined}
+      >
+        {done ? (
+          <Check className={size === "sm" ? "h-4 w-4" : "h-4 w-4"} aria-hidden />
+        ) : (
+          <Plus className={size === "sm" ? "h-4 w-4" : "h-4 w-4"} aria-hidden />
+        )}
+      </button>
+      {hint ? (
+        <span className="max-w-[10rem] text-right text-[10px] font-medium leading-tight text-destructive">
+          {hint}
+        </span>
+      ) : null}
+    </div>
   );
 }

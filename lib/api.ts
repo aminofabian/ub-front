@@ -142,6 +142,10 @@ export type ItemSummaryRecord = {
   groupLabelOnly?: boolean;
   /** When true, item may appear in the public storefront catalog (Phase 15). */
   webPublished?: boolean;
+  /**
+   * On-hand at the branch when `branchId` was sent with the list request; otherwise omitted.
+   */
+  stockQty?: number | string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
@@ -1341,6 +1345,8 @@ export type FetchItemsOpts = {
   includeInactive?: boolean;
   page?: number;
   size?: number;
+  /** When set, `stockQty` on each row is on-hand inventory at this branch (from active batches). */
+  branchId?: string;
   /** When set, omits items that already have a non-deleted supplier link to this supplier (e.g. supplier catalog picker). */
   excludeLinkedSupplierId?: string;
   /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
@@ -1388,6 +1394,10 @@ export async function fetchItemsPage(
   const exSup = opts?.excludeLinkedSupplierId?.trim();
   if (exSup) {
     params.set("excludeLinkedSupplierId", exSup);
+  }
+  const stockBr = opts?.branchId?.trim();
+  if (stockBr) {
+    params.set("branchId", stockBr);
   }
   for (const s of opts?.sort ?? []) {
     const p = s.property?.trim();
@@ -1890,6 +1900,11 @@ export type SellPriceSuggestionRecord = {
   currentSellPrice: number | string | null;
 };
 
+/** Open-ended shelf price for POS (no cost / margin fields). */
+export type CurrentSellingPriceRecord = {
+  price: number | string | null;
+};
+
 export type PriceRuleRecord = {
   id: string;
   name: string;
@@ -1924,6 +1939,19 @@ export async function fetchSellPriceSuggestion(
     params.set("unitCost", String(unitCost));
   }
   return request<SellPriceSuggestionRecord>(`/api/v1/pricing/suggest/sell?${params.toString()}`);
+}
+
+export async function fetchCurrentSellingPrice(
+  itemId: string,
+  branchId?: string,
+): Promise<CurrentSellingPriceRecord> {
+  const params = new URLSearchParams({ itemId: itemId.trim() });
+  if (branchId?.trim()) {
+    params.set("branchId", branchId.trim());
+  }
+  return request<CurrentSellingPriceRecord>(
+    `/api/v1/pricing/current-selling-price?${params.toString()}`,
+  );
 }
 
 export async function fetchPriceRules(): Promise<PriceRuleRecord[]> {

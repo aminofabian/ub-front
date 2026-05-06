@@ -81,16 +81,20 @@ export default function ShopCartView({ slug }: { slug: string }) {
       notifyWebCartChanged();
       return;
     }
-    const next = await upsertWebCartLine(s, h.cartId, itemId, nextQty);
-    if (!next) {
-      clearWebCartHandle();
-      setCart(null);
-      setError("Your cart expired or was reset.");
+    try {
+      const next = await upsertWebCartLine(s, h.cartId, itemId, nextQty);
+      if (!next) {
+        clearWebCartHandle();
+        setCart(null);
+        setError("Your cart expired or was reset.");
+        notifyWebCartChanged();
+        return;
+      }
+      setCart(next);
       notifyWebCartChanged();
-      return;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update quantity.");
     }
-    setCart(next);
-    notifyWebCartChanged();
   }
 
   async function remove(itemId: string) {

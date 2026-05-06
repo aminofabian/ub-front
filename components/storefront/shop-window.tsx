@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import type { PublicStorefrontPayload } from "@/lib/public-storefront";
-import { formatDisplayPrice } from "@/lib/public-storefront";
+import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
 import { APP_ROUTES, shopItemPath } from "@/lib/config";
 
 export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) {
@@ -55,6 +55,7 @@ export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) 
               ? `${item.name} · ${item.variantName}`
               : item.name;
             const priceLabel = formatDisplayPrice(data.currency, item.price);
+            const stockLabel = formatStoreQty(item.qtyOnHand);
 
             return (
               <article
@@ -87,6 +88,11 @@ export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) 
                     <p className="text-sm font-semibold tabular-nums text-primary">
                       {priceLabel}
                     </p>
+                    {stockLabel ? (
+                      <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {stockLabel}
+                      </p>
+                    ) : null}
                     <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
                       View →
                     </span>

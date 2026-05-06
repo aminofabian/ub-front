@@ -7,6 +7,7 @@ import Image from "next/image";
 import { DashboardAccessDenied, DashboardFeedback } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -27,6 +28,7 @@ import {
   type SalePaymentMethod,
   type SaleRecord,
 } from "@/lib/api";
+import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { readCachedItemsSearch, writeCachedItemsSearch } from "@/lib/catalog-search-cache";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -39,10 +41,14 @@ import {
 import {
   getTopProducts,
   recordSaleLines,
-  seedTopProductsIfEmpty,
-  tileHue,
   type TopProductRecord,
 } from "@/lib/top-products";
+import {
+  cashierItemPrimaryLabel,
+  posCartLineSuffix,
+  posSearchItemDetailLine,
+  posTopProductSubtitle,
+} from "@/lib/cashier-item-display";
 import { CashierPosLayout } from "./cashier-pos-layout";
 
 type CartLine = {
@@ -193,28 +199,6 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     if (!canSell || !canBrowseCategories || !online) {
       return;
     }
-    if (topProducts.length > 0) {
-      return;
-    }
-    let cancelled = false;
-    fetchItems()
-      .then((items) => {
-        if (cancelled) {
-          return;
-        }
-        seedTopProductsIfEmpty(business?.id ?? null, items);
-        refreshTopProducts();
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [canSell, canBrowseCategories, online, topProducts.length, business?.id, refreshTopProducts]);
-
-  useEffect(() => {
-    if (!canSell || !canBrowseCategories || !online) {
-      return;
-    }
     let cancelled = false;
     const spin = window.setTimeout(() => {
       if (!cancelled) {
@@ -332,7 +316,10 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         }
         return;
       }
-      fetchItems(q || undefined, cat ? { categoryId: cat, includeCategoryDescendants: true } : undefined)
+      fetchItems(q || undefined, {
+        ...(cat ? { categoryId: cat, includeCategoryDescendants: true } : {}),
+        ...(branchId?.trim() ? { branchId: branchId.trim() } : {}),
+      })
         .then((items) => {
           setHits(items);
           if (q) {
@@ -356,7 +343,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         });
     }, 320);
     return () => window.clearTimeout(t);
-  }, [canSell, search, online, categoryFilterId]);
+  }, [canSell, search, online, categoryFilterId, branchId]);
 
   const visibleCategoryTiles = useMemo(() => {
     if (categoryBrowseStack.length === 0) {
@@ -401,7 +388,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         {
           key: crypto.randomUUID(),
           itemId: item.id,
-          label: [item.name, item.sku ? `(${item.sku})` : ""].filter(Boolean).join(" "),
+          label: `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
           quantity: String(safeQty),
           unitPrice: unitPrice ?? "",
           item,
@@ -620,7 +607,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         recordTopSellers();
         clearCartUi();
         setNotice(
-          `Sale ${result.sale.id} recorded. Grand total ${grandTotal.toFixed(2)} ${business?.currency?.trim() || "KES"}.`,
+          `Sale ${result.sale.id} recorded. Grand total ${grandTotal.toFixed(2)}${business?.currency?.trim() ? ` ${business.currency.trim()}` : ""}.`,
         );
         await refreshOutbox();
         const drain = await flushSaleOutbox();
@@ -730,6 +717,14 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     [branches, branchId],
   );
 
+  const dialogBrandTheme = useMemo(
+    () => posBrandThemeStyle(business?.branding ?? null),
+    [business?.branding],
+  );
+
+  const currency = business?.currency?.trim() ?? "";
+  const branchSelected = Boolean(branchId && branches.some((b) => b.id === branchId));
+
   if (!canSell) {
     if (!isCashier) {
       return (
@@ -755,17 +750,17 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     );
   }
 
-  const currency = business?.currency?.trim() || "KES";
-  const branchSelected = Boolean(branchId && branches.some((b) => b.id === branchId));
-
   if (isCashier) {
     return (
       <CashierPosLayout
         online={online}
         currency={currency}
+        uiCopy={CASHIER_POS_UI_COPY}
         activeBranchName={activeBranchName}
         branchesLoading={branchesLoading}
         branchSelected={branchSelected}
+        branchId={branchId}
+        dialogBrandTheme={dialogBrandTheme}
         search={search}
         setSearch={setSearch}
         hits={hits}
@@ -831,10 +826,10 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   }
 
   return (
-    <section className={cn("space-y-8", "mx-auto max-w-6xl pb-16")}>
+    <section className={cn("space-y-8", "mx-auto max-w-6xl pb-16")} style={dialogBrandTheme}>
       <header className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-semibold">{heading}</h2>
+          <h2 className="text-xl font-semibold text-[var(--pos-primary)]">{heading}</h2>
           <span
             className={`rounded px-2 py-0.5 text-xs font-medium ${online ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}
           >
@@ -874,13 +869,13 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       {topProducts.length > 0 ? (
         <section
           aria-label="Top selling products"
-          className="space-y-3 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-rose-50 to-sky-50 p-4 shadow-sm dark:border-amber-200/20 dark:from-amber-950/20 dark:via-rose-950/20 dark:to-sky-950/20"
+          className="space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--pos-primary)_26%,var(--border))] bg-gradient-to-br from-[color-mix(in_srgb,var(--pos-glow)_32%,var(--card))] via-[color-mix(in_srgb,var(--pos-secondary)_10%,var(--card))] to-[var(--card)] p-4 shadow-sm"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span
                 aria-hidden
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-base font-bold leading-none text-amber-700 dark:text-amber-300"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-base font-bold leading-none text-[var(--pos-primary)]"
               >
                 ★
               </span>
@@ -1036,6 +1031,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
             <ul className="max-h-48 max-w-md overflow-auto rounded border bg-background text-sm">
               {hits.map((h) => {
                 const thumb = itemListThumbnailUrl(h);
+                const hitTitle = cashierItemPrimaryLabel(h);
+                const hitDetail = posSearchItemDetailLine(h);
                 return (
                   <li key={h.id}>
                     <button
@@ -1051,7 +1048,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                         <span className="h-9 w-9 shrink-0 rounded border border-dashed border-muted-foreground/25 bg-muted/30" />
                       )}
                       <span className="min-w-0">
-                        {h.name} <span className="text-muted-foreground">{h.sku}</span>
+                        <span className="line-clamp-2 font-medium leading-snug">{hitTitle}</span>
+                        <span className="block break-all text-xs text-muted-foreground">{hitDetail}</span>
                       </span>
                     </button>
                   </li>
@@ -1280,7 +1278,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                           type="button"
                           className={`w-full rounded border px-2 py-1.5 text-left ${
                             selectedCustomer?.id === c.id
-                              ? "border-primary bg-primary/10"
+                              ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
                               : "border-transparent bg-background hover:bg-muted/50"
                           }`}
                           onClick={() => {
@@ -1325,7 +1323,12 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
             </button>
           </p>
         ) : null}
-        <Button type="button" disabled={loading} onClick={() => onComplete().catch(() => undefined)}>
+        <Button
+          type="button"
+          disabled={loading}
+          onClick={() => onComplete().catch(() => undefined)}
+          className="bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] shadow-md hover:bg-[var(--pos-primary)] hover:opacity-90"
+        >
           {loading ? "Recording…" : "Complete sale"}
         </Button>
       </div>
@@ -1442,11 +1445,6 @@ type TopSellerTileProps = {
 };
 
 function TopSellerTile({ product, rank, onAdd }: TopSellerTileProps) {
-  const hue = tileHue(product.id);
-  const tileStyle: React.CSSProperties = {
-    backgroundImage: `linear-gradient(135deg, hsl(${hue} 80% 94%), hsl(${(hue + 35) % 360} 78% 84%))`,
-  };
-  const accentColor = `hsl(${hue} 65% 28%)`;
   const sold = product.count;
   const qtyLabel = product.qty >= 100
     ? `${Math.round(product.qty)}`
@@ -1455,57 +1453,60 @@ function TopSellerTile({ product, rank, onAdd }: TopSellerTileProps) {
     <button
       type="button"
       onClick={onAdd}
-      style={tileStyle}
       className={cn(
-        "group relative flex h-[7.75rem] flex-col justify-between overflow-hidden rounded-xl",
-        "border border-white/60 p-3 text-left shadow-sm transition-all",
-        "hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "group relative flex min-h-[10.5rem] flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-md transition-all",
+        "border-[color-mix(in_srgb,var(--pos-primary)_16%,var(--border))]",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_32%,var(--border))] hover:shadow-xl active:translate-y-0",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)]",
       )}
     >
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/40 blur-2xl transition-opacity group-hover:opacity-90"
+        className="pointer-events-none absolute -right-6 top-8 h-24 w-24 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] blur-3xl transition-opacity group-hover:opacity-100"
       />
-      <div className="relative flex items-start justify-between gap-2">
-        <span
-          className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide shadow-sm backdrop-blur"
-          style={{ color: accentColor }}
-        >
+      <div
+        className="relative h-[6.25rem] w-full shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--pos-glow)_24%,var(--muted))]"
+        style={{
+          backgroundImage: product.thumbnailUrl
+            ? undefined
+            : "linear-gradient(145deg, color-mix(in srgb, var(--pos-glow) 45%, var(--card)), color-mix(in srgb, var(--pos-secondary) 18%, var(--card)))",
+        }}
+      >
+        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary)] shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/40 dark:text-[var(--pos-primary)]">
           {rank === 0 ? "★ Top" : `#${rank + 1}`}
         </span>
         {product.thumbnailUrl ? (
-          <span className="relative h-9 w-9 overflow-hidden rounded-md border border-white/70 bg-white/85 shadow-sm">
-            <Image
-              src={product.thumbnailUrl}
-              alt=""
-              width={36}
-              height={36}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-          </span>
+          <Image
+            src={product.thumbnailUrl}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            unoptimized
+          />
         ) : (
           <span
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/50 bg-white/60 text-sm font-bold shadow-sm"
-            style={{ color: accentColor }}
+            className="flex h-full w-full items-center justify-center text-4xl font-bold tracking-tight text-[var(--pos-primary)]/90 drop-shadow-sm"
             aria-hidden
           >
             {product.name.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
       </div>
-      <div className="relative space-y-0.5">
-        <p
-          className="line-clamp-2 text-[13px] font-semibold leading-snug"
-          style={{ color: accentColor }}
-        >
+      <div
+        className="relative flex flex-1 flex-col gap-0.5 px-2.5 pb-2 pt-2"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, color-mix(in srgb, var(--pos-glow) 14%, var(--card)), var(--card))",
+        }}
+      >
+        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--pos-primary)]">
           {product.name}
         </p>
-        <p className="text-[10px] uppercase tracking-wide text-foreground/60">
-          {product.sku ? product.sku : "no sku"}
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          {posTopProductSubtitle(product)}
         </p>
-        <p className="text-[10px] font-medium text-foreground/70">
+        <p className="text-[10px] font-medium text-muted-foreground">
           {sold > 0 ? `Sold ×${sold} · qty ${qtyLabel}` : "Suggested pick"}
         </p>
       </div>

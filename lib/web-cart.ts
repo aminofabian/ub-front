@@ -113,9 +113,12 @@ async function readFetchErrorMessage(res: Response): Promise<string> {
       return res.statusText || "Request failed";
     }
     try {
-      const j = JSON.parse(text) as { detail?: string; title?: string };
+      const j = JSON.parse(text) as { detail?: string; title?: string; message?: string };
       if (typeof j.detail === "string" && j.detail.trim()) {
         return j.detail.trim();
+      }
+      if (typeof j.message === "string" && j.message.trim()) {
+        return j.message.trim();
       }
       if (typeof j.title === "string" && j.title.trim()) {
         return j.title.trim();
@@ -207,7 +210,7 @@ export async function upsertWebCartLine(
     return null;
   }
   if (!res.ok) {
-    return null;
+    throw new Error(await readFetchErrorMessage(res));
   }
   return (await res.json()) as PublicWebCart;
 }

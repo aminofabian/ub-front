@@ -8,6 +8,8 @@ export type PublicCatalogItemCard = {
   variantName: string | null;
   imageUrl: string | null;
   price: number | null;
+  /** Sum of active inventory batch qty remaining at the storefront catalog branch. */
+  qtyOnHand?: number | null;
 };
 
 export type PublicStorefrontPayload = {
@@ -34,6 +36,7 @@ export type PublicCatalogVariant = {
   variantName: string | null;
   imageUrl: string | null;
   price: number | null;
+  qtyOnHand?: number | null;
 };
 
 export type PublicCatalogItemDetail = {
@@ -44,6 +47,7 @@ export type PublicCatalogItemDetail = {
   parentItemId: string | null;
   currency: string;
   price: number | null;
+  qtyOnHand?: number | null;
   images: PublicItemImage[];
   variants: PublicCatalogVariant[];
 };
@@ -108,6 +112,12 @@ export type TenantContext = {
 const DEFAULT_REVALIDATE_SEC = 60;
 const HOST_RESOLVE_REVALIDATE_SEC = 60;
 
+/** Catalog, PDP, and storefront payload include live prices — avoid Data Cache staleness. */
+const STORE_PRICE_FETCH_INIT = {
+  cache: "no-store" as const,
+  headers: { Accept: "application/json" },
+};
+
 /** Matches backend `Business` slug rules (lowercase alnum + hyphens). */
 const PUBLIC_STOREFRONT_SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -143,6 +153,24 @@ export function storefrontSlugFromEnv(): string | null {
   return sanitizeStorefrontSlug(process.env.NEXT_PUBLIC_STOREFRONT_SLUG);
 }
 
+/** On-hand quantity at the storefront catalog branch (public catalog API). */
+export function formatStoreQty(qtyOnHand: number | null | undefined): string | null {
+  if (qtyOnHand == null || !Number.isFinite(qtyOnHand)) {
+    return null;
+  }
+  const q = qtyOnHand;
+  if (q <= 0) {
+    return "0 in store";
+  }
+  const isInt = Math.abs(q - Math.round(q)) < 1e-6;
+  const label = isInt
+    ? String(Math.round(q))
+    : String(Math.round(q * 1000) / 1000)
+        .replace(/(\.\d*?)0+$/, "$1")
+        .replace(/\.$/, "");
+  return `${label} in store`;
+}
+
 export function formatDisplayPrice(currency: string, amount: number | null): string {
   if (amount == null) {
     return "See in store";
@@ -175,10 +203,7 @@ export async function fetchPublicStorefront(
   }
   const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/storefront`;
   try {
-    const res = await fetch(url, {
-      next: { revalidate: DEFAULT_REVALIDATE_SEC },
-      headers: { Accept: "application/json" },
-    });
+    const res = await fetch(url, STORE_PRICE_FETCH_INIT);
     if (res.status === 404) {
       return null;
     }
@@ -220,10 +245,7 @@ export async function fetchPublicCatalogItems(
     u.searchParams.set("categoryId", cat);
   }
   try {
-    const res = await fetch(u.toString(), {
-      next: { revalidate: DEFAULT_REVALIDATE_SEC },
-      headers: { Accept: "application/json" },
-    });
+    const res = await fetch(u.toString(), STORE_PRICE_FETCH_INIT);
     if (res.status === 404) {
       return null;
     }
@@ -393,10 +415,7 @@ export async function fetchPublicItemDetail(
   }
   const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(id)}`;
   try {
-    const res = await fetch(url, {
-      next: { revalidate: DEFAULT_REVALIDATE_SEC },
-      headers: { Accept: "application/json" },
-    });
+    const res = await fetch(url, STORE_PRICE_FETCH_INIT);
     if (res.status === 404) {
       return null;
     }

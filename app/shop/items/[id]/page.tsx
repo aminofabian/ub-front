@@ -8,6 +8,7 @@ import {
   fetchPublicItemDetail,
   fetchPublicStorefront,
   formatDisplayPrice,
+  formatStoreQty,
 } from "@/lib/public-storefront";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
@@ -69,6 +70,7 @@ export default async function ShopItemPage({ params }: PageProps) {
 
   const heading = item.variantName ? `${item.name} · ${item.variantName}` : item.name;
   const priceLabel = formatDisplayPrice(item.currency, item.price);
+  const stockLabel = formatStoreQty(item.qtyOnHand);
   const hero = item.images[0];
   const wa = whatsAppProductLink(heading);
 
@@ -123,6 +125,9 @@ export default async function ShopItemPage({ params }: PageProps) {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{heading}</h1>
             <p className="mt-3 text-xl font-semibold tabular-nums text-primary">{priceLabel}</p>
+            {stockLabel ? (
+              <p className="mt-1 text-sm font-medium tabular-nums text-muted-foreground">{stockLabel}</p>
+            ) : null}
             {item.description ? (
               <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                 {item.description}
@@ -139,18 +144,26 @@ export default async function ShopItemPage({ params }: PageProps) {
                     const vTitle = v.variantName ? `${v.name} · ${v.variantName}` : v.name;
                     const active = v.id === item.id;
                     const vPrice = formatDisplayPrice(item.currency, v.price);
+                    const vStock = formatStoreQty(v.qtyOnHand);
                     return (
                       <li key={v.id}>
                         <Link
                           href={shopItemPath(v.id)}
                           className={
                             active
-                              ? "flex items-center justify-between rounded-lg border-2 border-primary bg-secondary/50 px-3 py-2 text-sm"
-                              : "flex items-center justify-between rounded-lg border border-border/70 px-3 py-2 text-sm transition hover:border-primary/40"
+                              ? "flex items-start justify-between gap-3 rounded-lg border-2 border-primary bg-secondary/50 px-3 py-2 text-sm"
+                              : "flex items-start justify-between gap-3 rounded-lg border border-border/70 px-3 py-2 text-sm transition hover:border-primary/40"
                           }
                         >
-                          <span>{vTitle}</span>
-                          <span className="font-medium tabular-nums text-primary">{vPrice}</span>
+                          <span className="min-w-0">{vTitle}</span>
+                          <span className="flex shrink-0 flex-col items-end gap-0.5">
+                            <span className="font-medium tabular-nums text-primary">{vPrice}</span>
+                            {vStock ? (
+                              <span className="text-[11px] tabular-nums text-muted-foreground">
+                                {vStock}
+                              </span>
+                            ) : null}
+                          </span>
                         </Link>
                       </li>
                     );

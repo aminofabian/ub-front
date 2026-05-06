@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
   ChevronLeft,
@@ -12,10 +12,18 @@ import {
 
 import { Button } from "@/components/ui/button";
 import {
+  fetchCurrentSellingPrice,
   itemListThumbnailUrl,
   type CategoryTreeNodeRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
+import {
+  cashierItemPrimaryLabel,
+  posSearchItemDetailLine,
+  posTopProductSubtitle,
+} from "@/lib/cashier-item-display";
+import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
 import { tileHue, type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +39,14 @@ import {
 export type CashierPosLayoutProps = {
   online: boolean;
   currency: string;
+  uiCopy: CashierPosUiCopy;
   activeBranchName: string;
   branchesLoading: boolean;
   branchSelected: boolean;
+  /** Used to resolve branch-scoped shelf prices in the add-item modal. */
+  branchId: string;
+  /** Brand CSS variables for portaled dialogs (must be set on each modal root). */
+  dialogBrandTheme: CSSProperties;
 
   search: string;
   setSearch: (v: string) => void;
@@ -101,16 +114,28 @@ export type CashierPosLayoutProps = {
   >;
 };
 
+function tileShelfLine(
+  online: boolean,
+  prices: Record<string, string>,
+  id: string,
+  copy: Pick<CashierPosUiCopy, "tileShelfLoading" | "tileShelfEmpty">,
+): string {
+  if (!online) return copy.tileShelfEmpty;
+  if (!(id in prices)) return copy.tileShelfLoading;
+  return prices[id] ? prices[id] : copy.tileShelfEmpty;
+}
+
 function TopSellerTile({
   product,
   rank,
   onPick,
+  shelfLine,
 }: {
   product: TopProductRecord;
   rank: number;
   onPick: () => void;
+  shelfLine: string;
 }) {
-  const hue = tileHue(product.id);
   const sold = product.count;
   const qtyLabel =
     product.qty >= 100
@@ -120,59 +145,62 @@ function TopSellerTile({
     <button
       type="button"
       onClick={onPick}
-      style={{
-        backgroundImage: `linear-gradient(135deg, hsl(${hue} 80% 94%), hsl(${(hue + 35) % 360} 78% 84%))`,
-      }}
       className={cn(
-        "group relative flex h-[7.75rem] flex-col justify-between overflow-hidden rounded-2xl",
-        "border border-white/60 p-3 text-left shadow-sm transition-all",
-        "hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "group relative flex min-h-[10.5rem] flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-md transition-all",
+        "border-[color-mix(in_srgb,var(--pos-primary)_16%,var(--border))]",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_32%,var(--border))] hover:shadow-xl active:translate-y-0",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)]",
       )}
     >
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/40 blur-2xl transition-opacity group-hover:opacity-90"
+        className="pointer-events-none absolute -right-6 top-8 h-24 w-24 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] blur-3xl transition-opacity group-hover:opacity-100"
       />
-      <div className="relative flex items-start justify-between gap-2">
-        <span
-          className="inline-flex items-center gap-1 rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide shadow-sm backdrop-blur"
-          style={{ color: `hsl(${hue} 65% 28%)` }}
-        >
+      {/* Hero image strip */}
+      <div
+        className="relative h-[6.25rem] w-full shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--pos-glow)_24%,var(--muted))]"
+        style={{
+          backgroundImage: product.thumbnailUrl
+            ? undefined
+            : "linear-gradient(145deg, color-mix(in srgb, var(--pos-glow) 45%, var(--card)), color-mix(in srgb, var(--pos-secondary) 18%, var(--card)))",
+        }}
+      >
+        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary)] shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/40 dark:text-[var(--pos-primary)]">
           {rank === 0 ? "★ Top" : `#${rank + 1}`}
         </span>
         {product.thumbnailUrl ? (
-          <span className="relative h-9 w-9 overflow-hidden rounded-md border border-white/70 bg-white/85 shadow-sm">
-            <Image
-              src={product.thumbnailUrl}
-              alt=""
-              width={36}
-              height={36}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-          </span>
+          <Image
+            src={product.thumbnailUrl}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            unoptimized
+          />
         ) : (
           <span
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/50 bg-white/60 text-sm font-bold shadow-sm"
-            style={{ color: `hsl(${hue} 65% 28%)` }}
+            className="flex h-full w-full items-center justify-center text-4xl font-bold tracking-tight text-[var(--pos-primary)]/90 drop-shadow-sm"
             aria-hidden
           >
             {product.name.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
       </div>
-      <div className="relative space-y-0.5">
-        <p
-          className="line-clamp-2 text-[13px] font-semibold leading-snug"
-          style={{ color: `hsl(${hue} 65% 28%)` }}
-        >
+      <div
+        className="relative flex flex-1 flex-col gap-0.5 px-2.5 pb-2 pt-2"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, color-mix(in srgb, var(--pos-glow) 14%, var(--card)), var(--card))",
+        }}
+      >
+        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--pos-primary)]">
           {product.name}
         </p>
-        <p className="text-[10px] uppercase tracking-wide text-foreground/60">
-          {product.sku ? product.sku : "no sku"}
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          {posTopProductSubtitle(product)}
         </p>
-        <p className="text-[10px] font-medium text-foreground/70">
+        <p className="text-[11px] font-bold tabular-nums text-foreground">{shelfLine}</p>
+        <p className="text-[10px] font-medium text-muted-foreground">
           {sold > 0 ? `Sold ×${sold} · qty ${qtyLabel}` : "Suggested pick"}
         </p>
       </div>
@@ -183,44 +211,53 @@ function TopSellerTile({
 function SearchHitTile({
   item,
   onPick,
+  shelfLine,
 }: {
   item: ItemSummaryRecord;
   onPick: () => void;
+  shelfLine: string;
 }) {
   const thumb = itemListThumbnailUrl(item);
+  const title = cashierItemPrimaryLabel(item);
+  const detail = posSearchItemDetailLine(item);
   return (
     <button
       type="button"
       onClick={onPick}
       className={cn(
-        "flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-colors",
-        "hover:border-primary/40 hover:bg-accent",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-card p-3 text-left transition-colors",
+        "hover:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] hover:bg-[color-mix(in_srgb,var(--pos-glow)_12%,var(--accent))]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)]",
       )}
     >
-      {thumb ? (
-        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border bg-muted">
-          <Image
-            src={thumb}
-            alt=""
-            width={48}
-            height={48}
-            className="h-full w-full object-cover"
-            unoptimized
-          />
+      <div className="flex w-12 shrink-0 flex-col items-center gap-1">
+        {thumb ? (
+          <span className="relative h-12 w-12 overflow-hidden rounded-lg border bg-muted">
+            <Image
+              src={thumb}
+              alt=""
+              width={48}
+              height={48}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          </span>
+        ) : (
+          <span
+            className="inline-flex h-12 w-12 items-center justify-center rounded-lg border bg-muted text-base font-bold text-muted-foreground"
+            aria-hidden
+          >
+            {title.trim().charAt(0).toUpperCase() || "?"}
+          </span>
+        )}
+        <span className="w-full truncate text-center text-[9px] font-bold tabular-nums leading-none text-foreground">
+          {shelfLine}
         </span>
-      ) : (
-        <span
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border bg-muted text-base font-bold text-muted-foreground"
-          aria-hidden
-        >
-          {item.name.trim().charAt(0).toUpperCase() || "?"}
-        </span>
-      )}
+      </div>
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-1 text-sm font-medium">{item.name}</span>
-        <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
-          {item.sku || "no sku"}
+        <span className="line-clamp-2 text-sm font-medium leading-snug">{title}</span>
+        <span className="mt-0.5 block break-all text-[11px] uppercase tracking-wide text-muted-foreground">
+          {detail}
         </span>
       </span>
       <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-foreground">
@@ -234,9 +271,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const {
     online,
     currency,
+    uiCopy,
     activeBranchName,
     branchesLoading,
     branchSelected,
+    branchId,
+    dialogBrandTheme,
     search,
     setSearch,
     hits,
@@ -260,6 +300,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
+  const [tileShelfPrices, setTileShelfPrices] = useState<Record<string, string>>({});
+
+  const hitIdsKey = useMemo(
+    () =>
+      [...hits]
+        .map((h) => h.id)
+        .sort()
+        .join(","),
+    [hits],
+  );
+  const topIdsKey = useMemo(
+    () =>
+      [...topProducts]
+        .map((p) => p.id)
+        .sort()
+        .join(","),
+    [topProducts],
+  );
 
   const cartItemCount = useMemo(() => {
     let total = 0;
@@ -299,12 +357,53 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
   }, [cart.notice, cart.error]);
 
+  useEffect(() => {
+    if (!online) {
+      setTileShelfPrices({});
+      return;
+    }
+    const fromHits = hitIdsKey ? hitIdsKey.split(",") : [];
+    const fromTop = topIdsKey ? topIdsKey.split(",") : [];
+    const ids = Array.from(new Set([...fromHits, ...fromTop]));
+    if (ids.length === 0) {
+      setTileShelfPrices({});
+      return;
+    }
+    let cancelled = false;
+    const bid = branchId?.trim() || undefined;
+    void Promise.all(
+      ids.map(async (id) => {
+        try {
+          const r = await fetchCurrentSellingPrice(id, bid);
+          const label = formatShelfPriceLabel(r.price, currency);
+          return [id, label ?? ""] as const;
+        } catch {
+          return [id, ""] as const;
+        }
+      }),
+    ).then((pairs) => {
+      if (cancelled) return;
+      setTileShelfPrices((prev) => {
+        const next = { ...prev };
+        for (const [id, v] of pairs) {
+          next[id] = v;
+        }
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [online, branchId, currency, hitIdsKey, topIdsKey]);
+
   return (
     <div className="space-y-6 pb-24">
       <header className="space-y-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-xl font-semibold leading-tight">Point of sale</h2>
+            <h2 className="text-xl font-semibold leading-tight text-[var(--pos-primary)]">
+              Point of sale
+            </h2>
             <p className="text-xs text-muted-foreground">
               {branchesLoading ? (
                 "Loading branches…"
@@ -322,7 +421,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           </div>
           {!online ? (
             <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">
-              Offline
+              {uiCopy.offlinePill}
             </span>
           ) : null}
         </div>
@@ -332,9 +431,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <div className="bg-background/85 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-4">
           <div
             className={cn(
-              "group flex items-center gap-2 rounded-2xl border bg-card pl-3 pr-1 shadow-md transition-all",
-              "border-primary/15 ring-2 ring-primary/5",
-              "focus-within:border-primary/50 focus-within:ring-primary/30",
+              "group flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--pos-primary)_16%,var(--border))] bg-card pl-3 pr-1 shadow-md transition-all",
+              "ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]",
+              "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_42%,var(--border))] focus-within:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
             )}
           >
             <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -369,7 +468,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : null}
           {categoryFilterId ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-1 text-xs">
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary">
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] px-2.5 py-0.5 font-medium text-[var(--pos-primary)]">
                 Aisle: {categoryFilterLabel ?? categoryFilterId}
               </span>
               <button
@@ -408,6 +507,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <SearchHitTile
                   key={item.id}
                   item={item}
+                  shelfLine={tileShelfLine(online, tileShelfPrices, item.id, uiCopy)}
                   onPick={() => handlePickItem(item)}
                 />
               ))}
@@ -419,13 +519,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {showCatalog && topProducts.length > 0 ? (
         <section
           aria-label="Top selling products"
-          className="space-y-3 rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-rose-50 to-sky-50 p-4 shadow-sm dark:border-amber-200/20 dark:from-amber-950/20 dark:via-rose-950/20 dark:to-sky-950/20"
+          className="space-y-3 rounded-3xl border border-[color-mix(in_srgb,var(--pos-primary)_26%,var(--border))] bg-gradient-to-br from-[color-mix(in_srgb,var(--pos-glow)_32%,var(--card))] via-[color-mix(in_srgb,var(--pos-secondary)_10%,var(--card))] to-[var(--card)] p-4 shadow-sm"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span
                 aria-hidden
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-base font-bold leading-none text-amber-700 dark:text-amber-300"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-base font-bold leading-none text-[var(--pos-primary)]"
               >
                 ★
               </span>
@@ -443,6 +543,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 key={p.id}
                 product={p}
                 rank={idx}
+                shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
                 onPick={() =>
                   handlePickItem({
                     id: p.id,
@@ -573,24 +674,34 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         type="button"
         onClick={() => setDrawerOpen(true)}
         className={cn(
-          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full",
-          "bg-foreground px-5 py-3 text-background shadow-lg shadow-black/20 transition-all",
-          "hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-5 py-3 shadow-lg transition-all",
+          "hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
           "sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0",
-          pulseCart && "ring-4 ring-emerald-300/60",
+          pulseCart && "ring-4 ring-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)]",
         )}
+        style={{
+          backgroundColor: "var(--pos-primary)",
+          color: "var(--pos-primary-ink)",
+          boxShadow: "0 10px 40px color-mix(in srgb, var(--pos-primary) 35%, transparent)",
+        }}
         aria-label={`Open cart with ${cart.lines.length} line${cart.lines.length === 1 ? "" : "s"}`}
       >
-        <span className="relative inline-flex size-8 items-center justify-center rounded-full bg-background/15">
+        <span className="relative inline-flex size-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary-ink)_14%,transparent)]">
           <ShoppingCart className="size-4" />
           {cart.lines.length > 0 ? (
-            <span className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center rounded-full bg-emerald-400 text-[10px] font-bold text-emerald-950 shadow">
+            <span
+              className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center rounded-full text-[10px] font-bold shadow"
+              style={{
+                backgroundColor: "var(--pos-primary-ink)",
+                color: "var(--pos-primary)",
+              }}
+            >
               {cart.lines.length > 99 ? "99+" : cart.lines.length}
             </span>
           ) : null}
         </span>
         <span className="flex flex-col items-start leading-none">
-          <span className="text-[10px] uppercase tracking-wide text-background/70">
+          <span className="text-[10px] uppercase tracking-wide opacity-80">
             {cart.lines.length === 0
               ? "Cart empty"
               : `${cartItemCount.toFixed(0)} item${cartItemCount === 1 ? "" : "s"}`}
@@ -605,6 +716,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         item={pickedItem}
         open={modalOpen}
         currency={currency}
+        uiCopy={uiCopy}
+        branchId={branchId}
+        online={online}
+        brandTheme={dialogBrandTheme}
         onOpenChange={(o) => {
           setModalOpen(o);
           if (!o) setPickedItem(null);
@@ -618,6 +733,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         online={online}
         currency={currency}
         branchSelected={branchSelected}
+        brandTheme={dialogBrandTheme}
         {...cart}
       />
     </div>

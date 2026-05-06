@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { logoutRemote } from "@/lib/api";
+import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 
@@ -28,9 +30,16 @@ export function CashierShell({ children }: CashierShellProps) {
 
   const showBranchPicker = canQuickSale;
 
+  const brandTheme = useMemo(
+    () => posBrandThemeStyle(business?.branding ?? null),
+    [business?.branding],
+  );
+
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <div className="flex min-h-full flex-col" style={brandTheme}>
+      <header
+        className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+      >
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="truncate text-sm font-semibold">
