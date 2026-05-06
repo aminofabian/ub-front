@@ -56,7 +56,7 @@ function ForgotPasswordPageContent() {
   };
 
   return (
-    <>
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
       <AuthBranding />
       <AuthCard>
         <AuthPageHeader
@@ -106,7 +106,7 @@ function ForgotPasswordPageContent() {
           </Link>
         </p>
       </AuthCard>
-    </>
+    </div>
   );
 }
 

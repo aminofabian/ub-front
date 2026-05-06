@@ -66,7 +66,7 @@ export function ShopHeroMart({
     >
       <div className="grid min-h-[260px] gap-0 sm:min-h-[300px] sm:grid-cols-[1.05fr_1.4fr]">
         <div className="relative z-10 flex flex-col justify-center gap-5 px-6 py-8 sm:px-10 sm:py-10">
-          <h1 className="font-sans text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
             <span className="block">{headline}</span>
             <span
               className="block"

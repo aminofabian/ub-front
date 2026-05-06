@@ -54,7 +54,7 @@ export function ShopHeaderBar({
                 unoptimized
               />
             ) : (
-              <span className="font-sans text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              <span className="font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                 {headerTitle}
               </span>
             )}

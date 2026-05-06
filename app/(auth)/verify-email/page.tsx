@@ -133,7 +133,7 @@ function VerifyEmailContent() {
   const showManualForm = tokenFromQuery.trim().length < 16;
 
   return (
-    <>
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
       <AuthBranding />
       <AuthCard>
         <AuthPageHeader
@@ -213,7 +213,7 @@ function VerifyEmailContent() {
           </Link>
         </p>
       </AuthCard>
-    </>
+    </div>
   );
 }
 
