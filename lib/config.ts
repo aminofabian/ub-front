@@ -18,6 +18,7 @@ export const APP_ROUTES = {
   suppliers: "/suppliers",
   customers: "/customers",
   purchasingIntelligence: "/purchasing/intelligence",
+  purchasingAddSupplies: "/supplies",
   purchasingApAging: "/purchasing/ap-aging",
   purchasingRecordPayment: "/purchasing/record-payment",
   inventoryValuation: "/inventory/valuation",

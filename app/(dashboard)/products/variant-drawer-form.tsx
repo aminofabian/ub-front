@@ -50,6 +50,8 @@ type Props = {
   setPendingVariantImage: (file: File | null) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   inputClassName: string;
+  /** Hint from GET /items/next-sku — optional fill-in, or leave SKU empty for server auto-assign. */
+  suggestedNextSku?: string | null;
 };
 
 export function VariantDrawerForm({
@@ -69,6 +71,7 @@ export function VariantDrawerForm({
   setPendingVariantImage,
   onSubmit,
   inputClassName,
+  suggestedNextSku,
 }: Props) {
   const ic = inputClassName;
 
@@ -78,20 +81,36 @@ export function VariantDrawerForm({
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">Start here</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-xs">
-            <span className="font-medium text-muted-foreground">
-              SKU <span className="text-destructive">*</span>
+            <span className="font-medium text-muted-foreground">SKU</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                className={`${ic} min-w-0 flex-1 sm:min-w-[8rem]`}
+                placeholder="Optional — auto number if empty"
+                value={variantDraft.sku}
+                onChange={(event) =>
+                  setVariantDraft((previous) => ({ ...previous, sku: event.target.value }))
+                }
+                autoComplete="off"
+                aria-label="Variant SKU"
+              />
+              {suggestedNextSku ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 shrink-0 gap-1 px-2.5 text-xs"
+                  onClick={() =>
+                    setVariantDraft((previous) => ({ ...previous, sku: suggestedNextSku }))
+                  }
+                >
+                  Use {suggestedNextSku}
+                </Button>
+              ) : null}
+            </div>
+            <span className="font-normal text-[11px] leading-snug text-muted-foreground">
+              Leave empty to save with the next free numeric code
+              {suggestedNextSku ? ` (currently ${suggestedNextSku})` : ""}.
             </span>
-            <input
-              className={ic}
-              placeholder="e.g. TEESHIRT-RED-M"
-              value={variantDraft.sku}
-              onChange={(event) =>
-                setVariantDraft((previous) => ({ ...previous, sku: event.target.value }))
-              }
-              required
-              autoComplete="off"
-              aria-label="Variant SKU"
-            />
           </label>
           <label className="flex flex-col gap-1.5 text-xs">
             <span className="font-medium text-muted-foreground">
@@ -565,7 +584,7 @@ export function VariantDrawerForm({
       </details>
 
       <p className="text-[11px] text-muted-foreground">
-        Required fields: SKU and option label only. Everything else folds open when you need it.
+        Required field: option label only — SKU is optional and can be auto-numbered. Everything else folds open when you need it.
       </p>
     </form>
   );

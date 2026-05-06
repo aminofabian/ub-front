@@ -6,7 +6,63 @@ export type ProblemResponse = {
   code?: string;
 };
 
+export type ProblemValidationFieldError = {
+  field: string;
+  message: string;
+};
+
 const DEFAULT_PROBLEM_TITLE = "Request failed.";
+
+export function parseProblemValidationErrors(
+  payload: unknown,
+): ProblemValidationFieldError[] | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  const errors = (payload as Record<string, unknown>).errors;
+  if (!Array.isArray(errors) || errors.length === 0) {
+    return null;
+  }
+  const out: ProblemValidationFieldError[] = [];
+  for (const entry of errors) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    const rec = entry as Record<string, unknown>;
+    const field = typeof rec.field === "string" ? rec.field : "";
+    const message = typeof rec.message === "string" ? rec.message : "";
+    if (field.length > 0 || message.length > 0) {
+      out.push({ field, message });
+    }
+  }
+  return out.length > 0 ? out : null;
+}
+
+/**
+ * User-visible message from an RFC 7807 / problem+json body, including `errors` for validation.
+ */
+export function formatApiProblemMessage(payload: unknown): string {
+  const problem = parseProblem(payload);
+  const validation = parseProblemValidationErrors(payload);
+  const title =
+    problem != null && problem.title.trim().length > 0
+      ? problem.title.trim()
+      : DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
+
+  if (validation) {
+    const lines = validation.map((e) =>
+      e.field.length > 0 ? `${e.field}: ${e.message}`.trim() : e.message,
+    );
+    return [title, ...lines].join("\n");
+  }
+
+  const detail = problem?.detail?.trim();
+  if (detail && detail.length > 0) {
+    return `${title}\n${detail}`;
+  }
+
+  return title.length > 0 ? title : DEFAULT_PROBLEM_TITLE.replace(/\.$/, "");
+}
 
 export function parseProblem(payload: unknown): ProblemResponse | null {
   if (!payload || typeof payload !== "object") {
@@ -42,6 +98,10 @@ const PROBLEM_TYPES_WHERE_DETAIL_IS_PRIMARY = new Set([
 ]);
 
 export function getProblemTitle(payload: unknown): string {
+  const validation = parseProblemValidationErrors(payload);
+  if (validation) {
+    return formatApiProblemMessage(payload);
+  }
   const problem = parseProblem(payload);
   if (!problem) {
     return DEFAULT_PROBLEM_TITLE;

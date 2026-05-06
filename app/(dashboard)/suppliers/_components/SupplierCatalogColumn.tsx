@@ -1,0 +1,964 @@
+"use client";
+
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CornerDownRight, Layers, Link2, Package, Tag } from "lucide-react";
+
+import {
+  fetchCategories,
+  fetchItemById,
+  fetchItemsPage,
+  itemListThumbnailUrl,
+  type CategoryRecord,
+  type CatalogListScope,
+} from "@/lib/api";
+import type { ItemSummaryRecord, SupplierItemLinkRecord, SupplierRecord } from "@/lib/api";
+import { Permission } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
+import { FormDrawer } from "@/components/form-drawer";
+import { Button } from "@/components/ui/button";
+
+import { supCard, supFieldLabel, supInput, supSelect } from "./supplier-ui-tokens";
+
+const CATALOG_PAGE_SIZE = 50;
+
+type CatalogSortPreset =
+  | "name-asc"
+  | "name-desc"
+  | "sku-asc"
+  | "sku-desc"
+  | "category-asc"
+  | "category-desc";
+
+function sortsForPreset(preset: CatalogSortPreset): Array<{ property: string; direction: "asc" | "desc" }> {
+  switch (preset) {
+    case "name-asc":
+      return [
+        { property: "name", direction: "asc" },
+        { property: "sku", direction: "asc" },
+      ];
+    case "name-desc":
+      return [
+        { property: "name", direction: "desc" },
+        { property: "sku", direction: "desc" },
+      ];
+    case "sku-asc":
+      return [{ property: "sku", direction: "asc" }];
+    case "sku-desc":
+      return [{ property: "sku", direction: "desc" }];
+    case "category-asc":
+      return [
+        { property: "categoryId", direction: "asc" },
+        { property: "name", direction: "asc" },
+        { property: "sku", direction: "asc" },
+      ];
+    case "category-desc":
+      return [
+        { property: "categoryId", direction: "desc" },
+        { property: "name", direction: "desc" },
+        { property: "sku", direction: "desc" },
+      ];
+    default:
+      return [
+        { property: "name", direction: "asc" },
+        { property: "sku", direction: "asc" },
+      ];
+  }
+}
+
+function collectVariantIdsUnderParent(
+  parentId: string,
+  catalogRows: ItemSummaryRecord[],
+  cache: Record<string, string[]>,
+): string[] {
+  const cached = cache[parentId];
+  if (cached !== undefined) {
+    return cached;
+  }
+  const ids: string[] = [];
+  for (const r of catalogRows) {
+    if (r.variantOfItemId === parentId) {
+      ids.push(r.id);
+    }
+  }
+  return ids;
+}
+
+export function SupplierCatalogColumn({
+  detail,
+  canReadCatalog,
+  canLinkProducts,
+  itemLinks,
+  linksBusy,
+  onRemoveLink,
+  onSetPrimaryLink,
+  onLinkCatalogItems,
+}: {
+  detail: SupplierRecord | null;
+  canReadCatalog: boolean;
+  canLinkProducts: boolean;
+  itemLinks: SupplierItemLinkRecord[];
+  linksBusy: boolean;
+  onRemoveLink: (row: SupplierItemLinkRecord) => void;
+  onSetPrimaryLink: (row: SupplierItemLinkRecord) => void;
+  onLinkCatalogItems: (
+    itemIds: string[],
+    opts: { supplierSku?: string; defaultCostPrice?: number; setPrimaryForFirst?: boolean },
+  ) => Promise<void>;
+}) {
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState("");
+  const [categoryFilterId, setCategoryFilterId] = useState("");
+  const [categoryIncludeDescendants, setCategoryIncludeDescendants] = useState(true);
+  const [sortPreset, setSortPreset] = useState<CatalogSortPreset>("name-asc");
+  const [catalogScope, setCatalogScope] = useState<CatalogListScope>("ALL");
+  const [catalogRows, setCatalogRows] = useState<ItemSummaryRecord[]>([]);
+  const [catalogMeta, setCatalogMeta] = useState<{
+    last: boolean;
+    totalElements: number;
+    number: number;
+  } | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  /** Variant item ids under each group label (parent id), from item detail — used for select-all / unselect-all. */
+  const [variantIdsByParentId, setVariantIdsByParentId] = useState<Record<string, string[]>>({});
+  const [groupLabelFetchParentId, setGroupLabelFetchParentId] = useState<string | null>(null);
+  const [linkSku, setLinkSku] = useState("");
+  const [linkCostStr, setLinkCostStr] = useState("");
+  const [linkPrimary, setLinkPrimary] = useState(false);
+  const [linkDrawerOpen, setLinkDrawerOpen] = useState(false);
+
+  const [linkFormError, setLinkFormError] = useState<string | null>(null);
+
+  const loadGen = useRef(0);
+
+  const linkedIds = useMemo(() => new Set(itemLinks.map((l) => l.itemId)), [itemLinks]);
+
+  const sortedCategoryOptions = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+    [categories],
+  );
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedCatalogSearch(catalogSearch.trim()), 320);
+    return () => window.clearTimeout(id);
+  }, [catalogSearch]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [debouncedCatalogSearch, categoryFilterId, categoryIncludeDescendants, sortPreset, catalogScope]);
+
+  useEffect(() => {
+    if (!canReadCatalog) {
+      return;
+    }
+    let cancelled = false;
+    fetchCategories()
+      .then((list) => {
+        if (!cancelled) {
+          setCategories(list);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCategories([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canReadCatalog]);
+
+  const supplierId = detail?.id;
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setLinkSku("");
+    setLinkCostStr("");
+    setLinkPrimary(false);
+    setLinkDrawerOpen(false);
+    setCatalogSearch("");
+    setDebouncedCatalogSearch("");
+    setCategoryFilterId("");
+    setCatalogScope("ALL");
+    setSortPreset("name-asc");
+    setVariantIdsByParentId({});
+  }, [supplierId]);
+
+  useEffect(() => {
+    if (!supplierId || !canReadCatalog) {
+      setCatalogRows([]);
+      setCatalogMeta(null);
+      return;
+    }
+    const gen = ++loadGen.current;
+    setCatalogLoading(true);
+    const search = debouncedCatalogSearch.length > 0 ? debouncedCatalogSearch : undefined;
+    const cat = categoryFilterId.trim();
+    fetchItemsPage(search, {
+      page: 0,
+      size: CATALOG_PAGE_SIZE,
+      ...(cat ? { categoryId: cat, includeCategoryDescendants: categoryIncludeDescendants } : {}),
+      catalogScope,
+      excludeLinkedSupplierId: supplierId,
+      sort: sortsForPreset(sortPreset),
+    })
+      .then((page) => {
+        if (gen !== loadGen.current) {
+          return;
+        }
+        setCatalogRows(page.content);
+        setCatalogMeta({
+          last: page.last,
+          totalElements: page.totalElements,
+          number: page.number,
+        });
+      })
+      .catch(() => {
+        if (gen !== loadGen.current) {
+          return;
+        }
+        setCatalogRows([]);
+        setCatalogMeta(null);
+      })
+      .finally(() => {
+        if (gen === loadGen.current) {
+          setCatalogLoading(false);
+        }
+      });
+  }, [
+    supplierId,
+    canReadCatalog,
+    debouncedCatalogSearch,
+    categoryFilterId,
+    categoryIncludeDescendants,
+    sortPreset,
+    catalogScope,
+  ]);
+
+  const loadMore = useCallback(async () => {
+    if (!supplierId || !canReadCatalog || !catalogMeta || catalogMeta.last || catalogLoadingMore) {
+      return;
+    }
+    const nextPage = catalogMeta.number + 1;
+    const gen = loadGen.current;
+    setCatalogLoadingMore(true);
+    try {
+      const search = debouncedCatalogSearch.length > 0 ? debouncedCatalogSearch : undefined;
+      const cat = categoryFilterId.trim();
+      const page = await fetchItemsPage(search, {
+        page: nextPage,
+        size: CATALOG_PAGE_SIZE,
+        ...(cat ? { categoryId: cat, includeCategoryDescendants: categoryIncludeDescendants } : {}),
+        catalogScope,
+        excludeLinkedSupplierId: supplierId,
+        sort: sortsForPreset(sortPreset),
+      });
+      if (gen !== loadGen.current) {
+        return;
+      }
+      setCatalogRows((prev) => [...prev, ...page.content]);
+      setCatalogMeta({
+        last: page.last,
+        totalElements: page.totalElements,
+        number: page.number,
+      });
+    } catch {
+      if (gen === loadGen.current) {
+        /* keep existing rows */
+      }
+    } finally {
+      if (gen === loadGen.current) {
+        setCatalogLoadingMore(false);
+      }
+    }
+  }, [
+    supplierId,
+    canReadCatalog,
+    catalogMeta,
+    catalogLoadingMore,
+    debouncedCatalogSearch,
+    categoryFilterId,
+    categoryIncludeDescendants,
+    sortPreset,
+    catalogScope,
+  ]);
+
+  const toggleRow = (itemId: string) => {
+    if (linkedIds.has(itemId)) {
+      return;
+    }
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const toggleGroupLabelRow = useCallback(
+    async (parentId: string) => {
+      if (linksBusy) {
+        return;
+      }
+      setGroupLabelFetchParentId(parentId);
+      try {
+        let ids = variantIdsByParentId[parentId];
+        if (ids === undefined) {
+          const detail = await fetchItemById(parentId);
+          ids = (detail.variants ?? []).map((v) => v.id);
+          setVariantIdsByParentId((prev) => ({ ...prev, [parentId]: ids }));
+        }
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          const selectable = ids.filter((id) => !linkedIds.has(id));
+          const allOn =
+            selectable.length > 0 && selectable.every((variantId) => next.has(variantId));
+          if (allOn) {
+            for (const vid of ids) {
+              next.delete(vid);
+            }
+          } else {
+            for (const vid of selectable) {
+              next.add(vid);
+            }
+          }
+          return next;
+        });
+      } catch {
+        /* keep selection; item may be unavailable */
+      } finally {
+        setGroupLabelFetchParentId((cur) => (cur === parentId ? null : cur));
+      }
+    },
+    [linksBusy, linkedIds, variantIdsByParentId],
+  );
+
+  const toggleSelectAllOnPage = () => {
+    const linkable = catalogRows.filter((r) => !linkedIds.has(r.id)).map((r) => r.id);
+    if (linkable.length === 0) {
+      return;
+    }
+    const allOn = linkable.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOn) {
+        linkable.forEach((id) => next.delete(id));
+      } else {
+        linkable.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const onSubmitLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkFormError(null);
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0 || !canLinkProducts) {
+      return;
+    }
+    let defaultCostPrice: number | undefined;
+    const costRaw = linkCostStr.trim();
+    if (costRaw.length > 0) {
+      const n = Number(costRaw);
+      if (!Number.isFinite(n) || n < 0) {
+        setLinkFormError("Default cost must be a valid non-negative number.");
+        return;
+      }
+      defaultCostPrice = n;
+    }
+    const setPrimaryForFirst = linkPrimary && ids.length === 1;
+    try {
+      await onLinkCatalogItems(ids, {
+        supplierSku: linkSku.trim() || undefined,
+        defaultCostPrice,
+        setPrimaryForFirst,
+      });
+      setSelectedIds(new Set());
+      setLinkSku("");
+      setLinkCostStr("");
+      setLinkPrimary(false);
+      setLinkDrawerOpen(false);
+    } catch {
+      /* feedback from page */
+    }
+  };
+
+  if (!detail) {
+    return (
+      <div
+        className={cn(
+          supCard,
+          "flex min-h-[14rem] flex-col items-center justify-center border-dashed bg-muted/10 p-8 text-center",
+        )}
+      >
+        <Link2 className="mb-3 size-10 text-muted-foreground/35" aria-hidden />
+        <p className="text-sm font-medium text-foreground">Select a supplier</p>
+        <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
+          Choose a vendor from the directory to load linked products and the catalog browser.
+        </p>
+      </div>
+    );
+  }
+
+  if (!canReadCatalog) {
+    return (
+      <div className={cn(supCard, "border-dashed bg-muted/10 p-6 text-sm text-muted-foreground")}>
+        <p className="font-medium text-foreground">Catalog access required</p>
+        <p className="mt-2 leading-relaxed">
+          Your role needs{" "}
+          <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            {Permission.CatalogItemsRead}
+          </code>{" "}
+          to view or manage links here.
+        </p>
+      </div>
+    );
+  }
+
+  const linkableOnPage = catalogRows.filter((r) => !linkedIds.has(r.id));
+  const allLinkableSelected =
+    linkableOnPage.length > 0 && linkableOnPage.every((r) => selectedIds.has(r.id));
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
+      <div className={cn(supCard, "p-4 sm:p-5")}>
+        <div className="border-b border-border/45 pb-3">
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">Linked products</h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Items that use this supplier. One primary supplier per product; manage costs and vendor SKU per link.
+          </p>
+        </div>
+        {itemLinks.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No linked products yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border/50">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border/50 bg-muted/45">
+                <tr className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2.5 font-semibold">Product</th>
+                  <th className="px-3 py-2.5 font-semibold">SKU</th>
+                  <th className="px-3 py-2.5 font-semibold">Primary</th>
+                  <th className="px-3 py-2.5 font-semibold">Supplier SKU</th>
+                  <th className="px-3 py-2.5 font-semibold">Default cost</th>
+                  {canLinkProducts ? <th className="px-3 py-2.5 font-semibold">Actions</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {itemLinks.map((row) => (
+                  <tr key={row.id} className="border-b border-border/35 transition-colors last:border-0 hover:bg-muted/20">
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium text-foreground">{row.itemName || row.itemId}</span>
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">{row.sku || "—"}</td>
+                    <td className="px-3 py-2.5">{row.primary ? "Yes" : "—"}</td>
+                    <td className="px-3 py-2.5">{row.supplierSku ?? "—"}</td>
+                    <td className="px-3 py-2.5 tabular-nums">
+                      {row.defaultCostPrice != null && row.defaultCostPrice !== ""
+                        ? String(row.defaultCostPrice)
+                        : "—"}
+                    </td>
+                    {canLinkProducts ? (
+                      <td className="px-3 py-2.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[11px] font-medium"
+                            disabled={linksBusy || row.primary || !row.active}
+                            onClick={() => void onSetPrimaryLink(row)}
+                          >
+                            Set primary
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-[11px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            disabled={linksBusy}
+                            onClick={() => void onRemoveLink(row)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className={cn(supCard, "flex min-h-0 flex-1 flex-col overflow-hidden")}>
+        <div className="shrink-0 space-y-4 border-b border-border/50 bg-muted/15 px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">Catalog browser</h3>
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
+                Full tree by default (labels + options). Already-linked SKUs are hidden here. Narrow scope or filter,
+                select rows, then attach via <span className="font-medium text-foreground">Link products</span>.
+                {catalogMeta ?
+                  ` Showing ${catalogRows.length} of ${catalogMeta.totalElements}.`
+                : catalogLoading ?
+                  " Loading…"
+                : ""}
+              </p>
+            </div>
+            {canLinkProducts ? (
+              <span className="inline-flex items-center rounded-full bg-background px-3 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm ring-1 ring-border/55">
+                {selectedIds.size} selected
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-1.5">
+              <span className={supFieldLabel}>Search</span>
+              <input
+                className={supInput}
+                placeholder="Name, SKU, barcode…"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                aria-label="Filter catalog"
+              />
+            </label>
+            <label className="flex min-w-[10rem] flex-col gap-1.5">
+              <span className={supFieldLabel}>Category</span>
+              <select
+                className={supSelect}
+                value={categoryFilterId}
+                onChange={(e) => setCategoryFilterId(e.target.value)}
+                aria-label="Filter by category"
+              >
+                <option value="">All categories</option>
+                {sortedCategoryOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1.5">
+              <span className={supFieldLabel}>Sort</span>
+              <select
+                className={supSelect}
+                value={sortPreset}
+                onChange={(e) => setSortPreset(e.target.value as CatalogSortPreset)}
+                aria-label="Sort catalog"
+              >
+                <option value="name-asc">Name A→Z</option>
+                <option value="name-desc">Name Z→A</option>
+                <option value="sku-asc">SKU A→Z</option>
+                <option value="sku-desc">SKU Z→A</option>
+                <option value="category-asc">Category A→Z, then name</option>
+                <option value="category-desc">Category Z→A, then name</option>
+              </select>
+            </label>
+            <label className="flex min-w-[11rem] flex-1 flex-col gap-1.5 sm:min-w-[12rem]">
+              <span className={supFieldLabel}>Scope</span>
+              <select
+                className={supSelect}
+                value={catalogScope}
+                onChange={(e) => setCatalogScope(e.target.value as CatalogListScope)}
+                aria-label="Catalog list scope"
+              >
+                <option value="ALL">Full tree (default)</option>
+                <option value="SKUS_ONLY">Sellable SKUs only</option>
+                <option value="PARENTS_ONLY">Group labels only</option>
+                <option value="VARIANTS_ONLY">Option SKUs only</option>
+              </select>
+            </label>
+          </div>
+          {categoryFilterId ? (
+            <label className="flex cursor-pointer items-center gap-2.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-input"
+                checked={categoryIncludeDescendants}
+                onChange={(e) => setCategoryIncludeDescendants(e.target.checked)}
+              />
+              Include subcategories
+            </label>
+          ) : null}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {catalogLoading && catalogRows.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-sm text-muted-foreground">
+              <span className="h-5 w-5 animate-pulse rounded-full bg-primary/35" aria-hidden />
+              Loading catalog…
+            </div>
+          ) : catalogRows.length === 0 ? (
+            <div className="px-6 py-14 text-center">
+              <p className="text-sm font-medium text-foreground">No rows match</p>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Widen search, reset category, or switch catalog scope.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/45 bg-muted/30 px-3 py-2 text-[10px] leading-snug text-muted-foreground">
+                <span className="font-bold uppercase tracking-[0.12em] text-foreground/80">Legend</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-1 rounded-sm bg-amber-500 shadow-sm dark:bg-amber-400" aria-hidden />
+                  <span>
+                    <span className="font-semibold text-amber-950 dark:text-amber-100">Label</span> — selects all
+                    options below
+                  </span>
+                </span>
+                <span className="text-muted-foreground/60">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-1 rounded-sm bg-emerald-600 shadow-sm dark:bg-emerald-500" aria-hidden />
+                  <span>
+                    <span className="font-semibold text-emerald-900 dark:text-emerald-200">Standalone</span>
+                  </span>
+                </span>
+                <span className="text-muted-foreground/60">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <CornerDownRight className="size-3.5 shrink-0 text-violet-500/85 dark:text-violet-400/90" aria-hidden />
+                  <span>
+                    <span className="font-semibold text-violet-900 dark:text-violet-200">Option</span>
+                  </span>
+                </span>
+              </div>
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 z-[1] border-b border-border/50 bg-muted/90 backdrop-blur-sm">
+                  <tr className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    {canLinkProducts ? (
+                      <th className="w-10 px-3 py-2.5 font-semibold">
+                        <input
+                          type="checkbox"
+                          className="size-3.5 rounded border-input"
+                          checked={allLinkableSelected}
+                          onChange={() => toggleSelectAllOnPage()}
+                          disabled={linksBusy || linkableOnPage.length === 0}
+                          title="Select all on this page (not already linked)"
+                          aria-label="Select all linkable on page"
+                        />
+                      </th>
+                    ) : (
+                      <th className="w-8 px-3 py-2.5 font-semibold" />
+                    )}
+                    <th className="px-3 py-2.5 font-semibold">Product</th>
+                    <th className="px-3 py-2.5 font-semibold">SKU</th>
+                    <th className="px-3 py-2.5 font-semibold">Category</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {catalogRows.map((row) => {
+                    const thumb = itemListThumbnailUrl(row);
+                    const linked = linkedIds.has(row.id);
+                    const isGroupLabel = row.groupLabelOnly === true;
+                    const isVariant = Boolean(row.variantOfItemId);
+                    const optionLabel = row.variantName?.trim();
+                    const catLabel =
+                      row.categoryName?.trim() ||
+                      sortedCategoryOptions.find((c) => c.id === row.categoryId)?.name ||
+                      (row.categoryId ? row.categoryId.slice(0, 8) + "…" : "—");
+                    const ariaForSelect =
+                      isVariant ?
+                        `Select option ${row.sku}: ${row.name}${optionLabel ? ` (${optionLabel})` : ""}`
+                      : isGroupLabel ?
+                        `Select all option SKUs under group ${row.sku}: ${row.name}`
+                      : `Select standalone ${row.sku}: ${row.name}`;
+                    const variantIdsUnderLabel = isGroupLabel
+                      ? collectVariantIdsUnderParent(row.id, catalogRows, variantIdsByParentId)
+                      : [];
+                    const selectableUnderLabel = isGroupLabel
+                      ? variantIdsUnderLabel.filter((id) => !linkedIds.has(id))
+                      : [];
+                    const groupLabelAllOn =
+                      isGroupLabel &&
+                      selectableUnderLabel.length > 0 &&
+                      selectableUnderLabel.every((vid) => selectedIds.has(vid));
+                    const groupLabelSomeOn =
+                      isGroupLabel &&
+                      selectableUnderLabel.some((vid) => selectedIds.has(vid)) &&
+                      !groupLabelAllOn;
+                    const rowSelectionHighlight =
+                      !linked &&
+                      (selectedIds.has(row.id) ||
+                        (isGroupLabel && selectableUnderLabel.some((vid) => selectedIds.has(vid))));
+                    return (
+                      <tr
+                        key={row.id}
+                        className={cn(
+                          "border-b border-border/35 last:border-0 transition-colors",
+                          isVariant ?
+                            cn(
+                              "border-l-[3px] border-l-violet-500/70 bg-gradient-to-r from-violet-500/[0.11] via-violet-500/[0.04] to-transparent",
+                              "dark:border-l-violet-400/75 dark:from-violet-500/[0.14] dark:via-violet-950/25 dark:to-transparent",
+                            )
+                          : isGroupLabel ?
+                            cn(
+                              "border-l-[3px] border-l-amber-500/70 bg-gradient-to-r from-amber-500/[0.12] via-amber-500/[0.05] to-transparent",
+                              "dark:border-l-amber-400/65 dark:from-amber-500/[0.14] dark:via-amber-950/20",
+                            )
+                          : cn(
+                              "border-l-[3px] border-l-emerald-600/65 bg-emerald-500/[0.05] dark:border-l-emerald-500/55 dark:bg-emerald-500/[0.08]",
+                            ),
+                          linked && "bg-muted/25 text-muted-foreground",
+                          rowSelectionHighlight && "bg-primary/[0.06] ring-1 ring-inset ring-primary/20",
+                        )}
+                      >
+                        {canLinkProducts ? (
+                          <td className="px-3 py-2.5 align-middle">
+                            <input
+                              type="checkbox"
+                              className="rounded border-input"
+                              ref={(el) => {
+                                if (!el) {
+                                  return;
+                                }
+                                if (isGroupLabel) {
+                                  el.indeterminate = groupLabelSomeOn;
+                                } else {
+                                  el.indeterminate = false;
+                                }
+                              }}
+                              checked={isGroupLabel ? groupLabelAllOn : selectedIds.has(row.id)}
+                              disabled={
+                                linksBusy ||
+                                linked ||
+                                (isGroupLabel &&
+                                  (groupLabelFetchParentId === row.id || selectableUnderLabel.length === 0))
+                              }
+                              title={
+                                isGroupLabel ?
+                                  "Select or clear every option SKU in this group (loads the full variant list once)."
+                                : undefined
+                              }
+                              onChange={() =>
+                                isGroupLabel ? void toggleGroupLabelRow(row.id) : toggleRow(row.id)
+                              }
+                              aria-label={ariaForSelect}
+                            />
+                          </td>
+                        ) : (
+                          <td className="px-3 py-2.5" />
+                        )}
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-start gap-2">
+                            {thumb ? (
+                              <span className="relative mt-0.5 h-9 w-9 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                                <Image src={thumb} alt="" width={36} height={36} className="object-cover" />
+                              </span>
+                            ) : (
+                              <span className="mt-0.5 h-9 w-9 shrink-0 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30" />
+                            )}
+                            <span className="min-w-0">
+                              <span
+                                className={cn(
+                                  "flex flex-wrap items-center gap-x-1.5 gap-y-0.5",
+                                  isVariant ? "items-start" : "items-center",
+                                )}
+                              >
+                                {isVariant ? (
+                                  <span
+                                    className="relative mt-0.5 flex shrink-0 text-violet-500/70 dark:text-violet-400/85"
+                                    aria-hidden
+                                  >
+                                    <CornerDownRight className="size-3.5 drop-shadow-[0_0_6px_rgba(139,92,246,0.25)]" />
+                                  </span>
+                                ) : null}
+                                {isVariant ? (
+                                  <Layers
+                                    className="mt-0.5 size-3.5 shrink-0 text-violet-600 dark:text-violet-400"
+                                    aria-hidden
+                                  />
+                                ) : isGroupLabel ? (
+                                  <Tag className="size-3.5 shrink-0 text-amber-800 dark:text-amber-200" aria-hidden />
+                                ) : (
+                                  <Package
+                                    className="size-3.5 shrink-0 text-emerald-700 dark:text-emerald-400"
+                                    aria-hidden
+                                  />
+                                )}
+                                {isVariant ? (
+                                  <span className="mt-0.5 shrink-0 rounded-md bg-violet-500/20 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-violet-950 ring-1 ring-violet-500/35 dark:text-violet-100 dark:ring-violet-400/30">
+                                    Option
+                                  </span>
+                                ) : isGroupLabel ? (
+                                  <span className="shrink-0 rounded-md bg-amber-500/25 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-amber-950 ring-1 ring-amber-600/30 dark:text-amber-50 dark:ring-amber-400/40">
+                                    Label
+                                  </span>
+                                ) : (
+                                  <span className="shrink-0 rounded-md bg-emerald-500/20 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-emerald-950 ring-1 ring-emerald-600/30 dark:text-emerald-50 dark:ring-emerald-400/35">
+                                    Standalone
+                                  </span>
+                                )}
+                                <span
+                                  className={cn(
+                                    "min-w-0 font-medium leading-snug text-foreground",
+                                    isVariant ? "mt-0.5 text-[13px]" : "",
+                                  )}
+                                >
+                                  {row.name}
+                                </span>
+                                {linked ? (
+                                  <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-emerald-800 dark:text-emerald-300">
+                                    Linked
+                                  </span>
+                                ) : null}
+                              </span>
+                              {isVariant && optionLabel ? (
+                                <span className="mt-1 block border-l-2 border-violet-400/25 pl-2.5 text-[11px] font-medium leading-snug text-violet-900/90 dark:border-violet-400/35 dark:text-violet-200/95">
+                                  <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600/80 dark:text-violet-300/90">
+                                    Option
+                                  </span>
+                                  <span className="mx-1.5 text-muted-foreground/70">·</span>
+                                  <span>{optionLabel}</span>
+                                </span>
+                              ) : null}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 align-top font-mono text-[11px] text-muted-foreground">
+                          {row.sku || "—"}
+                        </td>
+                        <td className="max-w-[10rem] truncate px-3 py-2.5 align-top text-muted-foreground">
+                          {catLabel}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+
+        {catalogMeta && !catalogMeta.last ? (
+          <div className="shrink-0 border-t border-border/50 bg-muted/10 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 font-medium"
+              disabled={catalogLoadingMore || catalogLoading}
+              onClick={() => void loadMore()}
+            >
+              {catalogLoadingMore ? "Loading…" : "Load more results"}
+            </Button>
+          </div>
+        ) : null}
+
+        {canLinkProducts ? (
+          <>
+            <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-border/50 bg-gradient-to-r from-muted/25 to-transparent px-4 py-3.5">
+              <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
+                {selectedIds.size === 0 ? (
+                  <>
+                    Select rows in the table above, then open <span className="font-semibold text-foreground">Link products</span>{" "}
+                    to set supplier SKU, default cost, and primary.
+                  </>
+                ) : (
+                  <>
+                    <span className="tabular-nums font-semibold text-foreground">{selectedIds.size}</span> selected — ready
+                    to attach.
+                  </>
+                )}
+              </p>
+              <Button
+                type="button"
+                className="h-9 shrink-0 gap-2 font-semibold shadow-sm"
+                disabled={selectedIds.size === 0 || linksBusy}
+                onClick={() => setLinkDrawerOpen(true)}
+              >
+                <Link2 className="size-3.5" aria-hidden />
+                Link products
+              </Button>
+            </div>
+            <FormDrawer
+              open={linkDrawerOpen}
+              onOpenChange={(open) => {
+                setLinkDrawerOpen(open);
+                if (!open) {
+                  setLinkFormError(null);
+                }
+              }}
+              title="Link to this supplier"
+              description={`Attaches ${selectedIds.size} selected catalog item(s).`}
+              contextLabel="Catalog"
+              icon={<Link2 className="size-5 text-violet-600 dark:text-violet-400" aria-hidden />}
+              width="wide"
+              footer={
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setLinkDrawerOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="supplier-catalog-link-form"
+                    disabled={linksBusy || selectedIds.size === 0}
+                  >
+                    {linksBusy ?
+                      "Saving…"
+                    : selectedIds.size <= 1 ?
+                      "Link selected"
+                    : `Link ${selectedIds.size} products`}
+                  </Button>
+                </div>
+              }
+            >
+              <form
+                id="supplier-catalog-link-form"
+                className="space-y-4"
+                onSubmit={(e) => void onSubmitLink(e)}
+              >
+                <div className="flex flex-wrap items-end gap-4">
+                  <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+                    <span className={supFieldLabel}>Supplier SKU (optional)</span>
+                    <input
+                      className={supInput}
+                      value={linkSku}
+                      onChange={(e) => setLinkSku(e.target.value)}
+                      aria-label="Supplier SKU"
+                    />
+                  </label>
+                  <label className="flex min-w-[9rem] flex-col gap-1.5">
+                    <span className={supFieldLabel}>Default cost (optional)</span>
+                    <input
+                      className={cn(supInput, "w-full max-w-[10rem] tabular-nums")}
+                      inputMode="decimal"
+                      value={linkCostStr}
+                      onChange={(e) => setLinkCostStr(e.target.value)}
+                      aria-label="Default cost"
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2.5 pb-2 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-input"
+                      checked={linkPrimary}
+                      onChange={(e) => setLinkPrimary(e.target.checked)}
+                      disabled={selectedIds.size !== 1}
+                    />
+                    Set as primary (single selection)
+                  </label>
+                </div>
+                {linkFormError ? <p className="text-xs text-destructive">{linkFormError}</p> : null}
+              </form>
+            </FormDrawer>
+          </>
+        ) : (
+          <p className="shrink-0 border-t border-border/50 bg-muted/10 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">Permission required.</span>{" "}
+            <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+              {Permission.CatalogItemsLinkSuppliers}
+            </code>{" "}
+            to link products from this workspace.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,13 +1,21 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-import Image from "next/image";
-import { CircleDollarSign, LayoutGrid, Package, Plus, Truck } from "lucide-react";
+import {
+  Building2,
+  ChevronRight,
+  CircleDollarSign,
+  LayoutGrid,
+  Link2,
+  Package,
+  PencilLine,
+  Plus,
+  Search,
+  Truck,
+  UserPlus,
+} from "lucide-react";
 
 import {
-  DASHBOARD_MAX_WIDE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
@@ -23,17 +31,14 @@ import {
   createSupplier,
   createSupplierContact,
   deleteItemSupplierLink,
-  fetchItems,
   fetchSupplierById,
   fetchSupplierContacts,
   fetchSupplierItemLinks,
-  fetchSuppliers,
-  itemListThumbnailUrl,
+  fetchSuppliersPage,
   patchSupplier,
   postItemSupplierLinkSetPrimary,
   type CreateSupplierContactPayload,
   type CreateSupplierPayload,
-  type ItemSummaryRecord,
   type SupplierContactRecord,
   type SupplierItemLinkRecord,
   type SupplierRecord,
@@ -41,146 +46,20 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-const SUPPLIER_STATUS_OPTIONS = ["active", "inactive", "blocked"] as const;
-
-type SupplierProfileDraft = {
-  name: string;
-  code: string;
-  supplierType: string;
-  status: string;
-  notes: string;
-};
-
-const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
-  name: "",
-  code: "",
-  supplierType: "distributor",
-  status: "active",
-  notes: "",
-};
-
-function formatShortDate(iso: string | null | undefined): string {
-  if (!iso?.trim()) {
-    return "—";
-  }
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function SupplierCommercialSection({ s }: { s: SupplierRecord }) {
-  const rows: { label: string; value: ReactNode }[] = [
-    { label: "VAT PIN", value: s.vatPin?.trim() || "—" },
-    { label: "Tax exempt", value: s.taxExempt ? "Yes" : "No" },
-    {
-      label: "Credit terms",
-      value: s.creditTermsDays != null ? `${s.creditTermsDays} days` : "—",
-    },
-    {
-      label: "Credit limit",
-      value: s.creditLimit != null && Number.isFinite(s.creditLimit) ? String(s.creditLimit) : "—",
-    },
-    { label: "Rating", value: s.rating != null ? String(s.rating) : "—" },
-    { label: "Preferred payment", value: s.paymentMethodPreferred?.trim() || "—" },
-    {
-      label: "Payment details",
-      value: s.paymentDetails?.trim() ? (
-        <span className="whitespace-pre-wrap text-sm">{s.paymentDetails}</span>
-      ) : (
-        "—"
-      ),
-    },
-    { label: "Record version", value: String(s.version) },
-    { label: "Created", value: formatShortDate(s.createdAt) },
-    { label: "Last updated", value: formatShortDate(s.updatedAt) },
-  ];
-  return (
-    <div className="rounded-md border border-border/60 bg-muted/10 p-4 text-sm">
-      <h3 className="mb-1 font-medium text-foreground">Commercial &amp; payments</h3>
-      <p className="mb-3 text-xs text-muted-foreground">
-        From your ERP / provisioning profile. These fields are not editable on this screen yet.
-      </p>
-      <dl className="grid gap-3 sm:grid-cols-2">
-        {rows.map(({ label, value }) => (
-          <div key={label}>
-            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-0.5 text-foreground">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-function SupplierProfileFields({
-  draft,
-  onDraftChange,
-}: {
-  draft: SupplierProfileDraft;
-  onDraftChange: (partial: Partial<SupplierProfileDraft>) => void;
-}) {
-  return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <label className="flex flex-col gap-1 sm:col-span-2">
-        <span className="text-muted-foreground">Name</span>
-        <input
-          className="rounded border bg-background px-2 py-1.5"
-          value={draft.name}
-          onChange={(e) => onDraftChange({ name: e.target.value })}
-          required
-        />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="text-muted-foreground">Code (optional)</span>
-        <input
-          className="rounded border bg-background px-2 py-1.5"
-          value={draft.code}
-          onChange={(e) => onDraftChange({ code: e.target.value })}
-          maxLength={64}
-        />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="text-muted-foreground">Type</span>
-        <input
-          className="rounded border bg-background px-2 py-1.5"
-          value={draft.supplierType}
-          onChange={(e) => onDraftChange({ supplierType: e.target.value })}
-          placeholder="e.g. distributor"
-        />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="text-muted-foreground">Status</span>
-        <select
-          className="rounded border bg-background px-2 py-1.5"
-          value={draft.status}
-          onChange={(e) => onDraftChange({ status: e.target.value })}
-        >
-          {(SUPPLIER_STATUS_OPTIONS as readonly string[]).includes(draft.status) ? null : (
-            <option value={draft.status}>{draft.status}</option>
-          )}
-          {SUPPLIER_STATUS_OPTIONS.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 sm:col-span-2">
-        <span className="text-muted-foreground">Notes</span>
-        <textarea
-          className="min-h-[4rem] rounded border bg-background px-2 py-1.5"
-          value={draft.notes}
-          onChange={(e) => onDraftChange({ notes: e.target.value })}
-        />
-      </label>
-    </div>
-  );
-}
+import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
+import { SupplierEditColumn } from "./_components/SupplierEditColumn";
+import { EMPTY_SUPPLIER_PROFILE, SupplierProfileFields, type SupplierProfileDraft } from "./_components/supplier-profile-shared";
+import {
+  supFieldLabel,
+  supInput,
+  supPanelBody,
+  supPanelHeader,
+  supPanelKicker,
+  supPanelKickerViolet,
+  supPanelShell,
+  supSelect,
+} from "./_components/supplier-ui-tokens";
+import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
 export default function SuppliersPage() {
   const { me, loading } = useDashboard();
@@ -194,7 +73,14 @@ export default function SuppliersPage() {
     null,
   );
   const [rows, setRows] = useState<SupplierRecord[]>([]);
-  const [listLoading, setListLoading] = useState(false);
+  const [listTotalElements, setListTotalElements] = useState(0);
+  const [listLast, setListLast] = useState(true);
+  const [listLoadingInitial, setListLoadingInitial] = useState(false);
+  const [listLoadingMore, setListLoadingMore] = useState(false);
+  const nextListPageRef = useRef(0);
+  const [listSearch, setListSearch] = useState("");
+  const [debouncedListSearch, setDebouncedListSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SupplierRecord | null>(null);
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
@@ -207,14 +93,13 @@ export default function SuppliersPage() {
     phone: "",
   });
   const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
-  const [productSearch, setProductSearch] = useState("");
-  const [productHits, setProductHits] = useState<ItemSummaryRecord[]>([]);
-  const [pickedItemId, setPickedItemId] = useState("");
-  const [linkSku, setLinkSku] = useState("");
-  const [linkCostStr, setLinkCostStr] = useState("");
-  const [linkPrimary, setLinkPrimary] = useState(false);
   const [linksBusy, setLinksBusy] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
+  const [isXl, setIsXl] = useState(false);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
+  const [profileEditDrawerOpen, setProfileEditDrawerOpen] = useState(false);
+  const [addContactDrawerOpen, setAddContactDrawerOpen] = useState(false);
   const skipCreateDrawerResetAfterCreate = useRef(false);
 
   const resetCreateDraft = useCallback(() => {
@@ -232,38 +117,120 @@ export default function SuppliersPage() {
     setCreateDrawerOpen(open);
   };
 
-  const refreshList = useCallback(async () => {
-    setListLoading(true);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedListSearch(listSearch.trim()), 280);
+    return () => window.clearTimeout(id);
+  }, [listSearch]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        const t = event.target;
+        if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) {
+          return;
+        }
+        event.preventDefault();
+        document.getElementById("supplier-directory-search")?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const refreshFullDirectory = useCallback(async () => {
+    setListLoadingInitial(true);
     setFeedback(null);
+    nextListPageRef.current = 0;
     try {
-      setRows(await fetchSuppliers());
+      const page = await fetchSuppliersPage({
+        search: debouncedListSearch || undefined,
+        status: statusFilter.trim() || undefined,
+        page: 0,
+        size: 80,
+      });
+      setRows(page.content);
+      setListTotalElements(page.totalElements);
+      setListLast(page.last);
+      nextListPageRef.current = page.last ? 0 : 1;
     } catch (error) {
       setFeedback({
         text: error instanceof Error ? error.message : "Failed to load suppliers.",
         kind: "error",
       });
     } finally {
-      setListLoading(false);
+      setListLoadingInitial(false);
     }
+  }, [debouncedListSearch, statusFilter]);
+
+  const loadMoreDirectory = useCallback(async () => {
+    if (listLast || listLoadingMore || listLoadingInitial || nextListPageRef.current <= 0) {
+      return;
+    }
+    setListLoadingMore(true);
+    try {
+      const pagen = nextListPageRef.current;
+      const page = await fetchSuppliersPage({
+        search: debouncedListSearch || undefined,
+        status: statusFilter.trim() || undefined,
+        page: pagen,
+        size: 80,
+      });
+      setRows((prev) => [...prev, ...page.content]);
+      setListLast(page.last);
+      nextListPageRef.current = page.last ? 0 : pagen + 1;
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : "Failed to load more suppliers.",
+        kind: "error",
+      });
+    } finally {
+      setListLoadingMore(false);
+    }
+  }, [
+    listLast,
+    listLoadingMore,
+    listLoadingInitial,
+    debouncedListSearch,
+    statusFilter,
+  ]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const sync = () => setIsXl(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (!detail) {
+      setEditDrawerOpen(false);
+      setCatalogDrawerOpen(false);
+      setProfileEditDrawerOpen(false);
+      setAddContactDrawerOpen(false);
+    }
+  }, [detail]);
+
+  useEffect(() => {
+    if (isXl) {
+      setEditDrawerOpen(false);
+      setCatalogDrawerOpen(false);
+    }
+  }, [isXl]);
+
+  const refreshList = refreshFullDirectory;
 
   useEffect(() => {
     if (loading || !canRead) {
       return;
     }
     void refreshList();
-  }, [loading, canRead, refreshList]);
+  }, [loading, canRead, refreshFullDirectory]);
 
   const onSelectSupplier = async (id: string) => {
     selectionRef.current = id;
     setSelectedId(id);
     setFeedback(null);
-    setProductSearch("");
-    setProductHits([]);
-    setPickedItemId("");
-    setLinkSku("");
-    setLinkCostStr("");
-    setLinkPrimary(false);
     try {
       const [d, c, links] = await Promise.all([
         fetchSupplierById(id),
@@ -282,6 +249,13 @@ export default function SuppliersPage() {
         supplierType: d.supplierType,
         status: d.status,
         notes: d.notes ?? "",
+        vatPin: d.vatPin ?? "",
+        taxExempt: Boolean(d.taxExempt),
+        creditTermsDays: d.creditTermsDays != null ? String(d.creditTermsDays) : "",
+        creditLimit:
+          d.creditLimit != null && Number.isFinite(Number(d.creditLimit)) ? String(d.creditLimit) : "",
+        paymentMethodPreferred: d.paymentMethodPreferred ?? "",
+        paymentDetails: d.paymentDetails ?? "",
       });
     } catch (error) {
       if (selectionRef.current === id) {
@@ -296,23 +270,6 @@ export default function SuppliersPage() {
     }
   };
 
-  useEffect(() => {
-    if (!selectedId || !canReadCatalog) {
-      return;
-    }
-    const q = productSearch.trim();
-    if (!q) {
-      setProductHits([]);
-      return;
-    }
-    const t = window.setTimeout(() => {
-      fetchItems(q)
-        .then(setProductHits)
-        .catch(() => setProductHits([]));
-    }, 320);
-    return () => window.clearTimeout(t);
-  }, [selectedId, productSearch, canReadCatalog]);
-
   const onCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!createDraft.name.trim()) {
@@ -321,12 +278,40 @@ export default function SuppliersPage() {
     setFeedback(null);
     try {
       const codeTrim = createDraft.code.trim();
+      const creditTermsRaw = createDraft.creditTermsDays.trim();
+      let creditTermsDays: number | undefined;
+      if (creditTermsRaw.length > 0) {
+        const n = parseInt(creditTermsRaw, 10);
+        if (!Number.isFinite(n) || n < 0) {
+          setFeedback({ text: "Credit terms must be a non-negative whole number.", kind: "error" });
+          return;
+        }
+        creditTermsDays = n;
+      }
+      const creditLimitRaw = createDraft.creditLimit.trim();
+      let creditLimit: number | undefined;
+      if (creditLimitRaw.length > 0) {
+        const n = Number(creditLimitRaw);
+        if (!Number.isFinite(n) || n < 0) {
+          setFeedback({ text: "Credit limit must be a valid non-negative number.", kind: "error" });
+          return;
+        }
+        creditLimit = n;
+      }
+      const vatTrim = createDraft.vatPin.trim();
+      const payPrefTrim = createDraft.paymentMethodPreferred.trim();
       const body: CreateSupplierPayload = {
         name: createDraft.name.trim(),
         ...(codeTrim ? { code: codeTrim } : {}),
         supplierType: createDraft.supplierType.trim() || undefined,
         status: createDraft.status.trim() || undefined,
         notes: createDraft.notes.trim() || undefined,
+        ...(vatTrim ? { vatPin: vatTrim } : {}),
+        taxExempt: createDraft.taxExempt,
+        ...(creditTermsDays != null ? { creditTermsDays } : {}),
+        ...(creditLimit != null ? { creditLimit } : {}),
+        ...(payPrefTrim ? { paymentMethodPreferred: payPrefTrim } : {}),
+        ...(createDraft.paymentDetails.trim() ? { paymentDetails: createDraft.paymentDetails.trim() } : {}),
       };
       const created = await createSupplier(body);
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
@@ -351,15 +336,56 @@ export default function SuppliersPage() {
     setFeedback(null);
     try {
       const codeTrim = patchDraft.code.trim();
+      const creditTermsRaw = patchDraft.creditTermsDays.trim();
+      let creditTermsDays: number | undefined;
+      if (creditTermsRaw.length > 0) {
+        const n = parseInt(creditTermsRaw, 10);
+        if (!Number.isFinite(n) || n < 0) {
+          setFeedback({ text: "Credit terms must be a non-negative whole number.", kind: "error" });
+          return;
+        }
+        creditTermsDays = n;
+      }
+      const creditLimitRaw = patchDraft.creditLimit.trim();
+      let creditLimit: number | undefined;
+      if (creditLimitRaw.length > 0) {
+        const n = Number(creditLimitRaw);
+        if (!Number.isFinite(n) || n < 0) {
+          setFeedback({ text: "Credit limit must be a valid non-negative number.", kind: "error" });
+          return;
+        }
+        creditLimit = n;
+      }
       const next = await patchSupplier(selectedId, {
         name: patchDraft.name.trim(),
         code: codeTrim.length > 0 ? codeTrim : "",
         supplierType: patchDraft.supplierType.trim() || undefined,
         status: patchDraft.status.trim() || undefined,
-        notes: patchDraft.notes.trim() || undefined,
+        notes: patchDraft.notes.trim(),
+        vatPin: patchDraft.vatPin.trim(),
+        taxExempt: patchDraft.taxExempt,
+        ...(creditTermsDays != null ? { creditTermsDays } : {}),
+        ...(creditLimit != null ? { creditLimit } : {}),
+        paymentMethodPreferred: patchDraft.paymentMethodPreferred.trim(),
+        paymentDetails: patchDraft.paymentDetails.trim(),
       });
       setDetail(next);
+      setPatchDraft({
+        name: next.name,
+        code: next.code ?? "",
+        supplierType: next.supplierType,
+        status: next.status,
+        notes: next.notes ?? "",
+        vatPin: next.vatPin ?? "",
+        taxExempt: Boolean(next.taxExempt),
+        creditTermsDays: next.creditTermsDays != null ? String(next.creditTermsDays) : "",
+        creditLimit:
+          next.creditLimit != null && Number.isFinite(Number(next.creditLimit)) ? String(next.creditLimit) : "",
+        paymentMethodPreferred: next.paymentMethodPreferred ?? "",
+        paymentDetails: next.paymentDetails ?? "",
+      });
       await refreshList();
+      setProfileEditDrawerOpen(false);
       setFeedback({ text: "Supplier updated.", kind: "success" });
     } catch (error) {
       setFeedback({
@@ -380,47 +406,39 @@ export default function SuppliersPage() {
     }
   }, [selectedId, canReadCatalog]);
 
-  const onLinkProduct = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!selectedId || !pickedItemId.trim()) {
-      return;
+  const onLinkCatalogItems = async (
+    itemIds: string[],
+    opts: { supplierSku?: string; defaultCostPrice?: number; setPrimaryForFirst?: boolean },
+  ) => {
+    if (!selectedId || itemIds.length === 0) {
+      throw new Error("Nothing to link.");
     }
     if (!canLinkProducts) {
-      return;
+      throw new Error("Not allowed.");
     }
     setLinksBusy(true);
     setFeedback(null);
     try {
-      const costRaw = linkCostStr.trim();
-      let defaultCostPrice: number | undefined;
-      if (costRaw.length > 0) {
-        const n = Number(costRaw);
-        if (!Number.isFinite(n) || n < 0) {
-          setFeedback({ text: "Default cost must be a valid non-negative number.", kind: "error" });
-          setLinksBusy(false);
-          return;
-        }
-        defaultCostPrice = n;
+      let primaryLeft = opts.setPrimaryForFirst === true;
+      for (const itemId of itemIds) {
+        await addItemSupplierLink(itemId, {
+          supplierId: selectedId,
+          supplierSku: opts.supplierSku,
+          defaultCostPrice: opts.defaultCostPrice,
+          setPrimary: primaryLeft ? true : undefined,
+        });
+        primaryLeft = false;
       }
-      await addItemSupplierLink(pickedItemId.trim(), {
-        supplierId: selectedId,
-        supplierSku: linkSku.trim() || undefined,
-        defaultCostPrice,
-        setPrimary: linkPrimary || undefined,
-      });
-      setPickedItemId("");
-      setLinkSku("");
-      setLinkCostStr("");
-      setLinkPrimary(false);
-      setProductSearch("");
-      setProductHits([]);
       await refreshItemLinks();
-      setFeedback({ text: "Product linked to this supplier.", kind: "success" });
-    } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Link failed.",
-        kind: "error",
+        text:
+          itemIds.length === 1 ? "Product linked to this supplier." : `Linked ${itemIds.length} products.`,
+        kind: "success",
       });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Link failed.";
+      setFeedback({ text: msg, kind: "error" });
+      throw error instanceof Error ? error : new Error(msg);
     } finally {
       setLinksBusy(false);
     }
@@ -481,6 +499,7 @@ export default function SuppliersPage() {
       });
       setContactDraft({ name: "", roleLabel: "", email: "", phone: "" });
       setContacts(await fetchSupplierContacts(selectedId));
+      setAddContactDrawerOpen(false);
       setFeedback({ text: "Contact added.", kind: "success" });
     } catch (error) {
       setFeedback({
@@ -512,473 +531,453 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className={DASHBOARD_MAX_WIDE}>
-      <div className="space-y-8">
-      <header className="space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <DashboardPageHero
-            icon={Truck}
-            eyebrow="Purchasing"
-            title="Suppliers"
-            description={
-              <>
-                Use <span className="font-medium text-foreground">New supplier</span> to open the drawer with profile
-                fields, or pick one from the list to edit details, contacts, and (with catalog access) linked products.
-                Linking uses{" "}
-                <code className="text-xs">POST /api/v1/items/&#123;itemId&#125;/supplier-links</code>.
-              </>
-            }
+    <div className="relative -mx-6 flex min-h-[calc(100dvh-4.25rem)] w-[calc(100%+3rem)] max-w-none flex-col gap-4 px-4 pb-6 sm:px-6 lg:gap-5">
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[120px] w-[min(100%,52rem)] max-w-full -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,hsl(var(--primary)/0.08),transparent_72%)] opacity-90 dark:opacity-50"
+        aria-hidden
+      />
+
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4 lg:gap-5">
+        <div
+          className={cn(
+            "relative shrink-0 overflow-hidden rounded-2xl border border-border/60 p-4 shadow-sm sm:p-5",
+            "bg-gradient-to-br from-card via-card to-primary/[0.04] ring-1 ring-black/[0.03] backdrop-blur-sm dark:from-card/95 dark:to-primary/[0.05] dark:ring-white/[0.06]",
+          )}
+        >
+          <div
+            className="pointer-events-none absolute -right-12 -top-12 size-28 rounded-full bg-primary/[0.06] blur-2xl"
+            aria-hidden
           />
-          {canWrite ? (
-            <Button
-              type="button"
-              size="lg"
-              className="gap-2 self-start shadow-md lg:shrink-0"
-              disabled={listLoading}
-              onClick={() => {
-                skipCreateDrawerResetAfterCreate.current = false;
-                setCreateDrawerOpen(true);
-              }}
-            >
-              <Plus className="size-4" aria-hidden />
-              New supplier
-            </Button>
-          ) : null}
-        </div>
-        <DashboardQuickLinks
-          links={[
-            { href: APP_ROUTES.products, label: "Products", desc: "Link items", icon: Package },
-            { href: APP_ROUTES.categories, label: "Categories", desc: "Aisles", icon: LayoutGrid },
-            { href: APP_ROUTES.purchasingIntelligence, label: "Intelligence", desc: "Spend", icon: CircleDollarSign },
-          ]}
-        />
-      </header>
-
-      {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" disabled={listLoading} onClick={() => void refreshList()}>
-          {listLoading ? "Loading…" : "Refresh list"}
-        </Button>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-md border">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b bg-muted/40">
-              <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Code</th>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-                    No suppliers. Refresh{canWrite ? " or use New supplier in the header" : ""}.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-0 py-0">
-                      <button
-                        type="button"
-                        className={cn(
-                          "w-full px-3 py-2 text-left hover:bg-accent/60",
-                          selectedId === row.id && "bg-accent",
-                        )}
-                        onClick={() => void onSelectSupplier(row.id)}
-                      >
-                        {row.name}
-                      </button>
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{row.code?.trim() || "—"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.supplierType}</td>
-                    <td className="px-3 py-2">{row.status}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <header className="relative space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+              <DashboardPageHero
+                compact
+                icon={Truck}
+                eyebrow="Purchasing"
+                title="Suppliers"
+                description={
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Search and filter server-side, work in a fast virtualized directory, then manage profile and
+                    catalog links in place.{" "}
+                    <kbd className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                      /
+                    </kbd>{" "}
+                    focuses search.
+                  </p>
+                }
+              />
+              {canWrite ? (
+                <Button
+                  type="button"
+                  className="h-10 shrink-0 gap-2 rounded-lg px-5 text-sm font-semibold shadow-md shadow-primary/15"
+                  disabled={listLoadingInitial}
+                  onClick={() => {
+                    skipCreateDrawerResetAfterCreate.current = false;
+                    setCreateDrawerOpen(true);
+                  }}
+                >
+                  <Plus className="size-4" aria-hidden />
+                  New supplier
+                </Button>
+              ) : null}
+            </div>
+            <DashboardQuickLinks
+              compact
+              links={[
+                { href: APP_ROUTES.products, label: "Products", desc: "Link items", icon: Package },
+                { href: APP_ROUTES.categories, label: "Categories", desc: "Aisles", icon: LayoutGrid },
+                {
+                  href: APP_ROUTES.purchasingIntelligence,
+                  label: "Intelligence",
+                  desc: "Spend",
+                  icon: CircleDollarSign,
+                },
+              ]}
+            />
+          </header>
         </div>
 
-        <div className="space-y-6">
-          {!detail ? (
-            <p className="text-sm text-muted-foreground">
-              Select a supplier from the list
-              {canWrite ? ", or use New supplier in the header." : "."}
-            </p>
-          ) : (
-            <>
-              <div className="rounded-md border p-4 text-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Supplier</p>
-                <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-semibold tracking-tight text-foreground">{detail.name}</h3>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="font-mono text-foreground">{detail.code?.trim() || "—"}</span>
-                      <span aria-hidden>·</span>
-                      <span>{detail.supplierType}</span>
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-                      detail.status === "active"
-                        ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-                        : "bg-muted text-muted-foreground",
-                    )}
+        {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+
+        {isXl ? (
+          <nav
+            className="flex flex-wrap items-center gap-2 rounded-xl border border-border/55 bg-muted/30 px-3 py-3 shadow-sm sm:gap-3 sm:px-4"
+            aria-label="Workspace steps"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Steps</span>
+            <ol className="flex flex-1 flex-wrap items-center gap-1.5 sm:gap-2">
+              <li className="inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/55 dark:bg-card">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                  1
+                </span>
+                Directory
+              </li>
+              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/45 max-sm:hidden" aria-hidden />
+              <li className="inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/55 dark:bg-card">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                  2
+                </span>
+                Profile &amp; contacts
+              </li>
+              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/45 max-sm:hidden" aria-hidden />
+              <li className="inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/55 dark:bg-card">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
+                  3
+                </span>
+                Catalog &amp; links
+              </li>
+            </ol>
+          </nav>
+        ) : null}
+
+        <div
+          className={cn(
+            "grid min-h-0 flex-1 gap-4 lg:gap-5",
+            isXl && "xl:grid-cols-[minmax(16rem,21rem)_minmax(0,1fr)_minmax(0,1fr)]",
+          )}
+        >
+          <div className="flex min-h-0 min-w-0 flex-col gap-3">
+            <div className="shrink-0 rounded-lg border border-border/55 bg-muted/35 px-3 py-2 xl:hidden">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Directory</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                Search and select a supplier to load details.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3 shadow-sm sm:px-4 sm:py-3.5">
+              <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+                <span className={supFieldLabel}>Search</span>
+                <span className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70"
+                    aria-hidden
+                  />
+                  <input
+                    id="supplier-directory-search"
+                    className={cn(supInput, "pl-10")}
+                    placeholder="Name or vendor code…"
+                    value={listSearch}
+                    onChange={(e) => setListSearch(e.target.value)}
+                    aria-label="Search suppliers"
+                  />
+                </span>
+              </label>
+              <label className="flex min-w-[8.5rem] flex-col gap-1.5">
+                <span className={supFieldLabel}>Status</span>
+                <select
+                  className={supSelect}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  aria-label="Filter by status"
+                >
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 shrink-0 border-border/70 px-4 font-medium"
+                disabled={listLoadingInitial}
+                onClick={() => void refreshFullDirectory()}
+              >
+                {listLoadingInitial ? "Loading…" : "Refresh"}
+              </Button>
+            </div>
+            <VirtualizedSupplierList
+              rows={rows}
+              selectedId={selectedId}
+              totalLoaded={rows.length}
+              totalElements={listTotalElements}
+              onRowClick={(id) => void onSelectSupplier(id)}
+              loadingInitial={listLoadingInitial}
+              loadingMore={listLoadingMore}
+              hasMore={!listLast}
+              onLoadMore={loadMoreDirectory}
+            />
+            {!isXl && detail ? (
+              <div className="flex shrink-0 flex-wrap gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] p-3 shadow-sm dark:bg-primary/[0.08]">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 gap-2 font-medium shadow-sm"
+                  onClick={() => setEditDrawerOpen(true)}
+                >
+                  <Building2 className="size-3.5" aria-hidden />
+                  Supplier details
+                </Button>
+                {canReadCatalog ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-9 gap-2 font-medium shadow-sm"
+                    onClick={() => setCatalogDrawerOpen(true)}
                   >
-                    {detail.status}
-                  </span>
-                </div>
-                {(() => {
-                  const p = contacts.find((c) => c.primaryContact);
-                  if (!p) {
-                    return null;
-                  }
-                  const hasAny = Boolean(p.name?.trim() || p.roleLabel?.trim() || p.email?.trim() || p.phone?.trim());
-                  if (!hasAny) {
-                    return null;
-                  }
-                  return (
-                    <p className="mt-3 border-t border-border/40 pt-3 text-xs leading-relaxed text-muted-foreground">
-                      <span className="font-medium text-foreground">Primary contact</span>
-                      {p.name?.trim() ? (
-                        <>
-                          {" · "}
-                          <span className="text-foreground">{p.name.trim()}</span>
-                        </>
-                      ) : null}
-                      {p.roleLabel?.trim() ? <span> · {p.roleLabel.trim()}</span> : null}
-                      {p.email?.trim() ? (
-                        <>
-                          {" · "}
-                          <a
-                            href={`mailto:${p.email.trim()}`}
-                            className="text-primary underline-offset-2 hover:underline"
-                          >
-                            {p.email.trim()}
-                          </a>
-                        </>
-                      ) : null}
-                      {p.phone?.trim() ? (
-                        <>
-                          {" · "}
-                          <a
-                            href={`tel:${p.phone.trim().replace(/\s+/g, "")}`}
-                            className="text-primary underline-offset-2 hover:underline"
-                          >
-                            {p.phone.trim()}
-                          </a>
-                        </>
-                      ) : null}
-                    </p>
-                  );
-                })()}
-                <dl className="mt-3 grid gap-1 border-t border-border/40 pt-3 text-muted-foreground">
-                  <div>
-                    <dt className="inline text-xs font-medium">ID </dt>
-                    <dd className="inline font-mono text-[11px] text-foreground">{detail.id}</dd>
-                  </div>
-                </dl>
-                <div className="mt-4">
-                  <SupplierCommercialSection s={detail} />
-                </div>
-                {!canWrite ? (
-                  <dl className="mt-4 grid gap-2 border-t pt-4">
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Notes</dt>
-                      <dd className="whitespace-pre-wrap text-sm text-foreground">
-                        {detail.notes?.trim() ? detail.notes : "—"}
-                      </dd>
-                    </div>
-                  </dl>
-                ) : (
-                  <form className="mt-4 space-y-3 border-t pt-4" onSubmit={onPatchSave}>
-                    <p className="text-xs font-medium text-muted-foreground">Editable profile</p>
-                    <SupplierProfileFields
-                      draft={patchDraft}
-                      onDraftChange={(partial) => setPatchDraft((p) => ({ ...p, ...partial }))}
-                    />
-                    <Button type="submit">Save changes</Button>
-                  </form>
-                )}
-              </div>
-
-              <div className="rounded-md border p-4 text-sm">
-                <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-                  <div>
-                    <h3 className="font-medium text-foreground">Contacts</h3>
-                    <p className="text-xs text-muted-foreground">People and ordering touchpoints for this vendor.</p>
-                  </div>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground tabular-nums">
-                    {contacts.length} total
-                  </span>
-                </div>
-                {contacts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No contacts yet.</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {contacts.map((c) => (
-                      <li
-                        key={c.id}
-                        className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-sm shadow-sm"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-medium text-foreground">{c.name?.trim() || "Unnamed contact"}</p>
-                            {c.roleLabel?.trim() ? (
-                              <p className="text-xs text-muted-foreground">{c.roleLabel.trim()}</p>
-                            ) : null}
-                          </div>
-                          {c.primaryContact ? (
-                            <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                              Primary
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-2 flex flex-col gap-1 text-xs">
-                          {c.email?.trim() ? (
-                            <a
-                              href={`mailto:${c.email.trim()}`}
-                              className="w-fit max-w-full truncate text-primary underline-offset-2 hover:underline"
-                            >
-                              {c.email.trim()}
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground">No email on file</span>
-                          )}
-                          {c.phone?.trim() ? (
-                            <a
-                              href={`tel:${c.phone.trim().replace(/\s+/g, "")}`}
-                              className="w-fit text-primary underline-offset-2 hover:underline"
-                            >
-                              {c.phone.trim()}
-                            </a>
-                          ) : null}
-                        </div>
-                        <p className="mt-2 font-mono text-[10px] text-muted-foreground/80">{c.id}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {canWrite ? (
-                  <form className="mt-4 space-y-3 border-t pt-4" onSubmit={onAddContact}>
-                    <p className="text-xs font-medium text-muted-foreground">Add contact</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <input
-                        placeholder="Name"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.name ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, name: e.target.value }))
-                        }
-                      />
-                      <input
-                        placeholder="Role / title (optional)"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.roleLabel ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, roleLabel: e.target.value }))
-                        }
-                      />
-                      <input
-                        placeholder="Email"
-                        type="email"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.email ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, email: e.target.value }))
-                        }
-                      />
-                      <input
-                        placeholder="Phone"
-                        className="rounded border bg-background px-2 py-1.5"
-                        value={contactDraft.phone ?? ""}
-                        onChange={(e) =>
-                          setContactDraft((d) => ({ ...d, phone: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <Button type="submit">Add contact</Button>
-                  </form>
+                    <Link2 className="size-3.5" aria-hidden />
+                    Catalog &amp; links
+                  </Button>
                 ) : null}
               </div>
+            ) : null}
+          </div>
 
-              {canReadCatalog ? (
-                <div className="rounded-md border p-4 text-sm">
-                  <h3 className="mb-2 font-medium">Linked products</h3>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    Items that reference this supplier. Primary flag is per product (one primary supplier per item).
-                  </p>
-                  {itemLinks.length === 0 ? (
-                    <p className="text-muted-foreground">No linked products yet.</p>
-                  ) : (
-                    <div className="overflow-x-auto rounded border">
-                      <table className="w-full text-left text-xs">
-                        <thead className="border-b bg-muted/40">
-                          <tr>
-                            <th className="px-2 py-1.5 font-medium">Product</th>
-                            <th className="px-2 py-1.5 font-medium">SKU</th>
-                            <th className="px-2 py-1.5 font-medium">Primary</th>
-                            <th className="px-2 py-1.5 font-medium">Supplier SKU</th>
-                            <th className="px-2 py-1.5 font-medium">Default cost</th>
-                            {canLinkProducts ? (
-                              <th className="px-2 py-1.5 font-medium">Actions</th>
-                            ) : null}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {itemLinks.map((row) => (
-                            <tr key={row.id} className="border-b border-muted/50 last:border-0">
-                              <td className="px-2 py-1.5">
-                                <span className="font-medium">{row.itemName || row.itemId}</span>
-                              </td>
-                              <td className="px-2 py-1.5 font-mono text-[11px]">{row.sku || "—"}</td>
-                              <td className="px-2 py-1.5">{row.primary ? "Yes" : "—"}</td>
-                              <td className="px-2 py-1.5">{row.supplierSku ?? "—"}</td>
-                              <td className="px-2 py-1.5 tabular-nums">
-                                {row.defaultCostPrice != null && row.defaultCostPrice !== ""
-                                  ? String(row.defaultCostPrice)
-                                  : "—"}
-                              </td>
-                              {canLinkProducts ? (
-                                <td className="px-2 py-1.5">
-                                  <div className="flex flex-wrap gap-1">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 text-[11px]"
-                                      disabled={linksBusy || row.primary || !row.active}
-                                      onClick={() => void onSetPrimaryLink(row)}
-                                    >
-                                      Set primary
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 text-[11px] text-destructive"
-                                      disabled={linksBusy}
-                                      onClick={() => void onRemoveLink(row)}
-                                    >
-                                      Remove
-                                    </Button>
-                                  </div>
-                                </td>
-                              ) : null}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+          {isXl ? (
+            <>
+              <aside className={supPanelShell}>
+                <div className={supPanelHeader}>
+                  <div className="flex items-start gap-2">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                      <Building2 className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className={supPanelKicker}>Workspace · Profile</p>
+                      <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">Supplier record</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        Identity snapshot, commercial summary, and contacts.
+                      </p>
                     </div>
-                  )}
-
-                  {canLinkProducts ? (
-                    <form className="mt-4 space-y-2 border-t pt-4" onSubmit={(e) => void onLinkProduct(e)}>
-                      <p className="text-xs font-medium text-muted-foreground">Link another product</p>
-                      <input
-                        className="w-full max-w-md rounded border bg-background px-2 py-1.5"
-                        placeholder="Search catalog by name or SKU…"
-                        value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
-                      />
-                      {productHits.length > 0 ? (
-                        <ul className="max-h-40 max-w-md overflow-auto rounded border bg-background text-xs">
-                          {productHits.map((h) => {
-                            const thumb = itemListThumbnailUrl(h);
-                            return (
-                              <li key={h.id}>
-                                <button
-                                  type="button"
-                                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-accent ${pickedItemId === h.id ? "bg-accent" : ""}`}
-                                  onClick={() => setPickedItemId(h.id)}
-                                >
-                                  {thumb ? (
-                                    <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded border bg-muted">
-                                      <Image
-                                        src={thumb}
-                                        alt=""
-                                        width={32}
-                                        height={32}
-                                        className="object-cover"
-                                      />
-                                    </span>
-                                  ) : (
-                                    <span className="h-8 w-8 shrink-0 rounded border border-dashed border-muted-foreground/25 bg-muted/30" />
-                                  )}
-                                  <span className="min-w-0">
-                                    {h.name}{" "}
-                                    <span className="text-muted-foreground">{h.sku}</span>
-                                  </span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : null}
-                      <div className="flex flex-wrap items-end gap-2">
-                        <label className="flex flex-col gap-1">
-                          <span className="text-xs text-muted-foreground">Supplier SKU (optional)</span>
-                          <input
-                            className="rounded border bg-background px-2 py-1.5"
-                            value={linkSku}
-                            onChange={(e) => setLinkSku(e.target.value)}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-1">
-                          <span className="text-xs text-muted-foreground">Default cost (optional)</span>
-                          <input
-                            className="w-28 rounded border bg-background px-2 py-1.5 tabular-nums"
-                            inputMode="decimal"
-                            value={linkCostStr}
-                            onChange={(e) => setLinkCostStr(e.target.value)}
-                          />
-                        </label>
-                        <label className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={linkPrimary}
-                            onChange={(e) => setLinkPrimary(e.target.checked)}
-                          />
-                          Set as primary for this item
-                        </label>
-                      </div>
-                      <Button type="submit" disabled={linksBusy || !pickedItemId.trim()}>
-                        {linksBusy ? "Saving…" : "Link selected product"}
-                      </Button>
-                    </form>
-                  ) : (
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      You need{" "}
-                      <code className="rounded bg-muted px-1">{Permission.CatalogItemsLinkSuppliers}</code> to
-                      add or remove links from here.
-                    </p>
-                  )}
+                  </div>
                 </div>
-              ) : (
-                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                  <code className="text-xs">{Permission.CatalogItemsRead}</code> is required to view or manage
-                  product links on this screen.
+                <div className={supPanelBody}>
+                  <SupplierEditColumn
+                    detail={detail}
+                    contacts={contacts}
+                    canWrite={canWrite}
+                    onEditProfile={
+                      canWrite ?
+                        () => {
+                          setProfileEditDrawerOpen(true);
+                        }
+                      : undefined
+                    }
+                    onAddContact={
+                      canWrite ?
+                        () => {
+                          setAddContactDrawerOpen(true);
+                        }
+                      : undefined
+                    }
+                  />
                 </div>
-              )}
+              </aside>
+              <aside className={cn(supPanelShell, "to-violet-500/[0.06] dark:to-violet-500/[0.09]")}>
+                <div className={supPanelHeader}>
+                  <div className="flex items-start gap-2">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/12 text-violet-700 dark:text-violet-300">
+                      <Link2 className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className={supPanelKickerViolet}>Workspace · Catalog</p>
+                      <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">Products &amp; links</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        Existing SKU links and catalog picker to attach more.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className={supPanelBody}>
+                  <SupplierCatalogColumn
+                    detail={detail}
+                    canReadCatalog={canReadCatalog}
+                    canLinkProducts={canLinkProducts}
+                    itemLinks={itemLinks}
+                    linksBusy={linksBusy}
+                    onRemoveLink={onRemoveLink}
+                    onSetPrimaryLink={onSetPrimaryLink}
+                    onLinkCatalogItems={onLinkCatalogItems}
+                  />
+                </div>
+              </aside>
             </>
-          )}
+          ) : null}
         </div>
-      </div>
-      </div>
+        </div>
+
+      {!isXl ? (
+        <>
+          <FormDrawer
+            open={editDrawerOpen}
+            onOpenChange={setEditDrawerOpen}
+            title="Supplier details"
+            description="Overview, commercial data, and contacts. Use the buttons below to edit the profile or add a contact."
+            contextLabel="Supplier record"
+            icon={<PencilLine className="size-5 text-primary" aria-hidden />}
+            width="wide"
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditDrawerOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            }
+          >
+            <SupplierEditColumn
+              detail={detail}
+              contacts={contacts}
+              canWrite={canWrite}
+              onEditProfile={
+                canWrite ?
+                  () => {
+                    setEditDrawerOpen(false);
+                    setProfileEditDrawerOpen(true);
+                  }
+                : undefined
+              }
+              onAddContact={
+                canWrite ?
+                  () => {
+                    setEditDrawerOpen(false);
+                    setAddContactDrawerOpen(true);
+                  }
+                : undefined
+              }
+            />
+          </FormDrawer>
+
+          <FormDrawer
+            open={catalogDrawerOpen}
+            onOpenChange={setCatalogDrawerOpen}
+            title="Catalog & links"
+            description="Browse the full catalog with filters and multi-select to attach items."
+            contextLabel="Catalog"
+            icon={<Link2 className="size-5 text-violet-600 dark:text-violet-400" aria-hidden />}
+            width="wide"
+            footer={
+              <div className="flex justify-end">
+                <Button type="button" variant="outline" onClick={() => setCatalogDrawerOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            }
+          >
+            <SupplierCatalogColumn
+              detail={detail}
+              canReadCatalog={canReadCatalog}
+              canLinkProducts={canLinkProducts}
+              itemLinks={itemLinks}
+              linksBusy={linksBusy}
+              onRemoveLink={onRemoveLink}
+              onSetPrimaryLink={onSetPrimaryLink}
+              onLinkCatalogItems={onLinkCatalogItems}
+            />
+          </FormDrawer>
+        </>
+      ) : null}
+
+      {canWrite && detail ? (
+        <>
+          <FormDrawer
+            open={profileEditDrawerOpen}
+            onOpenChange={setProfileEditDrawerOpen}
+            title="Edit profile"
+            description="Identity, notes, commercial data, and payment instructions."
+            contextLabel="Workspace"
+            icon={<PencilLine className="size-5 text-primary" aria-hidden />}
+            width="wide"
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setProfileEditDrawerOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" form="supplier-patch-form">
+                  Save changes
+                </Button>
+              </div>
+            }
+          >
+            <form id="supplier-patch-form" className="space-y-8" onSubmit={onPatchSave}>
+              <FormDrawerFields
+                legend="Supplier profile"
+                hint="All changes save to this supplier record and sync to the directory list."
+              >
+                <SupplierProfileFields
+                  draft={patchDraft}
+                  onDraftChange={(partial) => setPatchDraft((p) => ({ ...p, ...partial }))}
+                />
+              </FormDrawerFields>
+            </form>
+          </FormDrawer>
+
+          <FormDrawer
+            open={addContactDrawerOpen}
+            onOpenChange={setAddContactDrawerOpen}
+            title="Add contact"
+            description="Optional fields — include at least one way to reach this person."
+            contextLabel="Workspace"
+            icon={<UserPlus className="size-5 text-primary" aria-hidden />}
+            width="wide"
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setAddContactDrawerOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" form="supplier-add-contact-form">
+                  Add contact
+                </Button>
+              </div>
+            }
+          >
+            <form id="supplier-add-contact-form" className="space-y-5" onSubmit={onAddContact}>
+              <FormDrawerFields legend="Contact details" hint="Stored against this supplier only.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 sm:col-span-2">
+                    <span className={supFieldLabel}>Full name</span>
+                    <input
+                      className={supInput}
+                      placeholder="e.g. Jane Smith"
+                      value={contactDraft.name ?? ""}
+                      onChange={(e) => setContactDraft((d) => ({ ...d, name: e.target.value }))}
+                      aria-label="Contact name"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className={supFieldLabel}>Role / title</span>
+                    <input
+                      className={supInput}
+                      placeholder="Optional"
+                      value={contactDraft.roleLabel ?? ""}
+                      onChange={(e) => setContactDraft((d) => ({ ...d, roleLabel: e.target.value }))}
+                      aria-label="Role or title"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className={supFieldLabel}>Email</span>
+                    <input
+                      className={supInput}
+                      placeholder="name@company.com"
+                      type="email"
+                      value={contactDraft.email ?? ""}
+                      onChange={(e) => setContactDraft((d) => ({ ...d, email: e.target.value }))}
+                      aria-label="Email"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 sm:col-span-2">
+                    <span className={supFieldLabel}>Phone</span>
+                    <input
+                      className={supInput}
+                      placeholder="Optional"
+                      value={contactDraft.phone ?? ""}
+                      onChange={(e) => setContactDraft((d) => ({ ...d, phone: e.target.value }))}
+                      aria-label="Phone"
+                    />
+                  </label>
+                </div>
+              </FormDrawerFields>
+            </form>
+          </FormDrawer>
+        </>
+      ) : null}
 
       {canWrite ? (
         <FormDrawer
           open={createDrawerOpen}
           onOpenChange={onCreateDrawerOpenChange}
           title="New supplier"
-          description="Only name is required; code, type, status, and notes are optional at create time—same fields as Details."
+          description="Only name is required. You can set commercial and payment fields at create time or later under Edit profile."
           contextLabel="Purchasing"
           icon={<Truck className="size-5 text-primary" aria-hidden />}
           width="wide"
@@ -994,8 +993,11 @@ export default function SuppliersPage() {
             </div>
           }
         >
-          <form id="new-supplier-form" className="space-y-6" onSubmit={onCreate}>
-            <FormDrawerFields legend="Profile" hint="Matches the fields you can edit after selecting a supplier.">
+          <form id="new-supplier-form" className="space-y-8" onSubmit={onCreate}>
+            <FormDrawerFields
+              legend="New supplier"
+              hint="Name is required; everything else can be completed after create."
+            >
               <SupplierProfileFields
                 draft={createDraft}
                 onDraftChange={(partial) => setCreateDraft((d) => ({ ...d, ...partial }))}

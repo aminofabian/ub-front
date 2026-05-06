@@ -16,8 +16,9 @@ import {
   signOutClientAndRedirectToLogin,
 } from "@/lib/auth";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
-import { extractPageContent } from "@/lib/page-content";
-import { getProblemTitle, parseProblem } from "@/lib/problem";
+import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
+import { parseProblem, formatApiProblemMessage } from "@/lib/problem";
+import { toast } from "sonner";
 
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -28,6 +29,43 @@ type RequestOptions = {
   /** Overrides auto-generated Idempotency-Key for POST/PATCH (e.g. POS sale retries). */
   idempotencyKey?: string;
 };
+
+/** Thrown for non-OK API responses; message includes validation field errors when present. */
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly payload: unknown;
+
+  constructor(message: string, status: number, payload: unknown) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+function notifyHttpErrorToast(message: string) {
+  if (typeof window === "undefined" || !message.trim()) {
+    return;
+  }
+  const lines = message.split("\n");
+  const title = lines[0] ?? message;
+  const description = lines.length > 1 ? lines.slice(1).join("\n") : undefined;
+  toast.error(title, {
+    duration: 12_000,
+    description,
+    classNames: {
+      description: "whitespace-pre-wrap text-sm opacity-90",
+    },
+  });
+}
+
+function failRequest(status: number, payload: unknown, options?: { toast?: boolean }): never {
+  const message = formatApiProblemMessage(payload);
+  if (options?.toast !== false) {
+    notifyHttpErrorToast(message);
+  }
+  throw new ApiRequestError(message, status, payload);
+}
 
 type LoginResponse = {
   accessToken: string;
@@ -94,10 +132,14 @@ export type ItemSummaryRecord = {
   variantName?: string;
   variantOfItemId?: string;
   categoryId?: string | null;
+  /** Display name for {@link categoryId} when provided by the list endpoint. */
+  categoryName?: string | null;
   imageKey?: string | null;
   /** HTTPS URL for list thumbnails (from API: cover or first gallery image). */
   thumbnailUrl?: string | null;
   active?: boolean;
+  /** When true, row only groups option SKUs (full-tree catalog). Omitted when listing with catalogScope SKUS_ONLY. */
+  groupLabelOnly?: boolean;
   /** When true, item may appear in the public storefront catalog (Phase 15). */
   webPublished?: boolean;
 };
@@ -142,9 +184,14 @@ export type ItemDetailRecord = ItemSummaryRecord & {
   isWeighed?: boolean;
   isSellable?: boolean;
   isStocked?: boolean;
+  /** On-hand quantity when returned by item detail API (Phase 1+). */
+  currentStock?: number | string | null;
   bundleQty?: number | null;
   bundlePrice?: number | string | null;
   bundleName?: string | null;
+  minStockLevel?: number | string | null;
+  reorderLevel?: number | string | null;
+  reorderQty?: number | string | null;
   imageKey?: string | null;
   images?: ItemImageRecord[];
   variants?: ItemSummaryRecord[];
@@ -339,11 +386,16 @@ export type PatchUserPayload = {
 
 export type CreateItemPayload = {
   name: string;
-  sku: string;
+  /** Omit or leave empty to let the server assign the next numeric SKU. */
+  sku?: string;
   itemTypeId: string;
   barcode?: string;
   description?: string;
   categoryId?: string;
+};
+
+export type SuggestedSkuResponse = {
+  suggestedSku: string;
 };
 
 /** Body returned from POST /api/v1/items (201). */
@@ -372,6 +424,9 @@ export type PatchItemPayload = {
   bundleName?: string;
   imageKey?: string;
   categoryId?: string;
+  minStockLevel?: number;
+  reorderLevel?: number;
+  reorderQty?: number;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */
@@ -394,6 +449,8 @@ export type SupplierItemLinkRecord = {
   itemId: string;
   itemName: string;
   sku: string;
+  barcode?: string | null;
+  currentStock?: number | string | null;
   primary: boolean;
   supplierSku?: string | null;
   defaultCostPrice?: number | string | null;
@@ -404,7 +461,8 @@ export type SupplierItemLinkRecord = {
 };
 
 export type CreateVariantPayload = {
-  sku: string;
+  /** Omit or leave empty to let the server assign the next numeric SKU. */
+  sku?: string;
   variantName: string;
   name?: string;
   barcode?: string;
@@ -566,11 +624,12 @@ async function request<T>(
     const problem = parseProblem(payload);
     const shouldRefresh = shouldAttemptRefresh(problem?.code);
     if (!shouldRefresh) {
-      const title = getProblemTitle(payload);
-      if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+      const message = formatApiProblemMessage(payload);
+      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
         signOutClientAndRedirectToLogin();
+        throw new ApiRequestError(message, response.status, payload);
       }
-      throw new Error(title);
+      failRequest(response.status, payload);
     }
     const refreshed = await tryRefreshToken();
     if (refreshed) {
@@ -580,15 +639,16 @@ async function request<T>(
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const title = getProblemTitle(payload);
+    const problem = parseProblem(payload);
     if (
       requiresAuth &&
       response.status === 401 &&
-      title === PROBLEM_TITLES.invalidOrExpiredAccessToken
+      problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken
     ) {
       signOutClientAndRedirectToLogin();
+      throw new ApiRequestError(formatApiProblemMessage(payload), response.status, payload);
     }
-    throw new Error(title);
+    failRequest(response.status, payload);
   }
 
   if (response.status === 204) {
@@ -614,21 +674,23 @@ async function requestMultipartJson<T>(path: string, form: FormData): Promise<T>
     if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
       response = await execute();
     } else {
-      const title = getProblemTitle(payload);
-      if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+      const message = formatApiProblemMessage(payload);
+      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
         signOutClientAndRedirectToLogin();
+        throw new ApiRequestError(message, response.status, payload);
       }
-      throw new Error(title);
+      failRequest(response.status, payload);
     }
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const title = getProblemTitle(payload);
-    if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+    const problem = parseProblem(payload);
+    if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
       signOutClientAndRedirectToLogin();
+      throw new ApiRequestError(formatApiProblemMessage(payload), response.status, payload);
     }
-    throw new Error(title);
+    failRequest(response.status, payload);
   }
 
   return (await response.json()) as T;
@@ -648,21 +710,23 @@ async function requestBinary(path: string): Promise<Blob> {
     if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
       response = await execute();
     } else {
-      const title = getProblemTitle(payload);
-      if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+      const message = formatApiProblemMessage(payload);
+      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
         signOutClientAndRedirectToLogin();
+        throw new ApiRequestError(message, response.status, payload);
       }
-      throw new Error(title);
+      failRequest(response.status, payload);
     }
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const title = getProblemTitle(payload);
-    if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+    const problem = parseProblem(payload);
+    if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
       signOutClientAndRedirectToLogin();
+      throw new ApiRequestError(formatApiProblemMessage(payload), response.status, payload);
     }
-    throw new Error(title);
+    failRequest(response.status, payload);
   }
 
   return response.blob();
@@ -764,7 +828,7 @@ export async function resendVerificationEmail(email: string): Promise<ResendVeri
     return { verificationUrl };
   }
   const payload = await response.json().catch(() => ({}));
-  throw new Error(getProblemTitle(payload));
+  throw new Error(formatApiProblemMessage(payload));
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -1150,15 +1214,45 @@ export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
 }
 
+export type CatalogListScope = "ALL" | "PARENTS_ONLY" | "VARIANTS_ONLY" | "SKUS_ONLY";
+
 export type FetchItemsOpts = {
   categoryId?: string;
   includeCategoryDescendants?: boolean;
+  catalogScope?: CatalogListScope;
+  barcode?: string;
+  noBarcode?: boolean;
+  includeInactive?: boolean;
+  page?: number;
+  size?: number;
+  /** When set, omits items that already have a non-deleted supplier link to this supplier (e.g. supplier catalog picker). */
+  excludeLinkedSupplierId?: string;
+  /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
+  sort?: Array<{ property: string; direction: "asc" | "desc" }>;
 };
 
-export async function fetchItems(search?: string, opts?: FetchItemsOpts): Promise<ItemSummaryRecord[]> {
-  const params = new URLSearchParams(DEFAULT_PAGE_QUERY);
+export type ItemsPageResult<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  last: boolean;
+  first: boolean;
+};
+
+export async function fetchItemsPage(
+  search: string | undefined,
+  opts?: FetchItemsOpts,
+): Promise<ItemsPageResult<ItemSummaryRecord>> {
+  const params = new URLSearchParams();
+  params.set("page", String(opts?.page ?? 0));
+  params.set("size", String(opts?.size ?? 100));
   if (search?.trim()) {
     params.set("search", search.trim());
+  }
+  if (opts?.catalogScope && opts.catalogScope !== "ALL") {
+    params.set("catalogScope", opts.catalogScope);
   }
   if (opts?.categoryId?.trim()) {
     params.set("categoryId", opts.categoryId.trim());
@@ -1166,9 +1260,48 @@ export async function fetchItems(search?: string, opts?: FetchItemsOpts): Promis
       params.set("includeCategoryDescendants", "true");
     }
   }
+  if (opts?.barcode?.trim()) {
+    params.set("barcode", opts.barcode.trim());
+  }
+  if (opts?.noBarcode) {
+    params.set("noBarcode", "true");
+  }
+  if (opts?.includeInactive) {
+    params.set("includeInactive", "true");
+  }
+  const exSup = opts?.excludeLinkedSupplierId?.trim();
+  if (exSup) {
+    params.set("excludeLinkedSupplierId", exSup);
+  }
+  for (const s of opts?.sort ?? []) {
+    const p = s.property?.trim();
+    if (!p) {
+      continue;
+    }
+    const d = s.direction === "desc" ? "desc" : "asc";
+    params.append("sort", `${p},${d}`);
+  }
   const path = `${API_ROUTES.items}?${params.toString()}`;
-  const payload = await request<unknown>(path);
-  return parseList(payload);
+  const raw = await request<unknown>(path);
+  const content = extractPageContent<ItemSummaryRecord>(raw);
+  const meta = extractSpringPageMeta(raw);
+  if (!meta) {
+    return {
+      content,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+      number: 0,
+      size: content.length,
+      last: true,
+      first: true,
+    };
+  }
+  return { content, ...meta };
+}
+
+export async function fetchItems(search?: string, opts?: FetchItemsOpts): Promise<ItemSummaryRecord[]> {
+  const page = await fetchItemsPage(search?.trim() || undefined, { ...opts, page: 0, size: 100 });
+  return page.content;
 }
 
 export async function fetchItemById(itemId: string): Promise<ItemDetailRecord> {
@@ -1183,8 +1316,46 @@ export async function fetchItemSupplierLinks(
   );
 }
 
+export async function fetchSuggestedNextSku(opts?: {
+  /** Category chosen for a new parent — drives SKU prefix from category slug. */
+  categoryId?: string;
+  /** Parent item when adding a variant — drives `{parentSku}-{option}` pattern. */
+  parentItemId?: string;
+  /** Option label for variant — included in the suggested segment. */
+  variantName?: string;
+}): Promise<SuggestedSkuResponse> {
+  const params = new URLSearchParams();
+  const categoryId = opts?.categoryId?.trim();
+  const parentItemId = opts?.parentItemId?.trim();
+  const variantName = opts?.variantName?.trim();
+  if (categoryId) {
+    params.set("categoryId", categoryId);
+  }
+  if (parentItemId) {
+    params.set("parentItemId", parentItemId);
+  }
+  if (variantName) {
+    params.set("variantName", variantName);
+  }
+  const q = params.toString();
+  const path = q.length > 0 ? `${API_ROUTES.items}/next-sku?${q}` : `${API_ROUTES.items}/next-sku`;
+  return request<SuggestedSkuResponse>(path);
+}
+
+/** Drop whitespace-only sku so the server treats the field as omitted and can auto-allocate. */
+function createPayloadWithoutBlankSku<T extends { sku?: string }>(body: T): T {
+  const next = { ...body };
+  if (next.sku !== undefined && next.sku.trim().length === 0) {
+    delete next.sku;
+  }
+  return next;
+}
+
 export async function createItem(payload: CreateItemPayload): Promise<ItemCreateResponse> {
-  return request<ItemCreateResponse>(API_ROUTES.items, { method: "POST", body: payload });
+  return request<ItemCreateResponse>(API_ROUTES.items, {
+    method: "POST",
+    body: createPayloadWithoutBlankSku({ ...payload }),
+  });
 }
 
 export async function fetchSupplierItemLinks(
@@ -1262,7 +1433,7 @@ export async function createItemVariant(
 ): Promise<ItemCreateResponse> {
   return request<ItemCreateResponse>(`${API_ROUTES.items}/${parentItemId}/variants`, {
     method: "POST",
-    body,
+    body: createPayloadWithoutBlankSku({ ...body }),
   });
 }
 
@@ -1600,6 +1771,7 @@ export type SellPriceSuggestionRecord = {
   ruleName: string | null;
   suggestedSellPrice: number | string | null;
   note: string | null;
+  currentSellPrice: number | string | null;
 };
 
 export type PriceRuleRecord = {
@@ -1622,10 +1794,18 @@ export type SellingPriceResponseRecord = {
 export async function fetchSellPriceSuggestion(
   itemId: string,
   supplierId?: string,
+  branchId?: string,
+  unitCost?: number | null,
 ): Promise<SellPriceSuggestionRecord> {
   const params = new URLSearchParams({ itemId: itemId.trim() });
   if (supplierId?.trim()) {
     params.set("supplierId", supplierId.trim());
+  }
+  if (branchId?.trim()) {
+    params.set("branchId", branchId.trim());
+  }
+  if (unitCost != null && Number.isFinite(unitCost) && unitCost > 0) {
+    params.set("unitCost", String(unitCost));
   }
   return request<SellPriceSuggestionRecord>(`/api/v1/pricing/suggest/sell?${params.toString()}`);
 }
@@ -1964,11 +2144,11 @@ export async function tryPostSale(
       }
       response = outcome.response;
     } else {
-      const title = getProblemTitle(payload);
-      if (title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+      const message = formatApiProblemMessage(payload);
+      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
         signOutClientAndRedirectToLogin();
       }
-      return { ok: false, status: 401, message: title };
+      return { ok: false, status: 401, message };
     }
   }
 
@@ -1977,11 +2157,12 @@ export async function tryPostSale(
   }
 
   const payload = await response.json().catch(() => ({}));
-  const title = getProblemTitle(payload);
-  if (response.status === 401 && title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+  const problem = parseProblem(payload);
+  const message = formatApiProblemMessage(payload);
+  if (response.status === 401 && problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
     signOutClientAndRedirectToLogin();
   }
-  return { ok: false, status: response.status, message: title };
+  return { ok: false, status: response.status, message };
 }
 
 export async function tryPostSaleWithRetries(
@@ -2113,6 +2294,225 @@ export async function postSupplierPayment(
   });
 }
 
+const PATH_B_SESSIONS = "/api/v1/purchasing/path-b/sessions";
+
+export type CreatePathBSessionPayload = {
+  supplierId: string;
+  branchId: string;
+  /** ISO-8601 instant (e.g. from `Date.toISOString()`). */
+  receivedAt: string;
+  notes?: string | null;
+};
+
+export type PathBLineRecord = {
+  id: string;
+  sortOrder: number;
+  descriptionText: string;
+  amountMoney: number | string;
+  suggestedItemId: string | null;
+  lineStatus: string;
+};
+
+export type PathBSessionDetailRecord = {
+  id: string;
+  supplierId: string;
+  branchId: string;
+  receivedAt: string;
+  notes: string | null;
+  status: string;
+  lines: PathBLineRecord[];
+};
+
+export type AddPathBLinePayload = {
+  description: string;
+  amountMoney: number | string;
+  suggestedItemId?: string | null;
+};
+
+export type PostPathBLineBreakdownPayload = {
+  lineId: string;
+  itemId: string;
+  usableQty: number | string;
+  wastageQty: number | string;
+  /** ISO calendar date `YYYY-MM-DD`; optional batch expiry. */
+  expiryDate?: string | null;
+};
+
+export type PostPathBPayload = {
+  lines: PostPathBLineBreakdownPayload[];
+};
+
+export type PostPathBResult = {
+  supplierInvoiceId: string;
+  invoiceNumber: string;
+  journalEntryId: string;
+  grandTotal: number | string;
+  linesPosted: number;
+};
+
+export async function createPathBSession(
+  body: CreatePathBSessionPayload,
+): Promise<PathBSessionDetailRecord> {
+  return request<PathBSessionDetailRecord>(PATH_B_SESSIONS, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function fetchPathBSession(sessionId: string): Promise<PathBSessionDetailRecord> {
+  return request<PathBSessionDetailRecord>(
+    `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}`,
+  );
+}
+
+export async function addPathBLine(
+  sessionId: string,
+  body: AddPathBLinePayload,
+): Promise<PathBLineRecord> {
+  return request<PathBLineRecord>(
+    `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/lines`,
+    { method: "POST", body },
+  );
+}
+
+export async function patchPathBLine(
+  sessionId: string,
+  lineId: string,
+  body: AddPathBLinePayload,
+): Promise<PathBLineRecord> {
+  return request<PathBLineRecord>(
+    `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/lines/${encodeURIComponent(lineId.trim())}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deletePathBLine(sessionId: string, lineId: string): Promise<void> {
+  await request(
+    `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/lines/${encodeURIComponent(lineId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function postPathBSession(sessionId: string, body: PostPathBPayload): Promise<PostPathBResult> {
+  return request<PostPathBResult>(
+    `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/post`,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+export type PathBSupplyListRowRecord = {
+  supplierInvoiceId: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceNumber: string;
+  createdAt: string;
+  lineCount: number;
+  grandTotal: number | string;
+  amountPaid: number | string;
+  balanceOpen: number | string;
+  paymentStatus: string;
+};
+
+export type SupplyPaymentHistoryRecord = {
+  supplierPaymentId: string;
+  allocationId: string;
+  paidAt: string;
+  paymentMethod: string;
+  paymentCashAmount: number | string;
+  amountAppliedToInvoice: number | string;
+  reference: string | null;
+  notes: string | null;
+};
+
+export async function fetchPathBSupplies(): Promise<PathBSupplyListRowRecord[]> {
+  return request<PathBSupplyListRowRecord[]>("/api/v1/purchasing/supplies");
+}
+
+export type PathBSupplyInvoiceLineRecord = {
+  id: string;
+  description: string;
+  itemId: string | null;
+  qty: number | string;
+  unitCost: number | string;
+  lineTotal: number | string;
+  sortOrder: number;
+  usableQty: number | string;
+  wastageQty: number | string;
+};
+
+export type PatchPathBSupplyInvoiceLinePayload = {
+  supplierInvoiceLineId: string;
+  usableQty: number;
+  wastageQty: number;
+  lineTotal: number;
+  description?: string | null;
+};
+
+export type PathBSupplyInvoiceDetailRecord = {
+  supplierInvoiceId: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  notes: string | null;
+  createdAt: string;
+  grandTotal: number | string;
+  amountPaid: number | string;
+  balanceOpen: number | string;
+  paymentStatus: string;
+  lines: PathBSupplyInvoiceLineRecord[];
+};
+
+export async function fetchPathBSupplyInvoiceDetail(invoiceId: string): Promise<PathBSupplyInvoiceDetailRecord> {
+  return request<PathBSupplyInvoiceDetailRecord>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}`,
+  );
+}
+
+export async function patchPathBSupplyInvoice(
+  invoiceId: string,
+  body: {
+    invoiceNumber: string;
+    invoiceDate: string;
+    dueDate: string | null;
+    notes: string | null;
+    lines?: PatchPathBSupplyInvoiceLinePayload[] | null;
+  },
+): Promise<PathBSupplyInvoiceDetailRecord> {
+  const payload: Record<string, unknown> = {
+    invoiceNumber: body.invoiceNumber.trim(),
+    invoiceDate: body.invoiceDate,
+    dueDate: body.dueDate,
+    notes: body.notes?.trim() ? body.notes.trim() : null,
+  };
+  if (body.lines != null && body.lines.length > 0) {
+    payload.lines = body.lines.map((ln) => ({
+      supplierInvoiceLineId: ln.supplierInvoiceLineId.trim(),
+      usableQty: ln.usableQty,
+      wastageQty: ln.wastageQty,
+      lineTotal: ln.lineTotal,
+      description: ln.description?.trim() ? ln.description.trim() : null,
+    }));
+  }
+  return request<PathBSupplyInvoiceDetailRecord>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}`,
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export async function fetchSupplyPaymentHistory(invoiceId: string): Promise<SupplyPaymentHistoryRecord[]> {
+  return request<SupplyPaymentHistoryRecord[]>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/payment-history`,
+  );
+}
+
 export type SupplierRecord = {
   id: string;
   name: string;
@@ -2149,6 +2549,12 @@ export type CreateSupplierPayload = {
   supplierType?: string;
   status?: string;
   notes?: string;
+  vatPin?: string;
+  taxExempt?: boolean;
+  creditTermsDays?: number;
+  creditLimit?: number;
+  paymentMethodPreferred?: string;
+  paymentDetails?: string;
 };
 
 export type PatchSupplierPayload = {
@@ -2157,6 +2563,12 @@ export type PatchSupplierPayload = {
   supplierType?: string;
   status?: string;
   notes?: string;
+  vatPin?: string;
+  taxExempt?: boolean;
+  creditTermsDays?: number | null;
+  creditLimit?: number | null;
+  paymentMethodPreferred?: string;
+  paymentDetails?: string;
 };
 
 export type CreateSupplierContactPayload = {
@@ -2167,10 +2579,45 @@ export type CreateSupplierContactPayload = {
   primaryContact?: boolean;
 };
 
+export type FetchSuppliersOpts = {
+  search?: string;
+  /** Exact match on supplier status (e.g. active, inactive, blocked). */
+  status?: string;
+  page?: number;
+  size?: number;
+};
+
+export async function fetchSuppliersPage(opts?: FetchSuppliersOpts): Promise<ItemsPageResult<SupplierRecord>> {
+  const params = new URLSearchParams();
+  params.set("page", String(opts?.page ?? 0));
+  params.set("size", String(opts?.size ?? 80));
+  if (opts?.search?.trim()) {
+    params.set("search", opts.search.trim());
+  }
+  if (opts?.status?.trim()) {
+    params.set("status", opts.status.trim());
+  }
+  const path = `/api/v1/suppliers?${params.toString()}`;
+  const raw = await request<unknown>(path);
+  const content = extractPageContent<SupplierRecord>(raw);
+  const meta = extractSpringPageMeta(raw);
+  if (!meta) {
+    return {
+      content,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+      number: 0,
+      size: content.length,
+      last: true,
+      first: true,
+    };
+  }
+  return { content, ...meta };
+}
+
 export async function fetchSuppliers(): Promise<SupplierRecord[]> {
-  const path = `/api/v1/suppliers?${DEFAULT_PAGE_QUERY}`;
-  const payload = await request<unknown>(path);
-  return extractPageContent<SupplierRecord>(payload);
+  const page = await fetchSuppliersPage({ page: 0, size: 100 });
+  return page.content;
 }
 
 export async function fetchSupplierById(supplierId: string): Promise<SupplierRecord> {
@@ -2381,7 +2828,7 @@ export async function simulateMpesaStkComplete(body: {
     });
     if (!resp.ok) {
       const payload = await resp.json().catch(() => ({}));
-      throw new Error(getProblemTitle(payload));
+      throw new Error(formatApiProblemMessage(payload));
     }
   } catch (e) {
     if (e instanceof Error && /Cannot reach API/.test(e.message)) {

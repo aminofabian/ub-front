@@ -19,7 +19,8 @@ export type FormDrawerProps = {
   children: React.ReactNode;
   /** Sticky actions bar (Save, Cancel, etc.) */
   footer?: React.ReactNode;
-  width?: "default" | "wide";
+  /** default ≈ md; wide ≈ 2xl; extraWide ≈ full data tables (supply lines, etc.) */
+  width?: "default" | "wide" | "extraWide";
 };
 
 /**
@@ -54,7 +55,11 @@ export function FormDrawer({
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
             "duration-200 ease-out",
             "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full rounded-none",
-            width === "wide" ? "sm:max-w-2xl" : "sm:max-w-md",
+            width === "extraWide"
+              ? "sm:max-w-[min(90rem,calc(100vw-1.5rem))]"
+              : width === "wide"
+                ? "sm:max-w-2xl"
+                : "sm:max-w-md",
             "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
           )}
         >

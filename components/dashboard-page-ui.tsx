@@ -86,7 +86,34 @@ export type DashboardQuickLink = {
   icon: LucideIcon;
 };
 
-export function DashboardQuickLinks({ links }: { links: DashboardQuickLink[] }) {
+export function DashboardQuickLinks({
+  links,
+  compact = false,
+}: {
+  links: DashboardQuickLink[];
+  /** Single-line chips; saves vertical space on dense pages (e.g. Products). */
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {links.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-background/80 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors",
+              "hover:border-primary/30 hover:bg-accent/50",
+            )}
+          >
+            <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            {label}
+            <ArrowRight className="size-3 opacity-50" aria-hidden />
+          </Link>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="grid gap-2 sm:grid-cols-3">
       {links.map(({ href, label, desc, icon: Icon }) => (
@@ -119,12 +146,36 @@ export function DashboardPageHero({
   eyebrow,
   title,
   description,
+  compact = false,
 }: {
   icon: LucideIcon;
   eyebrow: string;
   title: string;
   description: React.ReactNode;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <header className="flex flex-wrap items-start gap-x-3 gap-y-1 sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-primary">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+            <Icon className="size-3.5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-primary/90">
+              {eyebrow}
+            </span>
+            <h1 className="text-lg font-bold leading-tight tracking-tight text-foreground sm:text-xl">{title}</h1>
+          </div>
+        </div>
+        {description ?
+          <div className="w-full min-w-0 text-xs leading-snug text-muted-foreground sm:w-auto sm:max-w-xl sm:flex-1">
+            {description}
+          </div>
+        : null}
+      </header>
+    );
+  }
   return (
     <header className="space-y-1">
       <div className="flex items-center gap-2 text-primary">

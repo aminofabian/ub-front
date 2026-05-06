@@ -70,6 +70,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     blurb: "Spend visibility and supplier cash",
     icon: Banknote,
     items: [
+      { href: APP_ROUTES.purchasingAddSupplies, label: "Add supplies" },
       { href: APP_ROUTES.purchasingIntelligence, label: "Supplier intelligence" },
       { href: APP_ROUTES.purchasingApAging, label: "AP aging" },
       { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment" },
@@ -116,6 +117,7 @@ type NavGate = {
   canManageBusinessSettings: boolean;
   canViewCategories: boolean;
   canViewPurchasingIntelligence: boolean;
+  canAddSupplies: boolean;
   canViewApAging: boolean;
   canViewSuppliers: boolean;
   canViewCustomers: boolean;
@@ -161,6 +163,9 @@ function isNavItemVisible(item: NavItem, g: NavGate): boolean {
   }
   if (item.href === APP_ROUTES.purchasingIntelligence) {
     return g.canViewPurchasingIntelligence;
+  }
+  if (item.href === APP_ROUTES.purchasingAddSupplies) {
+    return g.canAddSupplies;
   }
   if (item.href === APP_ROUTES.purchasingApAging) {
     return g.canViewApAging;
@@ -221,6 +226,7 @@ export function AppShell({ children }: AppShellProps) {
     canManageBusinessSettings,
     canViewCategories,
     canViewPurchasingIntelligence,
+    canPathBWrite,
     canViewApAging,
     canViewSuppliers,
     canViewCustomers,
@@ -235,6 +241,8 @@ export function AppShell({ children }: AppShellProps) {
     canQuickSale,
   } = useDashboard();
 
+  const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
+
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
       featureFlags,
@@ -242,6 +250,7 @@ export function AppShell({ children }: AppShellProps) {
       canManageBusinessSettings,
       canViewCategories,
       canViewPurchasingIntelligence,
+      canAddSupplies,
       canViewApAging,
       canViewSuppliers,
       canViewCustomers,
@@ -265,6 +274,7 @@ export function AppShell({ children }: AppShellProps) {
     canManageBusinessSettings,
     canViewCategories,
     canViewPurchasingIntelligence,
+    canPathBWrite,
     canViewApAging,
     canViewSuppliers,
     canViewCustomers,
