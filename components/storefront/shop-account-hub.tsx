@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+
+import { authThemeStyle } from "@/components/auth/auth-split-shell";
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   ArrowRight,
   ChevronDown,
@@ -74,32 +77,46 @@ export function fmtMoney(amount: unknown, currency: string, opts?: Intl.NumberFo
 function statusGlow(status: string | undefined): string {
   const s = (status ?? "").toUpperCase();
   if (s.includes("READY")) {
-    return "from-emerald-500/35 to-teal-500/10 text-emerald-900 dark:text-emerald-50";
+    return "from-[color-mix(in_srgb,var(--auth-primary)_36%,transparent)] to-[color-mix(in_srgb,var(--auth-secondary)_12%,transparent)] text-foreground";
   }
   if (s.includes("PICK") || s.includes("PLACED")) {
-    return "from-sky-500/35 to-indigo-500/10 text-sky-900 dark:text-sky-50";
+    return "from-[color-mix(in_srgb,var(--auth-secondary)_34%,transparent)] to-[color-mix(in_srgb,var(--auth-primary)_10%,transparent)] text-foreground";
   }
   if (s.includes("CANCEL")) {
-    return "from-rose-500/35 to-orange-400/10 text-rose-900 dark:text-rose-50";
+    return "from-destructive/25 to-destructive/5 text-foreground";
   }
-  return "from-muted/40 to-muted/10 text-foreground";
+  return "from-muted/45 to-muted/15 text-foreground";
 }
 
 function ledgerBadge(kind: string | undefined): { label: string; className: string } {
   const k = (kind ?? "").toLowerCase();
   if (k.startsWith("wallet")) {
-    return { label: "Wallet", className: "border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200" };
+    return {
+      label: "Wallet",
+      className:
+        "border-[color-mix(in_srgb,var(--auth-primary)_42%,transparent)] bg-[color-mix(in_srgb,var(--auth-primary)_14%,transparent)] text-foreground",
+    };
   }
   if (k.startsWith("credit")) {
-    return { label: "Tab", className: "border-rose-400/35 bg-rose-500/10 text-rose-900 dark:text-rose-100" };
+    return {
+      label: "Tab",
+      className:
+        "border-[color-mix(in_srgb,var(--auth-secondary)_42%,transparent)] bg-[color-mix(in_srgb,var(--auth-secondary)_12%,transparent)] text-foreground",
+    };
   }
   if (k.startsWith("loyalty")) {
-    return { label: "Loyalty", className: "border-amber-400/35 bg-amber-500/12 text-amber-950 dark:text-amber-50" };
+    return {
+      label: "Loyalty",
+      className:
+        "border-[color-mix(in_srgb,var(--auth-primary)_26%,var(--auth-secondary)_26%)] bg-[color-mix(in_srgb,var(--auth-secondary)_16%,transparent)] text-foreground",
+    };
   }
   return { label: kind ?? "Ledger", className: "border-border/60 bg-muted/40 text-foreground" };
 }
 
 export function ShopAccountHub({ me }: HubProps) {
+  const tenant = useOptionalTenant();
+  const themeStyle = useMemo((): CSSProperties => authThemeStyle(tenant), [tenant]);
   const shopper = isBuyerAccount(me);
   const [biz, setBiz] = useState<BusinessRecord | null>(null);
   const [data, setData] = useState<ShopperAccountOverview | null>(null);
@@ -183,20 +200,23 @@ export function ShopAccountHub({ me }: HubProps) {
     page + 1 < data.pickupOrdersTotalPages;
 
   return (
-    <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:pb-28">
+    <div
+      className="relative mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:pb-28"
+      style={themeStyle}
+    >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-28 h-[22rem] overflow-hidden opacity-[0.22] blur-3xl dark:opacity-30"
+        className="pointer-events-none absolute inset-x-0 -top-28 h-[22rem] overflow-hidden opacity-[0.22] blur-3xl dark:opacity-28"
       >
-        <div className="absolute left-[8%] top-24 h-64 w-64 rounded-full bg-fuchsia-500/80" />
-        <div className="absolute right-[10%] top-16 h-72 w-72 rounded-full bg-cyan-400/70" />
-        <div className="absolute bottom-16 left-[40%] h-52 w-52 rounded-full bg-amber-300/65" />
+        <div className="absolute left-[8%] top-24 h-64 w-64 rounded-full bg-[color-mix(in_srgb,var(--auth-primary)_72%,transparent)]" />
+        <div className="absolute right-[10%] top-16 h-72 w-72 rounded-full bg-[color-mix(in_srgb,var(--auth-secondary)_62%,transparent)]" />
+        <div className="absolute bottom-16 left-[40%] h-52 w-52 rounded-full bg-[color-mix(in_srgb,var(--auth-primary)_35%,var(--auth-secondary)_35%)]" />
       </div>
 
       <header className="relative z-[1] flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur-sm">
-            <Gem className="size-3.5 text-primary" aria-hidden />
+            <Gem className="size-3.5 text-[color:var(--auth-primary)]" aria-hidden />
             Welcome back
           </div>
           <h1 className="font-heading mt-4 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -204,13 +224,21 @@ export function ShopAccountHub({ me }: HubProps) {
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">{me.email}</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild className="h-11 rounded-2xl shadow-md">
+            <Button
+              asChild
+              className="h-11 rounded-2xl shadow-md"
+              style={{ backgroundColor: "var(--auth-accent)", color: "var(--auth-accent-ink)" }}
+            >
               <Link href={APP_ROUTES.shop}>
                 Shop again
                 <ArrowRight className="ml-1.5 size-4 opacity-70" aria-hidden />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 rounded-2xl border-2">
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 rounded-2xl border-2 border-[color-mix(in_srgb,var(--auth-primary)_38%,transparent)] hover:bg-[color-mix(in_srgb,var(--auth-primary)_12%,transparent)]"
+            >
               <Link href={APP_ROUTES.shopCart}>Open cart</Link>
             </Button>
             {!shopper ? (
@@ -236,7 +264,7 @@ export function ShopAccountHub({ me }: HubProps) {
         <div className="relative isolate flex w-full max-w-md shrink-0 flex-col gap-3 rounded-[1.65rem] border border-black/[0.06] bg-gradient-to-br from-card via-background to-muted/30 p-[1px] shadow-lg dark:border-white/10 lg:sticky lg:top-24 dark:from-card dark:via-card dark:to-card/65">
           <div className="rounded-[1.55rem] bg-card/90 p-6 backdrop-blur-xl">
             <div className="flex items-center gap-3">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--auth-primary)_14%,transparent)] text-[color:var(--auth-primary)]">
                 <Shield className="size-8" aria-hidden />
               </div>
               <div>
@@ -274,80 +302,82 @@ export function ShopAccountHub({ me }: HubProps) {
           <section className="relative z-[1] mt-12 grid gap-4 lg:grid-cols-12">
             <article
               className={cn(
-                "relative overflow-hidden rounded-[1.5rem] border border-emerald-500/15 p-7 shadow-xl lg:col-span-4",
-                "bg-[radial-gradient(1200px_circle_at_-10%_-30%,rgba(52,211,153,0.35),transparent_52%),linear-gradient(135deg,rgba(6,182,212,0.12),transparent)]",
+                "relative overflow-hidden rounded-[1.5rem] border border-[color-mix(in_srgb,var(--auth-primary)_28%,transparent)] p-7 shadow-xl lg:col-span-4",
+                "bg-[radial-gradient(1200px_circle_at_-10%_-30%,color-mix(in_srgb,var(--auth-primary)_38%,transparent),transparent_52%),linear-gradient(135deg,color-mix(in_srgb,var(--auth-secondary)_16%,transparent),transparent)]",
               )}
             >
               <div className="flex justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-900/85 dark:text-emerald-50/85">
-                    Store wallet
-                  </p>
-                  <p className="font-heading mt-2 text-[2rem] font-black tracking-tight text-emerald-950 dark:text-emerald-50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Store wallet</p>
+                  <p className="font-heading mt-2 text-[2rem] font-black tracking-tight text-foreground">
                     {fmtMoney(data.balances?.walletBalance, currency)}
                   </p>
                 </div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-black/10 text-emerald-950 backdrop-blur dark:bg-white/10 dark:text-emerald-50">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--auth-primary)_18%,transparent)] text-[color:var(--auth-primary)] backdrop-blur">
                   <Wallet className="size-6" aria-hidden />
                 </div>
               </div>
-              <p className="mt-4 max-w-[16rem] text-xs leading-relaxed text-emerald-900/85 dark:text-emerald-50/80">
+              <p className="mt-4 max-w-[16rem] text-xs leading-relaxed text-muted-foreground">
                 Prepaid sparkle for pickups — top-ups handled in-store ripple here automatically.
               </p>
-              <Coins className="pointer-events-none absolute -bottom-10 -right-6 size-[9rem] text-emerald-400/35 dark:text-emerald-200/22" aria-hidden />
+              <Coins
+                className="pointer-events-none absolute -bottom-10 -right-6 size-[9rem] text-[color-mix(in_srgb,var(--auth-primary)_32%,transparent)]"
+                aria-hidden
+              />
             </article>
 
             <article
               className={cn(
-                "relative overflow-hidden rounded-[1.5rem] border border-amber-400/35 p-7 shadow-xl lg:col-span-4",
-                "bg-[linear-gradient(160deg,rgba(251,191,36,0.43),transparent_62%),linear-gradient(-30deg,rgba(250,204,21,0.38),transparent_55%)]",
+                "relative overflow-hidden rounded-[1.5rem] border border-[color-mix(in_srgb,var(--auth-secondary)_32%,transparent)] p-7 shadow-xl lg:col-span-4",
+                "bg-[linear-gradient(160deg,color-mix(in_srgb,var(--auth-secondary)_42%,transparent),transparent_62%),linear-gradient(-30deg,color-mix(in_srgb,var(--auth-primary)_24%,transparent),transparent_55%)]",
               )}
             >
               <div className="flex justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-950/80 dark:text-amber-50/95">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                     Loyalty nebula
                   </p>
                   <p className="font-heading mt-2 flex items-baseline gap-2">
-                    <span className="text-[2rem] font-black tracking-tighter text-amber-950 dark:text-amber-50">
+                    <span className="text-[2rem] font-black tracking-tighter text-foreground">
                       {(data.balances?.loyaltyPoints ?? 0).toLocaleString()}
                     </span>
-                    <span className="text-xs font-semibold uppercase text-amber-900/85 dark:text-amber-100/95">pts</span>
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">pts</span>
                   </p>
                 </div>
-                <Sparkles className="mt-2 size-9 text-amber-900/85 dark:text-amber-100" aria-hidden />
+                <Sparkles className="mt-2 size-9 text-[color:var(--auth-secondary)]" aria-hidden />
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                <span className="rounded-full border border-amber-900/15 bg-black/10 px-3 py-1 text-amber-950 backdrop-blur dark:border-white/20 dark:bg-black/35 dark:text-amber-50">
+                <span className="rounded-full border border-[color-mix(in_srgb,var(--auth-secondary)_42%,transparent)] bg-[color-mix(in_srgb,var(--auth-primary)_08%,transparent)] px-3 py-1 text-foreground backdrop-blur">
                   ≈ {loyaltyEquivalent()} redemption hint
                 </span>
               </div>
-              <Sparkles className="pointer-events-none absolute -bottom-14 left-12 size-[10rem] text-amber-500/35" aria-hidden />
+              <Sparkles
+                className="pointer-events-none absolute -bottom-14 left-12 size-[10rem] text-[color-mix(in_srgb,var(--auth-secondary)_28%,transparent)]"
+                aria-hidden
+              />
             </article>
 
             <article
               className={cn(
-                "relative overflow-hidden rounded-[1.5rem] border border-rose-400/35 p-7 shadow-xl lg:col-span-4",
-                "bg-[linear-gradient(200deg,rgba(244,63,94,0.28),transparent_62%),linear-gradient(40deg,rgba(99,102,241,0.22),transparent_55%)]",
+                "relative overflow-hidden rounded-[1.5rem] border border-destructive/25 p-7 shadow-xl lg:col-span-4",
+                "bg-[linear-gradient(200deg,hsl(var(--destructive)/_0.13),transparent_62%),linear-gradient(40deg,color-mix(in_srgb,var(--auth-primary)_22%,transparent),transparent_55%)]",
               )}
             >
               <div className="flex justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-950/95 dark:text-rose-100">
-                    Credit tab
-                  </p>
-                  <p className="font-heading mt-2 text-[1.85rem] font-black tracking-tight text-rose-950 dark:text-rose-50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Credit tab</p>
+                  <p className="font-heading mt-2 text-[1.85rem] font-black tracking-tight text-destructive">
                     Owed{" "}
                     <span className="text-[1.5rem]">
                       {fmtMoney(data.balances?.balanceOwed, currency)}
                     </span>
                   </p>
                 </div>
-                <CreditCard className="mt-2 size-9 text-indigo-800/95 dark:text-indigo-50" aria-hidden />
+                <CreditCard className="mt-2 size-9 text-[color:var(--auth-primary)]" aria-hidden />
               </div>
               <div className="mt-6 flex flex-wrap gap-2">
                 {data.balances?.creditLimit != null ? (
-                  <span className="rounded-xl border border-indigo-500/35 bg-black/15 px-3 py-1.5 text-[11px] font-semibold text-indigo-50 backdrop-blur">
+                  <span className="rounded-xl border border-[color-mix(in_srgb,var(--auth-primary)_36%,transparent)] bg-[color-mix(in_srgb,var(--auth-primary)_12%,transparent)] px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur">
                     Ceiling {fmtMoney(data.balances.creditLimit, currency)}
                   </span>
                 ) : (
@@ -356,12 +386,12 @@ export function ShopAccountHub({ me }: HubProps) {
                   </span>
                 )}
                 {data.balances?.creditAvailable != null ? (
-                  <span className="rounded-xl border border-emerald-600/35 bg-emerald-500/14 px-3 py-1.5 text-[11px] font-semibold text-emerald-950 backdrop-blur dark:text-emerald-50">
+                  <span className="rounded-xl border border-[color-mix(in_srgb,var(--auth-primary)_40%,transparent)] bg-[color-mix(in_srgb,var(--auth-primary)_10%,transparent)] px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur">
                     Open line {fmtMoney(data.balances.creditAvailable, currency)}
                   </span>
                 ) : null}
               </div>
-              <p className="mt-4 text-[11px] leading-relaxed text-rose-900/82 dark:text-rose-100/88">
+              <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
                 {data.linkedStorefrontProfile
                   ? "Linked customer profile ✓ cashier-settled edits surface here within minutes."
                   : "No directory match yet — balances stay zero until the store aligns your inbox with a ledger."}
@@ -385,7 +415,7 @@ export function ShopAccountHub({ me }: HubProps) {
                 </span>
               </div>
 
-              <div className="relative mt-8 ms-6 border-s-2 border-dashed border-primary/35 ps-8">
+              <div className="relative mt-8 ms-6 border-s-2 border-dashed border-[color-mix(in_srgb,var(--auth-primary)_35%,transparent)] ps-8">
                 {(data.pickupOrders ?? []).length ? (
                   (data.pickupOrders ?? []).map((row: ShopperPickupOrderRow) => (
                     <button
@@ -394,8 +424,8 @@ export function ShopAccountHub({ me }: HubProps) {
                       onClick={() => void onOpenDetail(row.id)}
                       className="group relative mb-10 block w-[calc(100%-0.75rem)] text-left outline-none last:mb-2"
                     >
-                      <span className="absolute -start-[2.075rem] top-8 flex size-[1.375rem] items-center justify-center rounded-full bg-primary shadow-md ring-[5px] ring-background transition group-hover:scale-[1.05]">
-                        <span className="size-3 rounded-full bg-primary-foreground/90" aria-hidden />
+                      <span className="absolute -start-[2.075rem] top-8 flex size-[1.375rem] items-center justify-center rounded-full bg-[color:var(--auth-primary)] shadow-md ring-[5px] ring-background transition group-hover:scale-[1.05]">
+                        <span className="size-3 rounded-full bg-[color-mix(in_srgb,var(--auth-accent-ink)_88%,transparent)]" aria-hidden />
                       </span>
                       <div className="-ms-px overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md transition hover:-translate-y-[1px] hover:shadow-xl">
                         <div
@@ -439,7 +469,11 @@ export function ShopAccountHub({ me }: HubProps) {
                       No pickups yet with this inbox — snag something scrumptious online and you&apos;ll see the trail light
                       up right here.
                     </p>
-                    <Button asChild className="mt-6 h-11 rounded-xl">
+                    <Button
+                      asChild
+                      className="mt-6 h-11 rounded-xl shadow-md"
+                      style={{ backgroundColor: "var(--auth-accent)", color: "var(--auth-accent-ink)" }}
+                    >
                       <Link href={APP_ROUTES.shop}>Kick off browse</Link>
                     </Button>
                   </div>
@@ -612,8 +646,10 @@ function LedgerLineRow({ currency, row }: { currency: string; row: ShopperLedger
         </div>
         <p className="mt-2 break-all text-[13px] font-medium leading-snug text-foreground">{row.memo}</p>
         <div className="mt-2 flex flex-wrap gap-3 font-mono text-[11px] font-semibold">
-          {hasDr ? <span className="text-rose-600 dark:text-rose-300">− {fmtMoney(row.debit, currency)}</span> : null}
-          {hasCr ? <span className="text-emerald-600 dark:text-emerald-300">+ {fmtMoney(row.credit, currency)}</span> : null}
+          {hasDr ? <span className="text-destructive">− {fmtMoney(row.debit, currency)}</span> : null}
+          {hasCr ? (
+            <span className="text-[color:var(--auth-secondary)]">+ {fmtMoney(row.credit, currency)}</span>
+          ) : null}
         </div>
       </div>
     </div>
@@ -627,7 +663,7 @@ function Chip({ children, tone = "default" }: { children: ReactNode; tone?: "def
         "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase",
         tone === "muted"
           ? "border-border/60 bg-muted/40 text-muted-foreground"
-          : "border-primary/35 bg-primary/12 text-primary",
+          : "border-[color-mix(in_srgb,var(--auth-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--auth-primary)_12%,transparent)] text-[color:var(--auth-primary)]",
       )}
     >
       {children}

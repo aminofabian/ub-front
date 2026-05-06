@@ -9,6 +9,7 @@ import {
   Filter,
   Loader2,
   MapPin,
+  Pencil,
   Palette,
   RefreshCw,
   Save,
@@ -18,11 +19,7 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
-import {
-  DASHBOARD_MAX,
-  DashboardFeedback,
-  DashboardPageHero,
-} from "@/components/dashboard-page-ui";
+import { DashboardFeedback, DashboardPageHero } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -67,11 +64,54 @@ const DEFAULT_DRAFT: UserDraft = {
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
+function userInitials(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) {
+    return "?";
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function UserAvatar({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-[11px] font-bold tracking-tight text-primary shadow-inner ring-1 ring-primary/15",
+        className,
+      )}
+      aria-hidden
+    >
+      {userInitials(name)}
+    </span>
+  );
+}
+
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case "active":
+      return "bg-emerald-500/12 text-emerald-800 ring-emerald-500/20 dark:text-emerald-300";
+    case "invited":
+      return "bg-sky-500/12 text-sky-900 ring-sky-500/25 dark:text-sky-200";
+    case "suspended":
+      return "bg-amber-500/12 text-amber-950 ring-amber-500/25 dark:text-amber-200";
+    case "locked":
+      return "bg-rose-500/12 text-rose-900 ring-rose-500/25 dark:text-rose-200";
+    default:
+      return "bg-muted text-muted-foreground ring-border/60";
+  }
+}
+
 function inputClass() {
   return cn(
-    "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors",
+    "w-full rounded-xl border border-input/80 bg-background px-3.5 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow]",
     "placeholder:text-muted-foreground/70",
-    "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+    "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
   );
 }
 
@@ -82,6 +122,15 @@ function selectClass() {
   );
 }
 
+const panelClass = cn(
+  "rounded-3xl border border-border/70 bg-card/90 shadow-md shadow-black/[0.03] ring-1 ring-black/[0.03] backdrop-blur-sm",
+  "dark:bg-card/80 dark:shadow-black/20 dark:ring-white/[0.06]",
+);
+
+const panelHeaderClass = "border-b border-border/50 bg-muted/25 px-5 py-4 sm:px-6";
+const filterLabelClass =
+  "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/90";
+
 function RelatedLinks() {
   const links = [
     { href: APP_ROUTES.business, label: "Business", desc: "Core settings", icon: Building2 },
@@ -89,28 +138,40 @@ function RelatedLinks() {
     { href: APP_ROUTES.businessBranding, label: "Branding", desc: "Logo & colors", icon: Palette },
   ] as const;
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
-      {links.map(({ href, label, desc, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "group flex items-start gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-all",
-            "hover:border-primary/25 hover:bg-accent/40 hover:shadow-md",
-          )}
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-            <Icon className="size-4" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1 text-sm font-semibold">
-              {label}
-              <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+    <div className="space-y-3">
+      <p className={filterLabelClass}>Workspace</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {links.map(({ href, label, desc, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "group relative flex items-start gap-3 overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm transition-all duration-200",
+              "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/30 hover:shadow-md",
+              "dark:hover:bg-accent/15",
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/80 text-muted-foreground transition-all duration-200",
+                "group-hover:bg-primary/15 group-hover:text-primary group-hover:shadow-sm group-hover:shadow-primary/10",
+              )}
+            >
+              <Icon className="size-4" aria-hidden />
             </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
-          </span>
-        </Link>
-      ))}
+            <span className="min-w-0 flex-1 pt-0.5">
+              <span className="flex items-center gap-1.5 text-sm font-semibold tracking-tight text-foreground">
+                {label}
+                <ArrowRight
+                  className="size-3.5 text-primary/60 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+                  aria-hidden
+                />
+              </span>
+              <span className="mt-1 block text-xs leading-snug text-muted-foreground">{desc}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -135,6 +196,8 @@ export default function UsersPage() {
   const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [nameEditUserId, setNameEditUserId] = useState<string | null>(null);
+  const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
 
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
   const canUpdate = hasPermission(me?.permissions, Permission.UsersUpdate);
@@ -234,6 +297,12 @@ export default function UsersPage() {
     try {
       await updateUser(userId, { name });
       await loadData();
+      setNameEditUserId(null);
+      setEditingName((previous) => {
+        const next = { ...previous };
+        delete next[userId];
+        return next;
+      });
       setFeedback({ kind: "success", text: "User updated." });
     } catch (error) {
       setFeedback({
@@ -261,6 +330,7 @@ export default function UsersPage() {
         delete next[userId];
         return next;
       });
+      setRoleEditUserId(null);
       await loadData();
       await refreshSession();
       setFeedback({ kind: "success", text: "Role updated." });
@@ -297,22 +367,31 @@ export default function UsersPage() {
 
   if (!firstLoadDone) {
     return (
-      <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-4 py-24">
-        <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
-        <p className="text-sm text-muted-foreground">Loading users…</p>
+      <div className="mx-auto flex min-h-[52vh] max-w-5xl flex-col items-center justify-center px-4 pb-16">
+        <div className="flex flex-col items-center gap-5 rounded-3xl border border-border/70 bg-card/90 px-12 py-14 shadow-lg shadow-black/[0.04] ring-1 ring-black/[0.04] backdrop-blur-md dark:ring-white/[0.06]">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
+            <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">Loading directory</p>
+            <p className="mt-1 text-xs text-muted-foreground">Fetching users, roles, and branches…</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (loadFailed && users.length === 0) {
     return (
-      <div className="mx-auto max-w-lg py-16">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
-          <AlertCircle className="mx-auto size-10 text-destructive" aria-hidden />
-          <h1 className="mt-4 text-lg font-semibold tracking-tight">Could not load users</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
+      <div className="mx-auto max-w-lg px-4 py-16">
+        <div className="overflow-hidden rounded-3xl border border-destructive/35 bg-gradient-to-b from-destructive/[0.07] to-card p-8 text-center shadow-lg ring-1 ring-destructive/20">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-destructive/10">
+            <AlertCircle className="size-7 text-destructive" aria-hidden />
+          </div>
+          <h1 className="mt-5 text-lg font-semibold tracking-tight text-foreground">Could not load users</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feedback?.text}</p>
           <Button
-            className="mt-6 gap-2"
+            className="mt-8 gap-2 rounded-xl shadow-sm"
             variant="outline"
             onClick={() => {
               setFeedback(null);
@@ -329,173 +408,269 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className={DASHBOARD_MAX}>
-        <div className="space-y-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <DashboardPageHero
-              icon={UsersIcon}
-              eyebrow="Team"
-              title="Users"
-              description={
-                <>
-                  Invite staff, assign roles, and manage access. What you can do here depends on your permissions
-                  (create, update, assign role, deactivate). Use{" "}
-                  <span className="font-medium text-foreground">Invite user</span> to add someone from the drawer.
-                </>
-              }
+      <div className="relative mx-auto max-w-5xl space-y-8 px-4 pb-20 sm:px-6 lg:px-8">
+        <div
+          className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[320px] w-[min(100%,42rem)] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,hsl(var(--primary)/0.14),transparent_65%)] opacity-90 dark:opacity-60"
+          aria-hidden
+        />
+
+        <div className="relative space-y-8">
+          <div
+            className={cn(
+              "relative overflow-hidden rounded-3xl border border-border/70 p-6 shadow-lg shadow-black/[0.04] ring-1 ring-black/[0.04] sm:p-8",
+              "bg-gradient-to-br from-card via-card to-primary/[0.03] backdrop-blur-sm dark:from-card/95 dark:via-card/90 dark:to-primary/[0.04] dark:ring-white/[0.06]",
+            )}
+          >
+            <div
+              className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-primary/[0.06] blur-2xl"
+              aria-hidden
             />
-            {canCreate ? (
-              <Button
-                type="button"
-                size="lg"
-                className="gap-2 self-start shadow-md lg:shrink-0"
-                disabled={creating || roles.length === 0}
-                onClick={() => {
-                  skipInviteDrawerResetAfterCreate.current = false;
-                  setInviteDrawerOpen(true);
-                }}
-              >
-                <UserPlus className="size-4" aria-hidden />
-                Invite user
-              </Button>
-            ) : null}
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <DashboardPageHero
+                icon={UsersIcon}
+                eyebrow="Team"
+                title="Users"
+                description={
+                  <>
+                    Invite staff, assign roles, and control who can sign in. Your permissions define what you can change
+                    here. Use{" "}
+                    <span className="font-medium text-foreground">Invite user</span> to add someone from the drawer.
+                  </>
+                }
+              />
+              {canCreate ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-12 gap-2 self-stretch rounded-xl px-6 shadow-lg shadow-primary/20 transition hover:shadow-primary/30 sm:self-start lg:shrink-0"
+                  disabled={creating || roles.length === 0}
+                  onClick={() => {
+                    skipInviteDrawerResetAfterCreate.current = false;
+                    setInviteDrawerOpen(true);
+                  }}
+                >
+                  <UserPlus className="size-4" aria-hidden />
+                  Invite user
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           <RelatedLinks />
 
-          {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+          {feedback ? (
+            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+          ) : null}
 
-          <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center gap-2 border-b border-border/60 pb-4">
-              <Filter className="size-4 text-muted-foreground" aria-hidden />
-              <h2 className="text-lg font-semibold tracking-tight">Filters</h2>
+          <section className={cn(panelClass, "overflow-hidden")}>
+            <div className={cn(panelHeaderClass, "flex flex-wrap items-center justify-between gap-3")}>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <Filter className="size-[18px]" aria-hidden />
+                </span>
+                <div>
+                  <h2 className="text-base font-semibold tracking-tight text-foreground">Filters</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Results reload from the server when you change a filter.</p>
+                </div>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">Narrow the list; filters reload results from the server.</p>
-            <div className="mt-4 flex flex-wrap items-end gap-4">
-              <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[12rem]">
-                <span className="text-xs font-medium text-muted-foreground">Status</span>
-                <select
-                  className={selectClass()}
-                  value={filterStatus}
-                  onChange={(event) => setFilterStatus(event.target.value)}
-                  aria-label="Filter by status"
-                >
-                  {USER_STATUS_FILTERS.map((option) => (
-                    <option key={option.value || "all"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[14rem]">
-                <span className="text-xs font-medium text-muted-foreground">Role</span>
-                <select
-                  className={selectClass()}
-                  value={filterRoleId}
-                  onChange={(event) => setFilterRoleId(event.target.value)}
-                  aria-label="Filter by role"
-                >
-                  <option value="">All roles</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 sm:max-w-[14rem]">
-                <span className="text-xs font-medium text-muted-foreground">Branch</span>
-                <select
-                  className={selectClass()}
-                  value={filterBranchId}
-                  onChange={(event) => setFilterBranchId(event.target.value)}
-                  aria-label="Filter by branch"
-                >
-                  <option value="">All branches</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Button
-                type="button"
-                variant="secondary"
-                className="shrink-0"
-                onClick={() => {
-                  setFilterStatus("");
-                  setFilterRoleId("");
-                  setFilterBranchId("");
-                }}
-              >
-                Clear filters
-              </Button>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+                <label className="flex flex-col gap-2">
+                  <span className={filterLabelClass}>Status</span>
+                  <select
+                    className={selectClass()}
+                    value={filterStatus}
+                    onChange={(event) => setFilterStatus(event.target.value)}
+                    aria-label="Filter by status"
+                  >
+                    {USER_STATUS_FILTERS.map((option) => (
+                      <option key={option.value || "all"} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className={filterLabelClass}>Role</span>
+                  <select
+                    className={selectClass()}
+                    value={filterRoleId}
+                    onChange={(event) => setFilterRoleId(event.target.value)}
+                    aria-label="Filter by role"
+                  >
+                    <option value="">All roles</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className={filterLabelClass}>Branch</span>
+                  <select
+                    className={selectClass()}
+                    value={filterBranchId}
+                    onChange={(event) => setFilterBranchId(event.target.value)}
+                    aria-label="Filter by branch"
+                  >
+                    <option value="">All branches</option>
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex sm:col-span-2 lg:col-span-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-11 w-full rounded-xl font-medium shadow-sm"
+                    onClick={() => {
+                      setFilterStatus("");
+                      setFilterRoleId("");
+                      setFilterBranchId("");
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-            <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
-              <h2 className="text-sm font-semibold text-foreground">Directory</h2>
-              <p className="text-xs text-muted-foreground">
-                {users.length} user{users.length === 1 ? "" : "s"} in this view
-              </p>
+          <section className={cn(panelClass, "overflow-hidden")}>
+            <div className={cn(panelHeaderClass, "flex flex-wrap items-end justify-between gap-4")}>
+              <div>
+                <h2 className="text-base font-semibold tracking-tight text-foreground">Directory</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  People in your workspace for this view
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium tabular-nums text-foreground shadow-sm backdrop-blur-sm">
+                <UsersIcon className="size-3.5 text-primary" aria-hidden />
+                {users.length} user{users.length === 1 ? "" : "s"}
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-border/60 bg-muted/20">
+                <thead className="sticky top-0 z-10 border-b border-border/60 bg-muted/40 backdrop-blur-md">
                   <tr>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Name</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Email</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Role</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Status</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Actions</th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
+                      Name
+                    </th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
+                      Email
+                    </th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
+                      Role
+                    </th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
+                      Status
+                    </th>
+                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border/50">
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-border/40 last:border-0">
-                      <td className="px-4 py-3 align-top sm:px-5">
+                    <tr
+                      key={user.id}
+                      className="group/row transition-colors hover:bg-muted/[0.45]"
+                    >
+                      <td className="px-5 py-3.5 align-middle sm:px-6">
                         {canUpdate ? (
-                          <div className="flex max-w-xs flex-col gap-2">
-                            <input
-                              className={cn(inputClass(), "text-sm")}
-                              value={editingName[user.id] ?? user.name}
-                              onChange={(event) =>
-                                setEditingName((previous) => ({
-                                  ...previous,
-                                  [user.id]: event.target.value,
-                                }))
-                              }
-                              aria-label={`Edit name for ${user.email}`}
-                            />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              type="button"
-                              className="w-fit gap-1.5"
-                              disabled={savingNameId === user.id}
-                              onClick={() => void onSaveName(user.id)}
-                            >
-                              {savingNameId === user.id ? (
-                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                              ) : (
-                                <Save className="size-3.5" aria-hidden />
-                              )}
-                              Save name
-                            </Button>
-                          </div>
+                          nameEditUserId === user.id ? (
+                            <div className="flex max-w-xs flex-col gap-2.5">
+                              <input
+                                className={cn(inputClass(), "text-sm")}
+                                value={editingName[user.id] ?? user.name}
+                                onChange={(event) =>
+                                  setEditingName((previous) => ({
+                                    ...previous,
+                                    [user.id]: event.target.value,
+                                  }))
+                                }
+                                aria-label={`Edit name for ${user.email}`}
+                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  type="button"
+                                  className="h-8 gap-1.5 rounded-lg px-3"
+                                  disabled={savingNameId === user.id}
+                                  onClick={() => void onSaveName(user.id)}
+                                >
+                                  {savingNameId === user.id ? (
+                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                                  ) : (
+                                    <Save className="size-3.5" aria-hidden />
+                                  )}
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  type="button"
+                                  className="h-8 rounded-lg"
+                                  disabled={savingNameId === user.id}
+                                  onClick={() => {
+                                    setNameEditUserId(null);
+                                    setEditingName((previous) => {
+                                      const next = { ...previous };
+                                      delete next[user.id];
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex min-h-11 items-center gap-3">
+                              <UserAvatar name={user.name} />
+                              <div className="flex min-w-0 flex-1 items-center gap-2">
+                                <span className="truncate font-medium leading-snug text-foreground">{user.name}</span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  type="button"
+                                  className="h-8 shrink-0 gap-1.5 rounded-full border-border/80 px-3 text-xs font-medium text-muted-foreground shadow-sm transition hover:border-primary/40 hover:text-foreground"
+                                  onClick={() => {
+                                    setNameEditUserId(user.id);
+                                    setEditingName((previous) => ({
+                                      ...previous,
+                                      [user.id]: user.name,
+                                    }));
+                                  }}
+                                  aria-label={`Edit name for ${user.email}`}
+                                >
+                                  <Pencil className="size-3" aria-hidden />
+                                  Edit
+                                </Button>
+                              </div>
+                            </div>
+                          )
                         ) : (
-                          <span className="font-medium">{user.name}</span>
+                          <div className="flex min-h-11 items-center gap-3">
+                            <UserAvatar name={user.name} />
+                            <span className="truncate font-medium leading-snug text-foreground">{user.name}</span>
+                          </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 align-top text-muted-foreground sm:px-5">
-                        <span className="break-all">{user.email}</span>
+                      <td className="px-5 py-3.5 align-middle text-muted-foreground sm:px-6">
+                        <span className="block max-w-[14rem] truncate text-sm leading-snug sm:max-w-xs" title={user.email}>
+                          {user.email}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 align-top sm:px-5">
-                        <p className="text-xs font-medium text-foreground">{user.role?.name ?? "—"}</p>
-                        {canAssign ? (
-                          <div className="mt-2 flex max-w-[14rem] flex-col gap-2">
+                      <td className="px-5 py-3.5 align-middle sm:px-6">
+                        {canAssign && roleEditUserId === user.id ? (
+                          <div className="flex max-w-[14rem] flex-col gap-2.5">
                             <select
                               className={cn(selectClass(), "text-xs")}
                               value={roleChange[user.id] ?? user.role?.id ?? ""}
@@ -518,41 +693,83 @@ export default function UsersPage() {
                                 </option>
                               ))}
                             </select>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              type="button"
-                              className="w-fit gap-1.5 text-xs"
-                              disabled={savingRoleId === user.id}
-                              onClick={() => void onAssignRole(user.id)}
-                            >
-                              {savingRoleId === user.id ? (
-                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                              ) : null}
-                              Save role
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                type="button"
+                                className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium"
+                                disabled={savingRoleId === user.id}
+                                onClick={() => void onAssignRole(user.id)}
+                              >
+                                {savingRoleId === user.id ? (
+                                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                                ) : null}
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                                className="h-8 rounded-lg text-xs"
+                                disabled={savingRoleId === user.id}
+                                onClick={() => {
+                                  setRoleEditUserId(null);
+                                  setRoleChange((previous) => {
+                                    const next = { ...previous };
+                                    delete next[user.id];
+                                    return next;
+                                  });
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
                           </div>
-                        ) : null}
+                        ) : (
+                          <div className="flex min-h-11 flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium leading-snug text-foreground">
+                              {user.role?.name ?? "—"}
+                            </span>
+                            {canAssign ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                type="button"
+                                className="h-8 shrink-0 gap-1.5 rounded-full border-border/80 px-3 text-xs font-medium text-muted-foreground shadow-sm transition hover:border-primary/40 hover:text-foreground"
+                                onClick={() => {
+                                  setRoleEditUserId(user.id);
+                                  setRoleChange((previous) => ({
+                                    ...previous,
+                                    [user.id]: user.role?.id ?? "",
+                                  }));
+                                }}
+                                aria-label={`Change role for ${user.email}`}
+                              >
+                                <Pencil className="size-3" aria-hidden />
+                                Change
+                              </Button>
+                            ) : null}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-4 py-3 align-top sm:px-5">
+                      <td className="px-5 py-3.5 align-middle sm:px-6">
                         <span
                           className={cn(
-                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                            user.status === "active"
-                              ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-                              : "bg-muted text-muted-foreground",
+                            "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize tracking-tight ring-1 ring-inset",
+                            statusBadgeClass(user.status),
                           )}
                         >
                           {user.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-top sm:px-5">
+                      <td className="px-5 py-3.5 align-middle sm:px-6">
                         {canDeactivate ? (
                           <Button
                             size="sm"
-                            variant="destructive"
+                            variant="outline"
                             type="button"
-                            className="gap-1.5"
+                            className="h-9 gap-1.5 rounded-xl border-destructive/35 bg-destructive/[0.04] text-destructive shadow-sm transition hover:bg-destructive/10 hover:text-destructive"
                             disabled={deactivatingId === user.id}
                             onClick={() => void onDeactivate(user.id)}
                           >
@@ -564,7 +781,7 @@ export default function UsersPage() {
                             Deactivate
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs font-medium text-muted-foreground/80">—</span>
                         )}
                       </td>
                     </tr>
@@ -573,15 +790,20 @@ export default function UsersPage() {
               </table>
             </div>
             {users.length === 0 ? (
-              <p className="border-t border-border/60 px-5 py-10 text-center text-sm text-muted-foreground">
-                No users match these filters.
-              </p>
+              <div className="border-t border-border/50 bg-muted/10 px-6 py-14 text-center">
+                <UsersIcon className="mx-auto size-10 text-muted-foreground/40" aria-hidden />
+                <p className="mt-3 text-sm font-medium text-foreground">No one matches these filters</p>
+                <p className="mt-1 text-xs text-muted-foreground">Try clearing filters or adjusting status, role, or branch.</p>
+              </div>
             ) : null}
           </section>
 
-          <p className="text-xs text-muted-foreground">
-            <span className="font-mono">GET …/users</span> with filters · changes may require a session refresh for other
-            tabs
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-border/60 bg-muted/20 px-4 py-3 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+            <span className="font-mono text-[11px] font-medium text-foreground/90">GET …/users</span>
+            <span className="hidden text-muted-foreground/45 sm:inline" aria-hidden>
+              ·
+            </span>
+            <span>Other open tabs may need a refresh to see permission changes.</span>
           </p>
         </div>
       </div>
@@ -597,10 +819,21 @@ export default function UsersPage() {
           width="wide"
           footer={
             <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" disabled={creating} onClick={() => onInviteDrawerOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                disabled={creating}
+                onClick={() => onInviteDrawerOpenChange(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" form="invite-user-form" disabled={creating || roles.length === 0}>
+              <Button
+                type="submit"
+                form="invite-user-form"
+                className="rounded-xl shadow-md shadow-primary/15"
+                disabled={creating || roles.length === 0}
+              >
                 {creating ? (
                   <>
                     <Loader2 className="size-4 animate-spin" aria-hidden />

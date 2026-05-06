@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { LogOut, Sparkles } from "lucide-react";
 
+import { authThemeStyle } from "@/components/auth/auth-split-shell";
 import { ShopAccountHub, fmtMoney } from "@/components/storefront/shop-account-hub";
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
 import { getSessionTokens } from "@/lib/auth";
@@ -15,6 +17,8 @@ type LoadState = "loading" | "guest" | "ready" | "error";
 
 export default function ShopAccountPage() {
   const router = useRouter();
+  const tenant = useOptionalTenant();
+  const themeStyle = useMemo((): CSSProperties => authThemeStyle(tenant), [tenant]);
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [peekCurrency, setPeekCurrency] = useState<string | undefined>();
@@ -57,11 +61,14 @@ export default function ShopAccountPage() {
 
   if (state === "guest") {
     return (
-      <div className="relative mx-auto max-w-lg px-4 py-16">
-        <div aria-hidden className="pointer-events-none absolute -inset-x-24 -top-10 h-[18rem] bg-[radial-gradient(circle,rgba(99,102,241,0.28),transparent_68%)] opacity-95 blur-3xl dark:opacity-60" />
+      <div className="relative mx-auto max-w-lg px-4 py-16" style={themeStyle}>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-24 -top-10 h-[18rem] bg-[radial-gradient(circle,color-mix(in_srgb,var(--auth-primary)_32%,transparent),transparent_68%)] opacity-95 blur-3xl dark:opacity-55"
+        />
         <div className="relative">
           <p className="inline-flex items-center gap-2 rounded-full border border-border/65 bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            <Sparkles className="size-3 text-amber-500" aria-hidden />
+            <Sparkles className="size-3 text-[color:var(--auth-primary)]" aria-hidden />
             Curated kiosk
           </p>
           <h1 className="font-heading mt-5 text-3xl font-extrabold tracking-tight">Your constellation awaits</h1>
@@ -83,10 +90,18 @@ export default function ShopAccountPage() {
             </div>
           </dl>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild className="h-11 rounded-2xl">
+            <Button
+              asChild
+              className="h-11 rounded-2xl shadow-md"
+              style={{ backgroundColor: "var(--auth-accent)", color: "var(--auth-accent-ink)" }}
+            >
               <Link href={loginHref}>Sign in</Link>
             </Button>
-            <Button variant="outline" asChild className="h-11 rounded-2xl border-2">
+            <Button
+              variant="outline"
+              asChild
+              className="h-11 rounded-2xl border-2 border-[color-mix(in_srgb,var(--auth-primary)_38%,transparent)] hover:bg-[color-mix(in_srgb,var(--auth-primary)_08%,transparent)]"
+            >
               <Link href={APP_ROUTES.signup}>Create shopper account</Link>
             </Button>
             <Button variant="ghost" asChild className="h-11 rounded-2xl">
@@ -100,9 +115,12 @@ export default function ShopAccountPage() {
 
   if (state === "loading") {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-muted-foreground">
+      <div
+        className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-muted-foreground"
+        style={themeStyle}
+      >
         <div className="space-y-3">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[color-mix(in_srgb,var(--auth-primary)_50%,transparent)] border-t-transparent" />
           Warming telemetry…
         </div>
       </div>
