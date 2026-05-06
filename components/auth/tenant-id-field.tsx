@@ -3,6 +3,12 @@ type TenantIdFieldProps = {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  /**
+   * When true and `value` is non-empty, the input is placed in a closed `<details>` so the UUID
+   * is not visible by default (UX + casual shoulder-surfing). Empty values stay fully visible
+   * so users on localhost can paste or fix tenant context.
+   */
+  collapsibleWhenFilled?: boolean;
 };
 
 export function TenantIdField({
@@ -10,8 +16,28 @@ export function TenantIdField({
   value,
   onChange,
   required = true,
+  collapsibleWhenFilled = true,
 }: TenantIdFieldProps) {
-  return (
+  const filled = value.trim().length > 0;
+
+  const hint = (
+    <span className="mt-1 block text-xs font-normal text-muted-foreground">
+      {filled ? (
+        <>
+          Change this only if you are signing in to a different business. Passwords and sessions are
+          what protect the account; the tenant ID is an identifier, not a password.
+        </>
+      ) : (
+        <>
+          On your shop hostname we look up the tenant automatically; on bare localhost use{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-[10px]">?url=</code> with your shop
+          URL or paste the UUID. Stored for this tab only (session).
+        </>
+      )}
+    </span>
+  );
+
+  const field = (
     <label className="block text-sm font-medium" htmlFor={id}>
       Business / tenant ID
       <input
@@ -24,11 +50,20 @@ export function TenantIdField({
         onChange={(event) => onChange(event.target.value)}
         required={required}
       />
-      <span className="mt-1 block text-xs font-normal text-muted-foreground">
-        On your shop hostname we look up the UUID automatically; on bare localhost use{" "}
-        <code className="rounded bg-muted px-1 py-0.5 text-[10px]">/login?url=</code> with your shop
-        URL or paste the UUID. Stored for this tab only (session).
-      </span>
+      {hint}
     </label>
+  );
+
+  if (!collapsibleWhenFilled || !filled) {
+    return field;
+  }
+
+  return (
+    <details className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2">
+      <summary className="cursor-pointer select-none text-sm font-medium text-foreground outline-none marker:text-muted-foreground">
+        Business context (expand to view or change)
+      </summary>
+      <div className="mt-3 pb-1">{field}</div>
+    </details>
   );
 }
