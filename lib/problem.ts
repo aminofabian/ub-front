@@ -13,6 +13,15 @@ export type ProblemValidationFieldError = {
 
 const DEFAULT_PROBLEM_TITLE = "Request failed.";
 
+const GENERIC_PROBLEM_TITLES = new Set([
+  "",
+  "Bad Request",
+  "Unauthorized",
+  "Forbidden",
+  "Not Found",
+  "Internal Server Error",
+]);
+
 export function parseProblemValidationErrors(
   payload: unknown,
 ): ProblemValidationFieldError[] | null {
@@ -58,6 +67,9 @@ export function formatApiProblemMessage(payload: unknown): string {
 
   const detail = problem?.detail?.trim();
   if (detail && detail.length > 0) {
+    if (GENERIC_PROBLEM_TITLES.has(title)) {
+      return detail;
+    }
     return `${title}\n${detail}`;
   }
 
@@ -70,7 +82,15 @@ export function parseProblem(payload: unknown): ProblemResponse | null {
   }
 
   const record = payload as Record<string, unknown>;
-  const title = typeof record.title === "string" ? record.title : "";
+  let title = typeof record.title === "string" ? record.title.trim() : "";
+  const springMessage =
+    typeof record.message === "string" ? record.message.trim() : "";
+  if (!title && springMessage) {
+    title = springMessage;
+  }
+  if (!title && typeof record.error === "string") {
+    title = record.error.trim();
+  }
   const type = typeof record.type === "string" ? record.type : "about:blank";
   const status =
     typeof record.status === "number" && Number.isFinite(record.status)
@@ -81,15 +101,6 @@ export function parseProblem(payload: unknown): ProblemResponse | null {
 
   return { type, title, status, detail, code };
 }
-
-const GENERIC_PROBLEM_TITLES = new Set([
-  "",
-  "Bad Request",
-  "Unauthorized",
-  "Forbidden",
-  "Not Found",
-  "Internal Server Error",
-]);
 
 /** Prefer machine-readable detail for types where the title alone is easy to confuse with auth failures. */
 const PROBLEM_TYPES_WHERE_DETAIL_IS_PRIMARY = new Set([

@@ -31,6 +31,9 @@ const SKIP_OUT_HEADERS = new Set([
  */
 const UPSTREAM_TIMEOUT_MS = 55_000;
 
+/** Below Vercel's ~4.5 MB serverless body cap; JSON APIs (login, mutations) buffer without duplex streaming. */
+const MAX_JSON_PROXY_BODY_BYTES = 4 * 1024 * 1024;
+
 function normalizeBackendOrigin(): string | null {
   const keys = ["BACKEND_ORIGIN", "API_BACKEND_ORIGIN"] as const;
   for (const key of keys) {
@@ -88,23 +91,40 @@ export async function proxyToBackend(
   const headers = buildUpstreamHeaders(req);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
-  // Stream the request body straight through. Buffering with `arrayBuffer()`
-  // doubles memory pressure and trips Vercel's 4.5 MB function payload cap
-  // for legitimate uploads (e.g. POST /businesses/me/branding/logo with a
-  // multipart image). `duplex: "half"` is required by undici when piping a
-  // ReadableStream into fetch.
+
+  let body: BodyInit | undefined;
+  let duplex: "half" | undefined;
+
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && req.body) {
+    const ct = req.headers.get("content-type") ?? "";
+    if (ct.toLowerCase().includes("application/json")) {
+      const buf = await req.arrayBuffer();
+      if (buf.byteLength > MAX_JSON_PROXY_BODY_BYTES) {
+        clearTimeout(timeoutId);
+        return NextResponse.json(
+          {
+            title: "Payload too large",
+            detail: "JSON request body exceeds the proxy buffer limit.",
+          },
+          { status: 413, headers: { "Content-Type": "application/problem+json" } },
+        );
+      }
+      body = buf;
+    } else {
+      // Multipart and non-JSON bodies: stream through. `duplex: "half"` is
+      // required by undici when the body is a ReadableStream.
+      body = req.body;
+      duplex = "half";
+    }
+  }
+
   const init: RequestInit & { duplex?: "half" } = {
     method,
     headers,
     signal: controller.signal,
+    ...(duplex ? { duplex } : {}),
+    ...(body !== undefined ? { body } : {}),
   };
-
-  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-    if (req.body) {
-      init.body = req.body;
-      init.duplex = "half";
-    }
-  }
 
   let upstream: Response;
   try {
