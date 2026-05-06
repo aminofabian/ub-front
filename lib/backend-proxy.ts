@@ -113,22 +113,31 @@ export async function proxyToBackend(
     clearTimeout(timeoutId);
     const aborted = err instanceof Error && err.name === "AbortError";
     if (aborted) {
+      console.error("[backend-proxy] upstream timeout", {
+        origin: url.origin,
+        pathname: url.pathname,
+      });
       return NextResponse.json(
         {
-          title: "Upstream timed out",
+          title: "Request timed out",
           detail:
-            `The backend at ${url.origin} did not respond within ` +
-            `${Math.round(UPSTREAM_TIMEOUT_MS / 1000)}s. For uploads, this is ` +
-            "usually Cloudinary or the backend container being slow — retry, " +
-            "or shrink the file.",
+            `The server did not respond within ${Math.round(UPSTREAM_TIMEOUT_MS / 1000)}s. ` +
+            "For large uploads, try a smaller file or retry. If this keeps happening, try again later.",
         },
         { status: 504, headers: { "Content-Type": "application/problem+json" } },
       );
     }
+    console.error("[backend-proxy] upstream fetch failed", {
+      origin: url.origin,
+      pathname: url.pathname,
+      message: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json(
       {
-        title: "Upstream unreachable",
-        detail: `${url.origin} — ${err instanceof Error ? err.message : "unknown error"}`,
+        title: "Service temporarily unavailable",
+        detail:
+          "We could not reach the API right now. Check your connection, try again in a moment, " +
+          "or contact support if the problem continues.",
       },
       { status: 502, headers: { "Content-Type": "application/problem+json" } },
     );
