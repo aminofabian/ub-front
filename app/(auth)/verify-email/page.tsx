@@ -12,18 +12,18 @@ import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
-  getSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
+import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
 import { resendVerificationEmail, verifyEmailAddress } from "@/lib/api";
-import { APP_ROUTES, PUBLIC_TENANT_ID } from "@/lib/config";
+import { APP_ROUTES } from "@/lib/config";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tokenFromQuery = searchParams.get("token") ?? "";
 
-  const [tenantId, setTenantId] = useState("");
+  const [tenantId, setTenantId] = useTenantIdPrefill();
   const [manualToken, setManualToken] = useState("");
   const [resendEmail, setResendEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -31,17 +31,6 @@ function VerifyEmailContent() {
   const [resendLink, setResendLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const autoVerifyStarted = useRef(false);
-
-  useEffect(() => {
-    if (PUBLIC_TENANT_ID.length > 0) {
-      setTenantId(PUBLIC_TENANT_ID);
-      return;
-    }
-    const stored = getSessionTenantId();
-    if (stored) {
-      setTenantId(stored);
-    }
-  }, []);
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();

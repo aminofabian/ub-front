@@ -55,6 +55,19 @@ export function clearSessionTenantId(): void {
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
 }
 
+/** Hostname sent as `X-Tenant-Host` on API requests (e.g. when the dev server uses bare localhost). */
+export function persistSessionTenantHost(hostname: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const n = hostname.trim().toLowerCase();
+  if (!n) {
+    window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
+    return;
+  }
+  window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, n);
+}
+
 /**
  * After login, map tenant slug to the hostname the API expects ({slug}.{NEXT_PUBLIC_APP_BASE_URL host}).
  * Safe while staying on localhost in the browser — tokens remain on this origin.

@@ -25,8 +25,9 @@ export function TenantIdField({
         required={required}
       />
       <span className="mt-1 block text-xs font-normal text-muted-foreground">
-        Required on localhost unless your API host maps to a tenant domain. Stored for this tab
-        only (session).
+        On your shop hostname we look up the UUID automatically; on bare localhost use{" "}
+        <code className="rounded bg-muted px-1 py-0.5 text-[10px]">/login?url=</code> with your shop
+        URL or paste the UUID. Stored for this tab only (session).
       </span>
     </label>
   );

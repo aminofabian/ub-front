@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
@@ -11,29 +11,18 @@ import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
-  getSessionTenantId,
   setSessionTenantId,
 } from "@/lib/auth";
+import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
 import { requestPasswordReset } from "@/lib/api";
-import { APP_ROUTES, PUBLIC_TENANT_ID } from "@/lib/config";
+import { APP_ROUTES } from "@/lib/config";
 
-export default function ForgotPasswordPage() {
-  const [tenantId, setTenantId] = useState("");
+function ForgotPasswordPageContent() {
+  const [tenantId, setTenantId] = useTenantIdPrefill();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (PUBLIC_TENANT_ID.length > 0) {
-      setTenantId(PUBLIC_TENANT_ID);
-      return;
-    }
-    const stored = getSessionTenantId();
-    if (stored) {
-      setTenantId(stored);
-    }
-  }, []);
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
@@ -113,5 +102,19 @@ export default function ForgotPasswordPage() {
         </p>
       </AuthCard>
     </>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          Loading…
+        </div>
+      }
+    >
+      <ForgotPasswordPageContent />
+    </Suspense>
   );
 }

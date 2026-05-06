@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
@@ -12,15 +12,15 @@ import { TenantIdField } from "@/components/auth/tenant-id-field";
 import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
-  getSessionTenantId,
   getSessionTokens,
   setSessionTenantId,
 } from "@/lib/auth";
+import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
 import { registerAccount } from "@/lib/api";
-import { APP_ROUTES, PUBLIC_TENANT_ID } from "@/lib/config";
+import { APP_ROUTES } from "@/lib/config";
 
-export default function SignupPage() {
-  const [tenantId, setTenantId] = useState("");
+function SignupPageContent() {
+  const [tenantId, setTenantId] = useTenantIdPrefill();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,17 +35,6 @@ export default function SignupPage() {
       router.replace(APP_ROUTES.business);
     }
   }, [router]);
-
-  useEffect(() => {
-    if (PUBLIC_TENANT_ID.length > 0) {
-      setTenantId(PUBLIC_TENANT_ID);
-      return;
-    }
-    const stored = getSessionTenantId();
-    if (stored) {
-      setTenantId(stored);
-    }
-  }, []);
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
@@ -187,5 +176,19 @@ export default function SignupPage() {
         </p>
       </AuthCard>
     </>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          Loading…
+        </div>
+      }
+    >
+      <SignupPageContent />
+    </Suspense>
   );
 }

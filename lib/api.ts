@@ -34,6 +34,34 @@ type LoginResponse = {
   refreshToken: string;
 };
 
+const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
+
+/**
+ * Maps a storefront hostname (or full shop URL) to the tenant UUID via the public host resolve API.
+ * No auth or tenant headers required.
+ */
+export async function fetchTenantIdForHost(host: string): Promise<string | null> {
+  const h = host.trim();
+  if (!h) {
+    return null;
+  }
+  const url = `${API_BASE_URL}${PUBLIC_HOST_RESOLVE_PATH}?host=${encodeURIComponent(h)}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as { tenantId?: unknown };
+    const id = typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
+    return id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 export type RoleSummary = {
   id?: string;
   key?: string;

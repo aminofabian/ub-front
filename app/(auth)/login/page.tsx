@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthBranding } from "@/components/auth/auth-branding";
@@ -18,11 +18,11 @@ import {
   persistTenantHostFromSlug,
   setSessionTenantId,
 } from "@/lib/auth";
+import { useTenantIdPrefill } from "@/lib/auth-tenant-prefill";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import { fetchBusiness, loginWithPassword, loginWithPin } from "@/lib/api";
 import {
   APP_ROUTES,
-  PUBLIC_TENANT_ID,
   hostDerivedShopUrl,
   slugDerivedShopUrl,
 } from "@/lib/config";
@@ -92,12 +92,12 @@ const AUTH_MODE = {
 
 type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 
-export default function LoginPage() {
+function LoginPageContent() {
   const tenant = useOptionalTenant();
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const tenantGreeting = tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
-  const [tenantId, setTenantId] = useState("");
+  const [tenantId, setTenantId] = useTenantIdPrefill();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
@@ -112,17 +112,6 @@ export default function LoginPage() {
     }
     void syncSlugAndNavigate(router, APP_ROUTES.business, "replace");
   }, [router]);
-
-  useEffect(() => {
-    if (PUBLIC_TENANT_ID.length > 0) {
-      setTenantId(PUBLIC_TENANT_ID);
-      return;
-    }
-    const stored = getSessionTenantId();
-    if (stored) {
-      setTenantId(stored);
-    }
-  }, []);
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
@@ -307,5 +296,19 @@ export default function LoginPage() {
         </Link>
       </p>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          Loading…
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }
