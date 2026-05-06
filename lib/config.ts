@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   business: "/business",
   businessBranding: "/business/branding",
   businessDomains: "/business/domains",
+  businessImport: "/business/import",
   branches: "/branches",
   users: "/users",
   products: "/products",

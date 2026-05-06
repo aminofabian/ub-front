@@ -696,6 +696,122 @@ async function requestMultipartJson<T>(path: string, form: FormData): Promise<T>
   return (await response.json()) as T;
 }
 
+export type CsvImportLineErrorRecord = { line: number; message: string };
+
+export type JsonImportResponse = {
+  dryRun: boolean;
+  rowsParsed: number;
+  errors: CsvImportLineErrorRecord[];
+  rowsCommitted: number | null;
+};
+
+/** @deprecated Use JsonImportResponse; kept for callers that still reference the old name. */
+export type LegacyProductImportResponse = JsonImportResponse;
+
+function isJsonImportPayload(v: unknown): v is JsonImportResponse {
+  if (typeof v !== "object" || v === null) {
+    return false;
+  }
+  const o = v as Record<string, unknown>;
+  return typeof o.rowsParsed === "number" && Array.isArray(o.errors);
+}
+
+async function postIntegrationsJsonImport(
+  relativePath: string,
+  file: File,
+  dryRun: boolean,
+  extraFields?: Record<string, string | undefined>,
+): Promise<JsonImportResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("dryRun", String(dryRun));
+  if (extraFields) {
+    for (const [k, v] of Object.entries(extraFields)) {
+      if (v != null && String(v).trim() !== "") {
+        form.append(k, String(v).trim());
+      }
+    }
+  }
+
+  const execute = async () => {
+    const session = getSessionTokens();
+    const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
+    const headers = new Headers(headersInit);
+    headers.delete("Content-Type");
+    return fetch(`${API_BASE_URL}/api/v1/integrations/imports/${relativePath}`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+  };
+
+  let response = await execute();
+  if (response.status === 401) {
+    const payload = await response.clone().json().catch(() => ({}));
+    const problem = parseProblem(payload);
+    if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
+      response = await execute();
+    } else {
+      const message = formatApiProblemMessage(payload);
+      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+        signOutClientAndRedirectToLogin();
+        throw new ApiRequestError(message, response.status, payload);
+      }
+      failRequest(response.status, payload);
+    }
+  }
+
+  const payload: unknown = await response.json().catch(() => null);
+  if (isJsonImportPayload(payload)) {
+    return payload;
+  }
+  if (!response.ok) {
+    failRequest(response.status, payload ?? {});
+  }
+  throw new ApiRequestError("Unexpected response from import endpoint", response.status, payload);
+}
+
+/**
+ * Multipart JSON product import (legacy export schema). Returns validation errors in the body even on HTTP 400.
+ */
+export async function postLegacyProductJsonImport(
+  file: File,
+  opts: { dryRun: boolean; branchId?: string },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("legacy-products", file, opts.dryRun, {
+    branchId: opts.branchId?.trim() || undefined,
+  });
+}
+
+/**
+ * Multipart JSON supplier import (legacy export). Same response shape as {@link postLegacyProductJsonImport}.
+ */
+export async function postLegacySupplierJsonImport(
+  file: File,
+  opts: { dryRun: boolean },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("legacy-suppliers", file, opts.dryRun);
+}
+
+/**
+ * Legacy buying prices: `item_id`, nullable `supplier_id`, `price`, `effective_from`, optional `notes`.
+ * Export fields `id`, `set_by`, `created_at` are ignored (setter = signed-in user).
+ */
+export async function postLegacyBuyingPriceJsonImport(
+  file: File,
+  opts: { dryRun: boolean },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("legacy-buying-prices", file, opts.dryRun);
+}
+
+/** Legacy selling price rows: `item_id`, `price`, `effective_from`, optional `branch_id`. */
+export async function postLegacySellingPriceJsonImport(
+  file: File,
+  opts: { dryRun: boolean },
+): Promise<JsonImportResponse> {
+  return postIntegrationsJsonImport("legacy-selling-prices", file, opts.dryRun);
+}
+
 async function requestBinary(path: string): Promise<Blob> {
   const execute = async () => {
     const session = getSessionTokens();

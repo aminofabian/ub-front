@@ -85,6 +85,7 @@ type DashboardContextValue = {
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
+  canManageImports: boolean;
 };
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -219,6 +220,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       ),
       canViewStorefrontOrders: hasPermission(me?.permissions, Permission.StorefrontOrdersRead),
       canQuickSale,
+      canManageImports: hasPermission(me?.permissions, Permission.IntegrationsImportsManage),
     }),
     [
       me,

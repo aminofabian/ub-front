@@ -38,6 +38,72 @@ function formatUnit(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
+function startOfLocalDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function addLocalDays(d: Date, delta: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + delta);
+  return x;
+}
+
+function toDateInputValue(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const RANGE_PRESETS = [
+  { id: "today", label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
+  { id: "last3days", label: "Past 3 days" },
+  { id: "last7days", label: "Last week" },
+  { id: "last14days", label: "Last 2 weeks" },
+  { id: "last30days", label: "Last month (30 days)" },
+  { id: "last90days", label: "Last 3 months" },
+  { id: "last180days", label: "Last 6 months" },
+  { id: "last365days", label: "Last year" },
+] as const;
+
+type RangePresetId = (typeof RANGE_PRESETS)[number]["id"];
+
+function isRangePresetId(v: string): v is RangePresetId {
+  return RANGE_PRESETS.some((p) => p.id === v);
+}
+
+function rangeForPreset(id: RangePresetId): { from: string; to: string } {
+  const today = startOfLocalDay(new Date());
+  const to = toDateInputValue(today);
+  if (id === "today") {
+    return { from: to, to };
+  }
+  if (id === "yesterday") {
+    const y = addLocalDays(today, -1);
+    const ys = toDateInputValue(y);
+    return { from: ys, to: ys };
+  }
+  const back =
+    id === "last3days"
+      ? 2
+      : id === "last7days"
+        ? 6
+        : id === "last14days"
+          ? 13
+          : id === "last30days"
+            ? 29
+            : id === "last90days"
+              ? 89
+              : id === "last180days"
+                ? 179
+                : 364;
+  const fromD = addLocalDays(today, -back);
+  return { from: toDateInputValue(fromD), to };
+}
+
 export default function PurchasingIntelligencePage() {
   const { me } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.PurchasingIntelligenceRead);
@@ -50,12 +116,14 @@ export default function PurchasingIntelligencePage() {
   const [prices, setPrices] = useState<PriceCompetitivenessRow[]>([]);
   const [risk, setRisk] = useState<SingleSourceRiskRow[]>([]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (range?: { from: string; to: string }) => {
     setMessage("");
     setLoading(true);
     try {
-      const fromArg = from.trim() || undefined;
-      const toArg = to.trim() || undefined;
+      const fromRaw = range?.from ?? from;
+      const toRaw = range?.to ?? to;
+      const fromArg = fromRaw.trim() || undefined;
+      const toArg = toRaw.trim() || undefined;
       const [spendRows, priceRows, riskRows] = await Promise.all([
         fetchSpendBySupplierCategory(fromArg, toArg),
         fetchPriceCompetitiveness(fromArg, toArg),
@@ -98,8 +166,8 @@ export default function PurchasingIntelligencePage() {
           description={
             <>
               Spend by supplier and category, unit price vs primary supplier last cost, and sellable items with a
-              single active supplier link. Leave dates empty for the default rolling window (last 90 days). Click{" "}
-              <strong>Refresh</strong> to load all sections.
+              single active supplier link. Use a quick range or set From / To manually. Leave dates empty for the
+              default rolling window (last 90 days). Click <strong>Refresh</strong> to load with your dates.
             </>
           }
         />
@@ -121,6 +189,32 @@ export default function PurchasingIntelligencePage() {
           });
         }}
       >
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Quick range</span>
+          <select
+            className="min-w-[12rem] rounded border bg-background px-2 py-1.5 text-sm"
+            value=""
+            onChange={(event) => {
+              const id = event.target.value;
+              if (!isRangePresetId(id)) {
+                return;
+              }
+              const r = rangeForPreset(id);
+              setFrom(r.from);
+              setTo(r.to);
+              void load(r).catch(() => {
+                setMessage("Failed to load reports.");
+              });
+            }}
+          >
+            <option value="">Choose preset…</option>
+            {RANGE_PRESETS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">From</span>
           <input

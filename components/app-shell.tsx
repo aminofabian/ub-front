@@ -50,6 +50,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.businessDomains, label: "Domains" },
       BRANCHES_LINK,
       { href: APP_ROUTES.users, label: "Users" },
+      { href: APP_ROUTES.businessImport, label: "Data import" },
     ],
   },
   {
@@ -130,6 +131,7 @@ type NavGate = {
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
+  canManageImports: boolean;
 };
 
 function featureFlagAllows(flags: Record<string, boolean> | undefined, key: string | undefined): boolean {
@@ -151,6 +153,9 @@ function isNavItemVisible(item: NavItem, g: NavGate): boolean {
   }
   if (item.href === APP_ROUTES.users) {
     return g.canListUsers;
+  }
+  if (item.href === APP_ROUTES.businessImport) {
+    return g.canManageImports;
   }
   if (item.href === APP_ROUTES.categories) {
     return g.canViewCategories;
@@ -239,6 +244,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,
+    canManageImports,
   } = useDashboard();
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
@@ -263,6 +269,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewSalesIntelligence,
       canViewStorefrontOrders,
       canQuickSale,
+      canManageImports,
     };
     return NAV_SECTIONS.map((section) => ({
       ...section,
@@ -287,6 +294,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,
+    canManageImports,
   ]);
 
   const activeSectionId = useMemo(() => {

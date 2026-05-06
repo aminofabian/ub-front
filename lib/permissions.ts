@@ -1,4 +1,6 @@
 export const Permission = {
+  /** CSV / legacy JSON imports under Integrations (Phase 8). */
+  IntegrationsImportsManage: "integrations.imports.manage",
   BusinessManageSettings: "business.manage_settings",
   UsersList: "users.list",
   UsersCreate: "users.create",
