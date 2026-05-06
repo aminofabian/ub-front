@@ -2,8 +2,8 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
@@ -21,7 +21,8 @@ import {
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
-import { fetchBusiness, loginWithPassword, loginWithPin } from "@/lib/api";
+import { fetchBusiness, fetchMe, loginWithPassword, loginWithPin } from "@/lib/api";
+import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import {
   APP_ROUTES,
   hostDerivedShopUrl,
@@ -84,6 +85,7 @@ async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "pus
   );
 }
 
+
 const AUTH_MODE = {
   password: "password",
   pin: "pin",
@@ -96,6 +98,7 @@ const primaryCtaClass =
 
 function LoginPageContent() {
   const tenant = useOptionalTenant();
+  const searchParams = useSearchParams();
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const tenantGreeting = tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
@@ -109,12 +112,31 @@ function LoginPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
+  const resolveAfterPasswordAuth = useCallback(async (): Promise<string> => {
+    try {
+      const me = await fetchMe();
+      if (isBuyerAccount(me)) {
+        return buyerHomePath();
+      }
+      const requested = searchParams.get("next")?.trim();
+      if (requested?.startsWith("/") && !requested.startsWith("//")) {
+        return requested;
+      }
+      return APP_ROUTES.business;
+    } catch {
+      return APP_ROUTES.business;
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     if (!getSessionTokens()) {
       return;
     }
-    void syncSlugAndNavigate(router, APP_ROUTES.business, "replace");
-  }, [router]);
+    void (async () => {
+      const dest = await resolveAfterPasswordAuth();
+      await syncSlugAndNavigate(router, dest, "replace");
+    })();
+  }, [router, resolveAfterPasswordAuth]);
 
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
@@ -138,7 +160,8 @@ function LoginPageContent() {
       }
       persistTenantId(id);
       await loginWithPassword(email, password);
-      await syncSlugAndNavigate(router, APP_ROUTES.business, "push");
+      const dest = await resolveAfterPasswordAuth();
+      await syncSlugAndNavigate(router, dest, "push");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed.");
     } finally {
@@ -192,8 +215,18 @@ function LoginPageContent() {
           href={APP_ROUTES.signup}
           className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
         >
-          Create an account
+          Create a shopper account
         </Link>
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Store staff invited by your manager should use the{" "}
+        <Link
+          href={APP_ROUTES.signupStaff}
+          className="font-semibold text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
+        >
+          staff invite signup
+        </Link>{" "}
+        with the shared token — not this public link.
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-2">

@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { getSessionTokens } from "@/lib/auth";
+import { fetchMe } from "@/lib/api";
+import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
 
 type DashboardLayoutProps = {
@@ -22,7 +24,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       router.replace(APP_ROUTES.login);
       return;
     }
-    setCheckedAuth(true);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const me = await fetchMe();
+        if (!cancelled && isBuyerAccount(me)) {
+          router.replace(buyerHomePath());
+          return;
+        }
+      } catch {
+        /* invalid session — still allow layout to mount so providers can surface errors */
+      }
+      if (!cancelled) {
+        setCheckedAuth(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (!checkedAuth) {

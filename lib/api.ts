@@ -719,10 +719,16 @@ export async function registerAccount(
   name: string,
   email: string,
   password: string,
+  opts?: { staffInviteToken?: string },
 ): Promise<RegisterResponse> {
+  const body: Record<string, unknown> = { name, email, password };
+  const token = opts?.staffInviteToken?.trim();
+  if (token) {
+    body.staffInviteToken = token;
+  }
   return request<RegisterResponse>(API_ROUTES.register, {
     method: "POST",
-    body: { name, email, password },
+    body,
     requiresAuth: false,
   });
 }
@@ -797,6 +803,91 @@ export async function logoutRemote(): Promise<void> {
 
 export async function fetchMe(): Promise<MeResponse> {
   return request<MeResponse>(API_ROUTES.me);
+}
+
+export type ShopperBalancesPayload = {
+  walletBalance?: number | string | null;
+  balanceOwed?: number | string | null;
+  creditLimit?: number | string | null;
+  creditAvailable?: number | string | null;
+  loyaltyPoints?: number;
+};
+
+export type ShopperPickupOrderRow = {
+  id: string;
+  status?: string;
+  grandTotal?: number | string | null;
+  currency?: string;
+  customerName?: string;
+  customerPhone?: string;
+  catalogBranchId?: string;
+  catalogBranchName?: string;
+  createdAt?: string;
+};
+
+export type ShopperLedgerRow = {
+  occurredAt?: string;
+  kind?: string;
+  memo?: string;
+  debit?: number | string | null;
+  credit?: number | string | null;
+};
+
+export type ShopperAccountOverview = {
+  email: string;
+  linkedStorefrontProfile: boolean;
+  customerDirectoryName: string;
+  balances: ShopperBalancesPayload;
+  pickupOrders: ShopperPickupOrderRow[];
+  pickupOrdersTotal?: number;
+  pickupOrdersPage?: number;
+  pickupOrdersPageSize?: number;
+  pickupOrdersTotalPages?: number;
+  recentLedgerLines: ShopperLedgerRow[];
+  ledgerLinesTotal?: number;
+  ledgerTruncated?: boolean;
+  loyaltyKesPerPoint?: number | string | null;
+};
+
+export type ShopperPickupOrderDetail = {
+  id: string;
+  cartId?: string;
+  status?: string;
+  grandTotal?: number | string | null;
+  currency?: string;
+  catalogBranchId?: string;
+  catalogBranchName?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  lines?: {
+    itemId?: string;
+    itemName?: string;
+    variantName?: string | null;
+    quantity?: number | string;
+    unitPrice?: number | string | null;
+    lineTotal?: number | string | null;
+    lineIndex?: number;
+  }[];
+};
+
+export async function fetchShopperAccountOverview(
+  page = 0,
+  size = 24,
+): Promise<ShopperAccountOverview> {
+  const qs = new URLSearchParams({ page: String(page), size: String(size) });
+  return request<ShopperAccountOverview>(`${API_ROUTES.shopperHub}?${qs.toString()}`, {
+    requiresAuth: true,
+  });
+}
+
+export async function fetchShopperPickupOrderDetail(orderId: string): Promise<ShopperPickupOrderDetail> {
+  const id = encodeURIComponent(orderId.trim());
+  return request<ShopperPickupOrderDetail>(`${API_ROUTES.shopperHub}/orders/${id}`, {
+    requiresAuth: true,
+  });
 }
 
 export async function fetchBusiness(): Promise<BusinessRecord> {

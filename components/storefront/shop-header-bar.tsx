@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ClipboardList, Store } from "lucide-react";
+import { ClipboardList, Store, UserRound } from "lucide-react";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -71,13 +71,22 @@ export function ShopHeaderBar({
 
           <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
             <Link
+              href={APP_ROUTES.shopAccount}
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/40">
+                <UserRound className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="hidden whitespace-nowrap sm:inline">Account</span>
+            </Link>
+            <Link
               href={APP_ROUTES.shopCart}
               className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/40">
                 <ClipboardList className="h-5 w-5" aria-hidden />
               </span>
-              <span className="hidden whitespace-nowrap sm:inline">My Orders</span>
+              <span className="hidden whitespace-nowrap sm:inline">Cart</span>
             </Link>
             {slug ? (
               <ShopBasketPill slug={slug} accentHex={primaryHex} />

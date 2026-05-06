@@ -19,7 +19,7 @@ import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
-import { registerAccount, fetchMe } from "@/lib/api";
+import { fetchMe, registerAccount } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -27,12 +27,13 @@ import { cn } from "@/lib/utils";
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold shadow-md transition hover:brightness-[0.97] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
 
-function SignupPageContent() {
+function StaffSignupPageContent() {
   const tenant = useOptionalTenant();
   const [, ensureTenantResolved] = useTenantIdPrefill();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteToken, setInviteToken] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -70,6 +71,13 @@ function SignupPageContent() {
     setSuccessMessage("");
     setVerificationLink(null);
 
+    const tokenTrim = inviteToken.trim();
+    if (!tokenTrim) {
+      setErrorMessage("Enter the staff invitation token your manager shared.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const id = await ensureTenantResolved();
       if (!id?.trim()) {
@@ -77,10 +85,12 @@ function SignupPageContent() {
         return;
       }
       persistTenantId(id);
-      const result = await registerAccount(name.trim(), email.trim(), password);
+      const result = await registerAccount(name.trim(), email.trim(), password, {
+        staffInviteToken: tokenTrim,
+      });
       if (result.status.toLowerCase() === "active") {
         setVerificationLink(null);
-        setSuccessMessage(`Account ready for ${result.email}. You can sign in.`);
+        setSuccessMessage(`Account ready for ${result.email}. You can sign in at the workspace.`);
       } else {
         const link = result.verificationUrl?.trim();
         if (link) {
@@ -92,7 +102,7 @@ function SignupPageContent() {
           const base = `You're almost done. We sent a link to ${result.email}. Open it to verify, then sign in.`;
           const localHint =
             process.env.NODE_ENV === "development"
-              ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
+              ? " Locally, if the API has no SMTP, the link is only in the backend terminal, not in your inbox."
               : "";
           setSuccessMessage(base + localHint);
           setVerificationLink(null);
@@ -108,32 +118,53 @@ function SignupPageContent() {
   return (
     <AuthSplitShell tenant={tenant}>
       <AuthPageHeader
-        title="Create a shopper account"
+        title="Staff signup (invite only)"
         description={
           <>
-            Browse the storefront, save carts, and check out pickups with your profile. Workplace
-            access (cashier, inventory, owners) stays on{" "}
+            For registers, supervisors, owners, or other workspace roles —{" "}
+            <strong className="font-semibold text-foreground">never</strong> share the invite token publicly.
+            Shoppers should use{" "}
             <Link
-              href={APP_ROUTES.signupStaff}
+              href={APP_ROUTES.signup}
               className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
             >
-              the staff signup page
+              public sign up
             </Link>
             .
           </>
         }
       />
       <p className="mt-1 text-sm text-muted-foreground">
-        Confirm your email when asked, then sign in — you&apos;ll land in your shop dashboard.
+        Set <span className="font-mono text-xs">APP_AUTH_STAFF_SIGNUP_TOKEN</span> on the API and circulate the
+        value only inside your organization.
       </p>
 
       <form className="mt-8 space-y-4" onSubmit={onSubmit}>
         <div>
-          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="signup-name">
+          <label
+            className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            htmlFor="staff-invite"
+          >
+            Staff invitation token
+          </label>
+          <input
+            id="staff-invite"
+            className={authInputClassName}
+            value={inviteToken}
+            onChange={(event) => setInviteToken(event.target.value)}
+            autoComplete="off"
+            required
+          />
+        </div>
+        <div>
+          <label
+            className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            htmlFor="staff-signup-name"
+          >
             Full name
           </label>
           <input
-            id="signup-name"
+            id="staff-signup-name"
             className={authInputClassName}
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -142,11 +173,14 @@ function SignupPageContent() {
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="signup-email">
+          <label
+            className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            htmlFor="staff-signup-email"
+          >
             Email
           </label>
           <input
-            id="signup-email"
+            id="staff-signup-email"
             className={authInputClassName}
             type="email"
             value={email}
@@ -156,12 +190,15 @@ function SignupPageContent() {
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="signup-password">
+          <label
+            className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+            htmlFor="staff-signup-password"
+          >
             Password
           </label>
           <div className="relative">
             <input
-              id="signup-password"
+              id="staff-signup-password"
               className={cn(authInputClassName, "pr-12")}
               type={showPassword ? "text" : "password"}
               value={password}
@@ -218,20 +255,22 @@ function SignupPageContent() {
         </div>
       ) : null}
 
-      <div className="mt-10 flex items-center justify-between gap-4 border-t border-black/[0.06] pt-6 text-sm dark:border-white/10">
-        <span className="text-muted-foreground">Have a shopper login?</span>
-        <Link
-          href={APP_ROUTES.login}
-          className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
-        >
-          Sign in
-        </Link>
+      <div className="mt-10 flex flex-col gap-4 border-t border-black/[0.06] pt-6 text-sm dark:border-white/10">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-muted-foreground">Need the public shopper form?</span>
+          <Link
+            href={APP_ROUTES.signup}
+            className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
+          >
+            Shopper sign up
+          </Link>
+        </div>
       </div>
     </AuthSplitShell>
   );
 }
 
-export default function SignupPage() {
+export default function StaffSignupPage() {
   return (
     <Suspense
       fallback={
@@ -240,7 +279,7 @@ export default function SignupPage() {
         </div>
       }
     >
-      <SignupPageContent />
+      <StaffSignupPageContent />
     </Suspense>
   );
 }
