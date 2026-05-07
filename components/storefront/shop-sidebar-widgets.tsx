@@ -36,7 +36,11 @@ export function ShopSidebarWidgets({
 
   return (
     <div className="flex flex-col gap-4">
-      <OrderAgainCard primary={primary} reminders={reminders} />
+      {reminders.length > 0 ? (
+        <OrderAgainCard primary={primary} reminders={reminders} />
+      ) : (
+        <PastOrdersPromptCard primary={primary} />
+      )}
       <FreeDeliveryCard accent={accent} threshold={threshold} currency={currency} />
       <TopPicksCard
         picks={picks}
@@ -50,6 +54,31 @@ export function ShopSidebarWidgets({
   );
 }
 
+/** When storefront featured items are empty, avoid blank “repeat order” tiles — point shoppers to account history. */
+function PastOrdersPromptCard({ primary }: { primary: string | null }) {
+  return (
+    <aside
+      className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm"
+      style={
+        primary
+          ? { borderColor: `${primary}33`, boxShadow: `0 1px 0 0 ${primary}14 inset` }
+          : undefined
+      }
+    >
+      <p className="text-sm font-bold text-foreground">Reorder from history</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        The previous strip listed featured catalog items, not your order history. Open your account to view pickups and reorder.
+      </p>
+      <Link
+        href={APP_ROUTES.shopAccount}
+        className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
+      >
+        Past orders & account
+      </Link>
+    </aside>
+  );
+}
+
 function OrderAgainCard({
   primary,
   reminders,
@@ -57,55 +86,50 @@ function OrderAgainCard({
   primary: string | null;
   reminders: PublicCatalogItemCard[];
 }) {
-  const tiles = [...reminders];
-  while (tiles.length < 4) {
-    tiles.push({
-      id: `placeholder-${tiles.length}`,
-      name: "",
-      variantName: null,
-      imageUrl: null,
-      price: null,
-    });
-  }
-
   return (
     <aside
       className="overflow-hidden rounded-2xl text-white shadow-md"
       style={{ backgroundColor: primary ?? "var(--color-primary)" }}
     >
       <div className="px-5 pb-3 pt-4">
-        <p className="text-base font-bold leading-tight">Order Again</p>
-        <p className="mt-0.5 text-xs text-white/70">Your last order in one click</p>
+        <p className="text-base font-bold leading-tight">Featured picks</p>
+        <p className="mt-0.5 text-xs text-white/70">
+          Shelf highlights from this catalog — use Past orders for your pickup history.
+        </p>
       </div>
       <div className="grid grid-cols-4 gap-2 px-5">
-        {tiles.map((t, i) => (
-          <div
-            key={t.id || i}
-            className="relative aspect-square overflow-hidden rounded-md bg-white/95 ring-1 ring-white/20"
-          >
-            {t.imageUrl ? (
-              <Image
-                src={t.imageUrl}
-                alt=""
-                fill
-                sizes="80px"
-                className="object-contain p-1.5"
-                unoptimized
-              />
-            ) : (
-              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-medium text-muted-foreground/60">
-                —
-              </span>
-            )}
-          </div>
-        ))}
+        {reminders.map((t) => {
+          const label = t.variantName ? `${t.name} ${t.variantName}` : t.name;
+          return (
+            <Link
+              key={t.id}
+              href={shopItemPath(t.id)}
+              className="relative aspect-square overflow-hidden rounded-md bg-white/95 ring-1 ring-white/20 transition hover:brightness-95"
+            >
+              {t.imageUrl ? (
+                <Image
+                  src={t.imageUrl}
+                  alt={label.trim() || "Product"}
+                  fill
+                  sizes="80px"
+                  className="object-contain p-1.5"
+                  unoptimized
+                />
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center text-lg font-semibold text-muted-foreground/70">
+                  {(t.name || "?").slice(0, 1).toUpperCase()}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
       <div className="px-5 pb-5 pt-4">
         <Link
-          href={APP_ROUTES.login}
+          href={APP_ROUTES.shopAccount}
           className="flex h-10 w-full items-center justify-center rounded-md bg-black/30 text-sm font-semibold text-white transition hover:bg-black/40"
         >
-          Repeat Last Order
+          Past orders & account
         </Link>
       </div>
     </aside>

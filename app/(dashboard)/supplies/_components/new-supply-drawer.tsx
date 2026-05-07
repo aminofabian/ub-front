@@ -26,6 +26,7 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -152,7 +153,7 @@ function rowLabel(row: SupplyDraftRow): string {
   if (row.source === "linked" && row.link) {
     return row.link.itemName;
   }
-  return row.item?.name ?? "—";
+  return row.item ? itemCatalogDisplayTitle(row.item) : "—";
 }
 
 function rowSku(row: SupplyDraftRow): string {

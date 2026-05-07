@@ -6,6 +6,7 @@ import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import { fetchItemsPage, type ItemSummaryRecord } from "@/lib/api";
+import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
 
 type ProductPickCellProps = {
@@ -89,7 +90,7 @@ export function ProductPickCell({ item, disabled, onItemChange }: ProductPickCel
   if (item && !open) {
     return (
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="truncate text-sm font-medium text-foreground">{item.name}</span>
+        <span className="truncate text-sm font-medium text-foreground">{itemCatalogDisplayTitle(item)}</span>
         <span className="truncate font-mono text-[11px] text-muted-foreground">{item.sku}</span>
         <Button
           type="button"
@@ -157,7 +158,7 @@ export function ProductPickCell({ item, disabled, onItemChange }: ProductPickCel
                       setQ("");
                     }}
                   >
-                    <span className="font-medium leading-tight">{h.name}</span>
+                    <span className="font-medium leading-tight">{itemCatalogDisplayTitle(h)}</span>
                     <span className="font-mono text-[11px] text-muted-foreground">{h.sku}</span>
                   </button>
                 </li>

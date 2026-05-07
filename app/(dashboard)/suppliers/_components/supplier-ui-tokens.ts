@@ -33,6 +33,10 @@ export const supPanelHeader = "shrink-0 border-b border-border/50 bg-muted/40 px
 
 export const supPanelBody = "min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 lg:max-h-[calc(100dvh-11rem)]";
 
+/** Same shell height as {@link supPanelBody}, but column fills the panel so nested regions can scroll (catalog browser). */
+export const supPanelBodyFill =
+  "flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain p-4 lg:max-h-[calc(100dvh-11rem)]";
+
 export const supPanelKicker = "text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90";
 
 export const supPanelKickerViolet =

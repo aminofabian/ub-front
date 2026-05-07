@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 
+import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { supCard, supFieldLabel, supInput, supSelect } from "./supplier-ui-tokens";
 
 const CATALOG_PAGE_SIZE = 50;
@@ -427,8 +428,8 @@ export function SupplierCatalogColumn({
     linkableOnPage.length > 0 && linkableOnPage.every((r) => selectedIds.has(r.id));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className={cn(supCard, "p-4 sm:p-5")}>
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+      <div className={cn(supCard, "shrink-0 p-4 sm:p-5")}>
         <div className="border-b border-border/45 pb-3">
           <h3 className="text-sm font-semibold tracking-tight text-foreground">Linked products</h3>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -514,9 +515,21 @@ export function SupplierCatalogColumn({
               </p>
             </div>
             {canLinkProducts ? (
-              <span className="inline-flex items-center rounded-full bg-background px-3 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm ring-1 ring-border/55">
-                {selectedIds.size} selected
-              </span>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <span className="inline-flex items-center rounded-full bg-background px-3 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm ring-1 ring-border/55">
+                  {selectedIds.size} selected
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 gap-1.5 font-semibold shadow-sm"
+                  disabled={selectedIds.size === 0 || linksBusy}
+                  onClick={() => setLinkDrawerOpen(true)}
+                >
+                  <Link2 className="size-3.5" aria-hidden />
+                  Link products
+                </Button>
+              </div>
             ) : null}
           </div>
           <div className="flex flex-wrap items-end gap-3">
@@ -658,14 +671,13 @@ export function SupplierCatalogColumn({
                     const linked = linkedIds.has(row.id);
                     const isGroupLabel = row.groupLabelOnly === true;
                     const isVariant = Boolean(row.variantOfItemId);
-                    const optionLabel = row.variantName?.trim();
                     const catLabel =
                       row.categoryName?.trim() ||
                       sortedCategoryOptions.find((c) => c.id === row.categoryId)?.name ||
                       (row.categoryId ? row.categoryId.slice(0, 8) + "…" : "—");
                     const ariaForSelect =
                       isVariant ?
-                        `Select option ${row.sku}: ${row.name}${optionLabel ? ` (${optionLabel})` : ""}`
+                        `Select option ${row.sku}: ${itemCatalogDisplayTitle(row)}`
                       : isGroupLabel ?
                         `Select all option SKUs under group ${row.sku}: ${row.name}`
                       : `Select standalone ${row.sku}: ${row.name}`;
@@ -801,7 +813,7 @@ export function SupplierCatalogColumn({
                                     isVariant ? "mt-0.5 text-[13px]" : "",
                                   )}
                                 >
-                                  {row.name}
+                                  {itemCatalogDisplayTitle(row)}
                                 </span>
                                 {linked ? (
                                   <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-emerald-800 dark:text-emerald-300">
@@ -809,15 +821,6 @@ export function SupplierCatalogColumn({
                                   </span>
                                 ) : null}
                               </span>
-                              {isVariant && optionLabel ? (
-                                <span className="mt-1 block border-l-2 border-violet-400/25 pl-2.5 text-[11px] font-medium leading-snug text-violet-900/90 dark:border-violet-400/35 dark:text-violet-200/95">
-                                  <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600/80 dark:text-violet-300/90">
-                                    Option
-                                  </span>
-                                  <span className="mx-1.5 text-muted-foreground/70">·</span>
-                                  <span>{optionLabel}</span>
-                                </span>
-                              ) : null}
                             </span>
                           </div>
                         </td>

@@ -53,6 +53,7 @@ import {
   supFieldLabel,
   supInput,
   supPanelBody,
+  supPanelBodyFill,
   supPanelHeader,
   supPanelKicker,
   supPanelKickerViolet,
@@ -633,7 +634,8 @@ export default function SuppliersPage() {
         <div
           className={cn(
             "grid min-h-0 flex-1 gap-4 lg:gap-5",
-            isXl && "xl:grid-cols-[minmax(16rem,21rem)_minmax(0,1fr)_minmax(0,1fr)]",
+            isXl &&
+              "xl:grid-cols-[minmax(16rem,21rem)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden",
           )}
         >
           <div className="flex min-h-0 min-w-0 flex-col gap-3">
@@ -779,7 +781,7 @@ export default function SuppliersPage() {
                     </div>
                   </div>
                 </div>
-                <div className={supPanelBody}>
+                <div className={supPanelBodyFill}>
                   <SupplierCatalogColumn
                     detail={detail}
                     canReadCatalog={canReadCatalog}

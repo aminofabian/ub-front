@@ -1,10 +1,45 @@
 import type { ItemSummaryRecord } from "@/lib/api";
 
+/** Import / legacy rows sometimes store placeholder text instead of a real option label. */
+const GENERIC_VARIANT_LABELS = new Set(["variant", "option", "variation", "default"]);
+
+export function isGenericVariantLabel(raw: string | undefined): boolean {
+  const t = raw?.trim().toLowerCase();
+  if (!t) {
+    return true;
+  }
+  return GENERIC_VARIANT_LABELS.has(t);
+}
+
 /** Title for POS lists: parent name plus option label when this row is a variant SKU. */
 export function cashierItemPrimaryLabel(row: ItemSummaryRecord): string {
   const name = row.name?.trim() || "Item";
   const option = row.variantName?.trim();
-  return option ? `${name} · ${option}` : name;
+  if (option && !isGenericVariantLabel(option)) {
+    return `${name} · ${option}`;
+  }
+  if (row.variantOfItemId) {
+    const sku = row.sku?.trim();
+    return sku ? `${name} · ${sku}` : name;
+  }
+  return name;
+}
+
+/**
+ * Supplier catalog / admin pickers: always distinguish variant SKUs — parent plus option label,
+ * or parent plus SKU when `variantName` is absent or a placeholder (legacy/import rows).
+ */
+export function itemCatalogDisplayTitle(row: ItemSummaryRecord): string {
+  const name = row.name?.trim() || "Item";
+  if (!row.variantOfItemId) {
+    return name;
+  }
+  const option = row.variantName?.trim();
+  if (option && !isGenericVariantLabel(option)) {
+    return `${name} · ${option}`;
+  }
+  const sku = row.sku?.trim();
+  return sku ? `${name} · ${sku}` : name;
 }
 
 /** Barcode-mirror / import-placeholder SKUs — not shown on POS; prefer availability instead. */
