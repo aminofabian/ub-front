@@ -7,7 +7,10 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
-import { authInputClassName, AuthSplitShell } from "@/components/auth/auth-split-shell";
+import {
+  authInputClassName,
+  AuthSplitShell,
+} from "@/components/auth/auth-split-shell";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
@@ -21,7 +24,12 @@ import {
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
-import { fetchBusiness, fetchMe, loginWithPassword, loginWithPin } from "@/lib/api";
+import {
+  fetchBusiness,
+  fetchMe,
+  loginWithPassword,
+  loginWithPin,
+} from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import {
   APP_ROUTES,
@@ -35,7 +43,11 @@ type LoginRouter = {
   replace: (href: string) => void;
 };
 
-async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "push" | "replace"): Promise<void> {
+async function syncSlugAndNavigate(
+  router: LoginRouter,
+  path: string,
+  mode: "push" | "replace",
+): Promise<void> {
   let slug: string | null = null;
   let primaryHost: string | null = null;
   try {
@@ -46,17 +58,30 @@ async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "pus
     /* tenant id header may still work for same-origin navigation */
   }
 
+  // If the user is already on the tenant's canonical domain, skip the handoff.
+  // This handles subdomain tenants (e.g. barakia.palmart.co.ke) that match the
+  // slug-derived hostname, and tenants with a custom primaryDomain.
+  const currentHost = window.location.hostname.toLowerCase();
+  if (primaryHost && currentHost === primaryHost.toLowerCase()) {
+    persistTenantHostFromSlug(slug);
+    navigateInApp(router, path, mode);
+    return;
+  }
+  if (slug && currentHost.startsWith(slug.toLowerCase() + ".")) {
+    persistTenantHostFromSlug(slug);
+    navigateInApp(router, path, mode);
+    return;
+  }
+
   const shopBase =
     hostDerivedShopUrl(primaryHost) || (slug ? slugDerivedShopUrl(slug) : "");
-  const targetOrigin = shopBase ? new URL(shopBase).origin : window.location.origin;
+  const targetOrigin = shopBase
+    ? new URL(shopBase).origin
+    : window.location.origin;
 
   if (!slug || targetOrigin === window.location.origin) {
     persistTenantHostFromSlug(slug);
-    if (mode === "replace") {
-      router.replace(path);
-    } else {
-      router.push(path);
-    }
+    navigateInApp(router, path, mode);
     return;
   }
 
@@ -64,11 +89,7 @@ async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "pus
   const tenantId = getSessionTenantId();
   if (!tokens) {
     persistTenantHostFromSlug(slug);
-    if (mode === "replace") {
-      router.replace(path);
-    } else {
-      router.push(path);
-    }
+    navigateInApp(router, path, mode);
     return;
   }
 
@@ -85,6 +106,17 @@ async function syncSlugAndNavigate(router: LoginRouter, path: string, mode: "pus
   );
 }
 
+function navigateInApp(
+  router: LoginRouter,
+  path: string,
+  mode: "push" | "replace",
+): void {
+  if (mode === "replace") {
+    router.replace(path);
+  } else {
+    router.push(path);
+  }
+}
 
 const AUTH_MODE = {
   password: "password",
@@ -100,7 +132,8 @@ function LoginPageContent() {
   const tenant = useOptionalTenant();
   const searchParams = useSearchParams();
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
-  const tenantGreeting = tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
+  const tenantGreeting =
+    tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
   const [, ensureTenantResolved] = useTenantIdPrefill();
   const [email, setEmail] = useState("");
@@ -184,7 +217,9 @@ function LoginPageContent() {
       await loginWithPin(email, pin, branchId);
       await syncSlugAndNavigate(router, APP_ROUTES.products, "push");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "PIN login failed.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "PIN login failed.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -249,7 +284,10 @@ function LoginPageContent() {
       {mode === AUTH_MODE.password ? (
         <form className="mt-6 space-y-4" onSubmit={onPasswordLogin}>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="login-email">
+            <label
+              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              htmlFor="login-email"
+            >
               Email
             </label>
             <input
@@ -265,7 +303,10 @@ function LoginPageContent() {
           </div>
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-2">
-              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="login-password">
+              <label
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                htmlFor="login-password"
+              >
                 Password
               </label>
               <Link
@@ -293,16 +334,25 @@ function LoginPageContent() {
                 onClick={() => setShowPassword((s) => !s)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">Minimum {passwordMinLength} characters.</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Minimum {passwordMinLength} characters.
+            </p>
           </div>
           <button
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
-            style={{ backgroundColor: "var(--auth-accent)", color: "var(--auth-accent-ink)" }}
+            style={{
+              backgroundColor: "var(--auth-accent)",
+              color: "var(--auth-accent-ink)",
+            }}
           >
             {isSubmitting ? "Signing in…" : "Sign in"}
           </button>
@@ -310,7 +360,10 @@ function LoginPageContent() {
       ) : (
         <form className="mt-6 space-y-4" onSubmit={onPinLogin}>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="pin-login-email">
+            <label
+              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              htmlFor="pin-login-email"
+            >
               Email
             </label>
             <input
@@ -325,7 +378,10 @@ function LoginPageContent() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="pin-branch-id">
+            <label
+              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              htmlFor="pin-branch-id"
+            >
               Branch ID
             </label>
             <input
@@ -340,7 +396,10 @@ function LoginPageContent() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="pin-value">
+            <label
+              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              htmlFor="pin-value"
+            >
               PIN
             </label>
             <input
@@ -359,7 +418,10 @@ function LoginPageContent() {
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
-            style={{ backgroundColor: "var(--auth-accent)", color: "var(--auth-accent-ink)" }}
+            style={{
+              backgroundColor: "var(--auth-accent)",
+              color: "var(--auth-accent-ink)",
+            }}
           >
             {isSubmitting ? "Signing in…" : "Sign in with PIN"}
           </button>
@@ -373,7 +435,10 @@ function LoginPageContent() {
       ) : null}
 
       <div className="mt-10 flex items-center justify-between gap-4 border-t border-black/[0.06] pt-6 text-xs text-muted-foreground dark:border-white/10">
-        <Link href={APP_ROUTES.verifyEmail} className="font-medium hover:text-foreground">
+        <Link
+          href={APP_ROUTES.verifyEmail}
+          className="font-medium hover:text-foreground"
+        >
           Verify email
         </Link>
         <span className="hidden sm:inline">Secure sign-in</span>
