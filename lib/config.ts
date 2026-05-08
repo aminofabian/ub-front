@@ -27,6 +27,7 @@ export const APP_ROUTES = {
   inventoryStockTake: "/inventory/stock-take",
   pricing: "/pricing",
   shifts: "/shifts",
+  analytics: "/analytics",
   salesReports: "/sales/reports",
   storefrontWebOrders: "/storefront/web-orders",
   salesQuick: "/sales/quick",
@@ -42,6 +43,16 @@ export const APP_ROUTES = {
 /** Public product detail (Phase 15 storefront). */
 export function shopItemPath(itemId: string): string {
   return `/shop/items/${encodeURIComponent(itemId)}`;
+}
+
+/** Dashboard category detail by slug. */
+export function categorySlugPath(slug: string): string {
+  return `/categories/${encodeURIComponent(slug)}`;
+}
+
+/** Dashboard category analytics by slug. */
+export function categoryAnalyticsPath(slug: string): string {
+  return `/categories/${encodeURIComponent(slug)}/analytics`;
 }
 
 export const API_ROUTES = {

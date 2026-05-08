@@ -7,7 +7,6 @@ import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-butto
 import { APP_ROUTES, shopItemPath } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
-import { cn } from "@/lib/utils";
 
 function isHex(v: string | null | undefined): v is string {
   return !!v && /^#[0-9a-fA-F]{6}$/.test(v.trim());
@@ -30,93 +29,89 @@ export function ShopSidebarWidgets({
 }) {
   const primary = isHex(primaryHex) ? primaryHex.trim() : null;
   const accent = isHex(accentHex) ? accentHex.trim() : null;
-  const reminders = featured.slice(0, 4);
   const picks = featured.slice(0, 4);
   const threshold = freeDeliveryThreshold ?? 1500;
 
   return (
-    <div className="flex flex-col gap-4">
-      {reminders.length > 0 ? (
-        <OrderAgainCard primary={primary} reminders={reminders} />
-      ) : (
-        <PastOrdersPromptCard primary={primary} />
-      )}
-      <FreeDeliveryCard accent={accent} threshold={threshold} currency={currency} />
-      <TopPicksCard
-        picks={picks}
-        currency={currency}
-        slug={slug}
-        primary={primary}
+    <div className="flex flex-col gap-3">
+      <FeaturedCard featured={featured} primary={primary} />
+      <FreeDeliveryCard
         accent={accent}
+        threshold={threshold}
+        currency={currency}
       />
+      {picks.length > 0 ? (
+        <TopPicksCard
+          picks={picks}
+          currency={currency}
+          slug={slug}
+          primary={primary}
+          accent={accent}
+        />
+      ) : null}
       <ShopNewsletterCard primary={primary} accent={accent} />
     </div>
   );
 }
 
-/** When storefront featured items are empty, avoid blank “repeat order” tiles — point shoppers to account history. */
-function PastOrdersPromptCard({ primary }: { primary: string | null }) {
-  return (
-    <aside
-      className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm"
-      style={
-        primary
-          ? { borderColor: `${primary}33`, boxShadow: `0 1px 0 0 ${primary}14 inset` }
-          : undefined
-      }
-    >
-      <p className="text-sm font-bold text-foreground">Reorder from history</p>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-        The previous strip listed featured catalog items, not your order history. Open your account to view pickups and reorder.
-      </p>
-      <Link
-        href={APP_ROUTES.shopAccount}
-        className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
-      >
-        Past orders & account
-      </Link>
-    </aside>
-  );
-}
-
-function OrderAgainCard({
+function FeaturedCard({
+  featured,
   primary,
-  reminders,
 }: {
+  featured: PublicCatalogItemCard[];
   primary: string | null;
-  reminders: PublicCatalogItemCard[];
 }) {
+  const reminders = featured.slice(0, 4);
+  if (reminders.length === 0) {
+    return (
+      <aside className="rounded-xl border border-border/40 bg-card p-4">
+        <p className="text-xs font-semibold text-foreground">Order History</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          Sign in to view past orders and reorder.
+        </p>
+        <Link
+          href={APP_ROUTES.shopAccount}
+          className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground"
+        >
+          View account
+        </Link>
+      </aside>
+    );
+  }
+
   return (
     <aside
-      className="overflow-hidden rounded-2xl text-white shadow-md"
-      style={{ backgroundColor: primary ?? "var(--color-primary)" }}
+      className="overflow-hidden rounded-xl shadow-sm"
+      style={{
+        backgroundColor: primary ?? "var(--color-primary)",
+      }}
     >
-      <div className="px-5 pb-3 pt-4">
-        <p className="text-base font-bold leading-tight">Featured picks</p>
-        <p className="mt-0.5 text-xs text-white/70">
-          Shelf highlights from this catalog — use Past orders for your pickup history.
+      <div className="px-4 pb-3 pt-3.5">
+        <p className="text-sm font-bold text-white">Featured</p>
+        <p className="mt-0.5 text-[11px] text-white/60">
+          Staff picks from this catalog
         </p>
       </div>
-      <div className="grid grid-cols-4 gap-2 px-5">
+      <div className="grid grid-cols-4 gap-1.5 px-4">
         {reminders.map((t) => {
           const label = t.variantName ? `${t.name} ${t.variantName}` : t.name;
           return (
             <Link
               key={t.id}
               href={shopItemPath(t.id)}
-              className="relative aspect-square overflow-hidden rounded-md bg-white/95 ring-1 ring-white/20 transition hover:brightness-95"
+              className="relative aspect-square overflow-hidden rounded-lg bg-white/90 ring-1 ring-white/20 transition hover:brightness-95"
             >
               {t.imageUrl ? (
                 <Image
                   src={t.imageUrl}
                   alt={label.trim() || "Product"}
                   fill
-                  sizes="80px"
-                  className="object-contain p-1.5"
+                  sizes="64px"
+                  className="object-contain p-1"
                   unoptimized
                 />
               ) : (
-                <span className="absolute inset-0 flex items-center justify-center text-lg font-semibold text-muted-foreground/70">
+                <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-muted-foreground/50">
                   {(t.name || "?").slice(0, 1).toUpperCase()}
                 </span>
               )}
@@ -124,10 +119,10 @@ function OrderAgainCard({
           );
         })}
       </div>
-      <div className="px-5 pb-5 pt-4">
+      <div className="px-4 pb-4 pt-3">
         <Link
           href={APP_ROUTES.shopAccount}
-          className="flex h-10 w-full items-center justify-center rounded-md bg-black/30 text-sm font-semibold text-white transition hover:bg-black/40"
+          className="flex h-8 w-full items-center justify-center rounded-lg bg-black/25 text-xs font-semibold text-white transition hover:bg-black/35"
         >
           Past orders & account
         </Link>
@@ -145,38 +140,37 @@ function FreeDeliveryCard({
   threshold: number;
   currency: string;
 }) {
-  const accentColor = accent ?? "#fb923c";
+  const accentColor = accent ?? "#f59e0b";
   return (
     <aside
-      className="relative overflow-hidden rounded-2xl border border-border/60 px-5 pb-5 pt-4 shadow-sm"
+      className="relative overflow-hidden rounded-xl border px-4 pb-4 pt-3.5"
       style={{
-        background: `linear-gradient(135deg, ${accentColor}1f 0%, var(--color-card) 100%)`,
-        borderColor: `${accentColor}38`,
+        backgroundColor: `${accentColor}0d`,
+        borderColor: `${accentColor}30`,
       }}
     >
-      <div className="flex flex-col gap-1.5">
-        <p className="text-base font-bold leading-tight" style={{ color: accentColor }}>
-          Free Delivery
-        </p>
-        <p className="text-sm text-muted-foreground">
-          On orders above{" "}
-          <span className="font-semibold tabular-nums text-foreground">
-            {formatDisplayPrice(currency, threshold)}
-          </span>
-        </p>
-        <Link
-          href="#shop-catalog"
-          className={cn(
-            "mt-3 inline-flex h-9 w-fit items-center justify-center gap-1 rounded-md px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-110",
-          )}
-          style={{ backgroundColor: accentColor }}
-        >
-          Shop Now
-          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-        </Link>
-      </div>
+      <p
+        className="text-xs font-bold uppercase tracking-wide"
+        style={{ color: accentColor }}
+      >
+        Free Delivery
+      </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+        On orders above{" "}
+        <span className="font-semibold tabular-nums text-foreground">
+          {formatDisplayPrice(currency, threshold)}
+        </span>
+      </p>
+      <Link
+        href="#shop-catalog"
+        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold text-white transition hover:brightness-110"
+        style={{ backgroundColor: accentColor }}
+      >
+        Shop Now
+        <ArrowRight className="h-3 w-3" />
+      </Link>
       <Truck
-        className="pointer-events-none absolute -bottom-2 -right-2 h-24 w-24 opacity-25"
+        className="pointer-events-none absolute -bottom-1 -right-1 h-16 w-16 opacity-[0.12]"
         aria-hidden
         style={{ color: accentColor }}
       />
@@ -197,23 +191,10 @@ function TopPicksCard({
   primary: string | null;
   accent: string | null;
 }) {
-  if (picks.length === 0) {
-    return null;
-  }
   return (
-    <aside className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-foreground">Top Picks For You</p>
-        <Link
-          href={APP_ROUTES.shop}
-          className="inline-flex items-center gap-1 text-xs font-semibold underline-offset-4 hover:underline"
-          style={{ color: primary ?? "var(--color-primary)" }}
-        >
-          View all
-          <ArrowRight className="h-3 w-3" aria-hidden />
-        </Link>
-      </div>
-      <ul className="mt-3 divide-y divide-border/50">
+    <aside className="rounded-xl border border-border/40 bg-card p-4">
+      <p className="text-xs font-semibold text-foreground">Top Picks</p>
+      <ul className="mt-2.5 divide-y divide-border/30">
         {picks.map((item) => {
           const title = item.variantName
             ? `${item.name} ${item.variantName}`
@@ -222,22 +203,22 @@ function TopPicksCard({
           const stock = formatStoreQty(item.qtyOnHand);
 
           return (
-            <li key={item.id} className="flex items-center gap-3 py-2.5">
+            <li key={item.id} className="flex items-center gap-2.5 py-2">
               <Link
                 href={shopItemPath(item.id)}
-                className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted/40"
+                className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted/40"
               >
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
                     alt=""
                     fill
-                    sizes="48px"
+                    sizes="40px"
                     className="object-contain p-1"
                     unoptimized
                   />
                 ) : (
-                  <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-muted-foreground">
+                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-muted-foreground/50">
                     {item.name.slice(0, 1)}
                   </span>
                 )}
@@ -245,20 +226,20 @@ function TopPicksCard({
               <div className="min-w-0 flex-1">
                 <Link
                   href={shopItemPath(item.id)}
-                  className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground hover:underline"
+                  className="line-clamp-2 text-[12px] font-medium leading-snug text-foreground/85 hover:underline"
                 >
                   {title}
                 </Link>
-                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-0.5 flex items-center gap-1.5">
                   <span className="text-[13px] font-bold tabular-nums text-foreground">
                     {price}
                   </span>
+                  {stock ? (
+                    <span className="text-[10px] text-muted-foreground/50">
+                      {stock}
+                    </span>
+                  ) : null}
                 </div>
-                {stock ? (
-                  <p className="mt-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
-                    {stock}
-                  </p>
-                ) : null}
               </div>
               <ShopQuickAddButton
                 slug={slug}
@@ -274,4 +255,3 @@ function TopPicksCard({
     </aside>
   );
 }
-

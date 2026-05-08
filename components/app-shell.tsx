@@ -111,6 +111,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     blurb: "Channels, reports, checkout",
     icon: ShoppingBag,
     items: [
+      { href: APP_ROUTES.analytics, label: "Analytics" },
       { href: APP_ROUTES.salesReports, label: "Sales by category" },
       {
         href: APP_ROUTES.storefrontWebOrders,
@@ -139,6 +140,7 @@ type NavGate = {
   canViewStockTake: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
+  canViewAnalytics: boolean;
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
@@ -179,6 +181,7 @@ function isNavItemVisible(item: NavItem, g: NavGate): boolean {
   if (item.href === APP_ROUTES.inventoryStockTake) return g.canViewStockTake;
   if (item.href === APP_ROUTES.pricing) return g.canViewPricing;
   if (item.href === APP_ROUTES.shifts) return g.canViewShifts;
+  if (item.href === APP_ROUTES.analytics) return g.canViewAnalytics;
   if (item.href === APP_ROUTES.salesReports) return g.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.storefrontWebOrders)
     return g.canViewStorefrontOrders;
@@ -276,6 +279,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewStockTake,
     canViewPricing,
     canViewShifts,
+    canViewAnalytics,
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,
@@ -301,6 +305,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewStockTake,
       canViewPricing,
       canViewShifts,
+      canViewAnalytics,
       canViewSalesIntelligence,
       canViewStorefrontOrders,
       canQuickSale,
@@ -326,6 +331,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewStockTake,
     canViewPricing,
     canViewShifts,
+    canViewAnalytics,
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,

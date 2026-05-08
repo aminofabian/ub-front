@@ -14,20 +14,23 @@ export function ShopNewsletterCard({
 }) {
   return (
     <aside
-      className="relative overflow-hidden rounded-2xl px-5 py-5 text-white shadow-md"
+      className="relative overflow-hidden rounded-xl px-4 py-4 text-white shadow-sm"
       style={{ backgroundColor: primary ?? "var(--color-primary)" }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-base font-bold leading-tight">Stay Updated</p>
-          <p className="mt-1 text-xs text-white/75">
-            Get the best offers and updates delivered to your inbox.
+          <p className="text-sm font-bold">Stay Updated</p>
+          <p className="mt-0.5 text-[11px] text-white/70">
+            Best offers delivered to your inbox.
           </p>
         </div>
-        <Send className="h-9 w-9 -rotate-12 text-white/40" aria-hidden />
+        <Send
+          className="h-7 w-7 -rotate-12 text-white/30 shrink-0"
+          aria-hidden
+        />
       </div>
       <form
-        className="mt-4 flex gap-2"
+        className="mt-3 flex gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
         }}
@@ -38,16 +41,18 @@ export function ShopNewsletterCard({
         <input
           id="shop-newsletter-email"
           type="email"
-          placeholder="Enter your email address"
-          className="h-10 flex-1 rounded-md border border-white/30 bg-white/15 px-3 text-sm text-white placeholder:text-white/55 focus:border-white/60 focus:outline-none"
+          placeholder="Enter your email"
+          className="h-8 flex-1 rounded-lg border border-white/25 bg-white/12 px-2.5 text-xs text-white placeholder:text-white/50 focus:border-white/50 focus:outline-none"
         />
         <Button
           type="submit"
           className={cn(
-            "h-10 shrink-0 rounded-md px-4 font-semibold text-white shadow-sm",
-            !accent && "bg-orange-500 hover:bg-orange-600",
+            "h-8 shrink-0 rounded-lg px-3 text-xs font-semibold text-white shadow-sm",
+            !accent && "bg-amber-500 hover:bg-amber-600",
           )}
-          style={accent ? { backgroundColor: accent, color: "#fff" } : undefined}
+          style={
+            accent ? { backgroundColor: accent, color: "#fff" } : undefined
+          }
         >
           Subscribe
         </Button>

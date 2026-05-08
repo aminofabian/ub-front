@@ -1673,14 +1673,302 @@ export type RevenueByCategoryRow = {
   categoryId: string;
   categoryName: string;
   netRevenue: number | string;
+  netProfit: number | string;
 };
 
 export async function fetchSalesRevenueByCategory(
   from?: string,
   to?: string,
+  categoryId?: string,
 ): Promise<RevenueByCategoryRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (categoryId?.trim()) params.set("categoryId", categoryId.trim());
+  const qs = params.toString();
   return request<RevenueByCategoryRow[]>(
-    `/api/v1/sales/intelligence/revenue-by-category${intelligenceDateQuery(from, to)}`,
+    `/api/v1/sales/intelligence/revenue-by-category${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type CategoryDailyRevenueRow = {
+  date: string;
+  grossRevenue: number | string;
+  refundAmount: number | string;
+  netRevenue: number | string;
+  netProfit: number | string;
+};
+
+export async function fetchCategoryDailyRevenue(
+  categoryId: string,
+  from?: string,
+  to?: string,
+): Promise<CategoryDailyRevenueRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  const qs = params.toString();
+  return request<CategoryDailyRevenueRow[]>(
+    `/api/v1/sales/intelligence/revenue-by-category/${encodeURIComponent(categoryId)}/daily${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type ItemRevenueRow = {
+  itemId: string;
+  itemName: string;
+  sku: string;
+  quantitySold: number | string;
+  grossRevenue: number | string;
+  refundAmount: number | string;
+  netRevenue: number | string;
+  netProfit: number | string;
+};
+
+export async function fetchCategoryItemRevenue(
+  categoryId: string,
+  from?: string,
+  to?: string,
+): Promise<ItemRevenueRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  const qs = params.toString();
+  return request<ItemRevenueRow[]>(
+    `/api/v1/sales/intelligence/revenue-by-category/${encodeURIComponent(categoryId)}/items${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type RecentSaleRow = {
+  saleId: string;
+  soldAt: string;
+  cashierName: string;
+  customerName: string;
+  paymentMethod: string;
+  itemId: string;
+  itemName: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  lineTotal: number | string;
+  profit: number | string;
+  status: string;
+};
+
+export async function fetchRecentSales(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<RecentSaleRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<RecentSaleRow[]>(
+    `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type PaymentMethodBreakdownRow = {
+  method: string;
+  transactionCount: number;
+  totalAmount: number | string;
+};
+
+export async function fetchPaymentsByMethod(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<PaymentMethodBreakdownRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<PaymentMethodBreakdownRow[]>(
+    `/api/v1/sales/intelligence/payments-by-method${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type StaffPerformanceRow = {
+  userId: string;
+  userName: string;
+  saleCount: number;
+  itemCount: number;
+  totalRevenue: number | string;
+  totalProfit: number | string;
+};
+
+export async function fetchStaffPerformance(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<StaffPerformanceRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<StaffPerformanceRow[]>(
+    `/api/v1/sales/intelligence/staff-performance${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type FinancePulseResponse = {
+  date: string;
+  branchId: string | null;
+  salesCount: number;
+  revenue: number | string;
+  cogs: number | string;
+  grossProfit: number | string;
+  grossMarginPct: number | string;
+  expensesTotal: number | string;
+  netOperating: number | string;
+  openShifts: number;
+};
+
+export async function fetchFinancePulse(
+  date?: string,
+  branchId?: string,
+): Promise<FinancePulseResponse> {
+  const params = new URLSearchParams();
+  if (date?.trim()) params.set("date", date.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<FinancePulseResponse>(
+    `/api/v1/finance/pulse${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type ProfitAndLossResponse = {
+  from: string;
+  to: string;
+  branchId: string | null;
+  revenue: number | string;
+  cogs: number | string;
+  grossProfit: number | string;
+  operatingExpenses: number | string;
+  netOperating: number | string;
+  revenueLines: { accountCode: string; accountName: string; amount: number | string }[];
+  cogsLines: { accountCode: string; accountName: string; amount: number | string }[];
+  expenseLines: { accountCode: string; accountName: string; amount: number | string }[];
+};
+
+export async function fetchFinancePL(
+  from: string,
+  to: string,
+  branchId?: string,
+): Promise<ProfitAndLossResponse> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  return request<ProfitAndLossResponse>(
+    `/api/v1/finance/pl?${params.toString()}`,
+  );
+}
+
+export type FinanceExpenseResponse = {
+  id: string;
+  branchId: string;
+  expenseDate: string;
+  name: string;
+  categoryType: string;
+  amount: number | string;
+  paymentMethod: string;
+  includeInCashDrawer: boolean;
+  receiptS3Key: string | null;
+  expenseLedgerAccountId: string;
+  journalEntryId: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export async function fetchFinanceExpenses(
+  date?: string,
+): Promise<FinanceExpenseResponse[]> {
+  const params = new URLSearchParams();
+  if (date?.trim()) params.set("date", date.trim());
+  const qs = params.toString();
+  return request<FinanceExpenseResponse[]>(
+    `/api/v1/finance/expenses${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type OwnerDashboardResponse = {
+  pulseToday: FinancePulseResponse;
+  payablesAging: {
+    asOf: string;
+    buckets: {
+      current: number;
+      days1To30: number;
+      days31To60: number;
+      days61To90: number;
+      daysOver90: number;
+    };
+    totalOpen: number;
+    totalSupplierPrepaymentBalance: number;
+  };
+  topSkusLast30Days: { itemId: string; itemName: string; revenueLast30Days: number | string }[];
+};
+
+export async function fetchDashboardOwnerSummary(): Promise<OwnerDashboardResponse> {
+  return request<OwnerDashboardResponse>("/api/v1/dashboard/owner-summary");
+}
+
+export type SalesRegisterDay = {
+  day: string;
+  branchId: string;
+  qty: number | string;
+  revenue: number | string;
+  cost: number | string;
+  profit: number | string;
+};
+
+export type SalesRegisterResponse = {
+  from: string;
+  to: string;
+  branchId: string | null;
+  days: SalesRegisterDay[];
+  totalQty: number | string;
+  totalRevenue: number | string;
+  totalCost: number | string;
+  totalProfit: number | string;
+};
+
+export async function fetchSalesRegister(
+  from: string,
+  to: string,
+  branchId?: string,
+): Promise<SalesRegisterResponse> {
+  const params = new URLSearchParams();
+  params.set("from", from.trim());
+  params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  return request<SalesRegisterResponse>(
+    `/api/v1/reports/sales/register?${params.toString()}`,
+  );
+}
+
+export type InventoryExpiryBucket = {
+  batchCount: number;
+  qtyRemaining: number | string;
+};
+
+export type InventoryExpiryPipelineResponse = {
+  branchId: string | null;
+  buckets: Record<string, InventoryExpiryBucket>;
+};
+
+export async function fetchInventoryExpiryPipeline(
+  branchId?: string,
+  asOf?: string,
+): Promise<InventoryExpiryPipelineResponse> {
+  const params = new URLSearchParams();
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (asOf?.trim()) params.set("asOf", asOf.trim());
+  const qs = params.toString();
+  return request<InventoryExpiryPipelineResponse>(
+    `/api/v1/reports/inventory/expiry-pipeline${qs ? `?${qs}` : ""}`,
   );
 }
 

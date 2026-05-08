@@ -566,7 +566,7 @@ export function ProductMobileDetailDrawer({
       width="wide"
     >
       {d ? (
-        <ProductDetailPanel {...detailPanelProps} />
+        <ProductDetailPanel {...(detailPanelProps as any)} />
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <Loader2 className="size-8 animate-spin text-primary" />

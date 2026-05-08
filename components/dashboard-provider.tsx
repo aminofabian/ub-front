@@ -82,6 +82,7 @@ type DashboardContextValue = {
   canViewStockTake: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
+  canViewAnalytics: boolean;
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
@@ -214,6 +215,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         hasPermission(me?.permissions, Permission.ShiftsOpen) ||
         hasPermission(me?.permissions, Permission.ShiftsClose) ||
         hasPermission(me?.permissions, Permission.ShiftsRead),
+      canViewAnalytics: hasPermission(me?.permissions, Permission.SalesIntelligenceRead),
       canViewSalesIntelligence: hasPermission(
         me?.permissions,
         Permission.SalesIntelligenceRead,

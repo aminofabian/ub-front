@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
+  BarChart3,
   Building2,
   Camera,
   ChevronDown,
@@ -13,8 +15,8 @@ import {
   LayoutGrid,
   Package,
   Pencil,
-  Sparkles,
   Tags,
+  X,
 } from "lucide-react";
 
 import {
@@ -28,7 +30,7 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, categorySlugPath, categoryAnalyticsPath } from "@/lib/config";
 import {
   createCategory,
   deleteCategoryImage,
@@ -918,1051 +920,1058 @@ export default function CategoriesPage() {
 
   return (
     <>
-    <div className={DASHBOARD_MAX_WIDE}>
-      <div className="space-y-8">
-      <header className="space-y-4">
-        <DashboardPageHero
-          icon={LayoutGrid}
-          eyebrow="Catalog"
-          title="Categories"
-          description={
-            <>
-              Build the tree your kiosk rails read from — covers show on storefront aisles, icons shine on touch lanes.
-              Slide-over panels carry commercial defaults, gallery uploads, and supplier anchors so the grid stays
-              clean. Writes need <code className="text-xs">catalog.categories.write</code>; supplier picks need{" "}
-              <code className="text-xs">suppliers.read</code>.
-            </>
-          }
-        />
-        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
-          <DashboardQuickLinks
-            links={[
-              { href: APP_ROUTES.products, label: "Products", desc: "Items & variants", icon: Package },
-              { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Vendors", icon: Building2 },
-              { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & margins", icon: Tags },
-            ]}
+      <div className="h-full overflow-y-auto overscroll-contain">
+        <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-12")}>
+        {/* Header */}
+        <div className="space-y-4">
+          <DashboardPageHero
+            compact
+            icon={LayoutGrid}
+            eyebrow="Catalog"
+            title="Categories"
+            description="Manage your category tree, covers, icons, and commercial defaults."
           />
-          {canManageCategories ? (
-            <Button
-              type="button"
-              size="lg"
-              className="gap-2 self-start shadow-md lg:shrink-0"
-              onClick={() => setActiveDrawer("create")}
-            >
-              <FolderPlus className="size-4" aria-hidden />
-              New category
-            </Button>
-          ) : null}
-        </div>
-      </header>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/15 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" disabled={listBusy} onClick={() => void refresh()}>
-            {listBusy ? "Refreshing…" : "Refresh tree"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={listBusy || rows.length === 0 || parentIdsWithChildren.size === 0}
-            onClick={() => setExpandedParentIds(new Set(parentIdsWithChildren))}
-          >
-            Expand all
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={listBusy || expandedParentIds.size === 0}
-            onClick={() => setExpandedParentIds(new Set())}
-          >
-            Collapse to top
-          </Button>
-        </div>
-        <p className="flex items-start gap-2 text-xs text-muted-foreground sm:max-w-lg">
-          <Sparkles className="mt-0.5 size-3.5 shrink-0 opacity-70" aria-hidden />
-          <span>
-            Use{" "}
-            <span className="inline-flex items-center gap-0.5 font-medium text-foreground">
-              <ChevronRight className="size-3.5 opacity-70" aria-hidden />/<ChevronDown className="size-3.5 opacity-70" aria-hidden />
-            </span>{" "}
-            next to a name to fold branches when you want a shorter list. The full tree loads expanded by default.
-            Choose a row for drawers: defaults &amp; rules, gallery, suppliers. Use{" "}
-            <span className="font-medium text-foreground">Edit</span> on a row to change fields inline.
-          </span>
-        </p>
-      </div>
-
-      {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
-
-      {!canManageCategories ? (
-        <p className="text-sm text-muted-foreground">
-          You can view categories but not edit. Ask an admin for{" "}
-          <code className="text-xs">catalog.categories.write</code>.
-        </p>
-      ) : null}
-
-      {selectedCategory && canManageCategories ? (
-        <div className="flex flex-col gap-4 rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.03] via-muted/10 to-background p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border bg-muted shadow-inner">
-              {categoryCoverUrl(selectedCategory) ? (
-                <Image
-                  src={categoryCoverUrl(selectedCategory)!}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="56px"
-                  unoptimized
-                />
-              ) : (
-                <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">—</span>
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">{selectedCategory.name}</p>
-              <p className="font-mono text-xs text-muted-foreground">{selectedCategory.slug}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Row selected · open a drawer to finish merchandising this aisle.
-              </p>
-            </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <DashboardQuickLinks
+              compact
+              links={[
+                { href: APP_ROUTES.products, label: "Products", desc: "Items & variants", icon: Package },
+                { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Vendors", icon: Building2 },
+                { href: APP_ROUTES.pricing, label: "Pricing", desc: "Rules & margins", icon: Tags },
+              ]}
+            />
+            {canManageCategories ? (
+              <Button
+                type="button"
+                className="h-9 gap-2 self-start px-4 text-sm"
+                onClick={() => setActiveDrawer("create")}
+              >
+                <FolderPlus className="size-4" aria-hidden />
+                New category
+              </Button>
+            ) : null}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setActiveDrawer("defaults")}>
-              <Tags className="size-3.5" aria-hidden />
-              Defaults &amp; rules
-            </Button>
-            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setActiveDrawer("gallery")}>
-              <Camera className="size-3.5" aria-hidden />
-              Gallery
-            </Button>
-            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setActiveDrawer("suppliers")}>
-              <Building2 className="size-3.5" aria-hidden />
-              Suppliers
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={listBusy} onClick={() => void refresh()}>
+              {listBusy ? "Refreshing…" : "Refresh"}
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => {
-                setPendingCategoryImage(null);
-                setPendingCreateIconFile(null);
-                setSelectedCategoryId(null);
-              }}
+              disabled={listBusy || rows.length === 0 || parentIdsWithChildren.size === 0}
+              onClick={() => setExpandedParentIds(new Set(parentIdsWithChildren))}
             >
-              Clear
+              Expand all
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={listBusy || expandedParentIds.size === 0}
+              onClick={() => setExpandedParentIds(new Set())}
+            >
+              Collapse
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {visibleSorted.length} visible / {rows.length} total
+            {editingCategoryId ? " · inline editing" : " · select a row to edit"}
+          </p>
         </div>
-      ) : null}
 
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
-          <thead className="border-b bg-muted/30">
-            <tr>
-              <th className="w-14 px-3 py-2 align-middle">Cover</th>
-              <th className="min-w-[12rem] px-3 py-2 align-middle">Name</th>
-              <th className="w-[9rem] px-3 py-2 align-middle">Slug</th>
-              <th className="min-w-[8rem] px-3 py-2 align-middle">Icon</th>
-              <th className="w-24 px-3 py-2 text-right align-middle tabular-nums">Position</th>
-              <th className="min-w-[9rem] px-3 py-2 align-middle">Parent</th>
-              <th className="min-w-[8rem] px-3 py-2 align-middle">Suppliers</th>
-              <th className="w-20 px-3 py-2 align-middle">Active</th>
-              {canManageCategories ? (
-                <th className="w-36 whitespace-nowrap px-3 py-2 text-right align-middle">Actions</th>
-              ) : null}
-            </tr>
-          </thead>
-          <tbody>
-            {visibleSorted.map((row) => {
-              const draft = edits[row.id];
-              const rowIsEditing = Boolean(canManageCategories && draft && editingCategoryId === row.id);
-              const parentName = row.parentId ? byId.get(row.parentId)?.name ?? "—" : "Top level";
-              const blockedParents = subtreeIncludingSelf(row.id, childrenMap);
-              const indentPx = (depths.get(row.id) ?? 0) * 12;
-              const cover = categoryCoverUrl(row);
-              const hasKids = (childrenMap.get(row.id)?.length ?? 0) > 0;
-              const branchExpanded = expandedParentIds.has(row.id);
-              const supplierHint =
-                row.linkedSuppliers?.length > 0
-                  ? row.linkedSuppliers
-                      .map((l) => `${l.supplierName}${l.primary ? " ★" : ""}`)
-                      .join(", ")
-                  : "—";
+        {/* Feedback */}
+        {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
 
-              return (
-                <tr
-                  key={row.id}
-                  role="button"
-                  tabIndex={0}
-                  className={cn(
-                    "cursor-pointer border-b border-muted/50 align-middle hover:bg-accent/40",
-                    selectedCategoryId === row.id && "bg-accent/25",
-                  )}
-                  onClick={() => {
-    setPendingCategoryImage(null);
-                    setSelectedCategoryId(row.id);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setPendingCategoryImage(null);
-                      setSelectedCategoryId(row.id);
-                    }
-                  }}
-                >
-                  <td className="px-3 py-2 align-middle">
-                    <div className="relative mx-auto h-10 w-10 shrink-0 overflow-hidden rounded border bg-muted">
-                      {cover ? (
-                        <Image src={cover} alt="" fill className="object-cover" sizes="40px" unoptimized />
-                      ) : (
-                        <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
-                          —
-                        </span>
+        {!canManageCategories ? (
+          <p className="text-sm text-muted-foreground">
+            View-only mode. Ask an admin for <code className="text-xs">catalog.categories.write</code>.
+          </p>
+        ) : null}
+
+        {/* Selected row actions */}
+        {selectedCategory && canManageCategories ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-primary/15 bg-primary/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                {categoryCoverUrl(selectedCategory) ? (
+                  <Image
+                    src={categoryCoverUrl(selectedCategory)!}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="40px"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">—</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">{selectedCategory.name}</p>
+                <p className="font-mono text-[11px] text-muted-foreground">{selectedCategory.slug}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setActiveDrawer("defaults")}>
+                <Tags className="size-3.5" aria-hidden />
+                Defaults
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setActiveDrawer("gallery")}>
+                <Camera className="size-3.5" aria-hidden />
+                Gallery
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setActiveDrawer("suppliers")}>
+                <Building2 className="size-3.5" aria-hidden />
+                Suppliers
+              </Button>
+              <Button asChild type="button" variant="secondary" size="sm" className="h-8 gap-1.5 px-2.5 text-xs">
+                <Link href={categoryAnalyticsPath(selectedCategory.slug)}>
+                  <BarChart3 className="size-3.5" aria-hidden />
+                  Analytics
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2.5 text-xs"
+                onClick={() => {
+                  setPendingCategoryImage(null);
+                  setPendingCreateIconFile(null);
+                  setSelectedCategoryId(null);
+                }}
+              >
+                <X className="size-3.5" aria-hidden />
+                Clear
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Table */}
+        <section className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[52rem] border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 border-b border-border/60 bg-muted/40 backdrop-blur">
+                <tr>
+                  <th className="w-12 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cover</th>
+                  <th className="min-w-[11rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
+                  <th className="w-[8rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Slug</th>
+                  <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Icon</th>
+                  <th className="w-20 px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground tabular-nums">Pos</th>
+                  <th className="min-w-[8rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Parent</th>
+                  <th className="min-w-[7rem] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Suppliers</th>
+                  <th className="w-16 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active</th>
+                  {canManageCategories ? (
+                    <th className="w-28 whitespace-nowrap px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
+                  ) : null}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {visibleSorted.map((row) => {
+                  const draft = edits[row.id];
+                  const rowIsEditing = Boolean(canManageCategories && draft && editingCategoryId === row.id);
+                  const parentName = row.parentId ? byId.get(row.parentId)?.name ?? "—" : "Top level";
+                  const blockedParents = subtreeIncludingSelf(row.id, childrenMap);
+                  const indentPx = (depths.get(row.id) ?? 0) * 14;
+                  const cover = categoryCoverUrl(row);
+                  const hasKids = (childrenMap.get(row.id)?.length ?? 0) > 0;
+                  const branchExpanded = expandedParentIds.has(row.id);
+                  const supplierHint =
+                    row.linkedSuppliers?.length > 0
+                      ? row.linkedSuppliers
+                          .map((l) => `${l.supplierName}${l.primary ? " ★" : ""}`)
+                          .join(", ")
+                      : "—";
+
+                  return (
+                    <tr
+                      key={row.id}
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        "cursor-pointer align-middle transition-colors hover:bg-accent/25",
+                        selectedCategoryId === row.id && "bg-accent/15",
                       )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 align-middle" onMouseDown={stopActivateRow}>
-                    <div className="flex min-w-0 items-center gap-1" style={{ paddingLeft: indentPx }}>
-                      {hasKids ? (
-                        <button
-                          type="button"
-                          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
-                          aria-expanded={branchExpanded}
-                          aria-label={
-                            branchExpanded
-                              ? `Hide subcategories under ${row.name}`
-                              : `Show subcategories under ${row.name}`
-                          }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedParentIds((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(row.id)) {
-                                next.delete(row.id);
-                              } else {
-                                next.add(row.id);
-                              }
-                              return next;
-                            });
-                          }}
-                        >
-                          {branchExpanded ? (
-                            <ChevronDown className="size-4" aria-hidden />
-                          ) : (
-                            <ChevronRight className="size-4" aria-hidden />
-                          )}
-                        </button>
-                      ) : (
-                        <span className="inline-flex size-7 shrink-0" aria-hidden />
-                      )}
-                      {rowIsEditing && draft ? (
-                        <input
-                          className="min-w-0 flex-1 rounded border bg-background px-2 py-1 text-sm"
-                          value={draft.name}
-                          onChange={(e) =>
-                            setEdits((prev) => ({
-                              ...prev,
-                              [row.id]: { ...draft, name: e.target.value },
-                            }))
-                          }
-                          aria-label={`Name ${row.name}`}
-                        />
-                      ) : (
-                        <span className="block min-w-0 flex-1 truncate font-medium text-foreground">{row.name}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 align-middle font-mono text-xs text-muted-foreground" onMouseDown={stopActivateRow}>
-                    {rowIsEditing && draft ? (
-                      <input
-                        className="w-full min-w-0 rounded border bg-background px-2 py-1 text-xs"
-                        value={draft.slug}
-                        onChange={(e) =>
-                          setEdits((prev) => ({
-                            ...prev,
-                            [row.id]: { ...draft, slug: e.target.value },
-                          }))
+                      onClick={() => {
+                        setPendingCategoryImage(null);
+                        setSelectedCategoryId(row.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setPendingCategoryImage(null);
+                          setSelectedCategoryId(row.id);
                         }
-                        aria-label={`Slug ${row.slug}`}
-                      />
-                    ) : (
-                      <span className="block truncate">{row.slug}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 align-middle" onMouseDown={stopActivateRow}>
-                    {rowIsEditing && draft ? (
-                      <div className="flex max-w-[14rem] flex-col gap-2">
-                        {categoryIconImageUrl(draft.icon) ? (
-                          <>
-                            <span className="relative h-9 w-9 overflow-hidden rounded-md border bg-muted">
+                      }}
+                    >
+                      <td className="px-3 py-2">
+                        <div className="relative mx-auto h-8 w-8 shrink-0 overflow-hidden rounded border bg-muted">
+                          {cover ? (
+                            <Image src={cover} alt="" fill className="object-cover" sizes="32px" unoptimized />
+                          ) : (
+                            <span className="flex h-full items-center justify-center text-[10px] text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                        <div className="flex min-w-0 items-center gap-1.5" style={{ paddingLeft: indentPx }}>
+                          {hasKids ? (
+                            <button
+                              type="button"
+                              className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                              aria-expanded={branchExpanded}
+                              aria-label={
+                                branchExpanded
+                                  ? `Hide subcategories under ${row.name}`
+                                  : `Show subcategories under ${row.name}`
+                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedParentIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(row.id)) {
+                                    next.delete(row.id);
+                                  } else {
+                                    next.add(row.id);
+                                  }
+                                  return next;
+                                });
+                              }}
+                            >
+                              {branchExpanded ? (
+                                <ChevronDown className="size-3.5" aria-hidden />
+                              ) : (
+                                <ChevronRight className="size-3.5" aria-hidden />
+                              )}
+                            </button>
+                          ) : (
+                            <span className="inline-flex size-6 shrink-0" aria-hidden />
+                          )}
+                          {rowIsEditing && draft ? (
+                            <input
+                              className="min-w-0 flex-1 rounded border border-input bg-background px-2 py-1 text-sm shadow-sm"
+                              value={draft.name}
+                              onChange={(e) =>
+                                setEdits((prev) => ({
+                                  ...prev,
+                                  [row.id]: { ...draft, name: e.target.value },
+                                }))
+                              }
+                              aria-label={`Name ${row.name}`}
+                            />
+                          ) : (
+                            <Link
+                              href={categorySlugPath(row.slug)}
+                              className="block min-w-0 flex-1 truncate text-sm font-medium text-foreground transition-colors hover:text-primary"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {row.name}
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs text-muted-foreground" onMouseDown={stopActivateRow}>
+                        {rowIsEditing && draft ? (
+                          <input
+                            className="w-full min-w-0 rounded border border-input bg-background px-2 py-1 text-xs shadow-sm"
+                            value={draft.slug}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [row.id]: { ...draft, slug: e.target.value },
+                              }))
+                            }
+                            aria-label={`Slug ${row.slug}`}
+                          />
+                        ) : (
+                          <span className="block truncate">{row.slug}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                        {rowIsEditing && draft ? (
+                          <div className="flex max-w-[14rem] flex-col gap-2">
+                            {categoryIconImageUrl(draft.icon) ? (
+                              <>
+                                <span className="relative h-8 w-8 overflow-hidden rounded border bg-muted">
+                                  <Image
+                                    src={categoryIconImageUrl(draft.icon)!}
+                                    alt=""
+                                    fill
+                                    className="object-cover"
+                                    sizes="32px"
+                                    unoptimized
+                                  />
+                                </span>
+                                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+                                  Replace image
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    disabled={iconUploadCategoryId === row.id || listBusy}
+                                    className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      void onReplaceCategoryIconImage(row.id, f);
+                                      e.target.value = "";
+                                    }}
+                                  />
+                                </label>
+                                {iconUploadCategoryId === row.id ? (
+                                  <span className="text-[10px] text-muted-foreground">Uploading…</span>
+                                ) : null}
+                                <div className="flex flex-wrap gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1 text-[11px]"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void onCopyCategoryIconUrl(row.id, categoryIconImageUrl(draft.icon)!);
+                                    }}
+                                  >
+                                    <Copy className="size-3" aria-hidden />
+                                    {copiedIconCategoryId === row.id ? "Copied" : "Copy URL"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-[11px] text-muted-foreground"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEdits((prev) => ({
+                                        ...prev,
+                                        [row.id]: { ...draft, icon: "" },
+                                      }));
+                                    }}
+                                  >
+                                    Clear
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+                                  Image
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    disabled={iconUploadCategoryId === row.id || listBusy}
+                                    className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      void onReplaceCategoryIconImage(row.id, f);
+                                      e.target.value = "";
+                                    }}
+                                  />
+                                </label>
+                                {iconUploadCategoryId === row.id ? (
+                                  <span className="text-[10px] text-muted-foreground">Uploading…</span>
+                                ) : null}
+                                <input
+                                  className="w-full rounded border border-input bg-background px-2 py-1 text-xs shadow-sm"
+                                  placeholder="Emoji, key, or URL"
+                                  value={draft.icon}
+                                  onChange={(e) =>
+                                    setEdits((prev) => ({
+                                      ...prev,
+                                      [row.id]: { ...draft, icon: e.target.value },
+                                    }))
+                                  }
+                                  aria-label={`Icon ${row.name}`}
+                                />
+                              </>
+                            )}
+                          </div>
+                        ) : categoryIconImageUrl(row.icon) ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded border bg-muted">
                               <Image
-                                src={categoryIconImageUrl(draft.icon)!}
+                                src={categoryIconImageUrl(row.icon)!}
                                 alt=""
                                 fill
                                 className="object-cover"
-                                sizes="36px"
+                                sizes="24px"
                                 unoptimized
                               />
                             </span>
-                            <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
-                              Replace image
-                              <input
-                                type="file"
-                                accept="image/*"
-                                disabled={iconUploadCategoryId === row.id || listBusy}
-                                className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  void onReplaceCategoryIconImage(row.id, f);
-                                  e.target.value = "";
-                                }}
-                              />
-                            </label>
-                            {iconUploadCategoryId === row.id ? (
-                              <span className="text-[10px] text-muted-foreground">Uploading…</span>
-                            ) : null}
-                            <div className="flex flex-wrap gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 text-[11px]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void onCopyCategoryIconUrl(row.id, categoryIconImageUrl(row.icon)!);
+                              }}
+                            >
+                              <Copy className="size-3" aria-hidden />
+                              {copiedIconCategoryId === row.id ? "Copied" : "Copy"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{row.icon?.trim() ? row.icon : "—"}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums" onMouseDown={stopActivateRow}>
+                        {rowIsEditing && draft ? (
+                          <input
+                            className="inline-block w-14 rounded border border-input bg-background px-2 py-1 text-right text-sm tabular-nums shadow-sm"
+                            inputMode="numeric"
+                            value={draft.positionStr}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [row.id]: { ...draft, positionStr: e.target.value },
+                              }))
+                            }
+                            aria-label={`Position ${row.name}`}
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{row.position}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                        {rowIsEditing && draft ? (
+                          <select
+                            className="max-w-full rounded border border-input bg-background px-2 py-1 text-xs shadow-sm"
+                            value={draft.parentId}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [row.id]: { ...draft, parentId: e.target.value },
+                              }))
+                            }
+                            aria-label={`Parent ${row.name}`}
+                          >
+                            <option value={ROOT_PARENT_VALUE}>Top level</option>
+                            {sorted
+                              .filter((c) => !blockedParents.has(c.id))
+                              .map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
+                                  {!c.active ? " (inactive)" : ""}
+                                </option>
+                              ))}
+                          </select>
+                        ) : (
+                          <span className="block truncate text-xs text-muted-foreground">{parentName}</span>
+                        )}
+                      </td>
+                      <td className="max-w-[9rem] px-3 py-2 text-xs text-muted-foreground">
+                        <span className="line-clamp-2" title={supplierHint}>
+                          {supplierHint}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2" onMouseDown={stopActivateRow}>
+                        {rowIsEditing && draft ? (
+                          <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={draft.active}
+                              onChange={(e) =>
+                                setEdits((prev) => ({
+                                  ...prev,
+                                  [row.id]: { ...draft, active: e.target.checked },
+                                }))
+                              }
+                              aria-label={`Active ${row.name}`}
+                            />
+                            Active
+                          </label>
+                        ) : row.active ? (
+                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            No
+                          </span>
+                        )}
+                      </td>
+                      {canManageCategories ? (
+                        <td className="whitespace-nowrap px-3 py-2 text-right" onMouseDown={stopActivateRow}>
+                          {rowIsEditing && draft ? (
+                            <div className="flex justify-end gap-1.5">
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-8 gap-1 text-[11px]"
+                                className="h-7 px-2 text-xs"
+                                disabled={listBusy}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void onCopyCategoryIconUrl(row.id, categoryIconImageUrl(draft.icon)!);
+                                  restoreDraftFromRow(row.id);
+                                  setEditingCategoryId(null);
                                 }}
                               >
-                                <Copy className="size-3.5" aria-hidden />
-                                {copiedIconCategoryId === row.id ? "Copied" : "Copy URL"}
+                                Cancel
                               </Button>
                               <Button
                                 type="button"
-                                variant="ghost"
+                                variant="secondary"
                                 size="sm"
-                                className="h-8 text-[11px] text-muted-foreground"
+                                className="h-7 px-2 text-xs"
+                                disabled={listBusy}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEdits((prev) => ({
-                                    ...prev,
-                                    [row.id]: { ...draft, icon: "" },
-                                  }));
+                                  void onSaveRow(row.id);
                                 }}
                               >
-                                Clear icon
+                                Save
                               </Button>
                             </div>
-                          </>
-                        ) : (
-                          <>
-                            <label className="flex flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
-                              Image
-                              <input
-                                type="file"
-                                accept="image/*"
-                                disabled={iconUploadCategoryId === row.id || listBusy}
-                                className="max-w-full text-[10px] file:mr-1 file:rounded file:border file:bg-background file:px-1.5 file:py-0.5"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  void onReplaceCategoryIconImage(row.id, f);
-                                  e.target.value = "";
-                                }}
-                              />
-                            </label>
-                            {iconUploadCategoryId === row.id ? (
-                              <span className="text-[10px] text-muted-foreground">Uploading…</span>
-                            ) : null}
-                            <input
-                              className="w-full rounded border bg-background px-2 py-1 text-xs"
-                              placeholder="Emoji, key, or URL"
-                              value={draft.icon}
-                              onChange={(e) =>
-                                setEdits((prev) => ({
-                                  ...prev,
-                                  [row.id]: { ...draft, icon: e.target.value },
-                                }))
-                              }
-                              aria-label={`Icon ${row.name}`}
-                            />
-                          </>
-                        )}
-                      </div>
-                    ) : categoryIconImageUrl(row.icon) ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded border bg-muted">
-                          <Image
-                            src={categoryIconImageUrl(row.icon)!}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="24px"
-                            unoptimized
-                          />
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1 text-[11px]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void onCopyCategoryIconUrl(row.id, categoryIconImageUrl(row.icon)!);
-                          }}
-                        >
-                          <Copy className="size-3.5" aria-hidden />
-                          {copiedIconCategoryId === row.id ? "Copied" : "Copy URL"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        {row.icon?.trim() ? row.icon : "—"}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right align-middle tabular-nums" onMouseDown={stopActivateRow}>
-                    {rowIsEditing && draft ? (
-                      <input
-                        className="inline-block w-16 rounded border bg-background px-2 py-1 text-right text-sm tabular-nums"
-                        inputMode="numeric"
-                        value={draft.positionStr}
-                        onChange={(e) =>
-                          setEdits((prev) => ({
-                            ...prev,
-                            [row.id]: { ...draft, positionStr: e.target.value },
-                          }))
-                        }
-                        aria-label={`Position ${row.name}`}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground">{row.position}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 align-middle" onMouseDown={stopActivateRow}>
-                    {rowIsEditing && draft ? (
-                      <select
-                        className="max-w-full rounded border bg-background px-2 py-1 text-xs"
-                        value={draft.parentId}
-                        onChange={(e) =>
-                          setEdits((prev) => ({
-                            ...prev,
-                            [row.id]: { ...draft, parentId: e.target.value },
-                          }))
-                        }
-                        aria-label={`Parent ${row.name}`}
-                      >
-                        <option value={ROOT_PARENT_VALUE}>Top level</option>
-                        {sorted
-                          .filter((c) => !blockedParents.has(c.id))
-                          .map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
-                              {!c.active ? " (inactive)" : ""}
-                            </option>
-                          ))}
-                      </select>
-                    ) : (
-                      <span className="block truncate text-muted-foreground">{parentName}</span>
-                    )}
-                  </td>
-                  <td className="max-w-[10rem] px-3 py-2 align-middle text-xs text-muted-foreground">
-                    <span className="line-clamp-2" title={supplierHint}>
-                      {supplierHint}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 align-middle" onMouseDown={stopActivateRow}>
-                    {rowIsEditing && draft ? (
-                      <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={draft.active}
-                          onChange={(e) =>
-                            setEdits((prev) => ({
-                              ...prev,
-                              [row.id]: { ...draft, active: e.target.checked },
-                            }))
-                          }
-                          aria-label={`Active ${row.name}`}
-                        />
-                        Active
-                      </label>
-                    ) : row.active ? (
-                      <span className="text-muted-foreground">Yes</span>
-                    ) : (
-                      <span className="text-muted-foreground">No</span>
-                    )}
-                  </td>
-                  {canManageCategories ? (
-                    <td className="whitespace-nowrap px-3 py-2 text-right align-middle" onMouseDown={stopActivateRow}>
-                      {rowIsEditing && draft ? (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={listBusy}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              restoreDraftFromRow(row.id);
-                              setEditingCategoryId(null);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            disabled={listBusy}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void onSaveRow(row.id);
-                            }}
-                          >
-                            Save
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-1"
-                          disabled={listBusy || !draft}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (editingCategoryId && editingCategoryId !== row.id) {
-                              restoreDraftFromRow(editingCategoryId);
-                            }
-                            restoreDraftFromRow(row.id);
-                            setEditingCategoryId(row.id);
-                          }}
-                        >
-                          <Pencil className="size-3.5" aria-hidden />
-                          Edit
-                        </Button>
-                      )}
-                    </td>
-                  ) : null}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-xs"
+                              disabled={listBusy || !draft}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (editingCategoryId && editingCategoryId !== row.id) {
+                                  restoreDraftFromRow(editingCategoryId);
+                                }
+                                restoreDraftFromRow(row.id);
+                                setEditingCategoryId(row.id);
+                              }}
+                            >
+                              <Pencil className="size-3" aria-hidden />
+                              Edit
+                            </Button>
+                          )}
+                        </td>
+                      ) : null}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Footer notes */}
+        <div className="space-y-1.5">
+          {sorted.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No categories yet{canManageCategories ? " — click New category to get started." : "."}
+            </p>
+          ) : !selectedCategory ? (
+            <p className="text-xs text-muted-foreground">
+              Tip: select a row to unlock drawers for defaults, gallery uploads, and supplier links.
+            </p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            Inactive categories remain in the tree for editing but may be hidden in product filters.
+          </p>
+        </div>
+      </div>
       </div>
 
-      {sorted.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No categories yet{canManageCategories ? " — open New category in the header." : "."}
-        </p>
-      ) : null}
-
-      {!selectedCategory && sorted.length > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          Tip: select a row to unlock drawers for defaults, gallery uploads, and supplier links.
-        </p>
-      ) : null}
-
-      <p className="text-xs text-muted-foreground">
-        Tip: inactive categories stay in the tree for editing but can be hidden wherever products are filtered by
-        active category.
-      </p>
-      </div>
-    </div>
-
-    <FormDrawer
-      open={activeDrawer === "create"}
-      onOpenChange={(open) => {
-        if (!open) {
-          setActiveDrawer(null);
-          setPendingCreateIconFile(null);
+      {/* Drawers */}
+      <FormDrawer
+        open={activeDrawer === "create"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveDrawer(null);
+            setPendingCreateIconFile(null);
+          }
+        }}
+        title="New category"
+        description="Slug is generated automatically from the name."
+        contextLabel="Catalog · Create"
+        icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="create-category-form">
+              Create category
+            </Button>
+          </div>
         }
-      }}
-      title="New category"
-      description="Slug is minted from the name automatically — tweak it later from the table. Covers and supplier anchors ship from dedicated drawers once this row exists."
-      contextLabel="Catalog · Create"
-      icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
-      footer={
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
-            Cancel
-          </Button>
-          <Button type="submit" form="create-category-form">
-            Create category
-          </Button>
-        </div>
-      }
-    >
-      <form id="create-category-form" className="space-y-5" onSubmit={(e) => void onCreate(e)}>
-        <FormDrawerFields legend="Placement">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Name
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              value={createDraft.name}
-              onChange={(e) => setCreateDraft((p) => ({ ...p, name: e.target.value }))}
-              required
-              aria-label="New category name"
-            />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
+      >
+        <form id="create-category-form" className="space-y-5" onSubmit={(e) => void onCreate(e)}>
+          <FormDrawerFields legend="Placement">
             <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Parent
-              <select
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                value={createDraft.parentId}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, parentId: e.target.value }))}
-                aria-label="Parent category"
-              >
-                <option value={ROOT_PARENT_VALUE}>Top level</option>
-                {sorted.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
-                    {!c.active ? " (inactive)" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Sort position (optional)
+              Name
               <input
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                placeholder="0"
-                inputMode="numeric"
-                value={createDraft.positionStr}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, positionStr: e.target.value }))}
-                aria-label="Sort position optional"
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                value={createDraft.name}
+                onChange={(e) => setCreateDraft((p) => ({ ...p, name: e.target.value }))}
+                required
+                aria-label="New category name"
               />
             </label>
-          </div>
-        </FormDrawerFields>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Parent
+                <select
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  value={createDraft.parentId}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, parentId: e.target.value }))}
+                  aria-label="Parent category"
+                >
+                  <option value={ROOT_PARENT_VALUE}>Top level</option>
+                  {sorted.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
+                      {!c.active ? " (inactive)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Sort position (optional)
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  placeholder="0"
+                  inputMode="numeric"
+                  value={createDraft.positionStr}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, positionStr: e.target.value }))}
+                  aria-label="Sort position optional"
+                />
+              </label>
+            </div>
+          </FormDrawerFields>
 
-        <FormDrawerFields
-          legend="Kiosk & shelf copy"
-          hint="Upload a square-ish PNG or SVG-friendly raster for tiles, or type an emoji / Lucide-style key. HTTPS URLs work too."
-        >
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Icon image (optional)
-            <input
-              type="file"
-              accept="image/*"
-              className="max-w-full text-sm file:mr-2 file:rounded file:border file:bg-muted file:px-2 file:py-1 file:text-xs"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                setPendingCreateIconFile(f);
-                e.target.value = "";
-              }}
-            />
-            {pendingCreateIconFile ? (
-              <span className="font-normal text-muted-foreground">
-                Selected: {pendingCreateIconFile.name} — uploads right after the category is created.
-              </span>
-            ) : (
-              <span className="font-normal text-[11px] text-muted-foreground">
-                Uses Cloudinary when configured; saved as the category icon URL.
-              </span>
-            )}
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Icon text (optional)
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Emoji or icon key — skipped when an icon image is uploaded above"
-              value={createDraft.icon}
-              onChange={(e) => setCreateDraft((p) => ({ ...p, icon: e.target.value }))}
-              aria-label="Icon optional text"
-              disabled={Boolean(pendingCreateIconFile)}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Description (optional)
-            <textarea
-              className="min-h-[4.5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Shown on rails or drill-down where supported"
-              value={createDraft.description}
-              onChange={(e) => setCreateDraft((p) => ({ ...p, description: e.target.value }))}
-              aria-label="Description optional"
-            />
-          </label>
-        </FormDrawerFields>
-
-        <FormDrawerFields legend="Commercial defaults (optional)">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <FormDrawerFields
+            legend="Kiosk & shelf copy"
+            hint="Upload a square PNG for tiles, or type an emoji / icon key. HTTPS URLs work too."
+          >
             <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Default markup %
+              Icon image (optional)
               <input
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums"
-                placeholder="e.g. 35"
-                inputMode="decimal"
-                value={createDraft.markupStr}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, markupStr: e.target.value }))}
-                aria-label="Default markup optional"
+                type="file"
+                accept="image/*"
+                className="max-w-full text-sm file:mr-2 file:rounded file:border file:bg-muted file:px-2 file:py-1 file:text-xs"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPendingCreateIconFile(f);
+                  e.target.value = "";
+                }}
+              />
+              {pendingCreateIconFile ? (
+                <span className="font-normal text-muted-foreground">
+                  Selected: {pendingCreateIconFile.name}
+                </span>
+              ) : (
+                <span className="font-normal text-[11px] text-muted-foreground">
+                  Saved as category icon URL via Cloudinary.
+                </span>
+              )}
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              Icon text (optional)
+              <input
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                placeholder="Emoji or icon key — skipped when image uploaded"
+                value={createDraft.icon}
+                onChange={(e) => setCreateDraft((p) => ({ ...p, icon: e.target.value }))}
+                aria-label="Icon optional text"
+                disabled={Boolean(pendingCreateIconFile)}
               />
             </label>
             <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Default tax rate
-              <select
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                value={createDraft.taxRateId}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, taxRateId: e.target.value }))}
-                aria-label="Default tax optional"
-              >
-                <option value="">None</option>
-                {taxRates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
-                  </option>
-                ))}
-              </select>
+              Description (optional)
+              <textarea
+                className="min-h-[4.5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                placeholder="Shown on rails or drill-down where supported"
+                value={createDraft.description}
+                onChange={(e) => setCreateDraft((p) => ({ ...p, description: e.target.value }))}
+                aria-label="Description optional"
+              />
             </label>
-          </div>
-        </FormDrawerFields>
-      </form>
-    </FormDrawer>
+          </FormDrawerFields>
 
-    <FormDrawer
-      open={activeDrawer === "defaults" && selectedCategory != null}
-      onOpenChange={(open) => {
-        if (!open) setActiveDrawer(null);
-      }}
-      title="Defaults & price rules"
-      description={
-        selectedCategory
-          ? `Marketing copy and tax posture for ${selectedCategory.name}. Link pricing rules that fire only on this branch of the tree.`
-          : ""
-      }
-      contextLabel="Commercial"
-      icon={<Tags className="size-5 text-primary" aria-hidden />}
-      width="wide"
-      footer={
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
-            Close
-          </Button>
-          <Button type="button" disabled={detailBusy || !commercialDraft} onClick={() => void onSaveCommercialDefaults()}>
-            Save defaults
-          </Button>
-        </div>
-      }
-    >
-      {selectedCategory ? (
-        <div className="space-y-6">
-          <FormDrawerFields legend="Shelf story">
-            {!commercialDraft ? (
-              <p className="text-xs text-muted-foreground">Loading…</p>
-            ) : (
-              <>
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                  Description
-                  <textarea
-                    className="min-h-[5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                    value={commercialDraft.description}
-                    onChange={(e) =>
-                      setCommercialDraft((d) => (d ? { ...d, description: e.target.value } : d))
-                    }
-                    disabled={detailBusy}
-                  />
-                </label>
-                <div className="grid gap-3 sm:grid-cols-2">
+          <FormDrawerFields legend="Commercial defaults (optional)">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Default markup %
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
+                  placeholder="e.g. 35"
+                  inputMode="decimal"
+                  value={createDraft.markupStr}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, markupStr: e.target.value }))}
+                  aria-label="Default markup optional"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Default tax rate
+                <select
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  value={createDraft.taxRateId}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, taxRateId: e.target.value }))}
+                  aria-label="Default tax optional"
+                >
+                  <option value="">None</option>
+                  {taxRates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </FormDrawerFields>
+        </form>
+      </FormDrawer>
+
+      <FormDrawer
+        open={activeDrawer === "defaults" && selectedCategory != null}
+        onOpenChange={(open) => {
+          if (!open) setActiveDrawer(null);
+        }}
+        title="Defaults & price rules"
+        description={
+          selectedCategory
+            ? `Marketing copy and tax posture for ${selectedCategory.name}.`
+            : ""
+        }
+        contextLabel="Commercial"
+        icon={<Tags className="size-5 text-primary" aria-hidden />}
+        width="wide"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+              Close
+            </Button>
+            <Button type="button" disabled={detailBusy || !commercialDraft} onClick={() => void onSaveCommercialDefaults()}>
+              Save defaults
+            </Button>
+          </div>
+        }
+      >
+        {selectedCategory ? (
+          <div className="space-y-6">
+            <FormDrawerFields legend="Shelf story">
+              {!commercialDraft ? (
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              ) : (
+                <>
                   <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                    Default markup %
-                    <input
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums"
-                      inputMode="decimal"
-                      placeholder="empty = none"
-                      value={commercialDraft.markupStr}
+                    Description
+                    <textarea
+                      className="min-h-[5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                      value={commercialDraft.description}
                       onChange={(e) =>
-                        setCommercialDraft((d) => (d ? { ...d, markupStr: e.target.value } : d))
+                        setCommercialDraft((d) => (d ? { ...d, description: e.target.value } : d))
                       }
                       disabled={detailBusy}
                     />
                   </label>
-                  <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                    Default tax rate
-                    <select
-                      className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                      value={commercialDraft.taxRateId}
-                      onChange={(e) =>
-                        setCommercialDraft((d) => (d ? { ...d, taxRateId: e.target.value } : d))
-                      }
-                      disabled={detailBusy || taxRates.length === 0}
-                    >
-                      <option value="">None</option>
-                      {taxRates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                {selectedCategory.defaultTaxRate ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    Resolved summary:{" "}
-                    <span className="font-medium text-foreground">{selectedCategory.defaultTaxRate.name}</span> (
-                    {String(selectedCategory.defaultTaxRate.ratePercent)}%
-                    {selectedCategory.defaultTaxRate.inclusive ? ", inclusive" : ""})
-                  </p>
-                ) : null}
-              </>
-            )}
-          </FormDrawerFields>
-
-          <FormDrawerFields legend="Direct price rules">
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Rule
-                <select
-                  className="min-w-[12rem] rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  value={rulePickId}
-                  onChange={(e) => setRulePickId(e.target.value)}
-                  disabled={detailBusy || priceRules.length === 0}
-                >
-                  <option value="">Choose…</option>
-                  {priceRules
-                    .filter((r) => r.active)
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Precedence (optional)
-                <input
-                  className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums"
-                  inputMode="numeric"
-                  value={rulePrecStr}
-                  onChange={(e) => setRulePrecStr(e.target.value)}
-                  disabled={detailBusy}
-                />
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                disabled={detailBusy || !rulePickId.trim()}
-                onClick={() => void onLinkPriceRule()}
-              >
-                Link rule
-              </Button>
-            </div>
-            <ul className="space-y-1 text-sm">
-              {linkedRules.length === 0 ? (
-                <li className="text-xs text-muted-foreground">No rules linked on this category.</li>
-              ) : (
-                linkedRules.map((lr) => (
-                  <li
-                    key={lr.ruleId}
-                    className="flex items-center justify-between gap-2 border-b border-muted/40 py-2 text-xs"
-                  >
-                    <span>
-                      {lr.ruleName}{" "}
-                      <span className="tabular-nums text-muted-foreground">· precedence {lr.precedence}</span>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-[11px] text-destructive"
-                      disabled={detailBusy}
-                      onClick={() => void onUnlinkPriceRule(lr.ruleId)}
-                    >
-                      Remove
-                    </Button>
-                  </li>
-                ))
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                      Default markup %
+                      <input
+                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
+                        inputMode="decimal"
+                        placeholder="empty = none"
+                        value={commercialDraft.markupStr}
+                        onChange={(e) =>
+                          setCommercialDraft((d) => (d ? { ...d, markupStr: e.target.value } : d))
+                        }
+                        disabled={detailBusy}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                      Default tax rate
+                      <select
+                        className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                        value={commercialDraft.taxRateId}
+                        onChange={(e) =>
+                          setCommercialDraft((d) => (d ? { ...d, taxRateId: e.target.value } : d))
+                        }
+                        disabled={detailBusy || taxRates.length === 0}
+                      >
+                        <option value="">None</option>
+                        {taxRates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  {selectedCategory.defaultTaxRate ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Resolved:{" "}
+                      <span className="font-medium text-foreground">{selectedCategory.defaultTaxRate.name}</span> (
+                      {String(selectedCategory.defaultTaxRate.ratePercent)}%
+                      {selectedCategory.defaultTaxRate.inclusive ? ", inclusive" : ""})
+                    </p>
+                  ) : null}
+                </>
               )}
-            </ul>
-          </FormDrawerFields>
-        </div>
-      ) : null}
-    </FormDrawer>
+            </FormDrawerFields>
 
-    <FormDrawer
-      open={activeDrawer === "gallery" && selectedCategory != null}
-      onOpenChange={(open) => {
-        if (!open) {
-          setActiveDrawer(null);
-          setPendingCategoryImage(null);
-        }
-      }}
-      title="Gallery"
-      description="Binary payloads ride on Cloudinary — we only persist URLs and fingerprints once the API confirms upload."
-      contextLabel="Media"
-      icon={<Camera className="size-5 text-primary" aria-hidden />}
-      footer={
-        <p className="text-[11px] text-muted-foreground">
-          Toggle “cover” so kiosk rails pick up the hero tile instantly after upload.
-        </p>
-      }
-    >
-      {selectedCategory ? (
-        <div className="space-y-5">
-          <form
-            id="category-gallery-upload-form"
-            className="space-y-3 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/10 p-4"
-            onSubmit={(e) => void onUploadCategoryImage(e)}
-          >
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Image file
-              <input
-                type="file"
-                accept="image/*"
-                className="max-w-full text-sm file:mr-3 file:rounded file:border file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
-                disabled={detailBusy}
-                onChange={(e) => setPendingCategoryImage(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            {pendingCategoryImage ? (
-              <p className="text-[11px] text-muted-foreground">Selected: {pendingCategoryImage.name}</p>
-            ) : null}
-            <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={uploadAsCover}
-                onChange={(e) => setUploadAsCover(e.target.checked)}
-                disabled={detailBusy}
-              />
-              Set as cover
-            </label>
-            <Button type="submit" size="sm" disabled={detailBusy || !pendingCategoryImage}>
-              {detailBusy ? "Uploading…" : "Upload"}
-            </Button>
-          </form>
-          {categoryImages.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No gallery images yet.</p>
-          ) : (
-            <ul className="flex flex-wrap gap-3">
-              {categoryImages.map((img) => {
-                const src = img.secureUrl?.trim() ?? "";
-                return (
-                  <li
-                    key={img.id}
-                    className="relative w-28 shrink-0 overflow-hidden rounded-lg border bg-background text-xs shadow-sm"
-                  >
-                    <div className="relative aspect-square w-full bg-muted">
-                      {src ? (
-                        <Image src={src} alt="" fill className="object-cover" sizes="112px" unoptimized />
-                      ) : (
-                        <span className="flex h-full items-center justify-center text-muted-foreground">—</span>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-full rounded-none text-[11px] text-destructive hover:text-destructive"
-                      disabled={detailBusy}
-                      onClick={() => void onDeleteCategoryImage(img.id)}
-                    >
-                      Remove
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      ) : null}
-    </FormDrawer>
-
-    <FormDrawer
-      open={activeDrawer === "suppliers" && selectedCategory != null}
-      onOpenChange={(open) => {
-        if (!open) setActiveDrawer(null);
-      }}
-      title="Supplier anchors"
-      description="Flag which vendors conceptually stock this aisle — helpful for replenishment stories and reporting."
-      contextLabel="Supply chain"
-      icon={<Building2 className="size-5 text-primary" aria-hidden />}
-      footer={
-        <div className="flex justify-end">
-          <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
-            Close
-          </Button>
-        </div>
-      }
-    >
-      {selectedCategory ? (
-        <div className="space-y-5">
-          {!canViewSuppliers ? (
-            <p className="text-sm text-muted-foreground">
-              You need <code className="rounded bg-muted px-1 font-mono text-xs">suppliers.read</code> to attach
-              vendors.
-            </p>
-          ) : (
-            <>
-              <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => void onLinkSupplier(e)}>
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                  Add supplier
+            <FormDrawerFields legend="Direct price rules">
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                  Rule
                   <select
-                    className="min-w-[12rem] rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                    value={supplierPickId}
-                    onChange={(e) => setSupplierPickId(e.target.value)}
-                    disabled={detailBusy || supplierChoices.length === 0}
+                    className="min-w-[12rem] rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                    value={rulePickId}
+                    onChange={(e) => setRulePickId(e.target.value)}
+                    disabled={detailBusy || priceRules.length === 0}
                   >
                     <option value="">Choose…</option>
-                    {supplierChoices.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
+                    {priceRules
+                      .filter((r) => r.active)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
                   </select>
                 </label>
-                <Button type="submit" disabled={detailBusy || !supplierPickId.trim()}>
-                  Link
+                <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                  Precedence (optional)
+                  <input
+                    className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
+                    inputMode="numeric"
+                    value={rulePrecStr}
+                    onChange={(e) => setRulePrecStr(e.target.value)}
+                    disabled={detailBusy}
+                  />
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={detailBusy || !rulePickId.trim()}
+                  onClick={() => void onLinkPriceRule()}
+                >
+                  Link rule
                 </Button>
-              </form>
-              <ul className="space-y-2 rounded-xl border bg-muted/10 p-3 text-sm">
-                {(selectedCategory.linkedSuppliers ?? []).length === 0 ? (
-                  <li className="text-xs text-muted-foreground">No suppliers linked yet.</li>
+              </div>
+              <ul className="divide-y divide-border/40 text-sm">
+                {linkedRules.length === 0 ? (
+                  <li className="py-2 text-xs text-muted-foreground">No rules linked on this category.</li>
                 ) : (
-                  (selectedCategory.linkedSuppliers ?? []).map((l) => (
+                  linkedRules.map((lr) => (
                     <li
-                      key={l.supplierId}
-                      className="flex flex-wrap items-center justify-between gap-2 border-b border-muted/40 py-2 last:border-0"
+                      key={lr.ruleId}
+                      className="flex items-center justify-between gap-2 py-2 text-xs"
                     >
-                      <span className="flex flex-wrap items-center gap-2 font-medium">
-                        {l.supplierName}
-                        {l.primary ? (
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                            Primary
-                          </span>
-                        ) : null}
+                      <span>
+                        {lr.ruleName}{" "}
+                        <span className="tabular-nums text-muted-foreground">· precedence {lr.precedence}</span>
                       </span>
-                      <span className="flex shrink-0 gap-1">
-                        {!l.primary ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            className="h-8 text-[11px]"
-                            disabled={detailBusy}
-                            onClick={() => void onSetSupplierPrimary(l.supplierId)}
-                          >
-                            Set primary
-                          </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-[11px] text-destructive"
-                          disabled={detailBusy}
-                          onClick={() => void onUnlinkSupplier(l.supplierId)}
-                        >
-                          Remove
-                        </Button>
-                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[11px] text-destructive"
+                        disabled={detailBusy}
+                        onClick={() => void onUnlinkPriceRule(lr.ruleId)}
+                      >
+                        Remove
+                      </Button>
                     </li>
                   ))
                 )}
               </ul>
-            </>
-          )}
-        </div>
-      ) : null}
-    </FormDrawer>
+            </FormDrawerFields>
+          </div>
+        ) : null}
+      </FormDrawer>
 
+      <FormDrawer
+        open={activeDrawer === "gallery" && selectedCategory != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveDrawer(null);
+            setPendingCategoryImage(null);
+          }
+        }}
+        title="Gallery"
+        description="Images are uploaded to Cloudinary and referenced by URL."
+        contextLabel="Media"
+        icon={<Camera className="size-5 text-primary" aria-hidden />}
+        footer={
+          <p className="text-[11px] text-muted-foreground">
+            Toggle “cover” so kiosk rails pick up the hero tile after upload.
+          </p>
+        }
+      >
+        {selectedCategory ? (
+          <div className="space-y-5">
+            <form
+              id="category-gallery-upload-form"
+              className="space-y-3 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/10 p-4"
+              onSubmit={(e) => void onUploadCategoryImage(e)}
+            >
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Image file
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="max-w-full text-sm file:mr-3 file:rounded file:border file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
+                  disabled={detailBusy}
+                  onChange={(e) => setPendingCategoryImage(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              {pendingCategoryImage ? (
+                <p className="text-[11px] text-muted-foreground">Selected: {pendingCategoryImage.name}</p>
+              ) : null}
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={uploadAsCover}
+                  onChange={(e) => setUploadAsCover(e.target.checked)}
+                  disabled={detailBusy}
+                />
+                Set as cover
+              </label>
+              <Button type="submit" size="sm" disabled={detailBusy || !pendingCategoryImage}>
+                {detailBusy ? "Uploading…" : "Upload"}
+              </Button>
+            </form>
+            {categoryImages.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No gallery images yet.</p>
+            ) : (
+              <ul className="flex flex-wrap gap-3">
+                {categoryImages.map((img) => {
+                  const src = img.secureUrl?.trim() ?? "";
+                  return (
+                    <li
+                      key={img.id}
+                      className="relative w-28 shrink-0 overflow-hidden rounded-lg border bg-background text-xs shadow-sm"
+                    >
+                      <div className="relative aspect-square w-full bg-muted">
+                        {src ? (
+                          <Image src={src} alt="" fill className="object-cover" sizes="112px" unoptimized />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-muted-foreground">—</span>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-full rounded-none text-[11px] text-destructive hover:text-destructive"
+                        disabled={detailBusy}
+                        onClick={() => void onDeleteCategoryImage(img.id)}
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : null}
+      </FormDrawer>
+
+      <FormDrawer
+        open={activeDrawer === "suppliers" && selectedCategory != null}
+        onOpenChange={(open) => {
+          if (!open) setActiveDrawer(null);
+        }}
+        title="Supplier anchors"
+        description="Flag vendors that stock this aisle for replenishment and reporting."
+        contextLabel="Supply chain"
+        icon={<Building2 className="size-5 text-primary" aria-hidden />}
+        footer={
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {selectedCategory ? (
+          <div className="space-y-5">
+            {!canViewSuppliers ? (
+              <p className="text-sm text-muted-foreground">
+                You need <code className="rounded bg-muted px-1 font-mono text-xs">suppliers.read</code> to attach
+                vendors.
+              </p>
+            ) : (
+              <>
+                <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => void onLinkSupplier(e)}>
+                  <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                    Add supplier
+                    <select
+                      className="min-w-[12rem] rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                      value={supplierPickId}
+                      onChange={(e) => setSupplierPickId(e.target.value)}
+                      disabled={detailBusy || supplierChoices.length === 0}
+                    >
+                      <option value="">Choose…</option>
+                      {supplierChoices.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button type="submit" disabled={detailBusy || !supplierPickId.trim()}>
+                    Link
+                  </Button>
+                </form>
+                <ul className="divide-y divide-border/40 rounded-lg border bg-muted/10 p-2 text-sm">
+                  {(selectedCategory.linkedSuppliers ?? []).length === 0 ? (
+                    <li className="px-2 py-2 text-xs text-muted-foreground">No suppliers linked yet.</li>
+                  ) : (
+                    (selectedCategory.linkedSuppliers ?? []).map((l) => (
+                      <li
+                        key={l.supplierId}
+                        className="flex flex-wrap items-center justify-between gap-2 px-2 py-2"
+                      >
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                          {l.supplierName}
+                          {l.primary ? (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              Primary
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="flex shrink-0 gap-1">
+                          {!l.primary ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-7 text-[11px]"
+                              disabled={detailBusy}
+                              onClick={() => void onSetSupplierPrimary(l.supplierId)}
+                            >
+                              Set primary
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-[11px] text-destructive"
+                            disabled={detailBusy}
+                            onClick={() => void onUnlinkSupplier(l.supplierId)}
+                          >
+                            Remove
+                          </Button>
+                        </span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </>
+            )}
+          </div>
+        ) : null}
+      </FormDrawer>
     </>
   );
 }

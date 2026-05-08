@@ -5,10 +5,9 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 function whatsAppOrderHref(): string | null {
-  const raw = process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP?.replace(/\D/g, "") ?? "";
-  if (!raw) {
-    return null;
-  }
+  const raw =
+    process.env.NEXT_PUBLIC_STOREFRONT_WHATSAPP?.replace(/\D/g, "") ?? "";
+  if (!raw) return null;
   const text = encodeURIComponent("Hi! I'd like to place an order.");
   return `https://wa.me/${raw}?text=${text}`;
 }
@@ -27,17 +26,19 @@ export function ShopHeroMart({
   branchHint?: string | null;
   primaryHex: string | null;
   accentHex: string | null;
-  /** Optional photo for the right panel (uses tenant featured product if present). */
   showcaseImage?: string | null;
   logoUrl?: string | null;
 }) {
   const wa = whatsAppOrderHref();
   const primary =
-    primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim()) ? primaryHex.trim() : null;
+    primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim())
+      ? primaryHex.trim()
+      : null;
   const accent =
-    accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
+    accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim())
+      ? accentHex.trim()
+      : null;
 
-  /** Dark hero surfaces derived from tenant primary (falls back to fixed greens in className). */
   const heroSurfaces = primary
     ? ({
         "--hero-bg": `color-mix(in srgb, ${primary} 72%, rgb(2 6 23))`,
@@ -47,15 +48,13 @@ export function ShopHeroMart({
       } as Record<string, string>)
     : undefined;
 
-  const headline = tagline?.trim() || `Everyday Essentials.`;
+  const headline = tagline?.trim() || "Everyday Essentials.";
   const subhead = "Close to You.";
-  const body =
-    "Quality products, low prices,\ndelivered fast to your doorstep.";
 
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl text-white shadow-xl",
+        "relative overflow-hidden rounded-xl text-white shadow-sm",
         !primary && "bg-[#0b1d12]",
       )}
       style={
@@ -64,9 +63,10 @@ export function ShopHeroMart({
           : undefined
       }
     >
-      <div className="grid min-h-[260px] gap-0 sm:min-h-[300px] sm:grid-cols-[1.05fr_1.4fr]">
-        <div className="relative z-10 flex flex-col justify-center gap-5 px-6 py-8 sm:px-10 sm:py-10">
-          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+      <div className="grid min-h-[200px] gap-0 sm:min-h-[240px] sm:grid-cols-[1fr_1.2fr]">
+        {/* Left — copy */}
+        <div className="relative z-10 flex flex-col justify-center gap-3 px-5 py-6 sm:px-8 sm:py-8">
+          <h1 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
             <span className="block">{headline}</span>
             <span
               className="block"
@@ -75,21 +75,21 @@ export function ShopHeroMart({
                   ? { color: accent }
                   : primary
                     ? { color: `color-mix(in srgb, ${primary} 55%, white)` }
-                    : { color: "#fb923c" }
+                    : { color: "#f59e0b" }
               }
             >
               {subhead}
             </span>
           </h1>
-          <p className="max-w-md whitespace-pre-line text-sm leading-relaxed text-white/80 sm:text-base">
-            {body}
+          <p className="max-w-xs text-xs leading-relaxed text-white/70 sm:text-sm">
+            Quality products, low prices, delivered fast.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <Link
               href="#shop-catalog"
               className={cn(
-                "inline-flex h-11 items-center justify-center gap-2 rounded-full px-6 text-sm font-bold shadow-md transition hover:brightness-110",
-                !accent && !primary && "bg-orange-500 text-white",
+                "inline-flex h-9 items-center gap-1.5 rounded-lg px-5 text-xs font-semibold shadow-sm transition hover:brightness-110",
+                !accent && !primary && "bg-amber-500 text-white",
               )}
               style={
                 accent
@@ -103,45 +103,26 @@ export function ShopHeroMart({
               }
             >
               Shop Now
-              <ArrowRight className="h-4 w-4" aria-hidden />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             {wa ? (
               <a
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/5 px-5 text-sm font-semibold text-white transition hover:bg-white/15"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/25 bg-white/5 px-4 text-xs font-semibold text-white transition hover:bg-white/10"
               >
-                <MessageCircle className="h-4 w-4" aria-hidden />
-                Order on WhatsApp
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
               </a>
             ) : null}
           </div>
-          <div className="mt-4 flex items-center gap-1.5 sm:mt-6">
-            {[0, 1, 2, 3].map((i) => (
-              <span
-                key={i}
-                className={cn("h-1.5 rounded-full transition-all", i === 0 ? "w-6" : "w-1.5")}
-                style={
-                  i === 0
-                    ? {
-                        backgroundColor: accent
-                          ? accent
-                          : primary
-                            ? `color-mix(in srgb, white 88%, ${primary})`
-                            : "rgb(255 255 255)",
-                      }
-                    : { backgroundColor: "rgb(255 255 255 / 0.35)" }
-                }
-                aria-hidden
-              />
-            ))}
-            <span className="sr-only">Slide 1 of 4</span>
-          </div>
         </div>
+
+        {/* Right — showcase */}
         <div
           className={cn(
-            "relative min-h-[200px] overflow-hidden",
+            "relative min-h-[160px] overflow-hidden sm:min-h-0",
             !primary && "bg-gradient-to-br from-[#1f3a26] to-[#0b1d12]",
           )}
           style={
@@ -158,17 +139,21 @@ export function ShopHeroMart({
               alt=""
               fill
               priority
-              sizes="(max-width: 640px) 100vw, 60vw"
+              sizes="(max-width: 640px) 100vw, 50vw"
               className="object-cover"
               unoptimized
             />
           ) : (
-            <ShopWindowIllustration primary={primary} logoUrl={logoUrl} title={title} branchHint={branchHint} />
+            <ShopWindowIllustration
+              primary={primary}
+              logoUrl={logoUrl}
+              title={title}
+              branchHint={branchHint}
+            />
           )}
-          {/* Soft inset edge to blend dark panel into image */}
           <div
             className={cn(
-              "pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r to-transparent sm:w-24",
+              "pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r to-transparent sm:w-16",
               !primary && "from-[#0b1d12]",
             )}
             style={
@@ -200,7 +185,7 @@ function ShopWindowIllustration({
   return (
     <div className="relative flex h-full items-center justify-center">
       <div
-        className="absolute inset-0 opacity-40"
+        className="absolute inset-0 opacity-30"
         style={
           primary
             ? {
@@ -210,24 +195,28 @@ function ShopWindowIllustration({
         }
         aria-hidden
       />
-      <div className="relative z-10 flex flex-col items-center gap-3 px-6 text-center">
+      <div className="relative z-10 flex flex-col items-center gap-2 px-4 text-center">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoUrl}
             alt=""
-            className="max-h-16 w-auto max-w-[12rem] rounded-lg bg-white/95 p-2 object-contain shadow-md"
+            className="max-h-12 w-auto max-w-[10rem] rounded-lg bg-white/95 p-1.5 object-contain shadow-md"
           />
         ) : (
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-            <Store className="h-8 w-8" aria-hidden />
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
+            <Store className="h-6 w-6" />
           </span>
         )}
-        <p className="text-lg font-semibold tracking-tight text-white">{title}</p>
+        <p className="text-sm font-semibold tracking-tight text-white">
+          {title}
+        </p>
         {branchHint ? (
-          <p className="text-xs text-white/70">From {branchHint}</p>
+          <p className="text-[11px] text-white/60">From {branchHint}</p>
         ) : (
-          <p className="text-xs text-white/70">Local prices · Same-day pickup</p>
+          <p className="text-[11px] text-white/60">
+            Local prices · Same-day pickup
+          </p>
         )}
       </div>
     </div>

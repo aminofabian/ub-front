@@ -6,7 +6,10 @@ import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
 import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
 import { ShopTrustStrip } from "@/components/storefront/shop-trust-strip";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
-import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
+import {
+  resolveStorefrontSlug,
+  resolveTenantContext,
+} from "@/lib/storefront-slug";
 import {
   fetchPublicCatalogItems,
   fetchPublicCategories,
@@ -18,10 +21,6 @@ function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
 }
 
-/**
- * Catalog landing body (hero + aisles + paginated catalog + sidebar). Used by
- * `/shop` and by `/` when the host is mapped to a tenant.
- */
 export async function StorefrontCatalogHome({
   q,
   categoryId,
@@ -41,8 +40,8 @@ export async function StorefrontCatalogHome({
         host={host}
         reason={
           tenant
-            ? `Domain "${host}" is mapped to tenant "${tenant.tenantName}", but no storefront slug is set. Open Business → Branding (or contact platform support) to assign a slug.`
-            : `Domain "${host}" is not mapped to any tenant yet. Add an active row in domains pointing to your business, or set NEXT_PUBLIC_STOREFRONT_SLUG on this Next.js deployment.`
+            ? `Domain "${host}" is mapped to tenant "${tenant.tenantName}", but no storefront slug is set.`
+            : `Domain "${host}" is not mapped to any tenant yet.`
         }
       />
     );
@@ -59,14 +58,15 @@ export async function StorefrontCatalogHome({
       <ShopUnavailable
         title="Storefront is not enabled"
         host={tenant?.tenantName ?? slug}
-        reason={`The catalog API did not return data for slug "${slug}". Common causes: storefront disabled in Business → Branding, no active catalog branch, or BACKEND_ORIGIN / network misconfiguration. If you set NEXT_PUBLIC_STOREFRONT_SLUG, it must be the real business slug (letters, numbers, hyphens only) — never "/" or a URL path.`}
+        reason={`The catalog API did not return data for slug "${slug}".`}
       />
     );
   }
 
   const categories = categoriesPayload?.categories ?? [];
   const branchHint = storefront?.catalogBranchName;
-  const heroTitle = tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
+  const heroTitle =
+    tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
   const announcement = storefront?.announcement?.trim() || null;
   const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
   const primary = isHexColor(primaryRaw) ? primaryRaw : null;
@@ -79,13 +79,15 @@ export async function StorefrontCatalogHome({
       ? storefront.featured
       : list.items.slice(0, 4);
 
-  const showcaseImage = featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
+  const showcaseImage =
+    featured[0]?.imageUrl || storefront?.featured?.[0]?.imageUrl || null;
 
   return (
     <div className="bg-[oklch(0.985_0.002_90)] dark:bg-background">
-      <div className="mx-auto max-w-7xl px-4 pb-20 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
-        <div className="grid gap-6 lg:grid-cols-12 lg:gap-8 lg:items-start">
-          <main className="min-w-0 space-y-8 lg:col-span-9">
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-6 sm:pb-20 sm:pt-5">
+        <div className="grid gap-5 lg:grid-cols-12 lg:gap-6 lg:items-start">
+          {/* Main content */}
+          <main className="min-w-0 space-y-5 lg:col-span-9">
             <ShopHeroMart
               title={heroTitle}
               tagline={announcement}
@@ -104,7 +106,7 @@ export async function StorefrontCatalogHome({
               accentHex={accentHex}
             />
 
-            <section id="shop-catalog" className="scroll-mt-28">
+            <section id="shop-catalog" className="scroll-mt-24">
               <ShopCatalogWithMore
                 key={`${q ?? ""}\0${categoryId ?? ""}`}
                 slug={slug}
@@ -119,8 +121,9 @@ export async function StorefrontCatalogHome({
             </section>
           </main>
 
+          {/* Sidebar */}
           <aside className="lg:col-span-3">
-            <div className="lg:sticky lg:top-28">
+            <div className="lg:sticky lg:top-24">
               <ShopSidebarWidgets
                 slug={slug}
                 currency={list.currency}
