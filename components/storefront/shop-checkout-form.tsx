@@ -2,7 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Clock3,
+  Lock,
+  MapPin,
+  PackageCheck,
+  ShieldCheck,
+  ShoppingBag,
+  Truck,
+  User,
+  Zap,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -52,7 +64,6 @@ const NAIROBI_SUBCOUNTY_WARDS: Record<string, string[]> = {
 const NAIROBI_SUBCOUNTIES = Object.keys(NAIROBI_SUBCOUNTY_WARDS);
 
 const CHECKOUT_PREFILL_KEY = "ub.checkoutPrefill.v1";
-const CHECKOUT_TERMS_AGREED_KEY = "ub.checkoutTermsAgreed.v1";
 
 type CheckoutPrefill = {
   firstName: string;
@@ -109,28 +120,6 @@ function loadCheckoutPrefill(): CheckoutPrefill | null {
   }
 }
 
-function saveCheckoutTermsAgreement(agreed: boolean): void {
-  try {
-    if (typeof window === "undefined") return;
-    if (agreed) {
-      window.localStorage.setItem(CHECKOUT_TERMS_AGREED_KEY, "true");
-    } else {
-      window.localStorage.removeItem(CHECKOUT_TERMS_AGREED_KEY);
-    }
-  } catch {
-    // storage full or unavailable
-  }
-}
-
-function loadCheckoutTermsAgreement(): boolean {
-  try {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(CHECKOUT_TERMS_AGREED_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
 /** Parse pipe-separated notes from a previous order back into address fields. */
 function parseNotesToPrefill(notes: string): Partial<CheckoutPrefill> {
   const result: Partial<CheckoutPrefill> = {};
@@ -158,20 +147,24 @@ function SectionHeader({
   title,
   subtitle,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   subtitle?: string;
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
         {icon}
       </div>
-      <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {subtitle && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-        )}
+      <div className="min-w-0">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
+          {title}
+        </h2>
+        {subtitle ? (
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            {subtitle}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -188,7 +181,7 @@ function InputField({
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium">
+      <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-foreground/70">
         {label}
         {required !== false && (
           <span className="ml-0.5 text-destructive">*</span>
@@ -197,9 +190,13 @@ function InputField({
       <input
         {...props}
         required={required !== false}
-        className="h-11 rounded-lg border border-border bg-background px-3.5 text-sm shadow-sm transition-all placeholder:text-muted-foreground/60 hover:border-border/80 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
+        className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground shadow-xs transition-all placeholder:text-muted-foreground/55 hover:border-foreground/25 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/15"
       />
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      {hint ? (
+        <span className="text-xs leading-relaxed text-muted-foreground">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -217,7 +214,7 @@ function SelectField({
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium">
+      <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-foreground/70">
         {label}
         {required !== false && (
           <span className="ml-0.5 text-destructive">*</span>
@@ -226,11 +223,15 @@ function SelectField({
       <select
         {...props}
         required={required !== false}
-        className="h-11 rounded-lg border border-border bg-background px-3.5 text-sm shadow-sm transition-all hover:border-border/80 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground shadow-xs transition-all hover:border-foreground/25 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {children}
       </select>
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      {hint ? (
+        <span className="text-xs leading-relaxed text-muted-foreground">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -261,6 +262,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const prefilled = useRef(false);
+  const termsManuallyChanged = useRef(false);
 
   /** Try to prefill form fields from localStorage + signed-in shopper history. */
   const tryPrefill = useCallback(async () => {
@@ -284,7 +286,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       if (saved.deliveryNotes) setDeliveryNotes(saved.deliveryNotes);
       if (saved.isDefaultAddress) setIsDefaultAddress(true);
     }
-    setAgreedToTerms(loadCheckoutTermsAgreement());
 
     // 2. If signed in, also try shopper API for richer data
     const tokens = getSessionTokens();
@@ -393,9 +394,30 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     }
   }, [loading, cart, tryPrefill]);
 
+  const requiredCheckoutFieldsComplete = Boolean(
+    customerEmail.trim() &&
+      firstName.trim() &&
+      lastName.trim() &&
+      customerPhone.trim() &&
+      subCounty &&
+      ward &&
+      streetAddress.trim(),
+  );
+
+  const termsAccepted =
+    agreedToTerms ||
+    (requiredCheckoutFieldsComplete && !termsManuallyChanged.current);
+
+  useEffect(() => {
+    if (!requiredCheckoutFieldsComplete) {
+      termsManuallyChanged.current = false;
+      return;
+    }
+  }, [requiredCheckoutFieldsComplete]);
+
   function handleTermsAgreementChange(checked: boolean) {
+    termsManuallyChanged.current = true;
     setAgreedToTerms(checked);
-    saveCheckoutTermsAgreement(checked);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -447,22 +469,20 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       notifyWebCartChanged();
 
       // Persist address for next checkout (guest + signed-in users)
-      if (isDefaultAddress) {
-        saveCheckoutPrefill({
-          firstName,
-          lastName,
-          customerPhone,
-          areaCode,
-          streetAddress,
-          county,
-          subCounty,
-          ward,
-          whatsAppNumber,
-          customerEmail,
-          deliveryNotes,
-          isDefaultAddress: true,
-        });
-      }
+      saveCheckoutPrefill({
+        firstName,
+        lastName,
+        customerPhone,
+        areaCode,
+        streetAddress,
+        county,
+        subCounty,
+        ward,
+        whatsAppNumber,
+        customerEmail,
+        deliveryNotes,
+        isDefaultAddress,
+      });
 
       setDone(result);
     } catch (err) {
@@ -546,120 +566,121 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         : null;
 
     return (
-      <div className="mx-auto max-w-2xl">
-        <header className="mb-8 space-y-8 pb-2">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
-            <div
-              className="flex size-[3.25rem] shrink-0 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-950/40"
-              aria-hidden
-            >
-              <div className="flex size-10 items-center justify-center rounded-full bg-emerald-600 shadow-inner dark:bg-emerald-500">
-                <Check className="size-5 text-white" strokeWidth={3} />
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-6 space-y-5">
+          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm ring-1 ring-black/[0.02] sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 gap-4">
+                <div
+                  className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900"
+                  aria-hidden
+                >
+                  <Check className="size-5" strokeWidth={3} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">
+                    Order received
+                  </p>
+                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    Review your order
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    Your request has been sent to the store. Keep this summary
+                    for the reference number, items, and delivery details.
+                  </p>
+                </div>
               </div>
+              <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold capitalize text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                {statusLabel}
+              </span>
             </div>
-            <div className="min-w-0 flex-1 space-y-3">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-[2rem] sm:leading-tight">
-                Order received
-              </h1>
-              <p className="text-[15px] leading-relaxed text-muted-foreground">
-                <span className="text-muted-foreground">Reference </span>
-                <span className="font-mono text-sm font-bold text-foreground">
+
+            <dl className="mt-5 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Reference
+                </dt>
+                <dd className="mt-1 font-mono text-sm font-bold text-foreground">
                   {done.orderId}
-                </span>
-                <span className="text-muted-foreground"> · Total </span>
-                <span className="font-bold text-foreground">{total}</span>
-                <span className="text-muted-foreground"> · Pickup at </span>
-                <span className="font-bold text-foreground">
+                </dd>
+              </div>
+              <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Total due
+                </dt>
+                <dd className="mt-1 text-lg font-bold tabular-nums text-foreground">
+                  {total}
+                </dd>
+              </div>
+              <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Pickup branch
+                </dt>
+                <dd className="mt-1 truncate text-sm font-semibold text-foreground">
                   {done.catalogBranchName}
-                </span>
-                <span className="text-muted-foreground"> · Status: </span>
-                <span className="font-bold capitalize text-foreground">
-                  {statusLabel}
-                </span>
-                <span className="text-muted-foreground">.</span>
-              </p>
-              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                You&apos;ll complete payment with the store when supported —
-                we&apos;ll hold your request as pending payment.
-              </p>
-            </div>
+                </dd>
+              </div>
+            </dl>
           </div>
+
           <CheckoutProgressSteps complete />
         </header>
 
-        <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:p-8">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Order summary
-          </h2>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+            <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <h2 className="text-base font-semibold tracking-tight text-foreground">
+                  Items ordered
+                </h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {receipt?.lines.length ?? 0}{" "}
+                  {receipt?.lines.length === 1 ? "item" : "items"} included
+                </p>
+              </div>
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground">
+                {receiptSubtotalLabel}
+              </span>
+            </div>
 
-          <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-border/60 bg-background px-4 py-4 sm:py-5">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Total
-              </dt>
-              <dd className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-foreground">
-                {total}
-              </dd>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-background px-4 py-4 sm:py-5">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Pickup branch
-              </dt>
-              <dd className="mt-2 text-base font-bold text-foreground">
-                {done.catalogBranchName}
-              </dd>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-background px-4 py-4 sm:col-span-2 sm:py-4">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Status
-              </dt>
-              <dd className="mt-2">
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-3.5 py-1.5 text-xs font-semibold capitalize text-amber-950 dark:bg-amber-950/50 dark:text-amber-100">
-                  {statusLabel}
-                </span>
-              </dd>
-            </div>
-          </dl>
-
-          {receipt && receipt.lines.length > 0 ? (
-            <div className="mt-8 border-t border-border/50 pt-8">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Items in this order
-              </h3>
-              <ul className="mt-4 space-y-2">
+            {receipt && receipt.lines.length > 0 ? (
+              <ul className="mt-3 space-y-2">
                 {receipt.lines.map((line) => (
                   <li
                     key={line.itemId}
-                    className="flex gap-3.5 rounded-xl border border-border/50 bg-muted/20 p-3.5 transition-colors hover:bg-muted/30"
+                    className="flex gap-3 rounded-xl border border-border bg-background p-2.5"
                   >
-                    <div className="relative size-[3.25rem] shrink-0 overflow-hidden rounded-lg bg-background ring-1 ring-border/40">
+                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40">
                       {line.imageUrl ? (
                         <Image
                           src={line.imageUrl}
                           alt={line.name}
                           fill
-                          sizes="52px"
+                          sizes="48px"
                           className="object-cover"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-[10px] font-medium text-muted-foreground">
-                          —
+                        <div className="flex h-full items-center justify-center">
+                          <ShoppingBag
+                            className="size-4 text-muted-foreground"
+                            aria-hidden
+                          />
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-snug text-foreground">
+                      <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
                         {line.name}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Qty {line.quantity}
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>Qty {line.quantity}</span>
                         {line.variantName ? (
-                          <span className="ml-2 inline-flex rounded-md border border-border/60 bg-background px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/80">
+                          <span className="rounded-full border border-border bg-muted px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/75">
                             {line.variantName}
                           </span>
                         ) : null}
                         {line.unitPrice != null ? (
-                          <span className="ml-2 tabular-nums">
+                          <span className="tabular-nums">
                             @{" "}
                             {formatDisplayPrice(
                               receipt.currency,
@@ -668,93 +689,134 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                             each
                           </span>
                         ) : null}
-                      </p>
+                      </div>
                     </div>
-                    <div className="shrink-0 self-start text-right">
-                      <p className="text-sm font-bold tabular-nums text-foreground">
-                        {formatDisplayPrice(
-                          receipt.currency,
-                          line.lineTotal ?? 0,
-                        )}
-                      </p>
-                    </div>
+                    <p className="shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
+                      {formatDisplayPrice(
+                        receipt.currency,
+                        line.lineTotal ?? 0,
+                      )}
+                    </p>
                   </li>
                 ))}
               </ul>
-            </div>
-          ) : null}
+            ) : (
+              <p className="mt-3 rounded-xl border border-border bg-background p-3 text-sm text-muted-foreground">
+                Item details are unavailable for this receipt.
+              </p>
+            )}
+          </section>
 
-          {receipt ? (
-            <div className="mt-8 border-t border-border/50 pt-8">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Delivery &amp; contact
-              </h3>
-              <div className="mt-4 rounded-xl border border-border/60 bg-background px-4 py-4 text-sm">
-                <p className="font-bold text-foreground">
-                  {receipt.shipping.customerName || "—"}
-                </p>
-                {receipt.shipping.customerEmail ? (
-                  <p className="mt-1.5 text-muted-foreground">
-                    {receipt.shipping.customerEmail}
-                  </p>
-                ) : null}
-                <p className="mt-1.5 text-muted-foreground">
-                  {receipt.shipping.customerPhone}
-                </p>
-                {receipt.shipping.whatsAppNumber ? (
-                  <p className="mt-1.5 text-muted-foreground">
-                    WhatsApp: {receipt.shipping.whatsAppNumber}
-                  </p>
-                ) : null}
-                {receipt.shipping.streetAddress ? (
-                  <p className="mt-4 font-medium text-foreground">
-                    {receipt.shipping.streetAddress}
-                  </p>
-                ) : null}
-                {deliveryAreaLine ? (
-                  <p className="mt-1.5 text-muted-foreground">
-                    {deliveryAreaLine}
-                  </p>
-                ) : null}
-                {deliveryAreaLine ? (
-                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-                    <span aria-hidden>⏱</span>
-                    Est. delivery: within 30 minutes
-                  </p>
-                ) : null}
-                {receipt.shipping.deliveryNotes ? (
-                  <p className="mt-4 border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
-                    <span className="font-medium text-foreground">Note: </span>
-                    {receipt.shipping.deliveryNotes}
-                  </p>
-                ) : null}
+          <aside className="space-y-4 lg:sticky lg:top-6">
+            {receipt ? (
+              <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+                <div className="flex items-start gap-3 border-b border-border pb-3">
+                  <MapPin
+                    className="mt-0.5 size-4 shrink-0 text-primary"
+                    aria-hidden
+                  />
+                  <div>
+                    <h2 className="text-base font-semibold tracking-tight text-foreground">
+                      Delivery & contact
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Details the store will use for fulfilment.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-3 text-sm">
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      {receipt.shipping.customerName || "Customer"}
+                    </p>
+                    {receipt.shipping.customerEmail ? (
+                      <p className="mt-1 text-muted-foreground">
+                        {receipt.shipping.customerEmail}
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-muted-foreground">
+                      {receipt.shipping.customerPhone}
+                    </p>
+                    {receipt.shipping.whatsAppNumber ? (
+                      <p className="mt-1 text-muted-foreground">
+                        WhatsApp: {receipt.shipping.whatsAppNumber}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {(receipt.shipping.streetAddress || deliveryAreaLine) && (
+                    <div className="rounded-xl border border-border bg-background p-3">
+                      {receipt.shipping.streetAddress ? (
+                        <p className="font-medium text-foreground">
+                          {receipt.shipping.streetAddress}
+                        </p>
+                      ) : null}
+                      {deliveryAreaLine ? (
+                        <p className="mt-1 text-muted-foreground">
+                          {deliveryAreaLine}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {deliveryAreaLine ? (
+                    <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                      <Clock3 className="size-3.5" aria-hidden />
+                      Est. delivery within 30 minutes
+                    </p>
+                  ) : null}
+
+                  {receipt.shipping.deliveryNotes ? (
+                    <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                      <span className="font-semibold text-foreground">
+                        Note:{" "}
+                      </span>
+                      {receipt.shipping.deliveryNotes}
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+              <h2 className="text-base font-semibold tracking-tight text-foreground">
+                Payment review
+              </h2>
+              <div className="mt-3 space-y-2 border-b border-border pb-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Cart subtotal</span>
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {receiptSubtotalLabel}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Delivery</span>
+                  <span className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                    Free
+                  </span>
+                </div>
               </div>
-            </div>
-          ) : null}
-
-          <div className="mt-6 flex flex-col gap-2 border-t border-border/50 pt-6 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>Cart subtotal</span>
-              <span className="font-medium tabular-nums text-foreground">
-                {receiptSubtotalLabel}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Shipping</span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                Free
-              </span>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            size="lg"
-            onClick={() => router.push(APP_ROUTES.shop)}
-            className="mt-8 h-12 w-full rounded-xl bg-foreground text-base font-semibold text-background shadow-sm transition-colors hover:bg-foreground/90"
-          >
-            Continue shopping
-          </Button>
+              <div className="mt-3 flex items-end justify-between">
+                <span className="font-semibold text-foreground">Total due</span>
+                <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+                  {total}
+                </span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                Payment will be completed with the store when supported. Your
+                request is held as pending payment.
+              </p>
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => router.push(APP_ROUTES.shop)}
+                className="mt-4 h-11 w-full rounded-xl text-sm font-semibold"
+              >
+                Continue shopping
+              </Button>
+            </section>
+          </aside>
         </div>
       </div>
     );
@@ -817,73 +879,95 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       ? `${ward} · ${subCounty} · ${county}`
       : "Select subcounty and ward below";
 
-  const shippingComplete = Boolean(
-    customerEmail.trim() &&
-    firstName.trim() &&
-    lastName.trim() &&
-    customerPhone.trim() &&
-    subCounty &&
-    ward &&
-    streetAddress.trim(),
-  );
+  const shippingComplete = requiredCheckoutFieldsComplete;
 
   const activeCheckoutStep: 1 | 2 | 3 = !shippingComplete
     ? 1
-    : !agreedToTerms
+    : !termsAccepted
       ? 2
       : 3;
 
   return (
-    <div>
-      <header className="mb-8 space-y-6 border-b border-border/50 pb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Checkout
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-            Place your pickup request. Payment on the web is coming soon — staff
-            may confirm via phone or WhatsApp.
-          </p>
+    <div className="pb-24 lg:pb-0">
+      <header className="mb-6 space-y-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+              Secure checkout
+            </p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              Complete your order
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Review your contact details, delivery location, and cart total
+              before placing the order.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground shadow-sm">
+            <Clock3 className="size-3.5" aria-hidden />
+            Delivery within 30 minutes
+          </div>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Your order at a glance
-          </p>
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg bg-muted/30 px-3 py-2.5">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Items
-              </dt>
-              <dd className="mt-0.5 text-sm font-semibold text-foreground">
-                {cart.lines.length}{" "}
-                {cart.lines.length === 1 ? "product" : "products"} · {totalQty}{" "}
-                {totalQty === 1 ? "unit" : "units"}
-              </dd>
+        <div className="rounded-2xl border border-border bg-card/95 p-3 shadow-sm ring-1 ring-black/[0.02]">
+          <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+              <ShoppingBag
+                className="size-4 shrink-0 text-foreground/65"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Items
+                </dt>
+                <dd className="truncate text-sm font-semibold text-foreground">
+                  {cart.lines.length}{" "}
+                  {cart.lines.length === 1 ? "product" : "products"} /{" "}
+                  {totalQty} {totalQty === 1 ? "unit" : "units"}
+                </dd>
+              </div>
             </div>
-            <div className="rounded-lg bg-muted/30 px-3 py-2.5">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Order total
-              </dt>
-              <dd className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-                {subtotalLabel}
-              </dd>
+            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+              <PackageCheck
+                className="size-4 shrink-0 text-foreground/65"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Cart total
+                </dt>
+                <dd className="truncate text-sm font-semibold tabular-nums text-foreground">
+                  {subtotalLabel}
+                </dd>
+              </div>
             </div>
-            <div className="rounded-lg bg-muted/30 px-3 py-2.5">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Fulfillment
-              </dt>
-              <dd className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
-                Pickup at {cart.catalogBranchName}
-              </dd>
+            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+              <MapPin
+                className="size-4 shrink-0 text-foreground/65"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Pickup
+                </dt>
+                <dd className="truncate text-sm font-semibold text-foreground">
+                  {cart.catalogBranchName}
+                </dd>
+              </div>
             </div>
-            <div className="rounded-lg bg-muted/30 px-3 py-2.5 sm:col-span-2 lg:col-span-1">
-              <dt className="text-xs font-medium text-muted-foreground">
-                Delivery area
-              </dt>
-              <dd className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
-                {deliveryZoneSummary}
-              </dd>
+            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+              <Truck
+                className="size-4 shrink-0 text-foreground/65"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Delivery area
+                </dt>
+                <dd className="truncate text-sm font-semibold text-foreground">
+                  {deliveryZoneSummary}
+                </dd>
+              </div>
             </div>
           </dl>
         </div>
@@ -892,70 +976,57 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       </header>
 
       <form
-        className="grid gap-6 lg:grid-cols-[1.6fr_1fr] lg:items-start"
+        className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"
         onSubmit={(ev) => void onSubmit(ev)}
       >
-        {/* ── Left: Shipping Details ── */}
-        <section className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm sm:p-8">
-          <SectionHeader
-            icon="📍"
-            title="Shipping Address"
-            subtitle="We'll deliver to this location within 30 minutes"
-          />
-
-          {/* Delivery Zone Notice */}
-          <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
-            <span className="mt-px shrink-0 text-base">🚚</span>
-            <div>
-              <span className="font-semibold">Delivery Zone:</span> Available
-              around{" "}
-              <span className="font-medium">
-                Roysambu, Mirema, USIU, Thome, Zimmerman, Kahawa West, Githurai
-              </span>
-              , and nearby areas.
-            </div>
-          </div>
-
+        <section className="space-y-4">
           {error ? (
-            <div className="mt-4 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              <span className="mt-px shrink-0 text-base">⚠️</span>
+            <div className="flex items-start gap-3 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p>{error}</p>
             </div>
           ) : null}
 
-          {/* ── Contact Information ── */}
-          <div className="mt-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Contact Information
-            </h3>
-            <div className="mt-4 space-y-4">
-              <InputField
-                label="Email Address"
-                type="email"
-                autoComplete="email"
-                value={customerEmail}
-                onChange={(ev) => setCustomerEmail(ev.target.value)}
-                placeholder="you@example.com"
-              />
+          <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary sm:hidden">
+            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
+              1
+            </span>
+            Shipping details
+          </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+            <SectionHeader
+              icon={<User className="size-4" aria-hidden />}
+              title="Contact information"
+              subtitle="Enter the details the store can use to confirm and update your order."
+            />
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <InputField
-                  label="First Name"
-                  autoComplete="given-name"
-                  value={firstName}
-                  onChange={(ev) => setFirstName(ev.target.value)}
-                  placeholder="John"
-                />
-                <InputField
-                  label="Last Name"
-                  autoComplete="family-name"
-                  value={lastName}
-                  onChange={(ev) => setLastName(ev.target.value)}
-                  placeholder="Doe"
+                  label="Email address"
+                  type="email"
+                  autoComplete="email"
+                  value={customerEmail}
+                  onChange={(ev) => setCustomerEmail(ev.target.value)}
+                  placeholder="you@example.com"
                 />
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
+              <InputField
+                label="First name"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(ev) => setFirstName(ev.target.value)}
+                placeholder="John"
+              />
+              <InputField
+                label="Last name"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(ev) => setLastName(ev.target.value)}
+                placeholder="Doe"
+              />
+              <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
                 <InputField
                   label="Code"
                   value={areaCode}
@@ -963,7 +1034,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   placeholder="+254"
                 />
                 <InputField
-                  label="Phone Number"
+                  label="Phone number"
                   autoComplete="tel"
                   inputMode="tel"
                   value={customerPhone}
@@ -971,25 +1042,32 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   placeholder="712 345 678"
                 />
               </div>
-
               <InputField
-                label="WhatsApp Number"
+                label="WhatsApp"
                 required={false}
                 inputMode="tel"
                 value={whatsAppNumber}
                 onChange={(ev) => setWhatsAppNumber(ev.target.value)}
-                placeholder="Same as phone (optional)"
-                hint="We'll use this for order updates if different from your phone number."
+                placeholder="Same as phone"
+                hint="Optional. Use this if WhatsApp is different from your phone number."
               />
             </div>
           </div>
 
-          {/* ── Location ── */}
-          <div className="mt-8">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Delivery Location
-            </h3>
-            <div className="mt-4 space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <SectionHeader
+                icon={<MapPin className="size-4" aria-hidden />}
+                title="Delivery location"
+                subtitle="Select your area and add a precise address so the rider can find you quickly."
+              />
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-950">
+                <Truck className="size-3.5" aria-hidden />
+                Supported area only
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <SelectField
                 label="County"
                 value={county}
@@ -998,100 +1076,114 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 <option value="">Select county</option>
                 <option value="Nairobi">Nairobi</option>
               </SelectField>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <SelectField
-                  label="Subcounty"
-                  value={subCounty}
-                  onChange={(ev) => {
-                    setSubCounty(ev.target.value);
-                    setWard("");
-                  }}
-                >
-                  <option value="">Select subcounty</option>
-                  {NAIROBI_SUBCOUNTIES.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </SelectField>
-                <SelectField
-                  label="Ward"
-                  value={ward}
-                  onChange={(ev) => setWard(ev.target.value)}
-                  disabled={!subCounty}
-                >
-                  <option value="">
-                    {subCounty ? "Select ward" : "Select subcounty first"}
+              <SelectField
+                label="Subcounty"
+                value={subCounty}
+                onChange={(ev) => {
+                  setSubCounty(ev.target.value);
+                  setWard("");
+                }}
+              >
+                <option value="">Select subcounty</option>
+                {NAIROBI_SUBCOUNTIES.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
                   </option>
-                  {wardOptions.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </SelectField>
-              </div>
-
+                ))}
+              </SelectField>
+              <SelectField
+                label="Ward"
+                value={ward}
+                onChange={(ev) => setWard(ev.target.value)}
+                disabled={!subCounty}
+              >
+                <option value="">
+                  {subCounty ? "Select ward" : "Select subcounty first"}
+                </option>
+                {wardOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </SelectField>
               <InputField
                 label="Street Address"
                 value={streetAddress}
                 onChange={(ev) => setStreetAddress(ev.target.value)}
-                placeholder="Apartment, building, street name..."
-                hint="A detailed address helps our rider find you quickly."
+                placeholder="Apartment, building, street name"
+                hint="Include the building name, apartment number, or nearby landmark."
               />
-
-              <InputField
-                label="Delivery Notes"
-                required={false}
-                value={deliveryNotes}
-                onChange={(ev) => setDeliveryNotes(ev.target.value)}
-                placeholder="Landmark, gate code, preferred contact time..."
-              />
-
-              <label className="inline-flex items-center gap-2.5 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="size-4 rounded border-border text-primary focus:ring-primary/10"
-                  checked={isDefaultAddress}
-                  onChange={(ev) => setIsDefaultAddress(ev.target.checked)}
+              <div className="sm:col-span-2">
+                <InputField
+                  label="Delivery notes"
+                  required={false}
+                  value={deliveryNotes}
+                  onChange={(ev) => setDeliveryNotes(ev.target.value)}
+                  placeholder="Landmark, gate code, preferred contact time"
                 />
-                <span>Save as my default delivery address</span>
-              </label>
+              </div>
             </div>
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm text-foreground">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-border text-primary focus:ring-primary/10"
+                checked={isDefaultAddress}
+                onChange={(ev) => setIsDefaultAddress(ev.target.checked)}
+              />
+              <span className="font-medium">
+                Save these delivery details for next time
+              </span>
+            </label>
           </div>
         </section>
 
-        {/* ── Right: Order Summary ── */}
-        <section className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm sm:p-8 lg:sticky lg:top-8">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">My Order</h3>
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary sm:hidden">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
+                  2
+                </span>
+                Review
+              </div>
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
+                Review your order
+              </h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {cart.lines.length}{" "}
+                {cart.lines.length === 1 ? "item" : "items"} in your cart
+              </p>
+            </div>
             <Link
               href={APP_ROUTES.shopCart}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
             >
-              Edit
+              Edit cart
             </Link>
           </div>
 
-          {/* Cart Lines */}
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 space-y-2 lg:max-h-[360px] lg:overflow-y-auto lg:pr-1">
             {cart.lines.map((line) => (
               <div
                 key={line.itemId}
-                className="flex gap-3 rounded-xl border border-border/50 bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+                className="flex gap-3 rounded-xl border border-border bg-background p-2.5"
               >
-                <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/30">
+                <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40">
                   {line.imageUrl ? (
                     <Image
                       src={line.imageUrl}
                       alt={line.name}
                       fill
-                      sizes="56px"
+                      sizes="48px"
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-xs font-medium text-muted-foreground">
-                      🛍️
+                    <div className="flex h-full items-center justify-center">
+                      <ShoppingBag
+                        className="size-4 text-muted-foreground"
+                        aria-hidden
+                      />
                     </div>
                   )}
                 </div>
@@ -1099,35 +1191,34 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   <p className="line-clamp-2 text-sm font-medium leading-snug">
                     {line.name}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Qty: {line.quantity}
-                    {line.variantName && (
-                      <span className="ml-1.5 inline-flex items-center rounded-full bg-muted px-2 py-px text-[10px] font-medium uppercase tracking-wide">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Qty {line.quantity}</span>
+                    {line.variantName ? (
+                      <span className="rounded-full bg-muted px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
                         {line.variantName}
                       </span>
-                    )}
-                  </p>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-semibold tabular-nums">
-                    {formatDisplayPrice(cart.currency, line.lineTotal ?? 0)}
-                  </p>
-                </div>
+                <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                  {formatDisplayPrice(cart.currency, line.lineTotal ?? 0)}
+                </p>
               </div>
             ))}
           </div>
 
-          {/* Totals */}
-          <div className="mt-5 space-y-2.5 border-t border-border/60 pt-5 text-sm">
+          <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-medium tabular-nums">{subtotalLabel}</span>
+              <span className="font-semibold tabular-nums text-foreground">
+                {subtotalLabel}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Shipping</span>
+              <span className="text-muted-foreground">Delivery</span>
               <span className="tabular-nums">
                 {shippingLabel === formatDisplayPrice(cart.currency, 0) ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                     Free
                   </span>
                 ) : (
@@ -1135,72 +1226,104 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 )}
               </span>
             </div>
-            <div className="flex items-center justify-between border-t border-border/60 pt-3 mt-1">
-              <span className="text-base font-semibold">Total</span>
+            <div className="flex items-end justify-between border-t border-border pt-3">
+              <span className="font-semibold text-foreground">Total due</span>
               <span className="text-2xl font-bold tabular-nums tracking-tight">
                 {totalLabel}
               </span>
             </div>
           </div>
 
-          {/* CTA */}
-          <div className="mt-6 space-y-4">
-            <Button
-              type="submit"
-              size="lg"
-              disabled={busy || !agreedToTerms}
-              className="h-12 w-full rounded-xl text-base font-semibold tracking-wide transition-all disabled:opacity-50"
-            >
-              {busy ? (
-                <span className="flex items-center gap-2">
-                  <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Placing Order…
-                </span>
-              ) : (
-                "Place Order"
-              )}
-            </Button>
-
-            <label className="inline-flex items-start gap-2.5 text-xs text-muted-foreground cursor-pointer leading-relaxed">
+          <div className="mt-5 space-y-3 rounded-2xl border border-border bg-background p-3">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary sm:hidden">
+              <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
+                3
+              </span>
+              Confirm order
+            </div>
+            <div className="hidden items-center gap-2 border-b border-border pb-3 sm:flex">
+              <ShieldCheck className="size-4 text-primary" aria-hidden />
+              <div>
+                <h4 className="text-sm font-semibold text-foreground">
+                  Confirm order
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Accept the store terms before placing your request.
+                </p>
+              </div>
+            </div>
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
               <input
                 type="checkbox"
                 className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
-                checked={agreedToTerms}
+                checked={termsAccepted}
                 onChange={(ev) =>
                   handleTermsAgreementChange(ev.target.checked)
                 }
               />
               <span>
                 I agree to the store{" "}
-                <span className="underline underline-offset-2">
+                <span className="font-medium text-foreground underline underline-offset-2">
                   terms of use
                 </span>{" "}
                 and{" "}
-                <span className="underline underline-offset-2">
+                <span className="font-medium text-foreground underline underline-offset-2">
                   privacy policy
                 </span>
                 .
               </span>
             </label>
+
+            <Button
+              type="submit"
+              size="lg"
+              disabled={busy || !termsAccepted}
+              className="h-11 w-full rounded-xl text-sm font-semibold tracking-wide transition-all disabled:opacity-50"
+            >
+              {busy ? (
+                <span className="flex items-center gap-2">
+                  <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Placing order...
+                </span>
+              ) : (
+                "Place order"
+              )}
+            </Button>
           </div>
 
-          {/* Trust Badges */}
-          <div className="mt-6 flex items-center justify-center gap-4 border-t border-border/40 pt-5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">🔒 Secure</span>
-            <span className="flex items-center gap-1.5">⚡ Fast Pickup</span>
+          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/40 pt-4 text-[11px] font-medium text-muted-foreground">
+            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
+              <Lock className="size-3.5" aria-hidden />
+              Secure
+            </span>
+            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
+              <Zap className="size-3.5" aria-hidden />
+              Fast
+            </span>
+            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
+              <ShieldCheck className="size-3.5" aria-hidden />
+              Protected
+            </span>
           </div>
         </section>
 
-        {/* Mobile Bottom CTA (hidden on desktop) */}
-        <div className="lg:hidden">
-          <Button
-            type="submit"
-            size="lg"
-            disabled={busy || !agreedToTerms}
-            className="h-12 w-full rounded-xl text-base font-semibold tracking-wide"
-          >
-            {busy ? "Placing Order…" : "Place Order"}
-          </Button>
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/70 bg-background/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Total
+              </p>
+              <p className="text-base font-bold tabular-nums">{totalLabel}</p>
+            </div>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={busy || !termsAccepted}
+              className="h-11 min-w-36 rounded-xl text-sm font-semibold"
+            >
+              {busy ? "Placing..." : "Confirm order"}
+            </Button>
+          </div>
         </div>
       </form>
     </div>
