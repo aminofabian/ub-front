@@ -52,6 +52,7 @@ const NAIROBI_SUBCOUNTY_WARDS: Record<string, string[]> = {
 const NAIROBI_SUBCOUNTIES = Object.keys(NAIROBI_SUBCOUNTY_WARDS);
 
 const CHECKOUT_PREFILL_KEY = "ub.checkoutPrefill.v1";
+const CHECKOUT_TERMS_AGREED_KEY = "ub.checkoutTermsAgreed.v1";
 
 type CheckoutPrefill = {
   firstName: string;
@@ -105,6 +106,28 @@ function loadCheckoutPrefill(): CheckoutPrefill | null {
     };
   } catch {
     return null;
+  }
+}
+
+function saveCheckoutTermsAgreement(agreed: boolean): void {
+  try {
+    if (typeof window === "undefined") return;
+    if (agreed) {
+      window.localStorage.setItem(CHECKOUT_TERMS_AGREED_KEY, "true");
+    } else {
+      window.localStorage.removeItem(CHECKOUT_TERMS_AGREED_KEY);
+    }
+  } catch {
+    // storage full or unavailable
+  }
+}
+
+function loadCheckoutTermsAgreement(): boolean {
+  try {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(CHECKOUT_TERMS_AGREED_KEY) === "true";
+  } catch {
+    return false;
   }
 }
 
@@ -261,6 +284,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       if (saved.deliveryNotes) setDeliveryNotes(saved.deliveryNotes);
       if (saved.isDefaultAddress) setIsDefaultAddress(true);
     }
+    setAgreedToTerms(loadCheckoutTermsAgreement());
 
     // 2. If signed in, also try shopper API for richer data
     const tokens = getSessionTokens();
@@ -368,6 +392,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       queueMicrotask(() => void tryPrefill());
     }
   }, [loading, cart, tryPrefill]);
+
+  function handleTermsAgreementChange(checked: boolean) {
+    setAgreedToTerms(checked);
+    saveCheckoutTermsAgreement(checked);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1137,7 +1166,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 type="checkbox"
                 className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
                 checked={agreedToTerms}
-                onChange={(ev) => setAgreedToTerms(ev.target.checked)}
+                onChange={(ev) =>
+                  handleTermsAgreementChange(ev.target.checked)
+                }
               />
               <span>
                 I agree to the store{" "}

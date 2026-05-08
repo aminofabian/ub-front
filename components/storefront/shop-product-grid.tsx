@@ -1,6 +1,6 @@
 "use client";
 
-import { PackageSearch, TrendingUp } from "lucide-react";
+import { PackageSearch } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -8,12 +8,7 @@ import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-butto
 import { Button } from "@/components/ui/button";
 import { shopItemPath } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
-import {
-  computeMargin,
-  formatDisplayPrice,
-  formatStoreQty,
-  marginTone,
-} from "@/lib/public-storefront";
+import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
 function stockStatus(qty: number | null | undefined): {
@@ -31,19 +26,6 @@ function stockStatus(qty: number | null | undefined): {
     return { label: "Low stock", dot: "bg-amber-500", muted: false };
   }
   return { label: "In stock", dot: "bg-emerald-500", muted: false };
-}
-
-function marginBadgeClass(tone: ReturnType<typeof marginTone>): string {
-  switch (tone) {
-    case "good":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-    case "thin":
-      return "bg-amber-50 text-amber-700 ring-amber-200";
-    case "bad":
-      return "bg-red-50 text-red-700 ring-red-200";
-    default:
-      return "bg-muted text-muted-foreground ring-border";
-  }
 }
 
 export default function ShopProductGrid({
@@ -95,13 +77,9 @@ export default function ShopProductGrid({
           ? `${item.name} · ${item.variantName}`
           : item.name;
         const priceLabel = formatDisplayPrice(currency, item.price);
-        const buyingLabel = formatDisplayPrice(currency, item.buyingPrice ?? null);
         const stockLabel = formatStoreQty(item.qtyOnHand);
         const stock = stockStatus(item.qtyOnHand);
         const isOutOfStock = item.qtyOnHand != null && item.qtyOnHand <= 0;
-        const { percent, profit } = computeMargin(item.price, item.buyingPrice);
-        const tone = marginTone(percent);
-        const hasBuyingPrice = item.buyingPrice != null && item.buyingPrice > 0;
 
         return (
           <li
@@ -180,11 +158,6 @@ export default function ShopProductGrid({
                       <span className="text-[15px] font-bold tabular-nums tracking-tight text-foreground">
                         {priceLabel}
                       </span>
-                      {hasBuyingPrice ? (
-                        <span className="text-[11px] font-medium tabular-nums text-muted-foreground/70">
-                          {buyingLabel} cost
-                        </span>
-                      ) : null}
                     </div>
 
                     {/* Mobile add button */}
@@ -200,21 +173,8 @@ export default function ShopProductGrid({
                     ) : null}
                   </div>
 
-                  {/* Margin & stock row */}
+                  {/* Stock row */}
                   <div className="flex items-center justify-between gap-2">
-                    {percent != null ? (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ring-1",
-                          marginBadgeClass(tone)
-                        )}
-                      >
-                        <TrendingUp className="h-3 w-3" aria-hidden />
-                        {percent}% margin
-                      </span>
-                    ) : (
-                      <span />
-                    )}
                     {stockLabel ? (
                       <p className="text-[11px] font-medium tabular-nums text-muted-foreground/70">
                         {stockLabel}
