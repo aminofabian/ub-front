@@ -117,16 +117,63 @@ export const APP_BASE_URL =
   process.env.NEXT_PUBLIC_APP_BASE_URL ?? "http://localhost:3000";
 
 /** Business UUID for local dev when Host is not a mapped tenant domain. */
-export const PUBLIC_TENANT_ID =
-  process.env.NEXT_PUBLIC_TENANT_ID?.trim() ?? "";
+export const PUBLIC_TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID?.trim() ?? "";
 
-/** Browser origin for slug.{APP_BASE_URL hostname} — keep in sync with backend app.tenancy.slug-domain-suffix (hostname only, no port). */
+const BARE_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+/**
+ * Resolves the effective base URL for slug/host derivation at runtime.
+ *
+ * <p>When {@code NEXT_PUBLIC_APP_BASE_URL} is unset or still points to localhost
+ * (common when the env var was missed in a production deploy), this falls back
+ * to the browser's current origin with the first subdomain stripped so that
+ * tenant URLs like {@code barakia.palmart.co.ke} correctly derive from
+ * {@code palmart.co.ke} rather than {@code localhost}.
+ */
+function resolveAppBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return APP_BASE_URL;
+  }
+  const baseHost = new URL(APP_BASE_URL).hostname;
+  if (!BARE_LOCAL_HOSTS.has(baseHost)) {
+    return APP_BASE_URL; // already configured for production
+  }
+  // APP_BASE_URL is localhost — derive from the browser's current hostname
+  const hostname = window.location.hostname.toLowerCase();
+  if (BARE_LOCAL_HOSTS.has(hostname)) {
+    return APP_BASE_URL; // still localhost, can't derive
+  }
+  // Strip the leftmost subdomain to get the platform base (e.g. barakia.palmart.co.ke → palmart.co.ke)
+  const parts = hostname.split(".");
+  // Common second-level ccTLDs where the effective TLD is 2 parts (e.g. .co.ke, .co.uk, .com.au)
+  const ccSLDs = new Set([
+    "co",
+    "com",
+    "org",
+    "net",
+    "gov",
+    "edu",
+    "ac",
+    "or",
+    "ne",
+    "go",
+  ]);
+  const minParts = ccSLDs.has(parts[parts.length - 2]) ? 4 : 3;
+  if (parts.length >= minParts) {
+    const baseHostname = parts.slice(1).join(".");
+    return `${window.location.protocol}//${baseHostname}`;
+  }
+  // Hostname is already the base (e.g. palmart.co.ke or palmart.com)
+  return window.location.origin;
+}
+
+/** Browser origin for slug.{base hostname} — keep in sync with backend app.tenancy.slug-domain-suffix (hostname only, no port). */
 export function slugDerivedShopUrl(slug: string): string {
   const s = slug.trim().toLowerCase();
   if (!s) {
     return "";
   }
-  const base = new URL(APP_BASE_URL);
+  const base = new URL(resolveAppBaseUrl());
   const host = `${s}.${base.hostname}`;
   const port = base.port ? `:${base.port}` : "";
   return `${base.protocol}//${host}${port}`;
@@ -134,14 +181,16 @@ export function slugDerivedShopUrl(slug: string): string {
 
 /**
  * Browser origin for an explicit tenant hostname (e.g. the active primary
- * domain). Reuses the protocol+port from {@link APP_BASE_URL} so localhost dev
+ * domain). Reuses the protocol+port from the resolved base URL so localhost dev
  * keeps `http://...:3000` while production hosts get the canonical https URL.
  *
  * Returns `""` when the host is blank, already an absolute URL we cannot parse,
  * or contains anything other than a hostname/port pair — callers should fall
  * back to {@link slugDerivedShopUrl} in that case.
  */
-export function hostDerivedShopUrl(hostname: string | null | undefined): string {
+export function hostDerivedShopUrl(
+  hostname: string | null | undefined,
+): string {
   const raw = (hostname ?? "").trim().toLowerCase();
   if (!raw) {
     return "";
@@ -149,7 +198,7 @@ export function hostDerivedShopUrl(hostname: string | null | undefined): string 
   if (raw.includes("/") || raw.includes(" ")) {
     return "";
   }
-  const base = new URL(APP_BASE_URL);
+  const base = new URL(resolveAppBaseUrl());
   const port = base.port ? `:${base.port}` : "";
   return `${base.protocol}//${raw}${port}`;
 }
