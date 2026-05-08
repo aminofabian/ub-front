@@ -467,6 +467,10 @@ export default function BrandingPage() {
   };
 
   const onLogoUpload = async (file: File) => {
+    if (!snapshot?.id) {
+      setFeedback({ kind: "error", text: "Business not loaded yet." });
+      return;
+    }
     if (file.size > MAX_LOGO_BYTES) {
       setFeedback({ kind: "error", text: "Logo exceeds the 4 MB limit." });
       return;
@@ -474,7 +478,7 @@ export default function BrandingPage() {
     setLogoBusy(true);
     setFeedback(null);
     try {
-      const next = await uploadMyBrandingLogo(file);
+      const next = await uploadMyBrandingLogo(file, snapshot.id);
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
       setFeedback({ kind: "success", text: "Logo updated." });
@@ -501,6 +505,10 @@ export default function BrandingPage() {
   };
 
   const onFaviconUpload = async (file: File) => {
+    if (!snapshot?.id) {
+      setFeedback({ kind: "error", text: "Business not loaded yet." });
+      return;
+    }
     if (file.size > MAX_FAVICON_BYTES) {
       setFeedback({ kind: "error", text: "Favicon exceeds the 512 KB limit." });
       return;
@@ -508,7 +516,7 @@ export default function BrandingPage() {
     setFaviconBusy(true);
     setFeedback(null);
     try {
-      const next = await uploadMyBrandingFavicon(file);
+      const next = await uploadMyBrandingFavicon(file, snapshot.id);
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
       setFeedback({ kind: "success", text: "Favicon updated." });

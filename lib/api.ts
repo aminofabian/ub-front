@@ -366,6 +366,7 @@ export type PatchBusinessPayload = {
 export type BrandingPatchPayload = {
   displayName?: string | null;
   logoUrl?: string | null;
+  logoPublicId?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -1095,10 +1096,15 @@ export async function updateMyBranding(
 
 export async function uploadMyBrandingLogo(
   file: File,
+  businessId: string,
 ): Promise<BusinessRecord> {
-  const form = new FormData();
-  form.append("file", file);
-  return requestMultipartJson<BusinessRecord>(`${MY_BRANDING_PATH}/logo`, form);
+  const folder = `ub/${businessId}/branding/logo`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  return updateMyBranding({
+    logoUrl: result.secure_url,
+    logoPublicId: result.public_id,
+  });
 }
 
 export async function clearMyBrandingLogo(): Promise<BusinessRecord> {
@@ -1107,10 +1113,16 @@ export async function clearMyBrandingLogo(): Promise<BusinessRecord> {
   });
 }
 
-export async function uploadMyBrandingFavicon(file: File): Promise<BusinessRecord> {
-  const form = new FormData();
-  form.append("file", file);
-  return requestMultipartJson<BusinessRecord>(`${MY_BRANDING_PATH}/favicon`, form);
+export async function uploadMyBrandingFavicon(
+  file: File,
+  businessId: string,
+): Promise<BusinessRecord> {
+  const folder = `ub/${businessId}/branding/favicon`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  return updateMyBranding({
+    faviconUrl: result.secure_url,
+  });
 }
 
 export async function clearMyBrandingFavicon(): Promise<BusinessRecord> {
@@ -1538,23 +1550,115 @@ export async function patchItem(
   await request(`${API_ROUTES.items}/${itemId}`, { method: "PATCH", body });
 }
 
+export type CloudinarySignature = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+};
+
+export async function getCloudinarySignature(folder: string): Promise<CloudinarySignature> {
+  return request<CloudinarySignature>("/api/v1/media/cloudinary-signature", {
+    method: "POST",
+    body: { folder },
+  });
+}
+
+export async function uploadToCloudinary(
+  file: File,
+  signature: CloudinarySignature,
+): Promise<{
+  public_id: string;
+  secure_url: string;
+  width?: number;
+  height?: number;
+  bytes?: number;
+  format?: string;
+  version?: number;
+  phash?: string;
+  predominant_color?: string;
+}> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("api_key", signature.apiKey);
+  form.append("timestamp", String(signature.timestamp));
+  form.append("signature", signature.signature);
+  form.append("folder", signature.folder);
+  form.append("phash", "true");
+  form.append("colors", "true");
+
+  const url = `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`;
+  const res = await fetch(url, { method: "POST", body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg =
+      body?.error?.message ||
+      `Cloudinary upload failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function registerItemImage(
+  itemId: string,
+  payload: {
+    cloudinaryPublicId: string;
+    secureUrl: string;
+    width?: number | null;
+    height?: number | null;
+    bytes?: number | null;
+    format?: string | null;
+    contentType?: string | null;
+    altText?: string | null;
+    primary?: boolean;
+    assetSignature?: string | null;
+    predominantColorHex?: string | null;
+    phash?: string | null;
+  },
+): Promise<ItemImageRecord> {
+  return request<ItemImageRecord>(
+    `/api/v1/items/${encodeURIComponent(itemId.trim())}/images`,
+    { method: "POST", body: payload },
+  );
+}
+
 export async function uploadItemImageToCloudinary(
   itemId: string,
   file: File,
   opts?: { altText?: string; primary?: boolean },
 ): Promise<ItemImageRecord> {
-  const form = new FormData();
-  form.append("file", file);
-  if (opts?.altText?.trim()) {
-    form.append("altText", opts.altText.trim());
+  const folder = `ub/items/${itemId}`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+
+  return registerItemImage(itemId, {
+    cloudinaryPublicId: result.public_id,
+    secureUrl: result.secure_url,
+    width: result.width ?? null,
+    height: result.height ?? null,
+    bytes: result.bytes ?? null,
+    format: result.format ?? null,
+    contentType: file.type || null,
+    altText: opts?.altText?.trim() || null,
+    primary: opts?.primary !== false,
+    assetSignature: result.version ? String(result.version) : null,
+    predominantColorHex: extractPredominantHex(result) || null,
+    phash: result.phash || null,
+  });
+}
+
+function extractPredominantHex(result: unknown): string | undefined {
+  if (typeof result !== "object" || result === null) return undefined;
+  const r = result as Record<string, unknown>;
+  const colors = r.colors;
+  if (Array.isArray(colors) && colors.length > 0) {
+    const first = colors[0];
+    if (Array.isArray(first) && first.length > 0 && typeof first[0] === "string") {
+      return first[0];
+    }
   }
-  if (opts?.primary === false) {
-    form.append("primary", "false");
-  }
-  return requestMultipartJson<ItemImageRecord>(
-    `/api/v1/items/${encodeURIComponent(itemId.trim())}/images/upload`,
-    form,
-  );
+  return undefined;
 }
 
 export async function deleteItemImage(itemId: string, imageId: string): Promise<void> {
