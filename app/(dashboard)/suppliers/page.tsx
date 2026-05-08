@@ -48,7 +48,11 @@ import { cn } from "@/lib/utils";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
 import { SupplierEditColumn } from "./_components/SupplierEditColumn";
-import { EMPTY_SUPPLIER_PROFILE, SupplierProfileFields, type SupplierProfileDraft } from "./_components/supplier-profile-shared";
+import {
+  EMPTY_SUPPLIER_PROFILE,
+  SupplierProfileFields,
+  type SupplierProfileDraft,
+} from "./_components/supplier-profile-shared";
 import {
   supFieldLabel,
   supInput,
@@ -66,13 +70,20 @@ export default function SuppliersPage() {
   const { me, loading } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
-  const canReadCatalog = hasPermission(me?.permissions, Permission.CatalogItemsRead);
-  const canLinkProducts = hasPermission(me?.permissions, Permission.CatalogItemsLinkSuppliers);
+  const canReadCatalog = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsRead,
+  );
+  const canLinkProducts = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsLinkSuppliers,
+  );
 
   const selectionRef = useRef<string | null>(null);
-  const [feedback, setFeedback] = useState<{ text: string; kind: "error" | "success" } | null>(
-    null,
-  );
+  const [feedback, setFeedback] = useState<{
+    text: string;
+    kind: "error" | "success";
+  } | null>(null);
   const [rows, setRows] = useState<SupplierRecord[]>([]);
   const [listTotalElements, setListTotalElements] = useState(0);
   const [listLast, setListLast] = useState(true);
@@ -85,14 +96,19 @@ export default function SuppliersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SupplierRecord | null>(null);
   const [contacts, setContacts] = useState<SupplierContactRecord[]>([]);
-  const [patchDraft, setPatchDraft] = useState<SupplierProfileDraft>(EMPTY_SUPPLIER_PROFILE);
-  const [createDraft, setCreateDraft] = useState<SupplierProfileDraft>(EMPTY_SUPPLIER_PROFILE);
-  const [contactDraft, setContactDraft] = useState<CreateSupplierContactPayload>({
-    name: "",
-    roleLabel: "",
-    email: "",
-    phone: "",
-  });
+  const [patchDraft, setPatchDraft] = useState<SupplierProfileDraft>(
+    EMPTY_SUPPLIER_PROFILE,
+  );
+  const [createDraft, setCreateDraft] = useState<SupplierProfileDraft>(
+    EMPTY_SUPPLIER_PROFILE,
+  );
+  const [contactDraft, setContactDraft] =
+    useState<CreateSupplierContactPayload>({
+      name: "",
+      roleLabel: "",
+      email: "",
+      phone: "",
+    });
   const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
   const [linksBusy, setLinksBusy] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
@@ -119,15 +135,27 @@ export default function SuppliersPage() {
   };
 
   useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedListSearch(listSearch.trim()), 280);
+    const id = window.setTimeout(
+      () => setDebouncedListSearch(listSearch.trim()),
+      280,
+    );
     return () => window.clearTimeout(id);
   }, [listSearch]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (
+        event.key === "/" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
         const t = event.target;
-        if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) {
+        if (
+          t instanceof HTMLInputElement ||
+          t instanceof HTMLTextAreaElement ||
+          t instanceof HTMLSelectElement
+        ) {
           return;
         }
         event.preventDefault();
@@ -155,7 +183,8 @@ export default function SuppliersPage() {
       nextListPageRef.current = page.last ? 0 : 1;
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Failed to load suppliers.",
+        text:
+          error instanceof Error ? error.message : "Failed to load suppliers.",
         kind: "error",
       });
     } finally {
@@ -164,7 +193,12 @@ export default function SuppliersPage() {
   }, [debouncedListSearch, statusFilter]);
 
   const loadMoreDirectory = useCallback(async () => {
-    if (listLast || listLoadingMore || listLoadingInitial || nextListPageRef.current <= 0) {
+    if (
+      listLast ||
+      listLoadingMore ||
+      listLoadingInitial ||
+      nextListPageRef.current <= 0
+    ) {
       return;
     }
     setListLoadingMore(true);
@@ -181,7 +215,10 @@ export default function SuppliersPage() {
       nextListPageRef.current = page.last ? 0 : pagen + 1;
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Failed to load more suppliers.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to load more suppliers.",
         kind: "error",
       });
     } finally {
@@ -252,9 +289,12 @@ export default function SuppliersPage() {
         notes: d.notes ?? "",
         vatPin: d.vatPin ?? "",
         taxExempt: Boolean(d.taxExempt),
-        creditTermsDays: d.creditTermsDays != null ? String(d.creditTermsDays) : "",
+        creditTermsDays:
+          d.creditTermsDays != null ? String(d.creditTermsDays) : "",
         creditLimit:
-          d.creditLimit != null && Number.isFinite(Number(d.creditLimit)) ? String(d.creditLimit) : "",
+          d.creditLimit != null && Number.isFinite(Number(d.creditLimit))
+            ? String(d.creditLimit)
+            : "",
         paymentMethodPreferred: d.paymentMethodPreferred ?? "",
         paymentDetails: d.paymentDetails ?? "",
       });
@@ -264,7 +304,8 @@ export default function SuppliersPage() {
         setContacts([]);
         setItemLinks([]);
         setFeedback({
-          text: error instanceof Error ? error.message : "Failed to load supplier.",
+          text:
+            error instanceof Error ? error.message : "Failed to load supplier.",
           kind: "error",
         });
       }
@@ -284,7 +325,10 @@ export default function SuppliersPage() {
       if (creditTermsRaw.length > 0) {
         const n = parseInt(creditTermsRaw, 10);
         if (!Number.isFinite(n) || n < 0) {
-          setFeedback({ text: "Credit terms must be a non-negative whole number.", kind: "error" });
+          setFeedback({
+            text: "Credit terms must be a non-negative whole number.",
+            kind: "error",
+          });
           return;
         }
         creditTermsDays = n;
@@ -294,7 +338,10 @@ export default function SuppliersPage() {
       if (creditLimitRaw.length > 0) {
         const n = Number(creditLimitRaw);
         if (!Number.isFinite(n) || n < 0) {
-          setFeedback({ text: "Credit limit must be a valid non-negative number.", kind: "error" });
+          setFeedback({
+            text: "Credit limit must be a valid non-negative number.",
+            kind: "error",
+          });
           return;
         }
         creditLimit = n;
@@ -312,7 +359,9 @@ export default function SuppliersPage() {
         ...(creditTermsDays != null ? { creditTermsDays } : {}),
         ...(creditLimit != null ? { creditLimit } : {}),
         ...(payPrefTrim ? { paymentMethodPreferred: payPrefTrim } : {}),
-        ...(createDraft.paymentDetails.trim() ? { paymentDetails: createDraft.paymentDetails.trim() } : {}),
+        ...(createDraft.paymentDetails.trim()
+          ? { paymentDetails: createDraft.paymentDetails.trim() }
+          : {}),
       };
       const created = await createSupplier(body);
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
@@ -342,7 +391,10 @@ export default function SuppliersPage() {
       if (creditTermsRaw.length > 0) {
         const n = parseInt(creditTermsRaw, 10);
         if (!Number.isFinite(n) || n < 0) {
-          setFeedback({ text: "Credit terms must be a non-negative whole number.", kind: "error" });
+          setFeedback({
+            text: "Credit terms must be a non-negative whole number.",
+            kind: "error",
+          });
           return;
         }
         creditTermsDays = n;
@@ -352,7 +404,10 @@ export default function SuppliersPage() {
       if (creditLimitRaw.length > 0) {
         const n = Number(creditLimitRaw);
         if (!Number.isFinite(n) || n < 0) {
-          setFeedback({ text: "Credit limit must be a valid non-negative number.", kind: "error" });
+          setFeedback({
+            text: "Credit limit must be a valid non-negative number.",
+            kind: "error",
+          });
           return;
         }
         creditLimit = n;
@@ -379,9 +434,12 @@ export default function SuppliersPage() {
         notes: next.notes ?? "",
         vatPin: next.vatPin ?? "",
         taxExempt: Boolean(next.taxExempt),
-        creditTermsDays: next.creditTermsDays != null ? String(next.creditTermsDays) : "",
+        creditTermsDays:
+          next.creditTermsDays != null ? String(next.creditTermsDays) : "",
         creditLimit:
-          next.creditLimit != null && Number.isFinite(Number(next.creditLimit)) ? String(next.creditLimit) : "",
+          next.creditLimit != null && Number.isFinite(Number(next.creditLimit))
+            ? String(next.creditLimit)
+            : "",
         paymentMethodPreferred: next.paymentMethodPreferred ?? "",
         paymentDetails: next.paymentDetails ?? "",
       });
@@ -409,7 +467,11 @@ export default function SuppliersPage() {
 
   const onLinkCatalogItems = async (
     itemIds: string[],
-    opts: { supplierSku?: string; defaultCostPrice?: number; setPrimaryForFirst?: boolean },
+    opts: {
+      supplierSku?: string;
+      defaultCostPrice?: number;
+      setPrimaryForFirst?: boolean;
+    },
   ) => {
     if (!selectedId || itemIds.length === 0) {
       throw new Error("Nothing to link.");
@@ -433,7 +495,9 @@ export default function SuppliersPage() {
       await refreshItemLinks();
       setFeedback({
         text:
-          itemIds.length === 1 ? "Product linked to this supplier." : `Linked ${itemIds.length} products.`,
+          itemIds.length === 1
+            ? "Product linked to this supplier."
+            : `Linked ${itemIds.length} products.`,
         kind: "success",
       });
     } catch (error) {
@@ -474,7 +538,10 @@ export default function SuppliersPage() {
     try {
       await postItemSupplierLinkSetPrimary(row.itemId, row.id);
       await refreshItemLinks();
-      setFeedback({ text: "Primary supplier updated for that product.", kind: "success" });
+      setFeedback({
+        text: "Primary supplier updated for that product.",
+        kind: "success",
+      });
     } catch (error) {
       setFeedback({
         text: error instanceof Error ? error.message : "Could not set primary.",
@@ -521,8 +588,10 @@ export default function SuppliersPage() {
         description={
           <>
             You need{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.SuppliersRead}</code> to view
-            suppliers.
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">
+              {Permission.SuppliersRead}
+            </code>{" "}
+            to view suppliers.
           </>
         }
         backHref={APP_ROUTES.business}
@@ -558,8 +627,8 @@ export default function SuppliersPage() {
                 title="Suppliers"
                 description={
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    Search and filter server-side, work in a fast virtualized directory, then manage profile and
-                    catalog links in place.{" "}
+                    Search and filter server-side, work in a fast virtualized
+                    directory, then manage profile and catalog links in place.{" "}
                     <kbd className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
                       /
                     </kbd>{" "}
@@ -585,8 +654,18 @@ export default function SuppliersPage() {
             <DashboardQuickLinks
               compact
               links={[
-                { href: APP_ROUTES.products, label: "Products", desc: "Link items", icon: Package },
-                { href: APP_ROUTES.categories, label: "Categories", desc: "Aisles", icon: LayoutGrid },
+                {
+                  href: APP_ROUTES.products,
+                  label: "Products",
+                  desc: "Link items",
+                  icon: Package,
+                },
+                {
+                  href: APP_ROUTES.categories,
+                  label: "Categories",
+                  desc: "Aisles",
+                  icon: LayoutGrid,
+                },
                 {
                   href: APP_ROUTES.purchasingIntelligence,
                   label: "Intelligence",
@@ -598,36 +677,52 @@ export default function SuppliersPage() {
           </header>
         </div>
 
-        {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+        {feedback ? (
+          <DashboardFeedback
+            kind={feedback.kind === "error" ? "error" : "success"}
+            text={feedback.text}
+          />
+        ) : null}
 
         {isXl ? (
           <nav
-            className="flex flex-wrap items-center gap-2 rounded-xl border border-border/55 bg-muted/30 px-3 py-3 shadow-sm sm:gap-3 sm:px-4"
+            className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 px-4 py-2.5 shadow-sm"
             aria-label="Workspace steps"
           >
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Steps</span>
-            <ol className="flex flex-1 flex-wrap items-center gap-1.5 sm:gap-2">
-              <li className="inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/55 dark:bg-card">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                  1
-                </span>
-                Directory
-              </li>
-              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/45 max-sm:hidden" aria-hidden />
-              <li className="inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/55 dark:bg-card">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                  2
-                </span>
-                Profile &amp; contacts
-              </li>
-              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/45 max-sm:hidden" aria-hidden />
-              <li className="inline-flex items-center gap-2 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/55 dark:bg-card">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                  3
-                </span>
-                Catalog &amp; links
-              </li>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+              Workflow
+            </span>
+            <ol className="flex flex-1 flex-wrap items-center gap-1">
+              {[
+                { n: 1, label: "Directory" },
+                { n: 2, label: "Profile & contacts" },
+                { n: 3, label: "Catalog & links" },
+              ].map(({ n, label }, i, arr) => (
+                <>
+                  <li
+                    key={n}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/50"
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                      {n}
+                    </span>
+                    {label}
+                  </li>
+                  {i < arr.length - 1 ? (
+                    <ChevronRight
+                      key={`sep-${n}`}
+                      className="size-3 shrink-0 text-muted-foreground/30 max-sm:hidden"
+                      aria-hidden
+                    />
+                  ) : null}
+                </>
+              ))}
             </ol>
+            {detail ? (
+              <span className="truncate text-[11px] font-semibold text-primary">
+                {detail.name}
+              </span>
+            ) : null}
           </nav>
         ) : null}
 
@@ -639,23 +734,18 @@ export default function SuppliersPage() {
           )}
         >
           <div className="flex min-h-0 min-w-0 flex-col gap-3">
-            <div className="shrink-0 rounded-lg border border-border/55 bg-muted/35 px-3 py-2 xl:hidden">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Directory</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                Search and select a supplier to load details.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3 shadow-sm sm:px-4 sm:py-3.5">
-              <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+            {/* Search + filter bar */}
+            <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border/60 bg-card/80 px-3 py-3 shadow-sm">
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-1">
                 <span className={supFieldLabel}>Search</span>
                 <span className="relative">
                   <Search
-                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70"
+                    className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60"
                     aria-hidden
                   />
                   <input
                     id="supplier-directory-search"
-                    className={cn(supInput, "pl-10")}
+                    className={cn(supInput, "pl-9")}
                     placeholder="Name or vendor code…"
                     value={listSearch}
                     onChange={(e) => setListSearch(e.target.value)}
@@ -663,7 +753,7 @@ export default function SuppliersPage() {
                   />
                 </span>
               </label>
-              <label className="flex min-w-[8.5rem] flex-col gap-1.5">
+              <label className="flex min-w-[8rem] flex-col gap-1">
                 <span className={supFieldLabel}>Status</span>
                 <select
                   className={supSelect}
@@ -681,7 +771,7 @@ export default function SuppliersPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-10 shrink-0 border-border/70 px-4 font-medium"
+                className="h-10 shrink-0 rounded-xl px-4 font-medium"
                 disabled={listLoadingInitial}
                 onClick={() => void refreshFullDirectory()}
               >
@@ -700,29 +790,39 @@ export default function SuppliersPage() {
               onLoadMore={loadMoreDirectory}
             />
             {!isXl && detail ? (
-              <div className="flex shrink-0 flex-wrap gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] p-3 shadow-sm dark:bg-primary/[0.08]">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="h-9 gap-2 font-medium shadow-sm"
-                  onClick={() => setEditDrawerOpen(true)}
-                >
-                  <Building2 className="size-3.5" aria-hidden />
-                  Supplier details
-                </Button>
-                {canReadCatalog ? (
+              <div className="shrink-0 rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-muted/20 p-3 shadow-sm">
+                <div className="mb-2.5 flex items-center gap-2">
+                  <div
+                    className="size-1.5 rounded-full bg-primary"
+                    aria-hidden
+                  />
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {detail.name}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    variant="secondary"
                     size="sm"
-                    className="h-9 gap-2 font-medium shadow-sm"
-                    onClick={() => setCatalogDrawerOpen(true)}
+                    className="h-8 flex-1 gap-1.5 rounded-xl shadow-sm shadow-primary/15"
+                    onClick={() => setEditDrawerOpen(true)}
                   >
-                    <Link2 className="size-3.5" aria-hidden />
-                    Catalog &amp; links
+                    <Building2 className="size-3.5" aria-hidden />
+                    Profile
                   </Button>
-                ) : null}
+                  {canReadCatalog ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 flex-1 gap-1.5 rounded-xl"
+                      onClick={() => setCatalogDrawerOpen(true)}
+                    >
+                      <Link2 className="size-3.5" aria-hidden />
+                      Catalog &amp; links
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>
@@ -731,15 +831,14 @@ export default function SuppliersPage() {
             <>
               <aside className={supPanelShell}>
                 <div className={supPanelHeader}>
-                  <div className="flex items-start gap-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
                       <Building2 className="size-4" aria-hidden />
                     </span>
                     <div className="min-w-0">
-                      <p className={supPanelKicker}>Workspace · Profile</p>
-                      <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">Supplier record</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Identity snapshot, commercial summary, and contacts.
+                      <p className={supPanelKicker}>Profile &amp; contacts</p>
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {detail?.name ?? "Select a supplier"}
                       </p>
                     </div>
                   </div>
@@ -750,33 +849,41 @@ export default function SuppliersPage() {
                     contacts={contacts}
                     canWrite={canWrite}
                     onEditProfile={
-                      canWrite ?
-                        () => {
-                          setProfileEditDrawerOpen(true);
-                        }
-                      : undefined
+                      canWrite
+                        ? () => {
+                            setProfileEditDrawerOpen(true);
+                          }
+                        : undefined
                     }
                     onAddContact={
-                      canWrite ?
-                        () => {
-                          setAddContactDrawerOpen(true);
-                        }
-                      : undefined
+                      canWrite
+                        ? () => {
+                            setAddContactDrawerOpen(true);
+                          }
+                        : undefined
                     }
                   />
                 </div>
               </aside>
-              <aside className={cn(supPanelShell, "to-violet-500/[0.06] dark:to-violet-500/[0.09]")}>
+              <aside
+                className={cn(
+                  supPanelShell,
+                  "to-violet-500/5 dark:to-violet-500/8",
+                )}
+              >
                 <div className={supPanelHeader}>
-                  <div className="flex items-start gap-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/12 text-violet-700 dark:text-violet-300">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 ring-1 ring-violet-500/20 dark:text-violet-400">
                       <Link2 className="size-4" aria-hidden />
                     </span>
                     <div className="min-w-0">
-                      <p className={supPanelKickerViolet}>Workspace · Catalog</p>
-                      <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">Products &amp; links</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Existing SKU links and catalog picker to attach more.
+                      <p className={supPanelKickerViolet}>
+                        Catalog &amp; links
+                      </p>
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {detail?.name
+                          ? `${detail.name} · SKUs`
+                          : "Select a supplier"}
                       </p>
                     </div>
                   </div>
@@ -791,13 +898,14 @@ export default function SuppliersPage() {
                     onRemoveLink={onRemoveLink}
                     onSetPrimaryLink={onSetPrimaryLink}
                     onLinkCatalogItems={onLinkCatalogItems}
+                    onRefreshLinks={refreshItemLinks}
                   />
                 </div>
               </aside>
             </>
           ) : null}
         </div>
-        </div>
+      </div>
 
       {!isXl ? (
         <>
@@ -811,7 +919,11 @@ export default function SuppliersPage() {
             width="wide"
             footer={
               <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditDrawerOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditDrawerOpen(false)}
+                >
                   Close
                 </Button>
               </div>
@@ -822,20 +934,20 @@ export default function SuppliersPage() {
               contacts={contacts}
               canWrite={canWrite}
               onEditProfile={
-                canWrite ?
-                  () => {
-                    setEditDrawerOpen(false);
-                    setProfileEditDrawerOpen(true);
-                  }
-                : undefined
+                canWrite
+                  ? () => {
+                      setEditDrawerOpen(false);
+                      setProfileEditDrawerOpen(true);
+                    }
+                  : undefined
               }
               onAddContact={
-                canWrite ?
-                  () => {
-                    setEditDrawerOpen(false);
-                    setAddContactDrawerOpen(true);
-                  }
-                : undefined
+                canWrite
+                  ? () => {
+                      setEditDrawerOpen(false);
+                      setAddContactDrawerOpen(true);
+                    }
+                  : undefined
               }
             />
           </FormDrawer>
@@ -846,11 +958,20 @@ export default function SuppliersPage() {
             title="Catalog & links"
             description="Browse the full catalog with filters and multi-select to attach items."
             contextLabel="Catalog"
-            icon={<Link2 className="size-5 text-violet-600 dark:text-violet-400" aria-hidden />}
+            icon={
+              <Link2
+                className="size-5 text-violet-600 dark:text-violet-400"
+                aria-hidden
+              />
+            }
             width="wide"
             footer={
               <div className="flex justify-end">
-                <Button type="button" variant="outline" onClick={() => setCatalogDrawerOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCatalogDrawerOpen(false)}
+                >
                   Close
                 </Button>
               </div>
@@ -865,6 +986,7 @@ export default function SuppliersPage() {
               onRemoveLink={onRemoveLink}
               onSetPrimaryLink={onSetPrimaryLink}
               onLinkCatalogItems={onLinkCatalogItems}
+              onRefreshLinks={refreshItemLinks}
             />
           </FormDrawer>
         </>
@@ -882,7 +1004,11 @@ export default function SuppliersPage() {
             width="wide"
             footer={
               <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setProfileEditDrawerOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setProfileEditDrawerOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" form="supplier-patch-form">
@@ -891,14 +1017,20 @@ export default function SuppliersPage() {
               </div>
             }
           >
-            <form id="supplier-patch-form" className="space-y-8" onSubmit={onPatchSave}>
+            <form
+              id="supplier-patch-form"
+              className="space-y-8"
+              onSubmit={onPatchSave}
+            >
               <FormDrawerFields
                 legend="Supplier profile"
                 hint="All changes save to this supplier record and sync to the directory list."
               >
                 <SupplierProfileFields
                   draft={patchDraft}
-                  onDraftChange={(partial) => setPatchDraft((p) => ({ ...p, ...partial }))}
+                  onDraftChange={(partial) =>
+                    setPatchDraft((p) => ({ ...p, ...partial }))
+                  }
                 />
               </FormDrawerFields>
             </form>
@@ -914,7 +1046,11 @@ export default function SuppliersPage() {
             width="wide"
             footer={
               <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setAddContactDrawerOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setAddContactDrawerOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" form="supplier-add-contact-form">
@@ -923,8 +1059,15 @@ export default function SuppliersPage() {
               </div>
             }
           >
-            <form id="supplier-add-contact-form" className="space-y-5" onSubmit={onAddContact}>
-              <FormDrawerFields legend="Contact details" hint="Stored against this supplier only.">
+            <form
+              id="supplier-add-contact-form"
+              className="space-y-5"
+              onSubmit={onAddContact}
+            >
+              <FormDrawerFields
+                legend="Contact details"
+                hint="Stored against this supplier only."
+              >
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="flex flex-col gap-1.5 sm:col-span-2">
                     <span className={supFieldLabel}>Full name</span>
@@ -932,7 +1075,9 @@ export default function SuppliersPage() {
                       className={supInput}
                       placeholder="e.g. Jane Smith"
                       value={contactDraft.name ?? ""}
-                      onChange={(e) => setContactDraft((d) => ({ ...d, name: e.target.value }))}
+                      onChange={(e) =>
+                        setContactDraft((d) => ({ ...d, name: e.target.value }))
+                      }
                       aria-label="Contact name"
                     />
                   </label>
@@ -942,7 +1087,12 @@ export default function SuppliersPage() {
                       className={supInput}
                       placeholder="Optional"
                       value={contactDraft.roleLabel ?? ""}
-                      onChange={(e) => setContactDraft((d) => ({ ...d, roleLabel: e.target.value }))}
+                      onChange={(e) =>
+                        setContactDraft((d) => ({
+                          ...d,
+                          roleLabel: e.target.value,
+                        }))
+                      }
                       aria-label="Role or title"
                     />
                   </label>
@@ -953,7 +1103,12 @@ export default function SuppliersPage() {
                       placeholder="name@company.com"
                       type="email"
                       value={contactDraft.email ?? ""}
-                      onChange={(e) => setContactDraft((d) => ({ ...d, email: e.target.value }))}
+                      onChange={(e) =>
+                        setContactDraft((d) => ({
+                          ...d,
+                          email: e.target.value,
+                        }))
+                      }
                       aria-label="Email"
                     />
                   </label>
@@ -963,7 +1118,12 @@ export default function SuppliersPage() {
                       className={supInput}
                       placeholder="Optional"
                       value={contactDraft.phone ?? ""}
-                      onChange={(e) => setContactDraft((d) => ({ ...d, phone: e.target.value }))}
+                      onChange={(e) =>
+                        setContactDraft((d) => ({
+                          ...d,
+                          phone: e.target.value,
+                        }))
+                      }
                       aria-label="Phone"
                     />
                   </label>
@@ -985,7 +1145,11 @@ export default function SuppliersPage() {
           width="wide"
           footer={
             <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onCreateDrawerOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onCreateDrawerOpenChange(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" form="new-supplier-form">
@@ -995,14 +1159,20 @@ export default function SuppliersPage() {
             </div>
           }
         >
-          <form id="new-supplier-form" className="space-y-8" onSubmit={onCreate}>
+          <form
+            id="new-supplier-form"
+            className="space-y-8"
+            onSubmit={onCreate}
+          >
             <FormDrawerFields
               legend="New supplier"
               hint="Name is required; everything else can be completed after create."
             >
               <SupplierProfileFields
                 draft={createDraft}
-                onDraftChange={(partial) => setCreateDraft((d) => ({ ...d, ...partial }))}
+                onDraftChange={(partial) =>
+                  setCreateDraft((d) => ({ ...d, ...partial }))
+                }
               />
             </FormDrawerFields>
           </form>

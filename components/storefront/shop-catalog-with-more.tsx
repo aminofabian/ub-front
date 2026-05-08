@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Flame } from "lucide-react";
+import { ArrowRight, Flame, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
@@ -10,6 +10,7 @@ import type {
   PublicCatalogItemCard,
   PublicCatalogListPayload,
 } from "@/lib/public-storefront";
+import { cn } from "@/lib/utils";
 
 export default function ShopCatalogWithMore({
   slug,
@@ -77,27 +78,39 @@ export default function ShopCatalogWithMore({
     primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim()) ? primaryHex.trim() : null;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="inline-flex items-center gap-2 text-lg font-bold tracking-tight text-foreground sm:text-xl">
-          {heading}
-          {!filtered ? (
-            <Flame
-              className="h-5 w-5"
-              aria-hidden
-              style={accent ? { color: accent } : { color: "#fb923c" }}
-            />
-          ) : null}
-        </h2>
-        <Link
-          href={APP_ROUTES.shop}
-          className="inline-flex items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"
-          style={primary ? { color: primary } : { color: "var(--color-primary)" }}
-        >
-          View all
-          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-        </Link>
+    <div className="space-y-6">
+      {/* Section header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-2">
+          <h2 className="inline-flex items-center gap-2.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            {heading}
+            {!filtered ? (
+              <Flame
+                className="h-5 w-5"
+                aria-hidden
+                style={accent ? { color: accent } : { color: "#fb923c" }}
+              />
+            ) : null}
+          </h2>
+          <div
+            className="h-0.5 w-12 rounded-full"
+            style={{
+              backgroundColor: accent ?? primary ?? "var(--color-primary)",
+            }}
+          />
+        </div>
+        {!filtered ? (
+          <Link
+            href={APP_ROUTES.shop}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 transition hover:underline"
+            style={primary ? { color: primary } : { color: "var(--color-primary)" }}
+          >
+            View all
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        ) : null}
       </div>
+
       <ShopProductGrid
         items={items}
         currency={currency}
@@ -106,18 +119,50 @@ export default function ShopCatalogWithMore({
         slug={slug}
         accentHex={accent}
       />
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {error ? (
+        <p className="text-center text-sm text-destructive">{error}</p>
+      ) : null}
+
       {next ? (
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-2">
           <button
             type="button"
             onClick={() => void loadMore()}
             disabled={busy}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-border/80 bg-card px-8 text-sm font-semibold shadow-sm transition hover:bg-muted/60 disabled:opacity-60"
+            className={cn(
+              "group inline-flex h-12 items-center justify-center gap-2 rounded-full border px-10 text-sm font-semibold shadow-sm transition-all duration-200",
+              "border-border/60 bg-white hover:border-primary/30 hover:bg-muted/40 hover:shadow-md",
+              "disabled:opacity-60"
+            )}
+            style={
+              primary
+                ? {
+                    borderColor: `${primary}30`,
+                  }
+                : undefined
+            }
           >
-            {busy ? "Loading…" : "Load more"}
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Loading more…
+              </>
+            ) : (
+              <>
+                Load more products
+                <ArrowRight
+                  className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                  aria-hidden
+                />
+              </>
+            )}
           </button>
         </div>
+      ) : items.length > 0 ? (
+        <p className="text-center text-xs font-medium text-muted-foreground/70">
+          You&apos;ve reached the end of the catalog
+        </p>
       ) : null}
     </div>
   );

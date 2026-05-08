@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CornerDownRight, Layers, Link2, Package, Tag } from "lucide-react";
+import { CornerDownRight, Layers, Link2, Package, Tag, Zap, Pencil, Check, X } from "lucide-react";
 
 import {
   fetchCategories,
   fetchItemById,
   fetchItemsPage,
   itemListThumbnailUrl,
+  patchItemSupplierLink,
   type CategoryRecord,
   type CatalogListScope,
 } from "@/lib/api";
@@ -94,6 +95,7 @@ export function SupplierCatalogColumn({
   onRemoveLink,
   onSetPrimaryLink,
   onLinkCatalogItems,
+  onRefreshLinks,
 }: {
   detail: SupplierRecord | null;
   canReadCatalog: boolean;
@@ -106,6 +108,7 @@ export function SupplierCatalogColumn({
     itemIds: string[],
     opts: { supplierSku?: string; defaultCostPrice?: number; setPrimaryForFirst?: boolean },
   ) => Promise<void>;
+  onRefreshLinks?: () => void;
 }) {
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -131,7 +134,18 @@ export function SupplierCatalogColumn({
   const [linkPrimary, setLinkPrimary] = useState(false);
   const [linkDrawerOpen, setLinkDrawerOpen] = useState(false);
 
+  const [catalogBrowserOpen, setCatalogBrowserOpen] = useState(false);
   const [linkFormError, setLinkFormError] = useState<string | null>(null);
+  const [quickLinkIds, setQuickLinkIds] = useState<Set<string>>(() => new Set());
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineEditSku, setInlineEditSku] = useState("");
+  const [inlineEditCost, setInlineEditCost] = useState("");
+  const [inlineEditBusy, setInlineEditBusy] = useState(false);
+  const [editLinkDrawerOpen, setEditLinkDrawerOpen] = useState(false);
+  const [editLinkDrawerRow, setEditLinkDrawerRow] = useState<SupplierItemLinkRecord | null>(null);
+  const [editLinkDrawerSku, setEditLinkDrawerSku] = useState("");
+  const [editLinkDrawerCost, setEditLinkDrawerCost] = useState("");
+  const [editLinkDrawerBusy, setEditLinkDrawerBusy] = useState(false);
 
   const loadGen = useRef(0);
 
@@ -391,115 +405,105 @@ export function SupplierCatalogColumn({
     }
   };
 
-  if (!detail) {
+  const doQuickLink = async (itemId: string, itemName: string) => {
+    if (!canLinkProducts || linkedIds.has(itemId)) return;
+    setQuickLinkIds((prev) => {
+      const next = new Set(prev);
+      next.add(itemId);
+      return next;
+    });
+    try {
+      await onLinkCatalogItems([itemId], {});
+    } catch {
+      /* feedback from page */
+    } finally {
+      setQuickLinkIds((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
+    }
+  };
+
+  const startInlineEdit = (row: SupplierItemLinkRecord) => {
+    setInlineEditId(row.id);
+    setInlineEditSku(row.supplierSku ?? "");
+    setInlineEditCost(row.defaultCostPrice != null ? String(row.defaultCostPrice) : "");
+  };
+
+  const cancelInlineEdit = () => {
+    setInlineEditId(null);
+    setInlineEditSku("");
+    setInlineEditCost("");
+  };
+
+  const saveInlineEdit = async (row: SupplierItemLinkRecord) => {
+    if (!canLinkProducts || inlineEditBusy) return;
+    setInlineEditBusy(true);
+    try {
+      const costRaw = inlineEditCost.trim();
+      let defaultCostPrice: number | undefined;
+      if (costRaw.length > 0) {
+        const n = Number(costRaw);
+        if (!Number.isFinite(n) || n < 0) {
+          return;
+        }
+        defaultCostPrice = n;
+      }
+      await patchItemSupplierLink(row.itemId, row.id, {
+        supplierSku: inlineEditSku.trim() || undefined,
+        defaultCostPrice,
+      });
+      setInlineEditId(null);
+      setInlineEditSku("");
+      setInlineEditCost("");
+      onRefreshLinks?.();
+    } catch {
+      /* feedback from page if wired */
+    } finally {
+      setInlineEditBusy(false);
+    }
+  };
+
+  const openEditLinkDrawer = (row: SupplierItemLinkRecord) => {
+    setEditLinkDrawerRow(row);
+    setEditLinkDrawerSku(row.supplierSku ?? "");
+    setEditLinkDrawerCost(row.defaultCostPrice != null ? String(row.defaultCostPrice) : "");
+    setEditLinkDrawerOpen(true);
+  };
+
+  const saveEditLinkDrawer = async () => {
+    if (!editLinkDrawerRow || editLinkDrawerBusy) return;
+    setEditLinkDrawerBusy(true);
+    try {
+      const costRaw = editLinkDrawerCost.trim();
+      let defaultCostPrice: number | undefined;
+      if (costRaw.length > 0) {
+        const n = Number(costRaw);
+        if (!Number.isFinite(n) || n < 0) {
+          return;
+        }
+        defaultCostPrice = n;
+      }
+      await patchItemSupplierLink(editLinkDrawerRow.itemId, editLinkDrawerRow.id, {
+        supplierSku: editLinkDrawerSku.trim() || undefined,
+        defaultCostPrice,
+      });
+      setEditLinkDrawerOpen(false);
+      setEditLinkDrawerRow(null);
+      setEditLinkDrawerSku("");
+      setEditLinkDrawerCost("");
+      onRefreshLinks?.();
+    } catch {
+      /* feedback from page if wired */
+    } finally {
+      setEditLinkDrawerBusy(false);
+    }
+  };
+
+  function renderCatalogBrowser() {
     return (
-      <div
-        className={cn(
-          supCard,
-          "flex min-h-[14rem] flex-col items-center justify-center border-dashed bg-muted/10 p-8 text-center",
-        )}
-      >
-        <Link2 className="mb-3 size-10 text-muted-foreground/35" aria-hidden />
-        <p className="text-sm font-medium text-foreground">Select a supplier</p>
-        <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
-          Choose a vendor from the directory to load linked products and the catalog browser.
-        </p>
-      </div>
-    );
-  }
-
-  if (!canReadCatalog) {
-    return (
-      <div className={cn(supCard, "border-dashed bg-muted/10 p-6 text-sm text-muted-foreground")}>
-        <p className="font-medium text-foreground">Catalog access required</p>
-        <p className="mt-2 leading-relaxed">
-          Your role needs{" "}
-          <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-            {Permission.CatalogItemsRead}
-          </code>{" "}
-          to view or manage links here.
-        </p>
-      </div>
-    );
-  }
-
-  const linkableOnPage = catalogRows.filter((r) => !linkedIds.has(r.id));
-  const allLinkableSelected =
-    linkableOnPage.length > 0 && linkableOnPage.every((r) => selectedIds.has(r.id));
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
-      <div className={cn(supCard, "shrink-0 p-4 sm:p-5")}>
-        <div className="border-b border-border/45 pb-3">
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">Linked products</h3>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Items that use this supplier. One primary supplier per product; manage costs and vendor SKU per link.
-          </p>
-        </div>
-        {itemLinks.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">No linked products yet.</p>
-        ) : (
-          <div className="mt-4 overflow-x-auto rounded-lg border border-border/50">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border/50 bg-muted/45">
-                <tr className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                  <th className="px-3 py-2.5 font-semibold">Product</th>
-                  <th className="px-3 py-2.5 font-semibold">SKU</th>
-                  <th className="px-3 py-2.5 font-semibold">Primary</th>
-                  <th className="px-3 py-2.5 font-semibold">Supplier SKU</th>
-                  <th className="px-3 py-2.5 font-semibold">Default cost</th>
-                  {canLinkProducts ? <th className="px-3 py-2.5 font-semibold">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {itemLinks.map((row) => (
-                  <tr key={row.id} className="border-b border-border/35 transition-colors last:border-0 hover:bg-muted/20">
-                    <td className="px-3 py-2.5">
-                      <span className="font-medium text-foreground">{row.itemName || row.itemId}</span>
-                    </td>
-                    <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">{row.sku || "—"}</td>
-                    <td className="px-3 py-2.5">{row.primary ? "Yes" : "—"}</td>
-                    <td className="px-3 py-2.5">{row.supplierSku ?? "—"}</td>
-                    <td className="px-3 py-2.5 tabular-nums">
-                      {row.defaultCostPrice != null && row.defaultCostPrice !== ""
-                        ? String(row.defaultCostPrice)
-                        : "—"}
-                    </td>
-                    {canLinkProducts ? (
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-wrap gap-1.5">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[11px] font-medium"
-                            disabled={linksBusy || row.primary || !row.active}
-                            onClick={() => void onSetPrimaryLink(row)}
-                          >
-                            Set primary
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 text-[11px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            disabled={linksBusy}
-                            onClick={() => void onRemoveLink(row)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className={cn(supCard, "flex min-h-0 flex-1 flex-col overflow-hidden")}>
+      <div className={cn(supCard, "flex flex-col")}>
         <div className="shrink-0 space-y-4 border-b border-border/50 bg-muted/15 px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -532,6 +536,40 @@ export function SupplierCatalogColumn({
               </div>
             ) : null}
           </div>
+
+          {/* Category quick-filter chips */}
+          {sortedCategoryOptions.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setCategoryFilterId("")}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                  categoryFilterId === "" ?
+                    "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 ring-1 ring-border/60",
+                )}
+              >
+                All categories
+              </button>
+              {sortedCategoryOptions.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCategoryFilterId(categoryFilterId === c.id ? "" : c.id)}
+                  className={cn(
+                    "shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                    categoryFilterId === c.id ?
+                      "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 ring-1 ring-border/60",
+                  )}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex min-w-[9rem] flex-1 flex-col gap-1.5">
               <span className={supFieldLabel}>Search</span>
@@ -603,7 +641,7 @@ export function SupplierCatalogColumn({
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1">
           {catalogLoading && catalogRows.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-sm text-muted-foreground">
               <span className="h-5 w-5 animate-pulse rounded-full bg-primary/35" aria-hidden />
@@ -819,6 +857,25 @@ export function SupplierCatalogColumn({
                                   <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-emerald-800 dark:text-emerald-300">
                                     Linked
                                   </span>
+                                ) : canLinkProducts ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 gap-1 rounded-full px-2 text-[10px] font-semibold"
+                                    disabled={quickLinkIds.has(row.id) || linksBusy}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void doQuickLink(row.id, row.name);
+                                    }}
+                                  >
+                                    {quickLinkIds.has(row.id) ? (
+                                      <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary/60" />
+                                    ) : (
+                                      <Zap className="size-3" />
+                                    )}
+                                    Quick link
+                                  </Button>
                                 ) : null}
                               </span>
                             </span>
@@ -951,6 +1008,61 @@ export function SupplierCatalogColumn({
                 {linkFormError ? <p className="text-xs text-destructive">{linkFormError}</p> : null}
               </form>
             </FormDrawer>
+
+            {/* Edit existing link drawer */}
+            <FormDrawer
+              open={editLinkDrawerOpen}
+              onOpenChange={(open) => {
+                setEditLinkDrawerOpen(open);
+                if (!open) {
+                  setEditLinkDrawerRow(null);
+                  setEditLinkDrawerSku("");
+                  setEditLinkDrawerCost("");
+                }
+              }}
+              title="Edit supplier link"
+              description={`Update supplier SKU and default cost for ${editLinkDrawerRow?.itemName || "this product"}.`}
+              contextLabel="Link details"
+              icon={<Pencil className="size-5 text-primary" aria-hidden />}
+              footer={
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setEditLinkDrawerOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={editLinkDrawerBusy}
+                    onClick={() => void saveEditLinkDrawer()}
+                  >
+                    {editLinkDrawerBusy ? "Saving…" : "Save changes"}
+                  </Button>
+                </div>
+              }
+            >
+              <div className="space-y-4">
+                <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+                  <span className={supFieldLabel}>Supplier SKU</span>
+                  <input
+                    className={supInput}
+                    value={editLinkDrawerSku}
+                    onChange={(e) => setEditLinkDrawerSku(e.target.value)}
+                    placeholder="Vendor's SKU for this product"
+                    aria-label="Supplier SKU"
+                  />
+                </label>
+                <label className="flex min-w-[9rem] flex-col gap-1.5">
+                  <span className={supFieldLabel}>Default cost</span>
+                  <input
+                    className={cn(supInput, "w-full max-w-[10rem] tabular-nums")}
+                    inputMode="decimal"
+                    value={editLinkDrawerCost}
+                    onChange={(e) => setEditLinkDrawerCost(e.target.value)}
+                    placeholder="0.00"
+                    aria-label="Default cost"
+                  />
+                </label>
+              </div>
+            </FormDrawer>
           </>
         ) : (
           <p className="shrink-0 border-t border-border/50 bg-muted/10 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
@@ -962,6 +1074,235 @@ export function SupplierCatalogColumn({
           </p>
         )}
       </div>
+    );
+  }
+
+  if (!detail) {
+
+    return (
+      <div
+        className={cn(
+          supCard,
+          "flex min-h-[14rem] flex-col items-center justify-center border-dashed bg-muted/10 p-8 text-center",
+        )}
+      >
+        <Link2 className="mb-3 size-10 text-muted-foreground/35" aria-hidden />
+        <p className="text-sm font-medium text-foreground">Select a supplier</p>
+        <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
+          Choose a vendor from the directory to load linked products and the catalog browser.
+        </p>
+      </div>
+    );
+  }
+
+  if (!canReadCatalog) {
+    return (
+      <div className={cn(supCard, "border-dashed bg-muted/10 p-6 text-sm text-muted-foreground")}>
+        <p className="font-medium text-foreground">Catalog access required</p>
+        <p className="mt-2 leading-relaxed">
+          Your role needs{" "}
+          <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            {Permission.CatalogItemsRead}
+          </code>{" "}
+          to view or manage links here.
+        </p>
+      </div>
+    );
+  }
+
+  const linkableOnPage = catalogRows.filter((r) => !linkedIds.has(r.id));
+  const allLinkableSelected =
+    linkableOnPage.length > 0 && linkableOnPage.every((r) => selectedIds.has(r.id));
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+      <div className={cn(supCard, "shrink-0 p-4 sm:p-5")}>
+        <div className="border-b border-border/45 pb-3">
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">Linked products</h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Items that use this supplier. One primary supplier per product; manage costs and vendor SKU per link.
+          </p>
+        </div>
+        {itemLinks.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No linked products yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border/50">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border/50 bg-muted/45">
+                <tr className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2.5 font-semibold">Product</th>
+                  <th className="px-3 py-2.5 font-semibold">SKU</th>
+                  <th className="px-3 py-2.5 font-semibold">Primary</th>
+                  <th className="px-3 py-2.5 font-semibold">Supplier SKU</th>
+                  <th className="px-3 py-2.5 font-semibold">Default cost</th>
+                  {canLinkProducts ? <th className="px-3 py-2.5 font-semibold">Actions</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {itemLinks.map((row) => {
+                  const isEditing = inlineEditId === row.id;
+                  return (
+                    <tr key={row.id} className="border-b border-border/35 transition-colors last:border-0 hover:bg-muted/20">
+                      <td className="px-3 py-2.5">
+                        <span className="font-medium text-foreground">{row.itemName || row.itemId}</span>
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">{row.sku || "—"}</td>
+                      <td className="px-3 py-2.5">
+                        {row.primary ? (
+                          <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                            Primary
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {isEditing ? (
+                          <input
+                            className={cn(supInput, "h-8 w-32 text-xs")}
+                            value={inlineEditSku}
+                            onChange={(e) => setInlineEditSku(e.target.value)}
+                            placeholder="Supplier SKU"
+                            aria-label="Supplier SKU"
+                          />
+                        ) : (
+                          <span className="font-mono text-[11px]">{row.supplierSku ?? "—"}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {isEditing ? (
+                          <input
+                            className={cn(supInput, "h-8 w-24 text-xs tabular-nums")}
+                            inputMode="decimal"
+                            value={inlineEditCost}
+                            onChange={(e) => setInlineEditCost(e.target.value)}
+                            placeholder="0.00"
+                            aria-label="Default cost"
+                          />
+                        ) : (
+                          <span className="tabular-nums">
+                            {row.defaultCostPrice != null && row.defaultCostPrice !== ""
+                              ? String(row.defaultCostPrice)
+                              : "—"}
+                          </span>
+                        )}
+                      </td>
+                      {canLinkProducts ? (
+                        <td className="px-3 py-2.5">
+                          {isEditing ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-7 gap-1 text-[11px]"
+                                disabled={inlineEditBusy}
+                                onClick={() => void saveInlineEdit(row)}
+                              >
+                                <Check className="size-3" /> Save
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-[11px]"
+                                disabled={inlineEditBusy}
+                                onClick={cancelInlineEdit}
+                              >
+                                <X className="size-3" /> Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground"
+                                title="Edit link"
+                                onClick={() => startInlineEdit(row)}
+                              >
+                                <Pencil className="size-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-[11px] font-medium"
+                                disabled={linksBusy || row.primary || !row.active}
+                                onClick={() => void onSetPrimaryLink(row)}
+                              >
+                                Set primary
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-[11px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                disabled={linksBusy}
+                                onClick={() => void onRemoveLink(row)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      ) : null}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className={cn(supCard, "shrink-0 p-4 sm:p-5")}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">Catalog</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Browse all products and link them to this supplier.
+            </p>
+          </div>
+          <Button
+            type="button"
+            className="h-10 gap-2 rounded-lg px-5 font-semibold shadow-sm"
+            onClick={() => setCatalogBrowserOpen(true)}
+          >
+            <Link2 className="size-4" aria-hidden />
+            Browse & link products
+          </Button>
+        </div>
+      </div>
+      <FormDrawer
+        open={catalogBrowserOpen}
+        onOpenChange={(open) => {
+          setCatalogBrowserOpen(open);
+          if (!open) {
+            setSelectedIds(new Set());
+            setLinkSku("");
+            setLinkCostStr("");
+            setLinkPrimary(false);
+            setLinkFormError(null);
+          }
+        }}
+        title="Browse catalog"
+        description="Find products by category or search, then link them to this supplier."
+        contextLabel="Catalog"
+        icon={<Link2 className="size-5 text-violet-600 dark:text-violet-400" aria-hidden />}
+        width="extraWide"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setCatalogBrowserOpen(false)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+          {renderCatalogBrowser()}
+        </div>
+      </FormDrawer>
     </div>
   );
 }

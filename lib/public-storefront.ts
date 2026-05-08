@@ -10,6 +10,8 @@ export type PublicCatalogItemCard = {
   price: number | null;
   /** Sum of active inventory batch qty remaining at the storefront catalog branch. */
   qtyOnHand?: number | null;
+  /** Latest buying price across all suppliers (most recent effectiveFrom). */
+  buyingPrice?: number | null;
 };
 
 export type PublicStorefrontPayload = {
@@ -184,6 +186,29 @@ export function formatDisplayPrice(currency: string, amount: number | null): str
   } catch {
     return `${currency} ${amount}`;
   }
+}
+
+export function computeMargin(
+  selling: number | null | undefined,
+  buying: number | null | undefined
+): { percent: number | null; profit: number | null } {
+  if (selling == null || buying == null || !Number.isFinite(selling) || !Number.isFinite(buying)) {
+    return { percent: null, profit: null };
+  }
+  if (buying <= 0) {
+    return { percent: null, profit: null };
+  }
+  const profit = selling - buying;
+  const percent = (profit / buying) * 100;
+  return { percent: Math.round(percent * 10) / 10, profit: Math.round(profit * 100) / 100 };
+}
+
+export function marginTone(percent: number | null): "good" | "thin" | "bad" | "none" {
+  if (percent == null) return "none";
+  if (percent < 0) return "bad";
+  if (percent < 10) return "thin";
+  if (percent < 30) return "thin";
+  return "good";
 }
 
 function backendOrigin(): string | null {

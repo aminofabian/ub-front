@@ -192,6 +192,7 @@ export type ItemDetailRecord = ItemSummaryRecord & {
   currentStock?: number | string | null;
   bundleQty?: number | null;
   bundlePrice?: number | string | null;
+  buyingPrice?: number | string | null;
   bundleName?: string | null;
   minStockLevel?: number | string | null;
   reorderLevel?: number | string | null;
@@ -419,12 +420,14 @@ export type AddItemSupplierLinkPayload = {
 
 export type PatchItemPayload = {
   name?: string;
+  sku?: string;
   barcode?: string;
   description?: string;
   active?: boolean;
   webPublished?: boolean;
   bundlePrice?: number;
   bundleQty?: number;
+  buyingPrice?: number;
   bundleName?: string;
   imageKey?: string;
   categoryId?: string;
@@ -1509,6 +1512,22 @@ export async function postItemSupplierLinkSetPrimary(itemId: string, linkId: str
   await request(
     `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/supplier-links/${encodeURIComponent(linkId.trim())}/set-primary`,
     { method: "POST" },
+  );
+}
+
+export type PatchItemSupplierLinkPayload = {
+  supplierSku?: string;
+  defaultCostPrice?: number;
+};
+
+export async function patchItemSupplierLink(
+  itemId: string,
+  linkId: string,
+  body: PatchItemSupplierLinkPayload,
+): Promise<ItemSupplierLinkRecord> {
+  return request<ItemSupplierLinkRecord>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/supplier-links/${encodeURIComponent(linkId.trim())}`,
+    { method: "PATCH", body },
   );
 }
 

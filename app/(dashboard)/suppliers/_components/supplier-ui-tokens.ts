@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
-/** Label above fields / filters — consistent hierarchy */
+/** Tiny caps label above fields — consistent hierarchy */
 export const supFieldLabel =
-  "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
+  "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 const supControlBase =
-  "w-full rounded-lg border border-input bg-background text-sm shadow-sm transition-[color,box-shadow] placeholder:text-muted-foreground/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full rounded-xl border border-input bg-background text-sm shadow-sm transition-[color,box-shadow] placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Single-line inputs */
 export const supInput = cn(supControlBase, "h-10 px-3");
@@ -14,30 +14,43 @@ export const supInput = cn(supControlBase, "h-10 px-3");
 export const supSelect = cn(supControlBase, "h-10 cursor-pointer px-3 py-0");
 
 /** Multi-line */
-export const supTextarea = cn(supControlBase, "min-h-[5rem] px-3 py-2.5");
+export const supTextarea = cn(supControlBase, "min-h-20 px-3 py-2.5 resize-y");
 
-/** Card / panel surface */
+/** Standard card surface */
 export const supCard =
-  "rounded-xl border border-border/60 bg-card/90 text-card-foreground shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
+  "rounded-2xl border border-border/60 bg-card text-card-foreground shadow-sm";
 
-/** Dense card (nested) */
-export const supCardInset = "rounded-lg border border-border/50 bg-muted/20";
+/** Dense inset card (nested inside another card) */
+export const supCardInset = "rounded-xl border border-border/50 bg-muted/20";
 
-/** Column panel chrome (xl sidebars) */
+/** Column panel chrome — xl three-column workspace */
 export const supPanelShell = cn(
-  "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border/55 shadow-md",
-  "bg-gradient-to-b from-card to-muted/15 ring-1 ring-border/30 dark:from-card/95 dark:to-muted/20",
+  "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-border/60 shadow-md",
+  "bg-gradient-to-b from-card to-muted/10 ring-1 ring-black/[0.03] dark:from-card/95 dark:to-muted/15 dark:ring-white/[0.05]",
 );
 
-export const supPanelHeader = "shrink-0 border-b border-border/50 bg-muted/40 px-4 py-3 backdrop-blur-sm";
+export const supPanelHeader =
+  "shrink-0 border-b border-border/50 bg-muted/30 px-4 py-3.5 backdrop-blur-sm";
 
-export const supPanelBody = "min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 lg:max-h-[calc(100dvh-11rem)]";
+export const supPanelBody =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 lg:max-h-[calc(100dvh-11rem)]";
 
-/** Same shell height as {@link supPanelBody}, but column fills the panel so nested regions can scroll (catalog browser). */
 export const supPanelBodyFill =
   "flex min-h-0 flex-1 flex-col overflow-hidden overscroll-contain p-4 lg:max-h-[calc(100dvh-11rem)]";
 
-export const supPanelKicker = "text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90";
+/** Primary kicker — uses theme primary colour */
+export const supPanelKicker =
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-primary";
 
+/** Violet kicker — for catalog column */
 export const supPanelKickerViolet =
-  "text-[10px] font-bold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300";
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400";
+
+/** Status badge helper */
+export function statusBadgeClass(status: string): string {
+  if (status === "active")
+    return "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/25 dark:text-emerald-300";
+  if (status === "blocked")
+    return "bg-destructive/10 text-destructive ring-1 ring-destructive/20";
+  return "bg-muted text-muted-foreground ring-1 ring-border/60";
+}

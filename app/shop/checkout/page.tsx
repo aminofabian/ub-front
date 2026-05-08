@@ -21,21 +21,30 @@ export default async function ShopCheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-lg">
-        <Link
-          href={APP_ROUTES.shopCart}
-          className="text-sm font-medium text-muted-foreground hover:text-foreground"
+    <div className="min-h-screen bg-linear-to-b from-background via-background to-muted/30 px-4 py-8 sm:py-12">
+      <div className="mx-auto max-w-7xl">
+        <nav
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+          aria-label="Breadcrumb"
         >
-          ← Back to cart
-        </Link>
+          <Link
+            href={APP_ROUTES.shop}
+            className="transition-colors hover:text-foreground"
+          >
+            Shop
+          </Link>
+          <span aria-hidden>/</span>
+          <Link
+            href={APP_ROUTES.shopCart}
+            className="transition-colors hover:text-foreground"
+          >
+            Cart
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="font-medium text-foreground">Checkout</span>
+        </nav>
 
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">Checkout</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Place your pickup request. Payment on the web is coming next — staff may confirm via phone or WhatsApp.
-        </p>
-
-        <div className="mt-8">
+        <div className="mt-6">
           <ShopCheckoutForm slug={slug} />
         </div>
       </div>

@@ -83,9 +83,9 @@ export async function StorefrontCatalogHome({
 
   return (
     <div className="bg-[oklch(0.985_0.002_90)] dark:bg-background">
-      <div className="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 sm:pb-20 sm:pt-6">
-        <div className="grid gap-5 lg:grid-cols-12 lg:gap-6 lg:items-start">
-          <main className="min-w-0 space-y-6 lg:col-span-9">
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
+        <div className="grid gap-6 lg:grid-cols-12 lg:gap-8 lg:items-start">
+          <main className="min-w-0 space-y-8 lg:col-span-9">
             <ShopHeroMart
               title={heroTitle}
               tagline={announcement}
@@ -104,7 +104,7 @@ export async function StorefrontCatalogHome({
               accentHex={accentHex}
             />
 
-            <section id="shop-catalog">
+            <section id="shop-catalog" className="scroll-mt-28">
               <ShopCatalogWithMore
                 key={`${q ?? ""}\0${categoryId ?? ""}`}
                 slug={slug}

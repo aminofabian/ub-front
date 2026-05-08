@@ -1,4 +1,4 @@
-import { ArrowRight, Truck } from "lucide-react";
+import { ArrowRight, TrendingUp, Truck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -6,7 +6,12 @@ import { ShopNewsletterCard } from "@/components/storefront/shop-newsletter-card
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { APP_ROUTES, shopItemPath } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
-import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
+import {
+  computeMargin,
+  formatDisplayPrice,
+  formatStoreQty,
+  marginTone,
+} from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
 function isHex(v: string | null | undefined): v is string {
@@ -184,6 +189,19 @@ function FreeDeliveryCard({
   );
 }
 
+function marginBadgeClass(tone: ReturnType<typeof marginTone>): string {
+  switch (tone) {
+    case "good":
+      return "bg-emerald-50 text-emerald-700";
+    case "thin":
+      return "bg-amber-50 text-amber-700";
+    case "bad":
+      return "bg-red-50 text-red-700";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
 function TopPicksCard({
   picks,
   currency,
@@ -219,7 +237,12 @@ function TopPicksCard({
             ? `${item.name} ${item.variantName}`
             : item.name;
           const price = formatDisplayPrice(currency, item.price);
+          const buying = formatDisplayPrice(currency, item.buyingPrice ?? null);
           const stock = formatStoreQty(item.qtyOnHand);
+          const { percent } = computeMargin(item.price, item.buyingPrice);
+          const tone = marginTone(percent);
+          const hasBuying = item.buyingPrice != null && item.buyingPrice > 0;
+
           return (
             <li key={item.id} className="flex items-center gap-3 py-2.5">
               <Link
@@ -248,9 +271,27 @@ function TopPicksCard({
                 >
                   {title}
                 </Link>
-                <p className="mt-0.5 text-[13px] font-bold tabular-nums text-foreground">
-                  {price}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[13px] font-bold tabular-nums text-foreground">
+                    {price}
+                  </span>
+                  {hasBuying ? (
+                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground/70">
+                      {buying} cost
+                    </span>
+                  ) : null}
+                  {percent != null ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold",
+                        marginBadgeClass(tone)
+                      )}
+                    >
+                      <TrendingUp className="h-2.5 w-2.5" aria-hidden />
+                      {percent}%
+                    </span>
+                  ) : null}
+                </div>
                 {stock ? (
                   <p className="mt-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
                     {stock}
