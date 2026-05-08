@@ -265,7 +265,7 @@ export function ProductDetailPanel(props: Props) {
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            onClick={openQuickEditAll}
+            onClick={() => setActiveDrawer("edit-product")}
             className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
           >
             <PencilLine className="size-3" aria-hidden /> Edit
