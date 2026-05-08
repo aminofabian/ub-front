@@ -34,6 +34,13 @@ const UPSTREAM_TIMEOUT_MS = 55_000;
 /** Below Vercel's ~4.5 MB serverless body cap; JSON APIs (login, mutations) buffer without duplex streaming. */
 const MAX_JSON_PROXY_BODY_BYTES = 4 * 1024 * 1024;
 
+/**
+ * Multipart buffer limit — aligned with Spring Boot's 12 MB cap.
+ * Note: Vercel serverless functions enforce a ~4.5 MB total request payload
+ * limit, so files above that will still fail until direct API mode is used.
+ */
+const MAX_MULTIPART_PROXY_BODY_BYTES = 12 * 1024 * 1024;
+
 function normalizeBackendOrigin(): string | null {
   const keys = ["BACKEND_ORIGIN", "API_BACKEND_ORIGIN"] as const;
   for (const key of keys) {
@@ -93,7 +100,6 @@ export async function proxyToBackend(
   const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
 
   let body: BodyInit | undefined;
-  let duplex: "half" | undefined;
 
   if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && req.body) {
     const ct = req.headers.get("content-type") ?? "";
@@ -111,18 +117,29 @@ export async function proxyToBackend(
       }
       body = buf;
     } else {
-      // Multipart and non-JSON bodies: stream through. `duplex: "half"` is
-      // required by undici when the body is a ReadableStream.
-      body = req.body;
-      duplex = "half";
+      // Multipart and non-JSON bodies: buffer into memory instead of streaming.
+      // `duplex: "half"` with a ReadableStream is unreliable in Vercel's
+      // serverless Node runtime and causes bare 502s for image uploads.
+      const buf = await req.arrayBuffer();
+      if (buf.byteLength > MAX_MULTIPART_PROXY_BODY_BYTES) {
+        clearTimeout(timeoutId);
+        return NextResponse.json(
+          {
+            title: "Payload too large",
+            detail:
+              "File upload exceeds the proxy buffer limit. Try a smaller image or enable direct API calls.",
+          },
+          { status: 413, headers: { "Content-Type": "application/problem+json" } },
+        );
+      }
+      body = buf;
     }
   }
 
-  const init: RequestInit & { duplex?: "half" } = {
+  const init: RequestInit = {
     method,
     headers,
     signal: controller.signal,
-    ...(duplex ? { duplex } : {}),
     ...(body !== undefined ? { body } : {}),
   };
 
