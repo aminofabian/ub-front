@@ -437,6 +437,8 @@ export default function CategoriesPage() {
   const [createQueue, setCreateQueue] = useState<CreateQueueRow[]>([]);
   /** Multi-select keys from suggested categories before “Add selected to list”. */
   const [suggestionPickKeys, setSuggestionPickKeys] = useState<string[]>([]);
+  /** When false, taxonomy checkboxes stay hidden; manual Name / More names / Parent is the default path. */
+  const [showBulkSuggestions, setShowBulkSuggestions] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [iconUploadCategoryId, setIconUploadCategoryId] = useState<string | null>(null);
   /** Parents whose child rows are revealed in the table. Loaded and refreshed as fully expanded by default. */
@@ -1977,11 +1979,12 @@ export default function CategoriesPage() {
             setBatchNamesText("");
             setCreateQueue([]);
             setSuggestionPickKeys([]);
+            setShowBulkSuggestions(false);
             setCreateBusy(false);
           }
         }}
         title="New category"
-        description="Create one or many. Ticked suggestions show in the create list and submit with the form—More names is only for extra lines that share the Parent dropdown."
+        description="Enter one or more categories below (name, parent, optional batch lines). Open “Suggested categories” only if you want the taxonomy bulk picker."
         contextLabel="Catalog · Create"
         icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
         banner={
@@ -2033,6 +2036,37 @@ export default function CategoriesPage() {
               </span>
             </label>
 
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Parent
+                <select
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  value={createDraft.parentId}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, parentId: e.target.value }))}
+                  aria-label="Parent category"
+                >
+                  <option value={ROOT_PARENT_VALUE}>Top level</option>
+                  {sorted.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
+                      {!c.active ? " (inactive)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                Sort position (optional)
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  placeholder="0"
+                  inputMode="numeric"
+                  value={createDraft.positionStr}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, positionStr: e.target.value }))}
+                  aria-label="Sort position optional"
+                />
+              </label>
+            </div>
+
             {effectiveStructuredQueue.length > 0 ? (
               <div className="rounded-lg border border-border bg-background p-3">
                 <p className="text-xs font-medium text-foreground">
@@ -2076,7 +2110,22 @@ export default function CategoriesPage() {
               </div>
             ) : null}
 
-            <div className="rounded-lg border border-border bg-muted/25 p-3">
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                aria-expanded={showBulkSuggestions}
+                onClick={() => setShowBulkSuggestions((open) => !open)}
+              >
+                {showBulkSuggestions
+                  ? "Hide suggested categories (bulk)"
+                  : "Show suggested categories (bulk)"}
+                {suggestionPickKeys.length > 0 || createQueue.length > 0 ? " · draft" : ""}
+              </Button>
+              {showBulkSuggestions ? (
+                <div className="rounded-lg border border-border bg-muted/25 p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-medium text-foreground">Suggested categories</p>
@@ -2232,37 +2281,8 @@ export default function CategoriesPage() {
                   );
                 })}
               </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Parent
-                <select
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                  value={createDraft.parentId}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, parentId: e.target.value }))}
-                  aria-label="Parent category"
-                >
-                  <option value={ROOT_PARENT_VALUE}>Top level</option>
-                  {sorted.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {"—".repeat(depths.get(c.id) ?? 0)} {c.name}
-                      {!c.active ? " (inactive)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Sort position (optional)
-                <input
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                  placeholder="0"
-                  inputMode="numeric"
-                  value={createDraft.positionStr}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, positionStr: e.target.value }))}
-                  aria-label="Sort position optional"
-                />
-              </label>
+                </div>
+              ) : null}
             </div>
           </FormDrawerFields>
 
