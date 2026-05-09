@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiRequestError,
+  fetchCurrentSellingPrice,
   fetchItemById,
   fetchItemSupplierLinks,
   type ItemDetailRecord,
@@ -10,40 +11,96 @@ import {
   type ItemSupplierLinkRecord,
 } from "@/lib/api";
 import { type ProductEditDraft, EMPTY_EDIT_DRAFT } from "../_types";
-import { toNumber } from "../_utils";
+import { effectiveSupplierUnitCost, toNumber } from "../_utils";
 
-export function useProductDetail() {
+/** Safe number-to-string helper for draft fields. */
+function numStr(v: number | string | null | undefined): string {
+  return v != null && v !== "" ? String(v) : "";
+}
+
+export function useProductDetail(branchIdForPricing?: string | null) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ItemDetailRecord | null>(null);
-  const [supplierLinks, setSupplierLinks] = useState<ItemSupplierLinkRecord[]>([]);
-  const [patchDraft, setPatchDraft] = useState<ProductEditDraft>(EMPTY_EDIT_DRAFT);
-  const [parentVariants, setParentVariants] = useState<ItemSummaryRecord[] | null>(null);
-  const [variantParentDisplayName, setVariantParentDisplayName] = useState<string | null>(null);
+  const [supplierLinks, setSupplierLinks] = useState<ItemSupplierLinkRecord[]>(
+    [],
+  );
+  const [patchDraft, setPatchDraft] =
+    useState<ProductEditDraft>(EMPTY_EDIT_DRAFT);
+  const [parentVariants, setParentVariants] = useState<
+    ItemSummaryRecord[] | null
+  >(null);
+  const [variantParentDisplayName, setVariantParentDisplayName] = useState<
+    string | null
+  >(null);
+  /** Current selling price resolved by the pricing module (source of truth). */
+  const [currentSellPrice, setCurrentSellPrice] = useState<number | null>(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- consumed by refreshSelectedDetail which is rebuilt when selectedId changes
-  const refreshSelectedDetail = useCallback(async () => {
-    if (!selectedId) return;
-    const row = await fetchItemById(selectedId);
-    setDetail(row);
-    setPatchDraft({
-      name: row.name, barcode: row.barcode, description: row.description,
-      active: row.active ?? true, webPublished: row.webPublished ?? false,
-      bundlePriceStr: row.bundlePrice != null && row.bundlePrice !== "" ? String(row.bundlePrice) : "",
-      imageKey: row.imageKey ?? "", categoryId: row.categoryId ?? "",
-    });
-    const parentOfVariant = row.variantOfItemId?.trim();
-    if (parentOfVariant) {
+  const pricingBranchId = branchIdForPricing?.trim() || undefined;
+
+  const buildDraft = useCallback(
+    (row: ItemDetailRecord): ProductEditDraft => ({
+      name: row.name,
+      sku: row.sku,
+      barcode: row.barcode,
+      description: row.description,
+      active: row.active ?? true,
+      webPublished: row.webPublished ?? false,
+      bundlePriceStr: numStr(row.bundlePrice),
+      bundleQtyStr: numStr(row.bundleQty),
+      buyingPriceStr: numStr(row.buyingPrice),
+      minStockLevelStr: numStr(row.minStockLevel),
+      reorderLevelStr: numStr(row.reorderLevel),
+      reorderQtyStr: numStr(row.reorderQty),
+      imageKey: row.imageKey ?? "",
+      categoryId: row.categoryId ?? "",
+    }),
+    [],
+  );
+
+  /** Pass `itemIdOverride` after `selectProduct(id)` so detail loads before the next paint (same-tick stale `selectedId`). */
+  const refreshSelectedDetail = useCallback(
+    async (itemIdOverride?: string | null) => {
+      const id = (itemIdOverride?.trim() || selectedId?.trim()) ?? "";
+      if (!id) return;
       try {
-        const parentRow = await fetchItemById(parentOfVariant);
-        setParentVariants(parentRow.variants ?? []);
-        setVariantParentDisplayName(parentRow.name?.trim() || null);
-      } catch {
-        setParentVariants([]); setVariantParentDisplayName(null);
+        const row = await fetchItemById(id);
+        setDetail(row);
+        setPatchDraft(buildDraft(row));
+        const parentOfVariant = row.variantOfItemId?.trim();
+        if (parentOfVariant) {
+          try {
+            const parentRow = await fetchItemById(parentOfVariant);
+            setParentVariants(parentRow.variants ?? []);
+            setVariantParentDisplayName(parentRow.name?.trim() || null);
+          } catch {
+            setParentVariants([]);
+            setVariantParentDisplayName(null);
+          }
+        } else {
+          setParentVariants(null);
+          setVariantParentDisplayName(null);
+        }
+        try {
+          const links = await fetchItemSupplierLinks(id);
+          setSupplierLinks(links);
+        } catch {
+          setSupplierLinks([]);
+        }
+        try {
+          const sp = await fetchCurrentSellingPrice(id, pricingBranchId);
+          const n = toNumber(sp.price);
+          setCurrentSellPrice(n);
+        } catch {
+          setCurrentSellPrice(toNumber(row.bundlePrice));
+        }
+      } catch (error) {
+        if (!(error instanceof ApiRequestError)) {
+          // silently ignore — downstream can show state
+        }
       }
-    } else {
-      setParentVariants(null); setVariantParentDisplayName(null);
-    }
-  }, [selectedId]);
+    },
+    [selectedId, buildDraft, pricingBranchId],
+  );
 
   const selectProduct = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -51,8 +108,12 @@ export function useProductDetail() {
 
   useEffect(() => {
     if (!selectedId) {
-      setDetail(null); setSupplierLinks([]); setPatchDraft(EMPTY_EDIT_DRAFT);
-      setParentVariants(null); setVariantParentDisplayName(null);
+      setDetail(null);
+      setSupplierLinks([]);
+      setPatchDraft(EMPTY_EDIT_DRAFT);
+      setParentVariants(null);
+      setVariantParentDisplayName(null);
+      setCurrentSellPrice(null);
       return;
     }
     let cancelled = false;
@@ -61,52 +122,95 @@ export function useProductDetail() {
         const row = await fetchItemById(selectedId);
         if (cancelled) return;
         setDetail(row);
-        setPatchDraft({
-          name: row.name, barcode: row.barcode, description: row.description,
-          active: row.active ?? true, webPublished: row.webPublished ?? false,
-          bundlePriceStr: row.bundlePrice != null && row.bundlePrice !== "" ? String(row.bundlePrice) : "",
-          imageKey: row.imageKey ?? "", categoryId: row.categoryId ?? "",
-        });
+        setPatchDraft(buildDraft(row));
         const parentOfVariant = row.variantOfItemId?.trim();
         if (parentOfVariant) {
           try {
             const parentRow = await fetchItemById(parentOfVariant);
-            if (!cancelled) { setParentVariants(parentRow.variants ?? []); setVariantParentDisplayName(parentRow.name?.trim() || null); }
-          } catch { if (!cancelled) { setParentVariants([]); setVariantParentDisplayName(null); } }
-        } else if (!cancelled) { setParentVariants(null); setVariantParentDisplayName(null); }
+            if (!cancelled) {
+              setParentVariants(parentRow.variants ?? []);
+              setVariantParentDisplayName(parentRow.name?.trim() || null);
+            }
+          } catch {
+            if (!cancelled) {
+              setParentVariants([]);
+              setVariantParentDisplayName(null);
+            }
+          }
+        } else if (!cancelled) {
+          setParentVariants(null);
+          setVariantParentDisplayName(null);
+        }
         try {
           const links = await fetchItemSupplierLinks(selectedId);
           if (!cancelled) setSupplierLinks(links);
-        } catch { if (!cancelled) setSupplierLinks([]); }
+        } catch {
+          if (!cancelled) setSupplierLinks([]);
+        }
+        // fetch current sell price from pricing module (source of truth)
+        try {
+          const sp = await fetchCurrentSellingPrice(selectedId, pricingBranchId);
+          if (!cancelled) {
+            const n = toNumber(sp.price);
+            setCurrentSellPrice(n);
+          }
+        } catch {
+          if (!cancelled) {
+            // fall back to bundlePrice on item
+            setCurrentSellPrice(toNumber(row.bundlePrice));
+          }
+        }
       } catch (error) {
         if (!cancelled && !(error instanceof ApiRequestError)) {
           // silently ignore — downstream can show state
         }
       }
     })();
-    return () => { cancelled = true; };
-  }, [selectedId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, buildDraft, pricingBranchId]);
 
   const variantRows: ItemSummaryRecord[] = detail
-    ? detail.variantOfItemId ? (parentVariants ?? []) : (detail.variants ?? [])
+    ? detail.variantOfItemId
+      ? (parentVariants ?? [])
+      : (detail.variants ?? [])
     : [];
-  const sortedImages = detail?.images ? [...detail.images].sort((a, b) => a.sortOrder - b.sortOrder) : [];
-  const sellPrice = detail ? toNumber(detail.bundlePrice) : null;
+  const sortedImages = detail?.images
+    ? [...detail.images].sort((a, b) => a.sortOrder - b.sortOrder)
+    : [];
+  // Priority: pricing module current sell price → item bundlePrice
+  const sellPrice =
+    currentSellPrice ?? (detail ? toNumber(detail.bundlePrice) : null);
   const primaryLink = supplierLinks.find((l) => l.primary);
-  const primaryCost = primaryLink ? toNumber(primaryLink.defaultCostPrice) : null;
-  const marginPct = sellPrice != null && sellPrice > 0 && primaryCost != null
-    ? ((sellPrice - primaryCost) / sellPrice) * 100 : null;
+  const primaryCost = effectiveSupplierUnitCost(primaryLink, detail?.buyingPrice);
+  const marginPct =
+    sellPrice != null && sellPrice > 0 && primaryCost != null
+      ? ((sellPrice - primaryCost) / sellPrice) * 100
+      : null;
 
   return {
-    selectedId, setSelectedId,
-    detail, setDetail,
-    supplierLinks, setSupplierLinks,
-    patchDraft, setPatchDraft,
-    parentVariants, setParentVariants,
-    variantParentDisplayName, setVariantParentDisplayName,
-    variantRows, sortedImages,
-    sellPrice, primaryLink, primaryCost, marginPct,
-    selectProduct, refreshSelectedDetail,
+    selectedId,
+    setSelectedId,
+    detail,
+    setDetail,
+    supplierLinks,
+    setSupplierLinks,
+    patchDraft,
+    setPatchDraft,
+    parentVariants,
+    setParentVariants,
+    variantParentDisplayName,
+    setVariantParentDisplayName,
+    variantRows,
+    sortedImages,
+    sellPrice,
+    primaryLink,
+    primaryCost,
+    marginPct,
+    currentSellPrice,
+    selectProduct,
+    refreshSelectedDetail,
   };
 }
 

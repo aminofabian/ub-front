@@ -90,6 +90,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     blurb: "Stock truth, movement, counts",
     icon: Warehouse,
     items: [
+      { href: APP_ROUTES.inventorySupplyBatches, label: "Supply batches" },
       { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
@@ -138,6 +139,7 @@ type NavGate = {
   canViewInventoryValuation: boolean;
   canViewInventoryTransfers: boolean;
   canViewStockTake: boolean;
+  canViewSupplyBatches: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
@@ -174,6 +176,8 @@ function isNavItemVisible(item: NavItem, g: NavGate): boolean {
   if (item.href === APP_ROUTES.purchasingApAging) return g.canViewApAging;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
     return g.canRecordSupplierPayment;
+  if (item.href === APP_ROUTES.inventorySupplyBatches)
+    return g.canViewSupplyBatches;
   if (item.href === APP_ROUTES.inventoryValuation)
     return g.canViewInventoryValuation;
   if (item.href === APP_ROUTES.inventoryTransfers)
@@ -276,6 +280,7 @@ export function AppShell({ children }: AppShellProps) {
     canRecordSupplierPayment,
     canViewInventoryValuation,
     canViewInventoryTransfers,
+    canViewSupplyBatches,
     canViewStockTake,
     canViewPricing,
     canViewShifts,
@@ -302,6 +307,7 @@ export function AppShell({ children }: AppShellProps) {
       canRecordSupplierPayment,
       canViewInventoryValuation,
       canViewInventoryTransfers,
+      canViewSupplyBatches,
       canViewStockTake,
       canViewPricing,
       canViewShifts,
@@ -520,7 +526,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* ── Main content ───────────────────────────────────────────────────── */}
-        <main className="min-h-0 flex-1 overflow-y-auto md:overflow-hidden p-4 pb-28 md:p-6 md:pb-6">
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-28 md:p-6 md:pb-6">
           {children}
         </main>
 

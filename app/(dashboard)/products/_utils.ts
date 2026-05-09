@@ -14,6 +14,29 @@ export function toNumber(value: number | string | null | undefined): number | nu
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Resolves the unit cost shown for a supplier link: agreed default, then last
+ * purchase cost (updated when receiving supply), then optional catalog fallback.
+ */
+export function effectiveSupplierUnitCost(
+  link:
+    | {
+        defaultCostPrice?: number | string | null;
+        lastCostPrice?: number | string | null;
+      }
+    | null
+    | undefined,
+  itemBuyingPrice?: number | string | null,
+): number | null {
+  const buy = toNumber(itemBuyingPrice);
+  const def = toNumber(link?.defaultCostPrice);
+  const last = toNumber(link?.lastCostPrice);
+  if (link) {
+    return def ?? last ?? buy ?? null;
+  }
+  return buy ?? null;
+}
+
 export function formatAmount(value: number | null | undefined): string {
   if (value == null) return "—";
   return value.toLocaleString(undefined, {
@@ -65,6 +88,8 @@ export function buildCreateVariantBody(draft: VariantDraft): CreateVariantPayloa
   if (draft.barcode.trim()) body.barcode = draft.barcode.trim();
   if (draft.description.trim()) body.description = draft.description.trim();
   if (draft.categoryId.trim()) body.categoryId = draft.categoryId.trim();
+  if (draft.brand.trim()) body.brand = draft.brand.trim();
+  if (draft.size.trim()) body.size = draft.size.trim();
   if (draft.unitType.trim()) body.unitType = draft.unitType.trim();
   if (draft.imageKey.trim()) body.imageKey = draft.imageKey.trim();
 

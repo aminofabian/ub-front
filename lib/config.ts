@@ -25,6 +25,7 @@ export const APP_ROUTES = {
   inventoryValuation: "/inventory/valuation",
   inventoryTransfers: "/inventory/transfers",
   inventoryStockTake: "/inventory/stock-take",
+  inventorySupplyBatches: "/inventory/supply-batches",
   pricing: "/pricing",
   shifts: "/shifts",
   analytics: "/analytics",

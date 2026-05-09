@@ -55,9 +55,21 @@ import {
   type SupplierRecord,
   type TaxRateRecord,
 } from "@/lib/api";
+import { SUGGESTED_CATALOG_CATEGORIES } from "@/lib/category-suggestions";
 import { cn, categoryIconImageUrl } from "@/lib/utils";
 
 const ROOT_PARENT_VALUE = "";
+
+type CreateQueueRow = {
+  id: string;
+  name: string;
+  parentId: string;
+  queueKey?: string;
+  /** Suggestion top-level group name for subtype rows (for UI when parent is not in catalog yet). */
+  suggestionParentName?: string;
+  /** When set, this row only exists from a checkbox tick (not yet in `createQueue`). */
+  fromPickKey?: string;
+};
 
 type CategoryDrawerId = "create" | "defaults" | "gallery" | "suppliers";
 
@@ -151,6 +163,149 @@ function parseOptionalMarkup(raw: string): { error?: string; value?: number } {
     return { error: "Markup must be a valid number." };
   }
   return { value: n };
+}
+
+type PendingCategoryCreate = {
+  name: string;
+  parentId: string;
+  /** When set and parentId is empty, create (or find) this top-level parent before the child. */
+  suggestionParentName?: string;
+};
+
+function findTopLevelCategoryIdByName(rows: CategoryRecord[], displayName: string): string | null {
+  const t = displayName.trim().toLowerCase();
+  for (const r of rows) {
+    if (!r.parentId?.trim() && r.name.trim().toLowerCase() === t) {
+      return r.id;
+    }
+  }
+  return null;
+}
+
+function newQueueItemId(): string {
+  if (typeof globalThis.crypto !== "undefined" && "randomUUID" in globalThis.crypto) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `q-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+/** Separator inside suggestion sub-keys (parent and child must not contain this char). */
+const SUGGESTION_SUB_SEP = "\u001f";
+
+function suggestionTopKey(parent: string): string {
+  return `top:${parent}`;
+}
+
+function suggestionSubKey(parent: string, child: string): string {
+  return `sub:${parent}${SUGGESTION_SUB_SEP}${child}`;
+}
+
+function parseSuggestionSubKey(restAfterSubPrefix: string): { parentName: string; childName: string } {
+  const i = restAfterSubPrefix.indexOf(SUGGESTION_SUB_SEP);
+  if (i < 0) {
+    return { parentName: restAfterSubPrefix, childName: "" };
+  }
+  return {
+    parentName: restAfterSubPrefix.slice(0, i),
+    childName: restAfterSubPrefix.slice(i + SUGGESTION_SUB_SEP.length),
+  };
+}
+
+/**
+ * Build ordered creates: first the primary name + Parent dropdown, then each textarea line under that same parent,
+ * then structured queue rows (each with its own parent).
+ * Rows from the suggestion queue carry `queueKey` so we do not collapse different suggestion paths that share the
+ * same API parent + display name (e.g. two “Eggs” subtypes under different groups when parents are not in the catalog yet).
+ */
+function buildPendingCreatesList(input: {
+  primaryName: string;
+  primaryParentFromDropdown: string;
+  sameParentMultiline: string;
+  structuredQueue: Array<Pick<CreateQueueRow, "name" | "parentId" | "queueKey" | "suggestionParentName">>;
+}): PendingCategoryCreate[] {
+  const dedupe = new Set<string>();
+  const out: PendingCategoryCreate[] = [];
+  const push = (name: string, parentId: string, queueKey?: string, suggestionParentName?: string) => {
+    const n = name.trim();
+    if (!n) {
+      return;
+    }
+    const rootish = !parentId.trim() || parentId.trim() === ROOT_PARENT_VALUE;
+    const pid = rootish ? ROOT_PARENT_VALUE : parentId.trim();
+    const key = queueKey ?? `${pid}\n${n.toLowerCase()}`;
+    if (dedupe.has(key)) {
+      return;
+    }
+    dedupe.add(key);
+    const row: PendingCategoryCreate = { name: n, parentId: pid };
+    if (suggestionParentName?.trim()) {
+      row.suggestionParentName = suggestionParentName.trim();
+    }
+    out.push(row);
+  };
+  const drop = input.primaryParentFromDropdown.trim() || ROOT_PARENT_VALUE;
+  if (input.primaryName.trim()) {
+    push(input.primaryName.trim(), drop);
+  }
+  for (const raw of input.sameParentMultiline.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line) {
+      push(line, drop);
+    }
+  }
+  for (const row of input.structuredQueue) {
+    const pid = row.parentId.trim() || ROOT_PARENT_VALUE;
+    push(row.name, pid, row.queueKey, row.suggestionParentName);
+  }
+  return out;
+}
+
+/** Rows that will be created: saved queue plus any ticked suggestions not already on the queue. */
+function mergeQueueWithSuggestionPicks(
+  queue: CreateQueueRow[],
+  pickKeys: readonly string[],
+  resolveParentIdForSuggestion: (parentDisplayName: string) => string,
+): CreateQueueRow[] {
+  const covered = new Set<string>();
+  for (const q of queue) {
+    if (q.queueKey) {
+      covered.add(q.queueKey);
+    }
+  }
+  const next: CreateQueueRow[] = [...queue];
+  for (const key of pickKeys) {
+    if (covered.has(key)) {
+      continue;
+    }
+    if (key.startsWith("top:")) {
+      const parent = key.slice(4).trim();
+      if (!parent) {
+        continue;
+      }
+      next.push({
+        id: `tick:${encodeURIComponent(key)}`,
+        name: parent,
+        parentId: ROOT_PARENT_VALUE,
+        queueKey: key,
+        fromPickKey: key,
+      });
+    } else if (key.startsWith("sub:")) {
+      const { parentName, childName } = parseSuggestionSubKey(key.slice(4));
+      if (!childName.trim()) {
+        continue;
+      }
+      const pid = resolveParentIdForSuggestion(parentName);
+      next.push({
+        id: `tick:${encodeURIComponent(key)}`,
+        name: childName.trim(),
+        parentId: pid,
+        queueKey: key,
+        fromPickKey: key,
+        suggestionParentName: parentName.trim(),
+      });
+    }
+  }
+  return next;
 }
 
 function childrenByParentMap(rows: CategoryRecord[]): Map<string, CategoryRecord[]> {
@@ -276,6 +431,13 @@ export default function CategoriesPage() {
   const [activeDrawer, setActiveDrawer] = useState<CategoryDrawerId | null>(null);
   const [pendingCategoryImage, setPendingCategoryImage] = useState<File | null>(null);
   const [pendingCreateIconFile, setPendingCreateIconFile] = useState<File | null>(null);
+  /** Extra names for the same create action (one per line); each uses the Parent dropdown. */
+  const [batchNamesText, setBatchNamesText] = useState("");
+  /** Picks from suggestions (or “queue all”); each row has its own parent (top level or resolved group). */
+  const [createQueue, setCreateQueue] = useState<CreateQueueRow[]>([]);
+  /** Multi-select keys from suggested categories before “Add selected to list”. */
+  const [suggestionPickKeys, setSuggestionPickKeys] = useState<string[]>([]);
+  const [createBusy, setCreateBusy] = useState(false);
   const [iconUploadCategoryId, setIconUploadCategoryId] = useState<string | null>(null);
   /** Parents whose child rows are revealed in the table. Loaded and refreshed as fully expanded by default. */
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(() => new Set());
@@ -290,6 +452,195 @@ export default function CategoriesPage() {
   const childrenMap = useMemo(() => childrenByParentMap(rows), [rows]);
 
   const depths = useMemo(() => depthByIdMap(rows), [rows]);
+
+  /** Lowercased category names in the catalog — suggestions stay visible; this marks which names already exist. */
+  const catalogNameLowerSet = useMemo(
+    () => new Set(rows.map((r) => r.name.trim().toLowerCase()).filter(Boolean)),
+    [rows],
+  );
+
+  const resolveParentIdForSuggestion = useCallback((parentDisplayName: string) => {
+    const target = parentDisplayName.trim().toLowerCase();
+    if (!target) {
+      return ROOT_PARENT_VALUE;
+    }
+    const roots = rows.filter(
+      (r) => !r.parentId?.trim() && r.name.trim().toLowerCase() === target,
+    );
+    if (roots.length > 0) {
+      return roots[0].id;
+    }
+    const match = rows.find((r) => r.name.trim().toLowerCase() === target);
+    return match?.id ?? ROOT_PARENT_VALUE;
+  }, [rows]);
+
+  const applySuggestedTopLevel = useCallback((parentName: string) => {
+    setCreateDraft((p) => ({
+      ...p,
+      name: parentName,
+      parentId: ROOT_PARENT_VALUE,
+    }));
+  }, []);
+
+  const applySuggestedSubcategory = useCallback(
+    (parentName: string, childName: string) => {
+      const parentId = resolveParentIdForSuggestion(parentName);
+      setCreateDraft((p) => ({
+        ...p,
+        name: childName,
+        parentId,
+      }));
+    },
+    [resolveParentIdForSuggestion],
+  );
+
+  const appendSuggestedChildrenToQueue = useCallback(
+    (parentName: string) => {
+      const children = SUGGESTED_CATALOG_CATEGORIES[parentName];
+      if (!children?.length) {
+        return;
+      }
+      const pid = resolveParentIdForSuggestion(parentName);
+      setCreateQueue((prev) => {
+        const seen = new Set(
+          prev.map((q) => q.queueKey ?? `${q.parentId}\t${q.name.trim().toLowerCase()}`),
+        );
+        const next = [...prev];
+        for (const ch of children) {
+          const qk = suggestionSubKey(parentName, ch);
+          if (seen.has(qk)) {
+            continue;
+          }
+          seen.add(qk);
+          next.push({
+            id: newQueueItemId(),
+            name: ch.trim(),
+            parentId: pid,
+            queueKey: qk,
+            suggestionParentName: parentName.trim(),
+          });
+        }
+        return next;
+      });
+    },
+    [resolveParentIdForSuggestion],
+  );
+
+  const toggleSuggestionPickKey = useCallback((key: string) => {
+    setSuggestionPickKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }, []);
+
+  const selectEntireSuggestedGroup = useCallback((parent: string, children: string[]) => {
+    const keys = [suggestionTopKey(parent), ...children.map((c) => suggestionSubKey(parent, c))];
+    setSuggestionPickKeys((prev) => [...new Set([...prev, ...keys])]);
+  }, []);
+
+  const clearSuggestionPickKeys = useCallback(() => {
+    setSuggestionPickKeys([]);
+  }, []);
+
+  const addSuggestionPicksToQueue = useCallback(() => {
+    const picks = [...suggestionPickKeys];
+    if (picks.length === 0) {
+      return;
+    }
+    setCreateQueue((prev) => {
+      const seen = new Set(
+        prev.map((q) => q.queueKey ?? `${q.parentId}\t${q.name.trim().toLowerCase()}`),
+      );
+      const next = [...prev];
+      for (const key of picks) {
+        if (seen.has(key)) {
+          continue;
+        }
+        if (key.startsWith("top:")) {
+          const parent = key.slice(4);
+          if (!parent.trim()) {
+            continue;
+          }
+          seen.add(key);
+          next.push({ id: newQueueItemId(), name: parent.trim(), parentId: ROOT_PARENT_VALUE, queueKey: key });
+        } else if (key.startsWith("sub:")) {
+          const rest = key.slice(4);
+          const { parentName, childName } = parseSuggestionSubKey(rest);
+          if (!childName.trim()) {
+            continue;
+          }
+          const pid = resolveParentIdForSuggestion(parentName);
+          seen.add(key);
+          next.push({
+            id: newQueueItemId(),
+            name: childName.trim(),
+            parentId: pid,
+            queueKey: key,
+            suggestionParentName: parentName.trim(),
+          });
+        }
+      }
+      return next;
+    });
+    setSuggestionPickKeys([]);
+  }, [suggestionPickKeys, resolveParentIdForSuggestion]);
+
+  const removeCreateQueueRow = useCallback((id: string) => {
+    setCreateQueue((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  const effectiveStructuredQueue = useMemo(
+    () => mergeQueueWithSuggestionPicks(createQueue, suggestionPickKeys, resolveParentIdForSuggestion),
+    [createQueue, suggestionPickKeys, resolveParentIdForSuggestion],
+  );
+
+  const discardEffectiveQueueRow = useCallback(
+    (row: CreateQueueRow) => {
+      if (row.fromPickKey) {
+        setSuggestionPickKeys((prev) => prev.filter((k) => k !== row.fromPickKey));
+      } else {
+        removeCreateQueueRow(row.id);
+      }
+    },
+    [removeCreateQueueRow],
+  );
+
+  const pendingCreateNameCount = useMemo(
+    () =>
+      buildPendingCreatesList({
+        primaryName: createDraft.name.trim(),
+        primaryParentFromDropdown: createDraft.parentId,
+        sameParentMultiline: batchNamesText,
+        structuredQueue: effectiveStructuredQueue,
+      }).length,
+    [createDraft.name, createDraft.parentId, batchNamesText, effectiveStructuredQueue],
+  );
+
+  const queueParentLabel = useCallback(
+    (parentId: string) => {
+      const pid = parentId.trim();
+      if (!pid) {
+        return "Top level";
+      }
+      const row = rows.find((r) => r.id === pid);
+      return row?.name ?? "Unknown parent";
+    },
+    [rows],
+  );
+
+  const formatCreateListParentCaption = useCallback(
+    (row: CreateQueueRow): string => {
+      const group = row.suggestionParentName?.trim();
+      if (group) {
+        if (row.parentId.trim()) {
+          return `Under “${queueParentLabel(row.parentId)}”`;
+        }
+        return `Subtype under “${group}” (parent auto-created at top level if missing, then nested)`;
+      }
+      if (row.parentId.trim()) {
+        return `Under “${queueParentLabel(row.parentId)}”`;
+      }
+      return "Top level";
+    },
+    [queueParentLabel],
+  );
 
   const parentIdsWithChildren = useMemo(() => {
     const s = new Set<string>();
@@ -629,13 +980,25 @@ export default function CategoriesPage() {
 
   const onCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canManageCategories) {
+    if (!canManageCategories || createBusy) {
       return;
     }
     setFeedback(null);
-    const name = createDraft.name.trim();
-    if (!name) {
-      setFeedback({ text: "Name is required.", kind: "error" });
+    const plan = buildPendingCreatesList({
+      primaryName: createDraft.name.trim(),
+      primaryParentFromDropdown: createDraft.parentId,
+      sameParentMultiline: batchNamesText,
+      structuredQueue: mergeQueueWithSuggestionPicks(
+        createQueue,
+        suggestionPickKeys,
+        resolveParentIdForSuggestion,
+      ),
+    });
+    if (plan.length === 0) {
+      setFeedback({
+        text: "Enter at least one category: use Name and/or More names (same parent as the dropdown), tick suggestions below, and/or add rows to the create list.",
+        kind: "error",
+      });
       return;
     }
     const pos = parseWholeNumber(createDraft.positionStr, true);
@@ -648,40 +1011,130 @@ export default function CategoriesPage() {
       setFeedback({ text: mk.error, kind: "error" });
       return;
     }
-    try {
-      const created = await createCategory({
-        name,
-        ...(createDraft.parentId.trim()
-          ? { parentId: createDraft.parentId.trim() }
-          : {}),
-        ...(pos.value !== undefined ? { position: pos.value } : {}),
-        ...(!pendingCreateIconFile && createDraft.icon.trim()
-          ? { icon: createDraft.icon.trim() }
-          : {}),
-        ...(createDraft.description.trim() ? { description: createDraft.description.trim() } : {}),
-        ...(mk.value !== undefined ? { defaultMarkupPct: mk.value } : {}),
-        ...(createDraft.taxRateId.trim() ? { defaultTaxRateId: createDraft.taxRateId.trim() } : {}),
-      });
-      const iconFile = pendingCreateIconFile;
-      setPendingCreateIconFile(null);
-      setCreateDraft(EMPTY_CREATE);
 
-      if (iconFile) {
+    const savedParentForRetry = createDraft.parentId;
+
+    const sharedBody = {
+      ...(pos.value !== undefined ? { position: pos.value } : {}),
+      ...(!pendingCreateIconFile && createDraft.icon.trim() ? { icon: createDraft.icon.trim() } : {}),
+      ...(createDraft.description.trim() ? { description: createDraft.description.trim() } : {}),
+      ...(mk.value !== undefined ? { defaultMarkupPct: mk.value } : {}),
+      ...(createDraft.taxRateId.trim() ? { defaultTaxRateId: createDraft.taxRateId.trim() } : {}),
+    };
+
+    const iconFile = pendingCreateIconFile;
+    setCreateBusy(true);
+    try {
+      const createdIds: string[] = [];
+      const fails: { name: string; parentId: string; message: string }[] = [];
+      let firstSuccessId: string | null = null;
+
+      let liveRows: CategoryRecord[] = [...rows];
+      const dedupeCreateKey = (parentId: string, name: string) =>
+        `${parentId.trim() || ROOT_PARENT_VALUE}\t${name.trim().toLowerCase()}`;
+      const seenCreateKeys = new Set<string>();
+
+      for (const row of plan) {
+        let pidFinal = row.parentId.trim();
         try {
-          const uploaded = await uploadCategoryImageToCloudinary(created.id, iconFile, { primary: false });
+          const sp = row.suggestionParentName?.trim();
+          if (sp && !pidFinal) {
+            let existingId = findTopLevelCategoryIdByName(liveRows, sp);
+            if (!existingId) {
+              const parentKey = dedupeCreateKey(ROOT_PARENT_VALUE, sp);
+              if (!seenCreateKeys.has(parentKey)) {
+                const pCreated = await createCategory({
+                  name: sp,
+                  ...sharedBody,
+                });
+                liveRows = [...liveRows, pCreated];
+                createdIds.push(pCreated.id);
+                if (!firstSuccessId) {
+                  firstSuccessId = pCreated.id;
+                }
+                seenCreateKeys.add(parentKey);
+                existingId = pCreated.id;
+              } else {
+                existingId = findTopLevelCategoryIdByName(liveRows, sp);
+              }
+            }
+            if (!existingId) {
+              throw new Error(`Could not create or find top-level parent “${sp}”.`);
+            }
+            pidFinal = existingId;
+          }
+
+          const rowKey = dedupeCreateKey(pidFinal, row.name);
+          if (seenCreateKeys.has(rowKey)) {
+            continue;
+          }
+          seenCreateKeys.add(rowKey);
+
+          const created = await createCategory({
+            name: row.name,
+            ...(pidFinal ? { parentId: pidFinal } : {}),
+            ...sharedBody,
+          });
+          liveRows = [...liveRows, created];
+          createdIds.push(created.id);
+          if (!firstSuccessId) {
+            firstSuccessId = created.id;
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Create failed.";
+          fails.push({
+            name: row.name,
+            parentId: pidFinal || row.parentId.trim() || ROOT_PARENT_VALUE,
+            message: msg,
+          });
+        }
+      }
+
+      const fullSuccess = fails.length === 0;
+      const totalFail = fails.length === plan.length;
+      const partial = fails.length > 0 && createdIds.length > 0;
+
+      if (fullSuccess) {
+        setPendingCreateIconFile(null);
+        setCreateDraft(EMPTY_CREATE);
+        setBatchNamesText("");
+        setCreateQueue([]);
+        setSuggestionPickKeys([]);
+      } else if (totalFail) {
+        /* keep form, queue, selection, icon */
+      } else if (partial) {
+        setPendingCreateIconFile(null);
+        setCreateQueue(
+          fails.map((f) => ({
+            id: newQueueItemId(),
+            name: f.name,
+            parentId: f.parentId.trim() ? f.parentId.trim() : ROOT_PARENT_VALUE,
+          })),
+        );
+        setSuggestionPickKeys([]);
+        setCreateDraft({
+          ...EMPTY_CREATE,
+          parentId: savedParentForRetry.trim() ? savedParentForRetry.trim() : ROOT_PARENT_VALUE,
+        });
+        setBatchNamesText("");
+      }
+
+      if (iconFile && firstSuccessId) {
+        try {
+          const uploaded = await uploadCategoryImageToCloudinary(firstSuccessId, iconFile, { primary: false });
           const url = uploaded.secureUrl?.trim();
           if (url) {
-            await patchCategory(created.id, { icon: url });
+            await patchCategory(firstSuccessId, { icon: url });
           }
         } catch (iconErr) {
           await refresh();
-          setSelectedCategoryId(created.id);
+          setSelectedCategoryId(firstSuccessId);
           setActiveDrawer(null);
           setFeedback({
             text:
               iconErr instanceof Error
-                ? `Category created, but icon upload failed: ${iconErr.message}`
-                : "Category created, but icon upload failed.",
+                ? `${createdIds.length} categor${createdIds.length === 1 ? "y" : "ies"} created, but icon upload failed: ${iconErr.message}`
+                : `${createdIds.length} categor${createdIds.length === 1 ? "y" : "ies"} created, but icon upload failed.`,
             kind: "error",
           });
           return;
@@ -689,19 +1142,54 @@ export default function CategoriesPage() {
       }
 
       await refresh();
-      setSelectedCategoryId(created.id);
-      setActiveDrawer(null);
+      const lastId = createdIds[createdIds.length - 1] ?? null;
+      if (lastId) {
+        setSelectedCategoryId(lastId);
+      }
+
+      if (totalFail) {
+        setFeedback({
+          text:
+            fails
+              .slice(0, 5)
+              .map((f) => `${f.name}: ${f.message}`)
+              .join(" ") + (fails.length > 5 ? ` …and ${fails.length - 5} more.` : ""),
+          kind: "error",
+        });
+        return;
+      }
+
+      if (fullSuccess) {
+        setActiveDrawer(null);
+        setFeedback({
+          text:
+            createdIds.length > 1
+              ? `${createdIds.length} categories created (including any missing suggestion parents created first so subtypes nest correctly). Shared tax, markup, position, and description applied where set. Slugs were generated—you can edit each row.`
+              : iconFile
+                ? "Category created with image icon. It also appears in Gallery."
+                : "Category created. Slug was generated automatically—you can customize it when editing.",
+          kind: "success",
+        });
+        return;
+      }
+
+      /* partial */
+      const ok = createdIds.length;
       setFeedback({
-        text: iconFile
-          ? "Category created with image icon. It also appears in Gallery."
-          : "Category created. Slug was generated automatically—you can customize it when editing.",
-        kind: "success",
+        text: `Created ${ok} of ${plan.length}. Failed rows are back on the create list with the right parents. ${fails
+          .slice(0, 2)
+          .map((f) => `${f.name}: ${f.message}`)
+          .join(" ")}${fails.length > 2 ? ` …(+${fails.length - 2})` : ""}`,
+        kind: "error",
       });
+      return;
     } catch (error) {
       setFeedback({
         text: error instanceof Error ? error.message : "Create failed.",
         kind: "error",
       });
+    } finally {
+      setCreateBusy(false);
     }
   };
 
@@ -985,8 +1473,10 @@ export default function CategoriesPage() {
           </p>
         </div>
 
-        {/* Feedback */}
-        {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+        {/* Feedback — hidden while a drawer is open; each drawer shows the same message in its banner */}
+        {feedback && !activeDrawer ? (
+          <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+        ) : null}
 
         {!canManageCategories ? (
           <p className="text-sm text-muted-foreground">
@@ -1484,19 +1974,32 @@ export default function CategoriesPage() {
           if (!open) {
             setActiveDrawer(null);
             setPendingCreateIconFile(null);
+            setBatchNamesText("");
+            setCreateQueue([]);
+            setSuggestionPickKeys([]);
+            setCreateBusy(false);
           }
         }}
         title="New category"
-        description="Slug is generated automatically from the name."
+        description="Create one or many. Ticked suggestions show in the create list and submit with the form—More names is only for extra lines that share the Parent dropdown."
         contextLabel="Catalog · Create"
         icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
+        banner={
+          activeDrawer === "create" && feedback ? (
+            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+          ) : undefined
+        }
         footer={
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
               Cancel
             </Button>
-            <Button type="submit" form="create-category-form">
-              Create category
+            <Button type="submit" form="create-category-form" disabled={createBusy}>
+              {createBusy
+                ? "Creating…"
+                : pendingCreateNameCount > 1
+                  ? `Create ${pendingCreateNameCount} categories`
+                  : "Create category"}
             </Button>
           </div>
         }
@@ -1509,10 +2012,228 @@ export default function CategoriesPage() {
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
                 value={createDraft.name}
                 onChange={(e) => setCreateDraft((p) => ({ ...p, name: e.target.value }))}
-                required
+                placeholder="First category, or leave blank if you use the list only"
                 aria-label="New category name"
               />
             </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+              More names (optional)
+              <textarea
+                className="min-h-[5.5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                placeholder="One category per line — same parent, position, tax, markup, and description as below"
+                value={batchNamesText}
+                onChange={(e) => setBatchNamesText(e.target.value)}
+                aria-label="Additional category names one per line"
+              />
+              <span className="font-normal text-[11px] text-muted-foreground">
+                Duplicates: the Name + More names block still merges lines that share the same Parent dropdown and the
+                same spelling (case-insensitive). The suggestion create list keeps separate rows even when the name
+                matches, as long as they came from different suggestion picks. Icon image applies only to the first
+                successful create.
+              </span>
+            </label>
+
+            {effectiveStructuredQueue.length > 0 ? (
+              <div className="rounded-lg border border-border bg-background p-3">
+                <p className="text-xs font-medium text-foreground">
+                  Create list ({effectiveStructuredQueue.length} row{effectiveStructuredQueue.length === 1 ? "" : "s"}
+                  {suggestionPickKeys.length > 0 && createQueue.length < effectiveStructuredQueue.length
+                    ? " — includes ticked suggestions"
+                    : ""}
+                  )
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Tick checkboxes to include rows here automatically, or use &quot;Add selected&quot; to save ticks onto
+                  the list. Each row can use a different parent. Remove clears a tick or a saved row.
+                </p>
+                <ul className="mt-2 max-h-40 space-y-1.5 overflow-y-auto text-sm">
+                  {effectiveStructuredQueue.map((q) => (
+                    <li
+                      key={q.id}
+                      className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border/60 bg-muted/20 px-2 py-1.5"
+                    >
+                      <span className="min-w-0 break-words">
+                        {q.fromPickKey ? (
+                          <span className="mr-1 text-[10px] font-medium uppercase text-muted-foreground">Ticked · </span>
+                        ) : null}
+                        <span className="font-medium text-foreground">{q.name}</span>
+                        <span className="text-muted-foreground"> · </span>
+                        <span className="text-muted-foreground">{formatCreateListParentCaption(q)}</span>
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        className="h-6 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => discardEffectiveQueueRow(q)}
+                        aria-label={`Remove ${q.name} from create list`}
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="rounded-lg border border-border bg-muted/25 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-medium text-foreground">Suggested categories</p>
+                  <p className="mt-1 max-w-prose text-[11px] leading-snug text-muted-foreground">
+                    Tick top-level groups and/or subtypes (across sections). They appear in the create list above and
+                    count toward Create immediately—no need to click &quot;Add selected&quot; unless you want to save
+                    ticks as permanent list rows. Picks stay here after you add them. If a subtype’s group is not in
+                    your catalog yet, a missing parent group is created as a top-level category first, then subtypes
+                    are nested under it. This list shows the intended group when the parent did not exist yet.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="xs"
+                    className="h-7"
+                    disabled={suggestionPickKeys.length === 0}
+                    onClick={() => addSuggestionPicksToQueue()}
+                  >
+                    Add selected to list ({suggestionPickKeys.length})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="h-7"
+                    disabled={suggestionPickKeys.length === 0}
+                    onClick={() => clearSuggestionPickKeys()}
+                  >
+                    Clear ticks
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-0.5">
+                {Object.entries(SUGGESTED_CATALOG_CATEGORIES).map(([parent, children]) => {
+                  const parentKey = parent.trim().toLowerCase();
+                  const parentInCatalog = catalogNameLowerSet.has(parentKey);
+                  const topKey = suggestionTopKey(parent);
+                  const topChecked = suggestionPickKeys.includes(topKey);
+                  return (
+                    <details
+                      key={parent}
+                      className="rounded-md border border-border/80 bg-background px-2 py-1.5 text-sm shadow-sm"
+                    >
+                      <summary className="cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
+                        <span className="flex flex-wrap items-start gap-2">
+                          <label
+                            className="inline-flex cursor-pointer items-center gap-1.5 pt-0.5"
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={topChecked}
+                              onChange={() => toggleSuggestionPickKey(topKey)}
+                              className="size-3.5 shrink-0 rounded border border-input accent-primary"
+                              aria-label={`Select top-level category ${parent}`}
+                            />
+                          </label>
+                          <span className="min-w-0 flex-1 font-medium text-foreground">{parent}</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            className="h-6 font-normal"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              selectEntireSuggestedGroup(parent, children);
+                            }}
+                          >
+                            Tick all in section
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            className="h-6 font-normal"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              appendSuggestedChildrenToQueue(parent);
+                            }}
+                          >
+                            Queue all subtypes
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            className="h-6 font-normal"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              applySuggestedTopLevel(parent);
+                            }}
+                          >
+                            Use as top level
+                          </Button>
+                          {parentInCatalog ? (
+                            <span className="text-[10px] font-normal text-muted-foreground">In catalog</span>
+                          ) : null}
+                        </span>
+                      </summary>
+                      <div className="mt-2 grid max-h-48 gap-1.5 overflow-y-auto border-t border-border pt-2 sm:grid-cols-2">
+                        {children.map((child) => {
+                          const inCatalog = catalogNameLowerSet.has(child.trim().toLowerCase());
+                          const subKey = suggestionSubKey(parent, child);
+                          const checked = suggestionPickKeys.includes(subKey);
+                          return (
+                            <label
+                              key={child}
+                              className={cn(
+                                "flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-left text-xs transition-colors",
+                                checked
+                                  ? "border-primary/50 bg-primary/5"
+                                  : "border-border/80 bg-muted/10 hover:bg-muted/25",
+                              )}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSuggestionPickKey(subKey)}
+                                className="mt-0.5 size-3.5 shrink-0 rounded border border-input accent-primary"
+                                aria-label={`Select ${child} under ${parent}`}
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="font-medium text-foreground">{child}</span>
+                                {inCatalog ? (
+                                  <span className="ml-1 text-[10px] text-muted-foreground">· in catalog</span>
+                                ) : null}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                className="h-6 shrink-0 px-1.5 text-[10px] font-normal text-muted-foreground hover:text-foreground"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  applySuggestedSubcategory(parent, child);
+                                }}
+                              >
+                                Fill form
+                              </Button>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                 Parent
@@ -1642,6 +2363,11 @@ export default function CategoriesPage() {
         contextLabel="Commercial"
         icon={<Tags className="size-5 text-primary" aria-hidden />}
         width="wide"
+        banner={
+          activeDrawer === "defaults" && feedback ? (
+            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+          ) : undefined
+        }
         footer={
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
@@ -1799,6 +2525,11 @@ export default function CategoriesPage() {
         description="Images are uploaded to Cloudinary and referenced by URL."
         contextLabel="Media"
         icon={<Camera className="size-5 text-primary" aria-hidden />}
+        banner={
+          activeDrawer === "gallery" && feedback ? (
+            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+          ) : undefined
+        }
         footer={
           <p className="text-[11px] text-muted-foreground">
             Toggle “cover” so kiosk rails pick up the hero tile after upload.
@@ -1884,6 +2615,11 @@ export default function CategoriesPage() {
         description="Flag vendors that stock this aisle for replenishment and reporting."
         contextLabel="Supply chain"
         icon={<Building2 className="size-5 text-primary" aria-hidden />}
+        banner={
+          activeDrawer === "suppliers" && feedback ? (
+            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
+          ) : undefined
+        }
         footer={
           <div className="flex justify-end">
             <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>

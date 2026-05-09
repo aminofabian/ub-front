@@ -80,6 +80,7 @@ type DashboardContextValue = {
   canViewInventoryValuation: boolean;
   canViewInventoryTransfers: boolean;
   canViewStockTake: boolean;
+  canViewSupplyBatches: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
@@ -203,6 +204,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       canRecordSupplierPayment: hasPermission(me?.permissions, Permission.PurchasingPaymentWrite),
       canViewInventoryValuation: hasPermission(me?.permissions, Permission.InventoryRead),
       canViewInventoryTransfers: hasPermission(me?.permissions, Permission.InventoryTransfer),
+      canViewSupplyBatches: hasPermission(me?.permissions, Permission.InventoryRead),
       canViewStockTake:
         hasPermission(me?.permissions, Permission.StocktakeRead) ||
         hasPermission(me?.permissions, Permission.StocktakeRun) ||
@@ -249,4 +251,9 @@ export function useDashboard(): DashboardContextValue {
     throw new Error("useDashboard must be used inside DashboardProvider");
   }
   return ctx;
+}
+
+/** Same session as {@link useDashboard}, or null outside {@link DashboardProvider}. */
+export function useOptionalDashboard(): DashboardContextValue | null {
+  return useContext(DashboardContext);
 }

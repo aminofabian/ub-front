@@ -9,7 +9,7 @@ import {
   dashboardLabelClass,
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import {
   fetchPathBSupplyInvoiceDetail,
@@ -176,6 +176,8 @@ export function EditSupplyBillDrawer({ open, onOpenChange, row, onSaved }: EditS
     }
   };
 
+  const billErrorText = [loadError, saveError].filter(Boolean).join("\n\n");
+
   return (
     <FormDrawer
       open={open}
@@ -184,6 +186,7 @@ export function EditSupplyBillDrawer({ open, onOpenChange, row, onSaved }: EditS
       description="Invoice reference fields always editable. Quantity splits and line totals can be changed only while the bill has no supplier payments — stock and the Path B journal are rebuilt to match."
       width="extraWide"
       icon={<FileEdit className="size-5 text-primary" aria-hidden />}
+      banner={billErrorText ? <FormDrawerMessageBanner text={billErrorText} /> : undefined}
       footer={
         <div className="flex w-full justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
@@ -197,16 +200,6 @@ export function EditSupplyBillDrawer({ open, onOpenChange, row, onSaved }: EditS
       }
     >
       <div className="space-y-5 px-1 pb-4">
-        {loadError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {loadError}
-          </div>
-        ) : null}
-        {saveError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {saveError}
-          </div>
-        ) : null}
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

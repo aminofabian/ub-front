@@ -49,6 +49,30 @@ function inkForOnColor(hex: string): string {
 }
 
 /**
+ * When the business saved branding hex colours, use them for dashboard chrome
+ * (e.g. drawer accents). Returns null if neither primary nor accent is a valid
+ * hex — then fall back to theme {@code primary} utilities.
+ */
+export function dashboardBrandingAccentStops(
+  branding: BrandingRecord | null | undefined,
+): { from: string; via: string; to: string; secondary: string } | null {
+  const primary =
+    normalizeHex(branding?.primaryColor) ?? normalizeHex(branding?.accentColor);
+  if (!primary) {
+    return null;
+  }
+  const accentHex = normalizeHex(branding?.accentColor);
+  const secondary =
+    accentHex && accentHex !== primary ? accentHex : mixTowardWhite(primary, 0.3);
+  return {
+    from: primary,
+    via: mixTowardWhite(primary, 0.14),
+    to: mixTowardWhite(primary, 0.38),
+    secondary,
+  };
+}
+
+/**
  * CSS variables for POS / cashier chrome (scoped on a wrapper or dialog content).
  * Set on an ancestor so portaled modals receive variables when applied to {@link DialogContent}.
  */

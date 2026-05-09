@@ -10,7 +10,7 @@ import {
   dashboardSelectClass,
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -167,6 +167,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       description="Record cash or bank/M-Pesa against this receipt. Repeat for installments; balances update from allocations."
       width="wide"
       icon={<CreditCard className="size-5 text-primary" aria-hidden />}
+      banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
         <div className="flex w-full justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
@@ -185,11 +186,6 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     >
       {!row ? null : (
         <div className="space-y-5 px-1 pb-4">
-          {error ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          ) : null}
 
           <div className="grid gap-3 rounded-xl border bg-muted/15 p-4 sm:grid-cols-3">
             <div>

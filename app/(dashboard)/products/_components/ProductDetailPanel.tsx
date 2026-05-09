@@ -26,6 +26,7 @@ import {
 import { type ProductEditDraft, type QuickEditKey } from "../_types";
 import {
   coverImageUrl,
+  effectiveSupplierUnitCost,
   formatAmount,
   galleryImageUrl,
   toNumber,
@@ -74,6 +75,14 @@ type Props = {
   setQuickReorderLevel: (v: string) => void;
   quickReorderQty: string;
   setQuickReorderQty: (v: string) => void;
+  // stock quantity quick-edit
+  quickStock: string;
+  setQuickStock: (v: string) => void;
+  saveQuickStock: () => void;
+  quickStockBranchId: string;
+  setQuickStockBranchId: (v: string) => void;
+  quickStockUnitCost: string;
+  setQuickStockUnitCost: (v: string) => void;
   quickSaving: boolean;
   openQuickEdit: (k: Exclude<QuickEditKey, null>) => void;
   cancelQuickEdit: () => void;
@@ -129,6 +138,13 @@ export function ProductDetailPanel(props: Props) {
     setQuickReorderLevel,
     quickReorderQty,
     setQuickReorderQty,
+    quickStock,
+    setQuickStock,
+    saveQuickStock,
+    quickStockBranchId,
+    setQuickStockBranchId,
+    quickStockUnitCost,
+    setQuickStockUnitCost,
     quickSaving,
     openQuickEdit,
     cancelQuickEdit,
@@ -260,6 +276,12 @@ export function ProductDetailPanel(props: Props) {
             {detail.barcode && (
               <span className="font-mono opacity-60">{detail.barcode}</span>
             )}
+            {detail.brand && (
+              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">{detail.brand}</span>
+            )}
+            {detail.size && (
+              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">{detail.size}</span>
+            )}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -319,7 +341,7 @@ export function ProductDetailPanel(props: Props) {
           />
           <span className={sectionLabelCls}>Pricing</span>
         </header>
-        <div className="grid grid-cols-3 divide-x divide-border/40 bg-background/50">
+        <div className="grid grid-cols-4 divide-x divide-border/40 bg-background/50">
           {(
             [
               ["Shelf", formatAmount(sellPrice), "font-bold"],
@@ -330,6 +352,15 @@ export function ProductDetailPanel(props: Props) {
                 marginPct != null && marginPct > 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "",
+              ],
+              [
+                "Stock",
+                formatAmount(toNumber(detail.currentStock)),
+                toNumber(detail.currentStock) != null &&
+                toNumber(detail.currentStock)! <=
+                  (toNumber(detail.minStockLevel) ?? 0)
+                  ? "text-destructive font-semibold"
+                  : "font-semibold",
               ],
             ] as const
           ).map(([label, value, cls]) => (
@@ -521,7 +552,7 @@ export function ProductDetailPanel(props: Props) {
               <div className="grid grid-cols-2 divide-x divide-border/40">
                 {fieldBtn(
                   "Cost price",
-                  formatAmount(toNumber(detail.buyingPrice)),
+                  formatAmount(primaryCost),
                   "buyingPrice",
                 )}
                 {fieldBtn(
@@ -588,6 +619,30 @@ export function ProductDetailPanel(props: Props) {
                 />
               </button>
             )}
+
+            {/* Stock qty */}
+            {quickEdit === "stock" ? (
+              <div className={inlineEditCls}>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
+                  Stock qty
+                </span>
+                <input
+                  autoFocus
+                  className={quickInputClass}
+                  inputMode="decimal"
+                  value={quickStock}
+                  onChange={(e) => setQuickStock(e.target.value)}
+                  placeholder="Current on‑hand"
+                />
+                {saveCancelBtns(saveQuickStock)}
+              </div>
+            ) : (
+              fieldBtn(
+                "Stock qty",
+                formatAmount(toNumber(detail.currentStock)),
+                "stock",
+              )
+            )}
           </div>
         </section>
       )}
@@ -640,7 +695,9 @@ export function ProductDetailPanel(props: Props) {
                   )}
                 </div>
                 <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-foreground">
-                  {formatAmount(toNumber(link.defaultCostPrice))}
+                  {formatAmount(
+                    effectiveSupplierUnitCost(link, undefined),
+                  )}
                 </span>
               </div>
             ))}
@@ -666,8 +723,15 @@ export function ProductDetailPanel(props: Props) {
           </button>
         </header>
         {variantRows.length === 0 ? (
-          <div className="px-3 py-6 text-center text-[11px] text-muted-foreground">
-            No options yet — use Add to create one.
+          <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+            <p className="text-[11px] text-muted-foreground">No variants yet.</p>
+            <button
+              type="button"
+              onClick={() => setActiveDrawer("add-variant")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
+            >
+              <PackagePlus className="size-3" aria-hidden /> Add first variant
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-border/40 bg-background/50">

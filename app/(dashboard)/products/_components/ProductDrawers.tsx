@@ -10,7 +10,7 @@ import {
   Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerFields, type FormDrawerProps } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import { VARIANT_INPUT_CLASS } from "../_types";
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
@@ -26,12 +26,14 @@ type Cat = { id: string; name: string; active: boolean };
 export function ProductEditDrawer({
   open,
   onClose,
+  banner,
   detail,
   cats,
   m,
 }: {
   open: boolean;
   onClose: () => void;
+  banner?: FormDrawerProps["banner"];
   detail: Pick<ProductDetailApi, "detail" | "patchDraft" | "setPatchDraft">;
   cats: Cat[];
   m: Pick<ProductMutationsApi, "onPatchItem" | "onDeleteItem">;
@@ -44,6 +46,7 @@ export function ProductEditDrawer({
       onOpenChange={(o) => {
         if (!o) onClose();
       }}
+      banner={banner}
       title="Product details"
       description={d ? `Editing SKU ${d.sku}` : ""}
       contextLabel="Inspector"
@@ -78,6 +81,15 @@ export function ProductEditDrawer({
               value={dr.name ?? ""}
               onChange={(e) =>
                 detail.setPatchDraft((p) => ({ ...p, name: e.target.value }))
+              }
+            />
+          </Lbl>
+          <Lbl label="SKU">
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono"
+              value={dr.sku ?? ""}
+              onChange={(e) =>
+                detail.setPatchDraft((p) => ({ ...p, sku: e.target.value }))
               }
             />
           </Lbl>
@@ -121,15 +133,86 @@ export function ProductEditDrawer({
               ))}
             </select>
           </Lbl>
-          <Lbl label="Selling price">
+          <Lbl label="Shelf price">
             <input
               className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
               inputMode="decimal"
+              placeholder="0.00"
               value={dr.bundlePriceStr}
               onChange={(e) =>
                 detail.setPatchDraft((p) => ({
                   ...p,
                   bundlePriceStr: e.target.value,
+                }))
+              }
+            />
+          </Lbl>
+          <Lbl label="Pack qty">
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              inputMode="numeric"
+              placeholder="1"
+              value={dr.bundleQtyStr}
+              onChange={(e) =>
+                detail.setPatchDraft((p) => ({
+                  ...p,
+                  bundleQtyStr: e.target.value,
+                }))
+              }
+            />
+          </Lbl>
+          <Lbl label="Buying price">
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={dr.buyingPriceStr}
+              onChange={(e) =>
+                detail.setPatchDraft((p) => ({
+                  ...p,
+                  buyingPriceStr: e.target.value,
+                }))
+              }
+            />
+          </Lbl>
+          <Lbl label="Min stock">
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              inputMode="decimal"
+              placeholder="0"
+              value={dr.minStockLevelStr}
+              onChange={(e) =>
+                detail.setPatchDraft((p) => ({
+                  ...p,
+                  minStockLevelStr: e.target.value,
+                }))
+              }
+            />
+          </Lbl>
+          <Lbl label="Reorder level">
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              inputMode="decimal"
+              placeholder="0"
+              value={dr.reorderLevelStr}
+              onChange={(e) =>
+                detail.setPatchDraft((p) => ({
+                  ...p,
+                  reorderLevelStr: e.target.value,
+                }))
+              }
+            />
+          </Lbl>
+          <Lbl label="Reorder qty">
+            <input
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              inputMode="decimal"
+              placeholder="0"
+              value={dr.reorderQtyStr}
+              onChange={(e) =>
+                detail.setPatchDraft((p) => ({
+                  ...p,
+                  reorderQtyStr: e.target.value,
                 }))
               }
             />
@@ -198,11 +281,13 @@ function Lbl({
 export function ProductPhotosDrawer({
   open,
   onClose,
+  banner,
   detail,
   m,
 }: {
   open: boolean;
   onClose: () => void;
+  banner?: FormDrawerProps["banner"];
   detail: Pick<ProductDetailApi, "detail" | "sortedImages">;
   m: Pick<
     ProductMutationsApi,
@@ -224,6 +309,7 @@ export function ProductPhotosDrawer({
       onOpenChange={(o) => {
         if (!o) onClose();
       }}
+      banner={banner}
       title="Photo studio"
       contextLabel="Media"
       icon={<Camera className="size-5 text-primary" />}
@@ -339,11 +425,13 @@ export function ProductPhotosDrawer({
 export function ProductQuickEditAllDrawer({
   open,
   onClose,
+  banner,
   detail,
   quick,
 }: {
   open: boolean;
   onClose: () => void;
+  banner?: FormDrawerProps["banner"];
   detail: Pick<ProductDetailApi, "detail">;
   quick: Pick<
     QuickEditApi,
@@ -368,7 +456,6 @@ export function ProductQuickEditAllDrawer({
     | "qeaDescription"
     | "setQeaDescription"
     | "qeaSaving"
-    | "qeaError"
     | "saveQuickEditAll"
   >;
 }) {
@@ -378,6 +465,7 @@ export function ProductQuickEditAllDrawer({
       onOpenChange={(o) => {
         if (!o) onClose();
       }}
+      banner={banner}
       title={detail.detail?.name ?? "Edit product"}
       description={
         detail.detail?.variantName
@@ -388,11 +476,6 @@ export function ProductQuickEditAllDrawer({
       icon={<PencilLine className="size-5 text-primary" />}
       footer={
         <div className="flex justify-end gap-2">
-          {quick.qeaError && (
-            <p className="flex-1 rounded-lg border border-destructive/30 bg-destructive/[0.06] px-3 py-2 text-xs text-destructive">
-              {quick.qeaError}
-            </p>
-          )}
           <Button
             type="button"
             variant="outline"
@@ -538,11 +621,13 @@ function F({ label, children }: { label: string; children: React.ReactNode }) {
 export function ProductMobileDetailDrawer({
   open,
   onClose,
+  banner,
   detail,
   detailPanelProps,
 }: {
   open: boolean;
   onClose: () => void;
+  banner?: FormDrawerProps["banner"];
   detail: Pick<ProductDetailApi, "detail">;
   detailPanelProps: Record<string, any>;
 }) {
@@ -553,6 +638,7 @@ export function ProductMobileDetailDrawer({
       onOpenChange={(o) => {
         if (!o) onClose();
       }}
+      banner={banner}
       title={d?.name ?? ""}
       description={d?.variantName ?? (d?.sku ? `SKU ${d.sku}` : "")}
       contextLabel={d?.variantOfItemId ? "Option SKU" : "Product"}

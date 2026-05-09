@@ -11,10 +11,11 @@ import {
   dashboardSelectClass,
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
+  addSupplyBatchExpense,
   addPathBLine,
   createPathBSession,
   fetchSellPriceSuggestion,
@@ -32,6 +33,7 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 import { ProductPickCell } from "./product-pick-cell";
+import { ExtraCostsSection } from "./extra-costs-section";
 
 export type SupplyDraftRow = {
   key: string;
@@ -124,7 +126,10 @@ type RowPricingHint = {
 };
 
 /** Parses `rowPricingDepsKey` segment `itemId:unitStr` for this item. */
-function draftBuyingUnitFromPricingKey(depsKey: string, itemId: string): number | null {
+function draftBuyingUnitFromPricingKey(
+  depsKey: string,
+  itemId: string,
+): number | null {
   if (!depsKey) {
     return null;
   }
@@ -178,7 +183,11 @@ function rowStock(row: SupplyDraftRow): number | null {
   return null;
 }
 
-function linePayload(row: SupplyDraftRow): { description: string; amountMoney: number; suggestedItemId: string } | null {
+function linePayload(row: SupplyDraftRow): {
+  description: string;
+  amountMoney: number;
+  suggestedItemId: string;
+} | null {
   const itemId = rowItemId(row);
   if (!itemId) {
     return null;
@@ -206,9 +215,17 @@ type NewSupplyDrawerProps = {
   onPosted: () => void;
 };
 
-export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawerProps) {
-  const { branches, branchId, setBranchId, branchesLoading, me } = useDashboard();
-  const canSetSellPrice = hasPermission(me?.permissions, Permission.PricingSellPriceSet);
+export function NewSupplyDrawer({
+  open,
+  onOpenChange,
+  onPosted,
+}: NewSupplyDrawerProps) {
+  const { branches, branchId, setBranchId, branchesLoading, me } =
+    useDashboard();
+  const canSetSellPrice = hasPermission(
+    me?.permissions,
+    Permission.PricingSellPriceSet,
+  );
 
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierHits, setSupplierHits] = useState<SupplierRecord[]>([]);
@@ -230,7 +247,14 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [rowPricing, setRowPricing] = useState<Record<string, RowPricingHint>>({});
+  const [rowPricing, setRowPricing] = useState<Record<string, RowPricingHint>>(
+    {},
+  );
+
+  const [showExtras, setShowExtras] = useState(false);
+  const [extras, setExtras] = useState<
+    { key: string; category: string; amount: string; desc: string }[]
+  >([]);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -262,19 +286,27 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
           item: null,
           qtyStr: "",
           unitStr:
-            link.defaultCostPrice != null && String(link.defaultCostPrice).trim() !== ""
-              ? String(link.defaultCostPrice)
-              : "",
+            link.lastCostPrice != null &&
+            String(link.lastCostPrice).trim() !== ""
+              ? String(link.lastCostPrice)
+              : link.defaultCostPrice != null &&
+                  String(link.defaultCostPrice).trim() !== ""
+                ? String(link.defaultCostPrice)
+                : "",
           sellPriceStr: "",
           sellPriceTouched: false,
           expiry: "",
         })),
       );
       if (active.length === 0) {
-        setError("No catalog products are linked to this supplier yet. Link SKUs on the supplier or products screens, or add rows with “Add product”.");
+        setError(
+          "No catalog products are linked to this supplier yet. Link SKUs on the supplier or products screens, or add rows with “Add product”.",
+        );
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load supplier catalog.");
+      setError(
+        e instanceof Error ? e.message : "Failed to load supplier catalog.",
+      );
       setRows([]);
     } finally {
       setLinksLoading(false);
@@ -312,7 +344,9 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
     if (!open) {
       return;
     }
-    setRows((prev) => prev.map((r) => ({ ...r, sellPriceStr: "", sellPriceTouched: false })));
+    setRows((prev) =>
+      prev.map((r) => ({ ...r, sellPriceStr: "", sellPriceTouched: false })),
+    );
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [branchId, open]);
 
@@ -363,8 +397,16 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
     void Promise.all(
       ids.map(async (itemId) => {
         try {
-          const draftUnit = draftBuyingUnitFromPricingKey(rowPricingDepsKey, itemId);
-          const rec = await fetchSellPriceSuggestion(itemId, supplier.id, branchId, draftUnit);
+          const draftUnit = draftBuyingUnitFromPricingKey(
+            rowPricingDepsKey,
+            itemId,
+          );
+          const rec = await fetchSellPriceSuggestion(
+            itemId,
+            supplier.id,
+            branchId,
+            draftUnit,
+          );
           if (cancelled) {
             return;
           }
@@ -429,6 +471,32 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
     return roundMoney2(sum);
   }, [rows]);
 
+  const estimatedProfit = useMemo(() => {
+    let cost = 0;
+    let revenue = 0;
+    for (const row of rows) {
+      const qty = parsePositiveQty(row.qtyStr);
+      const unit = parseNonNeg(row.unitStr);
+      const sell = parseRetailPrice(row.sellPriceStr);
+      if (qty != null && unit != null) cost += qty * unit;
+      if (qty != null && sell != null) revenue += qty * sell;
+    }
+    return {
+      cost: roundMoney2(cost),
+      revenue: roundMoney2(revenue),
+      profit: roundMoney2(revenue - cost),
+    };
+  }, [rows]);
+
+  const extrasTotal = useMemo(() => {
+    let sum = 0;
+    for (const e of extras) {
+      const n = parseNonNeg(e.amount);
+      if (n != null) sum += n;
+    }
+    return roundMoney2(sum);
+  }, [extras]);
+
   const duplicateIds = useMemo(() => {
     const m = new Map<string, number>();
     for (const row of rows) {
@@ -490,18 +558,25 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
       setError("Choose a receiving branch.");
       return;
     }
-    const activeRows = rows.filter((r) => parsePositiveQty(r.qtyStr) != null && linePayload(r));
+    const activeRows = rows.filter(
+      (r) => parsePositiveQty(r.qtyStr) != null && linePayload(r),
+    );
     if (activeRows.length === 0) {
       setError("Enter quantity and cost for at least one line.");
       return;
     }
     if (duplicateIds.length > 0) {
-      setError("Each product can appear only once — adjust quantities on a single row.");
+      setError(
+        "Each product can appear only once — adjust quantities on a single row.",
+      );
       return;
     }
     setBusy(true);
     try {
-      const noteParts = [docRef.trim() ? `Supplier document ref: ${docRef.trim()}` : "", notes.trim()].filter(Boolean);
+      const noteParts = [
+        docRef.trim() ? `Supplier document ref: ${docRef.trim()}` : "",
+        notes.trim(),
+      ].filter(Boolean);
       const session = await createPathBSession({
         supplierId: supplier.id,
         branchId: branchId.trim(),
@@ -530,7 +605,25 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
           };
         }),
       };
-      await postPathBSession(sessionId, postBody);
+      const postResult = await postPathBSession(sessionId, postBody);
+
+      // Save extras/expenses to the new supply batch
+      const sbId = postResult.supplyBatchId;
+      if (sbId && extras.length > 0) {
+        for (const e of extras) {
+          const amount = parseNonNeg(e.amount);
+          if (amount == null || amount <= 0 || !e.category?.trim()) continue;
+          try {
+            await addSupplyBatchExpense(sbId, {
+              category: e.category.trim(),
+              amount,
+              description: e.desc?.trim() || null,
+            });
+          } catch {
+            /* non-critical */
+          }
+        }
+      }
       const eff = localDateYmdFromDatetimeLocal(receivedAtLocal);
       const priceErrors: string[] = [];
       if (canSetSellPrice) {
@@ -554,15 +647,23 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
               notes: supplier ? `Retail after supply (${supplier.name})` : null,
             });
           } catch (pe) {
-            priceErrors.push(
-              `${rowLabel(row)}: ${pe instanceof Error ? pe.message : "price update failed"}`,
-            );
+            const msg = pe instanceof Error ? pe.message : "";
+            if (
+              !msg.toLowerCase().includes("conflict") &&
+              !msg.toLowerCase().includes("already starts")
+            ) {
+              priceErrors.push(
+                `${rowLabel(row)}: ${msg || "price update failed"}`,
+              );
+            }
           }
         }
       }
       onPosted();
       if (priceErrors.length > 0) {
-        setError(`Supply posted, but shelf price could not be updated for: ${priceErrors.join("; ")}`);
+        setError(
+          `Supply posted, but shelf price could not be updated for: ${priceErrors.join("; ")}`,
+        );
         return;
       }
       onOpenChange(false);
@@ -581,20 +682,34 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
       description="Receiving branch stock increases by the quantity on each line. Totals use buying price × quantity. Shelf prices can be updated for this branch after posting (when permitted)."
       width="extraWide"
       icon={<PackagePlus className="size-5 text-primary" aria-hidden />}
+      banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <p className={cn(dashboardHintClass(), "max-w-md")}>
-            Totals use buying price × quantity. Shelf price applies to the selected branch after post.{" "}
-            <Link className="text-primary underline" href={APP_ROUTES.suppliers}>
+            Totals use buying price × quantity. Shelf price applies to the
+            selected branch after post.{" "}
+            <Link
+              className="text-primary underline"
+              href={APP_ROUTES.suppliers}
+            >
               Manage supplier links
             </Link>
             .
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={busy}
+            >
               Cancel
             </Button>
-            <Button type="button" onClick={() => void onSubmit()} disabled={busy || !supplier}>
+            <Button
+              type="button"
+              onClick={() => void onSubmit()}
+              disabled={busy || !supplier}
+            >
               {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
               Post supply
             </Button>
@@ -603,11 +718,6 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
       }
     >
       <div className="space-y-6 px-1 pb-4">
-        {error ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
 
         <section className="rounded-xl border bg-muted/20 p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -633,7 +743,9 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                     Searching…
                   </div>
                 ) : supplierHits.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">No match</div>
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    No match
+                  </div>
                 ) : (
                   <ul>
                     {supplierHits.map((s) => (
@@ -648,7 +760,11 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                           }}
                         >
                           <span className="font-medium">{s.name}</span>
-                          {s.code ? <span className="text-[11px] text-muted-foreground">{s.code}</span> : null}
+                          {s.code ? (
+                            <span className="text-[11px] text-muted-foreground">
+                              {s.code}
+                            </span>
+                          ) : null}
                         </button>
                       </li>
                     ))}
@@ -691,7 +807,9 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
             />
           </label>
           <label className="flex flex-col gap-1.5 sm:col-span-2">
-            <span className={dashboardLabelClass()}>Supplier document / DN ref (optional)</span>
+            <span className={dashboardLabelClass()}>
+              Supplier document / DN ref (optional)
+            </span>
             <input
               className={dashboardInputClass(busy)}
               value={docRef}
@@ -701,13 +819,32 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
           </label>
           <label className="flex flex-col gap-1.5 sm:col-span-2">
             <span className={dashboardLabelClass()}>Notes (optional)</span>
-            <textarea className={dashboardTextareaClass(busy)} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={busy} />
+            <textarea
+              className={dashboardTextareaClass(busy)}
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              disabled={busy}
+            />
           </label>
         </div>
 
+        {supplier ? (
+          <ExtraCostsSection extras={extras} onChange={setExtras} busy={busy} />
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">Receiving lines</h3>
-          <Button type="button" size="sm" variant="secondary" className="gap-1" onClick={addAdhocRow} disabled={busy || !supplier}>
+          <h3 className="text-sm font-semibold text-foreground">
+            Receiving lines
+          </h3>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="gap-1"
+            onClick={addAdhocRow}
+            disabled={busy || !supplier}
+          >
             <Plus className="size-3.5" />
             Add product
           </Button>
@@ -738,7 +875,9 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                 <th className="px-3 py-2 text-right">After</th>
                 <th className="px-3 py-2 text-right">Buying price</th>
                 <th className="px-3 py-2 text-right">Line total</th>
-                <th className="px-3 py-2 min-w-[7.5rem] text-right">Shelf price</th>
+                <th className="px-3 py-2 min-w-[7.5rem] text-right">
+                  Shelf price
+                </th>
                 <th className="px-3 py-2">Expiry</th>
                 <th className="px-3 py-2 w-10" />
               </tr>
@@ -748,7 +887,8 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                 const p = linePayload(row);
                 const stock = rowStock(row);
                 const qty = parsePositiveQty(row.qtyStr);
-                const stockAfter = stock != null && qty != null ? stock + qty : null;
+                const stockAfter =
+                  stock != null && qty != null ? stock + qty : null;
                 const iid = rowItemId(row);
                 const hint = iid ? rowPricing[iid] : undefined;
                 return (
@@ -761,26 +901,48 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                           onItemChange={(item) =>
                             setRows((prev) =>
                               prev.map((r) =>
-                                r.key === row.key ? { ...r, item, sellPriceStr: "", sellPriceTouched: false } : r,
+                                r.key === row.key
+                                  ? {
+                                      ...r,
+                                      item,
+                                      sellPriceStr: "",
+                                      sellPriceTouched: false,
+                                    }
+                                  : r,
                               ),
                             )
                           }
                         />
                       ) : (
-                        <div className="text-sm font-medium leading-snug">{rowLabel(row)}</div>
+                        <div className="text-sm font-medium leading-snug">
+                          {rowLabel(row)}
+                        </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{rowSku(row)}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{rowBarcode(row)}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                      {rowSku(row)}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {rowBarcode(row)}
+                    </td>
                     <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
                       {stock != null ? stock.toLocaleString() : "—"}
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        className={cn(dashboardInputClass(busy), "w-16 text-right font-mono text-sm")}
+                        className={cn(
+                          dashboardInputClass(busy),
+                          "w-16 text-right font-mono text-sm",
+                        )}
                         value={row.qtyStr}
                         onChange={(e) =>
-                          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, qtyStr: e.target.value } : r)))
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key
+                                ? { ...r, qtyStr: e.target.value }
+                                : r,
+                            ),
+                          )
                         }
                       />
                     </td>
@@ -789,10 +951,19 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        className={cn(dashboardInputClass(busy), "w-24 text-right font-mono text-sm")}
+                        className={cn(
+                          dashboardInputClass(busy),
+                          "w-24 text-right font-mono text-sm",
+                        )}
                         value={row.unitStr}
                         onChange={(e) =>
-                          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, unitStr: e.target.value } : r)))
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key
+                                ? { ...r, unitStr: e.target.value }
+                                : r,
+                            ),
+                          )
                         }
                         aria-label="Buying price per unit"
                       />
@@ -804,13 +975,27 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                       <div className="flex min-w-[6.5rem] flex-col gap-0.5">
                         {canSetSellPrice ? (
                           <input
-                            className={cn(dashboardInputClass(busy), "text-right font-mono text-sm")}
+                            className={cn(
+                              dashboardInputClass(busy),
+                              "text-right font-mono text-sm",
+                              (() => {
+                                const retail = parseRetailPrice(row.sellPriceStr);
+                                const unit = parseNonNeg(row.unitStr);
+                                return retail != null && unit != null && retail < unit
+                                  ? "text-red-600"
+                                  : "";
+                              })(),
+                            )}
                             value={row.sellPriceStr}
                             onChange={(e) =>
                               setRows((prev) =>
                                 prev.map((r) =>
                                   r.key === row.key
-                                    ? { ...r, sellPriceStr: e.target.value, sellPriceTouched: true }
+                                    ? {
+                                        ...r,
+                                        sellPriceStr: e.target.value,
+                                        sellPriceTouched: true,
+                                      }
                                     : r,
                                 ),
                               )
@@ -829,10 +1014,14 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                             Pricing…
                           </span>
                         ) : hint?.error ? (
-                          <span className="text-[10px] text-muted-foreground">Pricing unavailable</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            Pricing unavailable
+                          </span>
                         ) : (
                           <span className="text-[10px] leading-snug text-muted-foreground">
-                            {!canSetSellPrice ? "View only — no shelf-price permission. " : null}
+                            {!canSetSellPrice
+                              ? "View only — no shelf-price permission. "
+                              : null}
                             {[
                               hint?.currentSellPrice != null
                                 ? `Current ${hint.currentSellPrice.toFixed(2)}`
@@ -850,10 +1039,19 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
                     <td className="px-3 py-2">
                       <input
                         type="date"
-                        className={cn(dashboardInputClass(busy), "min-w-[8.5rem] text-xs")}
+                        className={cn(
+                          dashboardInputClass(busy),
+                          "min-w-[8.5rem] text-xs",
+                        )}
                         value={row.expiry}
                         onChange={(e) =>
-                          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, expiry: e.target.value } : r)))
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key
+                                ? { ...r, expiry: e.target.value }
+                                : r,
+                            ),
+                          )
                         }
                       />
                     </td>
@@ -877,13 +1075,70 @@ export function NewSupplyDrawer({ open, onOpenChange, onPosted }: NewSupplyDrawe
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-sm">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Grand total</p>
-            <p className="text-2xl font-bold tabular-nums text-foreground">{grandTotal.toFixed(2)}</p>
+        {supplier ? (
+          <ExtraCostsSection extras={extras} onChange={setExtras} busy={busy} />
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Cost
+              </p>
+              <p className="text-xl font-bold tabular-nums">
+                {estimatedProfit.cost.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Revenue
+              </p>
+              <p className="text-xl font-bold tabular-nums text-emerald-600">
+                {estimatedProfit.revenue.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Extras
+              </p>
+              <p className="text-xl font-bold tabular-nums text-muted-foreground">
+                {extrasTotal.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Net profit
+              </p>
+              <p
+                className={cn(
+                  "text-xl font-bold tabular-nums",
+                  estimatedProfit.profit - extrasTotal >= 0
+                    ? "text-emerald-600"
+                    : "text-red-600",
+                )}
+              >
+                {(estimatedProfit.profit - extrasTotal).toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Margin
+              </p>
+              <p className="text-xl font-bold tabular-nums">
+                {estimatedProfit.revenue > 0
+                  ? Math.round(
+                      ((estimatedProfit.profit - extrasTotal) /
+                        estimatedProfit.revenue) *
+                        100,
+                    )
+                  : 0}
+                %
+              </p>
+            </div>
           </div>
           <p className={cn(dashboardHintClass(), "max-w-sm text-right")}>
-            Stock and payables post when you submit. “After” is current stock plus qty in (this branch).
+            Stock and payables post when you submit. “After” is current stock
+            plus qty in (this branch).
           </p>
         </div>
       </div>

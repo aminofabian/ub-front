@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
-import { FormDrawer } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ import {
 } from "./_components/ProductDrawers";
 
 export default function ProductsPage() {
-  const { me, business } = useDashboard();
+  const { me, business, branchId } = useDashboard();
   const canCatalogWrite = hasPermission(
     me?.permissions,
     Permission.CatalogItemsWrite,
@@ -64,11 +64,14 @@ export default function ProductsPage() {
   );
 
   const catalog = useCatalogList();
-  const detail = useProductDetail();
+  const detail = useProductDetail(branchId);
   const quick = useQuickEdit({
     selectedId: detail.selectedId,
     detail: detail.detail,
+    primaryCost: detail.primaryCost,
     canCatalogWrite,
+    canInventoryWrite,
+    branches: [],
     refreshFullCatalog: catalog.refreshFullCatalog,
     refreshSelectedDetail: detail.refreshSelectedDetail,
     setMessage: catalog.setMessage,
@@ -125,6 +128,33 @@ export default function ProductsPage() {
   );
 
   const D = detail.detail;
+  const variantDrawerParentName =
+    (D?.variantOfItemId && detail.variantParentDisplayName?.trim()) ||
+    D?.name?.trim() ||
+    "This product";
+  const variantDrawerParentIsGroup =
+    !!D && !D.variantOfItemId?.trim() && D.isSellable === false;
+  const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
+    r.variantName.trim(),
+  ).length;
+  const catalogMessageInDrawer =
+    !!catalog.message.trim() &&
+    !!(
+      activeDrawer ||
+      quick.quickEditAllOpen ||
+      (mobileDetailOpen && !isLg)
+    );
+  const quickEditDrawerBanner =
+    quick.quickEditAllOpen && (quick.qeaError || catalog.message.trim()) ? (
+      <div className="flex flex-col gap-2">
+        {quick.qeaError ? (
+          <FormDrawerMessageBanner text={quick.qeaError} />
+        ) : null}
+        {catalog.message.trim() ? (
+          <FormDrawerMessageBanner text={catalog.message} />
+        ) : null}
+      </div>
+    ) : undefined;
   const p = {
     detail: D!,
     patchDraft: detail.patchDraft,
@@ -168,6 +198,13 @@ export default function ProductsPage() {
     saveQuickBuyingPrice: quick.saveQuickBuyingPrice,
     saveQuickMinStock: quick.saveQuickMinStock,
     saveQuickReorder: quick.saveQuickReorder,
+    quickStock: quick.quickStock,
+    setQuickStock: quick.setQuickStock,
+    quickStockBranchId: quick.quickStockBranchId,
+    setQuickStockBranchId: quick.setQuickStockBranchId,
+    quickStockUnitCost: quick.quickStockUnitCost,
+    setQuickStockUnitCost: quick.setQuickStockUnitCost,
+    saveQuickStock: quick.saveQuickStock,
     openQuickEditAll: quick.openQuickEditAll,
     variantInlineEditId: m.variantInlineEditId,
     variantEditName: m.variantEditName,
@@ -342,22 +379,35 @@ export default function ProductsPage() {
               </div>
             </div>
           </section>
-          {catalog.message && <DashboardNotice text={catalog.message} />}
+          {catalog.message && !catalogMessageInDrawer ? (
+            <DashboardNotice text={catalog.message} />
+          ) : null}
         </div>
       </div>
 
       <ProductCreateDrawer
         open={activeDrawer === "create-parent"}
         onClose={() => setActiveDrawer(null)}
+        banner={
+          activeDrawer === "create-parent" && catalog.message.trim() ? (
+            <FormDrawerMessageBanner text={catalog.message} />
+          ) : undefined
+        }
         catalog={catalog}
         m={m}
         canLinkSupplier={canLinkSupplier}
         canListSuppliers={canListSuppliers}
+        currencyCode={business?.currency?.trim() || ""}
       />
 
       <ProductEditDrawer
         open={activeDrawer === "edit-product" && !!D}
         onClose={() => setActiveDrawer(null)}
+        banner={
+          activeDrawer === "edit-product" && catalog.message.trim() ? (
+            <FormDrawerMessageBanner text={catalog.message} />
+          ) : undefined
+        }
         detail={detail}
         cats={catalog.sortedCategories}
         m={m}
@@ -366,6 +416,11 @@ export default function ProductsPage() {
       <ProductPhotosDrawer
         open={activeDrawer === "photos" && !!D}
         onClose={() => setActiveDrawer(null)}
+        banner={
+          activeDrawer === "photos" && catalog.message.trim() ? (
+            <FormDrawerMessageBanner text={catalog.message} />
+          ) : undefined
+        }
         detail={detail}
         m={m}
       />
@@ -375,8 +430,18 @@ export default function ProductsPage() {
         onOpenChange={(o) => {
           if (!o) setActiveDrawer(null);
         }}
-        title="Add an option"
-        contextLabel="Variants · Step 2"
+        banner={
+          activeDrawer === "add-variant" && catalog.message.trim() ? (
+            <FormDrawerMessageBanner text={catalog.message} />
+          ) : undefined
+        }
+        title="Add variants"
+        description={
+          variantDrawerParentIsGroup
+            ? `Add SKUs under “${variantDrawerParentName}”. Each row has its own prices and stock; story and reorder fields use the selector when you add several rows.`
+            : `Add options under “${variantDrawerParentName}”. Each row has its own prices and stock.`
+        }
+        contextLabel="Variants"
         icon={<Layers className="size-5 text-primary" />}
         width="wide"
         footer={
@@ -391,17 +456,27 @@ export default function ProductsPage() {
             <Button
               type="submit"
               form="add-variant-form"
-              disabled={m.variantCreateBusy}
+              disabled={
+                m.variantCreateBusy || variantCreateSubmitCount === 0
+              }
             >
-              {m.variantCreateBusy ? "Creating…" : "Create variant"}
+              {m.variantCreateBusy
+                ? "Creating…"
+                : variantCreateSubmitCount > 1
+                  ? `Create ${variantCreateSubmitCount} variants`
+                  : "Create variant"}
             </Button>
           </div>
         }
       >
         {D && (
           <VariantDrawerForm
-            variantDraft={m.variantDraft}
-            setVariantDraft={m.setVariantDraft}
+            variantDraftRows={m.variantDraftRows}
+            setVariantDraftRows={m.setVariantDraftRows}
+            addVariantDraftRow={m.addVariantDraftRow}
+            removeVariantDraftRow={m.removeVariantDraftRow}
+            parentDisplayName={variantDrawerParentName}
+            parentIsProductGroup={variantDrawerParentIsGroup}
             suggestedNextSku={m.nextAutoSkuHint}
             sortedCategories={catalog.sortedCategories}
             branches={m.branches}
@@ -424,6 +499,7 @@ export default function ProductsPage() {
       <ProductQuickEditAllDrawer
         open={quick.quickEditAllOpen}
         onClose={() => quick.setQuickEditAllOpen(false)}
+        banner={quickEditDrawerBanner}
         detail={detail}
         quick={quick}
       />
@@ -431,6 +507,11 @@ export default function ProductsPage() {
       <ProductMobileDetailDrawer
         open={mobileDetailOpen && !isLg}
         onClose={() => setMobileDetailOpen(false)}
+        banner={
+          mobileDetailOpen && !isLg && catalog.message.trim() ? (
+            <FormDrawerMessageBanner text={catalog.message} />
+          ) : undefined
+        }
         detail={detail}
         detailPanelProps={p}
       />

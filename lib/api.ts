@@ -28,6 +28,8 @@ type RequestOptions = {
   requiresAuth?: boolean;
   /** Overrides auto-generated Idempotency-Key for POST/PATCH (e.g. POS sale retries). */
   idempotencyKey?: string;
+  /** When false, suppresses the automatic error toast (e.g. expected 409 conflicts). */
+  toast?: boolean;
 };
 
 /** Thrown for non-OK API responses; message includes validation field errors when present. */
@@ -59,7 +61,11 @@ function notifyHttpErrorToast(message: string) {
   });
 }
 
-function failRequest(status: number, payload: unknown, options?: { toast?: boolean }): never {
+function failRequest(
+  status: number,
+  payload: unknown,
+  options?: { toast?: boolean },
+): never {
   const message = formatApiProblemMessage(payload);
   if (options?.toast !== false) {
     notifyHttpErrorToast(message);
@@ -78,7 +84,9 @@ const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
  * Maps a storefront hostname (or full shop URL) to the tenant UUID via the public host resolve API.
  * No auth or tenant headers required.
  */
-export async function fetchTenantIdForHost(host: string): Promise<string | null> {
+export async function fetchTenantIdForHost(
+  host: string,
+): Promise<string | null> {
   const h = host.trim();
   if (!h) {
     return null;
@@ -93,7 +101,8 @@ export async function fetchTenantIdForHost(host: string): Promise<string | null>
       return null;
     }
     const payload = (await response.json()) as { tenantId?: unknown };
-    const id = typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
+    const id =
+      typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
     return id.length > 0 ? id : null;
   } catch {
     return null;
@@ -146,6 +155,8 @@ export type ItemSummaryRecord = {
    * On-hand at the branch when `branchId` was sent with the list request; otherwise omitted.
    */
   stockQty?: number | string | null;
+  brand?: string | null;
+  size?: string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
@@ -398,6 +409,20 @@ export type CreateItemPayload = {
   barcode?: string;
   description?: string;
   categoryId?: string;
+  brand?: string;
+  size?: string;
+  unitType?: string;
+  isWeighed?: boolean;
+  isSellable?: boolean;
+  isStocked?: boolean;
+  bundleQty?: number;
+  bundlePrice?: number;
+  buyingPrice?: number;
+  bundleName?: string;
+  minStockLevel?: number;
+  reorderLevel?: number;
+  reorderQty?: number;
+  imageKey?: string;
 };
 
 export type SuggestedSkuResponse = {
@@ -435,6 +460,8 @@ export type PatchItemPayload = {
   minStockLevel?: number;
   reorderLevel?: number;
   reorderQty?: number;
+  brand?: string;
+  size?: string;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */
@@ -445,6 +472,7 @@ export type ItemSupplierLinkRecord = {
   primary: boolean;
   supplierSku?: string | null;
   defaultCostPrice?: number | string | null;
+  lastCostPrice?: number | string | null;
   active: boolean;
   version?: number;
   createdAt?: string;
@@ -462,6 +490,7 @@ export type SupplierItemLinkRecord = {
   primary: boolean;
   supplierSku?: string | null;
   defaultCostPrice?: number | string | null;
+  lastCostPrice?: number | string | null;
   active: boolean;
   version?: number;
   createdAt?: string;
@@ -485,6 +514,8 @@ export type CreateVariantPayload = {
   reorderLevel?: number;
   reorderQty?: number;
   imageKey?: string;
+  brand?: string;
+  size?: string;
 };
 
 export type InventoryMutationResponseRecord = {
@@ -605,11 +636,16 @@ async function request<T>(
     body,
     requiresAuth = true,
     idempotencyKey: explicitIdempotencyKey,
+    toast: suppressToast,
   }: RequestOptions = {},
 ): Promise<T> {
   const execute = async () => {
     const session = requiresAuth ? getSessionTokens() : null;
-    const headersInit = buildRequestHeaders(requiresAuth, session?.accessToken, method);
+    const headersInit = buildRequestHeaders(
+      requiresAuth,
+      session?.accessToken,
+      method,
+    );
     const headers = new Headers(headersInit);
     const idem = explicitIdempotencyKey?.trim();
     if (idem && IDEMPOTENCY_METHODS.includes(method)) {
@@ -628,7 +664,10 @@ async function request<T>(
 
   let response = await execute();
   if (requiresAuth && response.status === 401) {
-    const payload = await response.clone().json().catch(() => ({}));
+    const payload = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     const problem = parseProblem(payload);
     const shouldRefresh = shouldAttemptRefresh(problem?.code);
     if (!shouldRefresh) {
@@ -637,7 +676,7 @@ async function request<T>(
         signOutClientAndRedirectToLogin();
         throw new ApiRequestError(message, response.status, payload);
       }
-      failRequest(response.status, payload);
+      failRequest(response.status, payload, { toast: suppressToast });
     }
     const refreshed = await tryRefreshToken();
     if (refreshed) {
@@ -654,9 +693,13 @@ async function request<T>(
       problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken
     ) {
       signOutClientAndRedirectToLogin();
-      throw new ApiRequestError(formatApiProblemMessage(payload), response.status, payload);
+      throw new ApiRequestError(
+        formatApiProblemMessage(payload),
+        response.status,
+        payload,
+      );
     }
-    failRequest(response.status, payload);
+    failRequest(response.status, payload, { toast: suppressToast });
   }
 
   if (response.status === 204) {
@@ -666,18 +709,28 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
-async function requestMultipartJson<T>(path: string, form: FormData): Promise<T> {
+async function requestMultipartJson<T>(
+  path: string,
+  form: FormData,
+): Promise<T> {
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
-    return fetch(`${API_BASE_URL}${path}`, { method: "POST", headers, body: form });
+    return fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
   };
 
   let response = await execute();
   if (response.status === 401) {
-    const payload = await response.clone().json().catch(() => ({}));
+    const payload = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     const problem = parseProblem(payload);
     if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
       response = await execute();
@@ -696,7 +749,11 @@ async function requestMultipartJson<T>(path: string, form: FormData): Promise<T>
     const problem = parseProblem(payload);
     if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
       signOutClientAndRedirectToLogin();
-      throw new ApiRequestError(formatApiProblemMessage(payload), response.status, payload);
+      throw new ApiRequestError(
+        formatApiProblemMessage(payload),
+        response.status,
+        payload,
+      );
     }
     failRequest(response.status, payload);
   }
@@ -746,16 +803,22 @@ async function postIntegrationsJsonImport(
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
-    return fetch(`${API_BASE_URL}/api/v1/integrations/imports/${relativePath}`, {
-      method: "POST",
-      headers,
-      body: form,
-    });
+    return fetch(
+      `${API_BASE_URL}/api/v1/integrations/imports/${relativePath}`,
+      {
+        method: "POST",
+        headers,
+        body: form,
+      },
+    );
   };
 
   let response = await execute();
   if (response.status === 401) {
-    const payload = await response.clone().json().catch(() => ({}));
+    const payload = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     const problem = parseProblem(payload);
     if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
       response = await execute();
@@ -776,7 +839,11 @@ async function postIntegrationsJsonImport(
   if (!response.ok) {
     failRequest(response.status, payload ?? {});
   }
-  throw new ApiRequestError("Unexpected response from import endpoint", response.status, payload);
+  throw new ApiRequestError(
+    "Unexpected response from import endpoint",
+    response.status,
+    payload,
+  );
 }
 
 /**
@@ -824,12 +891,18 @@ async function requestBinary(path: string): Promise<Blob> {
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "GET");
-    return fetch(`${API_BASE_URL}${path}`, { method: "GET", headers: headersInit });
+    return fetch(`${API_BASE_URL}${path}`, {
+      method: "GET",
+      headers: headersInit,
+    });
   };
 
   let response = await execute();
   if (response.status === 401) {
-    const payload = await response.clone().json().catch(() => ({}));
+    const payload = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     const problem = parseProblem(payload);
     if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
       response = await execute();
@@ -848,7 +921,11 @@ async function requestBinary(path: string): Promise<Blob> {
     const problem = parseProblem(payload);
     if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
       signOutClientAndRedirectToLogin();
-      throw new ApiRequestError(formatApiProblemMessage(payload), response.status, payload);
+      throw new ApiRequestError(
+        formatApiProblemMessage(payload),
+        response.status,
+        payload,
+      );
     }
     failRequest(response.status, payload);
   }
@@ -857,7 +934,9 @@ async function requestBinary(path: string): Promise<Blob> {
 }
 
 export async function fetchSaleReceiptPdf(saleId: string): Promise<Blob> {
-  return requestBinary(`/api/v1/sales/${encodeURIComponent(saleId.trim())}/receipt.pdf`);
+  return requestBinary(
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/receipt.pdf`,
+  );
 }
 
 export async function loginWithPassword(
@@ -929,7 +1008,9 @@ export async function verifyEmailAddress(token: string): Promise<void> {
   });
 }
 
-export async function resendVerificationEmail(email: string): Promise<ResendVerificationResult> {
+export async function resendVerificationEmail(
+  email: string,
+): Promise<ResendVerificationResult> {
   const headersInit = buildRequestHeaders(false, undefined, "POST");
   const headers = new Headers(headersInit);
   let response: Response;
@@ -948,7 +1029,9 @@ export async function resendVerificationEmail(email: string): Promise<ResendVeri
   if (response.ok && response.status === 200) {
     const payload = (await response.json()) as { verificationUrl?: unknown };
     const verificationUrl =
-      typeof payload.verificationUrl === "string" ? payload.verificationUrl : undefined;
+      typeof payload.verificationUrl === "string"
+        ? payload.verificationUrl
+        : undefined;
     return { verificationUrl };
   }
   const payload = await response.json().catch(() => ({}));
@@ -963,7 +1046,10 @@ export async function requestPasswordReset(email: string): Promise<void> {
   });
 }
 
-export async function resetPasswordWithToken(token: string, newPassword: string): Promise<void> {
+export async function resetPasswordWithToken(
+  token: string,
+  newPassword: string,
+): Promise<void> {
   await request(API_ROUTES.passwordReset, {
     method: "POST",
     body: { token, newPassword },
@@ -1066,23 +1152,33 @@ export async function fetchShopperAccountOverview(
   size = 24,
 ): Promise<ShopperAccountOverview> {
   const qs = new URLSearchParams({ page: String(page), size: String(size) });
-  return request<ShopperAccountOverview>(`${API_ROUTES.shopperHub}?${qs.toString()}`, {
-    requiresAuth: true,
-  });
+  return request<ShopperAccountOverview>(
+    `${API_ROUTES.shopperHub}?${qs.toString()}`,
+    {
+      requiresAuth: true,
+    },
+  );
 }
 
-export async function fetchShopperPickupOrderDetail(orderId: string): Promise<ShopperPickupOrderDetail> {
+export async function fetchShopperPickupOrderDetail(
+  orderId: string,
+): Promise<ShopperPickupOrderDetail> {
   const id = encodeURIComponent(orderId.trim());
-  return request<ShopperPickupOrderDetail>(`${API_ROUTES.shopperHub}/orders/${id}`, {
-    requiresAuth: true,
-  });
+  return request<ShopperPickupOrderDetail>(
+    `${API_ROUTES.shopperHub}/orders/${id}`,
+    {
+      requiresAuth: true,
+    },
+  );
 }
 
 export async function fetchBusiness(): Promise<BusinessRecord> {
   return request<BusinessRecord>(API_ROUTES.businessMe);
 }
 
-export async function updateBusiness(body: PatchBusinessPayload): Promise<void> {
+export async function updateBusiness(
+  body: PatchBusinessPayload,
+): Promise<void> {
   await request(API_ROUTES.businessMe, { method: "PATCH", body });
 }
 
@@ -1152,7 +1248,9 @@ export async function addMyDomain(domain: string): Promise<DomainRecord> {
   });
 }
 
-export async function setMyPrimaryDomain(domainId: string): Promise<DomainRecord> {
+export async function setMyPrimaryDomain(
+  domainId: string,
+): Promise<DomainRecord> {
   return request<DomainRecord>(
     `${MY_DOMAINS_PATH}/${encodeURIComponent(domainId.trim())}/primary`,
     { method: "POST" },
@@ -1182,7 +1280,9 @@ function usersListQuery(filters?: UserListFilters): string {
   return params.toString();
 }
 
-export async function fetchUsers(filters?: UserListFilters): Promise<UserRecord[]> {
+export async function fetchUsers(
+  filters?: UserListFilters,
+): Promise<UserRecord[]> {
   const path = `${API_ROUTES.users}?${usersListQuery(filters)}`;
   const payload = await request<unknown>(path);
   return parseList(payload);
@@ -1202,7 +1302,10 @@ export async function patchBranch(
   branchId: string,
   body: PatchBranchPayload,
 ): Promise<void> {
-  await request(`${API_ROUTES.branches}/${branchId}`, { method: "PATCH", body });
+  await request(`${API_ROUTES.branches}/${branchId}`, {
+    method: "PATCH",
+    body,
+  });
 }
 
 export async function fetchRoles(): Promise<RoleRecord[]> {
@@ -1222,13 +1325,17 @@ export async function fetchCategoryTree(): Promise<CategoryTreeNodeRecord[]> {
   return request<CategoryTreeNodeRecord[]>(`${API_ROUTES.categories}/tree`);
 }
 
-export async function fetchCategoryChildren(categoryId: string): Promise<CategoryRecord[]> {
+export async function fetchCategoryChildren(
+  categoryId: string,
+): Promise<CategoryRecord[]> {
   return request<CategoryRecord[]>(
     `${API_ROUTES.categories}/${encodeURIComponent(categoryId.trim())}/children`,
   );
 }
 
-export async function fetchCategoryPriceRules(categoryId: string): Promise<CategoryLinkedPriceRuleRecord[]> {
+export async function fetchCategoryPriceRules(
+  categoryId: string,
+): Promise<CategoryLinkedPriceRuleRecord[]> {
   return request<CategoryLinkedPriceRuleRecord[]>(
     `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/price-rules`,
   );
@@ -1244,7 +1351,10 @@ export async function postCategoryPriceRule(
   );
 }
 
-export async function deleteCategoryPriceRule(categoryId: string, ruleId: string): Promise<void> {
+export async function deleteCategoryPriceRule(
+  categoryId: string,
+  ruleId: string,
+): Promise<void> {
   await request(
     `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/price-rules/${encodeURIComponent(ruleId.trim())}`,
     { method: "DELETE" },
@@ -1254,7 +1364,10 @@ export async function deleteCategoryPriceRule(categoryId: string, ruleId: string
 export async function createCategory(
   payload: CreateCategoryPayload,
 ): Promise<CategoryRecord> {
-  return request<CategoryRecord>(API_ROUTES.categories, { method: "POST", body: payload });
+  return request<CategoryRecord>(API_ROUTES.categories, {
+    method: "POST",
+    body: payload,
+  });
 }
 
 export async function patchCategory(
@@ -1267,7 +1380,9 @@ export async function patchCategory(
   });
 }
 
-export async function fetchCategoryImages(categoryId: string): Promise<ItemImageRecord[]> {
+export async function fetchCategoryImages(
+  categoryId: string,
+): Promise<ItemImageRecord[]> {
   return request<ItemImageRecord[]>(
     `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/images`,
   );
@@ -1292,7 +1407,10 @@ export async function uploadCategoryImageToCloudinary(
   );
 }
 
-export async function deleteCategoryImage(categoryId: string, imageId: string): Promise<void> {
+export async function deleteCategoryImage(
+  categoryId: string,
+  imageId: string,
+): Promise<void> {
   await request(
     `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/images/${encodeURIComponent(imageId.trim())}`,
     { method: "DELETE" },
@@ -1320,7 +1438,10 @@ export async function patchCategorySupplierLink(
   );
 }
 
-export async function deleteCategorySupplierLink(categoryId: string, supplierId: string): Promise<void> {
+export async function deleteCategorySupplierLink(
+  categoryId: string,
+  supplierId: string,
+): Promise<void> {
   await request(
     `/api/v1/categories/${encodeURIComponent(categoryId.trim())}/supplier-links/${encodeURIComponent(supplierId.trim())}`,
     { method: "DELETE" },
@@ -1338,7 +1459,10 @@ export async function updateUser(
   await request(`${API_ROUTES.users}/${userId}`, { method: "PATCH", body });
 }
 
-export async function assignUserRole(userId: string, roleId: string): Promise<void> {
+export async function assignUserRole(
+  userId: string,
+  roleId: string,
+): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/role`, {
     method: "POST",
     body: { roleId },
@@ -1349,7 +1473,11 @@ export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
 }
 
-export type CatalogListScope = "ALL" | "PARENTS_ONLY" | "VARIANTS_ONLY" | "SKUS_ONLY";
+export type CatalogListScope =
+  | "ALL"
+  | "PARENTS_ONLY"
+  | "VARIANTS_ONLY"
+  | "SKUS_ONLY";
 
 export type FetchItemsOpts = {
   categoryId?: string;
@@ -1440,8 +1568,15 @@ export async function fetchItemsPage(
   return { content, ...meta };
 }
 
-export async function fetchItems(search?: string, opts?: FetchItemsOpts): Promise<ItemSummaryRecord[]> {
-  const page = await fetchItemsPage(search?.trim() || undefined, { ...opts, page: 0, size: 100 });
+export async function fetchItems(
+  search?: string,
+  opts?: FetchItemsOpts,
+): Promise<ItemSummaryRecord[]> {
+  const page = await fetchItemsPage(search?.trim() || undefined, {
+    ...opts,
+    page: 0,
+    size: 100,
+  });
   return page.content;
 }
 
@@ -1464,11 +1599,15 @@ export async function fetchSuggestedNextSku(opts?: {
   parentItemId?: string;
   /** Option label for variant — included in the suggested segment. */
   variantName?: string;
+  brand?: string;
+  size?: string;
 }): Promise<SuggestedSkuResponse> {
   const params = new URLSearchParams();
   const categoryId = opts?.categoryId?.trim();
   const parentItemId = opts?.parentItemId?.trim();
   const variantName = opts?.variantName?.trim();
+  const brand = opts?.brand?.trim();
+  const size = opts?.size?.trim();
   if (categoryId) {
     params.set("categoryId", categoryId);
   }
@@ -1478,8 +1617,17 @@ export async function fetchSuggestedNextSku(opts?: {
   if (variantName) {
     params.set("variantName", variantName);
   }
+  if (brand) {
+    params.set("brand", brand);
+  }
+  if (size) {
+    params.set("size", size);
+  }
   const q = params.toString();
-  const path = q.length > 0 ? `${API_ROUTES.items}/next-sku?${q}` : `${API_ROUTES.items}/next-sku`;
+  const path =
+    q.length > 0
+      ? `${API_ROUTES.items}/next-sku?${q}`
+      : `${API_ROUTES.items}/next-sku`;
   return request<SuggestedSkuResponse>(path);
 }
 
@@ -1492,7 +1640,9 @@ function createPayloadWithoutBlankSku<T extends { sku?: string }>(body: T): T {
   return next;
 }
 
-export async function createItem(payload: CreateItemPayload): Promise<ItemCreateResponse> {
+export async function createItem(
+  payload: CreateItemPayload,
+): Promise<ItemCreateResponse> {
   return request<ItemCreateResponse>(API_ROUTES.items, {
     method: "POST",
     body: createPayloadWithoutBlankSku({ ...payload }),
@@ -1511,16 +1661,28 @@ export async function addItemSupplierLink(
   itemId: string,
   body: AddItemSupplierLinkPayload,
 ): Promise<void> {
-  await request(`${API_ROUTES.items}/${itemId}/supplier-links`, { method: "POST", body });
-}
-
-export async function deleteItemSupplierLink(itemId: string, linkId: string): Promise<void> {
-  await request(`${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/supplier-links/${encodeURIComponent(linkId.trim())}`, {
-    method: "DELETE",
+  await request(`${API_ROUTES.items}/${itemId}/supplier-links`, {
+    method: "POST",
+    body,
   });
 }
 
-export async function postItemSupplierLinkSetPrimary(itemId: string, linkId: string): Promise<void> {
+export async function deleteItemSupplierLink(
+  itemId: string,
+  linkId: string,
+): Promise<void> {
+  await request(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/supplier-links/${encodeURIComponent(linkId.trim())}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
+export async function postItemSupplierLinkSetPrimary(
+  itemId: string,
+  linkId: string,
+): Promise<void> {
   await request(
     `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/supplier-links/${encodeURIComponent(linkId.trim())}/set-primary`,
     { method: "POST" },
@@ -1558,7 +1720,9 @@ export type CloudinarySignature = {
   folder: string;
 };
 
-export async function getCloudinarySignature(folder: string): Promise<CloudinarySignature> {
+export async function getCloudinarySignature(
+  folder: string,
+): Promise<CloudinarySignature> {
   return request<CloudinarySignature>("/api/v1/media/cloudinary-signature", {
     method: "POST",
     body: { folder },
@@ -1593,8 +1757,7 @@ export async function uploadToCloudinary(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const msg =
-      body?.error?.message ||
-      `Cloudinary upload failed (${res.status})`;
+      body?.error?.message || `Cloudinary upload failed (${res.status})`;
     throw new Error(msg);
   }
   return res.json();
@@ -1654,14 +1817,21 @@ function extractPredominantHex(result: unknown): string | undefined {
   const colors = r.colors;
   if (Array.isArray(colors) && colors.length > 0) {
     const first = colors[0];
-    if (Array.isArray(first) && first.length > 0 && typeof first[0] === "string") {
+    if (
+      Array.isArray(first) &&
+      first.length > 0 &&
+      typeof first[0] === "string"
+    ) {
       return first[0];
     }
   }
   return undefined;
 }
 
-export async function deleteItemImage(itemId: string, imageId: string): Promise<void> {
+export async function deleteItemImage(
+  itemId: string,
+  imageId: string,
+): Promise<void> {
   await request(
     `/api/v1/items/${encodeURIComponent(itemId.trim())}/images/${encodeURIComponent(imageId.trim())}`,
     { method: "DELETE" },
@@ -1680,10 +1850,13 @@ export async function createItemVariant(
   parentItemId: string,
   body: CreateVariantPayload,
 ): Promise<ItemCreateResponse> {
-  return request<ItemCreateResponse>(`${API_ROUTES.items}/${parentItemId}/variants`, {
-    method: "POST",
-    body: createPayloadWithoutBlankSku({ ...body }),
-  });
+  return request<ItemCreateResponse>(
+    `${API_ROUTES.items}/${parentItemId}/variants`,
+    {
+      method: "POST",
+      body: createPayloadWithoutBlankSku({ ...body }),
+    },
+  );
 }
 
 export async function postStockIncrease(body: {
@@ -1702,10 +1875,13 @@ export async function postStockIncrease(body: {
   if (body.notes?.trim()) {
     payload.notes = body.notes.trim();
   }
-  return request<InventoryMutationResponseRecord>("/api/v1/inventory/stock-increase", {
-    method: "POST",
-    body: payload,
-  });
+  return request<InventoryMutationResponseRecord>(
+    "/api/v1/inventory/stock-increase",
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
 }
 
 export type SpendBySupplierCategoryRow = {
@@ -1770,6 +1946,70 @@ export async function fetchPriceCompetitiveness(
 export async function fetchSingleSourceRisk(): Promise<SingleSourceRiskRow[]> {
   return request<SingleSourceRiskRow[]>(
     "/api/v1/purchasing/intelligence/single-source-risk",
+  );
+}
+
+export type PurchasingIntelligenceSummary = {
+  totalSpend: number | string;
+  supplierCount: number;
+  invoiceLineCount: number;
+  itemCount: number;
+  avgVariancePercent: number | string;
+  abovePrimaryCount: number;
+  belowPrimaryCount: number;
+  singleSourceRiskCount: number;
+};
+
+export type SpendTrendPoint = {
+  date: string;
+  spend: number | string;
+};
+
+export type SupplierSpendPoint = {
+  supplierId: string;
+  supplierName: string;
+  spend: number | string;
+  lineCount: number;
+};
+
+export type CategorySpendPoint = {
+  categoryId: string;
+  categoryName: string;
+  spend: number | string;
+  lineCount: number;
+};
+
+export type PriceVarianceAlert = {
+  itemId: string;
+  itemSku: string;
+  invoiceId: string;
+  paidUnitCost: number | string;
+  primaryLastCost: number | string | null;
+  variancePercent: number | string;
+  fromPrimarySupplier: boolean;
+};
+
+export type PurchasingInsight = {
+  kind: string;
+  message: string;
+};
+
+export type PurchasingIntelligenceDashboardResponse = {
+  summary: PurchasingIntelligenceSummary;
+  spendTrend: SpendTrendPoint[];
+  topSuppliers: SupplierSpendPoint[];
+  topCategories: CategorySpendPoint[];
+  priceAlerts: PriceVarianceAlert[];
+  singleSourceRisks: SingleSourceRiskRow[];
+  insights: PurchasingInsight[];
+};
+
+export async function fetchPurchasingIntelligenceDashboard(
+  from?: string,
+  to?: string,
+): Promise<PurchasingIntelligenceDashboardResponse> {
+  return request<PurchasingIntelligenceDashboardResponse>(
+    `/api/v1/purchasing/intelligence/dashboard${intelligenceDateQuery(from, to)}`,
   );
 }
 
@@ -1952,9 +2192,21 @@ export type ProfitAndLossResponse = {
   grossProfit: number | string;
   operatingExpenses: number | string;
   netOperating: number | string;
-  revenueLines: { accountCode: string; accountName: string; amount: number | string }[];
-  cogsLines: { accountCode: string; accountName: string; amount: number | string }[];
-  expenseLines: { accountCode: string; accountName: string; amount: number | string }[];
+  revenueLines: {
+    accountCode: string;
+    accountName: string;
+    amount: number | string;
+  }[];
+  cogsLines: {
+    accountCode: string;
+    accountName: string;
+    amount: number | string;
+  }[];
+  expenseLines: {
+    accountCode: string;
+    accountName: string;
+    amount: number | string;
+  }[];
 };
 
 export async function fetchFinancePL(
@@ -2012,7 +2264,11 @@ export type OwnerDashboardResponse = {
     totalOpen: number;
     totalSupplierPrepaymentBalance: number;
   };
-  topSkusLast30Days: { itemId: string; itemName: string; revenueLast30Days: number | string }[];
+  topSkusLast30Days: {
+    itemId: string;
+    itemName: string;
+    revenueLast30Days: number | string;
+  }[];
 };
 
 export async function fetchDashboardOwnerSummary(): Promise<OwnerDashboardResponse> {
@@ -2114,13 +2370,22 @@ export type WebOrderDetail = {
   lines: WebOrderLineSnapshot[];
 };
 
-export async function fetchWebOrders(page = 0, size = 50): Promise<WebOrderSummary[]> {
-  const payload = await request<unknown>(`/api/v1/web-orders?page=${page}&size=${size}`);
+export async function fetchWebOrders(
+  page = 0,
+  size = 50,
+): Promise<WebOrderSummary[]> {
+  const payload = await request<unknown>(
+    `/api/v1/web-orders?page=${page}&size=${size}`,
+  );
   return extractPageContent<WebOrderSummary>(payload);
 }
 
-export async function fetchWebOrderDetail(orderId: string): Promise<WebOrderDetail> {
-  return request<WebOrderDetail>(`/api/v1/web-orders/${encodeURIComponent(orderId.trim())}`);
+export async function fetchWebOrderDetail(
+  orderId: string,
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}`,
+  );
 }
 
 export type ApAgingBuckets = {
@@ -2180,6 +2445,300 @@ export async function fetchInventoryValuation(
   );
 }
 
+// ── Supply Batches ──────────────────────────────────────────────────────────
+
+export type SupplyBatchSummaryRecord = {
+  id: string;
+  batchNumber: string;
+  batchName: string | null;
+  supplierId: string | null;
+  supplierName: string | null;
+  branchId: string;
+  receivedAt: string;
+  status: string;
+  itemCount: number;
+  totalInitialQuantity: number | string;
+  totalRemainingQuantity: number | string;
+  closedAt: string | null;
+  closedBy: string | null;
+  // ── Financial fields ──
+  totalCost: number | string;
+  totalRevenue: number | string;
+  totalAssociatedCosts: number | string;
+  soldPercentage: number;
+};
+
+export type SupplyBatchItemRecord = {
+  inventoryBatchId: string;
+  itemId: string;
+  itemName: string | null;
+  itemSku: string | null;
+  batchNumber: string;
+  initialQuantity: number | string;
+  quantityRemaining: number | string;
+  quantitySold: number | string;
+  quantityWasted: number | string;
+  unitCost: number | string;
+  expiryDate: string | null;
+  status: string;
+};
+
+export type SupplyBatchDetailRecord = SupplyBatchSummaryRecord & {
+  sourceType: string;
+  items: SupplyBatchItemRecord[];
+  expenses: SupplyBatchExpenseRecord[];
+};
+
+export type SupplyBatchExpenseRecord = {
+  id: string;
+  supplyBatchId: string;
+  category: string;
+  amount: number | string;
+  description: string | null;
+  createdAt: string;
+  createdBy: string | null;
+};
+
+export async function fetchSupplyBatches(params?: {
+  branchId?: string;
+  supplierId?: string;
+  status?: string;
+}): Promise<SupplyBatchSummaryRecord[]> {
+  const query = new URLSearchParams();
+  if (params?.branchId?.trim()) query.set("branchId", params.branchId.trim());
+  if (params?.supplierId?.trim())
+    query.set("supplierId", params.supplierId.trim());
+  if (params?.status?.trim()) query.set("status", params.status.trim());
+  const q = query.toString();
+  return request<SupplyBatchSummaryRecord[]>(
+    `/api/v1/inventory/supply-batches${q ? `?${q}` : ""}`,
+  );
+}
+
+export async function fetchSupplyBatchDetail(
+  id: string,
+): Promise<SupplyBatchDetailRecord> {
+  return request<SupplyBatchDetailRecord>(
+    `/api/v1/inventory/supply-batches/${id}`,
+  );
+}
+
+export async function patchSupplyBatch(
+  id: string,
+  body: { batchName?: string; status?: string },
+): Promise<void> {
+  return request<void>(`/api/v1/inventory/supply-batches/${id}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export async function recalculateSupplyBatch(id: string): Promise<void> {
+  return request<void>(`/api/v1/inventory/supply-batches/${id}/recalculate`, {
+    method: "POST",
+  });
+}
+
+export type ClearSupplyBatchResponse = {
+  supplyBatchId: string;
+  batchNumber: string;
+  hadRemainingStock: boolean;
+  totalWriteOffValue: number | string;
+  journalEntryId: string | null;
+};
+
+export async function clearSupplyBatch(
+  id: string,
+  body: { reason: string; notes?: string | null },
+): Promise<ClearSupplyBatchResponse> {
+  return request<ClearSupplyBatchResponse>(
+    `/api/v1/inventory/supply-batches/${id}/clear`,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
+// ── Standalone wastage ─────────────────────────────────────────────────
+
+export async function postStandaloneWastage(body: {
+  branchId: string;
+  itemId: string;
+  batchId?: string | null;
+  quantity: number | string;
+  unitCost: number | string;
+  reason: string;
+  wastageReason: string;
+}): Promise<{
+  journalEntryId: string;
+  stockMovementId: string;
+  inventoryBatchId: string | null;
+}> {
+  return request("/api/v1/inventory/wastage", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function addSupplyBatchExpense(
+  batchId: string,
+  body: { category: string; amount: number; description?: string | null },
+): Promise<void> {
+  return request("/api/v1/inventory/supply-batches/" + batchId + "/expenses", {
+    method: "POST",
+    body,
+  });
+}
+
+// ── Batch Analytics ─────────────────────────────────────────────────────────
+
+export type BatchSummaryCards = {
+  totalBatchesToday: number;
+  totalBatchesThisWeek: number;
+  totalBatchesThisMonth: number;
+  activeBatches: number;
+  completedBatches: number;
+  zeroQuantityBatches: number;
+  lowQuantityBatches: number;
+  expiredBatches: number;
+  totalUnitsProduced: number | string;
+  totalProductionCost: number | string;
+  estimatedStockValue: number | string;
+  averageQuantityPerBatch: number | string;
+};
+
+export type BatchTrendPoint = {
+  date: string;
+  batchesCreated: number;
+  quantityProduced: number | string;
+  productionCost: number | string;
+};
+
+export type StatusDistributionPoint = {
+  status: string;
+  count: number;
+};
+
+export type TopProductPoint = {
+  itemId: string;
+  itemName: string;
+  itemSku: string;
+  batchCount: number;
+  totalQuantity: number | string;
+  totalValue: number | string;
+};
+
+export type ExpiringBatchPoint = {
+  batchId: string;
+  supplyBatchId: string;
+  batchNumber: string;
+  itemId: string;
+  itemName: string;
+  quantityRemaining: number | string;
+  expiryDate: string | null;
+  daysUntilExpiry: number;
+};
+
+export type LowStockProductPoint = {
+  itemId: string;
+  itemName: string;
+  itemSku: string;
+  currentStock: number | string;
+  reorderLevel: number | string;
+  categoryName: string;
+};
+
+export type BatchAlert = {
+  kind: string;
+  message: string;
+  count: number | null;
+};
+
+export type BatchDashboardResponse = {
+  summary: BatchSummaryCards;
+  dailyTrend: BatchTrendPoint[];
+  statusDistribution: StatusDistributionPoint[];
+  topProducts: TopProductPoint[];
+  expiringBatches: ExpiringBatchPoint[];
+  lowStockProducts: LowStockProductPoint[];
+  alerts: BatchAlert[];
+};
+
+export type BatchTableRow = {
+  id: string;
+  supplyBatchId: string;
+  batchNumber: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string;
+  categoryName: string;
+  branchId: string;
+  branchName: string | null;
+  initialQuantity: number | string;
+  quantityRemaining: number | string;
+  unitCost: number | string;
+  totalValue: number | string;
+  expiryDate: string | null;
+  status: string;
+  receivedAt: string;
+  supplierName: string;
+};
+
+export type BatchTableResponse = {
+  rows: BatchTableRow[];
+  total: number;
+  page: number;
+  size: number;
+};
+
+export async function fetchBatchDashboard(params?: {
+  branchId?: string;
+  from?: string;
+  to?: string;
+}): Promise<BatchDashboardResponse> {
+  const query = new URLSearchParams();
+  if (params?.branchId?.trim()) query.set("branchId", params.branchId.trim());
+  if (params?.from?.trim()) query.set("from", params.from.trim());
+  if (params?.to?.trim()) query.set("to", params.to.trim());
+  const q = query.toString();
+  return request<BatchDashboardResponse>(
+    `/api/v1/inventory/supply-batches/analytics/dashboard${q ? `?${q}` : ""}`,
+  );
+}
+
+export async function fetchBatchTable(params?: {
+  branchId?: string;
+  status?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  quantityMin?: string;
+  quantityMax?: string;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: string;
+}): Promise<BatchTableResponse> {
+  const query = new URLSearchParams();
+  if (params?.branchId?.trim()) query.set("branchId", params.branchId.trim());
+  if (params?.status?.trim()) query.set("status", params.status.trim());
+  if (params?.search?.trim()) query.set("search", params.search.trim());
+  if (params?.from?.trim()) query.set("from", params.from.trim());
+  if (params?.to?.trim()) query.set("to", params.to.trim());
+  if (params?.quantityMin?.trim())
+    query.set("quantityMin", params.quantityMin.trim());
+  if (params?.quantityMax?.trim())
+    query.set("quantityMax", params.quantityMax.trim());
+  query.set("page", String(params?.page ?? 0));
+  query.set("size", String(params?.size ?? 25));
+  if (params?.sortBy?.trim()) query.set("sortBy", params.sortBy.trim());
+  if (params?.sortDir?.trim()) query.set("sortDir", params.sortDir.trim());
+  return request<BatchTableResponse>(
+    `/api/v1/inventory/supply-batches/analytics/table?${query.toString()}`,
+  );
+}
+
 export type PostStockTransferLinePayload = {
   itemId: string;
   quantity: number | string;
@@ -2206,10 +2765,15 @@ export async function postStockTransfer(
   });
 }
 
-export async function postCompleteStockTransfer(transferId: string): Promise<void> {
-  await request(`/api/v1/inventory/transfers/${encodeURIComponent(transferId)}/complete`, {
-    method: "POST",
-  });
+export async function postCompleteStockTransfer(
+  transferId: string,
+): Promise<void> {
+  await request(
+    `/api/v1/inventory/transfers/${encodeURIComponent(transferId)}/complete`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 export type StockTakeLineRecord = {
@@ -2244,13 +2808,18 @@ export async function postStockTakeStart(body: {
   branchId: string;
   notes?: string | null;
 }): Promise<StockTakeSessionRecord> {
-  return request<StockTakeSessionRecord>("/api/v1/inventory/stock-take/sessions", {
-    method: "POST",
-    body,
-  });
+  return request<StockTakeSessionRecord>(
+    "/api/v1/inventory/stock-take/sessions",
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
-export async function fetchStockTakeSession(sessionId: string): Promise<StockTakeSessionRecord> {
+export async function fetchStockTakeSession(
+  sessionId: string,
+): Promise<StockTakeSessionRecord> {
   return request<StockTakeSessionRecord>(
     `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}`,
   );
@@ -2266,7 +2835,9 @@ export async function patchStockTakeCounts(
   );
 }
 
-export async function postStockTakeClose(sessionId: string): Promise<StockTakeSessionRecord> {
+export async function postStockTakeClose(
+  sessionId: string,
+): Promise<StockTakeSessionRecord> {
   return request<StockTakeSessionRecord>(
     `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/close`,
     { method: "POST" },
@@ -2349,7 +2920,9 @@ export async function fetchSellPriceSuggestion(
   if (unitCost != null && Number.isFinite(unitCost) && unitCost > 0) {
     params.set("unitCost", String(unitCost));
   }
-  return request<SellPriceSuggestionRecord>(`/api/v1/pricing/suggest/sell?${params.toString()}`);
+  return request<SellPriceSuggestionRecord>(
+    `/api/v1/pricing/suggest/sell?${params.toString()}`,
+  );
 }
 
 export async function fetchCurrentSellingPrice(
@@ -2401,10 +2974,13 @@ export async function putPriceRule(
     active: boolean;
   },
 ): Promise<PriceRuleRecord> {
-  return request<PriceRuleRecord>(`/api/v1/pricing/price-rules/${encodeURIComponent(ruleId)}`, {
-    method: "PUT",
-    body,
-  });
+  return request<PriceRuleRecord>(
+    `/api/v1/pricing/price-rules/${encodeURIComponent(ruleId)}`,
+    {
+      method: "PUT",
+      body,
+    },
+  );
 }
 
 export async function postTaxRate(body: {
@@ -2438,6 +3014,7 @@ export async function postSellingPrice(body: {
     payload.notes = body.notes.trim();
   }
   return request<SellingPriceResponseRecord>("/api/v1/pricing/selling-prices", {
+    toast: false,
     method: "POST",
     body: payload,
   });
@@ -2478,7 +3055,9 @@ export async function postOpenShift(body: {
   });
 }
 
-export async function fetchCurrentShift(branchId: string): Promise<ShiftRecord> {
+export async function fetchCurrentShift(
+  branchId: string,
+): Promise<ShiftRecord> {
   const params = new URLSearchParams({ branchId: branchId.trim() });
   return request<ShiftRecord>(`/api/v1/shifts/current?${params.toString()}`);
 }
@@ -2493,10 +3072,13 @@ export async function postCloseShift(
   if (body.notes?.trim()) {
     payload.notes = body.notes.trim();
   }
-  return request<ShiftRecord>(`/api/v1/shifts/${encodeURIComponent(shiftId)}/close`, {
-    method: "POST",
-    body: payload,
-  });
+  return request<ShiftRecord>(
+    `/api/v1/shifts/${encodeURIComponent(shiftId)}/close`,
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
 }
 
 export type SalePaymentMethod =
@@ -2662,7 +3244,8 @@ export async function tryPostSale(
   const key = idempotencyKey.trim();
 
   const execute = async (): Promise<
-    { kind: "response"; response: Response } | { kind: "network"; message: string }
+    | { kind: "response"; response: Response }
+    | { kind: "network"; message: string }
   > => {
     const session = getSessionTokens();
     if (!session) {
@@ -2690,7 +3273,10 @@ export async function tryPostSale(
   let response = outcome.response;
 
   if (response.status === 401) {
-    const payload = await response.clone().json().catch(() => ({}));
+    const payload = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     const problem = parseProblem(payload);
     if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
       outcome = await execute();
@@ -2714,7 +3300,10 @@ export async function tryPostSale(
   const payload = await response.json().catch(() => ({}));
   const problem = parseProblem(payload);
   const message = formatApiProblemMessage(payload);
-  if (response.status === 401 && problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+  if (
+    response.status === 401 &&
+    problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken
+  ) {
     signOutClientAndRedirectToLogin();
   }
   return { ok: false, status: response.status, message };
@@ -2726,7 +3315,11 @@ export async function tryPostSaleWithRetries(
   maxAttempts: number = POST_SALE_RETRY_ATTEMPTS,
   delayMs: number = POST_SALE_RETRY_DELAY_MS,
 ): Promise<PostSaleAttemptResult> {
-  let last: PostSaleAttemptResult = { ok: false, status: 0, message: "unreachable" };
+  let last: PostSaleAttemptResult = {
+    ok: false,
+    status: 0,
+    message: "unreachable",
+  };
   for (let i = 0; i < maxAttempts; i++) {
     last = await tryPostSale(body, idempotencyKey);
     if (last.ok) {
@@ -2743,7 +3336,10 @@ export async function tryPostSaleWithRetries(
 }
 
 /** Requires an explicit idempotency key per attempt (retry with the same key is safe). */
-export async function postSale(body: PostSalePayload, idempotencyKey: string): Promise<SaleRecord> {
+export async function postSale(
+  body: PostSalePayload,
+  idempotencyKey: string,
+): Promise<SaleRecord> {
   const result = await tryPostSaleWithRetries(body, idempotencyKey, 1, 0);
   if (result.ok) {
     return result.sale;
@@ -2757,10 +3353,13 @@ export async function postVoidSale(
   payload?: PostVoidSalePayload,
 ): Promise<SaleRecord> {
   const notes = payload?.notes?.trim();
-  return request<SaleRecord>(`/api/v1/sales/${encodeURIComponent(saleId.trim())}/void`, {
-    method: "POST",
-    body: notes ? { notes } : {},
-  });
+  return request<SaleRecord>(
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/void`,
+    {
+      method: "POST",
+      body: notes ? { notes } : {},
+    },
+  );
 }
 
 /** Idempotent per Idempotency-Key; requires an open shift for drawer-affecting refunds. */
@@ -2783,15 +3382,18 @@ export async function postSaleRefund(
     }
     return row;
   });
-  return request<RefundRecord>(`/api/v1/sales/${encodeURIComponent(saleId.trim())}/refund`, {
-    method: "POST",
-    body: {
-      lines,
-      payments,
-      reason: body.reason.trim(),
+  return request<RefundRecord>(
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/refund`,
+    {
+      method: "POST",
+      body: {
+        lines,
+        payments,
+        reason: body.reason.trim(),
+      },
+      idempotencyKey,
     },
-    idempotencyKey,
-  });
+  );
 }
 
 export type OpenSupplierInvoiceRow = {
@@ -2843,10 +3445,13 @@ export type PostSupplierPaymentResult = {
 export async function postSupplierPayment(
   body: PostSupplierPaymentPayload,
 ): Promise<PostSupplierPaymentResult> {
-  return request<PostSupplierPaymentResult>("/api/v1/purchasing/supplier-payments", {
-    method: "POST",
-    body,
-  });
+  return request<PostSupplierPaymentResult>(
+    "/api/v1/purchasing/supplier-payments",
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 const PATH_B_SESSIONS = "/api/v1/purchasing/path-b/sessions";
@@ -2903,6 +3508,7 @@ export type PostPathBResult = {
   journalEntryId: string;
   grandTotal: number | string;
   linesPosted: number;
+  supplyBatchId: string;
 };
 
 export async function createPathBSession(
@@ -2914,7 +3520,9 @@ export async function createPathBSession(
   });
 }
 
-export async function fetchPathBSession(sessionId: string): Promise<PathBSessionDetailRecord> {
+export async function fetchPathBSession(
+  sessionId: string,
+): Promise<PathBSessionDetailRecord> {
   return request<PathBSessionDetailRecord>(
     `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}`,
   );
@@ -2941,14 +3549,20 @@ export async function patchPathBLine(
   );
 }
 
-export async function deletePathBLine(sessionId: string, lineId: string): Promise<void> {
+export async function deletePathBLine(
+  sessionId: string,
+  lineId: string,
+): Promise<void> {
   await request(
     `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/lines/${encodeURIComponent(lineId.trim())}`,
     { method: "DELETE" },
   );
 }
 
-export async function postPathBSession(sessionId: string, body: PostPathBPayload): Promise<PostPathBResult> {
+export async function postPathBSession(
+  sessionId: string,
+  body: PostPathBPayload,
+): Promise<PostPathBResult> {
   return request<PostPathBResult>(
     `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/post`,
     {
@@ -2982,7 +3596,9 @@ export type SupplyPaymentHistoryRecord = {
   notes: string | null;
 };
 
-export async function fetchPathBSupplies(): Promise<PathBSupplyListRowRecord[]> {
+export async function fetchPathBSupplies(): Promise<
+  PathBSupplyListRowRecord[]
+> {
   return request<PathBSupplyListRowRecord[]>("/api/v1/purchasing/supplies");
 }
 
@@ -3022,7 +3638,9 @@ export type PathBSupplyInvoiceDetailRecord = {
   lines: PathBSupplyInvoiceLineRecord[];
 };
 
-export async function fetchPathBSupplyInvoiceDetail(invoiceId: string): Promise<PathBSupplyInvoiceDetailRecord> {
+export async function fetchPathBSupplyInvoiceDetail(
+  invoiceId: string,
+): Promise<PathBSupplyInvoiceDetailRecord> {
   return request<PathBSupplyInvoiceDetailRecord>(
     `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}`,
   );
@@ -3062,7 +3680,9 @@ export async function patchPathBSupplyInvoice(
   );
 }
 
-export async function fetchSupplyPaymentHistory(invoiceId: string): Promise<SupplyPaymentHistoryRecord[]> {
+export async function fetchSupplyPaymentHistory(
+  invoiceId: string,
+): Promise<SupplyPaymentHistoryRecord[]> {
   return request<SupplyPaymentHistoryRecord[]>(
     `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/payment-history`,
   );
@@ -3142,7 +3762,9 @@ export type FetchSuppliersOpts = {
   size?: number;
 };
 
-export async function fetchSuppliersPage(opts?: FetchSuppliersOpts): Promise<ItemsPageResult<SupplierRecord>> {
+export async function fetchSuppliersPage(
+  opts?: FetchSuppliersOpts,
+): Promise<ItemsPageResult<SupplierRecord>> {
   const params = new URLSearchParams();
   params.set("page", String(opts?.page ?? 0));
   params.set("size", String(opts?.size ?? 80));
@@ -3175,11 +3797,15 @@ export async function fetchSuppliers(): Promise<SupplierRecord[]> {
   return page.content;
 }
 
-export async function fetchSupplierById(supplierId: string): Promise<SupplierRecord> {
+export async function fetchSupplierById(
+  supplierId: string,
+): Promise<SupplierRecord> {
   return request<SupplierRecord>(`/api/v1/suppliers/${supplierId}`);
 }
 
-export async function createSupplier(body: CreateSupplierPayload): Promise<SupplierRecord> {
+export async function createSupplier(
+  body: CreateSupplierPayload,
+): Promise<SupplierRecord> {
   return request<SupplierRecord>("/api/v1/suppliers", { method: "POST", body });
 }
 
@@ -3196,17 +3822,22 @@ export async function patchSupplier(
 export async function fetchSupplierContacts(
   supplierId: string,
 ): Promise<SupplierContactRecord[]> {
-  return request<SupplierContactRecord[]>(`/api/v1/suppliers/${supplierId}/contacts`);
+  return request<SupplierContactRecord[]>(
+    `/api/v1/suppliers/${supplierId}/contacts`,
+  );
 }
 
 export async function createSupplierContact(
   supplierId: string,
   body: CreateSupplierContactPayload,
 ): Promise<SupplierContactRecord> {
-  return request<SupplierContactRecord>(`/api/v1/suppliers/${supplierId}/contacts`, {
-    method: "POST",
-    body,
-  });
+  return request<SupplierContactRecord>(
+    `/api/v1/suppliers/${supplierId}/contacts`,
+    {
+      method: "POST",
+      body,
+    },
+  );
 }
 
 export type CustomerPhoneRecord = {
@@ -3244,7 +3875,9 @@ export type CreateCustomerPayload = {
   phones: { phone: string; primary?: boolean | null }[];
 };
 
-export async function fetchCustomers(phone?: string): Promise<CustomerRecord[]> {
+export async function fetchCustomers(
+  phone?: string,
+): Promise<CustomerRecord[]> {
   const params = new URLSearchParams({ page: "0", size: "100" });
   const q = phone?.trim();
   if (q) {
@@ -3254,7 +3887,9 @@ export async function fetchCustomers(phone?: string): Promise<CustomerRecord[]> 
   return extractPageContent<CustomerRecord>(payload);
 }
 
-export async function fetchCustomerById(customerId: string): Promise<CustomerRecord> {
+export async function fetchCustomerById(
+  customerId: string,
+): Promise<CustomerRecord> {
   return request<CustomerRecord>(`/api/v1/customers/${customerId}`);
 }
 
@@ -3287,10 +3922,13 @@ export async function postCustomerWalletTopUp(
   customerId: string,
   body: { amount: number | string },
 ): Promise<void> {
-  return request<void>(`/api/v1/customers/${encodeURIComponent(customerId)}/wallet/top-ups`, {
-    method: "POST",
-    body: { amount: body.amount },
-  });
+  return request<void>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/wallet/top-ups`,
+    {
+      method: "POST",
+      body: { amount: body.amount },
+    },
+  );
 }
 
 export type IssuePaymentClaimResponseRecord = {
@@ -3321,14 +3959,21 @@ export type PublicPaymentClaimRecord = {
   updatedAt: string;
 };
 
-export async function listSubmittedPaymentClaims(): Promise<PublicPaymentClaimRecord[]> {
-  return request<PublicPaymentClaimRecord[]>("/api/v1/credits/payment-claims/submitted");
+export async function listSubmittedPaymentClaims(): Promise<
+  PublicPaymentClaimRecord[]
+> {
+  return request<PublicPaymentClaimRecord[]>(
+    "/api/v1/credits/payment-claims/submitted",
+  );
 }
 
 export async function approvePaymentClaim(claimId: string): Promise<void> {
-  return request<void>(`/api/v1/credits/payment-claims/${encodeURIComponent(claimId)}/approve`, {
-    method: "POST",
-  });
+  return request<void>(
+    `/api/v1/credits/payment-claims/${encodeURIComponent(claimId)}/approve`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 export async function submitPublicPaymentClaim(
@@ -3358,11 +4003,14 @@ export async function initiateMpesaStkIntent(
   body: { customerId: string; amount: number | string },
   idempotencyKey: string,
 ): Promise<MpesaStkIntentResponseRecord> {
-  return request<MpesaStkIntentResponseRecord>("/api/v1/payments/mpesa/stk/intents", {
-    method: "POST",
-    body,
-    idempotencyKey,
-  });
+  return request<MpesaStkIntentResponseRecord>(
+    "/api/v1/payments/mpesa/stk/intents",
+    {
+      method: "POST",
+      body,
+      idempotencyKey,
+    },
+  );
 }
 
 export async function simulateMpesaStkComplete(body: {
@@ -3379,7 +4027,10 @@ export async function simulateMpesaStkComplete(body: {
     const resp = await fetch(`${API_BASE_URL}/webhooks/mpesa/stk/complete`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ businessId: body.businessId, intentId: body.intentId }),
+      body: JSON.stringify({
+        businessId: body.businessId,
+        intentId: body.intentId,
+      }),
     });
     if (!resp.ok) {
       const payload = await resp.json().catch(() => ({}));
@@ -3393,7 +4044,9 @@ export async function simulateMpesaStkComplete(body: {
   }
 }
 
-export async function createCustomer(body: CreateCustomerPayload): Promise<CustomerRecord> {
+export async function createCustomer(
+  body: CreateCustomerPayload,
+): Promise<CustomerRecord> {
   return request<CustomerRecord>("/api/v1/customers", {
     method: "POST",
     body,

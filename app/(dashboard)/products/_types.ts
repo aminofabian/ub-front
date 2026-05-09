@@ -12,17 +12,28 @@ export type ProductDrawerId =
 
 export type ProductEditDraft = {
   name?: string;
+  sku?: string;
   barcode?: string;
   description?: string;
   active?: boolean;
   webPublished?: boolean;
   bundlePriceStr: string;
+  bundleQtyStr: string;
+  buyingPriceStr: string;
+  minStockLevelStr: string;
+  reorderLevelStr: string;
+  reorderQtyStr: string;
   imageKey: string;
   categoryId: string;
 };
 
 export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   bundlePriceStr: "",
+  bundleQtyStr: "",
+  buyingPriceStr: "",
+  minStockLevelStr: "",
+  reorderLevelStr: "",
+  reorderQtyStr: "",
   imageKey: "",
   description: "",
   active: true,
@@ -33,11 +44,27 @@ export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
 // ─── create-parent draft ──────────────────────────────────────────────────────
 
 export type ParentDraft = {
+  productStructure: "standalone" | "group";
   name: string;
   sku: string;
   barcode: string;
   itemTypeId: string;
   categoryId: string;
+  brand: string;
+  size: string;
+  description: string;
+  unitType: string;
+  isWeighed: boolean;
+  isSellable: boolean;
+  isStocked: boolean;
+  buyingPrice: string;
+  bundleQty: string;
+  bundlePrice: string;
+  bundleName: string;
+  minStockLevel: string;
+  reorderLevel: string;
+  reorderQty: string;
+  imageKey: string;
   supplierId: string;
   supplierSku: string;
   defaultCostPrice: string;
@@ -45,11 +72,27 @@ export type ParentDraft = {
 };
 
 export const EMPTY_PARENT: ParentDraft = {
+  productStructure: "standalone",
   name: "",
   sku: "",
   barcode: "",
   itemTypeId: "",
   categoryId: "",
+  brand: "",
+  size: "",
+  description: "",
+  unitType: "",
+  isWeighed: false,
+  isSellable: true,
+  isStocked: true,
+  buyingPrice: "",
+  bundleQty: "",
+  bundlePrice: "",
+  bundleName: "",
+  minStockLevel: "",
+  reorderLevel: "",
+  reorderQty: "",
+  imageKey: "",
   supplierId: "",
   supplierSku: "",
   defaultCostPrice: "",
@@ -65,6 +108,8 @@ export type VariantDraft = {
   barcode: string;
   description: string;
   categoryId: string;
+  brand: string;
+  size: string;
   unitType: string;
   minStockLevel: string;
   reorderLevel: string;
@@ -86,12 +131,31 @@ export type VariantDraft = {
 };
 
 const VARIANT_DRAFT_FIELDS: Omit<VariantDraft, "sellEffectiveFrom"> = {
-  sku: "", variantName: "", name: "", barcode: "", description: "",
-  categoryId: "", unitType: "", minStockLevel: "", reorderLevel: "",
-  reorderQty: "", imageKey: "", bundleQty: "", bundlePrice: "",
-  bundleName: "", sellingPrice: "", sellBranchId: "", supplierId: "",
-  supplierSku: "", defaultCostPrice: "", setPrimarySupplier: true,
-  openingQty: "", openingBranchId: "", openingUnitCost: "",
+  sku: "",
+  variantName: "",
+  name: "",
+  barcode: "",
+  description: "",
+  categoryId: "",
+  brand: "",
+  size: "",
+  unitType: "",
+  minStockLevel: "",
+  reorderLevel: "",
+  reorderQty: "",
+  imageKey: "",
+  bundleQty: "",
+  bundlePrice: "",
+  bundleName: "",
+  sellingPrice: "",
+  sellBranchId: "",
+  supplierId: "",
+  supplierSku: "",
+  defaultCostPrice: "",
+  setPrimarySupplier: true,
+  openingQty: "",
+  openingBranchId: "",
+  openingUnitCost: "",
 };
 
 export function emptyVariantDraft(): VariantDraft {
@@ -112,6 +176,7 @@ export type QuickEditKey =
   | "buyingPrice"
   | "minStock"
   | "reorder"
+  | "stock"
   | null;
 
 // ─── shared style constants ───────────────────────────────────────────────────
