@@ -496,7 +496,7 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                   {(() => {
                     const expDates = data.items
                       .filter((it) => it.expiryDate)
-                      .map((it) => new Date(it.expiryDate).getTime());
+                      .map((it) => new Date(it.expiryDate!).getTime());
                     if (expDates.length === 0)
                       return <div className="text-lg font-semibold">--</div>;
                     const earliest = Math.min(...expDates);
