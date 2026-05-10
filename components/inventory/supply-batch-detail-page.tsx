@@ -28,6 +28,17 @@ import {
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
+const DISPOSITION_CATEGORIES = [
+  { key: "expired", label: "Expired" },
+  { key: "spoiled", label: "Spoilage" },
+  { key: "broken", label: "Breakage" },
+  { key: "stolen", label: "Theft" },
+  { key: "donated", label: "Sample/Donation" },
+  { key: "staffConsumption", label: "Staff consumption" },
+  { key: "countingError", label: "Counting error" },
+  { key: "other", label: "Other" },
+];
+
 function formatQty(v: number | string): string {
   const n = typeof v === "number" ? v : Number(v);
   if (Number.isNaN(n)) return "—";
@@ -423,47 +434,85 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                 <div className="rounded border bg-background p-3 text-center">
                   <div className="text-xs text-muted-foreground">Items</div>
                   <div className="text-lg font-semibold">{data.itemCount}</div>
-                  <div className="text-[10px] text-muted-foreground">{formatQty(data.totalInitialQuantity)} units</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {formatQty(data.totalInitialQuantity)} units
+                  </div>
                 </div>
                 <div className="rounded border bg-background p-3 text-center">
                   <div className="text-xs text-muted-foreground">Cost</div>
-                  <div className="text-lg font-semibold">{formatMoney(data.totalCost)}</div>
-                  <div className="text-[10px] text-muted-foreground">landed</div>
+                  <div className="text-lg font-semibold">
+                    {formatMoney(data.totalCost)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    landed
+                  </div>
                 </div>
                 <div className="rounded border bg-background p-3 text-center">
                   <div className="text-xs text-muted-foreground">Revenue</div>
-                  <div className="text-lg font-semibold text-emerald-600">{formatMoney(data.totalRevenue)}</div>
-                  <div className="text-[10px] text-muted-foreground">{data.soldPercentage}% of batch</div>
+                  <div className="text-lg font-semibold text-emerald-600">
+                    {formatMoney(data.totalRevenue)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {data.soldPercentage}% of batch
+                  </div>
                 </div>
                 <div className="rounded border bg-background p-3 text-center">
                   <div className="text-xs text-muted-foreground">Extras</div>
-                  <div className="text-lg font-semibold">{formatMoney(data.totalAssociatedCosts)}</div>
-                  <div className="text-[10px] text-muted-foreground">{(data.expenses?.length ?? 0)} cost(s)</div>
+                  <div className="text-lg font-semibold">
+                    {formatMoney(data.totalAssociatedCosts)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {data.expenses?.length ?? 0} cost(s)
+                  </div>
                 </div>
                 <div className="rounded border bg-background p-3 text-center">
-                  <div className="text-xs text-muted-foreground">Net Profit</div>
-                  <div className={`text-lg font-semibold ${Number(data.totalRevenue) - Number(data.totalCost) - Number(data.totalAssociatedCosts) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {formatMoney(Number(data.totalRevenue) - Number(data.totalCost) - Number(data.totalAssociatedCosts))}
+                  <div className="text-xs text-muted-foreground">
+                    Net Profit
+                  </div>
+                  <div
+                    className={`text-lg font-semibold ${Number(data.totalRevenue) - Number(data.totalCost) - Number(data.totalAssociatedCosts) >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                  >
+                    {formatMoney(
+                      Number(data.totalRevenue) -
+                        Number(data.totalCost) -
+                        Number(data.totalAssociatedCosts),
+                    )}
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {Number(data.totalRevenue) > 0
-                      ? Math.round(((Number(data.totalRevenue) - Number(data.totalCost) - Number(data.totalAssociatedCosts)) / Number(data.totalRevenue)) * 100)
-                      : 0}% margin
+                      ? Math.round(
+                          ((Number(data.totalRevenue) -
+                            Number(data.totalCost) -
+                            Number(data.totalAssociatedCosts)) /
+                            Number(data.totalRevenue)) *
+                            100,
+                        )
+                      : 0}
+                    % margin
                   </div>
                 </div>
                 <div className="rounded border bg-background p-3 text-center">
                   <div className="text-xs text-muted-foreground">Expiry</div>
                   {(() => {
-                    const expDates = data.items.filter(it => it.expiryDate).map(it => new Date(it.expiryDate).getTime());
-                    if (expDates.length === 0) return <div className="text-lg font-semibold">--</div>;
+                    const expDates = data.items
+                      .filter((it) => it.expiryDate)
+                      .map((it) => new Date(it.expiryDate).getTime());
+                    if (expDates.length === 0)
+                      return <div className="text-lg font-semibold">--</div>;
                     const earliest = Math.min(...expDates);
-                    const days = Math.ceil((earliest - Date.now()) / (1000 * 60 * 60 * 24));
+                    const days = Math.ceil(
+                      (earliest - Date.now()) / (1000 * 60 * 60 * 24),
+                    );
                     return (
                       <>
-                        <div className={`text-lg font-semibold ${days < 0 ? 'text-red-600' : days < 7 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {days < 0 ? 'Expired' : days + 'd'}
+                        <div
+                          className={`text-lg font-semibold ${days < 0 ? "text-red-600" : days < 7 ? "text-amber-600" : "text-emerald-600"}`}
+                        >
+                          {days < 0 ? "Expired" : days + "d"}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">{new Date(earliest).toLocaleDateString()}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {new Date(earliest).toLocaleDateString()}
+                        </div>
                       </>
                     );
                   })()}
