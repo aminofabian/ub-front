@@ -1,25 +1,35 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertCircle,
-  ArrowRight,
   Building2,
   Filter,
   Loader2,
   MapPin,
   Pencil,
   Palette,
-  RefreshCw,
   Save,
   UserPlus,
   Users as UsersIcon,
   UserX,
 } from "lucide-react";
 
+import {
+  DASHBOARD_FILTER_WELL,
+  DASHBOARD_MAX_WIDE,
+  DASHBOARD_SECTION_SURFACE,
+  DASHBOARD_TABLE_HEAD,
+  DASHBOARD_TABLE_SURFACE,
+  DashboardFeedback,
+  DashboardLoadError,
+  DashboardLoading,
+  DashboardPageHero,
+  DashboardQuickLinks,
+  dashboardFilterFieldLabelClass,
+  dashboardInputClass,
+  dashboardSelectClass,
+} from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
-import { DashboardFeedback, DashboardPageHero } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -39,11 +49,11 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 
 const USER_STATUS_FILTERS = [
-  { value: "", label: "All statuses" },
-  { value: "invited", label: "invited" },
-  { value: "active", label: "active" },
-  { value: "suspended", label: "suspended" },
-  { value: "locked", label: "locked" },
+  { value: "", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "invited", label: "Invited" },
+  { value: "suspended", label: "Suspended" },
+  { value: "locked", label: "Locked" },
 ] as const;
 
 type UserDraft = {
@@ -52,6 +62,7 @@ type UserDraft = {
   roleId: string;
   pin: string;
   status: string;
+  branchId: string;
 };
 
 const DEFAULT_DRAFT: UserDraft = {
@@ -60,15 +71,15 @@ const DEFAULT_DRAFT: UserDraft = {
   roleId: "",
   pin: "",
   status: "active",
+  branchId: "",
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
 function userInitials(name: string): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
     return "?";
   }
@@ -78,11 +89,72 @@ function userInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function UserAvatar({ name, className }: { name: string; className?: string }) {
+const AVATAR_PALETTES = [
+  {
+    bg: "from-violet-500/25 via-violet-500/15 to-violet-500/5",
+    text: "text-violet-700 dark:text-violet-200",
+    ring: "ring-violet-500/30",
+  },
+  {
+    bg: "from-sky-500/25 via-sky-500/15 to-sky-500/5",
+    text: "text-sky-700 dark:text-sky-200",
+    ring: "ring-sky-500/30",
+  },
+  {
+    bg: "from-emerald-500/25 via-emerald-500/15 to-emerald-500/5",
+    text: "text-emerald-700 dark:text-emerald-200",
+    ring: "ring-emerald-500/30",
+  },
+  {
+    bg: "from-amber-500/25 via-amber-500/15 to-amber-500/5",
+    text: "text-amber-800 dark:text-amber-200",
+    ring: "ring-amber-500/30",
+  },
+  {
+    bg: "from-rose-500/25 via-rose-500/15 to-rose-500/5",
+    text: "text-rose-700 dark:text-rose-200",
+    ring: "ring-rose-500/30",
+  },
+  {
+    bg: "from-fuchsia-500/25 via-fuchsia-500/15 to-fuchsia-500/5",
+    text: "text-fuchsia-700 dark:text-fuchsia-200",
+    ring: "ring-fuchsia-500/30",
+  },
+  {
+    bg: "from-teal-500/25 via-teal-500/15 to-teal-500/5",
+    text: "text-teal-700 dark:text-teal-200",
+    ring: "ring-teal-500/30",
+  },
+  {
+    bg: "from-indigo-500/25 via-indigo-500/15 to-indigo-500/5",
+    text: "text-indigo-700 dark:text-indigo-200",
+    ring: "ring-indigo-500/30",
+  },
+] as const;
+
+function avatarPalette(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_PALETTES[hash % AVATAR_PALETTES.length];
+}
+
+function UserAvatar({
+  name,
+  className,
+}: {
+  name: string;
+  className?: string;
+}) {
+  const palette = avatarPalette(name);
   return (
     <span
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-[11px] font-bold tracking-tight text-primary shadow-inner ring-1 ring-primary/15",
+        "flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-bold tracking-tight shadow-sm ring-1",
+        palette.bg,
+        palette.text,
+        palette.ring,
         className,
       )}
       aria-hidden
@@ -95,86 +167,51 @@ function UserAvatar({ name, className }: { name: string; className?: string }) {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case "active":
-      return "bg-emerald-500/12 text-emerald-800 ring-emerald-500/20 dark:text-emerald-300";
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300";
     case "invited":
-      return "bg-sky-500/12 text-sky-900 ring-sky-500/25 dark:text-sky-200";
+      return "bg-sky-500/15 text-sky-900 dark:text-sky-200";
     case "suspended":
-      return "bg-amber-500/12 text-amber-950 ring-amber-500/25 dark:text-amber-200";
+      return "bg-amber-500/15 text-amber-950 dark:text-amber-200";
     case "locked":
-      return "bg-rose-500/12 text-rose-900 ring-rose-500/25 dark:text-rose-200";
+      return "bg-rose-500/15 text-rose-900 dark:text-rose-200";
     default:
-      return "bg-muted text-muted-foreground ring-border/60";
+      return "bg-muted text-muted-foreground";
   }
 }
 
-function inputClass() {
-  return cn(
-    "w-full rounded-xl border border-input/80 bg-background px-3.5 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow]",
-    "placeholder:text-muted-foreground/70",
-    "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
-  );
-}
+// ─── Sub-components ────────────────────────────────────────────────────────
 
-function selectClass() {
-  return cn(
-    inputClass(),
-    "cursor-pointer py-2",
-  );
-}
-
-const panelClass = cn(
-  "rounded-3xl border border-border/70 bg-card/90 shadow-md shadow-black/[0.03] ring-1 ring-black/[0.03] backdrop-blur-sm",
-  "dark:bg-card/80 dark:shadow-black/20 dark:ring-white/[0.06]",
-);
-
-const panelHeaderClass = "border-b border-border/50 bg-muted/25 px-5 py-4 sm:px-6";
-const filterLabelClass =
-  "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/90";
-
-function RelatedLinks() {
-  const links = [
-    { href: APP_ROUTES.business, label: "Business", desc: "Core settings", icon: Building2 },
-    { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },
-    { href: APP_ROUTES.businessBranding, label: "Branding", desc: "Logo & colors", icon: Palette },
-  ] as const;
+function InlineIconButton({
+  label,
+  onClick,
+  icon: Icon,
+  className,
+}: {
+  label: string;
+  onClick: () => void;
+  icon: typeof Pencil;
+  className?: string;
+}) {
   return (
-    <div className="space-y-3">
-      <p className={filterLabelClass}>Workspace</p>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {links.map(({ href, label, desc, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "group relative flex items-start gap-3 overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm transition-all duration-200",
-              "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/30 hover:shadow-md",
-              "dark:hover:bg-accent/15",
-            )}
-          >
-            <span
-              className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/80 text-muted-foreground transition-all duration-200",
-                "group-hover:bg-primary/15 group-hover:text-primary group-hover:shadow-sm group-hover:shadow-primary/10",
-              )}
-            >
-              <Icon className="size-4" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1 pt-0.5">
-              <span className="flex items-center gap-1.5 text-sm font-semibold tracking-tight text-foreground">
-                {label}
-                <ArrowRight
-                  className="size-3.5 text-primary/60 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
-                  aria-hidden
-                />
-              </span>
-              <span className="mt-1 block text-xs leading-snug text-muted-foreground">{desc}</span>
-            </span>
-          </Link>
-        ))}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
+        "hover:bg-muted hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "active:scale-[0.97]",
+        className,
+      )}
+      aria-label={label}
+      title={label}
+    >
+      <Icon className="size-3.5" aria-hidden />
+    </button>
   );
 }
+
+// ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
   const { me, refreshSession } = useDashboard();
@@ -198,11 +235,18 @@ export default function UsersPage() {
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [nameEditUserId, setNameEditUserId] = useState<string | null>(null);
   const [roleEditUserId, setRoleEditUserId] = useState<string | null>(null);
+  const [branchEditUserId, setBranchEditUserId] = useState<string | null>(null);
+  const [branchChange, setBranchChange] = useState<Record<string, string>>({});
+  const [savingBranchId, setSavingBranchId] = useState<string | null>(null);
 
+  const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
   const canUpdate = hasPermission(me?.permissions, Permission.UsersUpdate);
   const canAssign = hasPermission(me?.permissions, Permission.UsersAssignRole);
-  const canDeactivate = hasPermission(me?.permissions, Permission.UsersDeactivate);
+  const canDeactivate = hasPermission(
+    me?.permissions,
+    Permission.UsersDeactivate,
+  );
 
   const loadData = useCallback(() => {
     const filters = {
@@ -229,7 +273,8 @@ export default function UsersPage() {
         setLoadFailed(true);
         setFeedback({
           kind: "error",
-          text: error instanceof Error ? error.message : "Failed to load users.",
+          text:
+            error instanceof Error ? error.message : "Failed to load users.",
         });
       })
       .finally(() => {
@@ -241,12 +286,31 @@ export default function UsersPage() {
     void loadData();
   }, [loadData]);
 
+  // For non-owner users, restrict branch filter to their assigned branch
+  useEffect(() => {
+    if (!isOwner && me?.branchId) {
+      setFilterBranchId(me.branchId);
+    }
+  }, [isOwner, me?.branchId]);
+
+  const activeFilterCount =
+    (filterStatus ? 1 : 0) +
+    (filterRoleId ? 1 : 0) +
+    (isOwner && filterBranchId ? 1 : 0);
+
+  const branchById = useMemo(() => {
+    const map = new Map<string, BranchRecord>();
+    for (const b of branches) map.set(b.id, b);
+    return map;
+  }, [branches]);
+
   const resetInviteDraft = useCallback(() => {
     setDraft({
       ...DEFAULT_DRAFT,
       roleId: roles[0]?.id ?? "",
+      branchId: isOwner ? "" : (me?.branchId ?? ""),
     });
-  }, [roles]);
+  }, [roles, isOwner, me?.branchId]);
 
   const onInviteDrawerOpenChange = (open: boolean) => {
     if (!open) {
@@ -270,6 +334,7 @@ export default function UsersPage() {
         roleId: draft.roleId,
         pin: draft.pin || undefined,
         status: draft.status,
+        branchId: draft.branchId || undefined,
       });
       setDraft((previous) => ({ ...DEFAULT_DRAFT, roleId: previous.roleId }));
       await loadData();
@@ -318,7 +383,10 @@ export default function UsersPage() {
     const row = users.find((u) => u.id === userId);
     const selected = roleChange[userId] ?? row?.role?.id ?? "";
     if (!selected || selected === row?.role?.id) {
-      setFeedback({ kind: "error", text: "Choose a different role, then save." });
+      setFeedback({
+        kind: "error",
+        text: "Choose a different role, then save.",
+      });
       return;
     }
     setSavingRoleId(userId);
@@ -345,7 +413,11 @@ export default function UsersPage() {
   };
 
   const onDeactivate = async (userId: string) => {
-    if (!window.confirm("Deactivate this user? They will lose access until re-invited.")) {
+    if (
+      !window.confirm(
+        "Deactivate this user? They will lose access until re-invited.",
+      )
+    ) {
       return;
     }
     setDeactivatingId(userId);
@@ -365,85 +437,127 @@ export default function UsersPage() {
     }
   };
 
+  const onSaveBranch = async (userId: string) => {
+    const branchId = branchChange[userId] ?? "";
+    setSavingBranchId(userId);
+    setFeedback(null);
+    try {
+      await updateUser(userId, { branchId: branchId || undefined });
+      setBranchEditUserId(null);
+      setBranchChange((previous) => {
+        const next = { ...previous };
+        delete next[userId];
+        return next;
+      });
+      await loadData();
+      setFeedback({ kind: "success", text: "Branch updated." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Branch update failed.",
+      });
+    } finally {
+      setSavingBranchId(null);
+    }
+  };
+
+  const clearAllFilters = () => {
+    setFilterStatus("");
+    setFilterRoleId("");
+    if (isOwner) {
+      setFilterBranchId("");
+    }
+  };
+
   if (!firstLoadDone) {
-    return (
-      <div className="mx-auto flex min-h-[52vh] max-w-5xl flex-col items-center justify-center px-4 pb-16">
-        <div className="flex flex-col items-center gap-5 rounded-3xl border border-border/70 bg-card/90 px-12 py-14 shadow-lg shadow-black/[0.04] ring-1 ring-black/[0.04] backdrop-blur-md dark:ring-white/[0.06]">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
-            <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground">Loading directory</p>
-            <p className="mt-1 text-xs text-muted-foreground">Fetching users, roles, and branches…</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <DashboardLoading label="Loading users…" />;
   }
 
   if (loadFailed && users.length === 0) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16">
-        <div className="overflow-hidden rounded-3xl border border-destructive/35 bg-gradient-to-b from-destructive/[0.07] to-card p-8 text-center shadow-lg ring-1 ring-destructive/20">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-destructive/10">
-            <AlertCircle className="size-7 text-destructive" aria-hidden />
-          </div>
-          <h1 className="mt-5 text-lg font-semibold tracking-tight text-foreground">Could not load users</h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feedback?.text}</p>
-          <Button
-            className="mt-8 gap-2 rounded-xl shadow-sm"
-            variant="outline"
-            onClick={() => {
-              setFeedback(null);
-              void loadData();
-            }}
-          >
-            <RefreshCw className="size-4" aria-hidden />
-            Try again
-          </Button>
-        </div>
-      </div>
+      <DashboardLoadError
+        title="Could not load users"
+        message={
+          feedback?.text ??
+          "Failed to load users."
+        }
+        onRetry={() => {
+          setFeedback(null);
+          void loadData();
+        }}
+      />
     );
   }
 
   return (
     <>
-      <div className="relative mx-auto max-w-5xl space-y-8 px-4 pb-20 sm:px-6 lg:px-8">
-        <div
-          className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[320px] w-[min(100%,42rem)] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,hsl(var(--primary)/0.14),transparent_65%)] opacity-90 dark:opacity-60"
-          aria-hidden
-        />
+      <div className={DASHBOARD_MAX_WIDE}>
+        <DashboardPageHero
+          icon={UsersIcon}
+          eyebrow="Team"
+          title="Users"
+          description={
+            <>
+              Invite staff, assign roles, and control who can sign in. Editing depends on your permissions (for example{" "}
+              <span className="rounded bg-muted px-1 py-0.5 font-mono text-[12px] text-foreground/90">
+                users.create
+              </span>
+              ,{" "}
+              <span className="rounded bg-muted px-1 py-0.5 font-mono text-[12px] text-foreground/90">
+                users.update
+              </span>
+              ).
+            </>
+          }
+        >
+          <DashboardQuickLinks
+            links={[
+              {
+                href: APP_ROUTES.business,
+                label: "Business",
+                desc: "Core settings",
+                icon: Building2,
+              },
+              {
+                href: APP_ROUTES.branches,
+                label: "Branches",
+                desc: "Locations",
+                icon: MapPin,
+              },
+              {
+                href: APP_ROUTES.businessBranding,
+                label: "Branding",
+                desc: "Logo & colors",
+                icon: Palette,
+              },
+            ]}
+          />
+        </DashboardPageHero>
 
-        <div className="relative space-y-8">
-          <div
-            className={cn(
-              "relative overflow-hidden rounded-3xl border border-border/70 p-6 shadow-lg shadow-black/[0.04] ring-1 ring-black/[0.04] sm:p-8",
-              "bg-gradient-to-br from-card via-card to-primary/[0.03] backdrop-blur-sm dark:from-card/95 dark:via-card/90 dark:to-primary/[0.04] dark:ring-white/[0.06]",
-            )}
-          >
-            <div
-              className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-primary/[0.06] blur-2xl"
-              aria-hidden
-            />
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <DashboardPageHero
-                icon={UsersIcon}
-                eyebrow="Team"
-                title="Users"
-                description={
-                  <>
-                    Invite staff, assign roles, and control who can sign in. Your permissions define what you can change
-                    here. Use{" "}
-                    <span className="font-medium text-foreground">Invite user</span> to add someone from the drawer.
-                  </>
-                }
-              />
-              {canCreate ? (
+        {feedback ? <DashboardFeedback kind={feedback.kind} text={feedback.text} /> : null}
+
+        {canCreate ? (
+          <section className={DASHBOARD_SECTION_SURFACE}>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+              <div className="min-w-0 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-primary/10 text-primary">
+                    <UserPlus className="size-4" aria-hidden />
+                  </span>
+                  <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                    Invite user
+                  </h2>
+                </div>
+                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  Opens the form drawer to create an account and run your onboarding flow.
+                </p>
+              </div>
+              <div className="flex shrink-0 sm:pt-1">
                 <Button
                   type="button"
                   size="lg"
-                  className="h-12 gap-2 self-stretch rounded-xl px-6 shadow-lg shadow-primary/20 transition hover:shadow-primary/30 sm:self-start lg:shrink-0"
-                  disabled={creating || roles.length === 0}
+                  className="min-h-11 gap-2 px-6 shadow-sm transition-shadow hover:shadow-md"
+                  disabled={roles.length === 0}
                   onClick={() => {
                     skipInviteDrawerResetAfterCreate.current = false;
                     setInviteDrawerOpen(true);
@@ -452,360 +566,531 @@ export default function UsersPage() {
                   <UserPlus className="size-4" aria-hidden />
                   Invite user
                 </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <RelatedLinks />
-
-          {feedback ? (
-            <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} />
-          ) : null}
-
-          <section className={cn(panelClass, "overflow-hidden")}>
-            <div className={cn(panelHeaderClass, "flex flex-wrap items-center justify-between gap-3")}>
-              <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                  <Filter className="size-[18px]" aria-hidden />
-                </span>
-                <div>
-                  <h2 className="text-base font-semibold tracking-tight text-foreground">Filters</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Results reload from the server when you change a filter.</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-5 p-5 sm:p-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
-                <label className="flex flex-col gap-2">
-                  <span className={filterLabelClass}>Status</span>
-                  <select
-                    className={selectClass()}
-                    value={filterStatus}
-                    onChange={(event) => setFilterStatus(event.target.value)}
-                    aria-label="Filter by status"
-                  >
-                    {USER_STATUS_FILTERS.map((option) => (
-                      <option key={option.value || "all"} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-2">
-                  <span className={filterLabelClass}>Role</span>
-                  <select
-                    className={selectClass()}
-                    value={filterRoleId}
-                    onChange={(event) => setFilterRoleId(event.target.value)}
-                    aria-label="Filter by role"
-                  >
-                    <option value="">All roles</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-2">
-                  <span className={filterLabelClass}>Branch</span>
-                  <select
-                    className={selectClass()}
-                    value={filterBranchId}
-                    onChange={(event) => setFilterBranchId(event.target.value)}
-                    aria-label="Filter by branch"
-                  >
-                    <option value="">All branches</option>
-                    {branches.map((branch) => (
-                      <option key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="flex sm:col-span-2 lg:col-span-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-11 w-full rounded-xl font-medium shadow-sm"
-                    onClick={() => {
-                      setFilterStatus("");
-                      setFilterRoleId("");
-                      setFilterBranchId("");
-                    }}
-                  >
-                    Clear all
-                  </Button>
-                </div>
               </div>
             </div>
           </section>
-
-          <section className={cn(panelClass, "overflow-hidden")}>
-            <div className={cn(panelHeaderClass, "flex flex-wrap items-end justify-between gap-4")}>
-              <div>
-                <h2 className="text-base font-semibold tracking-tight text-foreground">Directory</h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  People in your workspace for this view
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium tabular-nums text-foreground shadow-sm backdrop-blur-sm">
-                <UsersIcon className="size-3.5 text-primary" aria-hidden />
-                {users.length} user{users.length === 1 ? "" : "s"}
+        ) : (
+          <div
+            role="note"
+            className="flex gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3.5 text-sm leading-relaxed text-amber-950 shadow-sm dark:text-amber-50"
+          >
+            <span
+              className="mt-0.5 size-2 shrink-0 rounded-full bg-amber-500"
+              aria-hidden
+            />
+            <p>
+              You cannot invite users without{" "}
+              <span className="rounded bg-background/60 px-1 py-0.5 font-mono text-xs dark:bg-background/20">
+                users.create
               </span>
+              .
+            </p>
+          </div>
+        )}
+
+        <section className={DASHBOARD_SECTION_SURFACE}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+                  <Filter className="size-4" aria-hidden />
+                </span>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                  Filters
+                </h2>
+              </div>
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                Results reload from the server when you change a filter.
+              </p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="sticky top-0 z-10 border-b border-border/60 bg-muted/40 backdrop-blur-md">
-                  <tr>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
-                      Name
-                    </th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
-                      Email
-                    </th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
-                      Role
-                    </th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
-                      Status
-                    </th>
-                    <th className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {users.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="group/row transition-colors hover:bg-muted/[0.45]"
-                    >
-                      <td className="px-5 py-3.5 align-middle sm:px-6">
-                        {canUpdate ? (
-                          nameEditUserId === user.id ? (
-                            <div className="flex max-w-xs flex-col gap-2.5">
-                              <input
-                                className={cn(inputClass(), "text-sm")}
-                                value={editingName[user.id] ?? user.name}
-                                onChange={(event) =>
-                                  setEditingName((previous) => ({
-                                    ...previous,
-                                    [user.id]: event.target.value,
-                                  }))
-                                }
-                                aria-label={`Edit name for ${user.email}`}
-                              />
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  type="button"
-                                  className="h-8 gap-1.5 rounded-lg px-3"
-                                  disabled={savingNameId === user.id}
-                                  onClick={() => void onSaveName(user.id)}
-                                >
-                                  {savingNameId === user.id ? (
-                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                                  ) : (
-                                    <Save className="size-3.5" aria-hidden />
-                                  )}
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  type="button"
-                                  className="h-8 rounded-lg"
-                                  disabled={savingNameId === user.id}
-                                  onClick={() => {
-                                    setNameEditUserId(null);
-                                    setEditingName((previous) => {
-                                      const next = { ...previous };
-                                      delete next[user.id];
-                                      return next;
-                                    });
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
+            {activeFilterCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={clearAllFilters}
+              >
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
+          <div className={DASHBOARD_FILTER_WELL}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:items-end">
+            <label className="flex flex-col gap-2 md:col-span-4">
+              <span className={dashboardFilterFieldLabelClass()}>
+                Status
+              </span>
+              <select
+                className={dashboardSelectClass()}
+                value={filterStatus}
+                onChange={(event) => setFilterStatus(event.target.value)}
+                aria-label="Filter by status"
+              >
+                {USER_STATUS_FILTERS.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 md:col-span-4">
+              <span className={dashboardFilterFieldLabelClass()}>
+                Role
+              </span>
+              <select
+                className={dashboardSelectClass()}
+                value={filterRoleId}
+                onChange={(event) => setFilterRoleId(event.target.value)}
+                aria-label="Filter by role"
+              >
+                <option value="">All roles</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 md:col-span-4">
+              <span className={dashboardFilterFieldLabelClass()}>
+                Branch
+                {!isOwner ? (
+                  <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                    {" "}
+                    (locked to your branch)
+                  </span>
+                ) : null}
+              </span>
+              <select
+                className={dashboardSelectClass(!isOwner)}
+                value={filterBranchId}
+                onChange={(event) => setFilterBranchId(event.target.value)}
+                aria-label="Filter by branch"
+                disabled={!isOwner}
+              >
+                <option value="">All branches</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            </div>
+          </div>
+        </section>
+
+        {/* DIRECTORY */}
+        <section className={DASHBOARD_TABLE_SURFACE}>
+          <div className={DASHBOARD_TABLE_HEAD}>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
+              All users
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Save each row after edits.
+            </p>
+          </div>
+
+          {users.length === 0 ? (
+            <p className="border-t border-border/50 px-6 py-12 text-center text-sm leading-relaxed text-muted-foreground">
+              No one matches these filters.
+              {activeFilterCount > 0 ? " Try clearing filters." : ""}{" "}
+              {canCreate && activeFilterCount === 0 ? "Invite someone above." : ""}
+            </p>
+          ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead className="border-b border-border/50 bg-muted/25">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                      >
+                        User
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                      >
+                        Role
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                      >
+                        Branch
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                      >
+                        Status
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {users.map((user) => {
+                      const isEditingName = nameEditUserId === user.id;
+                      const isEditingRole = roleEditUserId === user.id;
+                      const isEditingBranch = branchEditUserId === user.id;
+                      const branchName =
+                        branchById.get(user.branchId ?? "")?.name ?? "";
+                      return (
+                        <tr
+                          key={user.id}
+                          className="transition-colors hover:bg-muted/30"
+                        >
+                          {/* USER (avatar + name + email) */}
+                          <td className="px-5 py-4 align-top sm:px-6">
+                            {canUpdate && isEditingName ? (
+                              <div className="flex max-w-md items-start gap-3">
+                                <UserAvatar name={user.name} />
+                                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                                  <input
+                                    className={cn(dashboardInputClass(), "py-2 text-sm")}
+                                    value={editingName[user.id] ?? user.name}
+                                    onChange={(event) =>
+                                      setEditingName((previous) => ({
+                                        ...previous,
+                                        [user.id]: event.target.value,
+                                      }))
+                                    }
+                                    aria-label={`Edit name for ${user.email}`}
+                                    autoFocus
+                                  />
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      type="button"
+                                      className="h-8 gap-1.5 rounded-lg px-3"
+                                      disabled={savingNameId === user.id}
+                                      onClick={() => void onSaveName(user.id)}
+                                    >
+                                      {savingNameId === user.id ? (
+                                        <Loader2
+                                          className="size-3.5 animate-spin"
+                                          aria-hidden
+                                        />
+                                      ) : (
+                                        <Save
+                                          className="size-3.5"
+                                          aria-hidden
+                                        />
+                                      )}
+                                      Save
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      type="button"
+                                      className="h-8 rounded-lg"
+                                      disabled={savingNameId === user.id}
+                                      onClick={() => {
+                                        setNameEditUserId(null);
+                                        setEditingName((previous) => {
+                                          const next = { ...previous };
+                                          delete next[user.id];
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="flex min-h-11 items-center gap-3">
-                              <UserAvatar name={user.name} />
-                              <div className="flex min-w-0 flex-1 items-center gap-2">
-                                <span className="truncate font-medium leading-snug text-foreground">{user.name}</span>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  type="button"
-                                  className="h-8 shrink-0 gap-1.5 rounded-full border-border/80 px-3 text-xs font-medium text-muted-foreground shadow-sm transition hover:border-primary/40 hover:text-foreground"
-                                  onClick={() => {
-                                    setNameEditUserId(user.id);
-                                    setEditingName((previous) => ({
+                            ) : (
+                              <div className="flex min-h-12 items-center gap-3">
+                                <UserAvatar name={user.name} />
+                                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="truncate font-semibold leading-snug text-foreground">
+                                        {user.name}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className="block truncate text-xs leading-snug text-muted-foreground"
+                                      title={user.email}
+                                    >
+                                      {user.email}
+                                    </span>
+                                  </div>
+                                  {canUpdate ? (
+                                    <InlineIconButton
+                                      icon={Pencil}
+                                      label={`Edit name for ${user.email}`}
+                                      onClick={() => {
+                                        setNameEditUserId(user.id);
+                                        setEditingName((previous) => ({
+                                          ...previous,
+                                          [user.id]: user.name,
+                                        }));
+                                      }}
+                                    />
+                                  ) : null}
+                                </div>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* ROLE */}
+                          <td className="px-5 py-4 align-top sm:px-6">
+                            {canAssign && isEditingRole ? (
+                              <div className="flex max-w-[16rem] flex-col gap-2">
+                                <select
+                                  className={cn(dashboardSelectClass(), "text-xs")}
+                                  value={
+                                    roleChange[user.id] ?? user.role?.id ?? ""
+                                  }
+                                  onChange={(event) =>
+                                    setRoleChange((previous) => ({
                                       ...previous,
-                                      [user.id]: user.name,
-                                    }));
-                                  }}
-                                  aria-label={`Edit name for ${user.email}`}
+                                      [user.id]: event.target.value,
+                                    }))
+                                  }
+                                  aria-label={`Role for ${user.email}`}
                                 >
-                                  <Pencil className="size-3" aria-hidden />
-                                  Edit
-                                </Button>
+                                  {roles.length === 0 ? (
+                                    <option value={user.role?.id ?? ""}>
+                                      {user.role?.name ?? "Loading roles…"}
+                                    </option>
+                                  ) : null}
+                                  {roles.map((role) => (
+                                    <option key={role.id} value={role.id}>
+                                      {role.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    type="button"
+                                    className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium"
+                                    disabled={savingRoleId === user.id}
+                                    onClick={() => void onAssignRole(user.id)}
+                                  >
+                                    {savingRoleId === user.id ? (
+                                      <Loader2
+                                        className="size-3.5 animate-spin"
+                                        aria-hidden
+                                      />
+                                    ) : (
+                                      <Save className="size-3.5" aria-hidden />
+                                    )}
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    type="button"
+                                    className="h-8 rounded-lg text-xs"
+                                    disabled={savingRoleId === user.id}
+                                    onClick={() => {
+                                      setRoleEditUserId(null);
+                                      setRoleChange((previous) => {
+                                        const next = { ...previous };
+                                        delete next[user.id];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          )
-                        ) : (
-                          <div className="flex min-h-11 items-center gap-3">
-                            <UserAvatar name={user.name} />
-                            <span className="truncate font-medium leading-snug text-foreground">{user.name}</span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 align-middle text-muted-foreground sm:px-6">
-                        <span className="block max-w-[14rem] truncate text-sm leading-snug sm:max-w-xs" title={user.email}>
-                          {user.email}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 align-middle sm:px-6">
-                        {canAssign && roleEditUserId === user.id ? (
-                          <div className="flex max-w-[14rem] flex-col gap-2.5">
-                            <select
-                              className={cn(selectClass(), "text-xs")}
-                              value={roleChange[user.id] ?? user.role?.id ?? ""}
-                              onChange={(event) =>
-                                setRoleChange((previous) => ({
-                                  ...previous,
-                                  [user.id]: event.target.value,
-                                }))
-                              }
-                              aria-label={`Role for ${user.email}`}
-                            >
-                              {roles.length === 0 ? (
-                                <option value={user.role?.id ?? ""}>
-                                  {user.role?.name ?? "Loading roles…"}
-                                </option>
-                              ) : null}
-                              {roles.map((role) => (
-                                <option key={role.id} value={role.id}>
-                                  {role.name}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                type="button"
-                                className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium"
-                                disabled={savingRoleId === user.id}
-                                onClick={() => void onAssignRole(user.id)}
-                              >
-                                {savingRoleId === user.id ? (
-                                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            ) : (
+                              <div className="flex min-h-12 items-center gap-1.5">
+                                {user.role?.name ? (
+                                  <span className="inline-flex max-w-full items-center truncate rounded-md border border-border/55 bg-muted/45 px-2 py-1 text-xs font-semibold leading-none tracking-tight text-foreground">
+                                    {user.role.name}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground/70">
+                                    —
+                                  </span>
+                                )}
+                                {canAssign ? (
+                                  <InlineIconButton
+                                    icon={Pencil}
+                                    label={`Change role for ${user.email}`}
+                                    onClick={() => {
+                                      setRoleEditUserId(user.id);
+                                      setRoleChange((previous) => ({
+                                        ...previous,
+                                        [user.id]: user.role?.id ?? "",
+                                      }));
+                                    }}
+                                  />
                                 ) : null}
-                                Save
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                type="button"
-                                className="h-8 rounded-lg text-xs"
-                                disabled={savingRoleId === user.id}
-                                onClick={() => {
-                                  setRoleEditUserId(null);
-                                  setRoleChange((previous) => {
-                                    const next = { ...previous };
-                                    delete next[user.id];
-                                    return next;
-                                  });
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex min-h-11 flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium leading-snug text-foreground">
-                              {user.role?.name ?? "—"}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* BRANCH */}
+                          <td className="px-5 py-4 align-top sm:px-6">
+                            {canUpdate && isEditingBranch ? (
+                              <div className="flex max-w-[16rem] flex-col gap-2">
+                                <select
+                                  className={cn(dashboardSelectClass(), "text-xs")}
+                                  value={
+                                    branchChange[user.id] ??
+                                    user.branchId ??
+                                    ""
+                                  }
+                                  onChange={(event) =>
+                                    setBranchChange((previous) => ({
+                                      ...previous,
+                                      [user.id]: event.target.value,
+                                    }))
+                                  }
+                                  aria-label={`Branch for ${user.email}`}
+                                >
+                                  <option value="">No branch</option>
+                                  {branches.map((branch) => (
+                                    <option key={branch.id} value={branch.id}>
+                                      {branch.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    type="button"
+                                    className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium"
+                                    disabled={savingBranchId === user.id}
+                                    onClick={() => void onSaveBranch(user.id)}
+                                  >
+                                    {savingBranchId === user.id ? (
+                                      <Loader2
+                                        className="size-3.5 animate-spin"
+                                        aria-hidden
+                                      />
+                                    ) : (
+                                      <Save className="size-3.5" aria-hidden />
+                                    )}
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    type="button"
+                                    className="h-8 rounded-lg text-xs"
+                                    disabled={savingBranchId === user.id}
+                                    onClick={() => {
+                                      setBranchEditUserId(null);
+                                      setBranchChange((previous) => {
+                                        const next = { ...previous };
+                                        delete next[user.id];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex min-h-12 items-center gap-1.5">
+                                {branchName ? (
+                                  <span className="inline-flex items-center gap-1.5 text-sm font-medium leading-snug text-foreground">
+                                    <MapPin
+                                      className="size-3.5 text-muted-foreground/70"
+                                      aria-hidden
+                                    />
+                                    {branchName}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground/70">
+                                    No branch
+                                  </span>
+                                )}
+                                {canUpdate ? (
+                                  <InlineIconButton
+                                    icon={Pencil}
+                                    label={`Change branch for ${user.email}`}
+                                    onClick={() => {
+                                      setBranchEditUserId(user.id);
+                                      setBranchChange((previous) => ({
+                                        ...previous,
+                                        [user.id]: user.branchId ?? "",
+                                      }));
+                                    }}
+                                  />
+                                ) : null}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* STATUS */}
+                          <td className="px-5 py-4 align-top sm:px-6">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize tabular-nums",
+                                statusBadgeClass(user.status),
+                              )}
+                            >
+                              <span
+                                className="size-1.5 shrink-0 rounded-full bg-current opacity-70"
+                                aria-hidden
+                              />
+                              {user.status}
                             </span>
-                            {canAssign ? (
+                          </td>
+
+                          {/* ACTIONS */}
+                          <td className="px-5 py-4 text-right align-top sm:px-6">
+                            {canDeactivate ? (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 type="button"
-                                className="h-8 shrink-0 gap-1.5 rounded-full border-border/80 px-3 text-xs font-medium text-muted-foreground shadow-sm transition hover:border-primary/40 hover:text-foreground"
-                                onClick={() => {
-                                  setRoleEditUserId(user.id);
-                                  setRoleChange((previous) => ({
-                                    ...previous,
-                                    [user.id]: user.role?.id ?? "",
-                                  }));
-                                }}
-                                aria-label={`Change role for ${user.email}`}
+                                className="gap-1.5 border-destructive/35 text-destructive transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                                disabled={deactivatingId === user.id}
+                                onClick={() => void onDeactivate(user.id)}
+                                aria-label={`Deactivate ${user.email}`}
                               >
-                                <Pencil className="size-3" aria-hidden />
-                                Change
+                                {deactivatingId === user.id ? (
+                                  <Loader2
+                                    className="size-3.5 animate-spin"
+                                    aria-hidden
+                                  />
+                                ) : (
+                                  <UserX className="size-3.5" aria-hidden />
+                                )}
+                                Deactivate
                               </Button>
-                            ) : null}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 align-middle sm:px-6">
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize tracking-tight ring-1 ring-inset",
-                            statusBadgeClass(user.status),
-                          )}
-                        >
-                          {user.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 align-middle sm:px-6">
-                        {canDeactivate ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            type="button"
-                            className="h-9 gap-1.5 rounded-xl border-destructive/35 bg-destructive/[0.04] text-destructive shadow-sm transition hover:bg-destructive/10 hover:text-destructive"
-                            disabled={deactivatingId === user.id}
-                            onClick={() => void onDeactivate(user.id)}
-                          >
-                            {deactivatingId === user.id ? (
-                              <Loader2 className="size-3.5 animate-spin" aria-hidden />
                             ) : (
-                              <UserX className="size-3.5" aria-hidden />
+                              <span className="text-xs font-medium text-muted-foreground/70">
+                                —
+                              </span>
                             )}
-                            Deactivate
-                          </Button>
-                        ) : (
-                          <span className="text-xs font-medium text-muted-foreground/80">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {users.length === 0 ? (
-              <div className="border-t border-border/50 bg-muted/10 px-6 py-14 text-center">
-                <UsersIcon className="mx-auto size-10 text-muted-foreground/40" aria-hidden />
-                <p className="mt-3 text-sm font-medium text-foreground">No one matches these filters</p>
-                <p className="mt-1 text-xs text-muted-foreground">Try clearing filters or adjusting status, role, or branch.</p>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ) : null}
+            )}
           </section>
 
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-border/60 bg-muted/20 px-4 py-3 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
-            <span className="font-mono text-[11px] font-medium text-foreground/90">GET …/users</span>
-            <span className="hidden text-muted-foreground/45 sm:inline" aria-hidden>
-              ·
-            </span>
-            <span>Other open tabs may need a refresh to see permission changes.</span>
-          </p>
-        </div>
+        <p className="border-t border-border/50 pt-8 font-sans text-xs leading-relaxed text-muted-foreground">
+          <span className="rounded bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">
+            GET …/users
+          </span>{" "}
+          · Other open tabs may need a refresh to see permission changes.
+        </p>
       </div>
 
       {canCreate ? (
@@ -822,7 +1107,6 @@ export default function UsersPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl"
                 disabled={creating}
                 onClick={() => onInviteDrawerOpenChange(false)}
               >
@@ -831,7 +1115,6 @@ export default function UsersPage() {
               <Button
                 type="submit"
                 form="invite-user-form"
-                className="rounded-xl shadow-md shadow-primary/15"
                 disabled={creating || roles.length === 0}
               >
                 {creating ? (
@@ -849,7 +1132,11 @@ export default function UsersPage() {
             </div>
           }
         >
-          <form id="invite-user-form" className="space-y-6" onSubmit={onCreateUser}>
+          <form
+            id="invite-user-form"
+            className="space-y-6"
+            onSubmit={onCreateUser}
+          >
             <FormDrawerFields
               legend="Account"
               hint="Email must be unique in your workspace. PIN is optional for cashier-style access."
@@ -858,11 +1145,14 @@ export default function UsersPage() {
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                   Full name
                   <input
-                    className={inputClass()}
+                    className={dashboardInputClass()}
                     placeholder="Jane Doe"
                     value={draft.name}
                     onChange={(event) =>
-                      setDraft((previous) => ({ ...previous, name: event.target.value }))
+                      setDraft((previous) => ({
+                        ...previous,
+                        name: event.target.value,
+                      }))
                     }
                     required
                     autoComplete="name"
@@ -872,12 +1162,15 @@ export default function UsersPage() {
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                   Email
                   <input
-                    className={inputClass()}
+                    className={dashboardInputClass()}
                     placeholder="jane@company.com"
                     type="email"
                     value={draft.email}
                     onChange={(event) =>
-                      setDraft((previous) => ({ ...previous, email: event.target.value }))
+                      setDraft((previous) => ({
+                        ...previous,
+                        email: event.target.value,
+                      }))
                     }
                     required
                     autoComplete="email"
@@ -887,10 +1180,13 @@ export default function UsersPage() {
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                   Role
                   <select
-                    className={selectClass()}
+                    className={dashboardSelectClass()}
                     value={draft.roleId}
                     onChange={(event) =>
-                      setDraft((previous) => ({ ...previous, roleId: event.target.value }))
+                      setDraft((previous) => ({
+                        ...previous,
+                        roleId: event.target.value,
+                      }))
                     }
                     aria-label="Role for new user"
                   >
@@ -902,12 +1198,37 @@ export default function UsersPage() {
                   </select>
                 </label>
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                  Branch
+                  <select
+                    className={dashboardSelectClass()}
+                    value={draft.branchId}
+                    onChange={(event) =>
+                      setDraft((previous) => ({
+                        ...previous,
+                        branchId: event.target.value,
+                      }))
+                    }
+                    aria-label="Branch for new user"
+                    disabled={!isOwner}
+                  >
+                    <option value="">No branch (all)</option>
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
                   Status
                   <select
-                    className={selectClass()}
+                    className={dashboardSelectClass()}
                     value={draft.status}
                     onChange={(event) =>
-                      setDraft((previous) => ({ ...previous, status: event.target.value }))
+                      setDraft((previous) => ({
+                        ...previous,
+                        status: event.target.value,
+                      }))
                     }
                     aria-label="Status for new user"
                   >
@@ -916,15 +1237,21 @@ export default function UsersPage() {
                   </select>
                 </label>
                 <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                  PIN <span className="font-normal text-muted-foreground/80">(optional, 4–6 digits)</span>
+                  PIN{" "}
+                  <span className="font-normal text-muted-foreground/80">
+                    (optional, 4–6 digits)
+                  </span>
                   <input
-                    className={inputClass()}
+                    className={dashboardInputClass()}
                     placeholder="For kiosk / cashier-style users"
                     inputMode="numeric"
                     pattern="\d{4,6}"
                     value={draft.pin}
                     onChange={(event) =>
-                      setDraft((previous) => ({ ...previous, pin: event.target.value }))
+                      setDraft((previous) => ({
+                        ...previous,
+                        pin: event.target.value,
+                      }))
                     }
                     aria-label="PIN for cashier-style user"
                   />

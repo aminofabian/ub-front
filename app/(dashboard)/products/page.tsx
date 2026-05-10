@@ -11,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { DashboardNotice } from "@/components/dashboard-page-ui";
+import { DashboardNotice, dashboardHintClass } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -41,7 +41,13 @@ import {
 } from "./_components/ProductDrawers";
 
 export default function ProductsPage() {
-  const { me, business, branchId } = useDashboard();
+  const {
+    me,
+    business,
+    branchId,
+    branches,
+    itemTypeId: dashboardItemTypeId,
+  } = useDashboard();
   const canCatalogWrite = hasPermission(
     me?.permissions,
     Permission.CatalogItemsWrite,
@@ -116,6 +122,8 @@ export default function ProductsPage() {
     activeDrawer,
     setActiveDrawer,
     itemTypes: catalog.itemTypes,
+    dashboardItemTypeId,
+    headerBranchId: branchId,
   });
 
   const isListRowActive = useCallback(
@@ -139,11 +147,7 @@ export default function ProductsPage() {
   ).length;
   const catalogMessageInDrawer =
     !!catalog.message.trim() &&
-    !!(
-      activeDrawer ||
-      quick.quickEditAllOpen ||
-      (mobileDetailOpen && !isLg)
-    );
+    !!(activeDrawer || quick.quickEditAllOpen || (mobileDetailOpen && !isLg));
   const quickEditDrawerBanner =
     quick.quickEditAllOpen && (quick.qeaError || catalog.message.trim()) ? (
       <div className="flex flex-col gap-2">
@@ -222,12 +226,8 @@ export default function ProductsPage() {
 
   return (
     <>
-      <div className="relative -mx-4 md:-mx-6 flex h-full min-h-0 w-[calc(100%+2rem)] md:w-[calc(100%+3rem)] max-w-none flex-col gap-3 overflow-hidden px-3 pb-4 sm:px-4 md:px-4">
-        <div
-          className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[120px] w-[min(100%,48rem)] max-w-full -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,hsl(var(--primary)/0.08),transparent_70%)] opacity-90 dark:opacity-60"
-          aria-hidden
-        />
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+      <div className="relative -mx-4 flex h-full min-h-0 w-[calc(100%+2rem)] max-w-none flex-col gap-4 overflow-hidden px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
             onCreateNew={() => setActiveDrawer("create-parent")}
@@ -239,11 +239,11 @@ export default function ProductsPage() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-stretch lg:gap-3 lg:p-4">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-3 sm:p-4 lg:flex-row lg:items-stretch lg:gap-4 lg:p-4">
               <ProductFilterSidebar catalog={catalog} />
               <div className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2 lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-hidden lg:pr-1">
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/25 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]">
+                  <span className={cn(dashboardHintClass(), "font-medium tabular-nums text-muted-foreground")}>
                     <span className="text-foreground">
                       {catalog.listTotalElements}
                     </span>{" "}
@@ -264,7 +264,7 @@ export default function ProductsPage() {
                           ? "secondary"
                           : "ghost"
                       }
-                      className="h-8 gap-1 px-2"
+                      className="h-8 gap-1 px-2 shadow-sm transition-shadow hover:shadow"
                       onClick={() => catalog.setListDensity("comfortable")}
                     >
                       <Rows3 className="size-3.5" />
@@ -275,7 +275,7 @@ export default function ProductsPage() {
                       variant={
                         catalog.listDensity === "dense" ? "secondary" : "ghost"
                       }
-                      className="h-8 gap-1 px-2"
+                      className="h-8 gap-1 px-2 shadow-sm transition-shadow hover:shadow"
                       onClick={() => catalog.setListDensity("dense")}
                     >
                       <List className="size-3.5" />
@@ -283,7 +283,7 @@ export default function ProductsPage() {
                   </div>
                 </div>
                 {catalog.rowSelection.size > 0 && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2.5 text-xs shadow-sm ring-1 ring-primary/10">
                     <span className="font-medium text-foreground">
                       {catalog.rowSelection.size} selected
                     </span>
@@ -341,14 +341,13 @@ export default function ProductsPage() {
               <div className="hidden lg:flex lg:min-h-0 lg:flex-[2_1_0%] lg:min-w-[22rem] lg:flex-col lg:border-l lg:border-border/50 lg:pl-3 xl:min-w-[24rem] 2xl:min-w-[26rem]">
                 <div
                   className={cn(
-                    "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-inner",
-                    "dark:bg-card/75",
+                    "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]",
                   )}
                 >
                   {D ? (
                     <>
-                      <div className="shrink-0 border-b border-border/50 bg-muted/25 px-4 py-3 sm:px-5">
-                        <h2 className="text-sm font-semibold">
+                      <div className="shrink-0 border-b border-border/50 bg-muted/35 px-4 py-3.5 sm:px-5">
+                        <h2 className="text-sm font-semibold tracking-tight text-foreground">
                           Product details
                         </h2>
                       </div>
@@ -380,7 +379,9 @@ export default function ProductsPage() {
             </div>
           </section>
           {catalog.message && !catalogMessageInDrawer ? (
-            <DashboardNotice text={catalog.message} />
+            <div className="shrink-0 px-1">
+              <DashboardNotice text={catalog.message} />
+            </div>
           ) : null}
         </div>
       </div>
@@ -398,6 +399,7 @@ export default function ProductsPage() {
         canLinkSupplier={canLinkSupplier}
         canListSuppliers={canListSuppliers}
         currencyCode={business?.currency?.trim() || ""}
+        branches={branches}
       />
 
       <ProductEditDrawer
@@ -456,9 +458,7 @@ export default function ProductsPage() {
             <Button
               type="submit"
               form="add-variant-form"
-              disabled={
-                m.variantCreateBusy || variantCreateSubmitCount === 0
-              }
+              disabled={m.variantCreateBusy || variantCreateSubmitCount === 0}
             >
               {m.variantCreateBusy
                 ? "Creating…"

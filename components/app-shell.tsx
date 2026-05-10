@@ -1,28 +1,29 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
 import {
   Banknote,
   Building2,
   ChevronDown,
-  ChevronRight,
-  Grid3x3,
   LogOut,
+  MapPin,
   Package,
   ShoppingBag,
   SlidersHorizontal,
+  Tags,
+  User,
   Warehouse,
-  X,
   type LucideIcon,
 } from "lucide-react";
 
+import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { useOptionalTenant } from "@/components/providers/tenant-provider";
-import { logoutRemote } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { logoutRemote } from "@/lib/api";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
@@ -64,6 +65,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Package,
     items: [
       { href: APP_ROUTES.products, label: "Products" },
+      { href: APP_ROUTES.itemTypes, label: "Item types" },
       { href: APP_ROUTES.categories, label: "Categories" },
       { href: APP_ROUTES.suppliers, label: "Suppliers" },
       { href: APP_ROUTES.customers, label: "Customers" },
@@ -138,8 +140,8 @@ type NavGate = {
   canRecordSupplierPayment: boolean;
   canViewInventoryValuation: boolean;
   canViewInventoryTransfers: boolean;
-  canViewStockTake: boolean;
   canViewSupplyBatches: boolean;
+  canViewStockTake: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
@@ -150,80 +152,69 @@ type NavGate = {
 };
 
 function featureFlagAllows(
-  flags: Record<string, boolean> | undefined,
-  key: string | undefined,
+  item: NavItem,
+  featureFlags: Record<string, boolean> | undefined,
 ): boolean {
-  if (!key) return true;
-  if (!flags || !(key in flags)) return true;
-  return flags[key] === true;
+  if (!item.featureFlag) return true;
+  if (!featureFlags) return false;
+  return featureFlags[item.featureFlag] !== false;
 }
 
-function isNavItemVisible(item: NavItem, g: NavGate): boolean {
-  if (!featureFlagAllows(g.featureFlags, item.featureFlag)) return false;
-  if (
-    item.href === APP_ROUTES.businessDomains ||
-    item.href === APP_ROUTES.businessBranding
-  )
-    return g.canManageBusinessSettings;
-  if (item.href === APP_ROUTES.users) return g.canListUsers;
-  if (item.href === APP_ROUTES.businessImport) return g.canManageImports;
-  if (item.href === APP_ROUTES.categories) return g.canViewCategories;
-  if (item.href === APP_ROUTES.suppliers) return g.canViewSuppliers;
-  if (item.href === APP_ROUTES.customers) return g.canViewCustomers;
+function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
+  if (item.href === APP_ROUTES.users) return gate.canListUsers;
+  if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
+  if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
   if (item.href === APP_ROUTES.purchasingIntelligence)
-    return g.canViewPurchasingIntelligence;
-  if (item.href === APP_ROUTES.purchasingAddSupplies) return g.canAddSupplies;
-  if (item.href === APP_ROUTES.purchasingApAging) return g.canViewApAging;
+    return gate.canViewPurchasingIntelligence;
+  if (item.href === APP_ROUTES.purchasingAddSupplies)
+    return gate.canAddSupplies;
+  if (item.href === APP_ROUTES.purchasingApAging) return gate.canViewApAging;
+  if (item.href === APP_ROUTES.suppliers) return gate.canViewSuppliers;
+  if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
-    return g.canRecordSupplierPayment;
-  if (item.href === APP_ROUTES.inventorySupplyBatches)
-    return g.canViewSupplyBatches;
+    return gate.canRecordSupplierPayment;
   if (item.href === APP_ROUTES.inventoryValuation)
-    return g.canViewInventoryValuation;
+    return gate.canViewInventoryValuation;
   if (item.href === APP_ROUTES.inventoryTransfers)
-    return g.canViewInventoryTransfers;
-  if (item.href === APP_ROUTES.inventoryStockTake) return g.canViewStockTake;
-  if (item.href === APP_ROUTES.pricing) return g.canViewPricing;
-  if (item.href === APP_ROUTES.shifts) return g.canViewShifts;
-  if (item.href === APP_ROUTES.analytics) return g.canViewAnalytics;
-  if (item.href === APP_ROUTES.salesReports) return g.canViewSalesIntelligence;
-  if (item.href === APP_ROUTES.storefrontWebOrders)
-    return g.canViewStorefrontOrders;
-  if (item.href === APP_ROUTES.salesQuick || item.href === APP_ROUTES.cashier)
-    return g.canQuickSale;
-  return true;
+    return gate.canViewInventoryTransfers;
+  if (item.href === APP_ROUTES.inventorySupplyBatches)
+    return gate.canViewSupplyBatches;
+  if (item.href === APP_ROUTES.inventoryStockTake) return gate.canViewStockTake;
+  if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
+  if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
+  if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
+  if (item.href === APP_ROUTES.salesReports)
+    return gate.canViewSalesIntelligence;
+  if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
+  if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
+  return featureFlagAllows(item, gate.featureFlags);
 }
 
 function itemIsActive(pathname: string, href: string): boolean {
-  return pathname === href;
+  if (href === "/") return pathname === "/";
+  return (
+    pathname === href ||
+    pathname.startsWith(href + "/") ||
+    pathname.startsWith(href + "?")
+  );
 }
 
 function sectionHasActiveItem(
   pathname: string,
   items: readonly NavItem[],
 ): boolean {
-  return items.some((item) => pathname === item.href);
+  return items.some((item) => itemIsActive(pathname, item.href));
 }
-
-// ─── Bottom-tab config ────────────────────────────────────────────────────────
 
 type BottomTab = {
   id: string;
   label: string;
   icon: LucideIcon;
-  /** Primary href navigated to on tap (undefined → "More" special tab) */
   href?: string;
   matchSectionIds: string[];
 };
 
-const BOTTOM_TABS: BottomTab[] = [
-  {
-    id: "org",
-    label: "Business",
-    icon: Building2,
-    href: APP_ROUTES.business,
-    matchSectionIds: ["org"],
-  },
+const BOTTOM_TABS: readonly BottomTab[] = [
   {
     id: "catalog",
     label: "Catalog",
@@ -232,28 +223,28 @@ const BOTTOM_TABS: BottomTab[] = [
     matchSectionIds: ["catalog"],
   },
   {
-    id: "sales",
-    label: "Sales",
-    icon: ShoppingBag,
-    href: APP_ROUTES.salesReports,
-    matchSectionIds: ["sales"],
-  },
-  {
     id: "inventory",
     label: "Stock",
     icon: Warehouse,
-    href: APP_ROUTES.inventoryValuation,
-    matchSectionIds: ["inventory"],
+    href: APP_ROUTES.inventorySupplyBatches,
+    matchSectionIds: ["purchasing", "inventory"],
   },
   {
-    id: "more",
-    label: "More",
-    icon: Grid3x3,
-    matchSectionIds: ["purchasing", "ops"],
+    id: "ops",
+    label: "Operations",
+    icon: SlidersHorizontal,
+    href: APP_ROUTES.pricing,
+    matchSectionIds: ["ops"],
   },
+  {
+    id: "sales",
+    label: "Sales",
+    icon: ShoppingBag,
+    href: APP_ROUTES.analytics,
+    matchSectionIds: ["sales"],
+  },
+  { id: "more", label: "More", icon: Tags, matchSectionIds: ["org"] },
 ];
-
-// ─── AppShell ─────────────────────────────────────────────────────────────────
 
 type AppShellProps = { children: React.ReactNode };
 
@@ -289,7 +280,17 @@ export function AppShell({ children }: AppShellProps) {
     canViewStorefrontOrders,
     canQuickSale,
     canManageImports,
+    branches,
+    branchId,
+    setBranchId,
+    branchesLoading,
+    itemTypes,
+    itemTypeId,
+    setItemTypeId,
+    itemTypesLoading,
   } = useDashboard();
+
+  const isOwner = me?.role?.key === "owner";
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
 
@@ -392,6 +393,10 @@ export function AppShell({ children }: AppShellProps) {
     return null;
   }, [activeSectionId]);
 
+  // ── current selections for header display ─────────────────────────────────
+  const currentBranch = branches.find((b) => b.id === branchId);
+  const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
+
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-muted/30">
       {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────────── */}
@@ -484,13 +489,74 @@ export function AppShell({ children }: AppShellProps) {
       {/* ── Right panel ─────────────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Desktop top header */}
-        <header className="hidden md:flex items-center justify-between border-b bg-background px-6 py-3">
-          <p className="text-sm text-muted-foreground">
+        <header className="hidden md:flex items-center justify-between gap-4 border-b bg-background px-6 py-3">
+          <p className="text-sm text-muted-foreground truncate">
             {headerSubtitle ? headerSubtitle : ""}
           </p>
-          <Button variant="outline" onClick={onLogout}>
-            Log out
-          </Button>
+
+          <div className="flex items-center gap-3">
+            {/* Branch selector */}
+            {isOwner ? (
+              <select
+                className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                disabled={branchesLoading || branches.length === 0}
+                aria-label="Select branch"
+              >
+                {branches.length === 0 ? (
+                  <option value="">
+                    {branchesLoading ? "Loading…" : "No branches"}
+                  </option>
+                ) : (
+                  <>
+                    {!branchId ? (
+                      <option value="">Select branch…</option>
+                    ) : null}
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            ) : currentBranch ? (
+              <span className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30">
+                <MapPin className="size-3.5" aria-hidden />
+                {currentBranch.name}
+              </span>
+            ) : null}
+
+            {/* Item type selector */}
+            <select
+              className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+              value={itemTypeId}
+              onChange={(e) => setItemTypeId(e.target.value)}
+              disabled={itemTypesLoading || itemTypes.length === 0}
+              aria-label="Select item type"
+            >
+              {itemTypes.length === 0 ? (
+                <option value="">
+                  {itemTypesLoading ? "Loading…" : "No item types"}
+                </option>
+              ) : (
+                <>
+                  {!itemTypeId ? <option value="">Select type…</option> : null}
+                  {itemTypes.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                      {t.isDefault ? " ★" : ""}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+
+            <Button variant="outline" onClick={onLogout}>
+              Log out
+            </Button>
+          </div>
         </header>
 
         {/* ── Mobile top header ──────────────────────────────────────────────── */}
@@ -510,6 +576,19 @@ export function AppShell({ children }: AppShellProps) {
                 </p>
               ) : null}
             </div>
+          </div>
+          {/* Mobile branch + type indicator */}
+          <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
+            {currentBranch ? (
+              <span className="truncate max-w-[7rem]">
+                {currentBranch.name}
+              </span>
+            ) : null}
+            {currentItemType ? (
+              <span className="truncate max-w-[7rem] border-l border-border/50 pl-2">
+                {currentItemType.label}
+              </span>
+            ) : null}
           </div>
           {/* User avatar */}
           <button
@@ -537,45 +616,38 @@ export function AppShell({ children }: AppShellProps) {
             "md:hidden fixed bottom-0 inset-x-0 z-40",
             "border-t border-border/40 bg-background/95 backdrop-blur-xl",
             "shadow-[0_-1px_0_0_hsl(var(--border)/0.5),0_-8px_32px_-8px_hsl(var(--foreground)/0.08)]",
+            "pb-[env(safe-area-inset-bottom,0px)]",
           )}
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="flex h-[60px] items-stretch">
+          <div className="flex items-center justify-around px-2 py-1">
             {BOTTOM_TABS.map((tab) => {
               const Icon = tab.icon;
               const isMoreTab = tab.id === "more";
-              const isActive = isMoreTab
-                ? moreOpen ||
-                  tab.matchSectionIds.includes(activeSectionId ?? "")
-                : !moreOpen && tab.id === activeBottomTabId;
+              const isActive = activeBottomTabId === tab.id;
 
               if (isMoreTab) {
                 return (
                   <button
-                    key="more"
+                    key={tab.id}
                     type="button"
-                    onClick={() => setMoreOpen((o) => !o)}
+                    onClick={() => setMoreOpen(true)}
+                    aria-label={tab.label}
                     className={cn(
-                      "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 transition-all",
-                      "active:scale-90",
-                      isActive ? "text-foreground" : "text-muted-foreground/70",
+                      "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors",
+                      isActive
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     <span
                       className={cn(
-                        "flex h-7 w-10 items-center justify-center rounded-full transition-all duration-200",
-                        isActive && "bg-foreground/[0.08]",
+                        "flex size-8 items-center justify-center rounded-xl transition-colors",
+                        isActive && "bg-primary/10 text-primary",
                       )}
                     >
-                      {moreOpen ? (
-                        <X className="size-[18px]" aria-hidden />
-                      ) : (
-                        <Icon className="size-[18px]" aria-hidden />
-                      )}
+                      <Icon className="size-4" aria-hidden />
                     </span>
-                    <span className="text-[10px] font-medium leading-none">
-                      {tab.label}
-                    </span>
+                    <span>{tab.label}</span>
                   </button>
                 );
               }
@@ -583,172 +655,181 @@ export function AppShell({ children }: AppShellProps) {
               return (
                 <Link
                   key={tab.id}
-                  href={tab.href!}
-                  onClick={() => setMoreOpen(false)}
+                  href={tab.href ?? "#"}
                   className={cn(
-                    "flex flex-1 flex-col items-center justify-center gap-0.5 px-1 transition-all",
-                    "active:scale-90",
-                    isActive ? "text-foreground" : "text-muted-foreground/70",
+                    "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-7 w-10 items-center justify-center rounded-full transition-all duration-200",
-                      isActive && "bg-foreground/[0.08]",
+                      "flex size-8 items-center justify-center rounded-xl transition-colors",
+                      isActive && "bg-primary/10 text-primary",
                     )}
                   >
-                    <Icon
-                      className={cn(
-                        "transition-all duration-200",
-                        isActive ? "size-[20px]" : "size-[18px]",
-                      )}
-                      aria-hidden
-                    />
+                    <Icon className="size-4" aria-hidden />
                   </span>
-                  <span
-                    className={cn(
-                      "text-[10px] font-medium leading-none transition-all",
-                      isActive && "font-semibold",
-                    )}
-                  >
-                    {tab.label}
-                  </span>
+                  <span>{tab.label}</span>
                 </Link>
               );
             })}
           </div>
         </nav>
 
-        {/* ── "More" bottom sheet (mobile) ───────────────────────────────────── */}
-        {moreOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="md:hidden fixed inset-0 z-[45] bg-background/50 backdrop-blur-[2px]"
-              onClick={() => setMoreOpen(false)}
-              aria-hidden
-            />
-
-            {/* Sheet */}
-            <div
-              className={cn(
-                "md:hidden fixed inset-x-0 bottom-[60px] z-[46] flex max-h-[78dvh] flex-col",
-                "rounded-t-[28px] border-t border-x border-border/50",
-                "bg-background shadow-[0_-16px_64px_-8px_hsl(var(--foreground)/0.15)]",
-                "animate-in slide-in-from-bottom-4 duration-300 ease-out",
-              )}
-              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-            >
-              {/* Drag handle */}
-              <div className="flex shrink-0 justify-center pb-1 pt-3">
-                <div className="h-[3px] w-10 rounded-full bg-border" />
-              </div>
-
-              {/* User card */}
-              <div className="mx-4 my-2 flex shrink-0 items-center gap-3 rounded-2xl bg-muted/60 px-4 py-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background text-sm font-bold">
+        {/* ── Mobile "More" drawer ──────────────────────────────────────────── */}
+        {moreOpen ? (
+          <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-background">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <span className="text-sm font-semibold">More</span>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                className="flex size-8 items-center justify-center rounded-full hover:bg-muted"
+                aria-label="Close menu"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* User info */}
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-full bg-foreground text-background text-sm font-bold">
                   {userInitial}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {me?.email ?? "—"}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {business?.name ?? tenantTitle}
+                <div>
+                  <p className="text-sm font-medium">{me?.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {business?.name}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-xl border border-border/60 bg-background px-3 py-1.5",
-                    "text-xs font-medium text-muted-foreground hover:text-foreground transition-colors",
-                  )}
-                >
-                  <LogOut className="size-3.5" aria-hidden />
-                  Out
-                </button>
               </div>
 
-              {/* Nav sections */}
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                <div className="space-y-1 px-4 pb-4 pt-1">
-                  {visibleSections.map((section) => {
-                    const Icon = section.icon;
-                    const sectionActive = activeSectionId === section.id;
-                    return (
-                      <div
-                        key={section.id}
-                        className="overflow-hidden rounded-2xl border border-border/50 bg-card"
-                      >
-                        {/* Section header */}
-                        <div
+              {/* Branch & item type selectors on mobile */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Branch
+                  </label>
+                  {isOwner ? (
+                    <select
+                      className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      value={branchId}
+                      onChange={(e) => setBranchId(e.target.value)}
+                      disabled={branchesLoading || branches.length === 0}
+                      aria-label="Select branch"
+                    >
+                      {branches.length === 0 ? (
+                        <option value="">
+                          {branchesLoading ? "Loading…" : "No branches"}
+                        </option>
+                      ) : (
+                        <>
+                          {!branchId ? (
+                            <option value="">Select branch…</option>
+                          ) : null}
+                          {branches.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                  ) : currentBranch ? (
+                    <span className="mt-1 flex w-full items-center gap-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium text-muted-foreground">
+                      <MapPin className="size-3.5" aria-hidden />
+                      {currentBranch.name}
+                    </span>
+                  ) : null}
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Item type
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    value={itemTypeId}
+                    onChange={(e) => setItemTypeId(e.target.value)}
+                    disabled={itemTypesLoading || itemTypes.length === 0}
+                    aria-label="Select item type"
+                  >
+                    {itemTypes.length === 0 ? (
+                      <option value="">
+                        {itemTypesLoading ? "Loading…" : "No item types"}
+                      </option>
+                    ) : (
+                      <>
+                        {!itemTypeId ? (
+                          <option value="">Select type…</option>
+                        ) : null}
+                        {itemTypes.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.label}
+                            {t.isDefault ? " ★" : ""}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Navigation sections */}
+              {visibleSections.map((section) => (
+                <div key={section.id}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    {section.title}
+                  </p>
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const active = itemIsActive(pathname, item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreOpen(false)}
                           className={cn(
-                            "flex items-center gap-2.5 px-3.5 py-2.5",
-                            sectionActive && "bg-primary/[0.04]",
+                            "block rounded-md px-3 py-2 text-sm transition-colors",
+                            active
+                              ? "bg-accent font-medium text-accent-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
                           )}
                         >
-                          <span
-                            className={cn(
-                              "flex size-7 shrink-0 items-center justify-center rounded-lg",
-                              sectionActive
-                                ? "bg-foreground text-background"
-                                : "bg-muted text-muted-foreground",
-                            )}
-                          >
-                            <Icon className="size-3.5" aria-hidden />
-                          </span>
-                          <div className="min-w-0">
-                            <p
-                              className={cn(
-                                "text-[13px] font-semibold leading-tight",
-                                sectionActive && "text-primary",
-                              )}
-                            >
-                              {section.title}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground leading-tight">
-                              {section.blurb}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Section links */}
-                        <div className="border-t border-border/50 px-2 py-1.5 grid grid-cols-2 gap-1">
-                          {section.items.map((item) => {
-                            const active = itemIsActive(pathname, item.href);
-                            return (
-                              <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={() => setMoreOpen(false)}
-                                className={cn(
-                                  "flex items-center justify-between rounded-xl px-3 py-2 text-[13px] transition-colors",
-                                  active
-                                    ? "bg-foreground text-background font-medium"
-                                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
-                                )}
-                              >
-                                <span className="truncate">{item.label}</span>
-                                <ChevronRight
-                                  className={cn(
-                                    "size-3 shrink-0 ml-1",
-                                    active ? "opacity-60" : "opacity-30",
-                                  )}
-                                  aria-hidden
-                                />
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ))}
+
+              {/* Logout */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={onLogout}
+              >
+                <LogOut className="size-4" aria-hidden />
+                Log out
+              </Button>
             </div>
-          </>
-        )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

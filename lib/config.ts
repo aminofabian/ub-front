@@ -15,6 +15,7 @@ export const APP_ROUTES = {
   branches: "/branches",
   users: "/users",
   products: "/products",
+  itemTypes: "/item-types",
   categories: "/categories",
   suppliers: "/suppliers",
   customers: "/customers",

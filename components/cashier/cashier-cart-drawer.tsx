@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +21,24 @@ import {
   type SaleRecord,
 } from "@/lib/api";
 import { cashierItemPrimaryLabel, posSearchItemDetailLine } from "@/lib/cashier-item-display";
+import { CashierCurrencySuffix, CashierDottedLeader } from "./cashier-currency-inline";
 import { Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+
+const DRAWER_SECTION_TITLE = cn(
+  "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+);
+
+const drawerFieldClass = (extra?: string) =>
+  cn(
+    "rounded-lg border border-border/55 bg-background px-2.5 text-sm shadow-sm transition-[border-color,box-shadow]",
+    "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_38%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
+    extra,
+  );
+
+const drawerInsetPanel = cn(
+  "rounded-xl border border-border/45 bg-gradient-to-b from-muted/25 to-muted/10 p-3 shadow-sm ring-1 ring-black/[0.02] dark:from-muted/15 dark:to-muted/5 dark:ring-white/[0.03]",
+);
 
 type CartLineLike = {
   key: string;
@@ -127,11 +143,12 @@ function PayChip({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        "rounded-full border px-3 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color,background-color]",
         "disabled:cursor-not-allowed disabled:opacity-50",
+        "active:scale-[0.98]",
         active
-          ? "border-transparent shadow-sm text-[var(--pos-primary-ink)]"
-          : "border-border bg-background hover:bg-muted",
+          ? "border-transparent text-[var(--pos-primary-ink)] shadow-md ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] ring-offset-2 ring-offset-background"
+          : "border-border/55 bg-background/90 hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:bg-muted/40",
       )}
       style={
         active
@@ -205,20 +222,26 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="right"
-        className="flex h-full w-full max-w-md flex-col gap-0 p-0"
+        className={cn(
+          "flex h-full w-full max-w-[min(100%,22rem)] flex-col gap-0 overflow-hidden border-l border-border/35 p-0 shadow-2xl sm:max-w-md",
+          "bg-gradient-to-b from-background to-muted/12 dark:to-muted/8",
+        )}
         style={brandTheme}
         showCloseButton
       >
-        <div
-          className="flex items-start justify-between gap-3 border-b border-[color-mix(in_srgb,var(--pos-primary)_14%,var(--border))] px-5 py-4"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in srgb, var(--pos-glow) 28%, var(--card)), var(--card))",
-          }}
-        >
-          <DialogHeader className="space-y-0.5">
-            <DialogTitle className="text-base text-[var(--pos-primary)]">Cart</DialogTitle>
-            <DialogDescription className="text-xs">
+        <div className="relative border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-4 py-3.5 dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10">
+          <span
+            className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-[var(--pos-primary)] shadow-[2px_0_14px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
+            aria-hidden
+          />
+          <DialogHeader className="min-w-0 space-y-0.5 pl-3.5">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
+              <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
+                <ShoppingBag className="size-3.5" aria-hidden />
+              </span>
+              Cart
+            </DialogTitle>
+            <DialogDescription className="pl-9 text-[11px] leading-snug text-muted-foreground">
               {lines.length === 0
                 ? "No items yet — tap a tile or search to add."
                 : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalItems.toFixed(0)} item${totalItems === 1 ? "" : "s"}`}
@@ -226,14 +249,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           </DialogHeader>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3.5">
           {lines.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-              <span className="inline-flex size-12 items-center justify-center rounded-full bg-muted/50 text-2xl">
-                ·
+            <div className="flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-border/50 bg-muted/5 py-10 text-center ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
+              <span className="inline-flex size-12 items-center justify-center rounded-xl border border-border/40 bg-background text-muted-foreground shadow-sm">
+                <ShoppingBag className="size-5 opacity-55" aria-hidden />
               </span>
-              <p>Your cart is empty.</p>
-              <p className="text-xs">Search or tap a top seller to add items.</p>
+              <div className="space-y-0.5 px-3">
+                <p className="text-sm font-semibold text-foreground">Your cart is empty</p>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Search or tap a top seller to add items.
+                </p>
+              </div>
             </div>
           ) : (
             <ul className="space-y-2">
@@ -246,33 +273,41 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 return (
                   <li
                     key={line.key}
-                    className="rounded-2xl border bg-card p-3 shadow-sm"
+                    className={cn(
+                      "group relative overflow-hidden rounded-xl border border-border/45 bg-card p-2.5 shadow-sm ring-1 ring-black/[0.02] transition-[border-color,box-shadow] duration-200",
+                      "dark:ring-white/[0.03]",
+                      "hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md",
+                    )}
                   >
-                    <div className="flex items-start gap-3">
+                    <span
+                      className="pointer-events-none absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-[var(--pos-primary)] opacity-0 shadow-[0_0_10px_color-mix(in_srgb,var(--pos-primary)_40%,transparent)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                      aria-hidden
+                    />
+                    <div className="flex items-start gap-2.5">
                       {thumb ? (
-                        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60">
                           <Image
                             src={thumb}
                             alt=""
-                            width={48}
-                            height={48}
+                            width={44}
+                            height={44}
                             className="h-full w-full object-cover"
                             unoptimized
                           />
                         </span>
                       ) : (
                         <span
-                          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border bg-muted text-base font-semibold text-muted-foreground"
+                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60 text-sm font-bold text-muted-foreground"
                           aria-hidden
                         >
                           {lineTitle.trim().charAt(0).toUpperCase() || "?"}
                         </span>
                       )}
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-medium leading-tight">
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <p className="line-clamp-2 text-[13px] font-semibold leading-[1.25] tracking-tight text-foreground">
                           {lineTitle}
                         </p>
-                        <p className="break-all text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <p className="mt-0.5 break-all text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                           {lineDetail}
                         </p>
                       </div>
@@ -280,6 +315,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Remove line"
                         onClick={() => removeLine(line.key)}
                       >
@@ -287,13 +323,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       </Button>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-[auto_1fr] items-center gap-2 text-sm">
-                      <span className="text-xs text-muted-foreground">Qty</span>
-                      <div className="flex items-center gap-1.5">
+                    <div className="mt-2.5 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5 text-sm">
+                      <span className="text-[11px] font-medium text-muted-foreground">Qty</span>
+                      <div className="flex items-center gap-1">
                         <Button
                           type="button"
                           variant="outline"
                           size="icon-sm"
+                          className="h-7 w-7 border-border/55"
                           aria-label="Decrease"
                           onClick={() =>
                             updateLine(
@@ -309,7 +346,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           type="text"
                           inputMode="decimal"
                           aria-label="Quantity"
-                          className="h-8 w-16 rounded-md border bg-background text-center tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                          className={drawerFieldClass(
+                            "h-7 w-[3.25rem] py-0 text-center text-[13px] font-semibold tabular-nums",
+                          )}
                           value={line.quantity}
                           onChange={(e) =>
                             updateLine(line.key, "quantity", e.target.value)
@@ -319,6 +358,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           type="button"
                           variant="outline"
                           size="icon-sm"
+                          className="h-7 w-7 border-border/55"
                           aria-label="Increase"
                           onClick={() =>
                             updateLine(line.key, "quantity", String(qNum + 1))
@@ -327,13 +367,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           <Plus className="size-3" />
                         </Button>
                       </div>
-                      <span className="text-xs text-muted-foreground">Unit ({currency})</span>
+                      <span className="text-[11px] font-medium text-muted-foreground">Unit ({currency})</span>
                       <input
                         type="text"
                         inputMode="decimal"
                         aria-label="Unit price"
                         placeholder="0.00"
-                        className="h-8 w-full max-w-[8rem] rounded-md border bg-background px-2 text-right tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                        className={drawerFieldClass(
+                          "h-7 w-full max-w-[7.5rem] py-0 pr-2 text-right text-[13px] font-medium tabular-nums",
+                        )}
                         value={line.unitPrice}
                         onChange={(e) =>
                           updateLine(line.key, "unitPrice", e.target.value)
@@ -341,8 +383,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       />
                     </div>
                     {subtotal > 0 ? (
-                      <p className="mt-2 text-right text-xs font-medium tabular-nums text-muted-foreground">
-                        Subtotal {subtotal.toFixed(2)} {currency}
+                      <p className="mt-2 flex items-end gap-2 border-t border-border/35 pt-2 text-xs font-medium tabular-nums text-muted-foreground">
+                        <span className="shrink-0">Subtotal</span>
+                        <CashierDottedLeader />
+                        <span className="inline-flex shrink-0 items-baseline gap-0.5">
+                          <span>{subtotal.toFixed(2)}</span>
+                          <CashierCurrencySuffix code={currency} />
+                        </span>
                       </p>
                     ) : null}
                   </li>
@@ -351,12 +398,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             </ul>
           )}
 
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Payment
-              </h4>
-              <label className="flex items-center gap-1.5 text-xs">
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2">
+              <h4 className={DRAWER_SECTION_TITLE}>Payment</h4>
+              <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={splitPay}
@@ -427,7 +472,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
             {!splitPay && payMethod === "mpesa_manual" ? (
               <input
-                className="h-9 w-full rounded-md border bg-background px-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                className={drawerFieldClass("h-9 w-full px-3")}
                 value={mpesaRef}
                 onChange={(e) => setMpesaRef(e.target.value)}
                 placeholder="M-Pesa reference (e.g. QPH12ABC)"
@@ -435,35 +480,35 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             ) : null}
 
             {splitPay ? (
-              <div className="space-y-2 rounded-xl border bg-muted/20 p-3 text-sm">
+              <div className={cn(drawerInsetPanel, "space-y-2 text-sm")}>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="space-y-1">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                       Cash ({currency})
                     </span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="h-9 w-full rounded-md border bg-background px-2 text-right tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                      className={drawerFieldClass("h-8 w-full px-2 text-right text-sm")}
                       value={cashSplitStr}
                       onChange={(e) => setCashSplitStr(e.target.value)}
                     />
                   </label>
                   <label className="space-y-1">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                       M-Pesa ({currency})
                     </span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="h-9 w-full rounded-md border bg-background px-2 text-right tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                      className={drawerFieldClass("h-8 w-full px-2 text-right text-sm")}
                       value={mpesaSplitStr}
                       onChange={(e) => setMpesaSplitStr(e.target.value)}
                     />
                   </label>
                 </div>
                 <input
-                  className="h-9 w-full rounded-md border bg-background px-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  className={drawerFieldClass("h-8 w-full px-3 text-sm")}
                   value={splitMpesaRef}
                   onChange={(e) => setSplitMpesaRef(e.target.value)}
                   placeholder="M-Pesa reference"
@@ -472,7 +517,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             ) : null}
 
             {customerNeeded && canLookupCustomers ? (
-              <div className="space-y-2 rounded-xl border bg-muted/20 p-3 text-sm">
+              <div className={cn(drawerInsetPanel, "space-y-2 text-sm")}>
                 <p className="text-xs text-muted-foreground">
                   {payMethod === "customer_credit"
                     ? "Search by phone, then select the customer. The full cart total posts to their tab."
@@ -482,7 +527,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 </p>
                 <div className="flex items-center gap-2">
                   <input
-                    className="h-9 w-full rounded-md border bg-background px-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    className={drawerFieldClass("h-9 min-w-0 flex-1 px-3")}
                     value={customerPhoneQuery}
                     onChange={(e) => setCustomerPhoneQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -511,10 +556,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         <button
                           type="button"
                           className={cn(
-                            "w-full rounded-md border px-2 py-1.5 text-left text-xs",
+                            "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-all",
                             selectedCustomer?.id === c.id
-                              ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
-                              : "border-transparent bg-background hover:bg-muted/40",
+                              ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_20%,transparent)]"
+                              : "border-border/45 bg-background/80 hover:border-[color-mix(in_srgb,var(--pos-primary)_18%,var(--border))] hover:bg-muted/30",
                           )}
                           onClick={() => setSelectedCustomer(c)}
                         >
@@ -530,13 +575,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   </ul>
                 ) : null}
                 {selectedCustomer ? (
-                  <div className="rounded-md bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)] p-2 text-xs">
+                  <div className="rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)] p-2.5 text-xs shadow-sm">
                     <p>
-                      Selected: <span className="font-medium">{selectedCustomer.name}</span>
+                      Selected: <span className="font-semibold text-foreground">{selectedCustomer.name}</span>
                     </p>
-                    <p className="tabular-nums text-muted-foreground">
-                      Wallet {Number(selectedCustomer.credit.walletBalance).toFixed(2)}{" "}
-                      {currency} · {selectedCustomer.credit.loyaltyPoints} pts
+                    <p className="flex flex-wrap items-baseline gap-x-1 tabular-nums text-muted-foreground">
+                      <span>Wallet</span>
+                      <span className="inline-flex items-baseline gap-0.5">
+                        <span>{Number(selectedCustomer.credit.walletBalance).toFixed(2)}</span>
+                        <CashierCurrencySuffix code={currency} />
+                      </span>
+                      <span>· {selectedCustomer.credit.loyaltyPoints} pts</span>
                     </p>
                   </div>
                 ) : null}
@@ -545,7 +594,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           </section>
 
           {outboxCount > 0 ? (
-            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
               {outboxCount} sale(s) waiting to sync.{" "}
               <button
                 type="button"
@@ -562,19 +611,20 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
           {lastSale ? (
-            <section className="space-y-2 rounded-xl border border-dashed bg-muted/10 p-3 text-xs">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Last sale
-              </h4>
-              <dl className="grid gap-1">
+            <section className="space-y-2.5 rounded-xl border border-dashed border-border/45 bg-gradient-to-br from-muted/15 to-transparent p-3 text-xs ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
+              <h4 className={DRAWER_SECTION_TITLE}>Last sale</h4>
+              <dl className="grid gap-1.5">
                 <div>
                   <dt className="inline text-muted-foreground">Sale</dt>{" "}
-                  <dd className="inline font-mono">{lastSale.id}</dd>
+                  <dd className="inline rounded-md bg-muted/50 px-1.5 py-px font-mono text-[11px] text-foreground">
+                    {lastSale.id}
+                  </dd>
                 </div>
                 <div>
                   <dt className="inline text-muted-foreground">Total</dt>{" "}
-                  <dd className="inline tabular-nums">
-                    {Number(lastSale.grandTotal).toFixed(2)} {currency}
+                  <dd className="inline-flex items-baseline gap-0.5 tabular-nums">
+                    <span>{Number(lastSale.grandTotal).toFixed(2)}</span>
+                    <CashierCurrencySuffix code={currency} />
                   </dd>
                 </div>
                 {lastSale.customerId ? (
@@ -614,7 +664,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 {canVoid && !isSaleVoided(lastSale) ? (
                   <>
                     <input
-                      className="h-8 flex-1 min-w-[7rem] rounded-md border bg-background px-2 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                      className={drawerFieldClass("h-8 min-w-[7rem] flex-1 px-2 text-xs")}
                       value={voidNotes}
                       onChange={(e) => setVoidNotes(e.target.value)}
                       placeholder="Void notes (optional)"
@@ -642,25 +692,26 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           ) : null}
         </div>
 
-        <div className="border-t border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-          <div className="mb-3 flex items-baseline justify-between">
-            <span className="text-xs uppercase tracking-wide text-[var(--pos-primary)]">
-              Total
-            </span>
-            <span className="text-2xl font-bold tabular-nums text-[var(--pos-primary)]">
-              {grandTotal.toFixed(2)}{" "}
-              <span className="text-sm font-medium text-muted-foreground">{currency}</span>
-            </span>
+        <div className="border-t border-border/40 bg-gradient-to-t from-muted/25 to-background/98 p-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.08)] backdrop-blur-md dark:from-muted/15 dark:shadow-[0_-8px_28px_-14px_rgba(0,0,0,0.35)] supports-[backdrop-filter]:bg-background/90">
+          <div className="mb-3 rounded-xl border border-border/40 bg-card/80 px-3 py-2.5 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/60 dark:ring-white/[0.04]">
+            <div className="flex items-end gap-2">
+              <span className={cn(DRAWER_SECTION_TITLE, "shrink-0 pb-0.5")}>Total</span>
+              <CashierDottedLeader />
+              <span className="inline-flex shrink-0 items-baseline gap-0.5 text-[1.65rem] font-bold tabular-nums leading-none tracking-tight text-[var(--pos-primary)] sm:text-2xl">
+                <span>{grandTotal.toFixed(2)}</span>
+                <CashierCurrencySuffix code={currency} />
+              </span>
+            </div>
           </div>
           {!branchSelected ? (
-            <p className="mb-2 text-xs text-amber-800">
+            <p className="mb-2.5 rounded-lg border border-amber-200/50 bg-amber-50/90 px-2.5 py-1.5 text-[11px] leading-snug text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
               Pick a branch in the top nav to enable checkout.
             </p>
           ) : null}
           <Button
             type="button"
             size="lg"
-            className="h-12 w-full text-base bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] shadow-md hover:bg-[var(--pos-primary)] hover:opacity-90"
+            className="h-11 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
             disabled={loading || lines.length === 0 || !branchSelected}
             onClick={onComplete}
           >

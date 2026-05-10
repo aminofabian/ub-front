@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   Building2,
   ChevronRight,
@@ -16,11 +16,15 @@ import {
 } from "lucide-react";
 
 import {
+  DASHBOARD_SECTION_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
   DashboardPageHero,
   DashboardQuickLinks,
+  dashboardFilterFieldLabelClass,
+  dashboardInputClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
@@ -62,7 +66,6 @@ import {
   supPanelKicker,
   supPanelKickerViolet,
   supPanelShell,
-  supSelect,
 } from "./_components/supplier-ui-tokens";
 import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
@@ -601,56 +604,26 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="relative -mx-6 flex min-h-[calc(100dvh-4.25rem)] w-[calc(100%+3rem)] max-w-none flex-col gap-4 px-4 pb-6 sm:px-6 lg:gap-5">
-      <div
-        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[120px] w-[min(100%,52rem)] max-w-full -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,hsl(var(--primary)/0.08),transparent_72%)] opacity-90 dark:opacity-50"
-        aria-hidden
-      />
-
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4 lg:gap-5">
-        <div
-          className={cn(
-            "relative shrink-0 overflow-hidden rounded-2xl border border-border/60 p-4 shadow-sm sm:p-5",
-            "bg-gradient-to-br from-card via-card to-primary/[0.04] ring-1 ring-black/[0.03] backdrop-blur-sm dark:from-card/95 dark:to-primary/[0.05] dark:ring-white/[0.06]",
-          )}
-        >
-          <div
-            className="pointer-events-none absolute -right-12 -top-12 size-28 rounded-full bg-primary/[0.06] blur-2xl"
-            aria-hidden
+    <div className="relative -mx-4 flex min-h-[calc(100dvh-4.25rem)] w-[calc(100%+2rem)] max-w-none flex-col gap-5 px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4 lg:gap-6">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-5 lg:gap-6">
+        <section className={DASHBOARD_SECTION_SURFACE}>
+          <DashboardPageHero
+            compact
+            icon={Truck}
+            eyebrow="Purchasing"
+            title="Suppliers"
+            description={
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Search and filter server-side, work in a fast virtualized
+                directory, then manage profile and catalog links in place.{" "}
+                <kbd className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                  /
+                </kbd>{" "}
+                focuses search.
+              </p>
+            }
           />
-          <header className="relative space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-              <DashboardPageHero
-                compact
-                icon={Truck}
-                eyebrow="Purchasing"
-                title="Suppliers"
-                description={
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Search and filter server-side, work in a fast virtualized
-                    directory, then manage profile and catalog links in place.{" "}
-                    <kbd className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
-                      /
-                    </kbd>{" "}
-                    focuses search.
-                  </p>
-                }
-              />
-              {canWrite ? (
-                <Button
-                  type="button"
-                  className="h-10 shrink-0 gap-2 rounded-lg px-5 text-sm font-semibold shadow-md shadow-primary/15"
-                  disabled={listLoadingInitial}
-                  onClick={() => {
-                    skipCreateDrawerResetAfterCreate.current = false;
-                    setCreateDrawerOpen(true);
-                  }}
-                >
-                  <Plus className="size-4" aria-hidden />
-                  New supplier
-                </Button>
-              ) : null}
-            </div>
+          <div className="mt-5 flex flex-col gap-4 border-t border-border/50 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
             <DashboardQuickLinks
               compact
               links={[
@@ -674,8 +647,22 @@ export default function SuppliersPage() {
                 },
               ]}
             />
-          </header>
-        </div>
+            {canWrite ? (
+              <Button
+                type="button"
+                className="h-10 min-h-10 shrink-0 gap-2 self-stretch px-5 text-sm font-semibold shadow-sm transition-shadow hover:shadow-md sm:self-center"
+                disabled={listLoadingInitial}
+                onClick={() => {
+                  skipCreateDrawerResetAfterCreate.current = false;
+                  setCreateDrawerOpen(true);
+                }}
+              >
+                <Plus className="size-4" aria-hidden />
+                New supplier
+              </Button>
+            ) : null}
+          </div>
+        </section>
 
         {feedback ? (
           <DashboardFeedback
@@ -686,10 +673,10 @@ export default function SuppliersPage() {
 
         {isXl ? (
           <nav
-            className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 px-4 py-2.5 shadow-sm"
+            className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-muted/25 px-4 py-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
             aria-label="Workspace steps"
           >
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+            <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Workflow
             </span>
             <ol className="flex flex-1 flex-wrap items-center gap-1">
@@ -698,11 +685,8 @@ export default function SuppliersPage() {
                 { n: 2, label: "Profile & contacts" },
                 { n: 3, label: "Catalog & links" },
               ].map(({ n, label }, i, arr) => (
-                <>
-                  <li
-                    key={n}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm ring-1 ring-border/50"
-                  >
+                <Fragment key={n}>
+                  <li className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm">
                     <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
                       {n}
                     </span>
@@ -710,12 +694,11 @@ export default function SuppliersPage() {
                   </li>
                   {i < arr.length - 1 ? (
                     <ChevronRight
-                      key={`sep-${n}`}
-                      className="size-3 shrink-0 text-muted-foreground/30 max-sm:hidden"
+                      className="size-3 shrink-0 text-muted-foreground/40 max-sm:hidden"
                       aria-hidden
                     />
                   ) : null}
-                </>
+                </Fragment>
               ))}
             </ol>
             {detail ? (
@@ -735,17 +718,17 @@ export default function SuppliersPage() {
         >
           <div className="flex min-h-0 min-w-0 flex-col gap-3">
             {/* Search + filter bar */}
-            <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border/60 bg-card/80 px-3 py-3 shadow-sm">
-              <label className="flex min-w-[10rem] flex-1 flex-col gap-1">
-                <span className={supFieldLabel}>Search</span>
+            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/50 bg-muted/25 p-3 shadow-sm ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04] sm:p-4">
+              <label className="flex min-w-[10rem] flex-1 flex-col gap-2">
+                <span className={dashboardFilterFieldLabelClass()}>Search</span>
                 <span className="relative">
                   <Search
-                    className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60"
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                     aria-hidden
                   />
                   <input
                     id="supplier-directory-search"
-                    className={cn(supInput, "pl-9")}
+                    className={cn(dashboardInputClass(listLoadingInitial), "pl-10")}
                     placeholder="Name or vendor code…"
                     value={listSearch}
                     onChange={(e) => setListSearch(e.target.value)}
@@ -753,10 +736,10 @@ export default function SuppliersPage() {
                   />
                 </span>
               </label>
-              <label className="flex min-w-[8rem] flex-col gap-1">
-                <span className={supFieldLabel}>Status</span>
+              <label className="flex min-w-[8.5rem] flex-col gap-2">
+                <span className={dashboardFilterFieldLabelClass()}>Status</span>
                 <select
-                  className={supSelect}
+                  className={dashboardSelectClass(listLoadingInitial)}
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   aria-label="Filter by status"
@@ -771,7 +754,7 @@ export default function SuppliersPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-10 shrink-0 rounded-xl px-4 font-medium"
+                className="h-10 min-h-10 shrink-0 px-4 font-medium shadow-sm"
                 disabled={listLoadingInitial}
                 onClick={() => void refreshFullDirectory()}
               >
@@ -790,13 +773,13 @@ export default function SuppliersPage() {
               onLoadMore={loadMoreDirectory}
             />
             {!isXl && detail ? (
-              <div className="shrink-0 rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card/90 to-muted/20 p-3 shadow-sm">
-                <div className="mb-2.5 flex items-center gap-2">
+              <div className="shrink-0 rounded-2xl border border-border/70 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] sm:p-4">
+                <div className="mb-3 flex items-center gap-2">
                   <div
-                    className="size-1.5 rounded-full bg-primary"
+                    className="size-2 shrink-0 rounded-full bg-primary"
                     aria-hidden
                   />
-                  <p className="truncate text-sm font-semibold text-foreground">
+                  <p className="truncate text-sm font-semibold tracking-tight text-foreground">
                     {detail.name}
                   </p>
                 </div>
@@ -804,7 +787,7 @@ export default function SuppliersPage() {
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 flex-1 gap-1.5 rounded-xl shadow-sm shadow-primary/15"
+                    className="h-9 min-h-9 flex-1 gap-1.5 shadow-sm transition-shadow hover:shadow-md"
                     onClick={() => setEditDrawerOpen(true)}
                   >
                     <Building2 className="size-3.5" aria-hidden />
@@ -815,7 +798,7 @@ export default function SuppliersPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-8 flex-1 gap-1.5 rounded-xl"
+                      className="h-9 min-h-9 flex-1 gap-1.5 shadow-sm"
                       onClick={() => setCatalogDrawerOpen(true)}
                     >
                       <Link2 className="size-3.5" aria-hidden />
@@ -865,12 +848,7 @@ export default function SuppliersPage() {
                   />
                 </div>
               </aside>
-              <aside
-                className={cn(
-                  supPanelShell,
-                  "to-violet-500/5 dark:to-violet-500/8",
-                )}
-              >
+              <aside className={supPanelShell}>
                 <div className={supPanelHeader}>
                   <div className="flex items-center gap-2.5">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 ring-1 ring-violet-500/20 dark:text-violet-400">

@@ -9,20 +9,24 @@ import {
   Package,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Warehouse,
   X,
-  CheckCircle2,
   Boxes,
   Table,
-  LayoutDashboard,
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX,
+  DASHBOARD_MAX_WIDE,
+  DASHBOARD_SECTION_SURFACE,
+  DASHBOARD_FILTER_WELL,
   DashboardAccessDenied,
-  DashboardNotice,
+  DashboardFeedback,
   DashboardPageHero,
   DashboardQuickLinks,
+  dashboardFilterFieldLabelClass,
+  dashboardInputClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -424,242 +428,264 @@ export function BatchDashboardPage() {
     );
   }
 
+  const filtersBusy =
+    loadingDashboard || loadingTable || loadingSupplyBatches;
+
   return (
-    <div className={DASHBOARD_MAX}>
+    <div className={DASHBOARD_MAX_WIDE}>
       <div className="space-y-8">
-        {/* Header */}
-        <header className="space-y-4">
+        <section className={DASHBOARD_SECTION_SURFACE}>
           <DashboardPageHero
             icon={BarChart3}
             eyebrow="Inventory"
             title="Batch Dashboard"
             description="Monitor batch activity, track production trends, and identify stock anomalies at a glance."
           />
-          <DashboardQuickLinks
-            links={[
-              {
-                href: APP_ROUTES.inventorySupplyBatches,
-                label: "Supply batches",
-                desc: "View all batches",
-                icon: Warehouse,
-              },
-              {
-                href: APP_ROUTES.inventoryValuation,
-                label: "Valuation",
-                desc: "Stock value",
-                icon: Package,
-              },
-              {
-                href: APP_ROUTES.inventoryTransfers,
-                label: "Transfers",
-                desc: "Move stock",
-                icon: ArrowRightLeft,
-              },
-              {
-                href: APP_ROUTES.inventoryStockTake,
-                label: "Stock take",
-                desc: "Counts",
-                icon: ClipboardList,
-              },
-            ]}
-          />
-        </header>
+          <div className="mt-8">
+            <DashboardQuickLinks
+              links={[
+                {
+                  href: APP_ROUTES.inventorySupplyBatches,
+                  label: "Supply batches",
+                  desc: "View all batches",
+                  icon: Warehouse,
+                },
+                {
+                  href: APP_ROUTES.inventoryValuation,
+                  label: "Valuation",
+                  desc: "Stock value",
+                  icon: Package,
+                },
+                {
+                  href: APP_ROUTES.inventoryTransfers,
+                  label: "Transfers",
+                  desc: "Move stock",
+                  icon: ArrowRightLeft,
+                },
+                {
+                  href: APP_ROUTES.inventoryStockTake,
+                  label: "Stock take",
+                  desc: "Counts",
+                  icon: ClipboardList,
+                },
+              ]}
+            />
+          </div>
+        </section>
 
-        {message ? <DashboardNotice text={message} /> : null}
-        {clearResult && (
-          <div className="flex items-center justify-between rounded-xl border bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              {clearResult}
+        {message ? <DashboardFeedback kind="error" text={message} /> : null}
+        {clearResult ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <DashboardFeedback kind="success" text={clearResult} />
             </div>
-            <button
-              className="text-xs underline"
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              className="shrink-0 self-end sm:self-start"
               onClick={() => setClearResult(null)}
             >
               Dismiss
-            </button>
+            </Button>
           </div>
-        )}
+        ) : null}
 
-        {/* Filters Bar */}
-        <div className="sticky top-0 z-30 -mx-2 rounded-xl border bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:mx-0">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex min-w-[12rem] flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Branch
+        <section className={DASHBOARD_SECTION_SURFACE}>
+          <div className="flex flex-col gap-2 border-b border-border/50 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/50 text-foreground shadow-sm">
+                <SlidersHorizontal className="size-[18px]" aria-hidden />
               </span>
-              <select
-                className="rounded-lg border bg-background px-2.5 py-2 text-sm"
-                value={branchFilter}
-                onChange={(e) => {
-                  setBranchFilter(e.target.value);
-                  setPage(0);
-                  setSbPage(0);
-                }}
-              >
-                <option value="">All branches</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                  Filters
+                </h2>
+              </div>
             </div>
+          </div>
 
-            <div className="flex min-w-[10rem] flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Date Range
-              </span>
-              <select
-                className="rounded-lg border bg-background px-2.5 py-2 text-sm"
-                value={datePreset}
-                onChange={(e) => handlePresetChange(e.target.value)}
-              >
-                <option value="">All time</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-
-            {datePreset === "custom" && (
-              <>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    From
-                  </span>
-                  <input
-                    type="date"
-                    className="rounded-lg border bg-background px-2.5 py-2 text-sm"
-                    value={fromDate}
-                    onChange={(e) => {
-                      setFromDate(e.target.value);
-                      setPage(0);
-                      setSbPage(0);
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    To
-                  </span>
-                  <input
-                    type="date"
-                    className="rounded-lg border bg-background px-2.5 py-2 text-sm"
-                    value={toDate}
-                    onChange={(e) => {
-                      setToDate(e.target.value);
-                      setPage(0);
-                      setSbPage(0);
-                    }}
-                  />
-                </div>
-              </>
+          <div
+            className={cn(
+              DASHBOARD_FILTER_WELL,
+              "sticky top-0 z-30 backdrop-blur-md supports-[backdrop-filter]:bg-muted/40",
             )}
+          >
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex min-w-[12rem] flex-col gap-2">
+                <span className={dashboardFilterFieldLabelClass()}>Branch</span>
+                <select
+                  className={dashboardSelectClass(filtersBusy)}
+                  value={branchFilter}
+                  onChange={(e) => {
+                    setBranchFilter(e.target.value);
+                    setPage(0);
+                    setSbPage(0);
+                  }}
+                >
+                  <option value="">All branches</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="flex min-w-[10rem] flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Status
-              </span>
-              <select
-                className="rounded-lg border bg-background px-2.5 py-2 text-sm"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(0);
-                  setSbPage(0);
-                }}
-              >
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="soldout">Sold out</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
+              <div className="flex min-w-[10rem] flex-col gap-2">
+                <span className={dashboardFilterFieldLabelClass()}>
+                  Date Range
+                </span>
+                <select
+                  className={dashboardSelectClass(filtersBusy)}
+                  value={datePreset}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                >
+                  <option value="">All time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
 
-            {activeTab === "inventory" && (
-              <>
-                <div className="flex min-w-[12rem] flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Search
-                  </span>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              {datePreset === "custom" ? (
+                <>
+                  <div className="flex min-w-[10.5rem] flex-col gap-2">
+                    <span className={dashboardFilterFieldLabelClass()}>From</span>
                     <input
-                      type="text"
-                      placeholder="Batch, item, SKU…"
-                      className="w-full rounded-lg border bg-background py-2 pl-8 pr-3 text-sm"
-                      value={searchQuery}
+                      type="date"
+                      className={dashboardInputClass(filtersBusy)}
+                      value={fromDate}
                       onChange={(e) => {
-                        setSearchQuery(e.target.value);
+                        setFromDate(e.target.value);
+                        setPage(0);
+                        setSbPage(0);
+                      }}
+                    />
+                  </div>
+                  <div className="flex min-w-[10.5rem] flex-col gap-2">
+                    <span className={dashboardFilterFieldLabelClass()}>To</span>
+                    <input
+                      type="date"
+                      className={dashboardInputClass(filtersBusy)}
+                      value={toDate}
+                      onChange={(e) => {
+                        setToDate(e.target.value);
+                        setPage(0);
+                        setSbPage(0);
+                      }}
+                    />
+                  </div>
+                </>
+              ) : null}
+
+              <div className="flex min-w-[10rem] flex-col gap-2">
+                <span className={dashboardFilterFieldLabelClass()}>Status</span>
+                <select
+                  className={dashboardSelectClass(filtersBusy)}
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(0);
+                    setSbPage(0);
+                  }}
+                >
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="soldout">Sold out</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+
+              {activeTab === "inventory" ? (
+                <>
+                  <div className="flex min-w-[12rem] flex-col gap-2">
+                    <span className={dashboardFilterFieldLabelClass()}>
+                      Search
+                    </span>
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Batch, item, SKU…"
+                        className={dashboardInputClass(filtersBusy, "pl-9")}
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setPage(0);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className={dashboardFilterFieldLabelClass()}>
+                      Qty Min
+                    </span>
+                    <input
+                      type="number"
+                      className={dashboardInputClass(filtersBusy, "w-24")}
+                      value={qtyMin}
+                      onChange={(e) => {
+                        setQtyMin(e.target.value);
                         setPage(0);
                       }}
                     />
                   </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Qty Min
-                  </span>
-                  <input
-                    type="number"
-                    className="w-20 rounded-lg border bg-background px-2.5 py-2 text-sm"
-                    value={qtyMin}
-                    onChange={(e) => {
-                      setQtyMin(e.target.value);
-                      setPage(0);
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Qty Max
-                  </span>
-                  <input
-                    type="number"
-                    className="w-20 rounded-lg border bg-background px-2.5 py-2 text-sm"
-                    value={qtyMax}
-                    onChange={(e) => {
-                      setQtyMax(e.target.value);
-                      setPage(0);
-                    }}
-                  />
-                </div>
-              </>
-            )}
+                  <div className="flex flex-col gap-2">
+                    <span className={dashboardFilterFieldLabelClass()}>
+                      Qty Max
+                    </span>
+                    <input
+                      type="number"
+                      className={dashboardInputClass(filtersBusy, "w-24")}
+                      value={qtyMax}
+                      onChange={(e) => {
+                        setQtyMax(e.target.value);
+                        setPage(0);
+                      }}
+                    />
+                  </div>
+                </>
+              ) : null}
 
-            <div className="flex items-center gap-2 pb-0.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                disabled={!hasFilters}
-              >
-                <X className="mr-1 h-3.5 w-3.5" />
-                Clear
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  loadDashboard();
-                  loadTable();
-                  loadSupplyBatches();
-                }}
-                disabled={
-                  loadingDashboard || loadingTable || loadingSupplyBatches
-                }
-              >
-                <RefreshCw
-                  className={`mr-1 h-3.5 w-3.5 ${loadingDashboard || loadingTable || loadingSupplyBatches ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </Button>
+              <div className="flex flex-wrap items-center gap-2 pb-0.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  className="shadow-sm"
+                  onClick={clearFilters}
+                  disabled={!hasFilters}
+                >
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Clear
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  className="shadow-sm"
+                  onClick={() => {
+                    loadDashboard();
+                    loadTable();
+                    loadSupplyBatches();
+                  }}
+                  disabled={filtersBusy}
+                >
+                  <RefreshCw
+                    className={cn(
+                      "mr-1 h-3.5 w-3.5",
+                      filtersBusy && "animate-spin",
+                    )}
+                  />
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Alerts */}
         {dashboard && <BatchAlerts alerts={dashboard.alerts} />}
@@ -677,15 +703,15 @@ export function BatchDashboardPage() {
           />
         )}
 
-        {/* Table Section with Tabs */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-1 rounded-lg border bg-muted/30 p-1 w-fit">
+        <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-4")}>
+          <div className="inline-flex w-fit gap-1 rounded-xl border border-border/70 bg-muted/25 p-1 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
             <button
+              type="button"
               onClick={() => setActiveTab("supply")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                 activeTab === "supply"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -693,11 +719,12 @@ export function BatchDashboardPage() {
               Supply Batches
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("inventory")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                 activeTab === "inventory"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -747,13 +774,13 @@ export function BatchDashboardPage() {
               />
             )
           )}
-        </div>
+        </section>
       </div>
 
       {/* Clear batch confirmation dialog */}
       {clearDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg">
+          <div className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-lg ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
             <h2 className="text-lg font-semibold">
               {clearDialog.hasRemaining
                 ? "Clear Supply Batch?"
@@ -764,14 +791,14 @@ export function BatchDashboardPage() {
               This action cannot be undone.
             </p>
 
-            {clearDialog.hasRemaining && (
-              <div className="mt-4 space-y-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-muted-foreground">
+            {clearDialog.hasRemaining ? (
+              <div className="mt-4 space-y-4">
+                <label className="flex flex-col gap-2 text-sm">
+                  <span className={dashboardFilterFieldLabelClass()}>
                     Reason for write-off
                   </span>
                   <select
-                    className="rounded border bg-background px-2 py-1.5"
+                    className={dashboardSelectClass(false)}
                     value={clearReason}
                     onChange={(e) => setClearReason(e.target.value)}
                   >
@@ -782,17 +809,17 @@ export function BatchDashboardPage() {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-muted-foreground">Notes</span>
+                <label className="flex flex-col gap-2 text-sm">
+                  <span className={dashboardFilterFieldLabelClass()}>Notes</span>
                   <input
-                    className="rounded border bg-background px-2 py-1.5"
+                    className={dashboardInputClass(false)}
                     value={clearNotes}
                     onChange={(e) => setClearNotes(e.target.value)}
                     placeholder="Optional notes…"
                   />
                 </label>
               </div>
-            )}
+            ) : null}
 
             <div className="mt-6 flex justify-end gap-2">
               <Button

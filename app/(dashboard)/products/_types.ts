@@ -69,6 +69,9 @@ export type ParentDraft = {
   supplierSku: string;
   defaultCostPrice: string;
   setPrimarySupplier: boolean;
+  openingBranchId: string;
+  openingQty: string;
+  openingUnitCost: string;
 };
 
 export const EMPTY_PARENT: ParentDraft = {
@@ -97,6 +100,9 @@ export const EMPTY_PARENT: ParentDraft = {
   supplierSku: "",
   defaultCostPrice: "",
   setPrimarySupplier: true,
+  openingBranchId: "",
+  openingQty: "",
+  openingUnitCost: "",
 };
 
 // ─── add-variant draft ────────────────────────────────────────────────────────
@@ -185,8 +191,8 @@ export const VARIANT_INPUT_CLASS =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground";
 
 export const panelClass = cn(
-  "rounded-3xl border border-border/70 bg-card/90 shadow-md shadow-black/[0.03] ring-1 ring-black/[0.03] backdrop-blur-sm",
-  "dark:bg-card/80 dark:shadow-black/20 dark:ring-white/[0.06]",
+  "rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] backdrop-blur-sm",
+  "dark:bg-card/90 dark:ring-white/[0.04]",
 );
 
 export const filterLabelClass =

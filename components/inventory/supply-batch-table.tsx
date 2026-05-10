@@ -22,6 +22,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DASHBOARD_TABLE_HEAD,
+  DASHBOARD_TABLE_SURFACE,
+  dashboardInputClass,
+  dashboardSelectClass,
+} from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
 import type { SupplyBatchSummaryRecord } from "@/lib/api";
 
@@ -164,8 +170,9 @@ export function SupplyBatchTable({
     align?: "left" | "right";
   }) => (
     <th
+      scope="col"
       className={cn(
-        "cursor-pointer select-none px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60",
+        "cursor-pointer select-none px-5 py-3.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 sm:px-6",
         align === "right" && "text-right",
       )}
       onClick={() => onSort(col)}
@@ -229,36 +236,39 @@ export function SupplyBatchTable({
   }, [batches]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-muted-foreground">
-          Showing{" "}
-          <strong className="text-foreground">
-            {start}–{end}
-          </strong>{" "}
-          of <strong className="text-foreground">{total}</strong> supply batches
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="mr-1 h-3.5 w-3.5" />
-            Export CSV
-          </Button>
-          <select
-            className="rounded-lg border bg-background px-2 py-1.5 text-sm"
-            value={size}
-            onChange={(e) => onSizeChange(Number(e.target.value))}
-          >
-            <option value={10}>10 / page</option>
-            <option value={25}>25 / page</option>
-            <option value={50}>50 / page</option>
-          </select>
+    <div className={DASHBOARD_TABLE_SURFACE}>
+      <div className={DASHBOARD_TABLE_HEAD}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            Showing{" "}
+            <strong className="text-foreground">
+              {start}–{end}
+            </strong>{" "}
+            of <strong className="text-foreground">{total}</strong> supply batches
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="shadow-sm" onClick={exportCSV}>
+              <Download className="mr-1 h-3.5 w-3.5" />
+              Export CSV
+            </Button>
+            <select
+              className={dashboardSelectClass(false, "h-9 min-w-[7.5rem] text-sm")}
+              value={size}
+              onChange={(e) => onSizeChange(Number(e.target.value))}
+              aria-label="Rows per page"
+            >
+              <option value={10}>10 / page</option>
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border shadow-sm">
+      <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-muted/80 backdrop-blur">
-            <tr className="border-b">
+          <thead className="border-b border-border/50 bg-muted/25">
+            <tr>
               <Th col="batchNumber">Batch #</Th>
               <Th col="batchName">Name</Th>
               <Th col="supplierName">Supplier</Th>
@@ -282,17 +292,20 @@ export function SupplyBatchTable({
               </Th>
               <Th col="status">Status</Th>
               <Th col="receivedAt">Received</Th>
-              <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">
+              <th
+                scope="col"
+                className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+              >
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/40">
             {loading ? (
               <tr>
                 <td
                   colSpan={12}
-                  className="px-3 py-12 text-center text-muted-foreground"
+                  className="px-6 py-12 text-center text-sm text-muted-foreground"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Clock className="h-4 w-4 animate-spin" />
@@ -304,7 +317,7 @@ export function SupplyBatchTable({
               <tr>
                 <td
                   colSpan={12}
-                  className="px-3 py-12 text-center text-muted-foreground"
+                  className="px-6 py-12 text-center text-sm text-muted-foreground"
                 >
                   No supply batches found.
                 </td>
@@ -320,9 +333,9 @@ export function SupplyBatchTable({
                 return (
                   <tr
                     key={b.id}
-                    className="border-b last:border-0 transition-colors hover:bg-muted/40"
+                    className="transition-colors hover:bg-muted/30"
                   >
-                    <td className="px-3 py-2.5 font-medium">
+                    <td className="px-5 py-4 sm:px-6 font-medium">
                       <Link
                         href={`/inventory/supply-batches/${b.id}`}
                         className="text-blue-600 hover:underline"
@@ -330,11 +343,11 @@ export function SupplyBatchTable({
                         {b.batchNumber}
                       </Link>
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-5 py-4 sm:px-6">
                       {editingId === b.id ? (
                         <div className="flex items-center gap-1.5">
                           <input
-                            className="w-40 rounded border bg-background px-2 py-1 text-sm"
+                            className={dashboardInputClass(false, "w-40 py-1.5 text-sm")}
                             value={editDraft}
                             onChange={(e) => setEditDraft(e.target.value)}
                             onKeyDown={(e) => {
@@ -377,32 +390,32 @@ export function SupplyBatchTable({
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground">
+                    <td className="px-5 py-4 sm:px-6 text-sm text-muted-foreground">
                       {b.supplierName ?? "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">
+                    <td className="px-5 py-4 sm:px-6 text-right tabular-nums">
                       {b.itemCount}
                     </td>
-                    <td className="px-3 py-2.5 text-right">
+                    <td className="px-5 py-4 sm:px-6 text-right">
                       {soldBar(b.soldPercentage)}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
+                    <td className="px-5 py-4 sm:px-6 text-right tabular-nums text-muted-foreground">
                       {formatMoneyShort(b.totalCost)}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums font-medium text-emerald-600">
+                    <td className="px-5 py-4 sm:px-6 text-right tabular-nums font-medium text-emerald-600">
                       {formatMoneyShort(b.totalRevenue)}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
+                    <td className="px-5 py-4 sm:px-6 text-right tabular-nums text-muted-foreground">
                       {formatMoneyShort(b.totalAssociatedCosts)}
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">
+                    <td className="px-5 py-4 sm:px-6 text-right tabular-nums">
                       {formatQty(b.totalRemainingQuantity)}
                     </td>
-                    <td className="px-3 py-2.5">{statusBadge(b.status)}</td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                    <td className="px-5 py-4 sm:px-6">{statusBadge(b.status)}</td>
+                    <td className="px-5 py-4 sm:px-6 text-xs text-muted-foreground">
                       {new Date(b.receivedAt).toLocaleDateString()}
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-5 py-4 sm:px-6">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/inventory/supply-batches/${b.id}`}>
                           <Button
@@ -471,7 +484,7 @@ export function SupplyBatchTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-t border-border/50 px-5 py-4 sm:px-6">
         <Button
           variant="outline"
           size="sm"

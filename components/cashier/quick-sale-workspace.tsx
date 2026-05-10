@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
 
-import { DashboardAccessDenied, DashboardFeedback } from "@/components/dashboard-page-ui";
+import { DashboardAccessDenied, DashboardFeedback, DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
@@ -27,6 +27,7 @@ import {
   type PostSalePayload,
   type SalePaymentMethod,
   type SaleRecord,
+  type ShiftRecord,
 } from "@/lib/api";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { readCachedItemsSearch, writeCachedItemsSearch } from "@/lib/catalog-search-cache";
@@ -47,7 +48,6 @@ import {
   cashierItemPrimaryLabel,
   posCartLineSuffix,
   posSearchItemDetailLine,
-  posTopProductSubtitle,
 } from "@/lib/cashier-item-display";
 import { CashierPosLayout } from "./cashier-pos-layout";
 
@@ -717,6 +717,41 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     [branches, branchId],
   );
 
+  const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
+  const canCloseShift = hasPermission(me?.permissions, Permission.ShiftsClose);
+  const showPosShiftLinks = isCashier && (canOpenShift || canCloseShift);
+
+  const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(null);
+  const [branchShiftLoading, setBranchShiftLoading] = useState(false);
+
+  useEffect(() => {
+    if (!showPosShiftLinks || !branchId?.trim()) {
+      setBranchOpenShift(null);
+      setBranchShiftLoading(false);
+      return;
+    }
+    if (!online) {
+      setBranchShiftLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setBranchShiftLoading(true);
+    void fetchCurrentShift(branchId.trim())
+      .then((s) => {
+        if (cancelled) return;
+        setBranchOpenShift(s.status === "open" ? s : null);
+      })
+      .catch(() => {
+        if (!cancelled) setBranchOpenShift(null);
+      })
+      .finally(() => {
+        if (!cancelled) setBranchShiftLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showPosShiftLinks, branchId, online]);
+
   const dialogBrandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
     [business?.branding],
@@ -741,12 +776,14 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       );
     }
     return (
-      <section className="max-w-xl space-y-2">
-        <h2 className="text-xl font-semibold">{heading}</h2>
-        <p className="text-sm text-muted-foreground">
-          You need <code className="text-xs">{Permission.SalesSell}</code> to record POS sales.
-        </p>
-      </section>
+      <div className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
+        <section className={DASHBOARD_SECTION_SURFACE}>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">{heading}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            You need <code className="text-xs">{Permission.SalesSell}</code> to record POS sales.
+          </p>
+        </section>
+      </div>
     );
   }
 
@@ -778,6 +815,18 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         categoryFilterLabel={categoryFilterLabel}
         categoryTreeBusy={categoryTreeBusy}
         categoryBrowseParentId={categoryBrowseParentId}
+        posShiftLinks={
+          showPosShiftLinks
+            ? {
+                branchId: branchId ?? "",
+                branchSelected,
+                hasOpenShift: branchOpenShift != null,
+                shiftLoading: branchShiftLoading,
+                canOpenShift,
+                canCloseShift,
+              }
+            : null
+        }
         cart={{
           lines,
           grandTotal,
@@ -869,7 +918,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       {topProducts.length > 0 ? (
         <section
           aria-label="Top selling products"
-          className="space-y-3 rounded-2xl border border-[color-mix(in_srgb,var(--pos-primary)_26%,var(--border))] bg-gradient-to-br from-[color-mix(in_srgb,var(--pos-glow)_32%,var(--card))] via-[color-mix(in_srgb,var(--pos-secondary)_10%,var(--card))] to-[var(--card)] p-4 shadow-sm"
+          className="space-y-3 rounded-3xl border border-border/50 bg-white p-4 shadow-sm ring-1 ring-black/[0.02] dark:border-border/60 dark:bg-card dark:ring-white/[0.04]"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -887,12 +936,11 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {topProducts.map((p, idx) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {topProducts.map((p) => (
               <TopSellerTile
                 key={p.id}
                 product={p}
-                rank={idx}
                 onAdd={() =>
                   addLine({
                     id: p.id,
@@ -1440,74 +1488,44 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
 
 type TopSellerTileProps = {
   product: TopProductRecord;
-  rank: number;
   onAdd: () => void;
 };
 
-function TopSellerTile({ product, rank, onAdd }: TopSellerTileProps) {
-  const sold = product.count;
-  const qtyLabel = product.qty >= 100
-    ? `${Math.round(product.qty)}`
-    : product.qty.toFixed(product.qty >= 10 ? 0 : 1);
+function TopSellerTile({ product, onAdd }: TopSellerTileProps) {
   return (
     <button
       type="button"
       onClick={onAdd}
       className={cn(
-        "group relative flex min-h-[10.5rem] flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-md transition-all",
-        "border-[color-mix(in_srgb,var(--pos-primary)_16%,var(--border))]",
-        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_32%,var(--border))] hover:shadow-xl active:translate-y-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)]",
+        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-white text-left shadow-sm transition-all",
+        "hover:-translate-y-0.5 hover:border-border hover:shadow-md",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
+        "dark:border-border/60 dark:bg-card",
       )}
+      aria-label={`Add ${product.name}`}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-6 top-8 h-24 w-24 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] blur-3xl transition-opacity group-hover:opacity-100"
-      />
-      <div
-        className="relative h-[6.25rem] w-full shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--pos-glow)_24%,var(--muted))]"
-        style={{
-          backgroundImage: product.thumbnailUrl
-            ? undefined
-            : "linear-gradient(145deg, color-mix(in srgb, var(--pos-glow) 45%, var(--card)), color-mix(in srgb, var(--pos-secondary) 18%, var(--card)))",
-        }}
-      >
-        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary)] shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/40 dark:text-[var(--pos-primary)]">
-          {rank === 0 ? "★ Top" : `#${rank + 1}`}
-        </span>
+      <div className="relative aspect-[5/4] w-full shrink-0 bg-neutral-50 dark:bg-muted/50">
         {product.thumbnailUrl ? (
           <Image
             src={product.thumbnailUrl}
             alt=""
             fill
             sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            className="object-contain p-3 transition-transform duration-300 group-hover:scale-[1.03]"
             unoptimized
           />
         ) : (
           <span
-            className="flex h-full w-full items-center justify-center text-4xl font-bold tracking-tight text-[var(--pos-primary)]/90 drop-shadow-sm"
+            className="flex h-full w-full items-center justify-center text-4xl font-bold tracking-tight text-muted-foreground/50"
             aria-hidden
           >
             {product.name.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
       </div>
-      <div
-        className="relative flex flex-1 flex-col gap-0.5 px-2.5 pb-2 pt-2"
-        style={{
-          backgroundImage:
-            "linear-gradient(180deg, color-mix(in srgb, var(--pos-glow) 14%, var(--card)), var(--card))",
-        }}
-      >
-        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--pos-primary)]">
+      <div className="flex flex-1 flex-col p-3 pt-2.5">
+        <p className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight text-foreground">
           {product.name}
-        </p>
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          {posTopProductSubtitle(product)}
-        </p>
-        <p className="text-[10px] font-medium text-muted-foreground">
-          {sold > 0 ? `Sold ×${sold} · qty ${qtyLabel}` : "Suggested pick"}
         </p>
       </div>
     </button>

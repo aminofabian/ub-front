@@ -22,6 +22,7 @@ import {
   type ItemDetailRecord,
   type ItemSummaryRecord,
   type ItemSupplierLinkRecord,
+  type ItemTypeRecord,
   type SupplierRecord,
 } from "@/lib/api";
 import {
@@ -58,7 +59,9 @@ type Dependencies = {
   selectProduct: (id: string | null) => void;
   activeDrawer: ProductDrawerId | null;
   setActiveDrawer: (d: ProductDrawerId | null) => void;
-  itemTypes: { id: string }[];
+  itemTypes: ItemTypeRecord[];
+  dashboardItemTypeId: string;
+  headerBranchId: string;
 };
 
 export function useProductMutations(d: Dependencies) {
@@ -86,6 +89,8 @@ export function useProductMutations(d: Dependencies) {
     activeDrawer,
     setActiveDrawer,
     itemTypes,
+    dashboardItemTypeId,
+    headerBranchId,
   } = d;
 
   const [suppliersForLink, setSuppliersForLink] = useState<SupplierRecord[]>(
@@ -104,9 +109,9 @@ export function useProductMutations(d: Dependencies) {
   const [catalogImageUploadBusy, setCatalogImageUploadBusy] = useState(false);
   const [catalogImageAlt, setCatalogImageAlt] = useState("");
   const [catalogImagePrimary, setCatalogImagePrimary] = useState(true);
-  const [variantDraftRows, setVariantDraftRows] = useState<VariantDraft[]>(() => [
-    emptyVariantDraft(),
-  ]);
+  const [variantDraftRows, setVariantDraftRows] = useState<VariantDraft[]>(
+    () => [emptyVariantDraft()],
+  );
   const [variantCreateBusy, setVariantCreateBusy] = useState(false);
   const [variantInlineEditId, setVariantInlineEditId] = useState<string | null>(
     null,
@@ -216,11 +221,11 @@ export function useProductMutations(d: Dependencies) {
             parentItemId: pid,
             variantName: vn,
             brand: isVD
-              ? (variantDraftRows[0]?.brand.trim() || undefined)
-              : (parentDraft.brand.trim() || undefined),
+              ? variantDraftRows[0]?.brand.trim() || undefined
+              : parentDraft.brand.trim() || undefined,
             size: isVD
-              ? (variantDraftRows[0]?.size.trim() || undefined)
-              : (parentDraft.size.trim() || undefined),
+              ? variantDraftRows[0]?.size.trim() || undefined
+              : parentDraft.size.trim() || undefined,
           });
           if (!cancelled) setNextAutoSkuHint(suggestedSku);
         } catch {
@@ -247,10 +252,22 @@ export function useProductMutations(d: Dependencies) {
   // ─── seed itemTypeId ────────────────────────────────────────────────────
   useEffect(() => {
     if (itemTypes.length === 0) return;
-    setParentDraft((prev) =>
-      prev.itemTypeId ? prev : { ...prev, itemTypeId: itemTypes[0].id },
-    );
-  }, [itemTypes]);
+    const defaultType = itemTypes.find((t) => t.isDefault) ?? itemTypes[0];
+    const seedId =
+      dashboardItemTypeId && itemTypes.some((t) => t.id === dashboardItemTypeId)
+        ? dashboardItemTypeId
+        : defaultType.id;
+    setParentDraft((prev) => ({ ...prev, itemTypeId: seedId }));
+  }, [itemTypes, dashboardItemTypeId]);
+
+  // ─── seed openingBranchId from header ───
+  useEffect(() => {
+    if (headerBranchId.trim()) {
+      setParentDraft((prev) =>
+        prev.openingBranchId ? prev : { ...prev, openingBranchId: headerBranchId },
+      );
+    }
+  }, [headerBranchId]);
 
   // ─── seed variant draft brand from parent when drawer opens ─────────────
   useEffect(() => {
@@ -274,12 +291,18 @@ export function useProductMutations(d: Dependencies) {
       setMessage("");
       const savedType = parentDraft.itemTypeId;
 
-      const parseNum = (raw: string, label: string, mustBeInt = false): number | undefined => {
+      const parseNum = (
+        raw: string,
+        label: string,
+        mustBeInt = false,
+      ): number | undefined => {
         const t = raw.trim();
         if (!t) return undefined;
         const n = Number(t);
         if (!Number.isFinite(n) || (mustBeInt && !Number.isInteger(n))) {
-          throw new Error(`${label} must be a valid${mustBeInt ? " whole" : ""} number.`);
+          throw new Error(
+            `${label} must be a valid${mustBeInt ? " whole" : ""} number.`,
+          );
         }
         return mustBeInt ? Math.round(n) : n;
       };
@@ -292,29 +315,55 @@ export function useProductMutations(d: Dependencies) {
               name: parentDraft.name,
               itemTypeId: parentDraft.itemTypeId,
               isSellable: false,
-              ...(parentDraft.categoryId.trim() ? { categoryId: parentDraft.categoryId.trim() } : {}),
-              ...(parentDraft.brand.trim() ? { brand: parentDraft.brand.trim() } : {}),
-              ...(parentDraft.size.trim() ? { size: parentDraft.size.trim() } : {}),
-              ...(parentDraft.description.trim() ? { description: parentDraft.description.trim() } : {}),
+              ...(parentDraft.categoryId.trim()
+                ? { categoryId: parentDraft.categoryId.trim() }
+                : {}),
+              ...(parentDraft.brand.trim()
+                ? { brand: parentDraft.brand.trim() }
+                : {}),
+              ...(parentDraft.size.trim()
+                ? { size: parentDraft.size.trim() }
+                : {}),
+              ...(parentDraft.description.trim()
+                ? { description: parentDraft.description.trim() }
+                : {}),
             }
           : {
               name: parentDraft.name,
               itemTypeId: parentDraft.itemTypeId,
-              ...(parentDraft.sku.trim() ? { sku: parentDraft.sku.trim() } : {}),
-              ...(parentDraft.barcode.trim() ? { barcode: parentDraft.barcode.trim() } : {}),
-              ...(parentDraft.categoryId.trim() ? { categoryId: parentDraft.categoryId.trim() } : {}),
-              ...(parentDraft.brand.trim() ? { brand: parentDraft.brand.trim() } : {}),
-              ...(parentDraft.size.trim() ? { size: parentDraft.size.trim() } : {}),
-              ...(parentDraft.description.trim() ? { description: parentDraft.description.trim() } : {}),
-              ...(parentDraft.unitType.trim() ? { unitType: parentDraft.unitType.trim() } : {}),
+              ...(parentDraft.sku.trim()
+                ? { sku: parentDraft.sku.trim() }
+                : {}),
+              ...(parentDraft.barcode.trim()
+                ? { barcode: parentDraft.barcode.trim() }
+                : {}),
+              ...(parentDraft.categoryId.trim()
+                ? { categoryId: parentDraft.categoryId.trim() }
+                : {}),
+              ...(parentDraft.brand.trim()
+                ? { brand: parentDraft.brand.trim() }
+                : {}),
+              ...(parentDraft.size.trim()
+                ? { size: parentDraft.size.trim() }
+                : {}),
+              ...(parentDraft.description.trim()
+                ? { description: parentDraft.description.trim() }
+                : {}),
+              ...(parentDraft.unitType.trim()
+                ? { unitType: parentDraft.unitType.trim() }
+                : {}),
               isWeighed: parentDraft.isWeighed,
               isSellable: parentDraft.isSellable,
               isStocked: parentDraft.isStocked,
-              ...(parentDraft.imageKey.trim() ? { imageKey: parentDraft.imageKey.trim() } : {}),
+              ...(parentDraft.imageKey.trim()
+                ? { imageKey: parentDraft.imageKey.trim() }
+                : {}),
               buyingPrice: parseNum(parentDraft.buyingPrice, "Buy price"),
               bundleQty: parseNum(parentDraft.bundleQty, "Pack qty", true),
               bundlePrice: parseNum(parentDraft.bundlePrice, "Sell price"),
-              ...(parentDraft.bundleName.trim() ? { bundleName: parentDraft.bundleName.trim() } : {}),
+              ...(parentDraft.bundleName.trim()
+                ? { bundleName: parentDraft.bundleName.trim() }
+                : {}),
               minStockLevel: parseNum(parentDraft.minStockLevel, "Min stock"),
               reorderLevel: parseNum(parentDraft.reorderLevel, "Reorder level"),
               reorderQty: parseNum(parentDraft.reorderQty, "Reorder qty"),
@@ -355,6 +404,38 @@ export function useProductMutations(d: Dependencies) {
             // non-fatal — product is already created
           }
         }
+
+        // Opening stock for standalone products
+        if (
+          !isCreatingGroup &&
+          canInventoryWrite &&
+          parentDraft.openingQty.trim() &&
+          parentDraft.openingBranchId.trim()
+        ) {
+          const qty = Number(parentDraft.openingQty.trim());
+          const uc = parentDraft.openingUnitCost.trim() || undefined;
+          const ucVal = uc ? Number(uc) : undefined;
+          try {
+            const payload: {
+              branchId: string;
+              itemId: string;
+              quantity: number;
+              unitCost?: number;
+              notes: string;
+            } = {
+              branchId: parentDraft.openingBranchId.trim(),
+              itemId: created.id,
+              quantity: qty,
+              notes: "Opening stock from product creation",
+            };
+            if (uc && Number.isFinite(ucVal)) payload.unitCost = ucVal;
+            await postStockIncrease(
+              payload as Parameters<typeof postStockIncrease>[0],
+            );
+          } catch {
+            setMessage("Product created but opening stock failed.");
+          }
+        }
         setPendingCreateImage(null);
         setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
         await refreshFullCatalog();
@@ -369,9 +450,7 @@ export function useProductMutations(d: Dependencies) {
           setActiveDrawer(null);
           const linked = canLinkSupplier && sup;
           setMessage(
-            linked
-              ? "Product created and linked."
-              : "Product created.",
+            linked ? "Product created and linked." : "Product created.",
           );
         }
       } catch (err) {
@@ -382,6 +461,7 @@ export function useProductMutations(d: Dependencies) {
     [
       parentDraft,
       canLinkSupplier,
+      canInventoryWrite,
       pendingCreateImage,
       refreshFullCatalog,
       refreshSelectedDetail,
@@ -657,7 +737,9 @@ export function useProductMutations(d: Dependencies) {
             try {
               await patchItem(vid, bp);
             } catch {
-              warnings.push(`Bundle patch failed (${variantDraft.variantName.trim()}).`);
+              warnings.push(
+                `Bundle patch failed (${variantDraft.variantName.trim()}).`,
+              );
             }
           }
           const sp = variantDraft.sellingPrice.trim();
@@ -671,7 +753,9 @@ export function useProductMutations(d: Dependencies) {
                 effectiveFrom: ef,
               });
             } catch {
-              warnings.push(`Pricing failed (${variantDraft.variantName.trim()}).`);
+              warnings.push(
+                `Pricing failed (${variantDraft.variantName.trim()}).`,
+              );
             }
           }
           if (canLinkSupplier && variantDraft.supplierId.trim()) {
@@ -684,7 +768,9 @@ export function useProductMutations(d: Dependencies) {
                 defaultCostPrice: costRaw ? Number(costRaw) : undefined,
               });
             } catch {
-              warnings.push(`Supplier link failed (${variantDraft.variantName.trim()}).`);
+              warnings.push(
+                `Supplier link failed (${variantDraft.variantName.trim()}).`,
+              );
             }
           }
           if (
@@ -721,7 +807,9 @@ export function useProductMutations(d: Dependencies) {
                 },
               );
             } catch {
-              warnings.push(`Opening stock failed (${variantDraft.variantName.trim()}).`);
+              warnings.push(
+                `Opening stock failed (${variantDraft.variantName.trim()}).`,
+              );
             }
           }
           if (i === 0 && pendingVariantImage) {

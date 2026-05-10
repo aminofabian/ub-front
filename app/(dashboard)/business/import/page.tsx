@@ -1,14 +1,30 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { CircleDollarSign, FileJson, Loader2, Tag, Truck } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  CircleDollarSign,
+  FileJson,
+  Loader2,
+  Package,
+  Tag,
+  Tags,
+  Truck,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
+  DASHBOARD_MAX,
+  DASHBOARD_SECTION_SURFACE,
   DashboardAccessDenied,
   DashboardLoading,
   DashboardPageHero,
+  DashboardQuickLinks,
+  dashboardHintClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -106,183 +122,250 @@ export default function BusinessImportPage() {
     );
   }
 
+  const KindIcon = kindIcon(importKind);
+  const hasResultErrors = result != null && result.errors.length > 0;
+
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <div className={cn(DASHBOARD_MAX, "max-w-2xl")}>
       <DashboardPageHero
-        icon={kindIcon(importKind)}
+        icon={FileJson}
         eyebrow="Integrations"
         title="Import legacy data (JSON)"
         description="Upload catalog, supplier, or price exports. Products support an array or products / items; suppliers use suppliers / vendors; buying prices use buying_prices / costs; selling prices use selling_prices / sell_prices. CSV templates for items, suppliers, and opening stock are available from GET /api/v1/integrations/imports/templates/…"
-      />
+      >
+        <DashboardQuickLinks
+          links={[
+            {
+              href: APP_ROUTES.business,
+              label: "Business",
+              desc: "Workspace settings",
+              icon: Building2,
+            },
+            {
+              href: APP_ROUTES.products,
+              label: "Products",
+              desc: "Catalog items",
+              icon: Package,
+            },
+            {
+              href: APP_ROUTES.suppliers,
+              label: "Suppliers",
+              desc: "Vendors",
+              icon: Truck,
+            },
+            {
+              href: APP_ROUTES.pricing,
+              label: "Pricing",
+              desc: "Rules & margins",
+              icon: Tags,
+            },
+          ]}
+        />
+      </DashboardPageHero>
 
-      <div className="flex flex-wrap gap-2 rounded-xl border border-border/70 bg-muted/30 p-1.5">
-        {(
-          [
-            ["products", "Products"] as const,
-            ["suppliers", "Suppliers"] as const,
-            ["buying_prices", "Buying prices"] as const,
-            ["selling_prices", "Selling prices"] as const,
-          ] as const
-        ).map(([key, label]) => (
-          <Button
-            key={key}
-            type="button"
-            variant={importKind === key ? "default" : "ghost"}
-            size="sm"
-            className={cn("flex-1 sm:flex-initial", importKind !== key && "text-muted-foreground")}
-            onClick={() => {
-              setImportKind(key);
-              setResult(null);
-            }}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="space-y-4 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
-          JSON file
-          <input
-            type="file"
-            accept=".json,application/json"
-            className="max-w-full text-sm file:mr-3 file:rounded file:border file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
-            disabled={busy != null}
-            onChange={(e) => {
-              setFile(e.target.files?.[0] ?? null);
-              setResult(null);
-            }}
-          />
-        </label>
-
-        {importKind === "products" ? (
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
-            Branch for opening stock
-            <select
-              className={cn(
-                "rounded-lg border border-input bg-background px-3 py-2 text-sm",
-                branchesLoading && "opacity-60",
-              )}
-              disabled={busy != null || branchesLoading}
-              value={branchForStock || branchId || ""}
-              onChange={(e) => setBranchForStock(e.target.value)}
-            >
-              <option value="">Use workspace default branch</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs font-normal text-muted-foreground">
-              Required when any row has <code className="rounded bg-muted px-1">current_stock</code> &gt; 0. Unit cost
-              for opening balance defaults to 1% of sell price (minimum 0.01).
-            </span>
-          </label>
-        ) : importKind === "suppliers" ? (
-          <p className="text-xs text-muted-foreground">
-            Each row needs a display name: <code className="rounded bg-muted px-1">name</code>,{" "}
-            <code className="rounded bg-muted px-1">company_name</code>, nested{" "}
-            <code className="rounded bg-muted px-1">supplier.name</code>, or fallback <code className="rounded bg-muted px-1">code</code>. Optional{" "}
-            <code className="rounded bg-muted px-1">id</code> from the export (UUID) is stored to map buying prices. Supported
-            wrappers: top-level array or <code className="rounded bg-muted px-1">suppliers</code> /{" "}
-            <code className="rounded bg-muted px-1">vendors</code> / <code className="rounded bg-muted px-1">data</code> /{" "}
-            <code className="rounded bg-muted px-1">results</code> arrays. Duplicate <em>legacy ids</em> are dropped (first
-            wins); duplicate <em>display names</em> get a short suffix so each row can be imported and mapped.
-          </p>
-        ) : importKind === "buying_prices" ? (
-          <p className="text-xs text-muted-foreground">
-            Each row matches the legacy export: <code className="rounded bg-muted px-1">item_id</code> or{" "}
-            <code className="rounded bg-muted px-1">product_id</code> (UUID — same values as your product export’s id; Palmart matches by item id, stored legacy id, SKU{" "}
-            <code className="rounded bg-muted px-1">IMP-{"<uuid>"}</code> when the product had no code, or optional{" "}
-            <code className="rounded bg-muted px-1">product_code</code> / <code className="rounded bg-muted px-1">barcode</code>),{" "}
-            <code className="rounded bg-muted px-1">supplier_id</code> (UUID or supplier code; if the UUID is not in Palmart,
-            cost is attached to SYS-UNASSIGNED and the note records the original id), optional{" "}
-            <code className="rounded bg-muted px-1">price</code> (number, stored as unit cost; alias{" "}
-            <code className="rounded bg-muted px-1">unit_cost</code>),{" "}
-            <code className="rounded bg-muted px-1">effective_from</code> (unix timestamp), optional{" "}
-            <code className="rounded bg-muted px-1">notes</code>. Export-only fields are not applied:{" "}
-            <code className="rounded bg-muted px-1">id</code>, <code className="rounded bg-muted px-1">set_by</code>,{" "}
-            <code className="rounded bg-muted px-1">created_at</code> — the signed-in user is stored as setter and{" "}
-            <code className="rounded bg-muted px-1">created_at</code> is the server import time. CamelCase keys are OK.
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Each row: <code className="rounded bg-muted px-1">item_id</code>,{" "}
-            <code className="rounded bg-muted px-1">price</code>,{" "}
-            <code className="rounded bg-muted px-1">effective_from</code> (unix). Optional{" "}
-            <code className="rounded bg-muted px-1">branch_id</code> for branch-specific list prices; omit for business-wide
-            sell price. Ignored export fields: <code className="rounded bg-muted px-1">id</code>,{" "}
-            <code className="rounded bg-muted px-1">supplier_id</code>, <code className="rounded bg-muted px-1">set_by</code>
-            , <code className="rounded bg-muted px-1">created_at</code>.
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={!file || busy != null}
-            onClick={() => void run(true)}
-          >
-            {busy === "dry" ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                Validating…
-              </>
-            ) : (
-              "Validate only"
-            )}
-          </Button>
-          <Button
-            type="button"
-            disabled={!file || busy != null}
-            onClick={() => void run(false)}
-          >
-            {busy === "commit" ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                Importing…
-              </>
-            ) : (
-              "Import"
-            )}
-          </Button>
+      <section className={DASHBOARD_SECTION_SURFACE}>
+        <div className="flex items-center gap-2.5 border-b border-border/50 pb-4">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/60 text-foreground">
+            <KindIcon className="size-4" aria-hidden />
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Import type</h2>
+            <p className={cn(dashboardHintClass(), "mt-0.5 max-w-prose")}>
+              Choose what this JSON file represents, then upload and validate or import.
+            </p>
+          </div>
         </div>
-      </div>
+
+        <div className={cn("mt-5 flex flex-wrap gap-2 rounded-xl border border-border/50 bg-muted/25 p-1.5")}>
+          {(
+            [
+              ["products", "Products"] as const,
+              ["suppliers", "Suppliers"] as const,
+              ["buying_prices", "Buying prices"] as const,
+              ["selling_prices", "Selling prices"] as const,
+            ] as const
+          ).map(([key, label]) => (
+            <Button
+              key={key}
+              type="button"
+              variant={importKind === key ? "default" : "ghost"}
+              size="sm"
+              className={cn(
+                "flex-1 sm:flex-initial",
+                importKind !== key && "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => {
+                setImportKind(key);
+                setResult(null);
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="mt-6 space-y-5 border-t border-border/50 pt-6">
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-foreground">JSON file</span>
+            <input
+              type="file"
+              accept=".json,application/json"
+              className={cn(
+                "max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-[box-shadow,border-color] duration-150",
+                "file:mr-3 file:rounded-md file:border file:border-input file:bg-muted file:px-3 file:py-2 file:text-xs file:font-medium file:text-foreground",
+                "file:transition-colors file:hover:bg-muted/80 hover:border-foreground/15",
+                "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                busy != null && "opacity-60",
+              )}
+              disabled={busy != null}
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setResult(null);
+              }}
+            />
+          </label>
+
+          {importKind === "products" ? (
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-foreground">Branch for opening stock</span>
+              <select
+                className={dashboardSelectClass(busy != null || branchesLoading)}
+                disabled={busy != null || branchesLoading}
+                value={branchForStock || branchId || ""}
+                onChange={(e) => setBranchForStock(e.target.value)}
+              >
+                <option value="">Use workspace default branch</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <span className={dashboardHintClass()}>
+                Required when any row has <code className="rounded bg-muted px-1">current_stock</code> &gt; 0. Unit cost
+                for opening balance defaults to 1% of sell price (minimum 0.01).
+              </span>
+            </label>
+          ) : importKind === "suppliers" ? (
+            <p className={dashboardHintClass()}>
+              Each row needs a display name: <code className="rounded bg-muted px-1">name</code>,{" "}
+              <code className="rounded bg-muted px-1">company_name</code>, nested{" "}
+              <code className="rounded bg-muted px-1">supplier.name</code>, or fallback <code className="rounded bg-muted px-1">code</code>. Optional{" "}
+              <code className="rounded bg-muted px-1">id</code> from the export (UUID) is stored to map buying prices. Supported
+              wrappers: top-level array or <code className="rounded bg-muted px-1">suppliers</code> /{" "}
+              <code className="rounded bg-muted px-1">vendors</code> / <code className="rounded bg-muted px-1">data</code> /{" "}
+              <code className="rounded bg-muted px-1">results</code> arrays. Duplicate <em>legacy ids</em> are dropped (first
+              wins); duplicate <em>display names</em> get a short suffix so each row can be imported and mapped.
+            </p>
+          ) : importKind === "buying_prices" ? (
+            <p className={dashboardHintClass()}>
+              Each row matches the legacy export: <code className="rounded bg-muted px-1">item_id</code> or{" "}
+              <code className="rounded bg-muted px-1">product_id</code> (UUID — same values as your product export’s id; Palmart matches by item id, stored legacy id, SKU{" "}
+              <code className="rounded bg-muted px-1">IMP-{"<uuid>"}</code> when the product had no code, or optional{" "}
+              <code className="rounded bg-muted px-1">product_code</code> / <code className="rounded bg-muted px-1">barcode</code>),{" "}
+              <code className="rounded bg-muted px-1">supplier_id</code> (UUID or supplier code; if the UUID is not in Palmart,
+              cost is attached to SYS-UNASSIGNED and the note records the original id), optional{" "}
+              <code className="rounded bg-muted px-1">price</code> (number, stored as unit cost; alias{" "}
+              <code className="rounded bg-muted px-1">unit_cost</code>),{" "}
+              <code className="rounded bg-muted px-1">effective_from</code> (unix timestamp), optional{" "}
+              <code className="rounded bg-muted px-1">notes</code>. Export-only fields are not applied:{" "}
+              <code className="rounded bg-muted px-1">id</code>, <code className="rounded bg-muted px-1">set_by</code>,{" "}
+              <code className="rounded bg-muted px-1">created_at</code> — the signed-in user is stored as setter and{" "}
+              <code className="rounded bg-muted px-1">created_at</code> is the server import time. CamelCase keys are OK.
+            </p>
+          ) : (
+            <p className={dashboardHintClass()}>
+              Each row: <code className="rounded bg-muted px-1">item_id</code>,{" "}
+              <code className="rounded bg-muted px-1">price</code>,{" "}
+              <code className="rounded bg-muted px-1">effective_from</code> (unix). Optional{" "}
+              <code className="rounded bg-muted px-1">branch_id</code> for branch-specific list prices; omit for business-wide
+              sell price. Ignored export fields: <code className="rounded bg-muted px-1">id</code>,{" "}
+              <code className="rounded bg-muted px-1">supplier_id</code>, <code className="rounded bg-muted px-1">set_by</code>
+              , <code className="rounded bg-muted px-1">created_at</code>.
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-10 shadow-sm transition-shadow hover:shadow-md"
+              disabled={!file || busy != null}
+              onClick={() => void run(true)}
+            >
+              {busy === "dry" ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  Validating…
+                </>
+              ) : (
+                "Validate only"
+              )}
+            </Button>
+            <Button
+              type="button"
+              className="min-h-10 shadow-sm transition-shadow hover:shadow-md"
+              disabled={!file || busy != null}
+              onClick={() => void run(false)}
+            >
+              {busy === "commit" ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  Importing…
+                </>
+              ) : (
+                "Import"
+              )}
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {result ? (
         <div
+          role="status"
           className={cn(
-            "rounded-xl border p-4 text-sm",
-            result.errors.length > 0
-              ? "border-destructive/40 bg-destructive/5"
-              : "border-emerald-500/35 bg-emerald-500/[0.06]",
+            "flex flex-col gap-1 rounded-xl border px-4 py-3.5 text-sm leading-relaxed shadow-sm",
+            hasResultErrors
+              ? "border-destructive/25 bg-destructive/5"
+              : "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-50",
           )}
         >
-          <p className="font-medium text-foreground">
-            {result.dryRun ? "Validation" : "Import"} · {result.rowsParsed} row(s) parsed
-            {result.rowsCommitted != null ? ` · ${result.rowsCommitted} committed` : null}
-          </p>
-          {result.errors.length > 0 ? (
-            <ul className="mt-3 max-h-64 list-inside list-disc space-y-1 overflow-y-auto text-xs text-muted-foreground">
-              {result.errors.map((err, i) => (
-                <li key={`${err.line}-${i}`}>
-                  <span className="font-mono text-foreground">Line {err.line}</span>: {err.message}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-xs text-muted-foreground">
-              {importKind === "products"
-                ? "No blocking issues reported. Products should appear under Catalog; refresh the Products page if it was already open."
-                : importKind === "suppliers"
-                  ? "No blocking issues reported. Suppliers should appear under Suppliers; refresh that page if it was already open."
-                  : importKind === "buying_prices"
-                    ? "No blocking issues reported. Buying costs are stored for the item + supplier; refresh pricing views as needed."
-                    : "No blocking issues reported. Selling prices are applied from the effective date; refresh catalog or POS as needed."}
-            </p>
-          )}
+          <div className="flex items-start gap-3">
+            {hasResultErrors ? (
+              <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+            ) : (
+              <CheckCircle2
+                className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                aria-hidden
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-foreground">
+                {result.dryRun ? "Validation" : "Import"} · {result.rowsParsed} row(s) parsed
+                {result.rowsCommitted != null ? ` · ${result.rowsCommitted} committed` : null}
+              </p>
+              {hasResultErrors ? (
+                <ul className="mt-3 max-h-64 list-inside list-disc space-y-1 overflow-y-auto text-xs text-muted-foreground">
+                  {result.errors.map((err, i) => (
+                    <li key={`${err.line}-${i}`}>
+                      <span className="font-mono text-foreground">Line {err.line}</span>: {err.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {importKind === "products"
+                    ? "No blocking issues reported. Products should appear under Catalog; refresh the Products page if it was already open."
+                    : importKind === "suppliers"
+                      ? "No blocking issues reported. Suppliers should appear under Suppliers; refresh that page if it was already open."
+                      : importKind === "buying_prices"
+                        ? "No blocking issues reported. Buying costs are stored for the item + supplier; refresh pricing views as needed."
+                        : "No blocking issues reported. Selling prices are applied from the effective date; refresh catalog or POS as needed."}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

@@ -1,16 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
+  ArrowRight,
   ChevronLeft,
-  Plus,
+  Loader2,
+  LogOut,
+  PlusCircle,
   Search,
   ShoppingCart,
+  Wallet,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
+import { APP_ROUTES } from "@/lib/config";
 import {
   fetchCurrentSellingPrice,
   itemListThumbnailUrl,
@@ -20,11 +27,9 @@ import {
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
   cashierItemPrimaryLabel,
-  posSearchItemDetailLine,
-  posTopProductSubtitle,
 } from "@/lib/cashier-item-display";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
-import { tileHue, type TopProductRecord } from "@/lib/top-products";
+import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
 
 import {
@@ -35,6 +40,32 @@ import {
   CashierCartDrawer,
   type CashierCartDrawerProps,
 } from "./cashier-cart-drawer";
+import { CashierCurrencySuffix, CashierDottedLeader } from "./cashier-currency-inline";
+import { kioskCategoryPillClass } from "./kiosk-listing-styles";
+
+const POS_SHIFT_CHIP_CLASS = cn(
+  "inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/90 px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground shadow-sm",
+  "transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-card hover:shadow-md",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "active:translate-y-0 active:shadow-sm",
+);
+
+function shiftsPosActionHref(
+  action: "new-drawout" | "open-shift" | "close-shift",
+  branchId: string,
+): string {
+  const q = new URLSearchParams({ action, branchId: branchId.trim() });
+  return `${APP_ROUTES.shifts}?${q.toString()}`;
+}
+
+export type CashierPosShiftLinksProps = {
+  branchId: string;
+  branchSelected: boolean;
+  hasOpenShift: boolean;
+  shiftLoading: boolean;
+  canOpenShift: boolean;
+  canCloseShift: boolean;
+};
 
 export type CashierPosLayoutProps = {
   online: boolean;
@@ -68,6 +99,8 @@ export type CashierPosLayoutProps = {
   categoryFilterLabel: string | null;
   categoryTreeBusy: boolean;
   categoryBrowseParentId: string | null;
+  /** Shift / drawer shortcuts (cashier); opens Shifts with the right modal via query string. */
+  posShiftLinks: CashierPosShiftLinksProps | null;
 
   cart: Pick<
     CashierCartDrawerProps,
@@ -125,84 +158,68 @@ function tileShelfLine(
   return prices[id] ? prices[id] : copy.tileShelfEmpty;
 }
 
+const KIOSK_TILE_SHELL = cn(
+  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/45 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform] duration-200",
+  "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] hover:shadow-md hover:ring-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
+);
+
+/** Price / hint text on the photo — saves a footer row for denser tiles. */
+function KioskTilePriceBadge({ children }: { children: string }) {
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute bottom-1.5 right-1.5 z-[1] max-w-[calc(100%-0.75rem)] truncate rounded-md border border-border/50 px-1.5 py-0.5",
+        "bg-background/92 text-[10px] font-bold tabular-nums leading-none tracking-tight text-foreground shadow-sm backdrop-blur-[2px]",
+        "sm:text-[11px]",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function TopSellerTile({
   product,
-  rank,
   onPick,
   shelfLine,
 }: {
   product: TopProductRecord;
-  rank: number;
   onPick: () => void;
   shelfLine: string;
 }) {
-  const sold = product.count;
-  const qtyLabel =
-    product.qty >= 100
-      ? `${Math.round(product.qty)}`
-      : product.qty.toFixed(product.qty >= 10 ? 0 : 1);
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      className={cn(
-        "group relative flex min-h-[10.5rem] flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-md transition-all",
-        "border-[color-mix(in_srgb,var(--pos-primary)_16%,var(--border))]",
-        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_32%,var(--border))] hover:shadow-xl active:translate-y-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_30%,transparent)]",
-      )}
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-6 top-8 h-24 w-24 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] blur-3xl transition-opacity group-hover:opacity-100"
-      />
-      {/* Hero image strip */}
-      <div
-        className="relative h-[6.25rem] w-full shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--pos-glow)_24%,var(--muted))]"
-        style={{
-          backgroundImage: product.thumbnailUrl
-            ? undefined
-            : "linear-gradient(145deg, color-mix(in srgb, var(--pos-glow) 45%, var(--card)), color-mix(in srgb, var(--pos-secondary) 18%, var(--card)))",
-        }}
-      >
-        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--pos-primary)] shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/40 dark:text-[var(--pos-primary)]">
-          {rank === 0 ? "★ Top" : `#${rank + 1}`}
-        </span>
+    <button type="button" onClick={onPick} className={KIOSK_TILE_SHELL} aria-label={`Add ${product.name}, ${shelfLine}`}>
+      <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
+        <span
+          className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-0.5 rounded-l-xl bg-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          aria-hidden
+        />
         {product.thumbnailUrl ? (
           <Image
             src={product.thumbnailUrl}
             alt=""
             fill
-            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            sizes="(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
+            className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
             unoptimized
           />
         ) : (
           <span
-            className="flex h-full w-full items-center justify-center text-4xl font-bold tracking-tight text-[var(--pos-primary)]/90 drop-shadow-sm"
+            className="flex h-full w-full items-center justify-center text-2xl font-bold tracking-tight text-muted-foreground/45"
             aria-hidden
           >
             {product.name.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
+        <KioskTilePriceBadge>{shelfLine}</KioskTilePriceBadge>
       </div>
-      <div
-        className="relative flex flex-1 flex-col gap-0.5 px-2.5 pb-2 pt-2"
-        style={{
-          backgroundImage:
-            "linear-gradient(180deg, color-mix(in srgb, var(--pos-glow) 14%, var(--card)), var(--card))",
-        }}
-      >
-        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--pos-primary)]">
+      <div className="flex flex-1 flex-col px-2 pb-2 pt-1.5">
+        <p className="line-clamp-2 text-left text-[12px] font-semibold leading-[1.2] tracking-tight text-foreground sm:text-[13px]">
           {product.name}
         </p>
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          {posTopProductSubtitle(product)}
-        </p>
-        <p className="text-[11px] font-bold tabular-nums text-foreground">{shelfLine}</p>
-        <p className="text-[10px] font-medium text-muted-foreground">
-          {sold > 0 ? `Sold ×${sold} · qty ${qtyLabel}` : "Suggested pick"}
-        </p>
+        <p className="mt-1 text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">Top seller</p>
       </div>
     </button>
   );
@@ -219,50 +236,46 @@ function SearchHitTile({
 }) {
   const thumb = itemListThumbnailUrl(item);
   const title = cashierItemPrimaryLabel(item);
-  const detail = posSearchItemDetailLine(item);
+  const categoryLabel = item.categoryName?.trim() || "Menu";
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      className={cn(
-        "flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_12%,var(--border))] bg-card p-3 text-left transition-colors",
-        "hover:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] hover:bg-[color-mix(in_srgb,var(--pos-glow)_12%,var(--accent))]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)]",
-      )}
-    >
-      <div className="flex w-12 shrink-0 flex-col items-center gap-1">
+    <button type="button" onClick={onPick} className={KIOSK_TILE_SHELL} aria-label={`Add ${title}, ${shelfLine}`}>
+      <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
+        <span
+          className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-0.5 rounded-l-xl bg-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          aria-hidden
+        />
         {thumb ? (
-          <span className="relative h-12 w-12 overflow-hidden rounded-lg border bg-muted">
-            <Image
-              src={thumb}
-              alt=""
-              width={48}
-              height={48}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-          </span>
+          <Image
+            src={thumb}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
+            className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
+            unoptimized
+          />
         ) : (
           <span
-            className="inline-flex h-12 w-12 items-center justify-center rounded-lg border bg-muted text-base font-bold text-muted-foreground"
+            className="flex h-full w-full items-center justify-center text-2xl font-bold tracking-tight text-muted-foreground/45"
             aria-hidden
           >
             {title.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
-        <span className="w-full truncate text-center text-[9px] font-bold tabular-nums leading-none text-foreground">
-          {shelfLine}
+        <KioskTilePriceBadge>{shelfLine}</KioskTilePriceBadge>
+      </div>
+      <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
+        <p className="line-clamp-2 text-left text-[12px] font-semibold leading-[1.2] tracking-tight text-foreground sm:text-[13px]">
+          {title}
+        </p>
+        <span
+          className={cn(
+            "max-w-full truncate rounded-md px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide",
+            kioskCategoryPillClass(categoryLabel),
+          )}
+        >
+          {categoryLabel}
         </span>
       </div>
-      <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 text-sm font-medium leading-snug">{title}</span>
-        <span className="mt-0.5 block break-all text-[11px] uppercase tracking-wide text-muted-foreground">
-          {detail}
-        </span>
-      </span>
-      <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-foreground">
-        <Plus className="size-3.5" />
-      </span>
     </button>
   );
 }
@@ -293,6 +306,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     categoryFilterLabel,
     categoryTreeBusy,
     categoryBrowseParentId,
+    posShiftLinks,
     cart,
   } = props;
 
@@ -397,14 +411,23 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   }, [online, branchId, currency, hitIdsKey, topIdsKey]);
 
   return (
-    <div className="space-y-6 pb-24">
-      <header className="space-y-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+    <div
+      className={cn(
+        "mx-auto w-full max-w-3xl space-y-4 px-3 pb-28 sm:max-w-4xl sm:space-y-5 sm:px-5",
+        "bg-neutral-50/95 dark:bg-background",
+      )}
+    >
+      <section className={cn(DASHBOARD_SECTION_SURFACE, "border-border/50 shadow-sm")}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold leading-tight text-[var(--pos-primary)]">
-              Point of sale
+            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+              <span>Point of sale</span>
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-75"
+                aria-hidden
+              />
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               {branchesLoading ? (
                 "Loading branches…"
               ) : activeBranchName ? (
@@ -413,30 +436,87 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   <span className="opacity-70"> · change in top nav</span>
                 </>
               ) : (
-                <span className="text-amber-800">
+                <span className="text-amber-800 dark:text-amber-200">
                   Pick a branch in the top nav to start.
                 </span>
               )}
             </p>
           </div>
           {!online ? (
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">
+            <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
               {uiCopy.offlinePill}
             </span>
           ) : null}
         </div>
-      </header>
+        {posShiftLinks ? (
+          <div className="mt-6 border-t border-border/40 pt-6">
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                Shift & drawer
+              </p>
+              {!posShiftLinks.branchSelected ? (
+                <p className="text-xs text-muted-foreground">
+                  Pick a branch in the top nav to open shift tools.
+                </p>
+              ) : posShiftLinks.shiftLoading ? (
+                <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin shrink-0" aria-hidden />
+                  Checking shift for this register…
+                </span>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
+                    <Link
+                      href={shiftsPosActionHref("new-drawout", posShiftLinks.branchId)}
+                      className={POS_SHIFT_CHIP_CLASS}
+                    >
+                      <Wallet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      New cash drawout
+                      <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
+                    </Link>
+                  ) : null}
+                  {posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift ? (
+                    <Link
+                      href={shiftsPosActionHref("open-shift", posShiftLinks.branchId)}
+                      className={POS_SHIFT_CHIP_CLASS}
+                    >
+                      <PlusCircle className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      Open new shift
+                      <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
+                    </Link>
+                  ) : null}
+                  {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
+                    <Link
+                      href={shiftsPosActionHref("close-shift", posShiftLinks.branchId)}
+                      className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/25 hover:border-destructive/40")}
+                    >
+                      <LogOut className="size-3.5 shrink-0 text-destructive/80" aria-hidden />
+                      Close shift
+                      <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
+                    </Link>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </section>
 
-      <div className="sticky top-[3.5rem] z-20 -mx-3 sm:-mx-4">
-        <div className="bg-background/85 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-4">
+      <div className="sticky top-[3.5rem] z-20 -mx-1 sm:-mx-0">
+        <section
+          className={cn(
+            DASHBOARD_SECTION_SURFACE,
+            "border-border/50 p-2.5 shadow-sm supports-[backdrop-filter]:bg-card/92 supports-[backdrop-filter]:backdrop-blur-md sm:p-3",
+          )}
+        >
           <div
             className={cn(
-              "group flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--pos-primary)_16%,var(--border))] bg-card pl-3 pr-1 shadow-md transition-all",
-              "ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]",
-              "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_42%,var(--border))] focus-within:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)]",
+              "group flex items-center gap-1.5 rounded-xl border border-border/60 bg-background/90 pl-3 pr-1 shadow-sm transition-colors",
+              "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_30%,var(--border))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos-primary)_12%,transparent)]",
+              "dark:bg-card/80",
             )}
           >
-            <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+            <Search className="size-[1.125rem] shrink-0 text-muted-foreground/80" aria-hidden />
             <input
               type="search"
               value={search}
@@ -446,7 +526,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   ? "Search within this aisle…"
                   : "Search by name or SKU…"
               }
-              className="h-12 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/70"
+              className="h-10 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/60 sm:h-11 sm:text-[15px]"
               autoComplete="off"
               aria-label="Search products"
             />
@@ -464,10 +544,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
           {searchBanner ? (
-            <p className="mt-1 px-1 text-[11px] text-amber-800">{searchBanner}</p>
+            <p className="mt-2 px-0.5 text-[11px] text-amber-800 dark:text-amber-200">{searchBanner}</p>
           ) : null}
           {categoryFilterId ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 px-1 text-xs">
+            <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
               <span className="rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] px-2.5 py-0.5 font-medium text-[var(--pos-primary)]">
                 Aisle: {categoryFilterLabel ?? categoryFilterId}
               </span>
@@ -480,13 +560,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               </button>
             </div>
           ) : null}
-        </div>
+        </section>
       </div>
 
       {hasSearch ? (
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">
+        <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 border-border/50 p-3 sm:space-y-2.5 sm:p-4")}>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
               {search.trim() ? "Search results" : "Aisle items"}
             </h3>
             {hits.length > 0 ? (
@@ -496,13 +576,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
           {hits.length === 0 ? (
-            <p className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-center text-xs text-muted-foreground sm:py-8">
               {search.trim()
                 ? "No items match your search."
                 : "No items in this aisle."}
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
               {hits.map((item) => (
                 <SearchHitTile
                   key={item.id}
@@ -519,30 +599,29 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {showCatalog && topProducts.length > 0 ? (
         <section
           aria-label="Top selling products"
-          className="space-y-3 rounded-3xl border border-[color-mix(in_srgb,var(--pos-primary)_26%,var(--border))] bg-gradient-to-br from-[color-mix(in_srgb,var(--pos-glow)_32%,var(--card))] via-[color-mix(in_srgb,var(--pos-secondary)_10%,var(--card))] to-[var(--card)] p-4 shadow-sm"
+          className="space-y-2.5 rounded-xl border border-border/50 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:border-border/50 dark:ring-white/[0.03] sm:p-3.5"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <span
                 aria-hidden
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-base font-bold leading-none text-[var(--pos-primary)]"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-xs font-bold leading-none text-[var(--pos-primary)]"
               >
                 ★
               </span>
-              <div>
-                <h3 className="text-sm font-semibold leading-tight">Top sellers</h3>
-                <p className="text-[11px] text-muted-foreground">
-                  Tap to pick · ranked by recent sales on this device
+              <div className="min-w-0">
+                <h3 className="text-[13px] font-semibold leading-none tracking-tight sm:text-sm">Top sellers</h3>
+                <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
+                  Tap · ranked on this register
                 </p>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {topProducts.map((p, idx) => (
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
+            {topProducts.map((p) => (
               <TopSellerTile
                 key={p.id}
                 product={p}
-                rank={idx}
                 shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
                 onPick={() =>
                   handlePickItem({
@@ -559,9 +638,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       {showCatalog && canBrowseCategories ? (
-        <section className="space-y-3">
+        <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 border-border/50 p-3 sm:p-4")}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">Browse aisles</h3>
+            <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">Browse aisles</h3>
             <div className="flex items-center gap-2">
               {categoryBrowseStack.length > 0 ? (
                 <Button
@@ -600,28 +679,31 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : categoryTreeBusy ? (
             <p className="text-xs text-muted-foreground">Loading aisles…</p>
           ) : visibleCategoryTiles.length === 0 ? (
-            <p className="rounded-xl border border-dashed py-6 text-center text-xs text-muted-foreground">
+            <p className="rounded-2xl border border-dashed border-border/50 bg-muted/10 py-8 text-center text-xs text-muted-foreground">
               No active aisles.
             </p>
           ) : (
-            <div className="-mx-3 overflow-x-auto px-3 pb-1 sm:-mx-4 sm:px-4">
-              <div className="flex gap-2">
+            <div className="-mx-1 overflow-x-auto px-1 pb-0.5 sm:-mx-1.5 sm:px-1.5">
+              <div className="flex gap-2 sm:gap-2.5">
                 {visibleCategoryTiles.map((node) => {
                   const thumb = node.thumbnailUrl?.trim();
                   const kids = (node.children ?? []).filter((c) => c.active);
                   const drillable = kids.length > 0;
-                  const hue = tileHue(node.id);
+                  const countLabel = drillable
+                    ? `${kids.length} sub${kids.length === 1 ? "" : "s"}`
+                    : node.childCount > 0
+                      ? `${node.childCount} item${node.childCount === 1 ? "" : "s"}`
+                      : "Tap to browse";
                   return (
                     <button
                       key={node.id}
                       type="button"
                       disabled={!online}
-                      style={{
-                        backgroundImage: `linear-gradient(160deg, hsl(${hue} 65% 96%), hsl(${(hue + 30) % 360} 70% 88%))`,
-                      }}
                       className={cn(
-                        "flex w-[8.5rem] shrink-0 flex-col gap-2 rounded-2xl border border-white/60 p-3 text-left text-xs shadow-sm transition-all",
-                        "hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50",
+                        "flex w-[5.75rem] shrink-0 flex-col items-center gap-1 rounded-xl border border-border/45 bg-white p-1.5 text-center text-[10px] shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform] duration-200",
+                        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md disabled:opacity-50",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
                       )}
                       onClick={() => {
                         if (!online) return;
@@ -632,34 +714,30 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                         applySubtreeFilter(node.id, node.name);
                       }}
                     >
-                      <span className="relative mx-auto h-16 w-full overflow-hidden rounded-lg border border-white/70 bg-white/70">
+                      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/35 bg-neutral-50/90 dark:bg-muted/40">
                         {thumb ? (
                           <Image
                             src={thumb}
                             alt=""
-                            width={120}
-                            height={64}
+                            width={44}
+                            height={44}
                             className="h-full w-full object-cover"
                             unoptimized
                           />
                         ) : (
                           <span
-                            className="flex h-full w-full items-center justify-center text-2xl font-bold"
-                            style={{ color: `hsl(${hue} 60% 32%)` }}
+                            className="text-sm font-bold text-muted-foreground/70"
                             aria-hidden
                           >
                             {node.name.trim().charAt(0).toUpperCase() || "?"}
                           </span>
                         )}
                       </span>
-                      <span
-                        className="line-clamp-2 font-semibold leading-tight"
-                        style={{ color: `hsl(${hue} 60% 28%)` }}
-                      >
+                      <span className="line-clamp-2 min-h-[2rem] w-full text-[10px] font-semibold leading-[1.15] text-foreground">
                         {node.name}
                       </span>
-                      <span className="text-[10px] text-foreground/60">
-                        {drillable ? `${kids.length} subs · open` : "Tap for items"}
+                      <span className="text-[9px] font-medium tabular-nums leading-none text-muted-foreground">
+                        {countLabel}
                       </span>
                     </button>
                   );
@@ -674,19 +752,20 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         type="button"
         onClick={() => setDrawerOpen(true)}
         className={cn(
-          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-5 py-3 shadow-lg transition-all",
-          "hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 shadow-lg transition-[transform,box-shadow] sm:px-5 sm:py-3",
+          "hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0",
-          pulseCart && "ring-4 ring-[color-mix(in_srgb,var(--pos-primary)_45%,transparent)]",
+          pulseCart && "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
         )}
         style={{
           backgroundColor: "var(--pos-primary)",
           color: "var(--pos-primary-ink)",
-          boxShadow: "0 10px 40px color-mix(in srgb, var(--pos-primary) 35%, transparent)",
+          boxShadow:
+            "0 4px 6px -1px color-mix(in srgb, var(--pos-primary) 18%, transparent), 0 12px 28px -8px color-mix(in srgb, var(--pos-primary) 32%, transparent)",
         }}
         aria-label={`Open cart with ${cart.lines.length} line${cart.lines.length === 1 ? "" : "s"}`}
       >
-        <span className="relative inline-flex size-8 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--pos-primary-ink)_14%,transparent)]">
+        <span className="relative inline-flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)] sm:rounded-full">
           <ShoppingCart className="size-4" />
           {cart.lines.length > 0 ? (
             <span
@@ -700,14 +779,18 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </span>
           ) : null}
         </span>
-        <span className="flex flex-col items-start leading-none">
+        <span className="flex min-w-[9rem] flex-col items-stretch leading-none">
           <span className="text-[10px] uppercase tracking-wide opacity-80">
             {cart.lines.length === 0
               ? "Cart empty"
               : `${cartItemCount.toFixed(0)} item${cartItemCount === 1 ? "" : "s"}`}
           </span>
-          <span className="text-base font-semibold tabular-nums">
-            {grandTotal.toFixed(2)} {currency}
+          <span className="mt-1 flex items-end gap-1.5">
+            <CashierDottedLeader onPrimary />
+            <span className="inline-flex shrink-0 items-baseline gap-0.5 text-base font-semibold tabular-nums">
+              <span>{grandTotal.toFixed(2)}</span>
+              <CashierCurrencySuffix code={currency} onPrimary />
+            </span>
           </span>
         </span>
       </button>

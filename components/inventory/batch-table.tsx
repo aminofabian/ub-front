@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DASHBOARD_TABLE_HEAD,
+  DASHBOARD_TABLE_SURFACE,
+  dashboardSelectClass,
+} from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import type { BatchTableRow } from "@/lib/api";
@@ -128,8 +133,9 @@ export function BatchTable({
     align?: "left" | "right";
   }) => (
     <th
+      scope="col"
       className={cn(
-        "cursor-pointer select-none px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/60",
+        "cursor-pointer select-none px-5 py-3.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/40 sm:px-6",
         align === "right" && "text-right",
       )}
       onClick={() => onSort(col)}
@@ -181,34 +187,37 @@ export function BatchTable({
   }, [rows]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-muted-foreground">
-          Showing <strong className="text-foreground">{total > 0 ? start : 0}–{end}</strong> of{" "}
-          <strong className="text-foreground">{total}</strong> batches
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="mr-1 h-3.5 w-3.5" />
-            Export CSV
-          </Button>
-          <select
-            className="rounded-lg border bg-background px-2 py-1.5 text-sm"
-            value={size}
-            onChange={(e) => onSizeChange(Number(e.target.value))}
-          >
-            <option value={10}>10 / page</option>
-            <option value={25}>25 / page</option>
-            <option value={50}>50 / page</option>
-            <option value={100}>100 / page</option>
-          </select>
+    <div className={DASHBOARD_TABLE_SURFACE}>
+      <div className={DASHBOARD_TABLE_HEAD}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            Showing <strong className="text-foreground">{total > 0 ? start : 0}–{end}</strong> of{" "}
+            <strong className="text-foreground">{total}</strong> batches
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="shadow-sm" onClick={exportCSV}>
+              <Download className="mr-1 h-3.5 w-3.5" />
+              Export CSV
+            </Button>
+            <select
+              className={dashboardSelectClass(false, "h-9 min-w-[7.5rem] text-sm")}
+              value={size}
+              onChange={(e) => onSizeChange(Number(e.target.value))}
+              aria-label="Rows per page"
+            >
+              <option value={10}>10 / page</option>
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border shadow-sm">
+      <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-muted/80 backdrop-blur">
-            <tr className="border-b">
+          <thead className="border-b border-border/50 bg-muted/25">
+            <tr>
               <Th col="batchNumber">Batch #</Th>
               <Th col="itemName">Item</Th>
               <Th col="initialQuantity" align="right">Initial</Th>
@@ -218,15 +227,18 @@ export function BatchTable({
               <Th col="expiryDate">Expiry</Th>
               <Th col="status">Status</Th>
               <Th col="receivedAt">Received</Th>
-              <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">
+              <th
+                scope="col"
+                className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+              >
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/40">
             {loading ? (
               <tr>
-                <td colSpan={10} className="px-3 py-12 text-center text-muted-foreground">
+                <td colSpan={10} className="px-6 py-12 text-center text-sm text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <Clock className="h-4 w-4 animate-spin" />
                     Loading batches…
@@ -235,14 +247,14 @@ export function BatchTable({
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-3 py-12 text-center text-muted-foreground">
+                <td colSpan={10} className="px-6 py-12 text-center text-sm text-muted-foreground">
                   No batches found. Try adjusting your filters.
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="border-b last:border-0 transition-colors hover:bg-muted/40">
-                  <td className="px-3 py-2.5 font-medium">
+                <tr key={row.id} className="transition-colors hover:bg-muted/30">
+                  <td className="px-5 py-4 sm:px-6 font-medium">
                     <Link
                       href={`/inventory/supply-batches/${row.supplyBatchId}`}
                       className="text-blue-600 hover:underline"
@@ -250,17 +262,17 @@ export function BatchTable({
                       {row.batchNumber}
                     </Link>
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-5 py-4 sm:px-6">
                     <div className="font-medium">{row.itemName}</div>
                     <div className="text-xs text-muted-foreground">{row.itemSku}</div>
                   </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{formatQty(row.initialQuantity)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">
+                  <td className="px-5 py-4 sm:px-6 text-right tabular-nums">{formatQty(row.initialQuantity)}</td>
+                  <td className="px-5 py-4 sm:px-6 text-right tabular-nums">
                     {qtyIndicator(row.quantityRemaining, row.initialQuantity)}
                   </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{formatMoney(row.unitCost)}</td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{formatMoney(row.totalValue)}</td>
-                  <td className="px-3 py-2.5 text-xs">
+                  <td className="px-5 py-4 sm:px-6 text-right tabular-nums">{formatMoney(row.unitCost)}</td>
+                  <td className="px-5 py-4 sm:px-6 text-right tabular-nums">{formatMoney(row.totalValue)}</td>
+                  <td className="px-5 py-4 sm:px-6 text-xs">
                     {row.expiryDate ? (
                       <span
                         className={cn(
@@ -277,11 +289,11 @@ export function BatchTable({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5">{statusBadge(row.status)}</td>
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                  <td className="px-5 py-4 sm:px-6">{statusBadge(row.status)}</td>
+                  <td className="px-5 py-4 sm:px-6 text-xs text-muted-foreground">
                     {row.receivedAt ? new Date(row.receivedAt).toLocaleDateString() : "—"}
                   </td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td className="px-5 py-4 sm:px-6 text-right">
                     <Link href={`/inventory/supply-batches/${row.supplyBatchId}`}>
                       <Button variant="ghost" size="sm" className="h-7 px-2">
                         <Eye className="h-3.5 w-3.5" />
@@ -296,7 +308,7 @@ export function BatchTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-t border-border/50 px-5 py-4 sm:px-6">
         <Button
           variant="outline"
           size="sm"

@@ -4,12 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { BarChart3, CreditCard, FileEdit, Loader2, PackagePlus, RefreshCw, Truck } from "lucide-react";
 
 import {
+  DASHBOARD_MAX_WIDE,
+  DASHBOARD_SECTION_SURFACE,
+  DASHBOARD_TABLE_HEAD,
+  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
   DashboardPageHero,
   DashboardQuickLinks,
-  DASHBOARD_MAX_WIDE,
   dashboardHintClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
@@ -123,7 +126,7 @@ export default function SuppliesPage() {
 
   return (
     <div className={DASHBOARD_MAX_WIDE}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className={DASHBOARD_SECTION_SURFACE}>
         <DashboardPageHero
           icon={Truck}
           eyebrow="Purchasing"
@@ -131,72 +134,124 @@ export default function SuppliesPage() {
           description="Direct receipts from vendors: stock in, supplier invoices, and payables. One row per posted supply."
           compact
         />
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" className="gap-1" disabled={listLoading} onClick={() => void refresh()}>
-            <RefreshCw className={cn("size-3.5", listLoading && "animate-spin")} />
-            Refresh
-          </Button>
-          {canOpenNewSupply ? (
-            <Button type="button" size="sm" className="gap-1.5 shadow-sm" onClick={() => setNewOpen(true)}>
-              <PackagePlus className="size-3.5" />
-              New supply
+        <div className="mt-5 flex flex-col gap-4 border-t border-border/50 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <DashboardQuickLinks
+            compact
+            links={[
+              ...(canViewApAging
+                ? [{ href: APP_ROUTES.purchasingApAging, label: "AP aging", desc: "", icon: BarChart3 }]
+                : []),
+              {
+                href: APP_ROUTES.purchasingRecordPayment,
+                label: "Record payment",
+                desc: "",
+                icon: CreditCard,
+              },
+              { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "", icon: Truck },
+            ]}
+          />
+          <div className="flex flex-wrap gap-2 sm:shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1 shadow-sm"
+              disabled={listLoading}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw className={cn("size-3.5", listLoading && "animate-spin")} />
+              Refresh
             </Button>
-          ) : null}
+            {canOpenNewSupply ? (
+              <Button type="button" size="sm" className="gap-1.5 shadow-sm" onClick={() => setNewOpen(true)}>
+                <PackagePlus className="size-3.5" />
+                New supply
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
-
-      <DashboardQuickLinks
-        compact
-        links={[
-          ...(canViewApAging
-            ? [{ href: APP_ROUTES.purchasingApAging, label: "AP aging", desc: "", icon: BarChart3 }]
-            : []),
-          {
-            href: APP_ROUTES.purchasingRecordPayment,
-            label: "Record payment",
-            desc: "",
-            icon: CreditCard,
-          },
-          { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "", icon: Truck },
-        ]}
-      />
+      </section>
 
       {listError ? <DashboardFeedback kind="error" text={listError} /> : null}
 
-      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Receipt history</h2>
-            <p className={dashboardHintClass()}>Path B supplies only (linked to a purchase session). Pay to reduce open balance.</p>
+      <section className={DASHBOARD_TABLE_SURFACE}>
+        <div className={DASHBOARD_TABLE_HEAD}>
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold tracking-tight text-foreground">Receipt history</h2>
+              <p className={cn(dashboardHintClass(), "mt-1")}>
+                Path B supplies only (linked to a purchase session). Pay to reduce open balance.
+              </p>
+            </div>
+            {listLoading ? (
+              <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Loading…
+              </span>
+            ) : (
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{rows.length} record(s)</span>
+            )}
           </div>
-          {listLoading ? (
-            <span className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" />
-              Loading…
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">{rows.length} record(s)</span>
-          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[72rem] border-collapse text-left text-sm">
-            <thead className="sticky top-0 z-10 bg-muted/90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+            <thead className="border-b border-border/50 bg-muted/25">
               <tr>
-                <th className="px-4 py-3">Supplier</th>
-                <th className="px-4 py-3">Invoice</th>
-                <th className="px-4 py-3 text-right">Lines</th>
-                <th className="px-4 py-3 text-right">Total</th>
-                <th className="px-4 py-3 text-right">Paid</th>
-                <th className="px-4 py-3 text-right">Balance</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3 text-right"> </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Supplier
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Invoice
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Lines
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Total
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Paid
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Balance
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                >
+                  Created
+                </th>
+                <th scope="col" className="px-5 py-3.5 text-right sm:px-6" />
               </tr>
             </thead>
-            <tbody className="text-[13px]">
+            <tbody className="divide-y divide-border/40 text-[13px]">
               {rows.length === 0 && !listLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-6 py-12 text-center text-sm text-muted-foreground">
                     No supplies yet. {canOpenNewSupply ? "Start with New supply." : null}
                   </td>
                 </tr>
@@ -205,18 +260,18 @@ export default function SuppliesPage() {
                 const st = statusBadge(r.paymentStatus);
                 const bal = n(r.balanceOpen);
                 return (
-                  <tr key={r.supplierInvoiceId} className="border-t border-border/60 hover:bg-muted/20">
-                    <td className="px-4 py-2.5">
+                  <tr key={r.supplierInvoiceId} className="transition-colors hover:bg-muted/30">
+                    <td className="px-5 py-4 sm:px-6">
                       <span className="font-medium text-foreground">{r.supplierName || "—"}</span>
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.invoiceNumber}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{r.lineCount}</td>
-                    <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatMoney(n(r.grandTotal))}</td>
-                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-emerald-700 dark:text-emerald-300">
+                    <td className="px-5 py-4 font-mono text-xs text-muted-foreground sm:px-6">{r.invoiceNumber}</td>
+                    <td className="px-5 py-4 text-right tabular-nums sm:px-6">{r.lineCount}</td>
+                    <td className="px-5 py-4 text-right font-mono tabular-nums sm:px-6">{formatMoney(n(r.grandTotal))}</td>
+                    <td className="px-5 py-4 text-right font-mono tabular-nums text-emerald-700 dark:text-emerald-300 sm:px-6">
                       {formatMoney(n(r.amountPaid))}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono font-medium tabular-nums">{formatMoney(bal)}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-5 py-4 text-right font-mono font-medium tabular-nums sm:px-6">{formatMoney(bal)}</td>
+                    <td className="px-5 py-4 sm:px-6">
                       <span
                         className={cn(
                           "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
@@ -226,13 +281,13 @@ export default function SuppliesPage() {
                         {st.label}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    <td className="px-5 py-4 text-xs text-muted-foreground sm:px-6">
                       {new Date(r.createdAt).toLocaleString(undefined, {
                         dateStyle: "medium",
                         timeStyle: "short",
                       })}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-5 py-4 text-right sm:px-6">
                       <div className="flex flex-wrap justify-end gap-1.5">
                         {canEditSupplyBill ? (
                           <Button
@@ -271,7 +326,7 @@ export default function SuppliesPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
       <NewSupplyDrawer open={newOpen} onOpenChange={setNewOpen} onPosted={() => void refresh()} />
 

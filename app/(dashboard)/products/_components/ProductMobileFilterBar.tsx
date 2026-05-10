@@ -1,6 +1,8 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+
+import { dashboardInputClass, dashboardSelectClass } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 
@@ -17,21 +19,49 @@ type Props = {
 
 export function ProductMobileFilterBar({ catalog }: Props) {
   return (
-    <div className="lg:hidden flex flex-col gap-2 shrink-0 rounded-2xl border border-border/60 bg-card/90 p-3 shadow-sm">
+    <div className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] lg:hidden">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <input id="catalog-omni" className="h-9 w-full rounded-xl border border-input/80 bg-background pl-9 pr-9 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 placeholder:text-muted-foreground/60"
-          value={catalog.search} onChange={(e) => catalog.setSearch(e.target.value)} placeholder="Search by name, SKU, barcode…" aria-label="Search catalog" />
-        {catalog.search && <button type="button" onClick={() => catalog.setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search"><X className="size-3.5" /></button>}
+        <input
+          id="catalog-omni"
+          className={cn(dashboardInputClass(), "h-10 py-2 pl-9 pr-9")}
+          value={catalog.search}
+          onChange={(e) => catalog.setSearch(e.target.value)}
+          placeholder="Search by name, SKU, barcode…"
+          aria-label="Search catalog"
+        />
+        {catalog.search ? (
+          <button
+            type="button"
+            onClick={() => catalog.setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Clear search"
+          >
+            <X className="size-3.5" />
+          </button>
+        ) : null}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <select className="h-9 w-full cursor-pointer rounded-xl border border-input/80 bg-background px-3 text-sm focus-visible:border-ring focus-visible:outline-none truncate"
-          value={catalog.filterCategoryId} onChange={(e) => catalog.setFilterCategoryId(e.target.value)} aria-label="Filter by category">
+        <select
+          className={cn(dashboardSelectClass(), "h-10 truncate")}
+          value={catalog.filterCategoryId}
+          onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
+          aria-label="Filter by category"
+        >
           <option value="">All categories</option>
-          {catalog.sortedCategories.map((c) => <option key={c.id} value={c.id}>{c.name}{!c.active ? " (inactive)" : ""}</option>)}
+          {catalog.sortedCategories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+              {!c.active ? " (inactive)" : ""}
+            </option>
+          ))}
         </select>
-        <select className="h-9 w-full cursor-pointer rounded-xl border border-input/80 bg-background px-3 text-sm focus-visible:border-ring focus-visible:outline-none"
-          value={catalog.catalogScope} onChange={(e) => catalog.setCatalogScope(e.target.value as typeof catalog.catalogScope)} aria-label="Catalog scope">
+        <select
+          className={cn(dashboardSelectClass(), "h-10")}
+          value={catalog.catalogScope}
+          onChange={(e) => catalog.setCatalogScope(e.target.value as typeof catalog.catalogScope)}
+          aria-label="Catalog scope"
+        >
           <option value="ALL">All items</option>
           <option value="SKUS_ONLY">SKUs only</option>
           <option value="PARENTS_ONLY">Groups only</option>

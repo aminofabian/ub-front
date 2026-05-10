@@ -217,6 +217,11 @@ export type ItemTypeRecord = {
   id: string;
   key: string;
   label: string;
+  icon?: string;
+  color?: string;
+  sortOrder: number;
+  active: boolean;
+  isDefault: boolean;
 };
 
 export type CategorySupplierSummaryRecord = {
@@ -435,6 +440,15 @@ export type ItemCreateResponse = {
   name: string;
   sku: string;
   active?: boolean;
+};
+
+export type CreateItemTypePayload = {
+  key: string;
+  label: string;
+  icon?: string;
+  color?: string;
+  sortOrder?: number;
+  isDefault?: boolean;
 };
 
 export type AddItemSupplierLinkPayload = {
@@ -1315,6 +1329,34 @@ export async function fetchRoles(): Promise<RoleRecord[]> {
 
 export async function fetchItemTypes(): Promise<ItemTypeRecord[]> {
   return request<ItemTypeRecord[]>(API_ROUTES.itemTypes);
+}
+
+export async function createItemType(
+  body: CreateItemTypePayload,
+): Promise<ItemTypeRecord> {
+  return request<ItemTypeRecord>(API_ROUTES.itemTypes, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function updateItemType(
+  id: string,
+  body: Partial<CreateItemTypePayload> & { active?: boolean },
+): Promise<ItemTypeRecord> {
+  return request<ItemTypeRecord>(
+    `${API_ROUTES.itemTypes}/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+}
+
+export async function deleteItemType(id: string): Promise<void> {
+  await request(`${API_ROUTES.itemTypes}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 export async function fetchCategories(): Promise<CategoryRecord[]> {
@@ -3020,9 +3062,25 @@ export async function postSellingPrice(body: {
   });
 }
 
+export type DenominationEntry = {
+  denomination: number;
+  denominationType: string;
+  quantity: number;
+};
+
+export type DenominationRecord = {
+  id: string;
+  countType: string;
+  denomination: number;
+  denominationType: string;
+  quantity: number;
+  total: number | string;
+};
+
 export type ShiftRecord = {
   id: string;
   branchId: string;
+  branchName?: string;
   status: string;
   openingCash: number | string;
   expectedClosingCash: number | string;
@@ -3030,17 +3088,23 @@ export type ShiftRecord = {
   closingVariance: number | string | null;
   openingNotes: string | null;
   closingNotes: string | null;
+  varianceReason: string | null;
   openedBy: string;
+  openedByName?: string;
   closedBy: string | null;
+  closedByName?: string | null;
   openedAt: string;
   closedAt: string | null;
   closeJournalEntryId: string | null;
+  openingDenominations?: DenominationRecord[];
+  closingDenominations?: DenominationRecord[];
 };
 
 export async function postOpenShift(body: {
   branchId: string;
   openingCash: number | string;
   notes?: string | null;
+  denominations?: DenominationEntry[];
 }): Promise<ShiftRecord> {
   const payload: Record<string, unknown> = {
     branchId: body.branchId.trim(),
@@ -3048,6 +3112,9 @@ export async function postOpenShift(body: {
   };
   if (body.notes?.trim()) {
     payload.notes = body.notes.trim();
+  }
+  if (body.denominations) {
+    payload.denominations = body.denominations;
   }
   return request<ShiftRecord>("/api/v1/shifts/open", {
     method: "POST",
@@ -3064,13 +3131,24 @@ export async function fetchCurrentShift(
 
 export async function postCloseShift(
   shiftId: string,
-  body: { countedClosingCash: number | string; notes?: string | null },
+  body: {
+    countedClosingCash: number | string;
+    notes?: string | null;
+    varianceReason?: string | null;
+    denominations?: DenominationEntry[];
+  },
 ): Promise<ShiftRecord> {
   const payload: Record<string, unknown> = {
     countedClosingCash: body.countedClosingCash,
   };
   if (body.notes?.trim()) {
     payload.notes = body.notes.trim();
+  }
+  if (body.varianceReason?.trim()) {
+    payload.varianceReason = body.varianceReason.trim();
+  }
+  if (body.denominations) {
+    payload.denominations = body.denominations;
   }
   return request<ShiftRecord>(
     `/api/v1/shifts/${encodeURIComponent(shiftId)}/close`,
@@ -3079,6 +3157,188 @@ export async function postCloseShift(
       body: payload,
     },
   );
+}
+
+export type ShiftListItem = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  status: string;
+  cashierName: string;
+  cashierId: string;
+  openedAt: string;
+  closedAt: string | null;
+  openingFloat: number | string;
+  actualCountedCash: number | string | null;
+  expectedCash: number | string;
+  variance: number | string | null;
+  transactionCount: number;
+  totalSales: number | string;
+};
+
+export type ShiftListResponse = {
+  shifts: ShiftListItem[];
+  totalCount: number;
+  page: number;
+  size: number;
+  hasMore: boolean;
+};
+
+export async function fetchShifts(params?: {
+  branchId?: string;
+  status?: string;
+  openedBy?: string;
+  page?: number;
+  size?: number;
+}): Promise<ShiftListResponse> {
+  const query = new URLSearchParams();
+  if (params?.branchId) query.set("branchId", params.branchId);
+  if (params?.status) query.set("status", params.status);
+  if (params?.openedBy) query.set("openedBy", params.openedBy);
+  query.set("page", String(params?.page ?? 0));
+  query.set("size", String(params?.size ?? 50));
+  return request<ShiftListResponse>(`/api/v1/shifts?${query.toString()}`);
+}
+
+/** Raw type matching the backend's ShiftDetailResponse field names (openingFloat, expectedCash, etc.). */
+type ShiftDetailRaw = {
+  id: string;
+  branchId: string;
+  branchName?: string;
+  status: string;
+  openingFloat: number | string;
+  expectedCash: number | string;
+  actualCountedCash: number | string | null;
+  variance: number | string | null;
+  openingNotes: string | null;
+  closingNotes: string | null;
+  varianceReason: string | null;
+  openedBy: string;
+  openedByName?: string;
+  closedBy: string | null;
+  closedByName?: string | null;
+  openedAt: string;
+  closedAt: string | null;
+  openingDenominations?: DenominationRecord[];
+  closingDenominations?: DenominationRecord[];
+  salesSummary?: unknown[];
+  expenses?: unknown[];
+  auditLog?: unknown[];
+};
+
+export async function fetchShiftDetail(shiftId: string): Promise<ShiftRecord> {
+  const raw = await request<ShiftDetailRaw>(
+    `/api/v1/shifts/${encodeURIComponent(shiftId)}`,
+  );
+  // Map backend field names (ShiftDetailResponse) to frontend ShiftRecord names
+  return {
+    id: raw.id,
+    branchId: raw.branchId,
+    branchName: raw.branchName,
+    status: raw.status,
+    openingCash: raw.openingFloat,
+    expectedClosingCash: raw.expectedCash,
+    countedClosingCash: raw.actualCountedCash,
+    closingVariance: raw.variance,
+    openingNotes: raw.openingNotes,
+    closingNotes: raw.closingNotes,
+    varianceReason: raw.varianceReason,
+    openedBy: raw.openedBy,
+    openedByName: raw.openedByName,
+    closedBy: raw.closedBy,
+    closedByName: raw.closedByName,
+    openedAt: raw.openedAt,
+    closedAt: raw.closedAt,
+    closeJournalEntryId: null,
+    openingDenominations: raw.openingDenominations,
+    closingDenominations: raw.closingDenominations,
+  };
+}
+
+// ─── Cash Drawout Types & APIs ─────────────────────────────────────────────
+
+export type DrawoutRecord = {
+  id: string;
+  shiftId: string;
+  category: string;
+  amount: number | string;
+  description: string;
+  recipientName: string;
+  recipientContact: string | null;
+  reference: string | null;
+  status: string;
+  approvalTier: number;
+  initiatedBy: string;
+  initiatedByName: string;
+  approvedBy: string | null;
+  approvedByName: string | null;
+  rejectedBy: string | null;
+  rejectionReason: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+export async function initiateDrawout(
+  shiftId: string,
+  body: {
+    amount: number | string;
+    category: string;
+    description: string;
+    recipientName: string;
+    recipientContact?: string | null;
+    reference?: string | null;
+    recurringItemId?: string | null;
+  },
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/shifts/${encodeURIComponent(shiftId)}/drawouts`,
+    { method: "POST", body },
+  );
+}
+
+export async function approveDrawout(
+  drawoutId: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/approve`,
+    { method: "POST", body: { approvalMethod: "PIN" } },
+  );
+}
+
+export async function rejectDrawout(
+  drawoutId: string,
+  reason: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/reject`,
+    { method: "POST", body: { rejectionReason: reason } },
+  );
+}
+
+export async function voidDrawout(
+  drawoutId: string,
+  reason: string,
+): Promise<DrawoutRecord> {
+  return request<DrawoutRecord>(
+    `/api/v1/drawouts/${encodeURIComponent(drawoutId)}/void`,
+    { method: "POST", body: { voidReason: reason } },
+  );
+}
+
+export async function fetchShiftDrawouts(
+  shiftId: string,
+): Promise<DrawoutRecord[]> {
+  const result = await request<unknown>(
+    `/api/v1/shifts/${encodeURIComponent(shiftId)}/drawouts`,
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+export async function fetchPendingDrawouts(): Promise<DrawoutRecord[]> {
+  const result = await request<unknown>("/api/v1/drawouts/pending");
+  return Array.isArray(result) ? result : [];
 }
 
 export type SalePaymentMethod =

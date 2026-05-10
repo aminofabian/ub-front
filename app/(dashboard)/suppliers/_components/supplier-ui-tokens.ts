@@ -25,8 +25,7 @@ export const supCardInset = "rounded-xl border border-border/50 bg-muted/20";
 
 /** Column panel chrome — xl three-column workspace */
 export const supPanelShell = cn(
-  "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-border/60 shadow-md",
-  "bg-gradient-to-b from-card to-muted/10 ring-1 ring-black/[0.03] dark:from-card/95 dark:to-muted/15 dark:ring-white/[0.05]",
+  "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
 );
 
 export const supPanelHeader =
