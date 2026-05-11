@@ -4,9 +4,8 @@ import type { Metadata } from "next";
 
 import type { TenantContext } from "@/lib/public-storefront";
 
-const PLATFORM_TITLE = "UB Admin — Phase 1";
-const PLATFORM_DESCRIPTION =
-  "Tenant admin: business, users, and catalog (Slice 6 scaffold).";
+const PLATFORM_TITLE = "Admin";
+const PLATFORM_DESCRIPTION = "Business management platform.";
 
 function isHex3or6(s: string): boolean {
   return /^#[0-9A-Fa-f]{3}$/.test(s) || /^#[0-9A-Fa-f]{6}$/.test(s);
@@ -67,10 +66,6 @@ export function metadataFromTenantAndHost(
     metadataBase,
     title: PLATFORM_TITLE,
     description: PLATFORM_DESCRIPTION,
-    appleWebApp: {
-      capable: true,
-      title: "UB Cashier",
-    },
   };
 
   if (!tenant) {
@@ -89,8 +84,7 @@ export function metadataFromTenantAndHost(
   const metaKeywords = tenant.branding.metaKeywords?.trim();
 
   const description =
-    metaDescription ||
-    `Manage ${displayName} — catalog, staff, storefront, and operations.`;
+    metaDescription || `${displayName} — business management platform.`;
   const favicon = tenant.branding.faviconUrl?.trim();
   const logo = tenant.branding.logoUrl?.trim();
 
@@ -111,7 +105,7 @@ export function metadataFromTenantAndHost(
   return {
     ...platform,
     title: {
-      default: metaTitle ? `${metaTitle} · UB` : `${displayName} · UB`,
+      default: metaTitle || displayName,
       template: metaTitle ? `%s · ${metaTitle}` : `%s · ${displayName}`,
     },
     description,
