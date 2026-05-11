@@ -30,7 +30,7 @@ export const viewport: Viewport = {
   themeColor: "#171717",
 };
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: "UB Admin — Phase 1",
   description: "Tenant admin: business, users, and catalog (Slice 6 scaffold).",
   appleWebApp: {
@@ -38,6 +38,22 @@ export const metadata: Metadata = {
     title: "UB Cashier",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await resolveTenantContext();
+  const favicon = tenant?.branding?.faviconUrl?.trim();
+  if (!favicon) {
+    return BASE_METADATA;
+  }
+  return {
+    ...BASE_METADATA,
+    icons: {
+      icon: [{ url: favicon }],
+      shortcut: [{ url: favicon }],
+      apple: [{ url: favicon }],
+    },
+  };
+}
 
 function renderBody(tenant: TenantContext | null, children: ReactNode): ReactNode {
   if (tenant && tenant.status !== "ACTIVE") {

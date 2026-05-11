@@ -27,6 +27,7 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
+import { setDocumentFavicon } from "@/lib/document-favicon";
 import { cn } from "@/lib/utils";
 import {
   clearMyBrandingFavicon,
@@ -457,6 +458,7 @@ export default function BrandingPage() {
       skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
+      setDocumentFavicon(next.branding?.faviconUrl ?? null);
       setBrandingDrawerOpen(false);
       setFeedback({ kind: "success", text: "Branding saved." });
     } catch (error) {
@@ -519,6 +521,7 @@ export default function BrandingPage() {
       const next = await uploadMyBrandingFavicon(file, snapshot.id);
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
+      setDocumentFavicon(next.branding?.faviconUrl ?? null);
       setFeedback({ kind: "success", text: "Favicon updated." });
     } catch (error) {
       setFeedback({ kind: "error", text: messageFor(error, "Favicon upload failed.") });
@@ -534,6 +537,7 @@ export default function BrandingPage() {
       const next = await clearMyBrandingFavicon();
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
+      setDocumentFavicon(next.branding?.faviconUrl ?? null);
       setFeedback({ kind: "success", text: "Favicon removed." });
     } catch (error) {
       setFeedback({ kind: "error", text: messageFor(error, "Could not remove favicon.") });
