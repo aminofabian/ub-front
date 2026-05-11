@@ -46,7 +46,8 @@ const DEFAULT_PRIMARY = "#0F766E";
 const DEFAULT_ACCENT = "#F59E0B";
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
-const ACCEPTED_FAVICON_TYPES = "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,.ico";
+const ACCEPTED_FAVICON_TYPES =
+  "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,.ico";
 const MAX_FAVICON_BYTES = 512 * 1024;
 
 type FormState = {
@@ -54,6 +55,10 @@ type FormState = {
   faviconUrl: string;
   primaryColor: string;
   accentColor: string;
+  metaTitle: string;
+  metaDescription: string;
+  ogImage: string;
+  metaKeywords: string;
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -64,6 +69,10 @@ function emptyForm(): FormState {
     faviconUrl: "",
     primaryColor: DEFAULT_PRIMARY,
     accentColor: DEFAULT_ACCENT,
+    metaTitle: "",
+    metaDescription: "",
+    ogImage: "",
+    metaKeywords: "",
   };
 }
 
@@ -73,6 +82,10 @@ function formFromBranding(b: BrandingRecord | undefined | null): FormState {
     faviconUrl: String(b?.faviconUrl ?? ""),
     primaryColor: normalizeHex(b?.primaryColor) ?? DEFAULT_PRIMARY,
     accentColor: normalizeHex(b?.accentColor) ?? DEFAULT_ACCENT,
+    metaTitle: String(b?.metaTitle ?? ""),
+    metaDescription: String(b?.metaDescription ?? ""),
+    ogImage: String(b?.ogImage ?? ""),
+    metaKeywords: String(b?.metaKeywords ?? ""),
   };
 }
 
@@ -90,11 +103,17 @@ function buildPatch(next: FormState): BrandingPatchPayload {
     faviconUrl: next.faviconUrl.trim(),
     primaryColor: next.primaryColor.toUpperCase(),
     accentColor: next.accentColor.toUpperCase(),
+    metaTitle: next.metaTitle.trim() || null,
+    metaDescription: next.metaDescription.trim() || null,
+    ogImage: next.ogImage.trim() || null,
+    metaKeywords: next.metaKeywords.trim() || null,
   };
 }
 
 function messageFor(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message.trim() ? error.message : fallback;
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : fallback;
 }
 
 function inputClass() {
@@ -140,14 +159,19 @@ function ColorField({
         />
         <input
           aria-label={`${label} hex value`}
-          className={cn(inputClass(), "w-36 max-w-full font-mono text-sm uppercase")}
+          className={cn(
+            inputClass(),
+            "w-36 max-w-full font-mono text-sm uppercase",
+          )}
           value={value}
           maxLength={7}
           onChange={(e) => onChange(e.target.value)}
           placeholder="#000000"
         />
         {valid ? null : (
-          <span className="text-xs font-medium text-destructive">Use #RRGGBB</span>
+          <span className="text-xs font-medium text-destructive">
+            Use #RRGGBB
+          </span>
         )}
       </div>
     </div>
@@ -162,16 +186,24 @@ function BrandingPreview({
   logoUrl: string | null | undefined;
 }) {
   const display = form.displayName.trim() || "Your storefront";
-  const primary = HEX_REGEX.test(form.primaryColor) ? form.primaryColor : DEFAULT_PRIMARY;
-  const accent = HEX_REGEX.test(form.accentColor) ? form.accentColor : DEFAULT_ACCENT;
+  const primary = HEX_REGEX.test(form.primaryColor)
+    ? form.primaryColor
+    : DEFAULT_PRIMARY;
+  const accent = HEX_REGEX.test(form.accentColor)
+    ? form.accentColor
+    : DEFAULT_ACCENT;
   const faviconPreview = form.faviconUrl.trim() || null;
   return (
     <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-sm sm:p-6">
       <div className="flex items-center gap-2 text-primary">
         <Sparkles className="size-4" aria-hidden />
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">Live preview</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">
+          Live preview
+        </h2>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">Approximates your public shop header.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Approximates your public shop header.
+      </p>
       <div
         className="mt-4 rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
         style={{ borderColor: `${primary}55` }}
@@ -206,11 +238,16 @@ function BrandingPreview({
                   unoptimized
                 />
               ) : null}
-              <p className="truncate text-base font-semibold" style={{ color: primary }}>
+              <p
+                className="truncate text-base font-semibold"
+                style={{ color: primary }}
+              >
                 {display}
               </p>
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">Header + favicon as shoppers see them</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Header + favicon as shoppers see them
+            </p>
           </div>
           <span
             className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -261,12 +298,27 @@ function LogoSection({
           </div>
         )}
         <div className="flex flex-wrap gap-2">
-          <input ref={inputRef} type="file" accept={ACCEPTED_LOGO_TYPES} className="hidden" onChange={onPick} />
-          <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_LOGO_TYPES}
+            className="hidden"
+            onChange={onPick}
+          />
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
             {logoUrl ? "Replace logo" : "Upload logo"}
           </Button>
           {logoUrl ? (
-            <Button type="button" variant="outline" disabled={busy} onClick={() => void onClear()}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void onClear()}
+            >
               Remove
             </Button>
           ) : null}
@@ -315,12 +367,27 @@ function FaviconSection({
           </div>
         )}
         <div className="flex flex-wrap gap-2">
-          <input ref={inputRef} type="file" accept={ACCEPTED_FAVICON_TYPES} className="hidden" onChange={onPick} />
-          <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_FAVICON_TYPES}
+            className="hidden"
+            onChange={onPick}
+          />
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
             {trimmed ? "Replace favicon" : "Upload favicon"}
           </Button>
           {trimmed ? (
-            <Button type="button" variant="outline" disabled={busy} onClick={() => void onClear()}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void onClear()}
+            >
               Remove
             </Button>
           ) : null}
@@ -338,10 +405,13 @@ function LockedNotice() {
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Lock className="size-6" aria-hidden />
         </div>
-        <h1 className="mt-4 text-lg font-semibold tracking-tight">Branding is restricted</h1>
+        <h1 className="mt-4 text-lg font-semibold tracking-tight">
+          Branding is restricted
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ask an owner or admin with <span className="font-mono text-xs">business.manage_settings</span> to update
-          storefront branding, or open another area you have access to.
+          Ask an owner or admin with{" "}
+          <span className="font-mono text-xs">business.manage_settings</span> to
+          update storefront branding, or open another area you have access to.
         </p>
         <Button asChild className="mt-6" variant="outline">
           <Link href={APP_ROUTES.business}>Back to business settings</Link>
@@ -353,9 +423,24 @@ function LockedNotice() {
 
 function RelatedLinks() {
   const links = [
-    { href: APP_ROUTES.business, label: "Business", desc: "Core settings & storefront", icon: Building2 },
-    { href: APP_ROUTES.businessDomains, label: "Domains", desc: "Custom hostnames", icon: Globe },
-    { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },
+    {
+      href: APP_ROUTES.business,
+      label: "Business",
+      desc: "Core settings & storefront",
+      icon: Building2,
+    },
+    {
+      href: APP_ROUTES.businessDomains,
+      label: "Domains",
+      desc: "Custom hostnames",
+      icon: Globe,
+    },
+    {
+      href: APP_ROUTES.branches,
+      label: "Branches",
+      desc: "Locations",
+      icon: MapPin,
+    },
   ] as const;
   return (
     <div className="grid gap-2 sm:grid-cols-3">
@@ -374,9 +459,14 @@ function RelatedLinks() {
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1 text-sm font-semibold">
               {label}
-              <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+              <ArrowRight
+                className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                aria-hidden
+              />
             </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              {desc}
+            </span>
           </span>
         </Link>
       ))}
@@ -447,8 +537,14 @@ export default function BrandingPage() {
 
   const onSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!HEX_REGEX.test(form.primaryColor) || !HEX_REGEX.test(form.accentColor)) {
-      setFeedback({ kind: "error", text: "Colors must be valid #RRGGBB hex values." });
+    if (
+      !HEX_REGEX.test(form.primaryColor) ||
+      !HEX_REGEX.test(form.accentColor)
+    ) {
+      setFeedback({
+        kind: "error",
+        text: "Colors must be valid #RRGGBB hex values.",
+      });
       return;
     }
     setIsSaving(true);
@@ -500,7 +596,10 @@ export default function BrandingPage() {
       setForm(formFromBranding(next.branding));
       setFeedback({ kind: "success", text: "Logo removed." });
     } catch (error) {
-      setFeedback({ kind: "error", text: messageFor(error, "Could not remove logo.") });
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not remove logo."),
+      });
     } finally {
       setLogoBusy(false);
     }
@@ -524,7 +623,10 @@ export default function BrandingPage() {
       setDocumentFavicon(next.branding?.faviconUrl ?? null);
       setFeedback({ kind: "success", text: "Favicon updated." });
     } catch (error) {
-      setFeedback({ kind: "error", text: messageFor(error, "Favicon upload failed.") });
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Favicon upload failed."),
+      });
     } finally {
       setFaviconBusy(false);
     }
@@ -540,7 +642,10 @@ export default function BrandingPage() {
       setDocumentFavicon(next.branding?.faviconUrl ?? null);
       setFeedback({ kind: "success", text: "Favicon removed." });
     } catch (error) {
-      setFeedback({ kind: "error", text: messageFor(error, "Could not remove favicon.") });
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not remove favicon."),
+      });
     } finally {
       setFaviconBusy(false);
     }
@@ -565,7 +670,9 @@ export default function BrandingPage() {
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
             <AlertCircle className="size-6" aria-hidden />
           </div>
-          <h2 className="mt-4 text-lg font-semibold tracking-tight">Could not load branding</h2>
+          <h2 className="mt-4 text-lg font-semibold tracking-tight">
+            Could not load branding
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
           <Button
             className="mt-6 gap-2"
@@ -597,9 +704,13 @@ export default function BrandingPage() {
               title="Branding"
               description={
                 <>
-                  Logo, colors, and display name for your storefront, sign-in screens, and tenant emails. Logo and
-                  favicon uploads apply immediately; display name and colors save from the drawer with{" "}
-                  <span className="font-medium text-foreground">Save branding</span>.
+                  Logo, colors, and display name for your storefront, sign-in
+                  screens, and tenant emails. Logo and favicon uploads apply
+                  immediately; display name and colors save from the drawer with{" "}
+                  <span className="font-medium text-foreground">
+                    Save branding
+                  </span>
+                  .
                 </>
               }
             />
@@ -620,7 +731,12 @@ export default function BrandingPage() {
 
           <RelatedLinks />
 
-          {feedback ? <DashboardFeedback kind={feedback.kind === "error" ? "error" : "success"} text={feedback.text} /> : null}
+          {feedback ? (
+            <DashboardFeedback
+              kind={feedback.kind === "error" ? "error" : "success"}
+              text={feedback.text}
+            />
+          ) : null}
 
           <BrandingPreview form={form} logoUrl={logoUrl} />
         </div>
@@ -632,8 +748,12 @@ export default function BrandingPage() {
         title="Edit branding"
         description={
           <>
-            Logo and favicon files upload right away. Display name, colors, and favicon URL use{" "}
-            <span className="font-mono text-xs">PATCH …/businesses/me/branding</span> when you save.
+            Logo and favicon files upload right away. Display name, colors, and
+            favicon URL use{" "}
+            <span className="font-mono text-xs">
+              PATCH …/businesses/me/branding
+            </span>{" "}
+            when you save.
           </>
         }
         contextLabel="Appearance"
@@ -649,7 +769,11 @@ export default function BrandingPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" form="branding-edit-form" disabled={isSaving || logoBusy || faviconBusy}>
+            <Button
+              type="submit"
+              form="branding-edit-form"
+              disabled={isSaving || logoBusy || faviconBusy}
+            >
               {isSaving ? (
                 <>
                   <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -670,14 +794,24 @@ export default function BrandingPage() {
             legend="Logo"
             hint="Shown in the shop header and emails. Square assets look sharpest."
           >
-            <LogoSection logoUrl={logoUrl} busy={logoBusy} onUpload={onLogoUpload} onClear={onLogoClear} />
+            <LogoSection
+              logoUrl={logoUrl}
+              busy={logoBusy}
+              onUpload={onLogoUpload}
+              onClear={onLogoClear}
+            />
           </FormDrawerFields>
 
           <FormDrawerFields
             legend="Favicon file"
             hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately."
           >
-            <FaviconSection faviconUrl={faviconUrl} busy={faviconBusy} onUpload={onFaviconUpload} onClear={onFaviconClear} />
+            <FaviconSection
+              faviconUrl={faviconUrl}
+              busy={faviconBusy}
+              onUpload={onFaviconUpload}
+              onClear={onFaviconClear}
+            />
           </FormDrawerFields>
 
           <FormDrawerFields
@@ -693,11 +827,14 @@ export default function BrandingPage() {
                 className={inputClass()}
                 value={form.displayName}
                 maxLength={255}
-                onChange={(e) => setForm((s) => ({ ...s, displayName: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, displayName: e.target.value }))
+                }
                 placeholder={snapshot?.name ?? "Your storefront name"}
               />
               <p className={hintClass()}>
-                Shown in the shop header and login. Falls back to your legal business name when empty.
+                Shown in the shop header and login. Falls back to your legal
+                business name when empty.
               </p>
             </div>
 
@@ -718,18 +855,24 @@ export default function BrandingPage() {
 
             <div className="space-y-2">
               <label className={labelClass()} htmlFor="branding-favicon">
-                Favicon URL <span className="font-normal text-muted-foreground">(optional)</span>
+                Favicon URL{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
               </label>
               <input
                 id="branding-favicon"
                 className={inputClass()}
                 value={form.faviconUrl}
                 maxLength={1024}
-                onChange={(e) => setForm((s) => ({ ...s, faviconUrl: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, faviconUrl: e.target.value }))
+                }
                 placeholder="https://cdn.example.com/favicon.png"
               />
               <p className={hintClass()}>
-                Use the upload section above for hosted files, or paste an external HTTPS URL here.
+                Use the upload section above for hosted files, or paste an
+                external HTTPS URL here.
               </p>
             </div>
           </FormDrawerFields>

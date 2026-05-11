@@ -316,6 +316,14 @@ export type BrandingRecord = {
   faviconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
+  /** Custom SEO title override for the storefront */
+  metaTitle?: string | null;
+  /** Custom meta description for search-engine snippets */
+  metaDescription?: string | null;
+  /** Dedicated Open Graph image URL (overrides logo for social previews) */
+  ogImage?: string | null;
+  /** Comma-separated meta keywords */
+  metaKeywords?: string | null;
 };
 
 export type BusinessRecord = {
@@ -386,6 +394,10 @@ export type BrandingPatchPayload = {
   faviconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogImage?: string | null;
+  metaKeywords?: string | null;
 };
 
 export type CreateUserPayload = {

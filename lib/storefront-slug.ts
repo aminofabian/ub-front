@@ -56,11 +56,19 @@ function localTenantFallback(hostname: string): TenantContext | null {
       faviconUrl: null,
       primaryColor: null,
       accentColor: null,
+      metaTitle: null,
+      metaDescription: null,
+      ogImage: null,
+      metaKeywords: null,
     },
     authConfig: {
       methods: ["password"],
       ssoProviders: [],
-      passwordPolicy: { minLength: 8, requireNumber: false, requireSymbol: false },
+      passwordPolicy: {
+        minLength: 8,
+        requireNumber: false,
+        requireSymbol: false,
+      },
     },
     featureFlags: {},
     storefrontEnabled: true,
@@ -68,7 +76,9 @@ function localTenantFallback(hostname: string): TenantContext | null {
   };
 }
 
-async function tenantFromHostname(hostname: string): Promise<TenantContext | null> {
+async function tenantFromHostname(
+  hostname: string,
+): Promise<TenantContext | null> {
   const resolved = await fetchTenantContext(hostname);
   if (resolved) {
     return resolved;

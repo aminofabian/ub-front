@@ -13,7 +13,9 @@ function isHex3or6(s: string): boolean {
 }
 
 /** Expands #RGB to #RRGGBB for {@link Viewport} themeColor. */
-export function themeColorFromTenant(tenant: TenantContext | null): string | null {
+export function themeColorFromTenant(
+  tenant: TenantContext | null,
+): string | null {
   const raw = tenant?.branding?.primaryColor?.trim();
   if (!raw || !isHex3or6(raw)) {
     return null;
@@ -21,7 +23,8 @@ export function themeColorFromTenant(tenant: TenantContext | null): string | nul
   if (raw.length === 4) {
     const b = raw.slice(1);
     return (
-      "#" + b
+      "#" +
+      b
         .split("")
         .map((c) => c + c)
         .join("")
@@ -40,7 +43,9 @@ export function metadataBaseFromHost(host: string | null): URL | undefined {
   }
   const lower = host.trim().toLowerCase();
   const localDev =
-    lower.includes("localhost") || lower.startsWith("127.0.0.1") || lower.endsWith(".local");
+    lower.includes("localhost") ||
+    lower.startsWith("127.0.0.1") ||
+    lower.endsWith(".local");
   const protocol = localDev ? "http" : "https";
   try {
     return new URL(`${protocol}://${host.trim()}`);
@@ -73,8 +78,19 @@ export function metadataFromTenantAndHost(
   }
 
   const displayName =
-    tenant.branding.displayName?.trim() || tenant.tenantName.trim() || tenant.slug;
-  const description = `Manage ${displayName} — catalog, staff, storefront, and operations.`;
+    tenant.branding.displayName?.trim() ||
+    tenant.tenantName.trim() ||
+    tenant.slug;
+
+  // SEO overrides from branding settings
+  const metaTitle = tenant.branding.metaTitle?.trim();
+  const metaDescription = tenant.branding.metaDescription?.trim();
+  const ogImage = tenant.branding.ogImage?.trim();
+  const metaKeywords = tenant.branding.metaKeywords?.trim();
+
+  const description =
+    metaDescription ||
+    `Manage ${displayName} — catalog, staff, storefront, and operations.`;
   const favicon = tenant.branding.faviconUrl?.trim();
   const logo = tenant.branding.logoUrl?.trim();
 
@@ -86,16 +102,25 @@ export function metadataFromTenantAndHost(
       }
     : undefined;
 
-  const ogImages = logo ? [{ url: logo, alt: displayName }] : undefined;
+  // OG image: prefer dedicated ogImage, fall back to business logo
+  const ogImageUrl = ogImage || logo;
+  const ogImages = ogImageUrl
+    ? [{ url: ogImageUrl, alt: displayName }]
+    : undefined;
 
   return {
     ...platform,
     title: {
-      default: `${displayName} · UB`,
-      template: `%s · ${displayName}`,
+      default: metaTitle ? `${metaTitle} · UB` : `${displayName} · UB`,
+      template: metaTitle ? `%s · ${metaTitle}` : `%s · ${displayName}`,
     },
     description,
     applicationName: displayName,
+    other: metaKeywords
+      ? {
+          keywords: metaKeywords,
+        }
+      : undefined,
     appleWebApp: {
       capable: true,
       title: displayName,
@@ -103,17 +128,17 @@ export function metadataFromTenantAndHost(
     icons,
     openGraph: {
       type: "website",
-      title: displayName,
+      title: metaTitle || displayName,
       description,
       siteName: displayName,
       ...(metadataBase ? { url: metadataBase.href } : {}),
       ...(ogImages ? { images: ogImages } : {}),
     },
     twitter: {
-      card: logo ? "summary_large_image" : "summary",
-      title: displayName,
+      card: ogImageUrl ? "summary_large_image" : "summary",
+      title: metaTitle || displayName,
       description,
-      ...(logo ? { images: [logo] } : {}),
+      ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },
   };
 }

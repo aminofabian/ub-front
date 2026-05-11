@@ -81,6 +81,14 @@ export type TenantBranding = {
   faviconUrl: string | null;
   primaryColor: string | null;
   accentColor: string | null;
+  /** Custom SEO title override for the storefront */
+  metaTitle: string | null;
+  /** Custom meta description for search-engine snippets */
+  metaDescription: string | null;
+  /** Dedicated Open Graph image URL (overrides logo for social previews) */
+  ogImage: string | null;
+  /** Comma-separated meta keywords */
+  metaKeywords: string | null;
 };
 
 export type TenantPasswordPolicy = {
@@ -129,7 +137,9 @@ const PUBLIC_STOREFRONT_SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  * punctuation). Prevents env typos like `NEXT_PUBLIC_STOREFRONT_SLUG=/` from
  * breaking the storefront with a misleading "catalog rejected slug" error.
  */
-export function sanitizeStorefrontSlug(raw: string | null | undefined): string | null {
+export function sanitizeStorefrontSlug(
+  raw: string | null | undefined,
+): string | null {
   const s = (raw ?? "").trim().toLowerCase();
   if (!s || s === "/" || s === "." || s === "..") {
     return null;
@@ -156,7 +166,9 @@ export function storefrontSlugFromEnv(): string | null {
 }
 
 /** On-hand quantity at the storefront catalog branch (public catalog API). */
-export function formatStoreQty(qtyOnHand: number | null | undefined): string | null {
+export function formatStoreQty(
+  qtyOnHand: number | null | undefined,
+): string | null {
   if (qtyOnHand == null || !Number.isFinite(qtyOnHand)) {
     return null;
   }
@@ -173,7 +185,10 @@ export function formatStoreQty(qtyOnHand: number | null | undefined): string | n
   return `${label} in store`;
 }
 
-export function formatDisplayPrice(currency: string, amount: number | null): string {
+export function formatDisplayPrice(
+  currency: string,
+  amount: number | null,
+): string {
   if (amount == null) {
     return "See in store";
   }
@@ -190,9 +205,14 @@ export function formatDisplayPrice(currency: string, amount: number | null): str
 
 export function computeMargin(
   selling: number | null | undefined,
-  buying: number | null | undefined
+  buying: number | null | undefined,
 ): { percent: number | null; profit: number | null } {
-  if (selling == null || buying == null || !Number.isFinite(selling) || !Number.isFinite(buying)) {
+  if (
+    selling == null ||
+    buying == null ||
+    !Number.isFinite(selling) ||
+    !Number.isFinite(buying)
+  ) {
     return { percent: null, profit: null };
   }
   if (buying <= 0) {
@@ -200,10 +220,15 @@ export function computeMargin(
   }
   const profit = selling - buying;
   const percent = (profit / buying) * 100;
-  return { percent: Math.round(percent * 10) / 10, profit: Math.round(profit * 100) / 100 };
+  return {
+    percent: Math.round(percent * 10) / 10,
+    profit: Math.round(profit * 100) / 100,
+  };
 }
 
-export function marginTone(percent: number | null): "good" | "thin" | "bad" | "none" {
+export function marginTone(
+  percent: number | null,
+): "good" | "thin" | "bad" | "none" {
   if (percent == null) return "none";
   if (percent < 0) return "bad";
   if (percent < 10) return "thin";
@@ -243,7 +268,12 @@ export async function fetchPublicStorefront(
 
 export async function fetchPublicCatalogItems(
   slug: string,
-  opts?: { cursor?: string | null; limit?: number; q?: string | null; categoryId?: string | null },
+  opts?: {
+    cursor?: string | null;
+    limit?: number;
+    q?: string | null;
+    categoryId?: string | null;
+  },
 ): Promise<PublicCatalogListPayload | null> {
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
@@ -336,7 +366,9 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
 
   const statusRaw = String(o.status ?? "ACTIVE").toUpperCase();
   const status: TenantStatus =
-    statusRaw === "SUSPENDED" || statusRaw === "INACTIVE" ? statusRaw : "ACTIVE";
+    statusRaw === "SUSPENDED" || statusRaw === "INACTIVE"
+      ? statusRaw
+      : "ACTIVE";
 
   const b = asObject(o.branding);
   const branding: TenantBranding = {
@@ -344,13 +376,39 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
       typeof b?.displayName === "string" && b.displayName.trim().length > 0
         ? b.displayName.trim()
         : tenantName,
-    logoUrl: typeof b?.logoUrl === "string" && b.logoUrl.trim() ? b.logoUrl.trim() : null,
+    logoUrl:
+      typeof b?.logoUrl === "string" && b.logoUrl.trim()
+        ? b.logoUrl.trim()
+        : null,
     faviconUrl:
-      typeof b?.faviconUrl === "string" && b.faviconUrl.trim() ? b.faviconUrl.trim() : null,
+      typeof b?.faviconUrl === "string" && b.faviconUrl.trim()
+        ? b.faviconUrl.trim()
+        : null,
     primaryColor:
-      typeof b?.primaryColor === "string" && b.primaryColor.trim() ? b.primaryColor.trim() : null,
+      typeof b?.primaryColor === "string" && b.primaryColor.trim()
+        ? b.primaryColor.trim()
+        : null,
     accentColor:
-      typeof b?.accentColor === "string" && b.accentColor.trim() ? b.accentColor.trim() : null,
+      typeof b?.accentColor === "string" && b.accentColor.trim()
+        ? b.accentColor.trim()
+        : null,
+    metaTitle:
+      typeof b?.metaTitle === "string" && b.metaTitle.trim().length > 0
+        ? b.metaTitle.trim()
+        : null,
+    metaDescription:
+      typeof b?.metaDescription === "string" &&
+      b.metaDescription.trim().length > 0
+        ? b.metaDescription.trim()
+        : null,
+    ogImage:
+      typeof b?.ogImage === "string" && b.ogImage.trim()
+        ? b.ogImage.trim()
+        : null,
+    metaKeywords:
+      typeof b?.metaKeywords === "string" && b.metaKeywords.trim().length > 0
+        ? b.metaKeywords.trim()
+        : null,
   };
 
   const a = asObject(o.authConfig);
@@ -381,7 +439,10 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
   const ff = asObject(o.featureFlags);
   const featureFlags: Record<string, boolean> = ff
     ? Object.fromEntries(
-        Object.entries(ff).filter(([, v]) => typeof v === "boolean") as [string, boolean][],
+        Object.entries(ff).filter(([, v]) => typeof v === "boolean") as [
+          string,
+          boolean,
+        ][],
       )
     : {};
 
