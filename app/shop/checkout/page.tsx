@@ -5,11 +5,24 @@ import { notFound } from "next/navigation";
 import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
 import { APP_ROUTES } from "@/lib/config";
 import { fetchPublicStorefront } from "@/lib/public-storefront";
-import { resolveStorefrontSlug } from "@/lib/storefront-slug";
+import {
+  resolveStorefrontSlug,
+  resolveTenantContext,
+} from "@/lib/storefront-slug";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const slug = await resolveStorefrontSlug();
-  const storefront = slug ? await fetchPublicStorefront(slug) : null;
+  const [slug, tenant] = await Promise.all([
+    resolveStorefrontSlug(),
+    resolveTenantContext(),
+  ]);
+  const metaTitle = tenant?.branding?.metaTitle?.trim();
+  if (metaTitle) {
+    return { title: `Checkout · ${metaTitle}` };
+  }
+  if (!slug) {
+    return { title: "Checkout · Shop" };
+  }
+  const storefront = await fetchPublicStorefront(slug);
   const label = storefront?.label?.trim() || storefront?.businessName || "Shop";
   return { title: `Checkout · ${label}` };
 }
