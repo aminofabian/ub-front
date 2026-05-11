@@ -1,6 +1,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { cache } from "react";
 
 import {
   fetchTenantContext,
@@ -76,20 +77,32 @@ async function tenantFromHostname(hostname: string): Promise<TenantContext | nul
 }
 
 /**
- * Single source of tenant context for server components. Resolution order:
- * 1. Backend resolve API for the incoming `Host`/`X-Forwarded-Host`.
- * 2. `*.localhost` fallback for dev (synthesised in-process).
- *
- * Returns `null` only when no host can be determined or the backend returns
- * an unknown host outside the localhost convention.
+ * Incoming hostname for the request (no port normalization beyond lowercase).
+ * Use for canonical URLs and metadata; pairs with {@link resolveTenantContext}.
  */
-export async function resolveTenantContext(): Promise<TenantContext | null> {
+export async function getRequestHostname(): Promise<string | null> {
+  return requestHostname();
+}
+
+async function resolveTenantContextUncached(): Promise<TenantContext | null> {
   const hostname = await requestHostname();
   if (!hostname) {
     return null;
   }
   return tenantFromHostname(hostname);
 }
+
+/**
+ * Single source of tenant context for server components. Resolution order:
+ * 1. Backend resolve API for the incoming `Host`/`X-Forwarded-Host`.
+ * 2. `*.localhost` fallback for dev (synthesised in-process).
+ *
+ * Returns `null` only when no host can be determined or the backend returns
+ * an unknown host outside the localhost convention.
+ *
+ * Wrapped in React `cache()` so metadata, layout, and tree share one resolve per request.
+ */
+export const resolveTenantContext = cache(resolveTenantContextUncached);
 
 /** Resolution order: env slug → host-based. Use for the storefront pages. */
 export async function resolveStorefrontSlug(): Promise<string | null> {

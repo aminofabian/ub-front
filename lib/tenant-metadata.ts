@@ -1,0 +1,119 @@
+import "server-only";
+
+import type { Metadata } from "next";
+
+import type { TenantContext } from "@/lib/public-storefront";
+
+const PLATFORM_TITLE = "UB Admin — Phase 1";
+const PLATFORM_DESCRIPTION =
+  "Tenant admin: business, users, and catalog (Slice 6 scaffold).";
+
+function isHex3or6(s: string): boolean {
+  return /^#[0-9A-Fa-f]{3}$/.test(s) || /^#[0-9A-Fa-f]{6}$/.test(s);
+}
+
+/** Expands #RGB to #RRGGBB for {@link Viewport} themeColor. */
+export function themeColorFromTenant(tenant: TenantContext | null): string | null {
+  const raw = tenant?.branding?.primaryColor?.trim();
+  if (!raw || !isHex3or6(raw)) {
+    return null;
+  }
+  if (raw.length === 4) {
+    const b = raw.slice(1);
+    return (
+      "#" + b
+        .split("")
+        .map((c) => c + c)
+        .join("")
+    ).toLowerCase();
+  }
+  return raw.toLowerCase();
+}
+
+/**
+ * `metadataBase` for resolving relative URLs and OG/Twitter absolutes.
+ * Uses http on localhost-style hosts so dev previews match the browser.
+ */
+export function metadataBaseFromHost(host: string | null): URL | undefined {
+  if (!host) {
+    return undefined;
+  }
+  const lower = host.trim().toLowerCase();
+  const localDev =
+    lower.includes("localhost") || lower.startsWith("127.0.0.1") || lower.endsWith(".local");
+  const protocol = localDev ? "http" : "https";
+  try {
+    return new URL(`${protocol}://${host.trim()}`);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Site `<meta>` / OG tags derived from host-resolved tenant (domain mapping).
+ */
+export function metadataFromTenantAndHost(
+  tenant: TenantContext | null,
+  host: string | null,
+): Metadata {
+  const metadataBase = metadataBaseFromHost(host);
+
+  const platform: Metadata = {
+    metadataBase,
+    title: PLATFORM_TITLE,
+    description: PLATFORM_DESCRIPTION,
+    appleWebApp: {
+      capable: true,
+      title: "UB Cashier",
+    },
+  };
+
+  if (!tenant) {
+    return platform;
+  }
+
+  const displayName =
+    tenant.branding.displayName?.trim() || tenant.tenantName.trim() || tenant.slug;
+  const description = `Manage ${displayName} — catalog, staff, storefront, and operations.`;
+  const favicon = tenant.branding.faviconUrl?.trim();
+  const logo = tenant.branding.logoUrl?.trim();
+
+  const icons = favicon
+    ? {
+        icon: [{ url: favicon }],
+        shortcut: [{ url: favicon }],
+        apple: [{ url: favicon }],
+      }
+    : undefined;
+
+  const ogImages = logo ? [{ url: logo, alt: displayName }] : undefined;
+
+  return {
+    ...platform,
+    title: {
+      default: `${displayName} · UB`,
+      template: `%s · ${displayName}`,
+    },
+    description,
+    applicationName: displayName,
+    appleWebApp: {
+      capable: true,
+      title: displayName,
+    },
+    icons,
+    openGraph: {
+      type: "website",
+      title: displayName,
+      description,
+      siteName: displayName,
+      ...(metadataBase ? { url: metadataBase.href } : {}),
+      ...(ogImages ? { images: ogImages } : {}),
+    },
+    twitter: {
+      card: logo ? "summary_large_image" : "summary",
+      title: displayName,
+      description,
+      ...(logo ? { images: [logo] } : {}),
+    },
+  };
+}

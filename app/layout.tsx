@@ -6,7 +6,8 @@ import { TenantProvider } from "@/components/providers/tenant-provider";
 import { TenantHostSync } from "@/components/tenant-host-sync";
 import { TenantStatusPage } from "@/components/storefront/tenant-status-page";
 import type { TenantContext } from "@/lib/public-storefront";
-import { resolveTenantContext } from "@/lib/storefront-slug";
+import { metadataFromTenantAndHost, themeColorFromTenant } from "@/lib/tenant-metadata";
+import { getRequestHostname, resolveTenantContext } from "@/lib/storefront-slug";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -26,33 +27,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const viewport: Viewport = {
-  themeColor: "#171717",
-};
-
-const BASE_METADATA: Metadata = {
-  title: "UB Admin — Phase 1",
-  description: "Tenant admin: business, users, and catalog (Slice 6 scaffold).",
-  appleWebApp: {
-    capable: true,
-    title: "UB Cashier",
-  },
-};
+export async function generateViewport(): Promise<Viewport> {
+  const tenant = await resolveTenantContext();
+  const fromBrand = themeColorFromTenant(tenant);
+  return {
+    themeColor: fromBrand ?? "#171717",
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await resolveTenantContext();
-  const favicon = tenant?.branding?.faviconUrl?.trim();
-  if (!favicon) {
-    return BASE_METADATA;
-  }
-  return {
-    ...BASE_METADATA,
-    icons: {
-      icon: [{ url: favicon }],
-      shortcut: [{ url: favicon }],
-      apple: [{ url: favicon }],
-    },
-  };
+  const [tenant, host] = await Promise.all([resolveTenantContext(), getRequestHostname()]);
+  return metadataFromTenantAndHost(tenant, host);
 }
 
 function renderBody(tenant: TenantContext | null, children: ReactNode): ReactNode {
