@@ -876,6 +876,107 @@ export default function BrandingPage() {
               </p>
             </div>
           </FormDrawerFields>
+
+          <FormDrawerFields
+            legend="Search & social"
+            hint="Customise how search engines and social platforms see your storefront. These override the defaults derived from your business name and logo."
+          >
+            <div className="space-y-2">
+              <label className={labelClass()} htmlFor="branding-meta-title">
+                Meta title{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <input
+                id="branding-meta-title"
+                className={inputClass()}
+                value={form.metaTitle}
+                maxLength={255}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, metaTitle: e.target.value }))
+                }
+                placeholder="Overrides the browser tab / SERP title"
+              />
+              <p className={hintClass()}>
+                Shown in search-engine result titles and browser tabs. Falls
+                back to your display name when empty.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                className={labelClass()}
+                htmlFor="branding-meta-description"
+              >
+                Meta description{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <textarea
+                id="branding-meta-description"
+                className={cn(inputClass(), "min-h-[80px] resize-y")}
+                value={form.metaDescription}
+                maxLength={320}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, metaDescription: e.target.value }))
+                }
+                placeholder="Brief storefront summary for search snippets"
+              />
+              <p className={hintClass()}>
+                Aim for 50–160 characters. Search engines may show longer
+                snippets in some cases.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass()} htmlFor="branding-og-image">
+                Social preview image{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <input
+                id="branding-og-image"
+                className={inputClass()}
+                value={form.ogImage}
+                maxLength={1024}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, ogImage: e.target.value }))
+                }
+                placeholder="https://cdn.example.com/social-preview.png"
+              />
+              <p className={hintClass()}>
+                Open Graph / Twitter card image. Prefer 1200×630 px. Falls back
+                to your business logo when empty.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass()} htmlFor="branding-meta-keywords">
+                Meta keywords{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <input
+                id="branding-meta-keywords"
+                className={inputClass()}
+                value={form.metaKeywords}
+                maxLength={500}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, metaKeywords: e.target.value }))
+                }
+                placeholder="grocery, fresh produce, delivery, Nairobi"
+              />
+              <p className={hintClass()}>
+                Comma-separated list of keywords describing your business.
+                Modern search engines give less weight to these, but they can
+                still help with discovery.
+              </p>
+            </div>
+          </FormDrawerFields>
         </form>
       </FormDrawer>
     </>
