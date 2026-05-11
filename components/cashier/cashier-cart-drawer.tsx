@@ -26,7 +26,16 @@ import { Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const DRAWER_SECTION_TITLE = cn(
-  "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+  "text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
+);
+
+const drawerSectionShell = cn(
+  "rounded-2xl border border-border/45 bg-muted/[0.035] p-4 shadow-sm ring-1 ring-black/[0.02]",
+  "dark:border-border/50 dark:bg-muted/[0.06] dark:ring-white/[0.03]",
+);
+
+const drawerSectionHeader = cn(
+  "mb-3 flex flex-wrap items-end justify-between gap-2 border-b border-border/35 pb-2.5",
 );
 
 const drawerFieldClass = (extra?: string) =>
@@ -222,26 +231,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="right"
+        overlayClassName="bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40"
         className={cn(
-          "flex h-full w-full max-w-[min(100%,22rem)] flex-col gap-0 overflow-hidden border-l border-border/35 p-0 shadow-2xl sm:max-w-md",
+          "max-w-[min(100%,22rem)] gap-0 border-border/40 p-0 shadow-2xl sm:max-w-md",
           "bg-gradient-to-b from-background to-muted/12 dark:to-muted/8",
         )}
         style={brandTheme}
         showCloseButton
       >
-        <div className="relative border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-4 py-3.5 dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10">
+        <div className="relative shrink-0 border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.05)] dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
           <span
             className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-[var(--pos-primary)] shadow-[2px_0_14px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
             aria-hidden
           />
-          <DialogHeader className="min-w-0 space-y-0.5 pl-3.5">
-            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
-              <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
+          <DialogHeader className="min-w-0 space-y-1 pl-3.5 pr-10">
+            <DialogTitle className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-foreground">
+              <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
                 <ShoppingBag className="size-3.5" aria-hidden />
               </span>
               Cart
             </DialogTitle>
-            <DialogDescription className="pl-9 text-[11px] leading-snug text-muted-foreground">
+            <DialogDescription className="pl-[2.625rem] text-[11px] leading-relaxed text-muted-foreground">
               {lines.length === 0
                 ? "No items yet — tap a tile or search to add."
                 : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalItems.toFixed(0)} item${totalItems === 1 ? "" : "s"}`}
@@ -249,13 +259,22 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           </DialogHeader>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3.5">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-background via-background/90 to-transparent"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-10 bg-gradient-to-t from-background via-background/90 to-transparent"
+            aria-hidden
+          />
+          <div className="relative z-0 space-y-5 px-5 py-4">
           {lines.length === 0 ? (
-            <div className="flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-border/50 bg-muted/5 py-10 text-center ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
-              <span className="inline-flex size-12 items-center justify-center rounded-xl border border-border/40 bg-background text-muted-foreground shadow-sm">
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/50 bg-muted/[0.04] py-12 text-center ring-1 ring-black/[0.02] dark:bg-muted/[0.05] dark:ring-white/[0.03]">
+              <span className="inline-flex size-12 items-center justify-center rounded-xl border border-border/45 bg-background text-muted-foreground shadow-sm">
                 <ShoppingBag className="size-5 opacity-55" aria-hidden />
               </span>
-              <div className="space-y-0.5 px-3">
+              <div className="max-w-[18rem] space-y-1 px-3">
                 <p className="text-sm font-semibold text-foreground">Your cart is empty</p>
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Search or tap a top seller to add items.
@@ -263,6 +282,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               </div>
             </div>
           ) : (
+            <section className="space-y-2.5">
+              <div className={drawerSectionHeader}>
+                <h3 className={DRAWER_SECTION_TITLE}>Lines</h3>
+                <span className="rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  {lines.length} · {totalItems.toFixed(0)} qty
+                </span>
+              </div>
             <ul className="space-y-2">
               {lines.map((line) => {
                 const thumb = itemListThumbnailUrl(line.item);
@@ -274,7 +300,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   <li
                     key={line.key}
                     className={cn(
-                      "group relative overflow-hidden rounded-xl border border-border/45 bg-card p-2.5 shadow-sm ring-1 ring-black/[0.02] transition-[border-color,box-shadow] duration-200",
+                      "group relative overflow-hidden rounded-xl border border-border/45 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] transition-[border-color,box-shadow] duration-200",
                       "dark:ring-white/[0.03]",
                       "hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md",
                     )}
@@ -396,14 +422,16 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 );
               })}
             </ul>
+            </section>
           )}
 
-          <section className="space-y-2.5">
-            <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2">
-              <h4 className={DRAWER_SECTION_TITLE}>Payment</h4>
-              <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+          <section className={cn(drawerSectionShell, "space-y-3")}>
+            <div className={drawerSectionHeader}>
+              <h3 className={DRAWER_SECTION_TITLE}>Payment</h3>
+              <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-muted-foreground">
                 <input
                   type="checkbox"
+                  className="size-3.5 rounded border-border/60 text-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
                   checked={splitPay}
                   disabled={payMethodNeedsCustomer(payMethod)}
                   onChange={(e) => {
@@ -419,7 +447,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             </div>
 
             {!splitPay ? (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 <PayChip
                   active={payMethod === "cash"}
                   onClick={() => setPayMethod("cash")}
@@ -480,7 +508,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             ) : null}
 
             {splitPay ? (
-              <div className={cn(drawerInsetPanel, "space-y-2 text-sm")}>
+              <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="space-y-1">
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -517,7 +545,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             ) : null}
 
             {customerNeeded && canLookupCustomers ? (
-              <div className={cn(drawerInsetPanel, "space-y-2 text-sm")}>
+              <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
                 <p className="text-xs text-muted-foreground">
                   {payMethod === "customer_credit"
                     ? "Search by phone, then select the customer. The full cart total posts to their tab."
@@ -593,8 +621,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             ) : null}
           </section>
 
+          <div className="space-y-2">
           {outboxCount > 0 ? (
-            <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
+            <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
               {outboxCount} sale(s) waiting to sync.{" "}
               <button
                 type="button"
@@ -609,11 +638,12 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
           {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
+          </div>
 
           {lastSale ? (
-            <section className="space-y-2.5 rounded-xl border border-dashed border-border/45 bg-gradient-to-br from-muted/15 to-transparent p-3 text-xs ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
-              <h4 className={DRAWER_SECTION_TITLE}>Last sale</h4>
-              <dl className="grid gap-1.5">
+            <section className={cn(drawerSectionShell, "space-y-3")}>
+              <h3 className={cn(DRAWER_SECTION_TITLE, "border-b border-border/35 pb-2.5")}>Last sale</h3>
+              <dl className="grid gap-2 text-xs">
                 <div>
                   <dt className="inline text-muted-foreground">Sale</dt>{" "}
                   <dd className="inline rounded-md bg-muted/50 px-1.5 py-px font-mono text-[11px] text-foreground">
@@ -651,7 +681,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   </div>
                 ) : null}
               </dl>
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-2 border-t border-border/30 pt-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -690,12 +720,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               ) : null}
             </section>
           ) : null}
+          </div>
         </div>
 
-        <div className="border-t border-border/40 bg-gradient-to-t from-muted/25 to-background/98 p-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.08)] backdrop-blur-md dark:from-muted/15 dark:shadow-[0_-8px_28px_-14px_rgba(0,0,0,0.35)] supports-[backdrop-filter]:bg-background/90">
-          <div className="mb-3 rounded-xl border border-border/40 bg-card/80 px-3 py-2.5 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/60 dark:ring-white/[0.04]">
+        <div className="shrink-0 border-t border-border/40 bg-gradient-to-t from-muted/20 to-background/98 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_-10px_28px_-14px_rgba(0,0,0,0.08)] backdrop-blur-md dark:from-muted/12 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_-10px_28px_-14px_rgba(0,0,0,0.35)] supports-[backdrop-filter]:bg-background/88">
+          <div className="mb-3.5 rounded-2xl border border-border/45 bg-card/85 px-3.5 py-3 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/55 dark:ring-white/[0.04]">
             <div className="flex items-end gap-2">
-              <span className={cn(DRAWER_SECTION_TITLE, "shrink-0 pb-0.5")}>Total</span>
+              <span className="shrink-0 pb-0.5 text-[11px] font-medium text-muted-foreground">Total</span>
               <CashierDottedLeader />
               <span className="inline-flex shrink-0 items-baseline gap-0.5 text-[1.65rem] font-bold tabular-nums leading-none tracking-tight text-[var(--pos-primary)] sm:text-2xl">
                 <span>{grandTotal.toFixed(2)}</span>
@@ -704,14 +735,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             </div>
           </div>
           {!branchSelected ? (
-            <p className="mb-2.5 rounded-lg border border-amber-200/50 bg-amber-50/90 px-2.5 py-1.5 text-[11px] leading-snug text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="mb-3 rounded-xl border border-amber-200/50 bg-amber-50/90 px-3 py-2 text-[11px] leading-snug text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
               Pick a branch in the top nav to enable checkout.
             </p>
           ) : null}
           <Button
             type="button"
             size="lg"
-            className="h-11 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
+            className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
             disabled={loading || lines.length === 0 || !branchSelected}
             onClick={onComplete}
           >

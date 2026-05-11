@@ -94,7 +94,7 @@ export function FormDrawer({
           className={cn(
             "fixed inset-0 z-50 bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300",
           )}
         />
         <Dialog.Content
@@ -111,7 +111,7 @@ export function FormDrawer({
               : width === "wide"
                 ? "sm:max-w-3xl"
                 : "sm:max-w-xl",
-            "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+            "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]",
           )}
         >
           {/* Accent rail: business branding hex when set, else theme --primary */}
@@ -137,9 +137,10 @@ export function FormDrawer({
           <div className="relative flex min-h-0 flex-1 flex-col pl-[5px]">
             <header
               className={cn(
-                "relative shrink-0 overflow-hidden border-b border-border/50",
-                "bg-gradient-to-br from-muted/40 via-background to-background",
-                "px-5 py-5 sm:px-6",
+                "relative shrink-0 overflow-hidden border-b border-border/45",
+                "shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.04)] dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.06)]",
+                "bg-gradient-to-br from-muted/35 via-background to-background",
+                "px-5 py-4 sm:px-6 sm:py-5",
               )}
             >
               <div
@@ -159,12 +160,12 @@ export function FormDrawer({
                 aria-hidden
               />
 
-              <div className="relative flex items-start justify-between gap-4">
-                <div className="flex min-w-0 gap-4">
+              <div className="relative flex items-start justify-between gap-3 sm:gap-4">
+                <div className="flex min-w-0 gap-3 sm:gap-4">
                   {icon ? (
                     <span
                       className={cn(
-                        "flex size-12 shrink-0 items-center justify-center rounded-2xl ring-offset-1 ring-offset-background",
+                        "flex size-11 shrink-0 items-center justify-center rounded-2xl ring-offset-1 ring-offset-background sm:size-12",
                         brandStops
                           ? cn(
                               "border bg-gradient-to-br from-muted/40 to-background/95",
@@ -184,24 +185,31 @@ export function FormDrawer({
                       {icon}
                     </span>
                   ) : null}
-                  <div className="min-w-0 space-y-1.5 pt-0.5">
-                    {contextLabel ? (
-                      <span
-                        className={cn(
-                          "inline-flex max-w-full items-center rounded-full",
-                          "border border-primary/20 bg-primary/[0.07] px-2.5 py-0.5",
-                          "text-[10px] font-semibold uppercase tracking-[0.14em] text-primary",
-                          "shadow-[0_1px_0_0_rgba(255,255,255,0.4)_inset] dark:shadow-none dark:border-primary/25 dark:bg-primary/15",
-                        )}
-                      >
-                        {contextLabel}
-                      </span>
-                    ) : null}
-                    <Dialog.Title className="font-heading text-xl font-semibold tracking-tight text-foreground">
+                  <div className="min-w-0 space-y-2 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {contextLabel ? (
+                        <span
+                          className={cn(
+                            "inline-flex max-w-full items-center rounded-full",
+                            "border border-primary/20 bg-primary/[0.07] px-2.5 py-0.5",
+                            "text-[10px] font-semibold uppercase tracking-[0.12em] text-primary",
+                            "shadow-[0_1px_0_0_rgba(255,255,255,0.4)_inset] dark:shadow-none dark:border-primary/25 dark:bg-primary/15",
+                          )}
+                        >
+                          {contextLabel}
+                        </span>
+                      ) : null}
+                      {description ? (
+                        <span className="text-[10px] font-medium tabular-nums text-muted-foreground/75">
+                          Esc to close
+                        </span>
+                      ) : null}
+                    </div>
+                    <Dialog.Title className="font-heading text-lg font-semibold tracking-tight text-foreground sm:text-xl">
                       {title}
                     </Dialog.Title>
                     {description ? (
-                      <Dialog.Description className="max-w-[46ch] text-[13px] leading-relaxed text-muted-foreground">
+                      <Dialog.Description className="max-w-[50ch] text-[13px] leading-relaxed text-muted-foreground">
                         {description}
                       </Dialog.Description>
                     ) : (
@@ -220,9 +228,10 @@ export function FormDrawer({
                     variant="ghost"
                     size="icon-sm"
                     className={cn(
-                      "shrink-0 rounded-xl border border-transparent text-muted-foreground",
-                      "hover:border-border/80 hover:bg-muted/60 hover:text-foreground",
-                      "transition-colors duration-150",
+                      "relative z-50 shrink-0 rounded-xl border border-border/40 bg-background/70 text-muted-foreground",
+                      "hover:border-border hover:bg-muted/70 hover:text-foreground",
+                      "shadow-sm transition-[border-color,background-color,color] duration-150",
+                      "dark:border-border/50 dark:bg-background/40",
                     )}
                     aria-label="Close panel"
                   >
@@ -235,9 +244,9 @@ export function FormDrawer({
             {banner ? (
               <div
                 className={cn(
-                  "shrink-0 border-b border-border/45",
-                  "bg-gradient-to-b from-primary/[0.04] via-muted/30 to-muted/10 px-5 py-3 sm:px-6",
-                  "backdrop-blur-[2px] dark:from-primary/[0.06] dark:via-muted/20",
+                  "shrink-0 border-b border-border/40",
+                  "bg-gradient-to-b from-muted/25 via-muted/15 to-background/80 px-5 py-3.5 sm:px-6",
+                  "backdrop-blur-[2px] dark:from-muted/20 dark:via-muted/12 dark:to-background/90",
                 )}
               >
                 {banner}
@@ -246,19 +255,26 @@ export function FormDrawer({
 
             <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-background via-background/80 to-transparent"
+                className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-12 bg-gradient-to-b from-background via-background/90 to-transparent"
                 aria-hidden
               />
-              <div className="relative z-0 space-y-6 px-5 pb-6 pt-4 sm:px-6">{children}</div>
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-12 bg-gradient-to-t from-background via-background/90 to-transparent"
+                aria-hidden
+              />
+              <div className="relative z-0 space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6">
+                {children}
+              </div>
             </div>
 
             {footer ? (
               <footer
                 className={cn(
-                  "relative shrink-0 border-t border-border/50",
-                  "bg-gradient-to-t from-primary/[0.04] from-0% via-muted/35 to-background/90",
-                  "px-5 py-4 backdrop-blur-md sm:px-6 dark:from-primary/[0.06]",
-                  "shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.08)] dark:shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.35)]",
+                  "relative shrink-0 border-t border-border/45",
+                  "bg-gradient-to-t from-muted/30 via-background/95 to-background",
+                  "px-5 py-3.5 backdrop-blur-md sm:px-6 sm:py-4",
+                  "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_-12px_40px_-18px_rgba(0,0,0,0.1)]",
+                  "dark:from-muted/15 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_-12px_40px_-18px_rgba(0,0,0,0.4)]",
                 )}
               >
                 {footer}
@@ -284,23 +300,23 @@ export function FormDrawerFields({
   return (
     <fieldset
       className={cn(
-        "relative space-y-3 overflow-hidden rounded-2xl border border-border/55",
-        "bg-gradient-to-br from-card/80 via-background to-muted/20",
-        "p-4 shadow-sm sm:p-5",
-        "dark:from-card/40 dark:via-background dark:to-muted/10",
+        "relative space-y-3 overflow-hidden rounded-2xl border border-border/50",
+        "bg-gradient-to-br from-card/90 via-background to-muted/15",
+        "p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_1px_2px_rgba(0,0,0,0.04)] sm:p-5",
+        "dark:from-card/35 dark:via-background dark:to-muted/8 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
       )}
     >
       <div
-        className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/35 to-primary/0"
+        className="pointer-events-none absolute inset-y-4 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/30 to-primary/0"
         aria-hidden
       />
-      <legend className="px-0.5 font-heading text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <legend className="block w-full border-b border-border/35 px-0.5 pb-3 font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {legend}
       </legend>
       {hint ? (
-        <p className="-mt-0.5 text-xs leading-relaxed text-muted-foreground/90">{hint}</p>
+        <p className="px-0.5 text-xs leading-relaxed text-muted-foreground/90">{hint}</p>
       ) : null}
-      <div className="space-y-3 pl-0.5">{children}</div>
+      <div className="space-y-3 pl-1 pt-1">{children}</div>
     </fieldset>
   );
 }

@@ -47,13 +47,9 @@ import {
   fetchShiftDetail,
   fetchShiftDrawouts,
   fetchShifts,
-  initiateDrawout,
-  postCloseShift,
-  postOpenShift,
   rejectDrawout,
   voidDrawout,
   type BranchRecord,
-  type DenominationEntry,
   type DenominationRecord,
   type DrawoutRecord,
   type ShiftListItem,
@@ -62,21 +58,21 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-// ─── Constants ───────────────────────────────────────────────────────────
+import {
+  KES_DENOMINATIONS,
+  VARIANCE_THRESHOLD_RED,
+  moneyStr,
+  varianceColor,
+  denomTotal,
+  denomsToQuantities,
+  DenominationTable,
+  OpenShiftModal,
+  CloseShiftModal,
+  DrawoutModal,
+  DRAWOUT_CATEGORIES,
+} from "@/components/shifts/shift-action-modals";
 
-/** All Kenyan KES denominations in display order (largest first). */
-const KES_DENOMINATIONS = [
-  { value: 1000, type: "NOTE", label: "KES 1,000" },
-  { value: 500, type: "NOTE", label: "KES 500" },
-  { value: 200, type: "NOTE", label: "KES 200" },
-  { value: 100, type: "NOTE", label: "KES 100" },
-  { value: 50, type: "NOTE", label: "KES 50" },
-  { value: 40, type: "COIN", label: "KES 40" },
-  { value: 20, type: "COIN", label: "KES 20" },
-  { value: 10, type: "COIN", label: "KES 10" },
-  { value: 5, type: "COIN", label: "KES 5" },
-  { value: 1, type: "COIN", label: "KES 1" },
-] as const;
+
 
 const STATUS_OPTIONS = [
   { value: "", label: "All" },
@@ -86,21 +82,19 @@ const STATUS_OPTIONS = [
   { value: "reconciled", label: "🔵 Reconciled" },
 ] as const;
 
-const VARIANCE_THRESHOLD_AMBER = 1;
-const VARIANCE_THRESHOLD_RED = 500;
+const DRAWOUT_STATUS_BADGE: Record<string, string> = {
+  PENDING_APPROVAL:
+    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  APPROVED:
+    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  REJECTED: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/20",
+  VOIDED: "bg-muted text-muted-foreground border-border/50 line-through",
+  EXPIRED: "bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/20",
+};
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
-function moneyStr(v: number | string | null | undefined): string {
-  if (v == null) return "—";
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n)
-    ? n.toLocaleString("en-KE", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    : String(v);
-}
 
 function moneyStrCompact(v: number | string | null | undefined): string {
   if (v == null) return "—";
@@ -137,15 +131,6 @@ function fmtShortDate(iso: string | null | undefined): string {
   }
 }
 
-function varianceColor(v: number | string | null | undefined): string {
-  if (v == null) return "text-muted-foreground";
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return "text-muted-foreground";
-  const abs = Math.abs(n);
-  if (abs === 0) return "text-emerald-600 dark:text-emerald-400";
-  if (abs < VARIANCE_THRESHOLD_RED) return "text-amber-600 dark:text-amber-400";
-  return "text-red-600 dark:text-red-400";
-}
 
 function varianceBgColor(v: number | string | null | undefined): string {
   if (v == null) return "";
@@ -188,43 +173,6 @@ function statusLabel(status: string): string {
   }
 }
 
-function denomTotal(denoms: DenominationRecord[] | undefined): number {
-  if (!denoms) return 0;
-  return denoms.reduce(
-    (sum, d) => sum + (typeof d.total === "number" ? d.total : Number(d.total)),
-    0,
-  );
-}
-
-function createEmptyDenominationQuantities(): Record<number, number> {
-  const map: Record<number, number> = {};
-  for (const d of KES_DENOMINATIONS) map[d.value] = 0;
-  return map;
-}
-
-function quantitiesToEntries(qty: Record<number, number>): DenominationEntry[] {
-  return Object.entries(qty)
-    .filter(([_, q]) => q > 0)
-    .map(([denom, q]) => ({
-      denomination: Number(denom),
-      denominationType:
-        KES_DENOMINATIONS.find((d) => d.value === Number(denom))?.type ??
-        "COIN",
-      quantity: q,
-    }));
-}
-
-function denomsToQuantities(
-  denoms: DenominationRecord[] | undefined,
-): Record<number, number> {
-  const map = createEmptyDenominationQuantities();
-  if (denoms) {
-    for (const d of denoms) {
-      map[d.denomination] = d.quantity;
-    }
-  }
-  return map;
-}
 
 // ─── Sub-components ──────────────────────────────────────────────────────
 
@@ -297,7 +245,7 @@ function ShiftCard({
           <span className="font-medium text-foreground">
             {moneyStrCompact(shift.openingFloat)}
           </span>
-          <span className="text-[8px] font-medium uppercase leading-none tracking-wider text-muted-foreground sm:text-[10px]">
+          <span className="text-[6px] font-normal uppercase leading-none tracking-[0.16em] text-muted-foreground/45 sm:text-[7px]">
             KES
           </span>
         </span>
@@ -329,7 +277,7 @@ function ShiftCard({
             <span className="font-medium">
               {moneyStrCompact(shift.openingFloat)}
             </span>
-            <span className="text-[8px] font-medium uppercase leading-none tracking-wider text-muted-foreground sm:text-[10px]">
+            <span className="text-[6px] font-normal uppercase leading-none tracking-[0.16em] text-muted-foreground/45 sm:text-[7px]">
               KES
             </span>
           </span>
@@ -339,104 +287,6 @@ function ShiftCard({
   );
 }
 
-/** Denomination input row. */
-function DenominationRow({
-  denomValue,
-  label,
-  quantity,
-  onChange,
-  autoFocus,
-}: {
-  denomValue: number;
-  label: string;
-  quantity: number;
-  onChange: (val: number) => void;
-  autoFocus?: boolean;
-}) {
-  const total = denomValue * quantity;
-  return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm">
-      <span className="min-w-[5rem] font-medium text-foreground">{label}</span>
-      <input
-        type="number"
-        min={0}
-        inputMode="numeric"
-        autoFocus={autoFocus}
-        className={dashboardInputClass(false, "w-20 py-2 text-right tabular-nums")}
-        value={quantity || ""}
-        onChange={(e) => {
-          const v = parseInt(e.target.value, 10);
-          onChange(Number.isFinite(v) && v >= 0 ? v : 0);
-        }}
-      />
-      <span className="w-20 text-right tabular-nums text-muted-foreground">
-        {moneyStr(total)}
-      </span>
-    </div>
-  );
-}
-
-/** Denomination table for opening/closing counts. */
-function DenominationTable({
-  title,
-  quantities,
-  onChange,
-  readOnly,
-}: {
-  title: string;
-  quantities: Record<number, number>;
-  onChange?: (qty: Record<number, number>) => void;
-  readOnly?: boolean;
-}) {
-  const notesTotal = KES_DENOMINATIONS.reduce(
-    (sum, d) => sum + d.value * (quantities[d.value] || 0),
-    0,
-  );
-  const notesSum = KES_DENOMINATIONS.filter((d) => d.type === "NOTE").reduce(
-    (sum, d) => sum + d.value * (quantities[d.value] || 0),
-    0,
-  );
-  const coinsSum = KES_DENOMINATIONS.filter((d) => d.type === "COIN").reduce(
-    (sum, d) => sum + d.value * (quantities[d.value] || 0),
-    0,
-  );
-
-  return (
-    <div className="space-y-2">
-      <h4 className="text-sm font-medium text-foreground">{title}</h4>
-      <div className="space-y-1">
-        {KES_DENOMINATIONS.map((denom, i) => (
-          <DenominationRow
-            key={denom.value}
-            denomValue={denom.value}
-            label={denom.label}
-            quantity={quantities[denom.value] || 0}
-            onChange={(val) => {
-              if (!onChange || readOnly) return;
-              onChange({ ...quantities, [denom.value]: val });
-            }}
-            autoFocus={i === 0 && !readOnly}
-          />
-        ))}
-      </div>
-      {/* Totals */}
-      <div className="mt-2 space-y-1 border-t pt-2">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Total Notes</span>
-          <span className="tabular-nums font-medium">{moneyStr(notesSum)}</span>
-        </div>
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Total Coins</span>
-          <span className="tabular-nums font-medium">{moneyStr(coinsSum)}</span>
-        </div>
-        <div className="flex justify-between border-t pt-1 text-sm font-semibold">
-          <span>Total {title}</span>
-          <span className="tabular-nums">{moneyStr(notesTotal)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /** Denomination comparison view (opening vs closing). */
 function DenominationComparison({
@@ -572,585 +422,6 @@ function DenominationComparison({
 
 // ─── Open Shift Modal ─────────────────────────────────────────────────────
 
-function OpenShiftModal({
-  open,
-  onClose,
-  branches,
-  onOpened,
-  preferredBranchId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  branches: BranchRecord[];
-  onOpened: (shift: ShiftRecord) => void;
-  /** When opening from POS deep link, pre-select this branch if valid. */
-  preferredBranchId?: string | null;
-}) {
-  const [branchId, setBranchId] = useState("");
-  const [notes, setNotes] = useState("");
-  const [quantities, setQuantities] = useState<Record<number, number>>(
-    createEmptyDenominationQuantities(),
-  );
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  // Reset state when modal opens
-  useEffect(() => {
-    if (open) {
-      const initial =
-        preferredBranchId?.trim() &&
-        branches.some((b) => b.id === preferredBranchId.trim())
-          ? preferredBranchId.trim()
-          : "";
-      setBranchId(initial);
-      setNotes("");
-      setQuantities(createEmptyDenominationQuantities());
-      setError("");
-      setLoading(false);
-    }
-  }, [open, preferredBranchId, branches]);
-
-  const totalCash = useMemo(
-    () =>
-      KES_DENOMINATIONS.reduce(
-        (sum, d) => sum + d.value * (quantities[d.value] || 0),
-        0,
-      ),
-    [quantities],
-  );
-
-  const handleOpen = useCallback(async () => {
-    if (!branchId) {
-      setError("Please select a branch/register.");
-      return;
-    }
-    if (totalCash <= 0) {
-      setError("Please enter at least one denomination quantity.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const entries = quantitiesToEntries(quantities);
-      const shift = await postOpenShift({
-        branchId,
-        openingCash: totalCash,
-        notes: notes.trim() || null,
-        denominations: entries.length > 0 ? entries : undefined,
-      });
-      onOpened(shift);
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to open shift.");
-    } finally {
-      setLoading(false);
-    }
-  }, [branchId, notes, quantities, totalCash, onOpened, onClose]);
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
-    >
-      <DialogContent side="center" className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Open New Shift</DialogTitle>
-          <DialogDescription>
-            Count the opening float by denomination below.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Branch select */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Register / Branch
-            </label>
-            <select
-              className={dashboardSelectClass(loading)}
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-            >
-              <option value="">— Select a branch —</option>
-              {branches
-                .filter((b) => b.active)
-                .map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* Denomination count */}
-          <DenominationTable
-            title="Opening Float Count"
-            quantities={quantities}
-            onChange={setQuantities}
-          />
-
-          {/* Opening notes */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Notes <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span>
-            </label>
-            <input
-              className={dashboardInputClass(loading)}
-              placeholder="Any notes about this shift..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              maxLength={500}
-            />
-          </div>
-
-          {error ? <DashboardFeedback kind="error" text={error} /> : null}
-        </div>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleOpen}>
-            {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash)})`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Close Shift Modal ────────────────────────────────────────────────────
-
-function CloseShiftModal({
-  open,
-  onClose,
-  shift,
-  onClosed,
-}: {
-  open: boolean;
-  onClose: () => void;
-  shift: ShiftRecord | null;
-  onClosed: () => void;
-}) {
-  const [quantities, setQuantities] = useState<Record<number, number>>(
-    createEmptyDenominationQuantities(),
-  );
-  const [notes, setNotes] = useState("");
-  const [varianceReason, setVarianceReason] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (open && shift) {
-      // Pre-fill with opening quantities if no closing count yet
-      const openQty = denomsToQuantities(shift.openingDenominations);
-      setQuantities({ ...createEmptyDenominationQuantities(), ...openQty });
-      setNotes("");
-      setVarianceReason("");
-      setError("");
-      setLoading(false);
-    }
-  }, [open, shift]);
-
-  const totalCash = useMemo(
-    () =>
-      KES_DENOMINATIONS.reduce(
-        (sum, d) => sum + d.value * (quantities[d.value] || 0),
-        0,
-      ),
-    [quantities],
-  );
-
-  const expected = shift
-    ? typeof shift.expectedClosingCash === "number"
-      ? shift.expectedClosingCash
-      : Number(shift.expectedClosingCash)
-    : 0;
-  const variance = totalCash - expected;
-  const absVariance = Math.abs(variance);
-  const showVarianceReason = absVariance >= VARIANCE_THRESHOLD_RED;
-
-  const handleClose = useCallback(async () => {
-    if (!shift) return;
-    if (totalCash <= 0 && !shift.openingDenominations?.length) {
-      setError("Please count the closing cash.");
-      return;
-    }
-    if (showVarianceReason && !varianceReason.trim()) {
-      setError(
-        `Variance of ${moneyStr(variance)} exceeds the threshold. Please provide a reason.`,
-      );
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const entries = quantitiesToEntries(quantities);
-      await postCloseShift(shift.id, {
-        countedClosingCash: totalCash || 0,
-        notes: notes.trim() || null,
-        varianceReason: varianceReason.trim() || null,
-        denominations: entries.length > 0 ? entries : undefined,
-      });
-      onClosed();
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to close shift.");
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    shift,
-    totalCash,
-    notes,
-    varianceReason,
-    quantities,
-    showVarianceReason,
-    onClosed,
-    onClose,
-    variance,
-  ]);
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
-    >
-      <DialogContent side="center" className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Close Shift</DialogTitle>
-          <DialogDescription>
-            Count the closing cash by denomination.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Summary */}
-          <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Expected Cash</span>
-              <span className="tabular-nums font-medium">
-                {moneyStr(expected)}
-              </span>
-            </div>
-            <div className="mt-1 flex justify-between">
-              <span className="text-muted-foreground">Counted Cash</span>
-              <span className="tabular-nums font-medium">
-                {moneyStr(totalCash)}
-              </span>
-            </div>
-            <div className="mt-1 flex justify-between border-t pt-1">
-              <span className="text-muted-foreground">Variance</span>
-              <span
-                className={cn(
-                  "tabular-nums font-semibold",
-                  varianceColor(variance),
-                )}
-              >
-                {variance >= 0 ? "+" : ""}
-                {moneyStr(variance)}
-              </span>
-            </div>
-          </div>
-
-          {/* Denomination count */}
-          <DenominationTable
-            title="Closing Float Count"
-            quantities={quantities}
-            onChange={setQuantities}
-          />
-
-          {/* Variance reason */}
-          {showVarianceReason ? (
-            <div className="space-y-2">
-              <label
-                className={cn(
-                  dashboardFilterFieldLabelClass(),
-                  "text-destructive",
-                )}
-              >
-                Reason for Variance *
-              </label>
-              <textarea
-                className={dashboardTextareaClass(loading)}
-                placeholder="Explain the significant variance..."
-                value={varianceReason}
-                onChange={(e) => setVarianceReason(e.target.value)}
-                maxLength={500}
-                rows={2}
-              />
-            </div>
-          ) : null}
-
-          {/* Closing notes */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Notes <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span>
-            </label>
-            <input
-              className={dashboardInputClass(loading)}
-              placeholder="Closing notes..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              maxLength={500}
-            />
-          </div>
-
-          {error ? <DashboardFeedback kind="error" text={error} /> : null}
-        </div>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleClose}>
-            {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash)})`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Drawout Category Labels ──────────────────────────────────────────────
-
-const DRAWOUT_CATEGORIES: Record<string, string> = {
-  PETTY_CASH: "Petty Cash",
-  CASUAL_LABOUR: "Casual Labour",
-  SUPPLIER_PAYMENT: "Supplier Payment",
-  RECURRING: "Recurring",
-  OTHER: "Other",
-};
-
-const DRAWOUT_STATUS_BADGE: Record<string, string> = {
-  PENDING_APPROVAL:
-    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20",
-  APPROVED:
-    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-  REJECTED: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/20",
-  VOIDED: "bg-muted text-muted-foreground border-border/50 line-through",
-  EXPIRED: "bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/20",
-};
-
-// ─── New Drawout Modal ──────────────────────────────────────────────────
-
-function DrawoutModal({
-  open,
-  onClose,
-  shiftId,
-  onCreated,
-}: {
-  open: boolean;
-  onClose: () => void;
-  shiftId: string;
-  onCreated: () => void;
-}) {
-  const [category, setCategory] = useState("PETTY_CASH");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [recipientName, setRecipientName] = useState("");
-  const [recipientContact, setRecipientContact] = useState("");
-  const [reference, setReference] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setCategory("PETTY_CASH");
-      setAmount("");
-      setDescription("");
-      setRecipientName("");
-      setRecipientContact("");
-      setReference("");
-      setError("");
-      setLoading(false);
-    }
-  }, [open]);
-
-  const handleSubmit = useCallback(async () => {
-    const amt = parseFloat(amount);
-    if (!amount || !Number.isFinite(amt) || amt <= 0) {
-      setError("Enter a valid amount greater than 0.");
-      return;
-    }
-    if (!description.trim()) {
-      setError("Description is required.");
-      return;
-    }
-    if (category === "OTHER" && description.trim().length < 10) {
-      setError(
-        "Description must be at least 10 characters for 'Other' category.",
-      );
-      return;
-    }
-    if (!recipientName.trim()) {
-      setError("Recipient name is required.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      await initiateDrawout(shiftId, {
-        amount: amt,
-        category,
-        description: description.trim(),
-        recipientName: recipientName.trim(),
-        recipientContact: recipientContact.trim() || null,
-        reference: reference.trim() || null,
-      });
-      onCreated();
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create drawout.");
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    shiftId,
-    amount,
-    category,
-    description,
-    recipientName,
-    recipientContact,
-    reference,
-    onCreated,
-    onClose,
-  ]);
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
-    >
-      <DialogContent side="center" className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>New Cash Drawout</DialogTitle>
-          <DialogDescription>
-            Record cash removed from the till during this shift.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          {/* Category */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>Category</label>
-            <select
-              className={dashboardSelectClass(loading)}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {Object.entries(DRAWOUT_CATEGORIES).map(([val, label]) => (
-                <option key={val} value={val}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Amount */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Amount (KES)
-            </label>
-            <input
-              type="number"
-              min={1}
-              step="0.01"
-              inputMode="decimal"
-              className={dashboardInputClass(loading, "text-lg tabular-nums")}
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Description
-            </label>
-            <textarea
-              className={dashboardTextareaClass(loading)}
-              placeholder="What is this drawout for?"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={300}
-              rows={2}
-            />
-          </div>
-
-          {/* Recipient */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Recipient Name
-            </label>
-            <input
-              className={dashboardInputClass(loading)}
-              placeholder="Who received the cash"
-              value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
-            />
-          </div>
-
-          {/* Recipient Contact (optional) */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Contact{" "}
-              <span className="font-normal normal-case tracking-normal text-muted-foreground">
-                (optional)
-              </span>
-            </label>
-            <input
-              className={dashboardInputClass(loading)}
-              placeholder="Phone or ID number"
-              value={recipientContact}
-              onChange={(e) => setRecipientContact(e.target.value)}
-            />
-          </div>
-
-          {/* Reference (optional) */}
-          <div className="space-y-2">
-            <label className={dashboardFilterFieldLabelClass()}>
-              Reference{" "}
-              <span className="font-normal normal-case tracking-normal text-muted-foreground">
-                (optional)
-              </span>
-            </label>
-            <input
-              className={dashboardInputClass(loading)}
-              placeholder="Invoice or receipt #"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
-
-          {error ? <DashboardFeedback kind="error" text={error} /> : null}
-        </div>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleSubmit}>
-            {loading ? "Submitting..." : "Submit Drawout"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ─── Drawout list sub-component ───────────────────────────────────────────
 

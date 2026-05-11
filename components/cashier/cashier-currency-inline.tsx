@@ -16,11 +16,11 @@ export function CashierCurrencySuffix({
   return (
     <span
       className={cn(
-        "font-medium uppercase leading-none tracking-wider",
-        "text-[8px] sm:text-[10px]",
+        "font-normal uppercase leading-none tracking-[0.16em]",
+        "text-[6px] sm:text-[7px]",
         onPrimary
-          ? "text-[color-mix(in_srgb,var(--pos-primary-ink)_70%,transparent)]"
-          : "text-muted-foreground",
+          ? "text-[color-mix(in_srgb,var(--pos-primary-ink)_42%,transparent)]"
+          : "text-muted-foreground/45",
         className,
       )}
     >

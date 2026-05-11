@@ -39,9 +39,14 @@ const dialogContentVariants = cva(
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 " +
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
         right:
-          "right-0 top-0 h-full w-full max-w-md border-l " +
+          "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full max-w-md overflow-hidden border-l border-border/60 " +
+          "bg-background/95 shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)] " +
+          "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] " +
+          "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-24px_0_80px_-24px_rgba(0,0,0,0.45)] " +
+          "sm:rounded-l-2xl " +
           "data-[state=open]:animate-in data-[state=open]:slide-in-from-right " +
-          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right",
+          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right " +
+          "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         bottom:
           "bottom-0 left-0 right-0 h-[85vh] max-h-[85vh] rounded-t-2xl border-t " +
           "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom " +
@@ -57,14 +62,16 @@ const dialogContentVariants = cva(
 type DialogContentProps = React.ComponentPropsWithoutRef<typeof RadixDialog.Content> &
   VariantProps<typeof dialogContentVariants> & {
     showCloseButton?: boolean;
+    /** Merged into `DialogOverlay` (e.g. lighter scrim for right-edge sheets). */
+    overlayClassName?: string;
   };
 
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof RadixDialog.Content>,
   DialogContentProps
->(({ className, children, side = "center", showCloseButton = true, ...props }, ref) => (
+>(({ className, children, side = "center", showCloseButton = true, overlayClassName, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay className={overlayClassName} />
     <RadixDialog.Content
       ref={ref}
       className={cn(dialogContentVariants({ side }), className)}
@@ -74,7 +81,7 @@ const DialogContent = React.forwardRef<
       {showCloseButton ? (
         <RadixDialog.Close
           aria-label="Close"
-          className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="absolute right-3 top-3 z-50 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           <X className="size-4" />
         </RadixDialog.Close>

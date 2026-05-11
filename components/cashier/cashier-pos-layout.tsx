@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
@@ -17,7 +16,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
-import { APP_ROUTES } from "@/lib/config";
 import {
   fetchCurrentSellingPrice,
   itemListThumbnailUrl,
@@ -28,7 +26,7 @@ import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
   cashierItemPrimaryLabel,
 } from "@/lib/cashier-item-display";
-import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
+import { formatShelfPriceLabel, splitShelfPriceDisplay } from "@/lib/cashier-shelf-price";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
 
@@ -50,14 +48,6 @@ const POS_SHIFT_CHIP_CLASS = cn(
   "active:translate-y-0 active:shadow-sm",
 );
 
-function shiftsPosActionHref(
-  action: "new-drawout" | "open-shift" | "close-shift",
-  branchId: string,
-): string {
-  const q = new URLSearchParams({ action, branchId: branchId.trim() });
-  return `${APP_ROUTES.shifts}?${q.toString()}`;
-}
-
 export type CashierPosShiftLinksProps = {
   branchId: string;
   branchSelected: boolean;
@@ -65,6 +55,8 @@ export type CashierPosShiftLinksProps = {
   shiftLoading: boolean;
   canOpenShift: boolean;
   canCloseShift: boolean;
+  /** Open shift / drawout / close flows in-place (no redirect to Shifts). */
+  onShortcut: (action: "new-drawout" | "open-shift" | "close-shift") => void;
 };
 
 export type CashierPosLayoutProps = {
@@ -99,7 +91,11 @@ export type CashierPosLayoutProps = {
   categoryFilterLabel: string | null;
   categoryTreeBusy: boolean;
   categoryBrowseParentId: string | null;
-  /** Shift / drawer shortcuts (cashier); opens Shifts with the right modal via query string. */
+  /** When set, catalog hits (search / aisle / type-only browse) are limited to this item type. */
+  typeFilterId: string | null;
+  typeFilterLabel: string | null;
+  clearTypeFilter: () => void;
+  /** Shift / drawer shortcuts (cashier); opens modals in-place via {@link CashierPosShiftLinksProps.onShortcut}. */
   posShiftLinks: CashierPosShiftLinksProps | null;
 
   cart: Pick<
@@ -165,17 +161,30 @@ const KIOSK_TILE_SHELL = cn(
   "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
 );
 
-/** Price / hint text on the photo — saves a footer row for denser tiles. */
-function KioskTilePriceBadge({ children }: { children: string }) {
+/** Shelf price on tile: bold amount + small ISO code (clearer than single blended string). */
+function KioskTileShelfBadge({ shelfLine }: { shelfLine: string }) {
+  const { amount, code } = splitShelfPriceDisplay(shelfLine);
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-1.5 z-[1] max-w-[calc(100%-0.75rem)] truncate rounded-md border border-border/50 px-1.5 py-0.5",
-        "bg-background/92 text-[10px] font-bold tabular-nums leading-none tracking-tight text-foreground shadow-sm backdrop-blur-[2px]",
-        "sm:text-[11px]",
+        "pointer-events-none absolute bottom-1.5 right-1.5 z-[1] max-w-[calc(100%-0.75rem)] truncate rounded-md border border-neutral-300/80 bg-background/95 px-1.5 py-0.5 shadow-md backdrop-blur-[2px] dark:border-neutral-600/60 dark:bg-background/92",
+        "inline-flex items-baseline gap-0.5 tabular-nums",
       )}
     >
-      {children}
+      {code ? (
+        <>
+          <span className="text-[11px] font-bold leading-none text-neutral-900 dark:text-neutral-100 sm:text-[12px]">
+            {amount}
+          </span>
+          <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-neutral-700 dark:text-neutral-300 sm:text-[8px]">
+            {code}
+          </span>
+        </>
+      ) : (
+        <span className="text-[10px] font-semibold leading-none text-neutral-900 dark:text-neutral-100 sm:text-[11px]">
+          {amount}
+        </span>
+      )}
     </div>
   );
 }
@@ -213,13 +222,12 @@ function TopSellerTile({
             {product.name.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
-        <KioskTilePriceBadge>{shelfLine}</KioskTilePriceBadge>
+        <KioskTileShelfBadge shelfLine={shelfLine} />
       </div>
       <div className="flex flex-1 flex-col px-2 pb-2 pt-1.5">
-        <p className="line-clamp-2 text-left text-[12px] font-semibold leading-[1.2] tracking-tight text-foreground sm:text-[13px]">
+        <p className="line-clamp-2 text-left text-[12px] font-medium leading-snug tracking-normal text-foreground/85 sm:text-[13px] dark:text-foreground/80">
           {product.name}
         </p>
-        <p className="mt-1 text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">Top seller</p>
       </div>
     </button>
   );
@@ -261,10 +269,10 @@ function SearchHitTile({
             {title.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
-        <KioskTilePriceBadge>{shelfLine}</KioskTilePriceBadge>
+        <KioskTileShelfBadge shelfLine={shelfLine} />
       </div>
       <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
-        <p className="line-clamp-2 text-left text-[12px] font-semibold leading-[1.2] tracking-tight text-foreground sm:text-[13px]">
+        <p className="line-clamp-2 text-left text-[12px] font-bold leading-[1.2] tracking-tight text-neutral-950 dark:text-neutral-50 sm:text-[13px]">
           {title}
         </p>
         <span
@@ -306,6 +314,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     categoryFilterLabel,
     categoryTreeBusy,
     categoryBrowseParentId,
+    typeFilterId,
+    typeFilterLabel,
+    clearTypeFilter,
     posShiftLinks,
     cart,
   } = props;
@@ -343,7 +354,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   }, [cart.lines]);
 
   const grandTotal = cart.grandTotal;
-  const hasSearch = search.trim().length > 0 || categoryFilterId != null;
+  const hasSearch =
+    search.trim().length > 0 || categoryFilterId != null || typeFilterId != null;
   const showCatalog = !hasSearch;
 
   const handlePickItem = (item: ItemSummaryRecord) => {
@@ -466,34 +478,37 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
-                    <Link
-                      href={shiftsPosActionHref("new-drawout", posShiftLinks.branchId)}
+                    <button
+                      type="button"
+                      onClick={() => posShiftLinks.onShortcut("new-drawout")}
                       className={POS_SHIFT_CHIP_CLASS}
                     >
                       <Wallet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                       New cash drawout
                       <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
-                    </Link>
+                    </button>
                   ) : null}
                   {posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift ? (
-                    <Link
-                      href={shiftsPosActionHref("open-shift", posShiftLinks.branchId)}
+                    <button
+                      type="button"
+                      onClick={() => posShiftLinks.onShortcut("open-shift")}
                       className={POS_SHIFT_CHIP_CLASS}
                     >
                       <PlusCircle className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                       Open new shift
                       <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
-                    </Link>
+                    </button>
                   ) : null}
                   {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
-                    <Link
-                      href={shiftsPosActionHref("close-shift", posShiftLinks.branchId)}
+                    <button
+                      type="button"
+                      onClick={() => posShiftLinks.onShortcut("close-shift")}
                       className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/25 hover:border-destructive/40")}
                     >
                       <LogOut className="size-3.5 shrink-0 text-destructive/80" aria-hidden />
                       Close shift
                       <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
-                    </Link>
+                    </button>
                   ) : null}
                 </div>
               )}
@@ -524,7 +539,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               placeholder={
                 categoryFilterId
                   ? "Search within this aisle…"
-                  : "Search by name or SKU…"
+                  : typeFilterId
+                    ? "Search within this type…"
+                    : "Search by name or SKU…"
               }
               className="h-10 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/60 sm:h-11 sm:text-[15px]"
               autoComplete="off"
@@ -556,7 +573,21 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 onClick={clearCategoryFilter}
                 className="text-muted-foreground underline-offset-2 hover:underline"
               >
-                Clear filter
+                Clear aisle
+              </button>
+            </div>
+          ) : null}
+          {typeFilterId ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
+              <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
+                Type: {typeFilterLabel ?? typeFilterId}
+              </span>
+              <button
+                type="button"
+                onClick={clearTypeFilter}
+                className="text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Clear type
               </button>
             </div>
           ) : null}
@@ -567,7 +598,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 border-border/50 p-3 sm:space-y-2.5 sm:p-4")}>
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
-              {search.trim() ? "Search results" : "Aisle items"}
+              {search.trim()
+                ? "Search results"
+                : categoryFilterId
+                  ? "Aisle items"
+                  : typeFilterId
+                    ? "Type items"
+                    : "Items"}
             </h3>
             {hits.length > 0 ? (
               <span className="text-xs text-muted-foreground">
@@ -579,7 +616,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <p className="rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-center text-xs text-muted-foreground sm:py-8">
               {search.trim()
                 ? "No items match your search."
-                : "No items in this aisle."}
+                : categoryFilterId
+                  ? "No items in this aisle."
+                  : typeFilterId
+                    ? "No items for this type."
+                    : "No items."}
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
@@ -693,7 +734,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     ? `${kids.length} sub${kids.length === 1 ? "" : "s"}`
                     : node.childCount > 0
                       ? `${node.childCount} item${node.childCount === 1 ? "" : "s"}`
-                      : "Tap to browse";
+                      : "";
                   return (
                     <button
                       key={node.id}
@@ -736,9 +777,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       <span className="line-clamp-2 min-h-[2rem] w-full text-[10px] font-semibold leading-[1.15] text-foreground">
                         {node.name}
                       </span>
-                      <span className="text-[9px] font-medium tabular-nums leading-none text-muted-foreground">
-                        {countLabel}
-                      </span>
+                      {countLabel ? (
+                        <span className="text-[9px] font-medium tabular-nums leading-none text-muted-foreground">
+                          {countLabel}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}

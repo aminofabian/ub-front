@@ -159,11 +159,11 @@ export function CashierProductModal({
             className="pointer-events-none absolute left-1/2 top-8 h-40 w-[min(20rem,90vw)] -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)] opacity-70 blur-3xl dark:opacity-50"
             aria-hidden
           />
-          <DialogHeader className="relative z-[1] flex flex-col items-center space-y-0 text-center">
+          <DialogHeader className="relative flex flex-col items-center space-y-0 text-center">
             <div className="relative mx-auto aspect-square w-[min(11.5rem,calc(100vw-3.5rem))] max-w-full shrink-0">
               <div
                 className={cn(
-                  "absolute -inset-1 rounded-[1.35rem] bg-gradient-to-br opacity-90 shadow-[0_12px_40px_-12px_color-mix(in_srgb,var(--pos-primary)_45%,transparent)]",
+                  "pointer-events-none absolute -inset-1 rounded-[1.35rem] bg-gradient-to-br opacity-90 shadow-[0_12px_40px_-12px_color-mix(in_srgb,var(--pos-primary)_45%,transparent)]",
                   "from-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] via-transparent to-[color-mix(in_srgb,var(--pos-primary)_15%,transparent)]",
                 )}
                 aria-hidden
@@ -304,7 +304,7 @@ export function CashierProductModal({
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Line subtotal</p>
               <p className="mt-0.5 inline-flex items-baseline justify-center gap-0.5 text-lg font-bold tabular-nums text-[var(--pos-primary)] sm:text-xl">
                 <span>{subtotalNum.toFixed(2)}</span>
-                <CashierCurrencySuffix code={currency} className="text-muted-foreground" />
+                <CashierCurrencySuffix code={currency} />
               </p>
             </div>
           ) : null}

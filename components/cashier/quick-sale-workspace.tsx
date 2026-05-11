@@ -50,6 +50,12 @@ import {
   posSearchItemDetailLine,
 } from "@/lib/cashier-item-display";
 import { CashierPosLayout } from "./cashier-pos-layout";
+import { usePosCatalogItemType } from "@/components/cashier-shell";
+import {
+  CloseShiftModal,
+  DrawoutModal,
+  OpenShiftModal,
+} from "@/components/shifts/shift-action-modals";
 
 type CartLine = {
   key: string;
@@ -107,8 +113,11 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     branchId,
     setBranchId,
     branchesLoading,
+    itemTypes,
   } = useDashboard();
   const online = useOnlineStatus();
+  const posCatalog = usePosCatalogItemType();
+  const posItemTypeId = posCatalog?.posItemTypeId?.trim() || null;
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
   const canBrowseCategories = hasPermission(me?.permissions, Permission.CatalogItemsRead);
   const canLookupCustomers = hasPermission(me?.permissions, Permission.CreditsCustomersRead);
@@ -291,7 +300,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     }
     const q = search.trim();
     const cat = categoryFilterId?.trim();
-    if (!q && !cat) {
+    const typ = posItemTypeId ?? "";
+    if (!q && !cat && !typ) {
       const t0 = window.setTimeout(() => {
         setHits([]);
         setSearchBanner(null);
@@ -300,9 +310,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     }
     const t = window.setTimeout(() => {
       if (!online) {
-        if (!q) {
+        if (!q && (cat || typ)) {
           setHits([]);
-          setSearchBanner("Offline — category browsing needs network.");
+          setSearchBanner("Offline — aisle or type browsing needs network.");
           return;
         }
         const cached = readCachedItemsSearch(q);
@@ -318,6 +328,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       }
       fetchItems(q || undefined, {
         ...(cat ? { categoryId: cat, includeCategoryDescendants: true } : {}),
+        ...(typ ? { itemTypeId: typ } : {}),
         ...(branchId?.trim() ? { branchId: branchId.trim() } : {}),
       })
         .then((items) => {
@@ -330,7 +341,13 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         .catch(() => {
           if (!q) {
             setHits([]);
-            setSearchBanner("Could not load items for this category.");
+            setSearchBanner(
+              cat
+                ? "Could not load items for this aisle."
+                : typ
+                  ? "Could not load items for this type."
+                  : "Could not load catalog.",
+            );
             return;
           }
           const cached = readCachedItemsSearch(q);
@@ -343,7 +360,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         });
     }, 320);
     return () => window.clearTimeout(t);
-  }, [canSell, search, online, categoryFilterId, branchId]);
+  }, [canSell, search, online, categoryFilterId, branchId, posItemTypeId]);
 
   const visibleCategoryTiles = useMemo(() => {
     if (categoryBrowseStack.length === 0) {
@@ -367,6 +384,15 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
 
   const categoryBrowseParentId =
     categoryBrowseStack.length > 0 ? categoryBrowseStack[categoryBrowseStack.length - 1].id : null;
+
+  const typeFilterLabel = useMemo(() => {
+    if (!posItemTypeId) return null;
+    return itemTypes.find((t) => t.id === posItemTypeId)?.label ?? null;
+  }, [posItemTypeId, itemTypes]);
+
+  const clearPosTypeFilter = useCallback(() => {
+    posCatalog?.setPosItemTypeId(null);
+  }, [posCatalog]);
 
   const grandTotal = useMemo(() => {
     let t = 0;
@@ -723,6 +749,28 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
 
   const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(null);
   const [branchShiftLoading, setBranchShiftLoading] = useState(false);
+  const [openShiftModal, setOpenShiftModal] = useState(false);
+  const [closeShiftModal, setCloseShiftModal] = useState(false);
+  const [drawoutModal, setDrawoutModal] = useState(false);
+
+  const refetchBranchOpenShift = useCallback(() => {
+    if (!branchId?.trim() || !online) {
+      setBranchOpenShift(null);
+      setBranchShiftLoading(false);
+      return;
+    }
+    setBranchShiftLoading(true);
+    void fetchCurrentShift(branchId.trim())
+      .then((s) => {
+        setBranchOpenShift(s.status === "open" ? s : null);
+      })
+      .catch(() => {
+        setBranchOpenShift(null);
+      })
+      .finally(() => {
+        setBranchShiftLoading(false);
+      });
+  }, [branchId, online]);
 
   useEffect(() => {
     if (!showPosShiftLinks || !branchId?.trim()) {
@@ -734,27 +782,32 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       setBranchShiftLoading(false);
       return;
     }
-    let cancelled = false;
-    setBranchShiftLoading(true);
-    void fetchCurrentShift(branchId.trim())
-      .then((s) => {
-        if (cancelled) return;
-        setBranchOpenShift(s.status === "open" ? s : null);
-      })
-      .catch(() => {
-        if (!cancelled) setBranchOpenShift(null);
-      })
-      .finally(() => {
-        if (!cancelled) setBranchShiftLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [showPosShiftLinks, branchId, online]);
+    refetchBranchOpenShift();
+  }, [showPosShiftLinks, branchId, online, refetchBranchOpenShift]);
 
   const dialogBrandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
     [business?.branding],
+  );
+
+  const onPosShiftShortcut = useCallback(
+    (action: "new-drawout" | "open-shift" | "close-shift") => {
+      setError("");
+      if (action === "open-shift") {
+        setOpenShiftModal(true);
+        return;
+      }
+      if (!branchOpenShift) {
+        setError("No open shift for this register.");
+        return;
+      }
+      if (action === "close-shift") {
+        setCloseShiftModal(true);
+      } else {
+        setDrawoutModal(true);
+      }
+    },
+    [branchOpenShift],
   );
 
   const currency = business?.currency?.trim() ?? "";
@@ -789,7 +842,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
 
   if (isCashier) {
     return (
-      <CashierPosLayout
+      <>
+        <CashierPosLayout
         online={online}
         currency={currency}
         uiCopy={CASHIER_POS_UI_COPY}
@@ -815,6 +869,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         categoryFilterLabel={categoryFilterLabel}
         categoryTreeBusy={categoryTreeBusy}
         categoryBrowseParentId={categoryBrowseParentId}
+        typeFilterId={posItemTypeId}
+        typeFilterLabel={typeFilterLabel}
+        clearTypeFilter={clearPosTypeFilter}
         posShiftLinks={
           showPosShiftLinks
             ? {
@@ -824,6 +881,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                 shiftLoading: branchShiftLoading,
                 canOpenShift,
                 canCloseShift,
+                onShortcut: onPosShiftShortcut,
               }
             : null
         }
@@ -871,6 +929,40 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           receiptLoading,
         }}
       />
+        <OpenShiftModal
+          open={openShiftModal}
+          onClose={() => setOpenShiftModal(false)}
+          branches={branches.filter((b) => b.active)}
+          preferredBranchId={branchId?.trim() || null}
+          onOpened={() => {
+            setOpenShiftModal(false);
+            setNotice("Shift opened successfully.");
+            refetchBranchOpenShift();
+          }}
+        />
+        <CloseShiftModal
+          open={closeShiftModal}
+          onClose={() => setCloseShiftModal(false)}
+          shift={branchOpenShift}
+          onClosed={() => {
+            setCloseShiftModal(false);
+            setNotice("Shift closed successfully.");
+            refetchBranchOpenShift();
+          }}
+        />
+        {branchOpenShift ? (
+          <DrawoutModal
+            open={drawoutModal}
+            onClose={() => setDrawoutModal(false)}
+            shiftId={branchOpenShift.id}
+            onCreated={() => {
+              setDrawoutModal(false);
+              setNotice("Drawout submitted.");
+              refetchBranchOpenShift();
+            }}
+          />
+        ) : null}
+      </>
     );
   }
 

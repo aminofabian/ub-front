@@ -1532,6 +1532,8 @@ export type FetchItemsOpts = {
   size?: number;
   /** When set, `stockQty` on each row is on-hand inventory at this branch (from active batches). */
   branchId?: string;
+  /** When set, only items with this item type are returned. */
+  itemTypeId?: string;
   /** When set, omits items that already have a non-deleted supplier link to this supplier (e.g. supplier catalog picker). */
   excludeLinkedSupplierId?: string;
   /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
@@ -1575,6 +1577,9 @@ export async function fetchItemsPage(
   }
   if (opts?.includeInactive) {
     params.set("includeInactive", "true");
+  }
+  if (opts?.itemTypeId?.trim()) {
+    params.set("itemTypeId", opts.itemTypeId.trim());
   }
   const exSup = opts?.excludeLinkedSupplierId?.trim();
   if (exSup) {
