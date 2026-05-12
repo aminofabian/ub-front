@@ -7,9 +7,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: process.cwd(),
-  },
   images: {
     remotePatterns: [
       {

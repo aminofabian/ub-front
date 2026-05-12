@@ -264,7 +264,9 @@ export function useProductMutations(d: Dependencies) {
   useEffect(() => {
     if (headerBranchId.trim()) {
       setParentDraft((prev) =>
-        prev.openingBranchId ? prev : { ...prev, openingBranchId: headerBranchId },
+        prev.openingBranchId
+          ? prev
+          : { ...prev, openingBranchId: headerBranchId },
       );
     }
   }, [headerBranchId]);
@@ -540,31 +542,7 @@ export function useProductMutations(d: Dependencies) {
           }
         }
         await refreshFullCatalog();
-        const next = await fetchItemById(selectedId);
-        setDetail(next);
-        try {
-          setSupplierLinks(await fetchItemSupplierLinks(selectedId));
-        } catch {
-          setSupplierLinks([]);
-        }
-        const ns = (v: number | string | null | undefined) =>
-          v != null && v !== "" ? String(v) : "";
-        setPatchDraft({
-          name: next.name,
-          sku: next.sku,
-          barcode: next.barcode,
-          description: next.description,
-          active: next.active ?? true,
-          webPublished: next.webPublished ?? false,
-          bundlePriceStr: ns(next.bundlePrice),
-          bundleQtyStr: ns(next.bundleQty),
-          buyingPriceStr: ns(next.buyingPrice),
-          minStockLevelStr: ns(next.minStockLevel),
-          reorderLevelStr: ns(next.reorderLevel),
-          reorderQtyStr: ns(next.reorderQty),
-          imageKey: next.imageKey ?? "",
-          categoryId: next.categoryId ?? "",
-        });
+        await refreshSelectedDetail();
         setActiveDrawer(null);
         setMessage("Product updated.");
       } catch (err) {
@@ -576,9 +554,7 @@ export function useProductMutations(d: Dependencies) {
       selectedId,
       patchDraft,
       refreshFullCatalog,
-      setDetail,
-      setSupplierLinks,
-      setPatchDraft,
+      refreshSelectedDetail,
       setActiveDrawer,
       setMessage,
     ],

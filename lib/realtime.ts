@@ -151,13 +151,46 @@ function jitter(delayMs: number): number {
   return delayMs + Math.floor(Math.random() * delayMs);
 }
 
+export type RealtimeListenerOptions = Pick<
+  RealtimeClientOptions,
+  | "channels"
+  | "onNotification"
+  | "onStockDepleted"
+  | "onPriceChanged"
+  | "onPaymentConfirmed"
+  | "onApprovalRequested"
+  | "onApprovalResolved"
+  | "onError"
+  | "onConnectionStateChange"
+>;
+
+const LISTENER_HANDLER_KEYS = [
+  "onNotification",
+  "onStockDepleted",
+  "onPriceChanged",
+  "onPaymentConfirmed",
+  "onApprovalRequested",
+  "onApprovalResolved",
+  "onError",
+  "onConnectionStateChange",
+] as const satisfies readonly (keyof RealtimeListenerOptions)[];
+
+function channelsEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 // ── RealtimeClient ──
 
 export class RealtimeClient {
   private ws: WebSocket | null = null;
   private ticket: TicketResponse | null = null;
-  private channels: string[];
-  private handlers: RealtimeClientOptions;
+  private channels: string[] = ["notifications"];
+  private handlers: RealtimeClientOptions = {};
+  private listeners = new Map<string, RealtimeListenerOptions>();
   private state: RealtimeConnectionState = "disconnected";
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -169,9 +202,17 @@ export class RealtimeClient {
   /** Tracks last-seen notification id to avoid duplicate emissions during REST polling. */
   private lastPollNotificationId: string | null = null;
 
-  constructor(options: RealtimeClientOptions = {}) {
-    this.channels = options.channels ?? ["notifications"];
-    this.handlers = options;
+  /** Register a multiplexed listener and merge channels/handlers. */
+  registerListener(
+    id: string,
+    listener: RealtimeListenerOptions,
+  ): () => void {
+    this.listeners.set(id, listener);
+    void this.syncListeners();
+    return () => {
+      this.listeners.delete(id);
+      void this.syncListeners();
+    };
   }
 
   /** Open the WebSocket connection. Idempotent. */
@@ -216,12 +257,79 @@ export class RealtimeClient {
 
   /** Update allowed channels (requires reconnection). */
   async setChannels(channels: string[]): Promise<void> {
-    this.channels = channels;
+    const next = [...channels].sort();
+    if (channelsEqual(next, this.channels)) {
+      return;
+    }
+    this.channels = next;
     if (this.ws) {
       this.ws.close(1000, "Channel set changed");
       this.ws = null;
     }
     await this.connect();
+  }
+
+  private async syncListeners(): Promise<void> {
+    const channels = new Set<string>();
+    const handlers: RealtimeClientOptions = {};
+
+    for (const listener of this.listeners.values()) {
+      for (const channel of listener.channels ?? []) {
+        channels.add(channel);
+      }
+    }
+    if (channels.size === 0) {
+      channels.add("notifications");
+    }
+
+    for (const key of LISTENER_HANDLER_KEYS) {
+      const callbacks: Array<
+        NonNullable<RealtimeListenerOptions[typeof key]>
+      > = [];
+      for (const listener of this.listeners.values()) {
+        const callback = listener[key];
+        if (callback) {
+          callbacks.push(callback);
+        }
+      }
+      if (callbacks.length === 0) {
+        continue;
+      }
+      if (key === "onError") {
+        handlers.onError = (error) => {
+          for (const callback of callbacks as ErrorHandler[]) {
+            callback(error);
+          }
+        };
+        continue;
+      }
+      if (key === "onConnectionStateChange") {
+        handlers.onConnectionStateChange = (state) => {
+          for (const callback of callbacks as ConnectionStateHandler[]) {
+            callback(state);
+          }
+        };
+        continue;
+      }
+      handlers[key] = (frame) => {
+        for (const callback of callbacks as FrameHandler[]) {
+          callback(frame);
+        }
+      };
+    }
+
+    const nextChannels = Array.from(channels).sort();
+    const channelsChanged = !channelsEqual(nextChannels, this.channels);
+    this.channels = nextChannels;
+    this.handlers = handlers;
+
+    if (
+      channelsChanged &&
+      this.state !== "disconnected" &&
+      this.listeners.size > 0
+    ) {
+      await this.setChannels(nextChannels);
+    }
   }
 
   // ── Internal ──
@@ -499,11 +607,9 @@ export class RealtimeClient {
 /** Singleton convenience — most apps only need one connection. */
 let _instance: RealtimeClient | null = null;
 
-export function getRealtimeClient(
-  options?: RealtimeClientOptions,
-): RealtimeClient {
+export function getRealtimeClient(): RealtimeClient {
   if (!_instance) {
-    _instance = new RealtimeClient(options);
+    _instance = new RealtimeClient();
   }
   return _instance;
 }

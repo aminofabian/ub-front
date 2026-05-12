@@ -149,7 +149,10 @@ export function useProductDetail(branchIdForPricing?: string | null) {
         }
         // fetch current sell price from pricing module (source of truth)
         try {
-          const sp = await fetchCurrentSellingPrice(selectedId, pricingBranchId);
+          const sp = await fetchCurrentSellingPrice(
+            selectedId,
+            pricingBranchId,
+          );
           if (!cancelled) {
             const n = toNumber(sp.price);
             setCurrentSellPrice(n);
@@ -179,11 +182,13 @@ export function useProductDetail(branchIdForPricing?: string | null) {
   const sortedImages = detail?.images
     ? [...detail.images].sort((a, b) => a.sortOrder - b.sortOrder)
     : [];
-  // Priority: pricing module current sell price → item bundlePrice
-  const sellPrice =
-    currentSellPrice ?? (detail ? toNumber(detail.bundlePrice) : null);
+  // Shelf price on the item record; storefront/POS use the pricing module's current selling price.
+  const sellPrice = detail ? toNumber(detail.bundlePrice) : null;
   const primaryLink = supplierLinks.find((l) => l.primary);
-  const primaryCost = effectiveSupplierUnitCost(primaryLink, detail?.buyingPrice);
+  const primaryCost = effectiveSupplierUnitCost(
+    primaryLink,
+    detail?.buyingPrice,
+  );
   const marginPct =
     sellPrice != null && sellPrice > 0 && primaryCost != null
       ? ((sellPrice - primaryCost) / sellPrice) * 100

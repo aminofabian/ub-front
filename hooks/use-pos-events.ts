@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 
@@ -11,18 +11,18 @@ type PosEventHandlers = {
 };
 
 /**
- * Hook for the POS screen to subscribe to real-time POS events.
- * Connects to the "pos" channel and dispatches events to handlers.
+ * Subscribe to POS realtime frames on the shared authenticated socket.
  */
 export function usePosEvents(handlers: PosEventHandlers) {
+  const subscriptionId = useId();
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
   useEffect(() => {
     let stopped = false;
-
-    const client = getRealtimeClient({
-      channels: ["notifications", "pos"],
+    const client = getRealtimeClient();
+    const unregister = client.registerListener(subscriptionId, {
+      channels: ["pos"],
       onStockDepleted: (frame) => {
         if (!stopped) handlersRef.current.onStockDepleted?.(frame);
       },
@@ -34,10 +34,9 @@ export function usePosEvents(handlers: PosEventHandlers) {
       },
     });
 
-    client.connect().catch(() => {});
-
     return () => {
       stopped = true;
+      unregister();
     };
-  }, []);
+  }, [subscriptionId]);
 }

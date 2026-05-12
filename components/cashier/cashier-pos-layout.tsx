@@ -27,6 +27,7 @@ import {
   cashierItemPrimaryLabel,
 } from "@/lib/cashier-item-display";
 import { formatShelfPriceLabel, splitShelfPriceDisplay } from "@/lib/cashier-shelf-price";
+import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
 
@@ -421,6 +422,23 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       cancelled = true;
     };
   }, [online, branchId, currency, hitIdsKey, topIdsKey]);
+
+  usePosEvents({
+    onPriceChanged: (frame) => {
+      const itemId = String(frame.data.itemId ?? "");
+      if (!itemId || !online) return;
+      const bid = branchId?.trim() || undefined;
+      void fetchCurrentSellingPrice(itemId, bid)
+        .then((r) => {
+          const label = formatShelfPriceLabel(r.price, currency);
+          setTileShelfPrices((prev) => ({
+            ...prev,
+            [itemId]: label ?? "",
+          }));
+        })
+        .catch(() => {});
+    },
+  });
 
   return (
     <div

@@ -42,6 +42,7 @@ import {
   ProductQuickEditAllDrawer,
   ProductMobileDetailDrawer,
 } from "./_components/ProductDrawers";
+import { usePosEvents } from "@/hooks/use-pos-events";
 
 export default function ProductsPage() {
   const {
@@ -128,6 +129,17 @@ export default function ProductsPage() {
     itemTypes: catalog.itemTypes,
     dashboardItemTypeId,
     headerBranchId: branchId,
+  });
+
+  usePosEvents({
+    onPriceChanged: (frame) => {
+      const itemId = String(frame.data.itemId ?? "");
+      if (!itemId) return;
+      void catalog.refreshFullCatalog();
+      if (detail.selectedId === itemId) {
+        void detail.refreshSelectedDetail();
+      }
+    },
   });
 
   const isListRowActive = useCallback(
