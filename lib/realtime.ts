@@ -536,6 +536,7 @@ export class RealtimeClient {
   // ── REST polling fallback ──
 
   private startRestPolling(): void {
+    if (!this.channels.includes("notifications")) return;
     if (this.pollTimer) return;
     this.lastPollNotificationId = null; // reset dedup tracker on new poll cycle
     console.debug(
@@ -557,6 +558,7 @@ export class RealtimeClient {
   }
 
   private async pollNotifications(): Promise<void> {
+    if (!this.channels.includes("notifications")) return;
     try {
       const tokens = getSessionTokens();
       if (!tokens) return;

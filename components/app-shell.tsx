@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { logoutRemote } from "@/lib/api";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
@@ -290,6 +291,10 @@ export function AppShell({ children }: AppShellProps) {
   } = useDashboard();
 
   const isOwner = me?.role?.key === "owner";
+  const canReadNotifications = hasPermission(
+    me?.permissions,
+    Permission.ReportsNotificationsRead,
+  );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
 
@@ -503,7 +508,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <NotificationBell />
+            {canReadNotifications ? <NotificationBell /> : null}
             {/* Branch selector */}
             {isOwner ? (
               <select

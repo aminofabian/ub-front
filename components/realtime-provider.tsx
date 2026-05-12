@@ -13,6 +13,7 @@ import {
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getSessionTokens } from "@/lib/auth";
 import { showPriceChangedToast } from "@/components/price-changed-toast";
+import { hasPermission, Permission } from "@/lib/permissions";
 import {
   getRealtimeClient,
   type RealtimeFrame,
@@ -42,6 +43,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const brandingRef = useRef(branding);
   currencyRef.current = currency;
   brandingRef.current = branding;
+  const canReadNotifications = hasPermission(
+    dash?.me?.permissions,
+    Permission.ReportsNotificationsRead,
+  );
   const [notifications, setNotifications] = useState<RealtimeFrame[]>([]);
   const [connectionState, setConnectionState] =
     useState<RealtimeConnectionState>("disconnected");
@@ -50,15 +55,23 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     const tokens = getSessionTokens();
     if (!tokens) return;
 
+    const channels = canReadNotifications
+      ? (["notifications", "pos"] as const)
+      : (["pos"] as const);
+
     const client = getRealtimeClient();
     const unregister = client.registerListener("provider", {
-      channels: ["notifications", "pos"],
-      onNotification: (frame) => {
-        setNotifications((prev) => {
-          if (prev.some((n) => n.eventId === frame.eventId)) return prev;
-          return [frame, ...prev].slice(0, 50);
-        });
-      },
+      channels: [...channels],
+      ...(canReadNotifications
+        ? {
+            onNotification: (frame) => {
+              setNotifications((prev) => {
+                if (prev.some((n) => n.eventId === frame.eventId)) return prev;
+                return [frame, ...prev].slice(0, 50);
+              });
+            },
+          }
+        : {}),
       onPriceChanged: (frame) => {
         showPriceChangedToast(
           frame,
@@ -76,7 +89,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     });
 
     return unregister;
-  }, []);
+  }, [canReadNotifications]);
 
   const markAllRead = useCallback(() => {
     setNotifications([]);

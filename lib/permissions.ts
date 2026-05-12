@@ -42,6 +42,8 @@ export const Permission = {
   CreditsClaimsIssue: "credits.claims.issue",
   CreditsClaimsReview: "credits.claims.review",
   PaymentsStkInitiate: "payments.stk.initiate",
+  ReportsNotificationsRead: "reports.notifications.read",
+  ReportsNotificationsWrite: "reports.notifications.write",
 } as const;
 
 export function hasPermission(
