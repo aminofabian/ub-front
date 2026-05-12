@@ -16,6 +16,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "@eslint/eslintrc": "^3.3.5",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
     "lucide-react": "^1.11.0",
     "next": "^15.4.2",
     "radix-ui": "^1.4.3",
@@ -29,13 +32,10 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
