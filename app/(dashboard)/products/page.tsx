@@ -94,7 +94,7 @@ export default function ProductsPage() {
   const [isLg, setIsLg] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
-    setIsLg(mq.matches); // eslint-disable-line react-hooks/set-state-in-effect
+    setIsLg(mq.matches);  
     mq.addEventListener("change", () => setIsLg(mq.matches));
     return () => mq.removeEventListener("change", () => setIsLg(mq.matches));
   }, []);

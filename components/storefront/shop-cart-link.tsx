@@ -41,7 +41,7 @@ export default function ShopCartLink({
   }, [slug]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- refresh is async; state updates run after I/O
+     
     void refresh();
   }, [refresh]);
 

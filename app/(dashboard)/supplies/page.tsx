@@ -94,7 +94,7 @@ export default function SuppliesPage() {
   }, [canListSupplies]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial list load tied to auth gate
+     
     void refresh();
   }, [refresh]);
 

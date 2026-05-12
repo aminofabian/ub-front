@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   BarChart3,
   Calendar,
   CreditCard,
@@ -13,7 +11,6 @@ import {
   RefreshCw,
   Search,
   ShoppingCart,
-  Store,
   TrendingDown,
   TrendingUp,
   Users,
@@ -485,15 +482,12 @@ export default function AnalyticsPage() {
       revenueLast30Days: number | string;
     }[];
   } | null>(null);
-  const [expenses, setExpenses] = useState<{ amount: number }[]>([]);
+  const [, setExpenses] = useState<{ amount: number }[]>([]);
 
   // Previous period data for trends
   const [prevPl, setPrevPl] = useState<ProfitAndLossResponse | null>(null);
-  const [prevSalesRegister, setPrevSalesRegister] =
-    useState<SalesRegisterResponse | null>(null);
-  const [prevCategoryRevenue, setPrevCategoryRevenue] = useState<
-    RevenueByCategoryRow[]
-  >([]);
+  const [, setPrevSalesRegister] = useState<SalesRegisterResponse | null>(null);
+  const [, setPrevCategoryRevenue] = useState<RevenueByCategoryRow[]>([]);
 
   // Search
   const [saleSearch, setSaleSearch] = useState("");

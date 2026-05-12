@@ -314,7 +314,7 @@ export function NewSupplyDrawer({
   }, []);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- reset drawer draft when closed */
+     
     if (!open) {
       setSupplier(null);
       setSupplierQuery("");
@@ -326,28 +326,28 @@ export function NewSupplyDrawer({
       setReceivedAtLocal(defaultReceived);
       setRowPricing({});
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, defaultReceived]);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- supplier selection loads catalog */
+     
     if (supplier) {
       void loadLinks(supplier.id);
     } else {
       setRows([]);
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [supplier, loadLinks]);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- branch selection resets shelf draft */
+     
     if (!open) {
       return;
     }
     setRows((prev) =>
       prev.map((r) => ({ ...r, sellPriceStr: "", sellPriceTouched: false })),
     );
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [branchId, open]);
 
   const rowItemIdsKey = useMemo(() => {
@@ -373,7 +373,7 @@ export function NewSupplyDrawer({
   }, [rows]);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- loads shelf hints when catalog/branch changes */
+     
     if (!open || !supplier?.id || !branchId.trim()) {
       return;
     }
@@ -457,7 +457,7 @@ export function NewSupplyDrawer({
     return () => {
       cancelled = true;
     };
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, supplier?.id, branchId, rowItemIdsKey, rowPricingDepsKey]);
 
   const grandTotal = useMemo(() => {

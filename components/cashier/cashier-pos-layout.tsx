@@ -379,7 +379,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
   useEffect(() => {
     if (cart.notice || cart.error) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- surface sale results in the drawer.
+       
       setDrawerOpen(true);
     }
   }, [cart.notice, cart.error]);

@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ChevronRight,
   CornerDownRight,
-  GitBranch,
   LayoutGrid,
   Package,
   PackageSearch,
@@ -26,7 +25,7 @@ import {
   DashboardLoading,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { APP_ROUTES, categorySlugPath, categoryAnalyticsPath } from "@/lib/config";
+import { APP_ROUTES, categoryAnalyticsPath } from "@/lib/config";
 import {
   fetchCategories,
   fetchItemsPage,
@@ -55,7 +54,6 @@ type TreeNode = {
 };
 
 function buildProductTree(products: ItemSummaryRecord[]): TreeNode[] {
-  const byId = new Map(products.map((p) => [p.id, p]));
   const childrenMap = new Map<string, ItemSummaryRecord[]>();
 
   for (const p of products) {

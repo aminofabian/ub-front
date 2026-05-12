@@ -75,7 +75,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const balanceOpen = row ? n(row.balanceOpen) : 0;
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- history list follows drawer + invoice */
+     
     if (!open || !row || !canHistory) {
       setHistory([]);
       return;
@@ -85,14 +85,14 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       .then(setHistory)
       .catch(() => setHistory([]))
       .finally(() => setHistoryLoading(false));
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, row, canHistory]);
 
   useEffect(() => {
     if (!open || !row) {
       return;
     }
-    /* eslint-disable react-hooks/set-state-in-effect -- form defaults for selected supply */
+     
     const b = n(row.balanceOpen);
     const init = b > 0 ? b.toFixed(2) : "";
     setAllocation(init);
@@ -102,7 +102,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     setNotes("");
     setPaidAtLocal(defaultLocalDateTime());
     setError(null);
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, row]);
 
   const onSubmit = async () => {

@@ -203,7 +203,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!me) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot remote fetch on auth.
+     
     void refreshBranches();
     void refreshItemTypes();
   }, [me, refreshBranches, refreshItemTypes]);
@@ -220,7 +220,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const id = candidate?.trim();
       if (id && branches.some((b) => b.id === id)) {
         if (id !== branchId) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+           
           setBranchIdState(id);
         }
         return;
@@ -241,7 +241,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const id = candidate?.trim();
       if (id && itemTypes.some((t) => t.id === id)) {
         if (id !== itemTypeId) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+           
           setItemTypeIdState(id);
         }
         return;

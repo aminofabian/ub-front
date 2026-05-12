@@ -94,11 +94,11 @@ export function CashierProductModal({
 
   useEffect(() => {
     if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear header when sheet closes so next open does not flash stale shelf text.
+       
       setShelfCaption("");
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset modal inputs each time it reopens.
+     
     setQuantity(1);
     setUnitPrice("");
     setShelfCaption("");

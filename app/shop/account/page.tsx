@@ -45,9 +45,9 @@ export default function ShopAccountPage() {
   }, []);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- authenticated mount bootstrap hits API then sets viewer state */
+     
     void loadMe();
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [loadMe]);
 
   const onLogout = async () => {

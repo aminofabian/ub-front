@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   PackagePlus,
   Package,
@@ -193,9 +194,12 @@ export function ProductCreateDrawer({
         <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
           <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/50 bg-background">
             {previewUrl ? (
-              <img
+              <Image
                 src={previewUrl}
                 alt=""
+                width={56}
+                height={56}
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : isGroup ? (
@@ -436,10 +440,13 @@ export function ProductCreateDrawer({
             hint="Upload a cover image"
           />
           {m.pendingCreateImage ? (
-            <div className="relative overflow-hidden rounded-xl border border-border/60">
-              <img
-                src={previewUrl ?? undefined}
+            <motion.div className="relative overflow-hidden rounded-xl border border-border/60">
+              <Image
+                src={previewUrl ?? ""}
                 alt="Preview"
+                width={640}
+                height={160}
+                unoptimized
                 className="h-40 w-full object-cover"
               />
               <button

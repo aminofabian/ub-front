@@ -65,7 +65,7 @@ export function EditSupplyBillDrawer({ open, onOpenChange, row, onSaved }: EditS
   );
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- reset when drawer target changes */
+     
     if (!open || !row) {
       setDetail(null);
       setLoadError(null);
@@ -104,7 +104,7 @@ export function EditSupplyBillDrawer({ open, onOpenChange, row, onSaved }: EditS
         setLoadError(e instanceof Error ? e.message : "Could not load bill.");
       })
       .finally(() => setLoading(false));
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [open, row]);
 
   const onSave = async () => {

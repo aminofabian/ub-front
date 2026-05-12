@@ -200,7 +200,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     if (!canSell) {
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from localStorage on mount.
+     
     refreshTopProducts();
   }, [canSell, refreshTopProducts]);
 

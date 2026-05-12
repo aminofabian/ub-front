@@ -25,7 +25,7 @@ import {
   DashboardLoading,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { APP_ROUTES, categorySlugPath, categoryAnalyticsPath } from "@/lib/config";
+import { APP_ROUTES, categorySlugPath } from "@/lib/config";
 import {
   fetchCategories,
   fetchItemsPage,
@@ -39,7 +39,7 @@ import {
   type CategoryDailyRevenueRow,
   type ItemRevenueRow,
 } from "@/lib/api";
-import { cn, categoryIconImageUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 /* ─── Date utilities ─────────────────────────────────────────────────────── */
 
@@ -346,10 +346,6 @@ export default function CategoryAnalyticsPage() {
     return index >= 0 ? { rank: index + 1, total: sorted.length, topRow: sorted[0] } : null;
   }, [category, allCategoryRows]);
 
-  const maxDailyRevenue = useMemo(() => {
-    return Math.max(...dailyRows.map((d) => Math.abs(Number(d.netRevenue))), 1);
-  }, [dailyRows]);
-
   const maxItemRevenue = useMemo(() => {
     return Math.max(...itemRevenueRows.map((r) => Math.abs(Number(r.netRevenue))), 1);
   }, [itemRevenueRows]);
@@ -385,9 +381,6 @@ export default function CategoryAnalyticsPage() {
       </div>
     );
   }
-
-  const cover = category.thumbnailUrl?.trim() || (category.imageKey?.trim()?.startsWith("http") ? category.imageKey.trim() : null);
-  const iconImage = categoryIconImageUrl(category.icon);
 
   const presets: { key: DatePreset; label: string }[] = [
     { key: "today", label: "Today" },

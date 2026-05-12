@@ -16,7 +16,6 @@ import {
   RefreshCw,
   Save,
   Shield,
-  Store,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";

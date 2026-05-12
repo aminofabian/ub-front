@@ -51,7 +51,7 @@ export function ShopBasketPill({
   }, [slug]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async refresh
+     
     void refresh();
   }, [refresh]);
 

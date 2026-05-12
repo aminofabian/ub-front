@@ -166,9 +166,9 @@ export function ShopAccountHub({ me }: HubProps) {
   );
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- storefront hub hydrate */
+     
     void loadPage(0, false);
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
   }, [loadPage]);
 
   const kesPerPt = useMemo(() => {
