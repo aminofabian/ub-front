@@ -51,7 +51,6 @@ export default function ShopCartView({ slug }: { slug: string }) {
   }, [slug]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load is async; state updates run after I/O
     void load();
   }, [load]);
 

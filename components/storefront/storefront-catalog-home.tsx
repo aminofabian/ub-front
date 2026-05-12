@@ -115,7 +115,6 @@ export async function StorefrontCatalogHome({
                 initialNextCursor={list.nextCursor}
                 q={q}
                 categoryId={categoryId}
-                primaryHex={primary}
                 accentHex={accentHex}
               />
             </section>

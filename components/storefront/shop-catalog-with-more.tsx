@@ -19,7 +19,6 @@ export default function ShopCatalogWithMore({
   q,
   categoryId,
   accentHex,
-  primaryHex,
 }: {
   slug: string;
   currency: string;
@@ -28,7 +27,6 @@ export default function ShopCatalogWithMore({
   q?: string;
   categoryId?: string;
   accentHex?: string | null;
-  primaryHex?: string | null;
 }) {
   const [items, setItems] = useState<PublicCatalogItemCard[]>(initialItems);
   const [next, setNext] = useState<string | null>(initialNextCursor);

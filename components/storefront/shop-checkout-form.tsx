@@ -377,7 +377,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   }, [slug]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async load updates after fetch
     void load();
   }, [load]);
 
