@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,7 +13,6 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Tags,
-  User,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { logoutRemote } from "@/lib/api";
-import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
@@ -329,13 +327,14 @@ export function AppShell({ children }: AppShellProps) {
     canManageBusinessSettings,
     canViewCategories,
     canViewPurchasingIntelligence,
-    canPathBWrite,
+    canAddSupplies,
     canViewApAging,
     canViewSuppliers,
     canViewCustomers,
     canRecordSupplierPayment,
     canViewInventoryValuation,
     canViewInventoryTransfers,
+    canViewSupplyBatches,
     canViewStockTake,
     canViewPricing,
     canViewShifts,

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronRight, CornerDownRight, Layers, Package, Tag } from "lucide-react";
+import { ChevronRight, CornerDownRight, Package, Tag } from "lucide-react";
 
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";

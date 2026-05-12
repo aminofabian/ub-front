@@ -405,7 +405,7 @@ export function SupplierCatalogColumn({
     }
   };
 
-  const doQuickLink = async (itemId: string, itemName: string) => {
+  const doQuickLink = async (itemId: string) => {
     if (!canLinkProducts || linkedIds.has(itemId)) return;
     setQuickLinkIds((prev) => {
       const next = new Set(prev);
@@ -463,13 +463,6 @@ export function SupplierCatalogColumn({
     } finally {
       setInlineEditBusy(false);
     }
-  };
-
-  const openEditLinkDrawer = (row: SupplierItemLinkRecord) => {
-    setEditLinkDrawerRow(row);
-    setEditLinkDrawerSku(row.supplierSku ?? "");
-    setEditLinkDrawerCost(row.defaultCostPrice != null ? String(row.defaultCostPrice) : "");
-    setEditLinkDrawerOpen(true);
   };
 
   const saveEditLinkDrawer = async () => {
@@ -866,7 +859,7 @@ export function SupplierCatalogColumn({
                                     disabled={quickLinkIds.has(row.id) || linksBusy}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      void doQuickLink(row.id, row.name);
+                                      void doQuickLink(row.id);
                                     }}
                                   >
                                     {quickLinkIds.has(row.id) ? (

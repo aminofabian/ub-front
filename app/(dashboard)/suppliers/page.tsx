@@ -266,7 +266,7 @@ export default function SuppliersPage() {
       return;
     }
     void refreshList();
-  }, [loading, canRead, refreshFullDirectory]);
+  }, [loading, canRead, refreshList]);
 
   const onSelectSupplier = async (id: string) => {
     selectionRef.current = id;

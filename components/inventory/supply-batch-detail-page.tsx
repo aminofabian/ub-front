@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Package,
   Warehouse,
   XOctagon,
   CheckCircle2,
@@ -21,23 +19,9 @@ import {
   fetchSupplyBatchDetail,
   patchSupplyBatch,
   recalculateSupplyBatch,
-  clearSupplyBatch,
-  postStandaloneWastage,
   type SupplyBatchDetailRecord,
-  type SupplyBatchItemRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
-
-const DISPOSITION_CATEGORIES = [
-  { key: "expired", label: "Expired" },
-  { key: "spoiled", label: "Spoilage" },
-  { key: "broken", label: "Breakage" },
-  { key: "stolen", label: "Theft" },
-  { key: "donated", label: "Sample/Donation" },
-  { key: "staffConsumption", label: "Staff consumption" },
-  { key: "countingError", label: "Counting error" },
-  { key: "other", label: "Other" },
-];
 
 function formatQty(v: number | string): string {
   const n = typeof v === "number" ? v : Number(v);
@@ -83,20 +67,8 @@ function statusBadge(status: string) {
   return <span className="text-muted-foreground">{status}</span>;
 }
 
-const WASTAGE_REASONS = [
-  { value: "EXPIRED", label: "Expired" },
-  { value: "SPOILAGE", label: "Spoilage" },
-  { value: "BREAKAGE", label: "Breakage" },
-  { value: "THEFT", label: "Theft" },
-  { value: "SAMPLE", label: "Sample" },
-  { value: "PERSONAL_USE", label: "Personal use" },
-  { value: "COUNTING_ERROR", label: "Counting error" },
-  { value: "OTHER", label: "Other" },
-];
-
 export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
   const { me } = useDashboard();
-  const router = useRouter();
   const canRead = hasPermission(me?.permissions, Permission.InventoryRead);
   const canWrite = hasPermission(me?.permissions, Permission.InventoryWrite);
 
@@ -109,22 +81,12 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
 
   // Clear dialog state
   const [showClearDialog, setShowClearDialog] = useState(false);
-  const [clearReason, setClearReason] = useState("EXPIRED");
-  const [clearNotes, setClearNotes] = useState("");
-  const [clearing, setClearing] = useState(false);
   const [clearResult, setClearResult] = useState<{
     totalWriteOffValue: number | string;
     journalEntryId: string | null;
   } | null>(null);
 
-  // Clearing wizard state
-  const [clearingStep, setDialogStep] = useState<
-    "review" | "allocate" | "confirm"
-  >("review");
   const [dialogMode, setDialogMode] = useState<"wastage" | "clear">("clear");
-  const [allocations, __unused2] = useState<
-    Record<string, Record<string, number>>
-  >({});
 
   const load = useCallback(async () => {
     setMessage("");
@@ -180,93 +142,9 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
     }
   };
 
-  const handleClear = async () => {
-    if (!canWrite || !data) return;
-    setClearing(true);
-    try {
-      const result = await clearSupplyBatch(data.id, {
-        reason: clearReason,
-        notes: clearNotes || null,
-      });
-      setClearResult(result);
-      setShowClearDialog(false);
-      setDialogMode("clear");
-      await load();
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Failed to clear batch.",
-      );
-    } finally {
-      setClearing(false);
-    }
-  };
-
-  const handleRecordWastage = async () => {
-    if (!canWrite || !data) return;
-    setClearing(true);
-    try {
-      const branchId = data.branchId;
-      for (const it of itemsWithRemaining) {
-        const alloc = allocations[it.inventoryBatchId] ?? {};
-        const entries = Object.entries(alloc).filter(
-          ([key]) => key !== "stillInStorage",
-        );
-        for (const [key, qty] of entries) {
-          const n = Number(qty || 0);
-          if (n <= 0) continue;
-          const label =
-            DISPOSITION_CATEGORIES.find((c) => c.key === key)?.label ?? key;
-          await postStandaloneWastage({
-            branchId,
-            itemId: it.itemId,
-            batchId: it.inventoryBatchId,
-            quantity: n,
-            unitCost: it.unitCost,
-            reason: label + (clearNotes ? " — " + clearNotes : ""),
-            wastageReason:
-              key === "spoiled"
-                ? "SPOILAGE"
-                : key === "broken"
-                  ? "BREAKAGE"
-                  : key === "stolen"
-                    ? "THEFT"
-                    : key === "donated"
-                      ? "SAMPLE"
-                      : key === "staffConsumption"
-                        ? "PERSONAL_USE"
-                        : key === "countingError"
-                          ? "COUNTING_ERROR"
-                          : "OTHER",
-          });
-        }
-      }
-      setShowClearDialog(false);
-      setDialogMode("clear");
-      await load();
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Failed to record wastage.",
-      );
-    } finally {
-      setClearing(false);
-    }
-  };
-
-  const itemsWithRemaining =
-    data?.items.filter((it) => Number(it.quantityRemaining) > 0) ?? [];
-
-  const allItemsBalanced = itemsWithRemaining.every((it) => {
-    const alloc = allocations[it.inventoryBatchId] ?? {};
-    const total = Object.values(alloc).reduce(
-      (s: number, v) => s + (Number(v) || 0),
-      0,
-    );
-    return Math.abs(total - Number(it.quantityRemaining)) < 0.001;
-  });
-
   const isClosed = data?.status?.toLowerCase() === "closed";
   const isSoldout = data?.status?.toLowerCase() === "soldout";
-  const canClear = canWrite && !isClosed && !clearing;
+  const canClear = canWrite && !isClosed;
 
   if (!canRead) {
     return (
@@ -346,8 +224,6 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                       size="sm"
                       onClick={() => {
                         setDialogMode("wastage");
-                        setClearReason(WASTAGE_REASONS[0].value);
-                        setClearNotes("");
                         setShowClearDialog(true);
                       }}
                       disabled={loading}
@@ -362,8 +238,6 @@ export function SupplyBatchDetailPage({ batchId }: { batchId: string }) {
                       size="sm"
                       onClick={() => {
                         setDialogMode("clear");
-                        setClearReason("EXPIRED");
-                        setClearNotes("");
                         setShowClearDialog(true);
                       }}
                       disabled={loading}

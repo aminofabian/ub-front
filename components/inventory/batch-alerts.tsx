@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, Info, XCircle } from "lucide-react";
+import { AlertTriangle, Info, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BatchAlert } from "@/lib/api";
 

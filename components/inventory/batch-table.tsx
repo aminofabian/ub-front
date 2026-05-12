@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Search,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -25,7 +24,6 @@ import {
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
-import { APP_ROUTES } from "@/lib/config";
 import type { BatchTableRow } from "@/lib/api";
 
 function formatQty(v: number | string): string {

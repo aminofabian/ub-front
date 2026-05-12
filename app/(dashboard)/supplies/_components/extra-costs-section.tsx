@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { dashboardLabelClass } from "@/components/dashboard-page-ui";
 
 export type ExtraRow = {
   key: string;

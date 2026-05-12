@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Warehouse } from "lucide-react";
 import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
-import type { SupplyBatchDetailRecord, SupplyBatchItemRecord } from "@/lib/api";
+import type { SupplyBatchDetailRecord } from "@/lib/api";
 import { clearSupplyBatch, postStandaloneWastage } from "@/lib/api";
 
 function formatQty(v: number | string): string {

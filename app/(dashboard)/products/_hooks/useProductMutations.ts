@@ -69,11 +69,9 @@ export function useProductMutations(d: Dependencies) {
     selectedId,
     detail,
     patchDraft,
-    setPatchDraft,
     setDetail,
     setSupplierLinks,
     setParentVariants,
-    setVariantParentDisplayName,
     rowSelection,
     setRowSelection,
     listRows,
@@ -211,6 +209,8 @@ export function useProductMutations(d: Dependencies) {
       isVD && variantDraftRows[0]?.variantName.trim()
         ? variantDraftRows[0].variantName.trim()
         : undefined;
+    const variantDraftBrand = variantDraftRows[0]?.brand;
+    const variantDraftSize = variantDraftRows[0]?.size;
     const delay = isVD ? 320 : 0;
     let cancelled = false;
     const t = window.setTimeout(() => {
@@ -221,10 +221,10 @@ export function useProductMutations(d: Dependencies) {
             parentItemId: pid,
             variantName: vn,
             brand: isVD
-              ? variantDraftRows[0]?.brand.trim() || undefined
+              ? variantDraftBrand?.trim() || undefined
               : parentDraft.brand.trim() || undefined,
             size: isVD
-              ? variantDraftRows[0]?.size.trim() || undefined
+              ? variantDraftSize?.trim() || undefined
               : parentDraft.size.trim() || undefined,
           });
           if (!cancelled) setNextAutoSkuHint(suggestedSku);
@@ -244,9 +244,7 @@ export function useProductMutations(d: Dependencies) {
     parentDraft.categoryId,
     parentDraft.brand,
     parentDraft.size,
-    variantDraftRows[0]?.variantName,
-    variantDraftRows[0]?.brand,
-    variantDraftRows[0]?.size,
+    variantDraftRows,
   ]);
 
   // ─── seed itemTypeId ────────────────────────────────────────────────────

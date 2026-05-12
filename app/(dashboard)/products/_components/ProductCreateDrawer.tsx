@@ -440,7 +440,7 @@ export function ProductCreateDrawer({
             hint="Upload a cover image"
           />
           {m.pendingCreateImage ? (
-            <motion.div className="relative overflow-hidden rounded-xl border border-border/60">
+            <div className="relative overflow-hidden rounded-xl border border-border/60">
               <Image
                 src={previewUrl ?? ""}
                 alt="Preview"

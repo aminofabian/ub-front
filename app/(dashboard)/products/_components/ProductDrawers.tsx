@@ -25,7 +25,7 @@ import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import { ProductDetailPanel } from "./ProductDetailPanel";
 import { galleryImageUrl, coverImageUrl } from "../_utils";
 import { postStockIncrease, ApiRequestError } from "@/lib/api";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 
 type Cat = { id: string; name: string; active: boolean };
 
@@ -815,7 +815,7 @@ export function ProductMobileDetailDrawer({
   onClose: () => void;
   banner?: FormDrawerProps["banner"];
   detail: Pick<ProductDetailApi, "detail">;
-  detailPanelProps: Record<string, any>;
+  detailPanelProps: ComponentProps<typeof ProductDetailPanel>;
 }) {
   const d = detail.detail;
   return (
@@ -838,7 +838,7 @@ export function ProductMobileDetailDrawer({
       width="wide"
     >
       {d ? (
-        <ProductDetailPanel {...(detailPanelProps as any)} />
+        <ProductDetailPanel {...detailPanelProps} />
       ) : (
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <Loader2 className="size-8 animate-spin text-primary" />

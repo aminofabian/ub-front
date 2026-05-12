@@ -55,8 +55,6 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   fetchPurchasingIntelligenceDashboard,
   type PurchasingIntelligenceDashboardResponse,
-  type PriceVarianceAlert,
-  type SingleSourceRiskRow,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";

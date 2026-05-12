@@ -28,7 +28,6 @@ import {
   coverImageUrl,
   effectiveSupplierUnitCost,
   formatAmount,
-  galleryImageUrl,
   toNumber,
 } from "../_utils";
 import {
@@ -141,10 +140,6 @@ export function ProductDetailPanel(props: Props) {
     quickStock,
     setQuickStock,
     saveQuickStock,
-    quickStockBranchId,
-    setQuickStockBranchId,
-    quickStockUnitCost,
-    setQuickStockUnitCost,
     quickSaving,
     openQuickEdit,
     cancelQuickEdit,

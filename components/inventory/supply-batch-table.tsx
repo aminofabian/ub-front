@@ -16,9 +16,6 @@ import {
   ChevronRight,
   Download,
   Clock,
-  DollarSign,
-  TrendingUp,
-  Receipt,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,18 +32,6 @@ function formatQty(v: number | string): string {
   const n = typeof v === "number" ? v : Number(v);
   if (Number.isNaN(n)) return "—";
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function formatMoney(v: number | string): string {
-  const n = typeof v === "number" ? v : Number(v);
-  if (Number.isNaN(n)) return "—";
-  return (
-    "KES " +
-    n.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  );
 }
 
 function formatMoneyShort(v: number | string): string {
@@ -327,9 +312,6 @@ export function SupplyBatchTable({
                 const isClosed = b.status?.toLowerCase() === "closed";
                 const isSoldout = b.status?.toLowerCase() === "soldout";
                 const canAct = canWrite && !isClosed;
-                const revenue = Number(b.totalRevenue);
-                const cost = Number(b.totalCost);
-                const profit = revenue - cost - Number(b.totalAssociatedCosts);
                 return (
                   <tr
                     key={b.id}

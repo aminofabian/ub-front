@@ -114,7 +114,7 @@ export function createEmptyDenominationQuantities(): Record<number, number> {
 
 export function quantitiesToEntries(qty: Record<number, number>): DenominationEntry[] {
   return Object.entries(qty)
-    .filter(([_, q]) => q > 0)
+    .filter(([, q]) => q > 0)
     .map(([denom, q]) => ({
       denomination: Number(denom),
       denominationType:

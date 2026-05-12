@@ -251,7 +251,6 @@ export function NewSupplyDrawer({
     {},
   );
 
-  const [showExtras, setShowExtras] = useState(false);
   const [extras, setExtras] = useState<
     { key: string; category: string; amount: string; desc: string }[]
   >([]);
@@ -459,17 +458,6 @@ export function NewSupplyDrawer({
     };
      
   }, [open, supplier?.id, branchId, rowItemIdsKey, rowPricingDepsKey]);
-
-  const grandTotal = useMemo(() => {
-    let sum = 0;
-    for (const row of rows) {
-      const p = linePayload(row);
-      if (p) {
-        sum += p.amountMoney;
-      }
-    }
-    return roundMoney2(sum);
-  }, [rows]);
 
   const estimatedProfit = useMemo(() => {
     let cost = 0;

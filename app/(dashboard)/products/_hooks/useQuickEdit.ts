@@ -103,8 +103,6 @@ export function useQuickEdit({
       if (key === "stock" && !canInventoryWrite) return;
       setQuickEdit(key);
       const v = (n: number | null | undefined) => (n != null ? String(n) : "");
-      const set = (fn: (v: string) => void, raw: string | null | undefined) =>
-        fn((raw ?? "").trim());
       if (key === "productName") setQuickProductName(detail.name?.trim() ?? "");
       if (key === "sku") setQuickSku(detail.sku?.trim() ?? "");
       if (key === "barcode") setQuickBarcode(detail.barcode?.trim() ?? "");

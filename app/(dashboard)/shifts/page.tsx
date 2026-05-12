@@ -21,34 +21,19 @@ import {
   DashboardLoading,
   DashboardPageHero,
   DashboardQuickLinks,
-  dashboardFilterFieldLabelClass,
   dashboardInputClass,
   dashboardSelectClass,
-  dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  approveDrawout,
   fetchBranches,
   fetchCurrentShift,
-  fetchPendingDrawouts,
   fetchShiftDetail,
   fetchShiftDrawouts,
   fetchShifts,
-  rejectDrawout,
-  voidDrawout,
   type BranchRecord,
   type DenominationRecord,
   type DrawoutRecord,
@@ -1211,10 +1196,6 @@ export default function ShiftsPage() {
     loadShifts(0, false);
     setSelectedShiftId(null);
   }, [loadShifts]);
-
-  const handleDrawoutCreated = useCallback(() => {
-    setNotice("Drawout submitted.");
-  }, []);
 
   if (!allowed) {
     return (

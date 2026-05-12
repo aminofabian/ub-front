@@ -13,8 +13,6 @@ import {
   Pie,
   Cell,
   Legend,
-  LineChart,
-  Line,
 } from "recharts";
 import { TrendingUp, PieChart as PieIcon, Package, Clock } from "lucide-react";
 
@@ -35,14 +33,6 @@ const COLORS = [
   "#f97316",
   "#84cc16",
 ];
-
-function formatMoneyShort(n: number | string): string {
-  const val = typeof n === "number" ? n : Number(n);
-  if (Number.isNaN(val)) return "0";
-  if (val >= 1_000_000) return (val / 1_000_000).toFixed(1) + "M";
-  if (val >= 1_000) return (val / 1_000).toFixed(1) + "k";
-  return val.toFixed(0);
-}
 
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr);
