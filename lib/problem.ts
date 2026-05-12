@@ -13,6 +13,10 @@ export type ProblemValidationFieldError = {
 
 const DEFAULT_PROBLEM_TITLE = "Request failed.";
 
+const TENANT_NOT_FOUND_PROBLEM_TYPE = "urn:problem:tenant-not-found";
+const UNMAPPED_TENANT_HOST_DETAIL_PREFIX =
+  "No active tenant mapping found for host:";
+
 const GENERIC_PROBLEM_TITLES = new Set([
   "",
   "Bad Request",
@@ -100,6 +104,22 @@ export function parseProblem(payload: unknown): ProblemResponse | null {
   const code = typeof record.code === "string" ? record.code : undefined;
 
   return { type, title, status, detail, code };
+}
+
+/** Unknown tenant host from {@code DomainBusinessResolverFilter} (404 problem+json). */
+export function isUnmappedTenantHostProblem(payload: unknown): boolean {
+  const problem = parseProblem(payload);
+  if (!problem) {
+    return false;
+  }
+  if (problem.type === TENANT_NOT_FOUND_PROBLEM_TYPE) {
+    return true;
+  }
+  if (problem.title !== "Tenant not found") {
+    return false;
+  }
+  const detail = problem.detail?.trim() ?? "";
+  return detail.startsWith(UNMAPPED_TENANT_HOST_DETAIL_PREFIX);
 }
 
 /** Prefer machine-readable detail for types where the title alone is easy to confuse with auth failures. */

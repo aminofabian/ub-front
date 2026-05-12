@@ -17,7 +17,7 @@ import {
 } from "@/lib/auth";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
-import { parseProblem, formatApiProblemMessage } from "@/lib/problem";
+import { parseProblem, formatApiProblemMessage, isUnmappedTenantHostProblem } from "@/lib/problem";
 import { toast } from "sonner";
 
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -71,6 +71,33 @@ function failRequest(
     notifyHttpErrorToast(message);
   }
   throw new ApiRequestError(message, status, payload);
+}
+
+function shouldSignOutClientForProblem(
+  status: number,
+  payload: unknown,
+  options?: { requiresAuth?: boolean },
+): boolean {
+  const problem = parseProblem(payload);
+  if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+    return true;
+  }
+  if (options?.requiresAuth === false || !getSessionTokens()) {
+    return false;
+  }
+  return status === 404 && isUnmappedTenantHostProblem(payload);
+}
+
+function signOutClientForProblem(
+  status: number,
+  payload: unknown,
+  options?: { requiresAuth?: boolean },
+): boolean {
+  if (!shouldSignOutClientForProblem(status, payload, options)) {
+    return false;
+  }
+  signOutClientAndRedirectToLogin();
+  return true;
 }
 
 type LoginResponse = {
@@ -699,8 +726,7 @@ async function request<T>(
     const shouldRefresh = shouldAttemptRefresh(problem?.code);
     if (!shouldRefresh) {
       const message = formatApiProblemMessage(payload);
-      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-        signOutClientAndRedirectToLogin();
+      if (signOutClientForProblem(response.status, payload, { requiresAuth })) {
         throw new ApiRequestError(message, response.status, payload);
       }
       failRequest(response.status, payload, { toast: suppressToast });
@@ -713,13 +739,7 @@ async function request<T>(
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (
-      requiresAuth &&
-      response.status === 401 &&
-      problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken
-    ) {
-      signOutClientAndRedirectToLogin();
+    if (signOutClientForProblem(response.status, payload, { requiresAuth })) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -763,8 +783,7 @@ async function requestMultipartJson<T>(
       response = await execute();
     } else {
       const message = formatApiProblemMessage(payload);
-      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-        signOutClientAndRedirectToLogin();
+      if (signOutClientForProblem(response.status, payload)) {
         throw new ApiRequestError(message, response.status, payload);
       }
       failRequest(response.status, payload);
@@ -773,9 +792,7 @@ async function requestMultipartJson<T>(
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-      signOutClientAndRedirectToLogin();
+    if (signOutClientForProblem(response.status, payload)) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -851,8 +868,7 @@ async function postIntegrationsJsonImport(
       response = await execute();
     } else {
       const message = formatApiProblemMessage(payload);
-      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-        signOutClientAndRedirectToLogin();
+      if (signOutClientForProblem(response.status, payload)) {
         throw new ApiRequestError(message, response.status, payload);
       }
       failRequest(response.status, payload);
@@ -864,6 +880,13 @@ async function postIntegrationsJsonImport(
     return payload;
   }
   if (!response.ok) {
+    if (signOutClientForProblem(response.status, payload ?? {})) {
+      throw new ApiRequestError(
+        formatApiProblemMessage(payload),
+        response.status,
+        payload,
+      );
+    }
     failRequest(response.status, payload ?? {});
   }
   throw new ApiRequestError(
@@ -935,8 +958,7 @@ async function requestBinary(path: string): Promise<Blob> {
       response = await execute();
     } else {
       const message = formatApiProblemMessage(payload);
-      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-        signOutClientAndRedirectToLogin();
+      if (signOutClientForProblem(response.status, payload)) {
         throw new ApiRequestError(message, response.status, payload);
       }
       failRequest(response.status, payload);
@@ -945,9 +967,7 @@ async function requestBinary(path: string): Promise<Blob> {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-      signOutClientAndRedirectToLogin();
+    if (signOutClientForProblem(response.status, payload)) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -3583,9 +3603,7 @@ export async function tryPostSale(
       response = outcome.response;
     } else {
       const message = formatApiProblemMessage(payload);
-      if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-        signOutClientAndRedirectToLogin();
-      }
+      signOutClientForProblem(response.status, payload);
       return { ok: false, status: 401, message };
     }
   }
@@ -3595,13 +3613,9 @@ export async function tryPostSale(
   }
 
   const payload = await response.json().catch(() => ({}));
-  const problem = parseProblem(payload);
   const message = formatApiProblemMessage(payload);
-  if (
-    response.status === 401 &&
-    problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken
-  ) {
-    signOutClientAndRedirectToLogin();
+  if (signOutClientForProblem(response.status, payload)) {
+    return { ok: false, status: response.status, message };
   }
   return { ok: false, status: response.status, message };
 }
