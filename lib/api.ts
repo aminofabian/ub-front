@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  API_BASE_URL,
   API_ROUTES,
   DEFAULT_PAGE_QUERY,
   ERROR_CODES,
+  getApiBaseUrl,
   PROBLEM_TITLES,
   PUBLIC_TENANT_ID,
   STORAGE_KEYS,
@@ -118,7 +118,7 @@ export async function fetchTenantIdForHost(
   if (!h) {
     return null;
   }
-  const url = `${API_BASE_URL}${PUBLIC_HOST_RESOLVE_PATH}?host=${encodeURIComponent(h)}`;
+  const url = `${getApiBaseUrl()}${PUBLIC_HOST_RESOLVE_PATH}?host=${encodeURIComponent(h)}`;
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -637,8 +637,8 @@ export function shouldAttemptRefresh(problemCode?: string): boolean {
 
 function getNetworkErrorMessage(): string {
   const via =
-    API_BASE_URL.length > 0
-      ? API_BASE_URL
+    getApiBaseUrl().length > 0
+      ? getApiBaseUrl()
       : "this app’s origin (configure BACKEND_ORIGIN for the Next.js proxy)";
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
@@ -651,7 +651,7 @@ async function tryRefreshToken(): Promise<boolean> {
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${API_ROUTES.refresh}`, {
+    response = await fetch(`${getApiBaseUrl()}${API_ROUTES.refresh}`, {
       method: "POST",
       headers: buildRequestHeaders(false, undefined, "POST"),
       body: JSON.stringify({ refreshToken: session.refreshToken }),
@@ -706,7 +706,7 @@ async function request<T>(
       headers.set("Idempotency-Key", idem);
     }
     try {
-      return await fetch(`${API_BASE_URL}${path}`, {
+      return await fetch(`${getApiBaseUrl()}${path}`, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
@@ -765,7 +765,7 @@ async function requestMultipartJson<T>(
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
-    return fetch(`${API_BASE_URL}${path}`, {
+    return fetch(`${getApiBaseUrl()}${path}`, {
       method: "POST",
       headers,
       body: form,
@@ -848,7 +848,7 @@ async function postIntegrationsJsonImport(
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
     return fetch(
-      `${API_BASE_URL}/api/v1/integrations/imports/${relativePath}`,
+      `${getApiBaseUrl()}/api/v1/integrations/imports/${relativePath}`,
       {
         method: "POST",
         headers,
@@ -941,7 +941,7 @@ async function requestBinary(path: string): Promise<Blob> {
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "GET");
-    return fetch(`${API_BASE_URL}${path}`, {
+    return fetch(`${getApiBaseUrl()}${path}`, {
       method: "GET",
       headers: headersInit,
     });
@@ -1062,7 +1062,7 @@ export async function resendVerificationEmail(
   const headers = new Headers(headersInit);
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${API_ROUTES.resendVerification}`, {
+    response = await fetch(`${getApiBaseUrl()}${API_ROUTES.resendVerification}`, {
       method: "POST",
       headers,
       body: JSON.stringify({ email }),
@@ -1111,7 +1111,7 @@ export async function logoutRemote(): Promise<void> {
   const session = getSessionTokens();
   if (session) {
     try {
-      await fetch(`${API_BASE_URL}${API_ROUTES.logout}`, {
+      await fetch(`${getApiBaseUrl()}${API_ROUTES.logout}`, {
         method: "POST",
         headers: buildRequestHeaders(true, session.accessToken, "POST"),
       });
@@ -3572,7 +3572,7 @@ export async function tryPostSale(
     const headers = new Headers(headersInit);
     headers.set("Idempotency-Key", key);
     try {
-      const response = await fetch(`${API_BASE_URL}${path}`, {
+      const response = await fetch(`${getApiBaseUrl()}${path}`, {
         method,
         headers,
         body: JSON.stringify(buildJsonPostSaleBody(body)),
@@ -4335,7 +4335,7 @@ export async function simulateMpesaStkComplete(body: {
     headers.set("X-Mpesa-Simulate-Secret", secret);
   }
   try {
-    const resp = await fetch(`${API_BASE_URL}/webhooks/mpesa/stk/complete`, {
+    const resp = await fetch(`${getApiBaseUrl()}/webhooks/mpesa/stk/complete`, {
       method: "POST",
       headers,
       body: JSON.stringify({

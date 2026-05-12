@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_ROUTES } from "@/lib/config";
+import { API_ROUTES, getApiBaseUrl } from "@/lib/config";
 import { extractPageContent } from "@/lib/page-content";
 import { getProblemTitle } from "@/lib/problem";
 import {
@@ -37,8 +37,8 @@ export type SaDomainRow = {
 
 function getNetworkErrorMessage(): string {
   const via =
-    API_BASE_URL.length > 0
-      ? API_BASE_URL
+    getApiBaseUrl().length > 0
+      ? getApiBaseUrl()
       : "this app’s origin (configure BACKEND_ORIGIN for the Next.js proxy)";
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
@@ -46,7 +46,7 @@ function getNetworkErrorMessage(): string {
 export async function loginSuperAdmin(email: string, password: string): Promise<SuperAdminLoginResult> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${API_ROUTES.superAdminAuthLogin}`, {
+    response = await fetch(`${getApiBaseUrl()}${API_ROUTES.superAdminAuthLogin}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.trim(), password }),
@@ -87,7 +87,7 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
       ...init,
       headers,
     });

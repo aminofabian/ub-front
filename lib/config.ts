@@ -106,15 +106,39 @@ const RAW_REALTIME_WS_ORIGIN =
 const API_BROWSER_DIRECT =
   process.env.NEXT_PUBLIC_API_BROWSER_DIRECT === "true";
 
+/** Hosted Java API origin (no trailing slash). */
+export const REMOTE_API_ORIGIN = "https://kiosk.zelisline.com";
+
+function isPalmartProductionHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === "palmart.co.ke" || host.endsWith(".palmart.co.ke");
+}
+
 /**
- * Base for `fetch` to the backend. Default is empty → same-origin `/api/v1/...` handled by
- * `app/api/v1/[[...path]]` (set server-only `BACKEND_ORIGIN` to the real API).
+ * Browser-visible API origin for REST calls.
  *
- * `NEXT_PUBLIC_API_BASE_URL` alone does nothing — avoids shipping cross-origin URLs to production
- * by mistake. For direct browser→API (needs CORS), set `NEXT_PUBLIC_API_BROWSER_DIRECT=true` too.
+ * Order: explicit direct env → PalMart production host → same-origin BFF proxy.
  */
-export const API_BASE_URL =
-  API_BROWSER_DIRECT && RAW_API_BASE_URL.length > 0 ? RAW_API_BASE_URL : "";
+export function getApiBaseUrl(): string {
+  const normalizedEnv = RAW_API_BASE_URL.replace(/\/+$/, "");
+  if (API_BROWSER_DIRECT && normalizedEnv.length > 0) {
+    return normalizedEnv;
+  }
+
+  if (typeof window !== "undefined") {
+    if (isPalmartProductionHost(window.location.hostname)) {
+      return REMOTE_API_ORIGIN;
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Base for `fetch` to the backend. Prefer {@link getApiBaseUrl} when the value
+ * must reflect the current browser host.
+ */
+export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Browser WebSocket origin for `/api/v1/realtime`.
@@ -131,7 +155,7 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
 
   const candidates = [
     RAW_REALTIME_WS_ORIGIN,
-    API_BASE_URL,
+    getApiBaseUrl(),
     RAW_API_BASE_URL,
   ].filter((value) => value.length > 0);
 

@@ -1,9 +1,9 @@
-import { API_BASE_URL } from "@/lib/config";
+import { getApiBaseUrl } from "@/lib/config";
 
 export function AuthBranding() {
   const apiHint =
-    API_BASE_URL.length > 0
-      ? API_BASE_URL
+    getApiBaseUrl().length > 0
+      ? getApiBaseUrl()
       : "same-origin (/api → BACKEND_ORIGIN)";
   return (
     <header className="mb-6 text-center">
