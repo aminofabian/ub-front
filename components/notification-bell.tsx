@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 
 import { useOptionalRealtime } from "@/components/realtime-provider";
+import { getNotificationPresentation } from "@/lib/notification-display";
 import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
@@ -60,10 +61,8 @@ export function NotificationBell() {
                   .slice(0, 20)
                   .map((n) => {
                     const data = n.data as Record<string, unknown>;
-                    const title =
-                      (data.title as string) ?? data.notificationType ?? "";
-                    const body = (data.body as string) ?? "";
-                    const actionUrl = (data.actionUrl as string) ?? "";
+                    const { title, body, actionUrl } =
+                      getNotificationPresentation(data);
                     const time = n.at
                       ? new Date(n.at).toLocaleTimeString([], {
                           hour: "2-digit",

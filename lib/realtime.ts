@@ -14,6 +14,7 @@
 
 import { getSessionTokens, setSessionTokens } from "./auth";
 import { API_BASE_URL, API_ROUTES, STORAGE_KEYS } from "./config";
+import { normalizeNotificationData } from "./notification-display";
 
 // ── Types ──
 
@@ -572,7 +573,7 @@ export class RealtimeClient {
               eventId: n.id ?? "",
               at: n.createdAt ?? new Date().toISOString(),
               priority: "MEDIUM",
-              data: n,
+              data: normalizeNotificationData(n as Record<string, unknown>),
             });
           }
           // Remember the newest notification id for next poll
