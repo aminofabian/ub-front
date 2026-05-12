@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
+import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -490,11 +491,20 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Desktop top header */}
         <header className="hidden md:flex items-center justify-between gap-4 border-b bg-background px-6 py-3">
-          <p className="text-sm text-muted-foreground truncate">
-            {headerSubtitle ? headerSubtitle : ""}
-          </p>
+          <div className="flex min-w-0 flex-col">
+            <p className="text-sm text-muted-foreground truncate">
+              {headerSubtitle ? headerSubtitle : ""}
+            </p>
+            {currentBranch ? (
+              <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80 truncate">
+                <MapPin className="size-3 shrink-0" aria-hidden />
+                {currentBranch.name}
+              </span>
+            ) : null}
+          </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
             {/* Branch selector */}
             {isOwner ? (
               <select
@@ -578,14 +588,14 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
           {/* Mobile branch + type indicator */}
-          <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             {currentBranch ? (
-              <span className="truncate max-w-[7rem]">
+              <span className="truncate max-w-[6rem] sm:max-w-[7rem]">
                 {currentBranch.name}
               </span>
             ) : null}
             {currentItemType ? (
-              <span className="truncate max-w-[7rem] border-l border-border/50 pl-2">
+              <span className="hidden sm:inline truncate max-w-[7rem] border-l border-border/50 pl-2">
                 {currentItemType.label}
               </span>
             ) : null}

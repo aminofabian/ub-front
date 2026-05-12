@@ -397,6 +397,7 @@ export type BrandingPatchPayload = {
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogImage?: string | null;
+  ogImagePublicId?: string | null;
   metaKeywords?: string | null;
 };
 
@@ -1249,6 +1250,25 @@ export async function uploadMyBrandingFavicon(
 
 export async function clearMyBrandingFavicon(): Promise<BusinessRecord> {
   return request<BusinessRecord>(`${MY_BRANDING_PATH}/favicon`, {
+    method: "DELETE",
+  });
+}
+
+export async function uploadMyBrandingOgImage(
+  file: File,
+  businessId: string,
+): Promise<BusinessRecord> {
+  const folder = `ub/${businessId}/branding/og-image`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  return updateMyBranding({
+    ogImage: result.secure_url,
+    ogImagePublicId: result.public_id,
+  });
+}
+
+export async function clearMyBrandingOgImage(): Promise<BusinessRecord> {
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/og-image`, {
     method: "DELETE",
   });
 }

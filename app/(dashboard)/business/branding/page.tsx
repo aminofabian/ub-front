@@ -32,10 +32,12 @@ import { cn } from "@/lib/utils";
 import {
   clearMyBrandingFavicon,
   clearMyBrandingLogo,
+  clearMyBrandingOgImage,
   fetchBusiness,
   updateMyBranding,
   uploadMyBrandingFavicon,
   uploadMyBrandingLogo,
+  uploadMyBrandingOgImage,
   type BrandingPatchPayload,
   type BrandingRecord,
   type BusinessRecord,
@@ -49,6 +51,8 @@ const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_FAVICON_TYPES =
   "image/png,image/x-icon,image/vnd.microsoft.icon,image/webp,.ico";
 const MAX_FAVICON_BYTES = 512 * 1024;
+const ACCEPTED_OG_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+const MAX_OG_IMAGE_BYTES = 4 * 1024 * 1024;
 
 type FormState = {
   displayName: string;
@@ -398,6 +402,77 @@ function FaviconSection({
   );
 }
 
+function OgImageSection({
+  ogImageUrl,
+  busy,
+  onUpload,
+  onClear,
+}: {
+  ogImageUrl: string | null | undefined;
+  busy: boolean;
+  onUpload: (file: File) => Promise<void>;
+  onClear: () => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      void onUpload(file);
+    }
+    event.target.value = "";
+  };
+  const trimmed = ogImageUrl?.trim() ?? "";
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        {trimmed ? (
+          <Image
+            src={trimmed}
+            alt="Social preview"
+            width={112}
+            height={60}
+            className="aspect-[1200/630] w-28 rounded-xl border border-border/60 bg-muted/30 object-cover shadow-sm"
+            unoptimized
+          />
+        ) : (
+          <div className="flex aspect-[1200/630] w-28 items-center justify-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
+            None
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_OG_IMAGE_TYPES}
+            className="hidden"
+            onChange={onPick}
+          />
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {trimmed ? "Replace" : "Upload image"}
+          </Button>
+          {trimmed ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void onClear()}
+            >
+              Remove
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <p className={hintClass()}>
+        PNG, JPEG, or WEBP · max 4&nbsp;MB · 1200×630&nbsp;px recommended
+      </p>
+    </div>
+  );
+}
+
 function LockedNotice() {
   return (
     <div className="mx-auto max-w-lg py-16">
@@ -483,6 +558,7 @@ export default function BrandingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [faviconBusy, setFaviconBusy] = useState(false);
+  const [ogImageBusy, setOgImageBusy] = useState(false);
   const [brandingDrawerOpen, setBrandingDrawerOpen] = useState(false);
   const skipDrawerResetAfterSave = useRef(false);
 
@@ -632,6 +708,56 @@ export default function BrandingPage() {
     }
   };
 
+  const onOgImageUpload = async (file: File) => {
+    if (!snapshot?.id) {
+      setFeedback({ kind: "error", text: "Business not loaded yet." });
+      return;
+    }
+    if (file.size > MAX_OG_IMAGE_BYTES) {
+      setFeedback({
+        kind: "error",
+        text: "Social preview image exceeds the 4 MB limit.",
+      });
+      return;
+    }
+    setOgImageBusy(true);
+    setFeedback(null);
+    try {
+      const next = await uploadMyBrandingOgImage(file, snapshot.id);
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setFeedback({ kind: "success", text: "Social preview image updated." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Upload failed."),
+      });
+    } finally {
+      setOgImageBusy(false);
+    }
+  };
+
+  const onOgImageClear = async () => {
+    setOgImageBusy(true);
+    setFeedback(null);
+    try {
+      const next = await clearMyBrandingOgImage();
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setFeedback({
+        kind: "success",
+        text: "Social preview image removed.",
+      });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not remove social preview image."),
+      });
+    } finally {
+      setOgImageBusy(false);
+    }
+  };
+
   const onFaviconClear = async () => {
     setFaviconBusy(true);
     setFeedback(null);
@@ -653,6 +779,7 @@ export default function BrandingPage() {
 
   const logoUrl = snapshot?.branding?.logoUrl ?? null;
   const faviconUrl = snapshot?.branding?.faviconUrl ?? form.faviconUrl;
+  const ogImageUrl = snapshot?.branding?.ogImage ?? form.ogImage;
 
   if (isLoading) {
     return (
@@ -691,7 +818,7 @@ export default function BrandingPage() {
     );
   }
 
-  const drawerBusy = isSaving || logoBusy || faviconBusy;
+  const drawerBusy = isSaving || logoBusy || faviconBusy || ogImageBusy;
 
   return (
     <>
@@ -930,28 +1057,39 @@ export default function BrandingPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label className={labelClass()} htmlFor="branding-og-image">
-                Social preview image{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </label>
-              <input
-                id="branding-og-image"
-                className={inputClass()}
-                value={form.ogImage}
-                maxLength={1024}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, ogImage: e.target.value }))
-                }
-                placeholder="https://cdn.example.com/social-preview.png"
+            <FormDrawerFields
+              legend="Social preview image"
+              hint="Upload an image or paste a URL. Shown when your storefront is shared on social media and messaging apps. Falls back to your business logo when empty."
+            >
+              <OgImageSection
+                ogImageUrl={ogImageUrl}
+                busy={ogImageBusy}
+                onUpload={onOgImageUpload}
+                onClear={onOgImageClear}
               />
-              <p className={hintClass()}>
-                Open Graph / Twitter card image. Prefer 1200×630 px. Falls back
-                to your business logo when empty.
-              </p>
-            </div>
+
+              <div className="space-y-2 pt-2">
+                <label className={labelClass()} htmlFor="branding-og-image">
+                  Or paste an image URL{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <input
+                  id="branding-og-image"
+                  className={inputClass()}
+                  value={form.ogImage}
+                  maxLength={1024}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, ogImage: e.target.value }))
+                  }
+                  placeholder="https://cdn.example.com/social-preview.png"
+                />
+                <p className={hintClass()}>
+                  Prefer 1200×630 px. Cleared when you upload a file above.
+                </p>
+              </div>
+            </FormDrawerFields>
 
             <div className="space-y-2">
               <label className={labelClass()} htmlFor="branding-meta-keywords">

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
+import { RealtimeProvider } from "@/components/realtime-provider";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
@@ -53,8 +54,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <DashboardProvider>
-      <AppShell>{children}</AppShell>
-      <DashboardToaster />
+      <RealtimeProvider>
+        <AppShell>{children}</AppShell>
+        <DashboardToaster />
+      </RealtimeProvider>
     </DashboardProvider>
   );
 }

@@ -11,7 +11,10 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { DashboardNotice, dashboardHintClass } from "@/components/dashboard-page-ui";
+import {
+  DashboardNotice,
+  dashboardHintClass,
+} from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -77,7 +80,8 @@ export default function ProductsPage() {
     primaryCost: detail.primaryCost,
     canCatalogWrite,
     canInventoryWrite,
-    branches: [],
+    branches: branches,
+    defaultBranchId: branchId,
     refreshFullCatalog: catalog.refreshFullCatalog,
     refreshSelectedDetail: detail.refreshSelectedDetail,
     setMessage: catalog.setMessage,
@@ -243,7 +247,12 @@ export default function ProductsPage() {
               <ProductFilterSidebar catalog={catalog} />
               <div className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2 lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-hidden lg:pr-1">
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/25 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]">
-                  <span className={cn(dashboardHintClass(), "font-medium tabular-nums text-muted-foreground")}>
+                  <span
+                    className={cn(
+                      dashboardHintClass(),
+                      "font-medium tabular-nums text-muted-foreground",
+                    )}
+                  >
                     <span className="text-foreground">
                       {catalog.listTotalElements}
                     </span>{" "}
@@ -413,6 +422,10 @@ export default function ProductsPage() {
         detail={detail}
         cats={catalog.sortedCategories}
         m={m}
+        headerBranchId={branchId}
+        refreshFullCatalog={catalog.refreshFullCatalog}
+        refreshSelectedDetail={detail.refreshSelectedDetail}
+        setMessage={catalog.setMessage}
       />
 
       <ProductPhotosDrawer

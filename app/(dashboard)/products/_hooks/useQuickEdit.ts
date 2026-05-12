@@ -19,6 +19,7 @@ type Params = {
   canCatalogWrite: boolean;
   canInventoryWrite: boolean;
   branches: { id: string; name: string }[];
+  defaultBranchId?: string;
   refreshFullCatalog: () => Promise<void>;
   refreshSelectedDetail: (itemIdOverride?: string | null) => Promise<void>;
   setMessage: (msg: string) => void;
@@ -31,6 +32,7 @@ export function useQuickEdit({
   canCatalogWrite,
   canInventoryWrite,
   branches,
+  defaultBranchId,
   refreshFullCatalog,
   refreshSelectedDetail,
   setMessage,
@@ -118,11 +120,18 @@ export function useQuickEdit({
       }
       if (key === "stock") {
         setQuickStock("");
-        setQuickStockBranchId(branches[0]?.id ?? "");
+        setQuickStockBranchId(defaultBranchId || branches[0]?.id || "");
         setQuickStockUnitCost(v(primaryCost));
       }
     },
-    [detail, canCatalogWrite, canInventoryWrite, branches, primaryCost],
+    [
+      detail,
+      canCatalogWrite,
+      canInventoryWrite,
+      branches,
+      defaultBranchId,
+      primaryCost,
+    ],
   );
 
   const cancelQuickEdit = useCallback(() => setQuickEdit(null), []);
@@ -302,9 +311,7 @@ export function useQuickEdit({
     setQeaBundlePrice(
       ((n) => (n != null ? String(n) : ""))(toNumber(detail.bundlePrice)),
     );
-    setQeaBuyingPrice(
-      ((n) => (n != null ? String(n) : ""))(primaryCost),
-    );
+    setQeaBuyingPrice(((n) => (n != null ? String(n) : ""))(primaryCost));
     setQeaMinStock(
       ((n) => (n != null ? String(n) : ""))(toNumber(detail.minStockLevel)),
     );

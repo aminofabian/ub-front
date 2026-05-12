@@ -121,7 +121,10 @@ function presetRange(preset: DatePreset): { from: string; to: string } | null {
   }
 }
 
-function previousPeriod(from: string, to: string): { from: string; to: string } {
+function previousPeriod(
+  from: string,
+  to: string,
+): { from: string; to: string } {
   const days = Math.max(1, diffDays(from, to));
   return {
     from: toISODate(addDays(parseISODate(from), -days - 1)),
@@ -131,9 +134,15 @@ function previousPeriod(from: string, to: string): { from: string; to: string } 
 
 /* ─── Money formatting ───────────────────────────────────────────────────── */
 
-function formatMoney(n: number | string | null | undefined, currency = ""): string {
+function formatMoney(
+  n: number | string | null | undefined,
+  currency = "",
+): string {
   const val = n == null ? 0 : typeof n === "number" ? n : Number(n);
-  const num = val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = val.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   return currency ? `${currency} ${num}` : num;
 }
 
@@ -183,14 +192,25 @@ function MetricCard({
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-        <span className={cn("flex size-8 items-center justify-center rounded-lg", accent)}>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </span>
+        <span
+          className={cn(
+            "flex size-8 items-center justify-center rounded-lg",
+            accent,
+          )}
+        >
           <Icon className="size-4" aria-hidden />
         </span>
       </div>
       <div>
-        <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
-        {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+        <p className="text-2xl font-bold tracking-tight text-foreground">
+          {value}
+        </p>
+        {subtitle ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+        ) : null}
         {trend ? (
           <div className="mt-1.5 flex items-center gap-1.5">
             {up ? (
@@ -211,7 +231,9 @@ function MetricCard({
               {up ? "+" : ""}
               {trend.delta.toFixed(1)}%
             </span>
-            <span className="text-[11px] text-muted-foreground">{trend.label}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {trend.label}
+            </span>
           </div>
         ) : null}
       </div>
@@ -233,7 +255,12 @@ function SectionCard({
   action?: React.ReactNode;
 }) {
   return (
-    <div className={cn("rounded-xl border border-border/60 bg-card shadow-sm", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border/60 bg-card shadow-sm",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Icon className="size-4 text-muted-foreground" aria-hidden />
@@ -265,13 +292,21 @@ function MiniBarChart({
       {data.map((v, i) => {
         const pct = Math.min((v / safeMax) * 100, 100);
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+          <div
+            key={i}
+            className="flex-1 flex flex-col items-center gap-1 group relative"
+          >
             <div
-              className={cn("w-full rounded-sm transition-all", barClass || "bg-primary/80")}
+              className={cn(
+                "w-full rounded-sm transition-all",
+                barClass || "bg-primary/80",
+              )}
               style={{ height: `${Math.max(pct, 4)}%` }}
             />
             {label && i % Math.ceil(data.length / 6) === 0 ? (
-              <span className="text-[9px] text-muted-foreground truncate w-full text-center">{label(i)}</span>
+              <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+                {label(i)}
+              </span>
             ) : null}
             <div className="absolute bottom-full mb-1 hidden group-hover:block z-10">
               <div className="rounded-md bg-popover border border-border px-2 py-1 text-xs shadow-sm whitespace-nowrap">
@@ -303,20 +338,39 @@ function HorizontalBar({
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-foreground truncate">{label}</span>
-        <span className="text-xs text-muted-foreground tabular-nums">{sublabel || formatMoney(value)}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {sublabel || formatMoney(value)}
+        </span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div className={cn("h-full rounded-full transition-all", TONE_STYLES[tone])} style={{ width: `${pct}%` }} />
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            TONE_STYLES[tone],
+          )}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
 }
 
-function SparkBar({ value, max, tone = "primary" }: { value: number; max: number; tone?: keyof typeof TONE_STYLES }) {
+function SparkBar({
+  value,
+  max,
+  tone = "primary",
+}: {
+  value: number;
+  max: number;
+  tone?: keyof typeof TONE_STYLES;
+}) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:w-24">
-      <div className={cn("h-full rounded-full transition-all", TONE_STYLES[tone])} style={{ width: `${pct}%` }} />
+      <div
+        className={cn("h-full rounded-full transition-all", TONE_STYLES[tone])}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -337,9 +391,21 @@ function PercentageRing({
   const pct = Math.min(Math.max(value, 0), 100);
   const dash = (pct / 100) * c;
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" strokeWidth={stroke} fill="none" className="text-muted" opacity={0.3} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="currentColor"
+          strokeWidth={stroke}
+          fill="none"
+          className="text-muted"
+          opacity={0.3}
+        />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -352,12 +418,17 @@ function PercentageRing({
           className={color}
         />
       </svg>
-      <span className="absolute text-[10px] font-bold tabular-nums">{pct.toFixed(0)}%</span>
+      <span className="absolute text-[10px] font-bold tabular-nums">
+        {pct.toFixed(0)}%
+      </span>
     </div>
   );
 }
 
-function calcTrend(current: number, previous: number): { delta: number; label: string } | null {
+function calcTrend(
+  current: number,
+  previous: number,
+): { delta: number; label: string } | null {
   if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
   if (previous === 0) {
     if (current === 0) return { delta: 0, label: "vs previous" };
@@ -393,22 +464,36 @@ export default function AnalyticsPage() {
   // Data states
   const [pulse, setPulse] = useState<FinancePulseResponse | null>(null);
   const [pl, setPl] = useState<ProfitAndLossResponse | null>(null);
-  const [salesRegister, setSalesRegister] = useState<SalesRegisterResponse | null>(null);
-  const [categoryRevenue, setCategoryRevenue] = useState<RevenueByCategoryRow[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodBreakdownRow[]>([]);
+  const [salesRegister, setSalesRegister] =
+    useState<SalesRegisterResponse | null>(null);
+  const [categoryRevenue, setCategoryRevenue] = useState<
+    RevenueByCategoryRow[]
+  >([]);
+  const [paymentMethods, setPaymentMethods] = useState<
+    PaymentMethodBreakdownRow[]
+  >([]);
   const [staffPerf, setStaffPerf] = useState<StaffPerformanceRow[]>([]);
   const [recentSales, setRecentSales] = useState<RecentSaleRow[]>([]);
-  const [inventoryVal, setInventoryVal] = useState<InventoryValuationResponseRecord | null>(null);
-  const [expiryPipeline, setExpiryPipeline] = useState<InventoryExpiryPipelineResponse | null>(null);
+  const [inventoryVal, setInventoryVal] =
+    useState<InventoryValuationResponseRecord | null>(null);
+  const [expiryPipeline, setExpiryPipeline] =
+    useState<InventoryExpiryPipelineResponse | null>(null);
   const [ownerSummary, setOwnerSummary] = useState<{
-    topSkus: { itemId: string; itemName: string; revenueLast30Days: number | string }[];
+    topSkus: {
+      itemId: string;
+      itemName: string;
+      revenueLast30Days: number | string;
+    }[];
   } | null>(null);
   const [expenses, setExpenses] = useState<{ amount: number }[]>([]);
 
   // Previous period data for trends
   const [prevPl, setPrevPl] = useState<ProfitAndLossResponse | null>(null);
-  const [prevSalesRegister, setPrevSalesRegister] = useState<SalesRegisterResponse | null>(null);
-  const [prevCategoryRevenue, setPrevCategoryRevenue] = useState<RevenueByCategoryRow[]>([]);
+  const [prevSalesRegister, setPrevSalesRegister] =
+    useState<SalesRegisterResponse | null>(null);
+  const [prevCategoryRevenue, setPrevCategoryRevenue] = useState<
+    RevenueByCategoryRow[]
+  >([]);
 
   // Search
   const [saleSearch, setSaleSearch] = useState("");
@@ -449,15 +534,33 @@ export default function AnalyticsPage() {
           expenseRes,
         ] = await Promise.all([
           fetchFinancePulse(dateRange.to, branchFilter).catch(() => null),
-          fetchFinancePL(dateRange.from, dateRange.to, branchFilter).catch(() => null),
+          fetchFinancePL(dateRange.from, dateRange.to, branchFilter).catch(
+            () => null,
+          ),
           fetchFinancePL(prev.from, prev.to, branchFilter).catch(() => null),
-          fetchSalesRegister(dateRange.from, dateRange.to, branchFilter).catch(() => null),
-          fetchSalesRegister(prev.from, prev.to, branchFilter).catch(() => null),
-          fetchSalesRevenueByCategory(dateRange.from, dateRange.to).catch(() => []),
+          fetchSalesRegister(dateRange.from, dateRange.to, branchFilter).catch(
+            () => null,
+          ),
+          fetchSalesRegister(prev.from, prev.to, branchFilter).catch(
+            () => null,
+          ),
+          fetchSalesRevenueByCategory(dateRange.from, dateRange.to).catch(
+            () => [],
+          ),
           fetchSalesRevenueByCategory(prev.from, prev.to).catch(() => []),
-          fetchPaymentsByMethod(dateRange.from, dateRange.to, branchFilter).catch(() => []),
-          fetchStaffPerformance(dateRange.from, dateRange.to, branchFilter).catch(() => []),
-          fetchRecentSales(dateRange.from, dateRange.to, branchFilter).catch(() => []),
+          fetchPaymentsByMethod(
+            dateRange.from,
+            dateRange.to,
+            branchFilter,
+          ).catch(() => []),
+          fetchStaffPerformance(
+            dateRange.from,
+            dateRange.to,
+            branchFilter,
+          ).catch(() => []),
+          fetchRecentSales(dateRange.from, dateRange.to, branchFilter).catch(
+            () => [],
+          ),
           fetchInventoryValuation(branchFilter).catch(() => null),
           fetchInventoryExpiryPipeline(branchFilter).catch(() => null),
           fetchDashboardOwnerSummary().catch(() => null),
@@ -477,9 +580,7 @@ export default function AnalyticsPage() {
         setInventoryVal(invValRes);
         setExpiryPipeline(expiryRes);
         setOwnerSummary(
-          ownerRes
-            ? { topSkus: ownerRes.topSkusLast30Days }
-            : null,
+          ownerRes ? { topSkus: ownerRes.topSkusLast30Days } : null,
         );
         setExpenses(
           Array.isArray(expenseRes)
@@ -488,7 +589,9 @@ export default function AnalyticsPage() {
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load analytics.");
+      setError(
+        err instanceof Error ? err.message : "Failed to load analytics.",
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -503,7 +606,9 @@ export default function AnalyticsPage() {
 
   const totalRevenue = toNum(pl?.revenue ?? pulse?.revenue ?? 0);
   const totalProfit = toNum(pl?.grossProfit ?? pulse?.grossProfit ?? 0);
-  const totalExpenses = toNum(pl?.operatingExpenses ?? pulse?.expensesTotal ?? 0);
+  const totalExpenses = toNum(
+    pl?.operatingExpenses ?? pulse?.expensesTotal ?? 0,
+  );
   const netOperating = toNum(pl?.netOperating ?? pulse?.netOperating ?? 0);
   const salesCount = pulse?.salesCount ?? 0;
   const grossMargin = toNum(pulse?.grossMarginPct ?? 0);
@@ -546,50 +651,104 @@ export default function AnalyticsPage() {
   /* ─── Insights ─────────────────────────────────────────────────────────── */
 
   const insights = useMemo(() => {
-    const out: { icon: React.ElementType; text: string; tone: "good" | "warn" | "info" | "neutral" }[] = [];
+    const out: {
+      icon: React.ElementType;
+      text: string;
+      tone: "good" | "warn" | "info" | "neutral";
+    }[] = [];
 
     if (dailyRevenue.length > 1) {
       const mid = Math.floor(dailyRevenue.length / 2);
-      const firstHalf = dailyRevenue.slice(0, mid).reduce((a, b) => a + b, 0) / Math.max(1, mid);
-      const secondHalf = dailyRevenue.slice(mid).reduce((a, b) => a + b, 0) / Math.max(1, dailyRevenue.length - mid);
+      const firstHalf =
+        dailyRevenue.slice(0, mid).reduce((a, b) => a + b, 0) /
+        Math.max(1, mid);
+      const secondHalf =
+        dailyRevenue.slice(mid).reduce((a, b) => a + b, 0) /
+        Math.max(1, dailyRevenue.length - mid);
       if (secondHalf > firstHalf * 1.1) {
-        out.push({ icon: TrendingUp, text: "Revenue trending upward in recent days.", tone: "good" });
+        out.push({
+          icon: TrendingUp,
+          text: "Revenue trending upward in recent days.",
+          tone: "good",
+        });
       } else if (secondHalf < firstHalf * 0.9) {
-        out.push({ icon: TrendingDown, text: "Revenue trending downward — consider promotions.", tone: "warn" });
+        out.push({
+          icon: TrendingDown,
+          text: "Revenue trending downward — consider promotions.",
+          tone: "warn",
+        });
       }
     }
 
     if (grossMargin < 15) {
-      out.push({ icon: AlertTriangle, text: "Gross margin is low. Review pricing or cost structure.", tone: "warn" });
+      out.push({
+        icon: AlertTriangle,
+        text: "Gross margin is low. Review pricing or cost structure.",
+        tone: "warn",
+      });
     } else if (grossMargin > 40) {
-      out.push({ icon: TrendingUp, text: "Healthy gross margin. Business is well-positioned.", tone: "good" });
+      out.push({
+        icon: TrendingUp,
+        text: "Healthy gross margin. Business is well-positioned.",
+        tone: "good",
+      });
     }
 
     if (expiredQty > 0) {
-      out.push({ icon: Package, text: `${formatNumber(expiredQty)} units already expired. Dispose or discount immediately.`, tone: "warn" });
+      out.push({
+        icon: Package,
+        text: `${formatNumber(expiredQty)} units already expired. Dispose or discount immediately.`,
+        tone: "warn",
+      });
     }
     if (due7dQty > 0) {
-      out.push({ icon: Clock, text: `${formatNumber(due7dQty)} units expiring within 7 days. Plan promotions.`, tone: "warn" });
+      out.push({
+        icon: Clock,
+        text: `${formatNumber(due7dQty)} units expiring within 7 days. Plan promotions.`,
+        tone: "warn",
+      });
     }
 
     if (paymentMethods.length > 0) {
       const top = paymentMethods[0];
-      out.push({ icon: CreditCard, text: `${top.method} is your top payment method (${formatMoney(toNum(top.totalAmount))}).`, tone: "info" });
+      out.push({
+        icon: CreditCard,
+        text: `${top.method} is your top payment method (${formatMoney(toNum(top.totalAmount))}).`,
+        tone: "info",
+      });
     }
 
     if (staffPerf.length > 0) {
       const topStaff = staffPerf[0];
-      out.push({ icon: Users, text: `${topStaff.userName} leads in sales with ${formatMoney(toNum(topStaff.totalRevenue))}.`, tone: "neutral" });
+      out.push({
+        icon: Users,
+        text: `${topStaff.userName} leads in sales with ${formatMoney(toNum(topStaff.totalRevenue))}.`,
+        tone: "neutral",
+      });
     }
 
     if (categoryRevenue.length > 1) {
       const topCat = categoryRevenue[0];
-      const topShare = (toNum(topCat.netRevenue) / Math.max(1, totalRevenue)) * 100;
-      out.push({ icon: BarChart3, text: `${topCat.categoryName} accounts for ${topShare.toFixed(1)}% of revenue.`, tone: "info" });
+      const topShare =
+        (toNum(topCat.netRevenue) / Math.max(1, totalRevenue)) * 100;
+      out.push({
+        icon: BarChart3,
+        text: `${topCat.categoryName} accounts for ${topShare.toFixed(1)}% of revenue.`,
+        tone: "info",
+      });
     }
 
     return out;
-  }, [dailyRevenue, grossMargin, expiredQty, due7dQty, paymentMethods, staffPerf, categoryRevenue, totalRevenue]);
+  }, [
+    dailyRevenue,
+    grossMargin,
+    expiredQty,
+    due7dQty,
+    paymentMethods,
+    staffPerf,
+    categoryRevenue,
+    totalRevenue,
+  ]);
 
   /* ─── Sales table filtering ────────────────────────────────────────────── */
 
@@ -639,7 +798,10 @@ export default function AnalyticsPage() {
               }}
               disabled={refreshing}
             >
-              <RefreshCw className={cn("size-4 mr-1.5", refreshing && "animate-spin")} aria-hidden />
+              <RefreshCw
+                className={cn("size-4 mr-1.5", refreshing && "animate-spin")}
+                aria-hidden
+              />
               Refresh
             </Button>
           </div>
@@ -670,14 +832,18 @@ export default function AnalyticsPage() {
               <input
                 type="date"
                 value={customFrom}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomFrom(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setCustomFrom(e.target.value)
+                }
                 className="h-8 w-36 rounded-lg border border-input bg-background px-2 text-xs"
               />
               <span className="text-xs text-muted-foreground">to</span>
               <input
                 type="date"
                 value={customTo}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomTo(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setCustomTo(e.target.value)
+                }
                 className="h-8 w-36 rounded-lg border border-input bg-background px-2 text-xs"
               />
             </div>
@@ -743,26 +909,40 @@ export default function AnalyticsPage() {
         {/* Charts Row */}
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Revenue Trend */}
-          <SectionCard title="Revenue Trend" icon={BarChart3} className="lg:col-span-2">
+          <SectionCard
+            title="Revenue Trend"
+            icon={BarChart3}
+            className="lg:col-span-2"
+          >
             {dailyRevenue.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
-                    Avg daily: <span className="font-semibold text-foreground">{formatMoney(avgDailyRevenue)}</span>
+                    Avg daily:{" "}
+                    <span className="font-semibold text-foreground">
+                      {formatMoney(avgDailyRevenue)}
+                    </span>
                   </span>
                   <span>
-                    Total: <span className="font-semibold text-foreground">{formatMoney(totalRevenue)}</span>
+                    Total:{" "}
+                    <span className="font-semibold text-foreground">
+                      {formatMoney(totalRevenue)}
+                    </span>
                   </span>
                 </div>
                 <MiniBarChart
                   data={dailyRevenue}
                   max={maxDailyRevenue}
                   label={(i) => dailyLabels[i] ?? ""}
-                  value={(i) => `${dailyLabels[i]}: ${formatMoney(dailyRevenue[i])}`}
+                  value={(i) =>
+                    `${dailyLabels[i]}: ${formatMoney(dailyRevenue[i])}`
+                  }
                 />
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">No revenue data for this period.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No revenue data for this period.
+              </div>
             )}
           </SectionCard>
 
@@ -777,12 +957,20 @@ export default function AnalyticsPage() {
                     value={toNum(pm.totalAmount)}
                     max={toNum(paymentMethods[0]?.totalAmount ?? 1)}
                     sublabel={`${formatMoney(pm.totalAmount)} • ${pm.transactionCount} txns`}
-                    tone={pm.method === "cash" ? "success" : pm.method === "mpesa" ? "sky" : "primary"}
+                    tone={
+                      pm.method === "cash"
+                        ? "success"
+                        : pm.method === "mpesa"
+                          ? "sky"
+                          : "primary"
+                    }
                   />
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">No payment data.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No payment data.
+              </div>
             )}
           </SectionCard>
         </div>
@@ -805,7 +993,9 @@ export default function AnalyticsPage() {
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">No category data.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No category data.
+              </div>
             )}
           </SectionCard>
 
@@ -825,17 +1015,38 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody className="divide-y divide-border/30">
                     {staffPerf.map((s) => {
-                      const margin = toNum(s.totalRevenue) > 0 ? (toNum(s.totalProfit) / toNum(s.totalRevenue)) * 100 : 0;
+                      const margin =
+                        toNum(s.totalRevenue) > 0
+                          ? (toNum(s.totalProfit) / toNum(s.totalRevenue)) * 100
+                          : 0;
                       return (
                         <tr key={s.userId} className="group">
                           <td className="py-2.5 font-medium">{s.userName}</td>
-                          <td className="py-2.5 text-right tabular-nums">{formatNumber(s.saleCount)}</td>
-                          <td className="py-2.5 text-right tabular-nums">{formatMoney(s.totalRevenue)}</td>
-                          <td className="py-2.5 text-right tabular-nums">{formatMoney(s.totalProfit)}</td>
+                          <td className="py-2.5 text-right tabular-nums">
+                            {formatNumber(s.saleCount)}
+                          </td>
+                          <td className="py-2.5 text-right tabular-nums">
+                            {formatMoney(s.totalRevenue)}
+                          </td>
+                          <td className="py-2.5 text-right tabular-nums">
+                            {formatMoney(s.totalProfit)}
+                          </td>
                           <td className="py-2.5 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <span className="text-xs tabular-nums">{margin.toFixed(1)}%</span>
-                              <SparkBar value={margin} max={50} tone={margin > 20 ? "success" : margin > 10 ? "warning" : "danger"} />
+                              <span className="text-xs tabular-nums">
+                                {margin.toFixed(1)}%
+                              </span>
+                              <SparkBar
+                                value={margin}
+                                max={50}
+                                tone={
+                                  margin > 20
+                                    ? "success"
+                                    : margin > 10
+                                      ? "warning"
+                                      : "danger"
+                                }
+                              />
                             </div>
                           </td>
                         </tr>
@@ -845,7 +1056,9 @@ export default function AnalyticsPage() {
                 </table>
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">No staff data.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No staff data.
+              </div>
             )}
           </SectionCard>
         </div>
@@ -856,8 +1069,12 @@ export default function AnalyticsPage() {
           <SectionCard title="Inventory" icon={Package}>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Stock Value</span>
-                <span className="text-lg font-bold">{formatMoney(totalInventoryValue)}</span>
+                <span className="text-sm text-muted-foreground">
+                  Total Stock Value
+                </span>
+                <span className="text-lg font-bold">
+                  {formatMoney(totalInventoryValue)}
+                </span>
               </div>
               {inventoryVal?.byBranch && inventoryVal.byBranch.length > 1 ? (
                 <div className="space-y-2">
@@ -878,19 +1095,25 @@ export default function AnalyticsPage() {
                   <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
                     <AlertTriangle className="size-3" /> Expired
                   </span>
-                  <span className="font-semibold tabular-nums">{formatNumber(expiredQty)} units</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(expiredQty)} units
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     <Clock className="size-3" /> Expires &lt; 7d
                   </span>
-                  <span className="font-semibold tabular-nums">{formatNumber(due7dQty)} units</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(due7dQty)} units
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-sky-600 dark:text-sky-400 flex items-center gap-1">
                     <Calendar className="size-3" /> Expires &lt; 30d
                   </span>
-                  <span className="font-semibold tabular-nums">{formatNumber(due30dQty)} units</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(due30dQty)} units
+                  </span>
                 </div>
               </div>
             </div>
@@ -917,24 +1140,48 @@ export default function AnalyticsPage() {
                       {i + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{sku.itemName}</p>
-                      <p className="text-xs text-muted-foreground">{formatMoney(sku.revenueLast30Days)}</p>
+                      <p className="truncate text-sm font-medium">
+                        {sku.itemName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatMoney(sku.revenueLast30Days)}
+                      </p>
                     </div>
                     <PercentageRing
                       value={
                         toNum(sku.revenueLast30Days) > 0
-                          ? Math.min((toNum(sku.revenueLast30Days) / Math.max(1, toNum(ownerSummary.topSkus[0]?.revenueLast30Days))) * 100, 100)
+                          ? Math.min(
+                              (toNum(sku.revenueLast30Days) /
+                                Math.max(
+                                  1,
+                                  toNum(
+                                    ownerSummary.topSkus[0]?.revenueLast30Days,
+                                  ),
+                                )) *
+                                100,
+                              100,
+                            )
                           : 0
                       }
                       size={36}
                       stroke={4}
-                      color={i === 0 ? "text-amber-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-orange-500" : "text-primary"}
+                      color={
+                        i === 0
+                          ? "text-amber-500"
+                          : i === 1
+                            ? "text-slate-400"
+                            : i === 2
+                              ? "text-orange-500"
+                              : "text-primary"
+                      }
                     />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">No top product data.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No top product data.
+              </div>
             )}
           </SectionCard>
 
@@ -943,7 +1190,10 @@ export default function AnalyticsPage() {
             {insights.length > 0 ? (
               <div className="space-y-3">
                 {insights.map((insight, i) => (
-                  <div key={i} className="flex items-start gap-2.5 rounded-lg bg-muted/40 p-2.5">
+                  <div
+                    key={i}
+                    className="flex items-start gap-2.5 rounded-lg bg-muted/40 p-2.5"
+                  >
                     <insight.icon
                       className={cn(
                         "mt-0.5 size-4 shrink-0",
@@ -957,12 +1207,16 @@ export default function AnalyticsPage() {
                       )}
                       aria-hidden
                     />
-                    <p className="text-xs leading-relaxed text-foreground">{insight.text}</p>
+                    <p className="text-xs leading-relaxed text-foreground">
+                      {insight.text}
+                    </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">No insights available.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No insights available.
+              </div>
             )}
           </SectionCard>
         </div>
@@ -973,11 +1227,16 @@ export default function AnalyticsPage() {
           icon={ShoppingCart}
           action={
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Search
+                className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
               <input
                 placeholder="Search sales..."
                 value={saleSearch}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSaleSearch(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSaleSearch(e.target.value)
+                }
                 className="h-8 w-48 rounded-lg border border-input bg-background pl-8 pr-2 text-xs placeholder:text-muted-foreground/70"
               />
             </div>
@@ -1000,20 +1259,39 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
-                  {filteredSales.slice(0, 100).map((s) => (
-                    <tr key={`${s.saleId}-${s.itemId}`} className="group hover:bg-muted/30">
+                  {filteredSales.slice(0, 100).map((s, idx) => (
+                    <tr
+                      key={`${s.saleId}-${s.itemId}-${idx}`}
+                      className="group hover:bg-muted/30"
+                    >
                       <td className="py-2.5 text-xs text-muted-foreground tabular-nowrap">
                         {new Date(s.soldAt).toLocaleDateString()}
-                        <span className="block text-[10px]">{new Date(s.soldAt).toLocaleTimeString()}</span>
+                        <span className="block text-[10px]">
+                          {new Date(s.soldAt).toLocaleTimeString()}
+                        </span>
                       </td>
                       <td className="py-2.5">
-                        <p className="font-medium truncate max-w-[200px]">{s.itemName}</p>
+                        <p className="font-medium truncate max-w-[200px]">
+                          {s.itemName}
+                        </p>
                       </td>
-                      <td className="py-2.5 text-right tabular-nums">{Number(s.quantity).toFixed(2)}</td>
-                      <td className="py-2.5 text-right tabular-nums">{formatMoney(s.unitPrice)}</td>
-                      <td className="py-2.5 text-right tabular-nums font-medium">{formatMoney(s.lineTotal)}</td>
                       <td className="py-2.5 text-right tabular-nums">
-                        <span className={cn(toNum(s.profit) >= 0 ? "text-emerald-600" : "text-red-600")}>
+                        {Number(s.quantity).toFixed(2)}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        {formatMoney(s.unitPrice)}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums font-medium">
+                        {formatMoney(s.lineTotal)}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        <span
+                          className={cn(
+                            toNum(s.profit) >= 0
+                              ? "text-emerald-600"
+                              : "text-red-600",
+                          )}
+                        >
                           {formatMoney(s.profit)}
                         </span>
                       </td>
@@ -1049,7 +1327,9 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              {saleSearch ? "No sales match your search." : "No sales data for this period."}
+              {saleSearch
+                ? "No sales match your search."
+                : "No sales data for this period."}
             </div>
           )}
         </SectionCard>

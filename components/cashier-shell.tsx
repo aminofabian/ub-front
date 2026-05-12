@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -21,7 +27,8 @@ export type PosCatalogItemTypeContextValue = {
   setPosItemTypeId: (id: string | null) => void;
 };
 
-const PosCatalogItemTypeContext = createContext<PosCatalogItemTypeContextValue | null>(null);
+const PosCatalogItemTypeContext =
+  createContext<PosCatalogItemTypeContextValue | null>(null);
 
 export function usePosCatalogItemType(): PosCatalogItemTypeContextValue | null {
   return useContext(PosCatalogItemTypeContext);
@@ -31,14 +38,18 @@ type PosCatalogItemTypeProviderProps = {
   children: ReactNode;
 };
 
-function PosCatalogItemTypeProvider({ children }: PosCatalogItemTypeProviderProps) {
+function PosCatalogItemTypeProvider({
+  children,
+}: PosCatalogItemTypeProviderProps) {
   const [posItemTypeId, setPosItemTypeId] = useState<string | null>(null);
   const value = useMemo(
     () => ({ posItemTypeId, setPosItemTypeId }),
     [posItemTypeId],
   );
   return (
-    <PosCatalogItemTypeContext.Provider value={value}>{children}</PosCatalogItemTypeContext.Provider>
+    <PosCatalogItemTypeContext.Provider value={value}>
+      {children}
+    </PosCatalogItemTypeContext.Provider>
   );
 }
 
@@ -57,6 +68,7 @@ export function CashierShell({ children }: CashierShellProps) {
     itemTypesLoading,
   } = useDashboard();
 
+  const currentBranch = branches.find((b) => b.id === branchId);
   const showBranchPicker = canQuickSale;
 
   const brandTheme = useMemo(
@@ -67,21 +79,28 @@ export function CashierShell({ children }: CashierShellProps) {
   return (
     <PosCatalogItemTypeProvider>
       <div className="flex min-h-full flex-col" style={brandTheme}>
-        <header
-          className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-        >
+        <header className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-semibold">
-                {loading ? "Loading…" : (business?.name?.trim() || "Cashier")}
-              </span>
-              <span
-                className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
-                  online ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"
-                }`}
-              >
-                {online ? "Online" : "Offline"}
-              </span>
+            <div className="flex min-w-0 flex-col">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate text-sm font-semibold">
+                  {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
+                </span>
+                <span
+                  className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
+                    online
+                      ? "bg-emerald-100 text-emerald-900"
+                      : "bg-amber-100 text-amber-900"
+                  }`}
+                >
+                  {online ? "Online" : "Offline"}
+                </span>
+              </div>
+              {currentBranch && branchId ? (
+                <span className="mt-0.5 text-[11px] font-medium text-muted-foreground truncate">
+                  {currentBranch.name}
+                </span>
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {showBranchPicker ? (
@@ -95,7 +114,9 @@ export function CashierShell({ children }: CashierShellProps) {
                     aria-label="Select branch"
                   >
                     {branches.length === 0 ? (
-                      <option value="">{branchesLoading ? "Loading…" : "No branches"}</option>
+                      <option value="">
+                        {branchesLoading ? "Loading…" : "No branches"}
+                      </option>
                     ) : (
                       <>
                         {!branchId ? <option value="">Select…</option> : null}
@@ -115,12 +136,17 @@ export function CashierShell({ children }: CashierShellProps) {
                   itemTypesLoading={itemTypesLoading}
                 />
               ) : null}
-            <Button asChild variant="ghost" size="sm" className="h-8 text-xs">
-              <Link href={APP_ROUTES.salesQuick}>Admin quick sale</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="h-8 text-xs">
-              <Link href={APP_ROUTES.business}>Full app</Link>
-            </Button>
+              <Button asChild variant="ghost" size="sm" className="h-8 text-xs">
+                <Link href={APP_ROUTES.salesQuick}>Admin quick sale</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+              >
+                <Link href={APP_ROUTES.business}>Full app</Link>
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
@@ -139,7 +165,9 @@ export function CashierShell({ children }: CashierShellProps) {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-4 sm:px-4 md:max-w-3xl">{children}</main>
+        <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-4 sm:px-4 md:max-w-3xl">
+          {children}
+        </main>
       </div>
     </PosCatalogItemTypeProvider>
   );

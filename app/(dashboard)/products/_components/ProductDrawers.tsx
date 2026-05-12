@@ -8,9 +8,15 @@ import {
   Package,
   PencilLine,
   Save,
+  Building2,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FormDrawer, FormDrawerFields, type FormDrawerProps } from "@/components/form-drawer";
+import {
+  FormDrawer,
+  FormDrawerFields,
+  type FormDrawerProps,
+} from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import { VARIANT_INPUT_CLASS } from "../_types";
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
@@ -18,6 +24,8 @@ import type { QuickEditApi } from "../_hooks/useQuickEdit";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import { ProductDetailPanel } from "./ProductDetailPanel";
 import { galleryImageUrl, coverImageUrl } from "../_utils";
+import { postStockIncrease, ApiRequestError } from "@/lib/api";
+import { useState } from "react";
 
 type Cat = { id: string; name: string; active: boolean };
 
@@ -30,16 +38,90 @@ export function ProductEditDrawer({
   detail,
   cats,
   m,
+  headerBranchId,
+  refreshFullCatalog,
+  refreshSelectedDetail,
+  setMessage,
 }: {
   open: boolean;
   onClose: () => void;
   banner?: FormDrawerProps["banner"];
   detail: Pick<ProductDetailApi, "detail" | "patchDraft" | "setPatchDraft">;
   cats: Cat[];
-  m: Pick<ProductMutationsApi, "onPatchItem" | "onDeleteItem">;
+  m: Pick<
+    ProductMutationsApi,
+    | "onPatchItem"
+    | "onDeleteItem"
+    | "pendingCatalogImage"
+    | "setPendingCatalogImage"
+    | "catalogImageUploadBusy"
+    | "catalogImageAlt"
+    | "setCatalogImageAlt"
+    | "catalogImagePrimary"
+    | "setCatalogImagePrimary"
+    | "onUploadCatalogImage"
+    | "branches"
+  >;
+  headerBranchId?: string;
+  refreshFullCatalog: () => Promise<void>;
+  refreshSelectedDetail: (itemIdOverride?: string | null) => Promise<void>;
+  setMessage: (msg: string) => void;
 }) {
   const d = detail.detail;
   const dr = detail.patchDraft;
+  const [stockQty, setStockQty] = useState("");
+  const [stockBranchId, setStockBranchId] = useState(headerBranchId || "");
+  const [stockUnitCost, setStockUnitCost] = useState("");
+  const [stockSaving, setStockSaving] = useState(false);
+
+  const handleStockIncrease = async () => {
+    if (!d) return;
+    const qtyRaw = stockQty.trim();
+    if (!qtyRaw) {
+      setMessage("Enter a quantity to add.");
+      return;
+    }
+    const qty = Number(qtyRaw);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setMessage("Quantity must be a positive number.");
+      return;
+    }
+    const branchId = stockBranchId.trim();
+    if (!branchId) {
+      setMessage("Select a branch.");
+      return;
+    }
+    const costRaw = stockUnitCost.trim();
+    if (!costRaw) {
+      setMessage("Enter a unit cost.");
+      return;
+    }
+    const unitCost = Number(costRaw);
+    if (!Number.isFinite(unitCost) || unitCost < 0) {
+      setMessage("Unit cost must be a valid non-negative number.");
+      return;
+    }
+    setStockSaving(true);
+    setMessage("");
+    try {
+      await postStockIncrease({
+        branchId,
+        itemId: d.id,
+        quantity: qty,
+        unitCost,
+      });
+      await refreshFullCatalog();
+      await refreshSelectedDetail();
+      setStockQty("");
+      setMessage("Stock increased.");
+    } catch (e) {
+      if (!(e instanceof ApiRequestError))
+        setMessage(e instanceof Error ? e.message : "Stock adjustment failed.");
+    } finally {
+      setStockSaving(false);
+    }
+  };
+
   return (
     <FormDrawer
       open={open}
@@ -217,18 +299,122 @@ export function ProductEditDrawer({
               }
             />
           </Lbl>
-          <Lbl label="Cover URL">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              value={dr.imageKey}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  imageKey: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
+          {/* ── Cover image upload ──────────────────────────────── */}
+          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/10 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Cover image
+            </p>
+            {coverImageUrl(d) ? (
+              <div className="relative mx-auto h-36 w-full max-w-xs overflow-hidden rounded-lg border bg-background shadow-sm">
+                <Image
+                  src={coverImageUrl(d)!}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="240px"
+                />
+              </div>
+            ) : (
+              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-background text-xs text-muted-foreground">
+                No cover image
+              </div>
+            )}
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                className="max-w-full text-xs file:mr-2 file:rounded file:border file:bg-background file:px-2 file:py-1"
+                onChange={(e) =>
+                  m.setPendingCatalogImage(e.target.files?.[0] ?? null)
+                }
+              />
+              <input
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs"
+                placeholder="Alt text (optional)"
+                value={m.catalogImageAlt}
+                onChange={(e) => m.setCatalogImageAlt(e.target.value)}
+              />
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={m.catalogImagePrimary}
+                  onChange={(e) => m.setCatalogImagePrimary(e.target.checked)}
+                />{" "}
+                Set as cover
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={m.catalogImageUploadBusy || !m.pendingCatalogImage}
+                onClick={() =>
+                  void m.onUploadCatalogImage(new Event("submit") as never)
+                }
+              >
+                {m.catalogImageUploadBusy ? "Uploading…" : "Upload"}
+              </Button>
+            </div>
+          </div>
+
+          {/* ── Stock adjustment ──────────────────────────────────── */}
+          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/10 p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Building2 className="size-3.5" aria-hidden />
+              Stock adjustment
+            </p>
+            <div className="space-y-3">
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Branch
+                <select
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  value={stockBranchId}
+                  onChange={(e) => setStockBranchId(e.target.value)}
+                >
+                  <option value="">— Select branch —</option>
+                  {m.branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Quantity to add
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  inputMode="decimal"
+                  placeholder="e.g. 10"
+                  value={stockQty}
+                  onChange={(e) => setStockQty(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Unit cost
+                <input
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={stockUnitCost}
+                  onChange={(e) => setStockUnitCost(e.target.value)}
+                />
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                disabled={stockSaving}
+                onClick={() => void handleStockIncrease()}
+              >
+                {stockSaving ? (
+                  <Loader2 className="size-3 animate-spin" aria-hidden />
+                ) : (
+                  <Plus className="size-3" aria-hidden />
+                )}
+                {stockSaving ? "Adding…" : "Add stock"}
+              </Button>
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
