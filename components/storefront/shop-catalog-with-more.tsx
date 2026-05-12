@@ -4,6 +4,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
+import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
 import type {
   PublicCatalogItemCard,
   PublicCatalogListPayload,
@@ -33,6 +34,14 @@ export default function ShopCatalogWithMore({
   const [next, setNext] = useState<string | null>(initialNextCursor);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useStorefrontCatalogSync({
+    slug,
+    q,
+    categoryId,
+    items,
+    setItems,
+  });
 
   const loadMore = useCallback(async () => {
     if (!next || busy) return;

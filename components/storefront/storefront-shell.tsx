@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopFooterMart } from "@/components/storefront/shop-footer-mart";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
+import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
 import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
 import { fetchPublicCategories, fetchPublicStorefront } from "@/lib/public-storefront";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
@@ -40,6 +41,20 @@ export async function StorefrontShell({
   const primary = isHexColor(primaryRaw) ? primaryRaw : null;
   const accent = isHexColor(accentRaw) ? accentRaw : null;
   const categories = categoriesPayload?.categories ?? [];
+  const currency = storefront?.currency?.trim() || "KES";
+  const branding = tenant?.branding
+    ? {
+        displayName: tenant.branding.displayName,
+        logoUrl: tenant.branding.logoUrl,
+        faviconUrl: tenant.branding.faviconUrl,
+        primaryColor: tenant.branding.primaryColor,
+        accentColor: tenant.branding.accentColor,
+        metaTitle: tenant.branding.metaTitle,
+        metaDescription: tenant.branding.metaDescription,
+        ogImage: tenant.branding.ogImage,
+        metaKeywords: tenant.branding.metaKeywords,
+      }
+    : null;
 
   const locationHint = process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT?.trim() || null;
 
@@ -63,6 +78,7 @@ export async function StorefrontShell({
       </Suspense>
       <div className="flex-1">{children}</div>
       <ShopFooterMart primaryHex={primary} storeName={headerTitle} />
+      <ShopStorefrontRealtime currency={currency} branding={branding} />
     </div>
   );
 }

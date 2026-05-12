@@ -6,10 +6,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
+import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getSessionTokens } from "@/lib/auth";
+import { showPriceChangedToast } from "@/components/price-changed-toast";
 import {
   getRealtimeClient,
   type RealtimeFrame,
@@ -32,6 +35,13 @@ type RealtimeContextValue = {
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
+  const dash = useOptionalDashboard();
+  const currency = dash?.business?.currency?.trim() || "KES";
+  const branding = dash?.business?.branding ?? null;
+  const currencyRef = useRef(currency);
+  const brandingRef = useRef(branding);
+  currencyRef.current = currency;
+  brandingRef.current = branding;
   const [notifications, setNotifications] = useState<RealtimeFrame[]>([]);
   const [connectionState, setConnectionState] =
     useState<RealtimeConnectionState>("disconnected");
@@ -48,6 +58,13 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           if (prev.some((n) => n.eventId === frame.eventId)) return prev;
           return [frame, ...prev].slice(0, 50);
         });
+      },
+      onPriceChanged: (frame) => {
+        showPriceChangedToast(
+          frame,
+          currencyRef.current,
+          brandingRef.current,
+        );
       },
       onConnectionStateChange: (state) => {
         setConnectionState(state);

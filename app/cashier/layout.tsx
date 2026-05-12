@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { CashierShell } from "@/components/cashier-shell";
 import { DashboardProvider } from "@/components/dashboard-provider";
+import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
@@ -34,6 +35,7 @@ export default function CashierLayout({ children }: CashierLayoutProps) {
     <DashboardProvider>
       <RealtimeProvider>
         <CashierShell>{children}</CashierShell>
+        <DashboardToaster />
       </RealtimeProvider>
     </DashboardProvider>
   );

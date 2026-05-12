@@ -11,6 +11,7 @@ import {
   formatStoreQty,
 } from "@/lib/public-storefront";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
+import { ShopItemLivePrice } from "@/components/storefront/shop-item-live-price";
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -58,7 +59,6 @@ export default async function ShopItemPage({ params }: PageProps) {
   const heading = item.variantName
     ? `${item.name} · ${item.variantName}`
     : item.name;
-  const priceLabel = formatDisplayPrice(item.currency, item.price);
   const stockLabel = formatStoreQty(item.qtyOnHand);
   const hero = item.images[0];
   const featureLines = item.description
@@ -125,9 +125,13 @@ export default async function ShopItemPage({ params }: PageProps) {
               </h1>
 
               <div className="mt-4 flex items-baseline gap-3">
-                <span className="text-4xl font-black tabular-nums text-foreground">
-                  {priceLabel}
-                </span>
+                <ShopItemLivePrice
+                  slug={slug}
+                  itemId={item.id}
+                  currency={item.currency}
+                  initialPrice={item.price}
+                  className="text-4xl font-black tabular-nums text-foreground"
+                />
                 {stockLabel && (
                   <span className="text-sm font-semibold text-emerald-600">
                     {stockLabel}
