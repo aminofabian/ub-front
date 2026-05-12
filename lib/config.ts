@@ -101,6 +101,8 @@ export const PROBLEM_TITLES = {
 } as const;
 
 const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";
+const RAW_REALTIME_WS_ORIGIN =
+  process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() ?? "";
 const API_BROWSER_DIRECT =
   process.env.NEXT_PUBLIC_API_BROWSER_DIRECT === "true";
 
@@ -113,6 +115,39 @@ const API_BROWSER_DIRECT =
  */
 export const API_BASE_URL =
   API_BROWSER_DIRECT && RAW_API_BASE_URL.length > 0 ? RAW_API_BASE_URL : "";
+
+/**
+ * Browser WebSocket origin for `/api/v1/realtime`.
+ *
+ * REST may stay same-origin via the Next BFF while realtime connects directly to
+ * the Java API. Set `NEXT_PUBLIC_REALTIME_WS_ORIGIN` to that API origin (for
+ * example `https://kiosk.zelisline.com`). When unset, falls back to
+ * {@link API_BASE_URL}, then `NEXT_PUBLIC_API_BASE_URL`, then the current page.
+ */
+export function resolveRealtimeWebSocketBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const candidates = [
+    RAW_REALTIME_WS_ORIGIN,
+    API_BASE_URL,
+    RAW_API_BASE_URL,
+  ].filter((value) => value.length > 0);
+
+  for (const candidate of candidates) {
+    const url = new URL(candidate);
+    if (url.protocol === "https:" || url.protocol === "wss:") {
+      url.protocol = "wss:";
+    } else {
+      url.protocol = "ws:";
+    }
+    return `${url.origin}/api/v1/realtime`;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/api/v1/realtime`;
+}
 
 /** This app in the browser (no trailing slash). Align with APP_PUBLIC_FRONTEND_BASE_URL on the API. */
 export const APP_BASE_URL =

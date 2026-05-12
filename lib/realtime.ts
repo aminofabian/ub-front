@@ -13,7 +13,12 @@
  */
 
 import { getSessionTokens, setSessionTokens } from "./auth";
-import { API_BASE_URL, API_ROUTES, STORAGE_KEYS } from "./config";
+import {
+  API_BASE_URL,
+  API_ROUTES,
+  resolveRealtimeWebSocketBaseUrl,
+  STORAGE_KEYS,
+} from "./config";
 import { normalizeNotificationData } from "./notification-display";
 
 // ── Types ──
@@ -91,17 +96,20 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
 
 // ── WS URL Resolution ──
 
-function resolveWebSocketUrl(): string {
-  if (typeof window === "undefined") {
-    return "";
+function resolveWebSocketUrl(ticket?: TicketResponse | null): string {
+  const ticketPath = ticket?.wsUrl?.trim();
+  if (ticketPath?.startsWith("ws://") || ticketPath?.startsWith("wss://")) {
+    return ticketPath.split("?")[0] ?? ticketPath;
   }
-  if (API_BASE_URL) {
-    const url = new URL(API_BASE_URL);
+
+  const base = resolveRealtimeWebSocketBaseUrl();
+  if (ticketPath?.startsWith("/")) {
+    const url = new URL(ticketPath, base);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    return `${url.origin}/api/v1/realtime`;
+    return `${url.origin}${url.pathname}`;
   }
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/api/v1/realtime`;
+
+  return base;
 }
 
 // ── Ticket Minting ──
@@ -338,7 +346,7 @@ export class RealtimeClient {
   private openWebSocket(): void {
     if (!this.ticket) return;
 
-    const wsUrl = `${resolveWebSocketUrl()}?ticket=${encodeURIComponent(this.ticket.ticket)}`;
+    const wsUrl = `${resolveWebSocketUrl(this.ticket)}?ticket=${encodeURIComponent(this.ticket.ticket)}`;
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
