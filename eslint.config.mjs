@@ -1,10 +1,26 @@
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { FlatCompat } from "@eslint/eslintrc";
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadNextConfigs() {
+  const coreWebVitals = require("eslint-config-next/core-web-vitals");
+  const typescript = require("eslint-config-next/typescript");
+
+  if (Array.isArray(coreWebVitals) && Array.isArray(typescript)) {
+    return [...coreWebVitals, ...typescript];
+  }
+
+  const compat = new FlatCompat({ baseDirectory: __dirname });
+  return compat.extends("next/core-web-vitals", "next/typescript");
+}
 
 const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
+  ...loadNextConfigs(),
   {
     rules: {
       "react-hooks/set-state-in-effect": "off",
@@ -14,9 +30,7 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
-  // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
