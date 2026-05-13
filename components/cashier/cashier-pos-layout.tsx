@@ -104,7 +104,12 @@ export type CashierPosLayoutProps = {
   posShiftLinks: CashierPosShiftLinksProps | null;
 
   /** Multi-cart tab strip data. */
-  cartTabs: { id: string; label: string; itemCount: number }[];
+  cartTabs: {
+    id: string;
+    label: string;
+    itemCount: number;
+    grandTotal: number;
+  }[];
   activeCartId: string;
   canCreateCart: boolean;
   onCreateCart: () => void;
@@ -375,16 +380,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     [topProducts],
   );
 
-  const cartItemCount = useMemo(() => {
-    let total = 0;
-    for (const line of cart.lines) {
-      const q = Number(line.quantity);
-      if (Number.isFinite(q) && q > 0) total += q;
-    }
-    return total;
-  }, [cart.lines]);
 
-  const grandTotal = cart.grandTotal;
   const hasSearch =
     search.trim().length > 0 ||
     categoryFilterId != null ||
@@ -977,53 +973,78 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         </section>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setDrawerOpen(true)}
+      {/* ── Stacked cart buttons (bottom-right) ─────────────────── */}
+      <div
         className={cn(
-          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 shadow-lg transition-[transform,box-shadow] sm:px-5 sm:py-3",
-          "hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0",
-          pulseCart &&
-            "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
+          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse items-stretch gap-2",
+          "sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end",
         )}
-        style={{
-          backgroundColor: "var(--pos-primary)",
-          color: "var(--pos-primary-ink)",
-          boxShadow:
-            "0 4px 6px -1px color-mix(in srgb, var(--pos-primary) 18%, transparent), 0 12px 28px -8px color-mix(in srgb, var(--pos-primary) 32%, transparent)",
-        }}
-        aria-label={`Open cart with ${cart.lines.length} line${cart.lines.length === 1 ? "" : "s"}`}
       >
-        <span className="relative inline-flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)] sm:rounded-full">
-          <ShoppingCart className="size-4" />
-          {cart.lines.length > 0 ? (
-            <span
-              className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center rounded-full text-[10px] font-bold shadow"
-              style={{
-                backgroundColor: "var(--pos-primary-ink)",
-                color: "var(--pos-primary)",
+        {[...cartTabs].reverse().map((tab) => {
+          const isActive = tab.id === activeCartId;
+          const hasItems = tab.itemCount > 0;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                if (!isActive) onSwitchCart(tab.id);
+                setDrawerOpen(true);
               }}
+              className={cn(
+                "flex items-center gap-2.5 rounded-2xl px-3.5 py-2 shadow-lg transition-all duration-200",
+                "hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                isActive
+                  ? "z-30 scale-100 opacity-100"
+                  : "z-20 scale-[0.94] opacity-85 hover:opacity-100",
+                pulseCart && isActive &&
+                  "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
+              )}
+              style={{
+                backgroundColor: isActive
+                  ? "var(--pos-primary)"
+                  : "color-mix(in srgb, var(--pos-primary) 65%, var(--muted-foreground))",
+                color: "var(--pos-primary-ink)",
+                boxShadow: isActive
+                  ? "0 4px 6px -1px color-mix(in srgb, var(--pos-primary) 18%, transparent), 0 12px 28px -8px color-mix(in srgb, var(--pos-primary) 32%, transparent)"
+                  : "0 2px 4px -1px color-mix(in srgb, var(--pos-primary) 12%, transparent), 0 6px 14px -6px color-mix(in srgb, var(--pos-primary) 20%, transparent)",
+              }}
+              aria-label={`${isActive ? "Open" : "Switch to"} ${tab.label}${hasItems ? ` · ${tab.grandTotal.toFixed(2)}` : ""}`}
             >
-              {cart.lines.length > 99 ? "99+" : cart.lines.length}
-            </span>
-          ) : null}
-        </span>
-        <span className="flex min-w-[9rem] flex-col items-stretch leading-none">
-          <span className="text-[10px] uppercase tracking-wide opacity-80">
-            {cart.lines.length === 0
-              ? "Cart empty"
-              : `${cartItemCount.toFixed(0)} item${cartItemCount === 1 ? "" : "s"}`}
-          </span>
-          <span className="mt-1 flex items-end gap-1.5">
-            <CashierDottedLeader onPrimary />
-            <span className="inline-flex shrink-0 items-baseline gap-0.5 text-base font-semibold tabular-nums">
-              <span>{grandTotal.toFixed(2)}</span>
-              <CashierCurrencySuffix code={currency} onPrimary />
-            </span>
-          </span>
-        </span>
-      </button>
+              <span className="relative inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)] sm:size-8 sm:rounded-full">
+                <ShoppingCart className="size-3.5 sm:size-4" />
+                {hasItems ? (
+                  <span
+                    className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full text-[9px] font-bold shadow sm:size-5 sm:text-[10px]"
+                    style={{
+                      backgroundColor: "var(--pos-primary-ink)",
+                      color: "var(--pos-primary)",
+                    }}
+                  >
+                    {tab.itemCount > 99 ? "99+" : tab.itemCount}
+                  </span>
+                ) : null}
+              </span>
+              <span className="flex min-w-[7rem] flex-col items-stretch leading-none">
+                <span className="max-w-[10rem] truncate text-[10px] font-medium uppercase tracking-wide opacity-80">
+                  {hasItems ? tab.label : `${tab.label} · empty`}
+                </span>
+                {hasItems ? (
+                  <span className="mt-0.5 flex items-end gap-1">
+                    <CashierDottedLeader onPrimary />
+                    <span className="inline-flex shrink-0 items-baseline gap-0.5 text-sm font-semibold tabular-nums">
+                      <span>{tab.grandTotal.toFixed(2)}</span>
+                      <CashierCurrencySuffix code={currency} onPrimary />
+                    </span>
+                  </span>
+                ) : (
+                  <span className="mt-0.5 text-[10px] opacity-60">No items</span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       <CashierProductModal
         item={pickedItem}

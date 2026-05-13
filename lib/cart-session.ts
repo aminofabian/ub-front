@@ -71,3 +71,26 @@ export function cartSessionItemCount(cart: CartSession): number {
   }
   return total;
 }
+
+function roundMoney2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function parseMoney(raw: string): number | null {
+  const n = Number(raw.trim());
+  if (!Number.isFinite(n) || n < 0) return null;
+  return roundMoney2(n);
+}
+
+/** Grand total for a cart session (sum of qty × unitPrice across all lines). */
+export function cartSessionGrandTotal(cart: CartSession): number {
+  let t = 0;
+  for (const line of cart.lines) {
+    const q = Number(line.quantity);
+    const p = parseMoney(line.unitPrice);
+    if (Number.isFinite(q) && q > 0 && p != null) {
+      t += roundMoney2(q * p);
+    }
+  }
+  return roundMoney2(t);
+}

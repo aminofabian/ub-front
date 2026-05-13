@@ -60,6 +60,7 @@ import {
   createEmptyCartSession,
   cartSessionLabel,
   cartSessionItemCount,
+  cartSessionGrandTotal,
   MAX_CARTS,
   type CartSession,
 } from "@/lib/cart-session";
@@ -1057,6 +1058,7 @@ export function QuickSaleWorkspace({
               : null
           }
           cartTabs={carts.map((c) => ({
+            grandTotal: cartSessionGrandTotal(c),
             id: c.id,
             label: cartSessionLabel(c),
             itemCount: cartSessionItemCount(c),
