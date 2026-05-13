@@ -8,6 +8,7 @@ import {
   Loader2,
   LogOut,
   PlusCircle,
+  ScanLine,
   Search,
   ShoppingCart,
   Wallet,
@@ -45,6 +46,7 @@ import {
   CashierDottedLeader,
 } from "./cashier-currency-inline";
 import { kioskCategoryPillClass } from "./kiosk-listing-styles";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 
 const POS_SHIFT_CHIP_CLASS = cn(
   "inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/90 px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground shadow-sm",
@@ -359,6 +361,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [tileShelfPrices, setTileShelfPrices] = useState<
     Record<string, string>
   >({});
@@ -379,7 +382,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         .join(","),
     [topProducts],
   );
-
 
   const hasSearch =
     search.trim().length > 0 ||
@@ -692,6 +694,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className="size-[1.125rem] shrink-0 text-muted-foreground/80"
               aria-hidden
             />
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="shrink-0 rounded-md p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Scan barcode with phone camera"
+              title="Scan barcode with camera"
+            >
+              <ScanLine className="size-[1.125rem]" />
+            </button>
             <input
               type="search"
               value={search}
@@ -701,7 +712,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   ? "Search within this aisle…"
                   : typeFilterId
                     ? "Search within this type…"
-                    : "Search by name or SKU…"
+                    : "Search by name, SKU or scan barcode…"
               }
               className="h-10 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/60 sm:h-11 sm:text-[15px]"
               autoComplete="off"
@@ -997,7 +1008,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 isActive
                   ? "z-30 scale-100 opacity-100"
                   : "z-20 scale-[0.94] opacity-85 hover:opacity-100",
-                pulseCart && isActive &&
+                pulseCart &&
+                  isActive &&
                   "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
               )}
               style={{
@@ -1038,7 +1050,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     </span>
                   </span>
                 ) : (
-                  <span className="mt-0.5 text-[10px] opacity-60">No items</span>
+                  <span className="mt-0.5 text-[10px] opacity-60">
+                    No items
+                  </span>
                 )}
               </span>
             </button>
@@ -1070,6 +1084,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         brandTheme={dialogBrandTheme}
         {...cart}
       />
+
+      {showScanner && (
+        <BarcodeScanner
+          onScan={(barcode) => {
+            setSearch(barcode);
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }

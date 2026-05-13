@@ -9,6 +9,7 @@ import {
   DashboardFeedback,
   DASHBOARD_SECTION_SURFACE,
 } from "@/components/dashboard-page-ui";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
@@ -66,12 +67,12 @@ import {
 } from "@/lib/cart-session";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { usePosCatalogItemType } from "@/components/cashier-shell";
+import { ScanLine } from "lucide-react";
 import {
   CloseShiftModal,
   DrawoutModal,
   OpenShiftModal,
 } from "@/components/shifts/shift-action-modals";
-
 
 function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
   return (
@@ -246,6 +247,7 @@ export function QuickSaleWorkspace({
     string | null
   >(null);
   const [voidNotes, setVoidNotes] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
 
   const createCart = useCallback(() => {
     setCarts((prev) => {
@@ -1362,23 +1364,34 @@ export function QuickSaleWorkspace({
           </div>
         ) : null}
         <div className="flex flex-col gap-2">
-          <input
-            className="max-w-md rounded border bg-background px-2 py-1.5 text-sm"
-            placeholder={
-              categoryFilterId
-                ? "Optional search within this aisle…"
-                : "Search name or SKU…"
-            }
-            value={search}
-            onChange={(e) => {
-              const v = e.target.value;
-              setSearch(v);
-              if (!v.trim() && !categoryFilterId?.trim()) {
-                setHits([]);
-                setSearchBanner(null);
+          <div className="flex max-w-md items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground transition-colors border border-border/50"
+              aria-label="Scan barcode with phone camera"
+              title="Scan barcode with camera"
+            >
+              <ScanLine className="size-4" />
+            </button>
+            <input
+              className="flex-1 rounded border bg-background px-2 py-1.5 text-sm"
+              placeholder={
+                categoryFilterId
+                  ? "Optional search within this aisle…"
+                  : "Search name, SKU or scan barcode…"
               }
-            }}
-          />
+              value={search}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSearch(v);
+                if (!v.trim() && !categoryFilterId?.trim()) {
+                  setHits([]);
+                  setSearchBanner(null);
+                }
+              }}
+            />
+          </div>
           {searchBanner ? (
             <p className="max-w-md text-xs text-amber-800">{searchBanner}</p>
           ) : null}
@@ -1833,6 +1846,16 @@ export function QuickSaleWorkspace({
       ) : null}
       {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
+
+      {showScanner && (
+        <BarcodeScanner
+          onScan={(barcode) => {
+            setSearch(barcode);
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </section>
   );
 }

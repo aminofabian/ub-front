@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   BarChart3,
   Calendar,
   CreditCard,
   DollarSign,
+  ListOrdered,
   Minus,
   Package,
+  Receipt,
   RefreshCw,
-  Search,
   ShoppingCart,
   TrendingDown,
   TrendingUp,
@@ -20,14 +22,20 @@ import {
   Zap,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/components/dashboard-provider";
 import {
   DashboardLoading,
-  DashboardPageHero,
   DashboardFeedback,
   DASHBOARD_MAX_WIDE,
 } from "@/components/dashboard-page-ui";
 import { cn } from "@/lib/utils";
+import {
+  ANALYTICS_PRESET_LABELS,
+  type DatePreset,
+  formatDateRangeLabel,
+  presetRange,
+  previousPeriod,
+} from "@/lib/analytics-date-range";
 import {
   fetchBranches,
   fetchDashboardOwnerSummary,
@@ -37,7 +45,6 @@ import {
   fetchInventoryExpiryPipeline,
   fetchInventoryValuation,
   fetchPaymentsByMethod,
-  fetchRecentSales,
   fetchSalesRegister,
   fetchSalesRevenueByCategory,
   fetchStaffPerformance,
@@ -47,87 +54,10 @@ import {
   type InventoryValuationResponseRecord,
   type PaymentMethodBreakdownRow,
   type ProfitAndLossResponse,
-  type RecentSaleRow,
   type RevenueByCategoryRow,
   type SalesRegisterResponse,
   type StaffPerformanceRow,
 } from "@/lib/api";
-
-/* ─── Date utilities ─────────────────────────────────────────────────────── */
-
-type DatePreset =
-  | "today"
-  | "yesterday"
-  | "last3"
-  | "last7"
-  | "last30"
-  | "thisMonth"
-  | "lastMonth"
-  | "custom";
-
-function toISODate(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
-
-function parseISODate(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function addDays(d: Date, days: number): Date {
-  const next = new Date(d);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function diffDays(a: string, b: string): number {
-  const ms = parseISODate(b).getTime() - parseISODate(a).getTime();
-  return Math.round(ms / 86_400_000);
-}
-
-function presetRange(preset: DatePreset): { from: string; to: string } | null {
-  const today = new Date();
-  const todayStr = toISODate(today);
-  switch (preset) {
-    case "today":
-      return { from: todayStr, to: todayStr };
-    case "yesterday": {
-      const y = toISODate(addDays(today, -1));
-      return { from: y, to: y };
-    }
-    case "last3":
-      return { from: toISODate(addDays(today, -2)), to: todayStr };
-    case "last7":
-      return { from: toISODate(addDays(today, -6)), to: todayStr };
-    case "last30":
-      return { from: toISODate(addDays(today, -29)), to: todayStr };
-    case "thisMonth":
-      return { from: toISODate(startOfMonth(today)), to: todayStr };
-    case "lastMonth": {
-      const firstOfThis = startOfMonth(today);
-      const lastOfPrev = addDays(firstOfThis, -1);
-      const firstOfPrev = startOfMonth(lastOfPrev);
-      return { from: toISODate(firstOfPrev), to: toISODate(lastOfPrev) };
-    }
-    default:
-      return null;
-  }
-}
-
-function previousPeriod(
-  from: string,
-  to: string,
-): { from: string; to: string } {
-  const days = Math.max(1, diffDays(from, to));
-  return {
-    from: toISODate(addDays(parseISODate(from), -days - 1)),
-    to: toISODate(addDays(parseISODate(from), -1)),
-  };
-}
 
 /* ─── Money formatting ───────────────────────────────────────────────────── */
 
@@ -156,13 +86,23 @@ function toNum(n: number | string | null | undefined): number {
 /* ─── Tone helpers ───────────────────────────────────────────────────────── */
 
 const TONE_STYLES = {
-  danger: "bg-red-500",
-  warning: "bg-amber-500",
-  success: "bg-emerald-500",
+  danger: "bg-destructive",
+  warning: "bg-chart-4",
+  success: "bg-chart-2",
   neutral: "bg-muted",
   primary: "bg-primary",
-  sky: "bg-sky-500",
-  violet: "bg-violet-500",
+  sky: "bg-chart-1",
+  violet: "bg-chart-3",
+};
+
+const INSIGHT_TONE_STYLES: Record<
+  "good" | "warn" | "info" | "neutral",
+  string
+> = {
+  good: "border-l-[3px] border-emerald-500/60 bg-emerald-500/[0.04]",
+  warn: "border-l-[3px] border-amber-500/60 bg-amber-500/[0.05]",
+  info: "border-l-[3px] border-sky-500/60 bg-sky-500/[0.05]",
+  neutral: "border-l-[3px] border-border/70 bg-muted/30",
 };
 
 /* ─── Small components ───────────────────────────────────────────────────── */
@@ -174,6 +114,7 @@ function MetricCard({
   icon: Icon,
   accent = "bg-primary/10 text-primary",
   trend,
+  className,
 }: {
   label: string;
   value: React.ReactNode;
@@ -181,54 +122,72 @@ function MetricCard({
   icon: React.ElementType;
   accent?: string;
   trend?: { delta: number; label: string } | null;
+  className?: string;
 }) {
   const up = trend && trend.delta > 0;
   const down = trend && trend.delta < 0;
   const flat = trend && trend.delta === 0;
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+    <div
+      className={cn(
+        "group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-border/40 bg-linear-to-b from-card to-card/80 p-4 shadow-sm transition-all duration-300",
+        "hover:-translate-y-0.5 hover:border-border/70 hover:shadow-lg hover:shadow-foreground/[0.03]",
+        className,
+      )}
+    >
+      {/* Subtle top accent bar */}
+      <div
+        className={cn(
+          "absolute left-0 right-0 top-0 h-[3px] bg-linear-to-r opacity-70",
+          accent,
+        )}
+        aria-hidden
+      />
+
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
           {label}
         </span>
         <span
           className={cn(
-            "flex size-8 items-center justify-center rounded-lg",
+            "flex size-8 shrink-0 items-center justify-center rounded-xl border border-border/30 bg-muted/20 transition-all duration-300",
+            "group-hover:border-border/50 group-hover:shadow-sm",
             accent,
           )}
         >
-          <Icon className="size-4" aria-hidden />
+          <Icon className="size-3.5" aria-hidden />
         </span>
       </div>
-      <div>
-        <p className="text-2xl font-bold tracking-tight text-foreground">
+
+      <div className="space-y-0.5">
+        <p className="font-heading text-[1.65rem] font-bold leading-none tracking-tight text-foreground">
           {value}
         </p>
         {subtitle ? (
-          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+          <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         ) : null}
         {trend ? (
-          <div className="mt-1.5 flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 pt-1">
             {up ? (
-              <TrendingUp className="size-3.5 text-emerald-600" aria-hidden />
+              <TrendingUp className="size-3 text-emerald-500" aria-hidden />
             ) : down ? (
-              <TrendingDown className="size-3.5 text-red-600" aria-hidden />
+              <TrendingDown className="size-3 text-destructive" aria-hidden />
             ) : (
-              <Minus className="size-3.5 text-muted-foreground" aria-hidden />
+              <Minus className="size-3 text-muted-foreground" aria-hidden />
             )}
             <span
               className={cn(
-                "text-[11px] font-semibold tabular-nums",
-                up && "text-emerald-700 dark:text-emerald-400",
-                down && "text-red-700 dark:text-red-400",
+                "text-[11px] font-bold tabular-nums",
+                up && "text-emerald-500",
+                down && "text-destructive",
                 flat && "text-muted-foreground",
               )}
             >
               {up ? "+" : ""}
               {trend.delta.toFixed(1)}%
             </span>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground/70">
               {trend.label}
             </span>
           </div>
@@ -254,13 +213,13 @@ function SectionCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/60 bg-card shadow-sm",
+        "overflow-hidden border border-border/60 bg-card shadow-sm",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Icon className="size-4 text-muted-foreground" aria-hidden />
+      <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-4 py-2.5">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/90">
+          <Icon className="size-3.5 text-muted-foreground/60" aria-hidden />
           {title}
         </div>
         {action ? <div>{action}</div> : null}
@@ -270,22 +229,126 @@ function SectionCard({
   );
 }
 
+function AnalyticsSection({
+  id,
+  step,
+  title,
+  children,
+  className,
+}: {
+  id: string;
+  step: number;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const stepLabel = String(step).padStart(2, "0");
+
+  return (
+    <section
+      id={id}
+      className={cn(
+        "scroll-mt-24 space-y-2 sm:scroll-mt-28 sm:space-y-2.5",
+        className,
+      )}
+    >
+      <header className="flex items-center gap-3">
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-linear-to-br from-primary to-primary/90 text-[10px] font-bold tabular-nums text-primary-foreground shadow-sm shadow-primary/20"
+          aria-hidden
+        >
+          {stepLabel}
+        </span>
+        <h2 className="min-w-0 text-sm font-bold tracking-tight text-foreground sm:text-base">
+          {title}
+        </h2>
+        <span
+          className="hidden h-px min-w-[2rem] flex-1 bg-linear-to-r from-border/70 via-border/30 to-transparent sm:block"
+          aria-hidden
+        />
+      </header>
+      {children}
+    </section>
+  );
+}
+
+type AnalyticsJourneyItem =
+  | { kind: "hash"; id: string; label: string }
+  | { kind: "route"; href: string; label: string };
+
+const ANALYTICS_JOURNEY: AnalyticsJourneyItem[] = [
+  { kind: "hash", id: "analytics-overview", label: "Metrics" },
+  { kind: "hash", id: "analytics-revenue", label: "Revenue" },
+  { kind: "hash", id: "analytics-stock", label: "Stock" },
+  { kind: "hash", id: "analytics-catalog", label: "Catalog" },
+  { kind: "hash", id: "analytics-signals", label: "Signals" },
+  { kind: "route", href: "/analytics/activity", label: "Activity" },
+];
+
+function AnalyticsJourneyNav() {
+  const linkClass =
+    "inline-flex shrink-0 items-center border border-transparent px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-border/80 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+  return (
+    <nav
+      aria-label="Jump to section"
+      className="sticky top-0 z-20 overflow-x-auto border border-border/70 bg-background/80 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/65"
+    >
+      <div className="flex min-w-0 items-center gap-0.5 px-1.5">
+        <span className="flex shrink-0 items-center gap-1 pl-1 pr-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <ListOrdered className="size-3 opacity-70" aria-hidden />
+          Flow
+        </span>
+        <div className="mx-1 h-4 w-px shrink-0 bg-border/70" aria-hidden />
+        <ul className="flex min-w-0 items-center gap-0.5">
+          {ANALYTICS_JOURNEY.filter((i) => i.kind === "hash").map((item) => (
+            <li key={item.id}>
+              <a href={`#${item.id}`} className={linkClass}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+          <li
+            className="mx-0.5 h-4 w-px shrink-0 self-center bg-border/60"
+            aria-hidden
+          />
+          {ANALYTICS_JOURNEY.filter((i) => i.kind === "route").map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={cn(
+                  linkClass,
+                  "border-dashed border-border/60 text-muted-foreground/80",
+                )}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
+  );
+}
+
 function MiniBarChart({
   data,
   max,
   barClass,
   label,
   value,
+  heightClassName = "h-20",
 }: {
   data: number[];
   max: number;
   barClass?: string;
   label?: (i: number) => string;
   value?: (i: number) => string;
+  heightClassName?: string;
 }) {
   const safeMax = max > 0 ? max : 1;
   return (
-    <div className="flex items-end gap-1 h-24">
+    <div className={cn("flex items-end gap-1", heightClassName)}>
       {data.map((v, i) => {
         const pct = Math.min((v / safeMax) * 100, 100);
         return (
@@ -295,10 +358,10 @@ function MiniBarChart({
           >
             <div
               className={cn(
-                "w-full rounded-sm transition-all",
-                barClass || "bg-primary/80",
+                "w-full rounded-t-sm transition-all duration-300",
+                barClass || "bg-linear-to-t from-primary/60 to-primary",
               )}
-              style={{ height: `${Math.max(pct, 4)}%` }}
+              style={{ height: `${Math.max(pct, 2)}%` }}
             />
             {label && i % Math.ceil(data.length / 6) === 0 ? (
               <span className="text-[9px] text-muted-foreground truncate w-full text-center">
@@ -306,7 +369,7 @@ function MiniBarChart({
               </span>
             ) : null}
             <div className="absolute bottom-full mb-1 hidden group-hover:block z-10">
-              <div className="rounded-md bg-popover border border-border px-2 py-1 text-xs shadow-sm whitespace-nowrap">
+              <div className="border border-border bg-popover px-2 py-1 text-xs shadow-sm whitespace-nowrap">
                 {value ? value(i) : `${v.toFixed(2)}`}
               </div>
             </div>
@@ -332,19 +395,16 @@ function HorizontalBar({
 }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-foreground truncate">{label}</span>
         <span className="text-xs text-muted-foreground tabular-nums">
           {sublabel || formatMoney(value)}
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/50">
         <div
-          className={cn(
-            "h-full rounded-full transition-all",
-            TONE_STYLES[tone],
-          )}
+          className={cn("h-full transition-all", TONE_STYLES[tone])}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -363,9 +423,9 @@ function SparkBar({
 }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted sm:w-24">
+    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted/60 sm:w-20">
       <div
-        className={cn("h-full rounded-full transition-all", TONE_STYLES[tone])}
+        className={cn("h-full transition-all", TONE_STYLES[tone])}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -400,8 +460,7 @@ function PercentageRing({
           stroke="currentColor"
           strokeWidth={stroke}
           fill="none"
-          className="text-muted"
-          opacity={0.3}
+          className="text-muted/40"
         />
         <circle
           cx={size / 2}
@@ -437,21 +496,13 @@ function calcTrend(
 
 /* ─── Main page ──────────────────────────────────────────────────────────── */
 
-const PRESET_LABELS: { key: DatePreset; label: string }[] = [
-  { key: "today", label: "Today" },
-  { key: "yesterday", label: "Yesterday" },
-  { key: "last3", label: "Last 3 Days" },
-  { key: "last7", label: "Last 7 Days" },
-  { key: "last30", label: "Last 30 Days" },
-  { key: "thisMonth", label: "This Month" },
-  { key: "lastMonth", label: "Last Month" },
-  { key: "custom", label: "Custom" },
-];
-
 export default function AnalyticsPage() {
+  const { branchId: sessionBranchId } = useDashboard();
+  const prevSessionBranchIdRef = useRef<string | undefined>(undefined);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [preset, setPreset] = useState<DatePreset>("last7");
+  const [preset, setPreset] = useState<DatePreset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [branchId, setBranchId] = useState("");
@@ -470,7 +521,6 @@ export default function AnalyticsPage() {
     PaymentMethodBreakdownRow[]
   >([]);
   const [staffPerf, setStaffPerf] = useState<StaffPerformanceRow[]>([]);
-  const [recentSales, setRecentSales] = useState<RecentSaleRow[]>([]);
   const [inventoryVal, setInventoryVal] =
     useState<InventoryValuationResponseRecord | null>(null);
   const [expiryPipeline, setExpiryPipeline] =
@@ -489,9 +539,6 @@ export default function AnalyticsPage() {
   const [, setPrevSalesRegister] = useState<SalesRegisterResponse | null>(null);
   const [, setPrevCategoryRevenue] = useState<RevenueByCategoryRow[]>([]);
 
-  // Search
-  const [saleSearch, setSaleSearch] = useState("");
-
   const dateRange = useMemo(() => {
     if (preset === "custom") {
       if (!customFrom || !customTo) return null;
@@ -499,6 +546,34 @@ export default function AnalyticsPage() {
     }
     return presetRange(preset);
   }, [preset, customFrom, customTo]);
+
+  const activeRangeSummary = useMemo(() => {
+    if (!dateRange) {
+      return preset === "custom"
+        ? "Choose a start and end date, then data will load."
+        : "";
+    }
+    return formatDateRangeLabel(dateRange.from, dateRange.to);
+  }, [dateRange, preset]);
+
+  useEffect(() => {
+    const id = (sessionBranchId ?? "").trim();
+    const valid = id.length > 0 && branches.some((b) => b.id === id);
+    const prev = prevSessionBranchIdRef.current;
+
+    if (valid) {
+      const initialSync = prev === undefined;
+      const sessionChanged = prev !== undefined && prev !== id;
+      if (initialSync || sessionChanged) {
+        setBranchId(id);
+      }
+      prevSessionBranchIdRef.current = id;
+    } else if (prev === undefined) {
+      prevSessionBranchIdRef.current = id || "";
+    } else {
+      prevSessionBranchIdRef.current = id;
+    }
+  }, [sessionBranchId, branches]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -521,7 +596,6 @@ export default function AnalyticsPage() {
           prevCatRes,
           payRes,
           staffRes,
-          salesRes,
           invValRes,
           expiryRes,
           ownerRes,
@@ -552,9 +626,6 @@ export default function AnalyticsPage() {
             dateRange.to,
             branchFilter,
           ).catch(() => []),
-          fetchRecentSales(dateRange.from, dateRange.to, branchFilter).catch(
-            () => [],
-          ),
           fetchInventoryValuation(branchFilter).catch(() => null),
           fetchInventoryExpiryPipeline(branchFilter).catch(() => null),
           fetchDashboardOwnerSummary().catch(() => null),
@@ -570,7 +641,6 @@ export default function AnalyticsPage() {
         setPrevCategoryRevenue(prevCatRes);
         setPaymentMethods(payRes);
         setStaffPerf(staffRes);
-        setRecentSales(salesRes);
         setInventoryVal(invValRes);
         setExpiryPipeline(expiryRes);
         setOwnerSummary(
@@ -744,20 +814,6 @@ export default function AnalyticsPage() {
     totalRevenue,
   ]);
 
-  /* ─── Sales table filtering ────────────────────────────────────────────── */
-
-  const filteredSales = useMemo(() => {
-    const q = saleSearch.trim().toLowerCase();
-    if (!q) return recentSales;
-    return recentSales.filter(
-      (s) =>
-        s.itemName.toLowerCase().includes(q) ||
-        s.cashierName.toLowerCase().includes(q) ||
-        s.paymentMethod.toLowerCase().includes(q) ||
-        s.saleId.toLowerCase().includes(q),
-    );
-  }, [recentSales, saleSearch]);
-
   /* ─── Render ───────────────────────────────────────────────────────────── */
 
   if (loading && !refreshing) {
@@ -771,562 +827,530 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto overscroll-contain">
-      <div className={cn(DASHBOARD_MAX_WIDE, "space-y-6 pb-12")}>
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <DashboardPageHero
-            icon={BarChart3}
-            eyebrow="Analytics"
-            title="Overall Business Analytics"
-            description="Real-time insights into sales, profit, inventory, and team performance."
-            compact
-          />
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setRefreshing(true);
-                load();
-              }}
-              disabled={refreshing}
-            >
-              <RefreshCw
-                className={cn("size-4 mr-1.5", refreshing && "animate-spin")}
-                aria-hidden
-              />
-              Refresh
-            </Button>
+    <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+        aria-hidden
+      >
+        <div className="absolute -left-24 -top-28 h-80 w-80 bg-primary/[0.06] blur-3xl" />
+        <div className="absolute -right-20 top-1/3 h-72 w-80 bg-chart-2/[0.08] blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 h-56 w-[min(100%,32rem)] -translate-x-1/2 bg-accent/[0.08] blur-3xl" />
+      </div>
+      <div
+        className={cn(DASHBOARD_MAX_WIDE, "!space-y-3 !pb-12 sm:!space-y-4")}
+      >
+        {/* ── Unified header bar ── */}
+        <div className="sticky top-0 z-30 overflow-hidden border border-border/40 bg-linear-to-b from-card/95 via-card/90 to-card/85 shadow-lg shadow-foreground/[0.02] backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+            {/* Icon + label + date */}
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-linear-to-br from-primary/10 to-primary/[0.04] text-primary/80 shadow-inner">
+                <BarChart3 className="size-[15px]" aria-hidden />
+              </span>
+              <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
+                <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
+                  Analytics
+                </span>
+                {activeRangeSummary ? (
+                  <span className="truncate text-[11px] leading-none text-muted-foreground/70">
+                    {activeRangeSummary}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <span
+              className="hidden h-5 w-px bg-border/60 sm:block"
+              aria-hidden
+            />
+
+            {/* Time presets */}
+            <div className="flex flex-wrap items-center gap-1">
+              {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
+                <button
+                  key={key}
+                  type="button"
+                  title={hint}
+                  onClick={() => setPreset(key)}
+                  className={cn(
+                    "h-6.5 rounded-lg border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
+                    "hover:-translate-y-px",
+                    preset === key
+                      ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-sm shadow-primary/20"
+                      : "border-transparent bg-muted/50 text-muted-foreground hover:border-border/60 hover:bg-muted/80 hover:text-foreground hover:shadow-sm",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Branch + Refresh */}
+            <div className="ml-auto flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                  className="h-7.5 appearance-none rounded-lg border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[11px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+                >
+                  <option value="">All branches</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/60"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="group flex size-7.5 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/30 text-muted-foreground/80 transition-all duration-200 hover:border-border/70 hover:bg-muted/50 hover:text-foreground hover:shadow-sm active:scale-95 disabled:opacity-40"
+                onClick={() => {
+                  setRefreshing(true);
+                  load();
+                }}
+                disabled={refreshing}
+                aria-label="Refresh"
+              >
+                <RefreshCw
+                  className={cn(
+                    "size-3.5 transition-transform duration-500",
+                    refreshing && "animate-spin",
+                  )}
+                  aria-hidden
+                />
+              </button>
+            </div>
           </div>
+
+          {/* Custom date row */}
+          {preset === "custom" ? (
+            <div className="flex items-center gap-2 border-t border-border/30 bg-muted/[0.15] px-4 pb-2.5 pt-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                From
+              </span>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-7 rounded-lg border border-border/50 bg-muted/30 px-2.5 text-[11px] font-medium text-foreground outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              />
+              <span className="text-[11px] text-muted-foreground/60">to</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-7 rounded-lg border border-border/50 bg-muted/30 px-2.5 text-[11px] font-medium text-foreground outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              />
+            </div>
+          ) : null}
         </div>
 
         {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {PRESET_LABELS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setPreset(key)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  preset === key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
-                )}
-              >
-                {label}
-              </button>
-            ))}
+        <AnalyticsJourneyNav />
+
+        {/* ── Section 1: Key Metrics ─────────────────────────────── */}
+        <AnalyticsSection id="analytics-overview" step={1} title="Key metrics">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <MetricCard
+              label="Total Revenue"
+              value={formatMoney(totalRevenue)}
+              icon={DollarSign}
+              accent="bg-primary/10 text-primary"
+              trend={calcTrend(totalRevenue, prevTotalRevenue)}
+            />
+            <MetricCard
+              label="Gross Profit"
+              value={formatMoney(totalProfit)}
+              icon={TrendingUp}
+              accent="bg-chart-2/15 text-chart-2"
+              trend={calcTrend(totalProfit, prevTotalProfit)}
+            />
+            <MetricCard
+              label="Net Operating"
+              value={formatMoney(netOperating)}
+              icon={Wallet}
+              accent="bg-secondary text-secondary-foreground"
+              trend={calcTrend(netOperating, prevNetOperating)}
+            />
+            <MetricCard
+              label="Expenses"
+              value={formatMoney(totalExpenses)}
+              icon={Receipt}
+              accent="bg-muted text-muted-foreground"
+              trend={calcTrend(totalExpenses, prevTotalExpenses)}
+            />
+            <MetricCard
+              label="Sales Count"
+              value={formatNumber(salesCount)}
+              icon={ShoppingCart}
+              accent="bg-accent text-accent-foreground"
+            />
+            <MetricCard
+              label="Gross Margin"
+              value={`${grossMargin.toFixed(1)}%`}
+              icon={BarChart3}
+              accent="bg-chart-3/20 text-chart-3"
+            />
           </div>
-          {preset === "custom" ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setCustomFrom(e.target.value)
-                }
-                className="h-8 w-36 rounded-lg border border-input bg-background px-2 text-xs"
-              />
-              <span className="text-xs text-muted-foreground">to</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setCustomTo(e.target.value)
-                }
-                className="h-8 w-36 rounded-lg border border-input bg-background px-2 text-xs"
-              />
-            </div>
-          ) : null}
-          <select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className="h-8 rounded-lg border border-input bg-background px-2 text-xs"
-          >
-            <option value="">All Branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        </AnalyticsSection>
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <MetricCard
-            label="Total Revenue"
-            value={formatMoney(totalRevenue)}
-            icon={DollarSign}
-            accent="bg-sky-500/10 text-sky-600"
-            trend={calcTrend(totalRevenue, prevTotalRevenue)}
-          />
-          <MetricCard
-            label="Gross Profit"
-            value={formatMoney(totalProfit)}
-            icon={TrendingUp}
-            accent="bg-emerald-500/10 text-emerald-600"
-            trend={calcTrend(totalProfit, prevTotalProfit)}
-          />
-          <MetricCard
-            label="Net Operating"
-            value={formatMoney(netOperating)}
-            icon={Wallet}
-            accent="bg-violet-500/10 text-violet-600"
-            trend={calcTrend(netOperating, prevNetOperating)}
-          />
-          <MetricCard
-            label="Expenses"
-            value={formatMoney(totalExpenses)}
-            icon={CreditCard}
-            accent="bg-amber-500/10 text-amber-600"
-            trend={calcTrend(totalExpenses, prevTotalExpenses)}
-          />
-          <MetricCard
-            label="Sales Count"
-            value={formatNumber(salesCount)}
-            icon={ShoppingCart}
-            accent="bg-primary/10 text-primary"
-          />
-          <MetricCard
-            label="Gross Margin"
-            value={`${grossMargin.toFixed(1)}%`}
-            icon={BarChart3}
-            accent="bg-rose-500/10 text-rose-600"
-          />
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* Revenue Trend */}
-          <SectionCard
-            title="Revenue Trend"
-            icon={BarChart3}
-            className="lg:col-span-2"
-          >
-            {dailyRevenue.length > 0 ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Avg daily:{" "}
-                    <span className="font-semibold text-foreground">
-                      {formatMoney(avgDailyRevenue)}
+        {/* ── Section 2: Revenue & Tender Mix ────────────────────── */}
+        <AnalyticsSection
+          id="analytics-revenue"
+          step={2}
+          title="Revenue and tender mix"
+        >
+          <div className="grid gap-3 lg:grid-cols-3">
+            <SectionCard
+              title="Revenue Trend"
+              icon={BarChart3}
+              className="lg:col-span-2"
+            >
+              {dailyRevenue.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Avg daily:{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatMoney(avgDailyRevenue)}
+                      </span>
                     </span>
-                  </span>
-                  <span>
-                    Total:{" "}
-                    <span className="font-semibold text-foreground">
-                      {formatMoney(totalRevenue)}
+                    <span>
+                      Total:{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatMoney(totalRevenue)}
+                      </span>
                     </span>
-                  </span>
-                </div>
-                <MiniBarChart
-                  data={dailyRevenue}
-                  max={maxDailyRevenue}
-                  label={(i) => dailyLabels[i] ?? ""}
-                  value={(i) =>
-                    `${dailyLabels[i]}: ${formatMoney(dailyRevenue[i])}`
-                  }
-                />
-              </div>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No revenue data for this period.
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Payment Methods */}
-          <SectionCard title="Payment Methods" icon={CreditCard}>
-            {paymentMethods.length > 0 ? (
-              <div className="space-y-3">
-                {paymentMethods.map((pm) => (
-                  <HorizontalBar
-                    key={pm.method}
-                    label={pm.method}
-                    value={toNum(pm.totalAmount)}
-                    max={toNum(paymentMethods[0]?.totalAmount ?? 1)}
-                    sublabel={`${formatMoney(pm.totalAmount)} • ${pm.transactionCount} txns`}
-                    tone={
-                      pm.method === "cash"
-                        ? "success"
-                        : pm.method === "mpesa"
-                          ? "sky"
-                          : "primary"
+                  </div>
+                  <MiniBarChart
+                    heightClassName="h-24"
+                    data={dailyRevenue}
+                    max={maxDailyRevenue}
+                    label={(i) => dailyLabels[i] ?? ""}
+                    value={(i) =>
+                      `${dailyLabels[i]}: ${formatMoney(dailyRevenue[i])}`
                     }
                   />
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No payment data.
-              </div>
-            )}
-          </SectionCard>
-        </div>
-
-        {/* Categories + Staff Row */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          {/* Category Breakdown */}
-          <SectionCard title="Revenue by Category" icon={Package}>
-            {categoryRevenue.length > 0 ? (
-              <div className="space-y-3">
-                {categoryRevenue.slice(0, 10).map((cat) => (
-                  <HorizontalBar
-                    key={cat.categoryId}
-                    label={cat.categoryName}
-                    value={toNum(cat.netRevenue)}
-                    max={toNum(categoryRevenue[0]?.netRevenue ?? 1)}
-                    sublabel={`${formatMoney(cat.netRevenue)} • Profit: ${formatMoney(cat.netProfit)}`}
-                    tone="violet"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No category data.
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Staff Performance */}
-          <SectionCard title="Staff Performance" icon={Users}>
-            {staffPerf.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/40 text-left text-xs text-muted-foreground">
-                      <th className="pb-2 font-medium">Staff</th>
-                      <th className="pb-2 font-medium text-right">Sales</th>
-                      <th className="pb-2 font-medium text-right">Revenue</th>
-                      <th className="pb-2 font-medium text-right">Profit</th>
-                      <th className="pb-2 font-medium text-right">Margin</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30">
-                    {staffPerf.map((s) => {
-                      const margin =
-                        toNum(s.totalRevenue) > 0
-                          ? (toNum(s.totalProfit) / toNum(s.totalRevenue)) * 100
-                          : 0;
-                      return (
-                        <tr key={s.userId} className="group">
-                          <td className="py-2.5 font-medium">{s.userName}</td>
-                          <td className="py-2.5 text-right tabular-nums">
-                            {formatNumber(s.saleCount)}
-                          </td>
-                          <td className="py-2.5 text-right tabular-nums">
-                            {formatMoney(s.totalRevenue)}
-                          </td>
-                          <td className="py-2.5 text-right tabular-nums">
-                            {formatMoney(s.totalProfit)}
-                          </td>
-                          <td className="py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="text-xs tabular-nums">
-                                {margin.toFixed(1)}%
-                              </span>
-                              <SparkBar
-                                value={margin}
-                                max={50}
-                                tone={
-                                  margin > 20
-                                    ? "success"
-                                    : margin > 10
-                                      ? "warning"
-                                      : "danger"
-                                }
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No staff data.
-              </div>
-            )}
-          </SectionCard>
-        </div>
-
-        {/* Inventory + Top Products + Insights Row */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* Inventory Summary */}
-          <SectionCard title="Inventory" icon={Package}>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Total Stock Value
-                </span>
-                <span className="text-lg font-bold">
-                  {formatMoney(totalInventoryValue)}
-                </span>
-              </div>
-              {inventoryVal?.byBranch && inventoryVal.byBranch.length > 1 ? (
-                <div className="space-y-2">
-                  {inventoryVal.byBranch.map((b) => (
-                    <HorizontalBar
-                      key={b.branchId}
-                      label={b.branchName}
-                      value={toNum(b.extensionValue)}
-                      max={toNum(totalInventoryValue)}
-                      sublabel={formatMoney(b.extensionValue)}
-                      tone="sky"
-                    />
-                  ))}
                 </div>
-              ) : null}
-              <div className="rounded-lg bg-muted/50 p-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
-                    <AlertTriangle className="size-3" /> Expired
-                  </span>
-                  <span className="font-semibold tabular-nums">
-                    {formatNumber(expiredQty)} units
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <Clock className="size-3" /> Expires &lt; 7d
-                  </span>
-                  <span className="font-semibold tabular-nums">
-                    {formatNumber(due7dQty)} units
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-sky-600 dark:text-sky-400 flex items-center gap-1">
-                    <Calendar className="size-3" /> Expires &lt; 30d
-                  </span>
-                  <span className="font-semibold tabular-nums">
-                    {formatNumber(due30dQty)} units
-                  </span>
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Top Products */}
-          <SectionCard title="Top Products (30d)" icon={Zap}>
-            {ownerSummary?.topSkus && ownerSummary.topSkus.length > 0 ? (
-              <div className="space-y-3">
-                {ownerSummary.topSkus.map((sku, i) => (
-                  <div key={sku.itemId} className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        "flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                        i === 0
-                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                          : i === 1
-                            ? "bg-slate-400/15 text-slate-700 dark:text-slate-400"
-                            : i === 2
-                              ? "bg-orange-600/15 text-orange-700 dark:text-orange-400"
-                              : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {sku.itemName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatMoney(sku.revenueLast30Days)}
-                      </p>
-                    </div>
-                    <PercentageRing
-                      value={
-                        toNum(sku.revenueLast30Days) > 0
-                          ? Math.min(
-                              (toNum(sku.revenueLast30Days) /
-                                Math.max(
-                                  1,
-                                  toNum(
-                                    ownerSummary.topSkus[0]?.revenueLast30Days,
-                                  ),
-                                )) *
-                                100,
-                              100,
-                            )
-                          : 0
-                      }
-                      size={36}
-                      stroke={4}
-                      color={
-                        i === 0
-                          ? "text-amber-500"
-                          : i === 1
-                            ? "text-slate-400"
-                            : i === 2
-                              ? "text-orange-500"
-                              : "text-primary"
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No top product data.
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Insights */}
-          <SectionCard title="Smart Insights" icon={Zap}>
-            {insights.length > 0 ? (
-              <div className="space-y-3">
-                {insights.map((insight, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2.5 rounded-lg bg-muted/40 p-2.5"
-                  >
-                    <insight.icon
-                      className={cn(
-                        "mt-0.5 size-4 shrink-0",
-                        insight.tone === "good"
-                          ? "text-emerald-600"
-                          : insight.tone === "warn"
-                            ? "text-amber-600"
-                            : insight.tone === "info"
-                              ? "text-sky-600"
-                              : "text-muted-foreground",
-                      )}
-                      aria-hidden
-                    />
-                    <p className="text-xs leading-relaxed text-foreground">
-                      {insight.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No insights available.
-              </div>
-            )}
-          </SectionCard>
-        </div>
-
-        {/* Sales Transactions Table */}
-        <SectionCard
-          title={`Recent Sales (${filteredSales.length})`}
-          icon={ShoppingCart}
-          action={
-            <div className="relative">
-              <Search
-                className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <input
-                placeholder="Search sales..."
-                value={saleSearch}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSaleSearch(e.target.value)
-                }
-                className="h-8 w-48 rounded-lg border border-input bg-background pl-8 pr-2 text-xs placeholder:text-muted-foreground/70"
-              />
-            </div>
-          }
-        >
-          {filteredSales.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/40 text-left text-xs text-muted-foreground">
-                    <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Product</th>
-                    <th className="pb-2 font-medium text-right">Qty</th>
-                    <th className="pb-2 font-medium text-right">Price</th>
-                    <th className="pb-2 font-medium text-right">Total</th>
-                    <th className="pb-2 font-medium text-right">Profit</th>
-                    <th className="pb-2 font-medium">Cashier</th>
-                    <th className="pb-2 font-medium">Payment</th>
-                    <th className="pb-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {filteredSales.slice(0, 100).map((s, idx) => (
-                    <tr
-                      key={`${s.saleId}-${s.itemId}-${idx}`}
-                      className="group hover:bg-muted/30"
-                    >
-                      <td className="py-2.5 text-xs text-muted-foreground tabular-nowrap">
-                        {new Date(s.soldAt).toLocaleDateString()}
-                        <span className="block text-[10px]">
-                          {new Date(s.soldAt).toLocaleTimeString()}
-                        </span>
-                      </td>
-                      <td className="py-2.5">
-                        <p className="font-medium truncate max-w-[200px]">
-                          {s.itemName}
-                        </p>
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums">
-                        {Number(s.quantity).toFixed(2)}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums">
-                        {formatMoney(s.unitPrice)}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums font-medium">
-                        {formatMoney(s.lineTotal)}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums">
-                        <span
-                          className={cn(
-                            toNum(s.profit) >= 0
-                              ? "text-emerald-600"
-                              : "text-red-600",
-                          )}
-                        >
-                          {formatMoney(s.profit)}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-xs">{s.cashierName}</td>
-                      <td className="py-2.5 text-xs">
-                        <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase">
-                          {s.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-xs">
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium uppercase",
-                            s.status === "completed"
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                              : s.status === "refunded"
-                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                : "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {s.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredSales.length > 100 && (
-                <div className="mt-3 text-center text-xs text-muted-foreground">
-                  Showing 100 of {filteredSales.length} transactions
+              ) : (
+                <div className="py-5 text-center text-xs text-muted-foreground">
+                  No revenue data for this period.
                 </div>
               )}
+            </SectionCard>
+
+            <SectionCard title="Payment Methods" icon={CreditCard}>
+              {paymentMethods.length > 0 ? (
+                <div className="space-y-2">
+                  {paymentMethods.map((pm) => (
+                    <HorizontalBar
+                      key={pm.method}
+                      label={pm.method}
+                      value={toNum(pm.totalAmount)}
+                      max={toNum(paymentMethods[0]?.totalAmount ?? 1)}
+                      sublabel={`${formatMoney(pm.totalAmount)} • ${pm.transactionCount} txns`}
+                      tone={
+                        pm.method === "cash"
+                          ? "success"
+                          : pm.method === "mpesa"
+                            ? "sky"
+                            : "primary"
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="py-5 text-center text-xs text-muted-foreground">
+                  No payment data.
+                </div>
+              )}
+            </SectionCard>
+          </div>
+        </AnalyticsSection>
+
+        {/* ── Section 3: Stock & Inventory ───────────────────────── */}
+        <AnalyticsSection
+          id="analytics-stock"
+          step={3}
+          title="Stock and inventory"
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            <SectionCard title="Inventory" icon={Package}>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Total Stock Value
+                  </span>
+                  <span className="text-base font-bold">
+                    {formatMoney(totalInventoryValue)}
+                  </span>
+                </div>
+                {inventoryVal?.byBranch && inventoryVal.byBranch.length > 1 ? (
+                  <div className="space-y-1.5">
+                    {inventoryVal.byBranch.map((b) => (
+                      <HorizontalBar
+                        key={b.branchId}
+                        label={b.branchName}
+                        value={toNum(b.extensionValue)}
+                        max={toNum(totalInventoryValue)}
+                        sublabel={formatMoney(b.extensionValue)}
+                        tone="sky"
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                <div className="border border-border/60 bg-muted/50 space-y-1.5 p-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-destructive flex items-center gap-1">
+                      <AlertTriangle className="size-3" /> Expired
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(expiredQty)} units
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-primary flex items-center gap-1">
+                      <Clock className="size-3" /> Expires &lt; 7d
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(due7dQty)} units
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Calendar className="size-3" /> Expires &lt; 30d
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(due30dQty)} units
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Top Products (30d)" icon={Zap}>
+              {ownerSummary?.topSkus && ownerSummary.topSkus.length > 0 ? (
+                <div className="max-h-[min(14rem,40vh)] space-y-2 overflow-y-auto pr-1">
+                  {ownerSummary.topSkus.map((sku, i) => (
+                    <div key={sku.itemId} className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex size-6 shrink-0 items-center justify-center border border-border/60 text-[10px] font-bold",
+                          i === 0
+                            ? "bg-primary/15 text-primary"
+                            : i === 1
+                              ? "bg-secondary text-secondary-foreground"
+                              : i === 2
+                                ? "bg-chart-4/20 text-chart-4"
+                                : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium">
+                          {sku.itemName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatMoney(sku.revenueLast30Days)}
+                        </p>
+                      </div>
+                      <span
+                        title="Share relative to #1 product"
+                        className="shrink-0"
+                      >
+                        <PercentageRing
+                          value={
+                            toNum(sku.revenueLast30Days) > 0
+                              ? Math.min(
+                                  (toNum(sku.revenueLast30Days) /
+                                    Math.max(
+                                      1,
+                                      toNum(
+                                        ownerSummary.topSkus[0]
+                                          ?.revenueLast30Days,
+                                      ),
+                                    )) *
+                                    100,
+                                  100,
+                                )
+                              : 0
+                          }
+                          size={32}
+                          stroke={3}
+                          color={
+                            i === 0
+                              ? "text-primary"
+                              : i === 1
+                                ? "text-muted-foreground"
+                                : i === 2
+                                  ? "text-chart-4"
+                                  : "text-chart-2"
+                          }
+                        />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-5 text-center text-xs text-muted-foreground">
+                  No top product data.
+                </div>
+              )}
+            </SectionCard>
+          </div>
+        </AnalyticsSection>
+
+        {/* ── Section 4: Catalog & Team ──────────────────────────── */}
+        <AnalyticsSection
+          id="analytics-catalog"
+          step={4}
+          title="Catalog and team"
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            <SectionCard title="Revenue by Category" icon={Package}>
+              {categoryRevenue.length > 0 ? (
+                <div className="max-h-[min(11rem,38vh)] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
+                  {categoryRevenue.slice(0, 10).map((cat) => (
+                    <HorizontalBar
+                      key={cat.categoryId}
+                      label={cat.categoryName}
+                      value={toNum(cat.netRevenue)}
+                      max={toNum(categoryRevenue[0]?.netRevenue ?? 1)}
+                      sublabel={`${formatMoney(cat.netRevenue)} • Profit: ${formatMoney(cat.netProfit)}`}
+                      tone="violet"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="py-5 text-center text-xs text-muted-foreground">
+                  No category data.
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard title="Staff Performance" icon={Users}>
+              {staffPerf.length > 0 ? (
+                <div className="max-h-[min(11rem,38vh)] overflow-y-auto overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 z-10 bg-muted/30 backdrop-blur-sm">
+                      <tr className="border-b border-border/30 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className="pb-1.5 font-medium">Staff</th>
+                        <th className="pb-1.5 font-medium text-right">Sales</th>
+                        <th className="pb-1.5 font-medium text-right">
+                          Revenue
+                        </th>
+                        <th className="pb-1.5 font-medium text-right">
+                          Profit
+                        </th>
+                        <th className="pb-1.5 font-medium text-right">
+                          Margin
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/30">
+                      {staffPerf.map((s) => {
+                        const margin =
+                          toNum(s.totalRevenue) > 0
+                            ? (toNum(s.totalProfit) / toNum(s.totalRevenue)) *
+                              100
+                            : 0;
+                        return (
+                          <tr key={s.userId} className="group">
+                            <td className="py-1.5 font-medium">{s.userName}</td>
+                            <td className="py-1.5 text-right tabular-nums">
+                              {formatNumber(s.saleCount)}
+                            </td>
+                            <td className="py-1.5 text-right tabular-nums">
+                              {formatMoney(s.totalRevenue)}
+                            </td>
+                            <td className="py-1.5 text-right tabular-nums">
+                              {formatMoney(s.totalProfit)}
+                            </td>
+                            <td className="py-1.5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <span className="text-xs tabular-nums">
+                                  {margin.toFixed(1)}%
+                                </span>
+                                <SparkBar
+                                  value={margin}
+                                  max={50}
+                                  tone={
+                                    margin > 20
+                                      ? "success"
+                                      : margin > 10
+                                        ? "warning"
+                                        : "danger"
+                                  }
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-5 text-center text-xs text-muted-foreground">
+                  No staff data.
+                </div>
+              )}
+            </SectionCard>
+          </div>
+        </AnalyticsSection>
+
+        {/* ── Section 5: Signals & Insights ──────────────────────── */}
+        <AnalyticsSection id="analytics-signals" step={5} title="Signals">
+          {insights.length > 0 ? (
+            <div className="grid max-h-[min(20rem,45vh)] gap-2 overflow-y-auto sm:grid-cols-2">
+              {insights.map((insight, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex items-start gap-2 border border-border/50 p-2.5 shadow-sm",
+                    INSIGHT_TONE_STYLES[insight.tone],
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 flex size-7 shrink-0 items-center justify-center border bg-card/90 shadow-sm",
+                      insight.tone === "good" &&
+                        "border-primary/25 text-primary",
+                      insight.tone === "warn" &&
+                        "border-destructive/25 text-destructive",
+                      insight.tone === "info" && "border-ring text-foreground",
+                      insight.tone === "neutral" &&
+                        "border-border text-muted-foreground",
+                    )}
+                  >
+                    <insight.icon className="size-3.5" aria-hidden />
+                  </span>
+                  <p className="text-xs leading-relaxed text-foreground">
+                    {insight.text}
+                  </p>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {saleSearch
-                ? "No sales match your search."
-                : "No sales data for this period."}
-            </div>
+            <p className="text-xs text-muted-foreground">
+              No signals for this slice yet — try a longer range or another
+              branch.
+            </p>
           )}
-        </SectionCard>
+        </AnalyticsSection>
       </div>
     </div>
   );
