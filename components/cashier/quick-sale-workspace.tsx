@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Image from "next/image";
 
-import { DashboardAccessDenied, DashboardFeedback, DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
+import {
+  DashboardAccessDenied,
+  DashboardFeedback,
+  DASHBOARD_SECTION_SURFACE,
+} from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
@@ -30,7 +34,10 @@ import {
   type ShiftRecord,
 } from "@/lib/api";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
-import { readCachedItemsSearch, writeCachedItemsSearch } from "@/lib/catalog-search-cache";
+import {
+  readCachedItemsSearch,
+  writeCachedItemsSearch,
+} from "@/lib/catalog-search-cache";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
@@ -49,6 +56,13 @@ import {
   posCartLineSuffix,
   posSearchItemDetailLine,
 } from "@/lib/cashier-item-display";
+import {
+  createEmptyCartSession,
+  cartSessionLabel,
+  cartSessionItemCount,
+  MAX_CARTS,
+  type CartSession,
+} from "@/lib/cart-session";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { usePosCatalogItemType } from "@/components/cashier-shell";
 import {
@@ -57,14 +71,6 @@ import {
   OpenShiftModal,
 } from "@/components/shifts/shift-action-modals";
 
-type CartLine = {
-  key: string;
-  itemId: string;
-  label: string;
-  quantity: string;
-  unitPrice: string;
-  item: ItemSummaryRecord;
-};
 
 function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
   return (
@@ -105,7 +111,9 @@ type QuickSaleWorkspaceProps = {
   variant?: QuickSaleWorkspaceVariant;
 };
 
-export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProps) {
+export function QuickSaleWorkspace({
+  variant = "admin",
+}: QuickSaleWorkspaceProps) {
   const {
     me,
     business,
@@ -119,8 +127,14 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const posCatalog = usePosCatalogItemType();
   const posItemTypeId = posCatalog?.posItemTypeId?.trim() || null;
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
-  const canBrowseCategories = hasPermission(me?.permissions, Permission.CatalogItemsRead);
-  const canLookupCustomers = hasPermission(me?.permissions, Permission.CreditsCustomersRead);
+  const canBrowseCategories = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsRead,
+  );
+  const canLookupCustomers = hasPermission(
+    me?.permissions,
+    Permission.CreditsCustomersRead,
+  );
   const canVoid =
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
@@ -129,22 +143,96 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const [search, setSearch] = useState("");
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
   const [searchBanner, setSearchBanner] = useState<string | null>(null);
-  const [categoryRoots, setCategoryRoots] = useState<CategoryTreeNodeRecord[]>([]);
-  const [categoryBrowseStack, setCategoryBrowseStack] = useState<CategoryTreeNodeRecord[]>([]);
+  const [categoryRoots, setCategoryRoots] = useState<CategoryTreeNodeRecord[]>(
+    [],
+  );
+  const [categoryBrowseStack, setCategoryBrowseStack] = useState<
+    CategoryTreeNodeRecord[]
+  >([]);
   const [categoryFilterId, setCategoryFilterId] = useState<string | null>(null);
-  const [categoryFilterLabel, setCategoryFilterLabel] = useState<string | null>(null);
+  const [categoryFilterLabel, setCategoryFilterLabel] = useState<string | null>(
+    null,
+  );
   const [categoryTreeBusy, setCategoryTreeBusy] = useState(false);
-  const [lines, setLines] = useState<CartLine[]>([]);
-  const [payMethod, setPayMethod] = useState<SalePaymentMethod>("cash");
-  const [mpesaRef, setMpesaRef] = useState("");
-  const [customerPhoneQuery, setCustomerPhoneQuery] = useState("");
-  const [customerHits, setCustomerHits] = useState<CustomerRecord[]>([]);
+
+  // ── Multi-cart state ──────────────────────────────────────────────
+  const [carts, setCarts] = useState<CartSession[]>(() => [
+    createEmptyCartSession(),
+  ]);
+  const [activeCartId, setActiveCartId] = useState<string>(carts[0].id);
+
+  const activeCart = useMemo(
+    () => carts.find((c) => c.id === activeCartId) ?? carts[0],
+    [carts, activeCartId],
+  );
+
+  /** Update the active cart in-place within the carts array. */
+  const updateActiveCart = useCallback(
+    (patch: Partial<CartSession> | ((prev: CartSession) => CartSession)) => {
+      setCarts((prev) =>
+        prev.map((c) => {
+          if (c.id !== activeCartId) return c;
+          if (typeof patch === "function") return patch(c);
+          return { ...c, ...patch };
+        }),
+      );
+    },
+    [activeCartId],
+  );
+
+  // Derived helpers that mirror old flat state for the rest of the code
+  const lines = activeCart.lines;
+  const payMethod = activeCart.payMethod;
+  const mpesaRef = activeCart.mpesaRef;
+  const customerPhoneQuery = activeCart.customerPhoneQuery;
+  const customerHits = activeCart.customerHits;
+  const selectedCustomer = activeCart.selectedCustomer;
+  const splitPay = activeCart.splitPay;
+  const cashSplitStr = activeCart.cashSplitStr;
+  const mpesaSplitStr = activeCart.mpesaSplitStr;
+  const splitMpesaRef = activeCart.splitMpesaRef;
+  // customerSearchBusy stays local (not per-cart)
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
-  const [splitPay, setSplitPay] = useState(false);
-  const [cashSplitStr, setCashSplitStr] = useState("");
-  const [mpesaSplitStr, setMpesaSplitStr] = useState("");
-  const [splitMpesaRef, setSplitMpesaRef] = useState("");
+
+  const setPayMethod = useCallback(
+    (m: SalePaymentMethod) => updateActiveCart({ payMethod: m }),
+    [updateActiveCart],
+  );
+  const setMpesaRef = useCallback(
+    (s: string) => updateActiveCart({ mpesaRef: s }),
+    [updateActiveCart],
+  );
+  const setCustomerPhoneQuery = useCallback(
+    (s: string) => updateActiveCart({ customerPhoneQuery: s }),
+    [updateActiveCart],
+  );
+  const setCustomerHits = useCallback(
+    (h: CustomerRecord[]) => updateActiveCart({ customerHits: h }),
+    [updateActiveCart],
+  );
+  const setSelectedCustomer = useCallback(
+    (c: CustomerRecord | null) => updateActiveCart({ selectedCustomer: c }),
+    [updateActiveCart],
+  );
+  const setSplitPay = useCallback(
+    (b: boolean) => updateActiveCart({ splitPay: b }),
+    [updateActiveCart],
+  );
+  const setCashSplitStr = useCallback(
+    (s: string) => updateActiveCart({ cashSplitStr: s }),
+    [updateActiveCart],
+  );
+  const setMpesaSplitStr = useCallback(
+    (s: string) => updateActiveCart({ mpesaSplitStr: s }),
+    [updateActiveCart],
+  );
+  const setSplitMpesaRef = useCallback(
+    (s: string) => updateActiveCart({ splitMpesaRef: s }),
+    [updateActiveCart],
+  );
+
+  // ── Cart management ───────────────────────────────────────────────
+
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -153,8 +241,39 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const [outboxCount, setOutboxCount] = useState(0);
   const [outboxBusy, setOutboxBusy] = useState(false);
   const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
-  const [lastSaleCustomerName, setLastSaleCustomerName] = useState<string | null>(null);
+  const [lastSaleCustomerName, setLastSaleCustomerName] = useState<
+    string | null
+  >(null);
   const [voidNotes, setVoidNotes] = useState("");
+
+  const createCart = useCallback(() => {
+    setCarts((prev) => {
+      if (prev.length >= MAX_CARTS) return prev;
+      const fresh = createEmptyCartSession();
+      setActiveCartId(fresh.id);
+      return [...prev, fresh];
+    });
+  }, []);
+
+  const switchCart = useCallback((id: string) => {
+    setActiveCartId(id);
+    setError("");
+    setNotice("");
+  }, []);
+
+  const removeCart = useCallback(
+    (id: string) => {
+      setCarts((prev) => {
+        if (prev.length <= 1) return prev; // never remove last
+        const filtered = prev.filter((c) => c.id !== id);
+        if (id === activeCartId) {
+          setActiveCartId(filtered[0].id);
+        }
+        return filtered;
+      });
+    },
+    [activeCartId],
+  );
 
   const refreshOutbox = useCallback(async () => {
     if (!isSaleOutboxSupported()) {
@@ -190,7 +309,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     } finally {
       setCustomerSearchBusy(false);
     }
-  }, [customerPhoneQuery, online]);
+  }, [customerPhoneQuery, online, setCustomerHits]);
 
   const refreshTopProducts = useCallback(() => {
     setTopProducts(getTopProducts(business?.id ?? null, 8));
@@ -200,7 +319,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     if (!canSell) {
       return;
     }
-     
+
     refreshTopProducts();
   }, [canSell, refreshTopProducts]);
 
@@ -320,7 +439,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         if (!cached) {
           setSearchBanner("Offline — no cached search for this query yet.");
         } else if (cached.stale) {
-          setSearchBanner("Offline — cached catalog results (may be outdated).");
+          setSearchBanner(
+            "Offline — cached catalog results (may be outdated).",
+          );
         } else {
           setSearchBanner("Offline — cached catalog results.");
         }
@@ -383,7 +504,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   }, []);
 
   const categoryBrowseParentId =
-    categoryBrowseStack.length > 0 ? categoryBrowseStack[categoryBrowseStack.length - 1].id : null;
+    categoryBrowseStack.length > 0
+      ? categoryBrowseStack[categoryBrowseStack.length - 1].id
+      : null;
 
   const typeFilterLabel = useMemo(() => {
     if (!posItemTypeId) return null;
@@ -409,32 +532,48 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const addLine = useCallback(
     (item: ItemSummaryRecord, qty: number = 1, unitPrice: string = "") => {
       const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
-      setLines((prev) => [
-        ...prev,
-        {
-          key: crypto.randomUUID(),
-          itemId: item.id,
-          label: `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
-          quantity: String(safeQty),
-          unitPrice: unitPrice ?? "",
-          item,
-        },
-      ]);
+      updateActiveCart((cart) => ({
+        ...cart,
+        lines: [
+          ...cart.lines,
+          {
+            key: crypto.randomUUID(),
+            itemId: item.id,
+            label:
+              `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
+            quantity: String(safeQty),
+            unitPrice: unitPrice ?? "",
+            item,
+          },
+        ],
+      }));
       setSearch("");
       setHits([]);
     },
-    [],
+    [updateActiveCart],
   );
 
-  const removeLine = useCallback((key: string) => {
-    setLines((prev) => prev.filter((l) => l.key !== key));
-  }, []);
+  const removeLine = useCallback(
+    (key: string) => {
+      updateActiveCart((cart) => ({
+        ...cart,
+        lines: cart.lines.filter((l) => l.key !== key),
+      }));
+    },
+    [updateActiveCart],
+  );
 
-  const updateLine = useCallback((key: string, field: "quantity" | "unitPrice", value: string) => {
-    setLines((prev) =>
-      prev.map((l) => (l.key === key ? { ...l, [field]: value } : l)),
-    );
-  }, []);
+  const updateLine = useCallback(
+    (key: string, field: "quantity" | "unitPrice", value: string) => {
+      updateActiveCart((cart) => ({
+        ...cart,
+        lines: cart.lines.map((l) =>
+          l.key === key ? { ...l, [field]: value } : l,
+        ),
+      }));
+    },
+    [updateActiveCart],
+  );
 
   const onRetryOutbox = useCallback(async () => {
     if (!online) {
@@ -466,7 +605,11 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       setNotice("");
       return;
     }
-    const payloadLines: { itemId: string; quantity: number; unitPrice: number }[] = [];
+    const payloadLines: {
+      itemId: string;
+      quantity: number;
+      unitPrice: number;
+    }[] = [];
     for (const line of lines) {
       const q = parseQty(line.quantity);
       const p = parseMoney(line.unitPrice);
@@ -523,7 +666,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       }
       const sum = roundMoney2(c + m);
       if (Math.abs(sum - grandTotal) > 0.001) {
-        setError(`Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}).`);
+        setError(
+          `Split amounts (${sum.toFixed(2)}) must equal cart total (${grandTotal.toFixed(2)}).`,
+        );
         setNotice("");
         return;
       }
@@ -568,14 +713,17 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     };
 
     const clearCartUi = () => {
-      setLines([]);
-      setMpesaRef("");
-      setCashSplitStr("");
-      setMpesaSplitStr("");
-      setSplitMpesaRef("");
-      setSelectedCustomer(null);
-      setCustomerHits([]);
-      setCustomerPhoneQuery("");
+      setCarts((prev) => {
+        const rest = prev.filter((c) => c.id !== activeCartId);
+        if (rest.length === 0) {
+          // Last cart — replace with a fresh empty one
+          const fresh = createEmptyCartSession();
+          setActiveCartId(fresh.id);
+          return [fresh];
+        }
+        setActiveCartId(rest[0].id);
+        return rest;
+      });
     };
 
     setError("");
@@ -590,7 +738,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
         return;
       }
       if (!isSaleOutboxSupported()) {
-        setError("This browser cannot queue offline sales (IndexedDB unavailable).");
+        setError(
+          "This browser cannot queue offline sales (IndexedDB unavailable).",
+        );
         return;
       }
       setLoading(true);
@@ -645,12 +795,20 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
       }
 
       const msg = result.message || "Sale failed.";
-      if (payMethod === "customer_wallet" && /wallet|insufficient|balance/i.test(msg)) {
+      if (
+        payMethod === "customer_wallet" &&
+        /wallet|insufficient|balance/i.test(msg)
+      ) {
         setError("Wallet payment rejected: insufficient wallet balance.");
         return;
       }
-      if (payMethod === "loyalty_redeem" && /loyalty|points|redeem|cap/i.test(msg)) {
-        setError("Loyalty redemption rejected: check points balance and redemption cap.");
+      if (
+        payMethod === "loyalty_redeem" &&
+        /loyalty|points|redeem|cap/i.test(msg)
+      ) {
+        setError(
+          "Loyalty redemption rejected: check points balance and redemption cap.",
+        );
         return;
       }
 
@@ -692,6 +850,7 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     business,
     refreshOutbox,
     refreshTopProducts,
+    activeCartId,
   ]);
 
   const onVoidLastSale = useCallback(async () => {
@@ -701,10 +860,14 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     setError("");
     setVoidLoading(true);
     try {
-      const updated = await postVoidSale(lastSale.id, { notes: voidNotes || null });
+      const updated = await postVoidSale(lastSale.id, {
+        notes: voidNotes || null,
+      });
       setLastSale(updated);
       setVoidNotes("");
-      setNotice(`Sale ${updated.id} voided. Same-shift reversal applied to stock, ledger, and drawer (cash).`);
+      setNotice(
+        `Sale ${updated.id} voided. Same-shift reversal applied to stock, ledger, and drawer (cash).`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Void failed.");
     } finally {
@@ -747,7 +910,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   const canCloseShift = hasPermission(me?.permissions, Permission.ShiftsClose);
   const showPosShiftLinks = isCashier && (canOpenShift || canCloseShift);
 
-  const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(null);
+  const [branchOpenShift, setBranchOpenShift] = useState<ShiftRecord | null>(
+    null,
+  );
   const [branchShiftLoading, setBranchShiftLoading] = useState(false);
   const [openShiftModal, setOpenShiftModal] = useState(false);
   const [closeShiftModal, setCloseShiftModal] = useState(false);
@@ -811,7 +976,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   );
 
   const currency = business?.currency?.trim() ?? "";
-  const branchSelected = Boolean(branchId && branches.some((b) => b.id === branchId));
+  const branchSelected = Boolean(
+    branchId && branches.some((b) => b.id === branchId),
+  );
 
   if (!canSell) {
     if (!isCashier) {
@@ -820,7 +987,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           title={heading}
           description={
             <>
-              You need <code className="text-xs">{Permission.SalesSell}</code> to record POS sales.
+              You need <code className="text-xs">{Permission.SalesSell}</code>{" "}
+              to record POS sales.
             </>
           }
           backHref={APP_ROUTES.business}
@@ -831,9 +999,12 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     return (
       <div className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
         <section className={DASHBOARD_SECTION_SURFACE}>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">{heading}</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            {heading}
+          </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            You need <code className="text-xs">{Permission.SalesSell}</code> to record POS sales.
+            You need <code className="text-xs">{Permission.SalesSell}</code> to
+            record POS sales.
           </p>
         </section>
       </div>
@@ -844,91 +1015,101 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
     return (
       <>
         <CashierPosLayout
-        online={online}
-        currency={currency}
-        uiCopy={CASHIER_POS_UI_COPY}
-        activeBranchName={activeBranchName}
-        branchesLoading={branchesLoading}
-        branchSelected={branchSelected}
-        branchId={branchId}
-        dialogBrandTheme={dialogBrandTheme}
-        search={search}
-        setSearch={setSearch}
-        hits={hits}
-        searchBanner={searchBanner}
-        topProducts={topProducts}
-        addLine={addLine}
-        canBrowseCategories={canBrowseCategories}
-        categoryRoots={categoryRoots}
-        visibleCategoryTiles={visibleCategoryTiles}
-        categoryBrowseStack={categoryBrowseStack}
-        setCategoryBrowseStack={setCategoryBrowseStack}
-        applySubtreeFilter={applySubtreeFilter}
-        clearCategoryFilter={clearCategoryFilter}
-        categoryFilterId={categoryFilterId}
-        categoryFilterLabel={categoryFilterLabel}
-        categoryTreeBusy={categoryTreeBusy}
-        categoryBrowseParentId={categoryBrowseParentId}
-        typeFilterId={posItemTypeId}
-        typeFilterLabel={typeFilterLabel}
-        clearTypeFilter={clearPosTypeFilter}
-        posShiftLinks={
-          showPosShiftLinks
-            ? {
-                branchId: branchId ?? "",
-                branchSelected,
-                hasOpenShift: branchOpenShift != null,
-                shiftLoading: branchShiftLoading,
-                canOpenShift,
-                canCloseShift,
-                onShortcut: onPosShiftShortcut,
-              }
-            : null
-        }
-        cart={{
-          lines,
-          grandTotal,
-          removeLine,
-          updateLine,
-          payMethod,
-          setPayMethod,
-          mpesaRef,
-          setMpesaRef,
-          splitPay,
-          setSplitPay,
-          cashSplitStr,
-          setCashSplitStr,
-          mpesaSplitStr,
-          setMpesaSplitStr,
-          splitMpesaRef,
-          setSplitMpesaRef,
-          canLookupCustomers,
-          customerPhoneQuery,
-          setCustomerPhoneQuery,
-          customerHits,
-          customerSearchBusy,
-          onSearchCustomers: () => void onSearchCustomers(),
-          selectedCustomer,
-          setSelectedCustomer,
-          onComplete: () => void onComplete().catch(() => undefined),
-          loading,
-          outboxCount,
-          outboxBusy,
-          onRetryOutbox: () => void onRetryOutbox().catch(() => undefined),
-          error,
-          notice,
-          canVoid,
-          lastSale,
-          lastSaleCustomerName,
-          voidNotes,
-          setVoidNotes,
-          onVoidLastSale: () => void onVoidLastSale().catch(() => undefined),
-          voidLoading,
-          onDownloadReceiptPdf: () =>
-            void onDownloadReceiptPdf().catch(() => undefined),
-          receiptLoading,
-        }}
-      />
+          online={online}
+          currency={currency}
+          uiCopy={CASHIER_POS_UI_COPY}
+          activeBranchName={activeBranchName}
+          branchesLoading={branchesLoading}
+          branchSelected={branchSelected}
+          branchId={branchId}
+          dialogBrandTheme={dialogBrandTheme}
+          search={search}
+          setSearch={setSearch}
+          hits={hits}
+          searchBanner={searchBanner}
+          topProducts={topProducts}
+          addLine={addLine}
+          canBrowseCategories={canBrowseCategories}
+          categoryRoots={categoryRoots}
+          visibleCategoryTiles={visibleCategoryTiles}
+          categoryBrowseStack={categoryBrowseStack}
+          setCategoryBrowseStack={setCategoryBrowseStack}
+          applySubtreeFilter={applySubtreeFilter}
+          clearCategoryFilter={clearCategoryFilter}
+          categoryFilterId={categoryFilterId}
+          categoryFilterLabel={categoryFilterLabel}
+          categoryTreeBusy={categoryTreeBusy}
+          categoryBrowseParentId={categoryBrowseParentId}
+          typeFilterId={posItemTypeId}
+          typeFilterLabel={typeFilterLabel}
+          clearTypeFilter={clearPosTypeFilter}
+          posShiftLinks={
+            showPosShiftLinks
+              ? {
+                  branchId: branchId ?? "",
+                  branchSelected,
+                  hasOpenShift: branchOpenShift != null,
+                  shiftLoading: branchShiftLoading,
+                  canOpenShift,
+                  canCloseShift,
+                  onShortcut: onPosShiftShortcut,
+                }
+              : null
+          }
+          cartTabs={carts.map((c) => ({
+            id: c.id,
+            label: cartSessionLabel(c),
+            itemCount: cartSessionItemCount(c),
+          }))}
+          activeCartId={activeCartId}
+          canCreateCart={carts.length < MAX_CARTS}
+          onCreateCart={createCart}
+          onSwitchCart={switchCart}
+          onRemoveCart={removeCart}
+          cart={{
+            lines,
+            grandTotal,
+            removeLine,
+            updateLine,
+            payMethod,
+            setPayMethod,
+            mpesaRef,
+            setMpesaRef,
+            splitPay,
+            setSplitPay,
+            cashSplitStr,
+            setCashSplitStr,
+            mpesaSplitStr,
+            setMpesaSplitStr,
+            splitMpesaRef,
+            setSplitMpesaRef,
+            canLookupCustomers,
+            customerPhoneQuery,
+            setCustomerPhoneQuery,
+            customerHits,
+            customerSearchBusy,
+            onSearchCustomers: () => void onSearchCustomers(),
+            selectedCustomer,
+            setSelectedCustomer,
+            onComplete: () => void onComplete().catch(() => undefined),
+            loading,
+            outboxCount,
+            outboxBusy,
+            onRetryOutbox: () => void onRetryOutbox().catch(() => undefined),
+            error,
+            notice,
+            canVoid,
+            lastSale,
+            lastSaleCustomerName,
+            voidNotes,
+            setVoidNotes,
+            onVoidLastSale: () => void onVoidLastSale().catch(() => undefined),
+            voidLoading,
+            onDownloadReceiptPdf: () =>
+              void onDownloadReceiptPdf().catch(() => undefined),
+            receiptLoading,
+          }}
+        />
         <OpenShiftModal
           open={openShiftModal}
           onClose={() => setOpenShiftModal(false)}
@@ -967,10 +1148,15 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
   }
 
   return (
-    <section className={cn("space-y-8", "mx-auto max-w-6xl pb-16")} style={dialogBrandTheme}>
+    <section
+      className={cn("space-y-8", "mx-auto max-w-6xl pb-16")}
+      style={dialogBrandTheme}
+    >
       <header className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-semibold text-[var(--pos-primary)]">{heading}</h2>
+          <h2 className="text-xl font-semibold text-[var(--pos-primary)]">
+            {heading}
+          </h2>
           <span
             className={`rounded px-2 py-0.5 text-xs font-medium ${online ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}
           >
@@ -978,12 +1164,16 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Installable PWA: open <span className="font-medium text-foreground">/cashier</span> to install a compact
-          cashier shell. When offline, sales can be queued on-device (IndexedDB) and replayed with the same{" "}
-          <code className="text-xs">Idempotency-Key</code> once you are online with an open shift. Catalog search
-          uses a short TTL read-through cache for stale/offline hints. Cash increases expected drawer closing; M-Pesa
-          (manual) posts to clearing without moving the drawer. Voiding reverses the last completed sale only while
-          the same shift is still open (<code className="text-xs">{Permission.SalesVoidOwn}</code> /{" "}
+          Installable PWA: open{" "}
+          <span className="font-medium text-foreground">/cashier</span> to
+          install a compact cashier shell. When offline, sales can be queued
+          on-device (IndexedDB) and replayed with the same{" "}
+          <code className="text-xs">Idempotency-Key</code> once you are online
+          with an open shift. Catalog search uses a short TTL read-through cache
+          for stale/offline hints. Cash increases expected drawer closing;
+          M-Pesa (manual) posts to clearing without moving the drawer. Voiding
+          reverses the last completed sale only while the same shift is still
+          open (<code className="text-xs">{Permission.SalesVoidOwn}</code> /{" "}
           <code className="text-xs">{Permission.SalesVoidAny}</code>).
         </p>
       </header>
@@ -1021,7 +1211,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                 ★
               </span>
               <div>
-                <h3 className="text-sm font-semibold leading-tight">Top sellers</h3>
+                <h3 className="text-sm font-semibold leading-tight">
+                  Top sellers
+                </h3>
                 <p className="text-[11px] text-muted-foreground">
                   One tap to add to cart · ranked by recent sales on this device
                 </p>
@@ -1065,11 +1257,15 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
             ) : null}
           </div>
           {!online ? (
-            <p className="text-xs text-muted-foreground">Go online to load the category tree.</p>
+            <p className="text-xs text-muted-foreground">
+              Go online to load the category tree.
+            </p>
           ) : categoryTreeBusy ? (
             <p className="text-xs text-muted-foreground">Loading categories…</p>
           ) : visibleCategoryTiles.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No active categories.</p>
+            <p className="text-xs text-muted-foreground">
+              No active categories.
+            </p>
           ) : (
             <>
               {categoryBrowseParentId ? (
@@ -1081,7 +1277,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                     className="h-8 text-xs"
                     disabled={!online}
                     onClick={() => {
-                      const cur = categoryBrowseStack[categoryBrowseStack.length - 1];
+                      const cur =
+                        categoryBrowseStack[categoryBrowseStack.length - 1];
                       applySubtreeFilter(cur.id, cur.name);
                     }}
                   >
@@ -1122,12 +1319,18 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                             unoptimized
                           />
                         ) : (
-                          <span className="flex h-full items-center justify-center text-muted-foreground">—</span>
+                          <span className="flex h-full items-center justify-center text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </span>
-                      <span className="line-clamp-2 font-medium leading-tight">{node.name}</span>
+                      <span className="line-clamp-2 font-medium leading-tight">
+                        {node.name}
+                      </span>
                       <span className="text-[10px] text-muted-foreground">
-                        {drillable ? `${kids.length} subcategories · tap to open` : "Tap for items"}
+                        {drillable
+                          ? `${kids.length} subcategories · tap to open`
+                          : "Tap for items"}
                       </span>
                     </button>
                   );
@@ -1145,7 +1348,13 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
             <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
               Aisle: {categoryFilterLabel ?? categoryFilterId}
             </span>
-            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={clearCategoryFilter}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={clearCategoryFilter}
+            >
               Clear aisle filter
             </Button>
           </div>
@@ -1154,7 +1363,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           <input
             className="max-w-md rounded border bg-background px-2 py-1.5 text-sm"
             placeholder={
-              categoryFilterId ? "Optional search within this aisle…" : "Search name or SKU…"
+              categoryFilterId
+                ? "Optional search within this aisle…"
+                : "Search name or SKU…"
             }
             value={search}
             onChange={(e) => {
@@ -1166,7 +1377,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
               }
             }}
           />
-          {searchBanner ? <p className="max-w-md text-xs text-amber-800">{searchBanner}</p> : null}
+          {searchBanner ? (
+            <p className="max-w-md text-xs text-amber-800">{searchBanner}</p>
+          ) : null}
           {hits.length > 0 ? (
             <ul className="max-h-48 max-w-md overflow-auto rounded border bg-background text-sm">
               {hits.map((h) => {
@@ -1182,14 +1395,24 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                     >
                       {thumb ? (
                         <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded border bg-muted">
-                          <Image src={thumb} alt="" width={36} height={36} className="object-cover" />
+                          <Image
+                            src={thumb}
+                            alt=""
+                            width={36}
+                            height={36}
+                            className="object-cover"
+                          />
                         </span>
                       ) : (
                         <span className="h-9 w-9 shrink-0 rounded border border-dashed border-muted-foreground/25 bg-muted/30" />
                       )}
                       <span className="min-w-0">
-                        <span className="line-clamp-2 font-medium leading-snug">{hitTitle}</span>
-                        <span className="block break-all text-xs text-muted-foreground">{hitDetail}</span>
+                        <span className="line-clamp-2 font-medium leading-snug">
+                          {hitTitle}
+                        </span>
+                        <span className="block break-all text-xs text-muted-foreground">
+                          {hitDetail}
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -1222,20 +1445,31 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                     inputMode="decimal"
                     className="w-24 rounded border bg-background px-2 py-1.5 tabular-nums"
                     value={line.quantity}
-                    onChange={(e) => updateLine(line.key, "quantity", e.target.value)}
+                    onChange={(e) =>
+                      updateLine(line.key, "quantity", e.target.value)
+                    }
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-muted-foreground">Unit ({currency})</span>
+                  <span className="text-muted-foreground">
+                    Unit ({currency})
+                  </span>
                   <input
                     type="text"
                     inputMode="decimal"
                     className="w-28 rounded border bg-background px-2 py-1.5 tabular-nums"
                     value={line.unitPrice}
-                    onChange={(e) => updateLine(line.key, "unitPrice", e.target.value)}
+                    onChange={(e) =>
+                      updateLine(line.key, "unitPrice", e.target.value)
+                    }
                   />
                 </label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => removeLine(line.key)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeLine(line.key)}
+                >
                   Remove
                 </Button>
               </li>
@@ -1243,7 +1477,8 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           </ul>
         )}
         <p className="text-sm tabular-nums">
-          Total: <span className="font-medium">{grandTotal.toFixed(2)}</span> {currency}
+          Total: <span className="font-medium">{grandTotal.toFixed(2)}</span>{" "}
+          {currency}
         </p>
       </div>
 
@@ -1426,9 +1661,13 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                             setError("");
                           }}
                         >
-                          <span className="font-medium text-foreground">{c.name}</span>
+                          <span className="font-medium text-foreground">
+                            {c.name}
+                          </span>
                           <span className="block text-muted-foreground">
-                            {c.phones.find((p) => p.primary)?.phone ?? c.phones[0]?.phone ?? "—"}
+                            {c.phones.find((p) => p.primary)?.phone ??
+                              c.phones[0]?.phone ??
+                              "—"}
                           </span>
                         </button>
                       </li>
@@ -1438,10 +1677,14 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                 {selectedCustomer ? (
                   <div className="space-y-1 text-xs text-foreground">
                     <p>
-                      Selected: <span className="font-medium">{selectedCustomer.name}</span>
+                      Selected:{" "}
+                      <span className="font-medium">
+                        {selectedCustomer.name}
+                      </span>
                     </p>
                     <p className="tabular-nums text-muted-foreground">
-                      Wallet {Number(selectedCustomer.credit.walletBalance).toFixed(2)}{" "}
+                      Wallet{" "}
+                      {Number(selectedCustomer.credit.walletBalance).toFixed(2)}{" "}
                       {currency} · {selectedCustomer.credit.loyaltyPoints} pts
                     </p>
                   </div>
@@ -1479,7 +1722,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           <dl className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
             <div>
               <dt className="inline font-normal">Sale</dt>{" "}
-              <dd className="inline font-mono text-foreground">{lastSale.id}</dd>
+              <dd className="inline font-mono text-foreground">
+                {lastSale.id}
+              </dd>
             </div>
             <div>
               <dt className="inline font-normal">Total</dt>{" "}
@@ -1489,7 +1734,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
             </div>
             <div className="sm:col-span-2">
               <dt className="inline font-normal">Sale journal</dt>{" "}
-              <dd className="inline font-mono text-foreground">{lastSale.journalEntryId}</dd>
+              <dd className="inline font-mono text-foreground">
+                {lastSale.journalEntryId}
+              </dd>
             </div>
             {lastSale.customerId ? (
               <div className="sm:col-span-2">
@@ -1497,8 +1744,12 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                 <dd className="inline text-foreground">
                   {lastSaleCustomerName ? (
                     <>
-                      <span className="font-medium">{lastSaleCustomerName}</span>{" "}
-                      <span className="font-mono text-muted-foreground">({lastSale.customerId})</span>
+                      <span className="font-medium">
+                        {lastSaleCustomerName}
+                      </span>{" "}
+                      <span className="font-mono text-muted-foreground">
+                        ({lastSale.customerId})
+                      </span>
                     </>
                   ) : (
                     <span className="font-mono">{lastSale.customerId}</span>
@@ -1516,7 +1767,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                       <>
                         {" "}
                         · void JE{" "}
-                        <span className="font-mono">{lastSale.voidJournalEntryId}</span>
+                        <span className="font-mono">
+                          {lastSale.voidJournalEntryId}
+                        </span>
                       </>
                     ) : null}
                   </dd>
@@ -1524,7 +1777,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
                 {lastSale.voidNotes ? (
                   <div className="sm:col-span-2">
                     <dt className="inline font-normal">Notes</dt>{" "}
-                    <dd className="inline text-foreground">{lastSale.voidNotes}</dd>
+                    <dd className="inline text-foreground">
+                      {lastSale.voidNotes}
+                    </dd>
                   </div>
                 ) : null}
               </>
@@ -1544,7 +1799,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           {canVoid && !isSaleVoided(lastSale) ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm">
-                <span className="text-muted-foreground">Void notes (optional)</span>
+                <span className="text-muted-foreground">
+                  Void notes (optional)
+                </span>
                 <input
                   className="rounded border bg-background px-2 py-1.5"
                   value={voidNotes}
@@ -1565,9 +1822,9 @@ export function QuickSaleWorkspace({ variant = "admin" }: QuickSaleWorkspaceProp
           ) : null}
           {!canVoid && !isSaleVoided(lastSale) ? (
             <p className="text-xs text-muted-foreground">
-              You do not have void permission on this account. Ask an admin to grant{" "}
-              <code className="text-xs">{Permission.SalesVoidOwn}</code> or{" "}
-              <code className="text-xs">{Permission.SalesVoidAny}</code>.
+              You do not have void permission on this account. Ask an admin to
+              grant <code className="text-xs">{Permission.SalesVoidOwn}</code>{" "}
+              or <code className="text-xs">{Permission.SalesVoidAny}</code>.
             </p>
           ) : null}
         </div>

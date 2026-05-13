@@ -23,10 +23,11 @@ import {
   type ItemSummaryRecord,
 } from "@/lib/api";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
+import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import {
-  cashierItemPrimaryLabel,
-} from "@/lib/cashier-item-display";
-import { formatShelfPriceLabel, splitShelfPriceDisplay } from "@/lib/cashier-shelf-price";
+  formatShelfPriceLabel,
+  splitShelfPriceDisplay,
+} from "@/lib/cashier-shelf-price";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,10 @@ import {
   CashierCartDrawer,
   type CashierCartDrawerProps,
 } from "./cashier-cart-drawer";
-import { CashierCurrencySuffix, CashierDottedLeader } from "./cashier-currency-inline";
+import {
+  CashierCurrencySuffix,
+  CashierDottedLeader,
+} from "./cashier-currency-inline";
 import { kioskCategoryPillClass } from "./kiosk-listing-styles";
 
 const POS_SHIFT_CHIP_CLASS = cn(
@@ -98,6 +102,14 @@ export type CashierPosLayoutProps = {
   clearTypeFilter: () => void;
   /** Shift / drawer shortcuts (cashier); opens modals in-place via {@link CashierPosShiftLinksProps.onShortcut}. */
   posShiftLinks: CashierPosShiftLinksProps | null;
+
+  /** Multi-cart tab strip data. */
+  cartTabs: { id: string; label: string; itemCount: number }[];
+  activeCartId: string;
+  canCreateCart: boolean;
+  onCreateCart: () => void;
+  onSwitchCart: (id: string) => void;
+  onRemoveCart: (id: string) => void;
 
   cart: Pick<
     CashierCartDrawerProps,
@@ -200,7 +212,12 @@ function TopSellerTile({
   shelfLine: string;
 }) {
   return (
-    <button type="button" onClick={onPick} className={KIOSK_TILE_SHELL} aria-label={`Add ${product.name}, ${shelfLine}`}>
+    <button
+      type="button"
+      onClick={onPick}
+      className={KIOSK_TILE_SHELL}
+      aria-label={`Add ${product.name}, ${shelfLine}`}
+    >
       <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
         <span
           className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-0.5 rounded-l-xl bg-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -247,7 +264,12 @@ function SearchHitTile({
   const title = cashierItemPrimaryLabel(item);
   const categoryLabel = item.categoryName?.trim() || "Menu";
   return (
-    <button type="button" onClick={onPick} className={KIOSK_TILE_SHELL} aria-label={`Add ${title}, ${shelfLine}`}>
+    <button
+      type="button"
+      onClick={onPick}
+      className={KIOSK_TILE_SHELL}
+      aria-label={`Add ${title}, ${shelfLine}`}
+    >
       <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
         <span
           className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-0.5 rounded-l-xl bg-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -319,6 +341,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     typeFilterLabel,
     clearTypeFilter,
     posShiftLinks,
+    cartTabs,
+    activeCartId,
+    canCreateCart,
+    onCreateCart,
+    onSwitchCart,
+    onRemoveCart,
     cart,
   } = props;
 
@@ -326,7 +354,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
-  const [tileShelfPrices, setTileShelfPrices] = useState<Record<string, string>>({});
+  const [tileShelfPrices, setTileShelfPrices] = useState<
+    Record<string, string>
+  >({});
 
   const hitIdsKey = useMemo(
     () =>
@@ -356,7 +386,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
   const grandTotal = cart.grandTotal;
   const hasSearch =
-    search.trim().length > 0 || categoryFilterId != null || typeFilterId != null;
+    search.trim().length > 0 ||
+    categoryFilterId != null ||
+    typeFilterId != null;
   const showCatalog = !hasSearch;
 
   const handlePickItem = (item: ItemSummaryRecord) => {
@@ -379,7 +411,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
   useEffect(() => {
     if (cart.notice || cart.error) {
-       
       setDrawerOpen(true);
     }
   }, [cart.notice, cart.error]);
@@ -447,7 +478,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         "bg-neutral-50/95 dark:bg-background",
       )}
     >
-      <section className={cn(DASHBOARD_SECTION_SURFACE, "border-border/50 shadow-sm")}>
+      <section
+        className={cn(DASHBOARD_SECTION_SURFACE, "border-border/50 shadow-sm")}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
@@ -462,7 +495,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 "Loading branches…"
               ) : activeBranchName ? (
                 <>
-                  Selling at <span className="font-medium text-foreground">{activeBranchName}</span>
+                  Selling at{" "}
+                  <span className="font-medium text-foreground">
+                    {activeBranchName}
+                  </span>
                   <span className="opacity-70"> · change in top nav</span>
                 </>
               ) : (
@@ -490,7 +526,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 </p>
               ) : posShiftLinks.shiftLoading ? (
                 <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin shrink-0" aria-hidden />
+                  <Loader2
+                    className="size-3.5 animate-spin shrink-0"
+                    aria-hidden
+                  />
                   Checking shift for this register…
                 </span>
               ) : (
@@ -501,9 +540,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       onClick={() => posShiftLinks.onShortcut("new-drawout")}
                       className={POS_SHIFT_CHIP_CLASS}
                     >
-                      <Wallet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      <Wallet
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
                       New cash drawout
-                      <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
+                      <ArrowRight
+                        className="size-3 shrink-0 text-muted-foreground opacity-60"
+                        aria-hidden
+                      />
                     </button>
                   ) : null}
                   {posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift ? (
@@ -512,20 +557,35 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       onClick={() => posShiftLinks.onShortcut("open-shift")}
                       className={POS_SHIFT_CHIP_CLASS}
                     >
-                      <PlusCircle className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      <PlusCircle
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
                       Open new shift
-                      <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
+                      <ArrowRight
+                        className="size-3 shrink-0 text-muted-foreground opacity-60"
+                        aria-hidden
+                      />
                     </button>
                   ) : null}
                   {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
                     <button
                       type="button"
                       onClick={() => posShiftLinks.onShortcut("close-shift")}
-                      className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/25 hover:border-destructive/40")}
+                      className={cn(
+                        POS_SHIFT_CHIP_CLASS,
+                        "border-destructive/25 hover:border-destructive/40",
+                      )}
                     >
-                      <LogOut className="size-3.5 shrink-0 text-destructive/80" aria-hidden />
+                      <LogOut
+                        className="size-3.5 shrink-0 text-destructive/80"
+                        aria-hidden
+                      />
                       Close shift
-                      <ArrowRight className="size-3 shrink-0 text-muted-foreground opacity-60" aria-hidden />
+                      <ArrowRight
+                        className="size-3 shrink-0 text-muted-foreground opacity-60"
+                        aria-hidden
+                      />
                     </button>
                   ) : null}
                 </div>
@@ -534,6 +594,89 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           </div>
         ) : null}
       </section>
+
+      {/* ── Multi-cart tabs ─────────────────────────────────────── */}
+      {cartTabs.length > 0 ? (
+        <div className="sticky top-[3.5rem] z-21 -mx-1 sm:-mx-0">
+          <div
+            className={cn(
+              "flex items-center gap-1 overflow-x-auto px-2 py-1.5",
+              "bg-gradient-to-b from-background via-background/98 to-background/90",
+              "supports-[backdrop-filter]:bg-background/85 supports-[backdrop-filter]:backdrop-blur-sm",
+              "border-b border-border/30",
+            )}
+          >
+            {cartTabs.map((tab) => {
+              const isActive = tab.id === activeCartId;
+              const hasItems = tab.itemCount > 0;
+              return (
+                <div
+                  key={tab.id}
+                  className={cn(
+                    "group relative flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                    isActive
+                      ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)]"
+                      : "border-border/45 bg-card/70 hover:border-border hover:bg-card",
+                  )}
+                >
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 outline-none"
+                    onClick={() => onSwitchCart(tab.id)}
+                  >
+                    <span
+                      className={cn(
+                        "max-w-[8rem] truncate leading-tight",
+                        isActive
+                          ? "text-[var(--pos-primary)]"
+                          : "text-foreground",
+                      )}
+                    >
+                      {tab.label}
+                    </span>
+                    {hasItems ? (
+                      <span
+                        className={cn(
+                          "inline-flex size-4 items-center justify-center rounded-full text-[9px] font-bold tabular-nums leading-none",
+                          isActive
+                            ? "bg-[var(--pos-primary)] text-[var(--pos-primary-ink)]"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {tab.itemCount > 99 ? "99+" : tab.itemCount}
+                      </span>
+                    ) : null}
+                  </button>
+                  {!isActive && (
+                    <button
+                      type="button"
+                      className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={`Close ${tab.label}`}
+                      onClick={() => onRemoveCart(tab.id)}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {canCreateCart ? (
+              <button
+                type="button"
+                className={cn(
+                  "flex shrink-0 items-center gap-1 rounded-lg border border-dashed border-border/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-all",
+                  "hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
+                )}
+                onClick={onCreateCart}
+                aria-label="New cart"
+              >
+                <PlusCircle className="size-3.5" />
+                <span>New</span>
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="sticky top-[3.5rem] z-20 -mx-1 sm:-mx-0">
         <section
@@ -549,7 +692,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               "dark:bg-card/80",
             )}
           >
-            <Search className="size-[1.125rem] shrink-0 text-muted-foreground/80" aria-hidden />
+            <Search
+              className="size-[1.125rem] shrink-0 text-muted-foreground/80"
+              aria-hidden
+            />
             <input
               type="search"
               value={search}
@@ -579,7 +725,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
           {searchBanner ? (
-            <p className="mt-2 px-0.5 text-[11px] text-amber-800 dark:text-amber-200">{searchBanner}</p>
+            <p className="mt-2 px-0.5 text-[11px] text-amber-800 dark:text-amber-200">
+              {searchBanner}
+            </p>
           ) : null}
           {categoryFilterId ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
@@ -613,7 +761,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       </div>
 
       {hasSearch ? (
-        <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 border-border/50 p-3 sm:space-y-2.5 sm:p-4")}>
+        <section
+          className={cn(
+            DASHBOARD_SECTION_SURFACE,
+            "space-y-2 border-border/50 p-3 sm:space-y-2.5 sm:p-4",
+          )}
+        >
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
               {search.trim()
@@ -646,7 +799,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <SearchHitTile
                   key={item.id}
                   item={item}
-                  shelfLine={tileShelfLine(online, tileShelfPrices, item.id, uiCopy)}
+                  shelfLine={tileShelfLine(
+                    online,
+                    tileShelfPrices,
+                    item.id,
+                    uiCopy,
+                  )}
                   onPick={() => handlePickItem(item)}
                 />
               ))}
@@ -669,7 +827,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 ★
               </span>
               <div className="min-w-0">
-                <h3 className="text-[13px] font-semibold leading-none tracking-tight sm:text-sm">Top sellers</h3>
+                <h3 className="text-[13px] font-semibold leading-none tracking-tight sm:text-sm">
+                  Top sellers
+                </h3>
                 <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
                   Tap · ranked on this register
                 </p>
@@ -697,9 +857,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       {showCatalog && canBrowseCategories ? (
-        <section className={cn(DASHBOARD_SECTION_SURFACE, "space-y-2 border-border/50 p-3 sm:p-4")}>
+        <section
+          className={cn(
+            DASHBOARD_SECTION_SURFACE,
+            "space-y-2 border-border/50 p-3 sm:p-4",
+          )}
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">Browse aisles</h3>
+            <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
+              Browse aisles
+            </h3>
             <div className="flex items-center gap-2">
               {categoryBrowseStack.length > 0 ? (
                 <Button
@@ -722,7 +889,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   className="h-8 text-xs"
                   disabled={!online}
                   onClick={() => {
-                    const cur = categoryBrowseStack[categoryBrowseStack.length - 1];
+                    const cur =
+                      categoryBrowseStack[categoryBrowseStack.length - 1];
                     applySubtreeFilter(cur.id, cur.name);
                   }}
                 >
@@ -816,7 +984,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 shadow-lg transition-[transform,box-shadow] sm:px-5 sm:py-3",
           "hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0",
-          pulseCart && "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
+          pulseCart &&
+            "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
         )}
         style={{
           backgroundColor: "var(--pos-primary)",
