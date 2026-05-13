@@ -25,6 +25,13 @@ export default function CashierLayout({ children }: CashierLayoutProps) {
       return;
     }
     setCheckedAuth(true);
+
+    // Phase 9: Register service worker for PWA offline support
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+        // Service worker registration is best-effort; failures are non-blocking.
+      });
+    }
   }, [router]);
 
   if (!checkedAuth) {

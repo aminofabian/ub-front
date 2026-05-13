@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
-import { getApiBaseUrl } from "@/lib/config";
+import { apiUrl } from "@/lib/config";
 import type {
   PublicCatalogItemCard,
   PublicCatalogListPayload,
@@ -55,7 +55,7 @@ export default function ShopCatalogWithMore({
       const cid = categoryId?.trim();
       if (cid) p.set("categoryId", cid);
       const path = `/api/v1/public/businesses/${encodeURIComponent(slug)}/catalog/items?${p}`;
-      const res = await fetch(`${getApiBaseUrl()}${path}`, {
+      const res = await fetch(apiUrl(path), {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) {

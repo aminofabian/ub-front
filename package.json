@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "mkdir -p .next/dev/cache .next/dev/server/pages/_app .next/dev/static/development",
-    "dev": "next dev",
+    "predev": "mkdir -p .next/dev/cache .next/dev/server/pages/_app .next/dev/static/development && rm -rf .next/dev/cache/*.sst",
+    "dev": "npx next@15.4.2 dev",
+    "dev:turbo": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,11 +13,13 @@
     "codegen": "openapi-typescript ../backend/docs/openapi/phase-1.yaml -o lib/generated/phase-1-api.ts"
   },
   "dependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@tanstack/react-virtual": "^3.13.24",
+    "@zxing/browser": "^0.2.0",
+    "@zxing/library": "^0.22.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "@eslint/eslintrc": "^3.3.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "lucide-react": "^1.11.0",

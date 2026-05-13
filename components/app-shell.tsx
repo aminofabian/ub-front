@@ -398,6 +398,9 @@ export function AppShell({ children }: AppShellProps) {
     return null;
   }, [activeSectionId]);
 
+  // ── Phase 9: multi_branch gate ────────────────────────────────────────
+  const multiBranch = featureFlags?.multi_branch !== false;
+
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
@@ -509,8 +512,8 @@ export function AppShell({ children }: AppShellProps) {
 
           <div className="flex items-center gap-3">
             {canReadNotifications ? <NotificationBell /> : null}
-            {/* Branch selector */}
-            {isOwner ? (
+            {/* Phase 9: Branch selector — visible when multi_branch flag is on */}
+            {multiBranch ? (
               <select
                 className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                 value={branchId}

@@ -1,0 +1,24 @@
+{
+  "name": "PalMart POS",
+  "short_name": "PalMart",
+  "description": "Point of sale, inventory, and storefront management",
+  "start_url": "/cashier",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0f172a",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/cashier-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "finance"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "scope": "/",
+  "iarc_rating_id": ""
+}

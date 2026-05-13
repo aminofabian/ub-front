@@ -1,8 +1,8 @@
 /**
- * Phase 16 — guest web cart (browser). Uses same-origin `/api/v1` BFF proxy; persists cart id in localStorage.
+ * Phase 16 — guest web cart (browser). Uses {@link apiUrl} for `/api/v1` calls.
  */
 
-import { getApiBaseUrl } from "./config";
+import { apiUrl } from "./config";
 
 export const WEB_CART_STORAGE_KEY = "ub.webCart.v1";
 export const WEB_CART_CHANGED_EVENT = "ub-web-cart-changed";
@@ -38,8 +38,7 @@ function clientStorage(): Storage | null {
 }
 
 function browserApiV1Base(): string {
-  const trimmed = getApiBaseUrl().replace(/\/+$/, "");
-  return trimmed.length > 0 ? `${trimmed}/api/v1` : "/api/v1";
+  return apiUrl("/api/v1");
 }
 
 export function readWebCartHandle(): StoredHandle | null {

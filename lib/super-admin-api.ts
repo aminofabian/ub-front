@@ -1,4 +1,4 @@
-import { API_ROUTES, getApiBaseUrl } from "@/lib/config";
+import { API_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
 import { extractPageContent } from "@/lib/page-content";
 import { getProblemTitle } from "@/lib/problem";
 import {
@@ -46,7 +46,7 @@ function getNetworkErrorMessage(): string {
 export async function loginSuperAdmin(email: string, password: string): Promise<SuperAdminLoginResult> {
   let response: Response;
   try {
-    response = await fetch(`${getApiBaseUrl()}${API_ROUTES.superAdminAuthLogin}`, {
+    response = await fetch(apiUrl(API_ROUTES.superAdminAuthLogin), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.trim(), password }),
@@ -87,7 +87,7 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   let response: Response;
   try {
-    response = await fetch(`${getApiBaseUrl()}${path}`, {
+    response = await fetch(apiUrl(path), {
       ...init,
       headers,
     });

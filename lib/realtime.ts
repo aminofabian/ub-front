@@ -15,7 +15,7 @@
 import { getSessionTokens, setSessionTokens } from "./auth";
 import {
   API_ROUTES,
-  getApiBaseUrl,
+  apiUrl,
   resolveRealtimeWebSocketBaseUrl,
   STORAGE_KEYS,
 } from "./config";
@@ -126,7 +126,7 @@ async function mintTicket(channels: string[]): Promise<TicketResponse> {
     throw new Error("No session tokens available");
   }
 
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/realtime/tickets`, {
+  const response = await fetch(apiUrl("/api/v1/realtime/tickets"), {
     method: "POST",
     headers: buildAuthHeaders(tokens.accessToken),
     body: JSON.stringify({ channels }),
@@ -471,7 +471,7 @@ export class RealtimeClient {
         this.startRestPolling();
         return;
       }
-      const refreshUrl = `${getApiBaseUrl()}${API_ROUTES.refresh}`;
+      const refreshUrl = apiUrl(API_ROUTES.refresh);
       const response = await fetch(refreshUrl, {
         method: "POST",
         headers: buildAuthHeaders(tokens.accessToken),
@@ -562,7 +562,7 @@ export class RealtimeClient {
     try {
       const tokens = getSessionTokens();
       if (!tokens) return;
-      const url = `${getApiBaseUrl()}/api/v1/notifications`;
+      const url = apiUrl("/api/v1/notifications");
       const response = await fetch(url, {
         headers: buildAuthHeaders(tokens.accessToken),
       });

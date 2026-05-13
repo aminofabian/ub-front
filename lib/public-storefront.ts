@@ -1,6 +1,8 @@
 /**
- * Phase 15 — public storefront catalog (no JWT). Server components use BACKEND_ORIGIN.
+ * Phase 15 — public storefront catalog (no JWT). Server components use {@link getServerApiOrigin}.
  */
+
+import { getServerApiOrigin } from "@/lib/config";
 
 export type PublicCatalogItemCard = {
   id: string;
@@ -236,11 +238,8 @@ export function marginTone(
   return "good";
 }
 
-function backendOrigin(): string | null {
-  const a = process.env.BACKEND_ORIGIN?.trim();
-  const b = process.env.API_BACKEND_ORIGIN?.trim();
-  const raw = a || b || "";
-  return raw.replace(/\/+$/, "") || null;
+function backendOrigin(): string {
+  return getServerApiOrigin();
 }
 
 export async function fetchPublicStorefront(
@@ -248,7 +247,7 @@ export async function fetchPublicStorefront(
 ): Promise<PublicStorefrontPayload | null> {
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
-  if (!base || !s) {
+  if (!s) {
     return null;
   }
   const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/storefront`;
@@ -277,7 +276,7 @@ export async function fetchPublicCatalogItems(
 ): Promise<PublicCatalogListPayload | null> {
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
-  if (!base || !s) {
+  if (!s) {
     return null;
   }
   const u = new URL(
@@ -318,7 +317,7 @@ export async function fetchPublicCategories(
 ): Promise<PublicCategoryListPayload | null> {
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
-  if (!base || !s) {
+  if (!s) {
     return null;
   }
   const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/categories`;
@@ -470,7 +469,7 @@ export async function fetchTenantContext(
 ): Promise<TenantContext | null> {
   const base = backendOrigin();
   const h = host.trim();
-  if (!base || !h) {
+  if (!h) {
     return null;
   }
   const u = new URL(`${base}/api/v1/public/host/resolve`);
@@ -496,7 +495,7 @@ export async function fetchPublicItemDetail(
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
   const id = itemId.trim();
-  if (!base || !s || !id) {
+  if (!s || !id) {
     return null;
   }
   const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(id)}`;

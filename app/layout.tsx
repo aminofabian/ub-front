@@ -6,8 +6,14 @@ import { TenantProvider } from "@/components/providers/tenant-provider";
 import { TenantHostSync } from "@/components/tenant-host-sync";
 import { TenantStatusPage } from "@/components/storefront/tenant-status-page";
 import type { TenantContext } from "@/lib/public-storefront";
-import { metadataFromTenantAndHost, themeColorFromTenant } from "@/lib/tenant-metadata";
-import { getRequestHostname, resolveTenantContext } from "@/lib/storefront-slug";
+import {
+  metadataFromTenantAndHost,
+  themeColorFromTenant,
+} from "@/lib/tenant-metadata";
+import {
+  getRequestHostname,
+  resolveTenantContext,
+} from "@/lib/storefront-slug";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -36,18 +42,27 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [tenant, host] = await Promise.all([resolveTenantContext(), getRequestHostname()]);
+  const [tenant, host] = await Promise.all([
+    resolveTenantContext(),
+    getRequestHostname(),
+  ]);
   return metadataFromTenantAndHost(tenant, host);
 }
 
-function renderBody(tenant: TenantContext | null, children: ReactNode): ReactNode {
+function renderBody(
+  tenant: TenantContext | null,
+  children: ReactNode,
+): ReactNode {
   if (tenant && tenant.status !== "ACTIVE") {
     return <TenantStatusPage status={tenant.status} />;
   }
   return children;
 }
 
-function withTenantProvider(tenant: TenantContext | null, children: ReactNode): ReactNode {
+function withTenantProvider(
+  tenant: TenantContext | null,
+  children: ReactNode,
+): ReactNode {
   if (!tenant) {
     return children;
   }
@@ -65,6 +80,11 @@ export default async function RootLayout({
       lang="en"
       className={`${outfit.variable} ${manrope.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className="min-h-full flex flex-col">
         <TenantHostSync />
         {withTenantProvider(tenant, body)}

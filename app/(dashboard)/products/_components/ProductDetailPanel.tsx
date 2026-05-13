@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import {
   Building2,
   Camera,
@@ -17,6 +17,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
   itemListThumbnailUrl,
   type ItemDetailRecord,
@@ -163,6 +164,8 @@ export function ProductDetailPanel(props: Props) {
     selectProduct,
   } = props;
 
+  const [scannerOpen, setScannerOpen] = useState(false);
+
   const saveCancelBtns = (onSave: () => void) => (
     <div className="flex gap-2">
       <Button
@@ -272,10 +275,14 @@ export function ProductDetailPanel(props: Props) {
               <span className="font-mono opacity-60">{detail.barcode}</span>
             )}
             {detail.brand && (
-              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">{detail.brand}</span>
+              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">
+                {detail.brand}
+              </span>
             )}
             {detail.size && (
-              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">{detail.size}</span>
+              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">
+                {detail.size}
+              </span>
             )}
           </div>
         </div>
@@ -455,6 +462,14 @@ export function ProductDetailPanel(props: Props) {
                   onChange={(e) => setQuickBarcode(e.target.value)}
                   placeholder="Scan or type…"
                 />
+                <button
+                  type="button"
+                  onClick={() => setScannerOpen(true)}
+                  className="flex size-7 items-center justify-center rounded-md border bg-background text-muted-foreground hover:bg-muted"
+                  aria-label="Scan barcode with camera"
+                >
+                  <Camera className="size-3.5" />
+                </button>
                 {saveCancelBtns(() => void saveQuickBarcode())}
               </div>
             ) : (
@@ -690,9 +705,7 @@ export function ProductDetailPanel(props: Props) {
                   )}
                 </div>
                 <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-foreground">
-                  {formatAmount(
-                    effectiveSupplierUnitCost(link, undefined),
-                  )}
+                  {formatAmount(effectiveSupplierUnitCost(link, undefined))}
                 </span>
               </div>
             ))}
@@ -719,7 +732,9 @@ export function ProductDetailPanel(props: Props) {
         </header>
         {variantRows.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-            <p className="text-[11px] text-muted-foreground">No variants yet.</p>
+            <p className="text-[11px] text-muted-foreground">
+              No variants yet.
+            </p>
             <button
               type="button"
               onClick={() => setActiveDrawer("add-variant")}
@@ -853,6 +868,16 @@ export function ProductDetailPanel(props: Props) {
           </div>
         )}
       </section>
+      {scannerOpen && (
+        <BarcodeScanner
+          onScan={(barcode) => {
+            setQuickBarcode(barcode);
+            setScannerOpen(false);
+            openQuickEdit("barcode");
+          }}
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
     </div>
   );
 }

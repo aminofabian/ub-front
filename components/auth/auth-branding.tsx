@@ -1,10 +1,7 @@
-import { getApiBaseUrl } from "@/lib/config";
+import { getApiBaseUrl, getServerApiOrigin } from "@/lib/config";
 
 export function AuthBranding() {
-  const apiHint =
-    getApiBaseUrl().length > 0
-      ? getApiBaseUrl()
-      : "same-origin (/api → BACKEND_ORIGIN)";
+  const apiHint = getApiBaseUrl() || getServerApiOrigin();
   return (
     <header className="mb-6 text-center">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">UB Admin</p>

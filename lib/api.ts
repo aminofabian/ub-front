@@ -5,6 +5,7 @@ import {
   DEFAULT_PAGE_QUERY,
   ERROR_CODES,
   getApiBaseUrl,
+  apiUrl,
   PROBLEM_TITLES,
   PUBLIC_TENANT_ID,
   STORAGE_KEYS,
@@ -17,7 +18,11 @@ import {
 } from "@/lib/auth";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
-import { parseProblem, formatApiProblemMessage, isUnmappedTenantHostProblem } from "@/lib/problem";
+import {
+  parseProblem,
+  formatApiProblemMessage,
+  isUnmappedTenantHostProblem,
+} from "@/lib/problem";
 import { toast } from "sonner";
 
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -118,7 +123,7 @@ export async function fetchTenantIdForHost(
   if (!h) {
     return null;
   }
-  const url = `${getApiBaseUrl()}${PUBLIC_HOST_RESOLVE_PATH}?host=${encodeURIComponent(h)}`;
+  const url = `${apiUrl(PUBLIC_HOST_RESOLVE_PATH)}?host=${encodeURIComponent(h)}`;
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -651,7 +656,7 @@ async function tryRefreshToken(): Promise<boolean> {
 
   let response: Response;
   try {
-    response = await fetch(`${getApiBaseUrl()}${API_ROUTES.refresh}`, {
+    response = await fetch(apiUrl(API_ROUTES.refresh), {
       method: "POST",
       headers: buildRequestHeaders(false, undefined, "POST"),
       body: JSON.stringify({ refreshToken: session.refreshToken }),
@@ -706,7 +711,7 @@ async function request<T>(
       headers.set("Idempotency-Key", idem);
     }
     try {
-      return await fetch(`${getApiBaseUrl()}${path}`, {
+      return await fetch(apiUrl(path), {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
@@ -765,7 +770,7 @@ async function requestMultipartJson<T>(
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
-    return fetch(`${getApiBaseUrl()}${path}`, {
+    return fetch(apiUrl(path), {
       method: "POST",
       headers,
       body: form,
@@ -847,14 +852,11 @@ async function postIntegrationsJsonImport(
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
     const headers = new Headers(headersInit);
     headers.delete("Content-Type");
-    return fetch(
-      `${getApiBaseUrl()}/api/v1/integrations/imports/${relativePath}`,
-      {
-        method: "POST",
-        headers,
-        body: form,
-      },
-    );
+    return fetch(apiUrl(`/api/v1/integrations/imports/${relativePath}`), {
+      method: "POST",
+      headers,
+      body: form,
+    });
   };
 
   let response = await execute();
@@ -941,7 +943,7 @@ async function requestBinary(path: string): Promise<Blob> {
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "GET");
-    return fetch(`${getApiBaseUrl()}${path}`, {
+    return fetch(apiUrl(path), {
       method: "GET",
       headers: headersInit,
     });
@@ -1062,7 +1064,7 @@ export async function resendVerificationEmail(
   const headers = new Headers(headersInit);
   let response: Response;
   try {
-    response = await fetch(`${getApiBaseUrl()}${API_ROUTES.resendVerification}`, {
+    response = await fetch(apiUrl(API_ROUTES.resendVerification), {
       method: "POST",
       headers,
       body: JSON.stringify({ email }),
@@ -1111,7 +1113,7 @@ export async function logoutRemote(): Promise<void> {
   const session = getSessionTokens();
   if (session) {
     try {
-      await fetch(`${getApiBaseUrl()}${API_ROUTES.logout}`, {
+      await fetch(apiUrl(API_ROUTES.logout), {
         method: "POST",
         headers: buildRequestHeaders(true, session.accessToken, "POST"),
       });
@@ -2875,6 +2877,34 @@ export async function postCompleteStockTransfer(
   );
 }
 
+/** Phase 9: Send a draft transfer — marks goods in-transit. */
+export async function postSendStockTransfer(transferId: string): Promise<void> {
+  await request(
+    `/api/v1/inventory/transfers/${encodeURIComponent(transferId)}/send`,
+    { method: "POST" },
+  );
+}
+
+/** Phase 9: Receive an in-transit transfer — activates goods at destination. */
+export async function postReceiveStockTransfer(
+  transferId: string,
+): Promise<void> {
+  await request(
+    `/api/v1/inventory/transfers/${encodeURIComponent(transferId)}/receive`,
+    { method: "POST" },
+  );
+}
+
+/** Phase 9: Cancel an in-transit transfer — returns stock to source. */
+export async function postCancelStockTransfer(
+  transferId: string,
+): Promise<void> {
+  await request(
+    `/api/v1/inventory/transfers/${encodeURIComponent(transferId)}/cancel`,
+    { method: "POST" },
+  );
+}
+
 export type StockTakeLineRecord = {
   id: string;
   itemId: string;
@@ -3572,7 +3602,7 @@ export async function tryPostSale(
     const headers = new Headers(headersInit);
     headers.set("Idempotency-Key", key);
     try {
-      const response = await fetch(`${getApiBaseUrl()}${path}`, {
+      const response = await fetch(apiUrl(path), {
         method,
         headers,
         body: JSON.stringify(buildJsonPostSaleBody(body)),
@@ -4335,7 +4365,7 @@ export async function simulateMpesaStkComplete(body: {
     headers.set("X-Mpesa-Simulate-Secret", secret);
   }
   try {
-    const resp = await fetch(`${getApiBaseUrl()}/webhooks/mpesa/stk/complete`, {
+    const resp = await fetch(apiUrl("/webhooks/mpesa/stk/complete"), {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -4362,4 +4392,53 @@ export async function createCustomer(
     method: "POST",
     body,
   });
+}
+
+// ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
+
+export type SyncConflictRecord = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  localVersion: string | null;
+  serverVersion: string | null;
+  resolution: string;
+  notes: string | null;
+  localSnapshot: string | null;
+  serverSnapshot: string | null;
+  createdBy: string | null;
+  createdAt: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+};
+
+export async function fetchSyncConflicts(): Promise<SyncConflictRecord[]> {
+  const payload = await request<unknown>("/api/v1/admin/sync/conflicts");
+  return extractPageContent<SyncConflictRecord>(payload);
+}
+
+export async function fetchSyncConflictCount(): Promise<number> {
+  const payload = await request<{ pending: number }>(
+    "/api/v1/admin/sync/conflicts/count",
+  );
+  return payload.pending ?? 0;
+}
+
+export async function resolveSyncConflictServerWins(
+  conflictId: string,
+): Promise<void> {
+  await request(
+    `/api/v1/admin/sync/conflicts/${encodeURIComponent(conflictId)}/resolve/server-wins`,
+    { method: "POST" },
+  );
+}
+
+export async function resolveSyncConflictLocalWins(
+  conflictId: string,
+  resolvedSnapshot: string,
+): Promise<void> {
+  await request(
+    `/api/v1/admin/sync/conflicts/${encodeURIComponent(conflictId)}/resolve/local-wins`,
+    { method: "POST", body: { resolvedSnapshot } },
+  );
 }

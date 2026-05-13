@@ -103,11 +103,13 @@ export const PROBLEM_TITLES = {
 const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";
 const RAW_REALTIME_WS_ORIGIN =
   process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() ?? "";
-const API_BROWSER_DIRECT =
-  process.env.NEXT_PUBLIC_API_BROWSER_DIRECT === "true";
 
 /** Hosted Java API origin (no trailing slash). */
 export const REMOTE_API_ORIGIN = "https://kiosk.zelisline.com";
+
+function normalizeOrigin(origin: string): string {
+  return origin.replace(/\/+$/, "");
+}
 
 function isPalmartProductionHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -115,13 +117,24 @@ function isPalmartProductionHost(hostname: string): boolean {
 }
 
 /**
+ * Java API origin for server-side fetches (SSR, Route Handlers, server components).
+ */
+export function getServerApiOrigin(): string {
+  const raw =
+    process.env.BACKEND_ORIGIN?.trim() ||
+    process.env.API_BACKEND_ORIGIN?.trim() ||
+    "";
+  return normalizeOrigin(raw) || REMOTE_API_ORIGIN;
+}
+
+/**
  * Browser-visible API origin for REST calls.
  *
- * Order: explicit direct env → PalMart production host → same-origin BFF proxy.
+ * Order: `NEXT_PUBLIC_API_BASE_URL` → PalMart production host → same-origin BFF proxy.
  */
 export function getApiBaseUrl(): string {
-  const normalizedEnv = RAW_API_BASE_URL.replace(/\/+$/, "");
-  if (API_BROWSER_DIRECT && normalizedEnv.length > 0) {
+  const normalizedEnv = normalizeOrigin(RAW_API_BASE_URL);
+  if (normalizedEnv.length > 0) {
     return normalizedEnv;
   }
 
@@ -134,11 +147,18 @@ export function getApiBaseUrl(): string {
   return "";
 }
 
-/**
- * Base for `fetch` to the backend. Prefer {@link getApiBaseUrl} when the value
- * must reflect the current browser host.
- */
-export const API_BASE_URL = getApiBaseUrl();
+/** Absolute or same-origin URL for `/api/v1/...` paths. */
+export function apiUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const browserOrigin = getApiBaseUrl();
+  if (browserOrigin) {
+    return `${normalizeOrigin(browserOrigin)}${normalizedPath}`;
+  }
+  if (typeof window === "undefined") {
+    return `${getServerApiOrigin()}${normalizedPath}`;
+  }
+  return normalizedPath;
+}
 
 /**
  * Browser WebSocket origin for `/api/v1/realtime`.
@@ -167,6 +187,12 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
       url.protocol = "ws:";
     }
     return `${url.origin}/api/v1/realtime`;
+  }
+
+  if (isPalmartProductionHost(window.location.hostname)) {
+    const remote = new URL(REMOTE_API_ORIGIN);
+    remote.protocol = "wss:";
+    return `${remote.origin}/api/v1/realtime`;
   }
 
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";

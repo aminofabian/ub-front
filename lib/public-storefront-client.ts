@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/config";
 import type {
   PublicCatalogItemDetail,
   PublicCatalogListPayload,
@@ -58,7 +59,7 @@ export async function fetchPublicCatalogPageBrowser(
     return null;
   }
   try {
-    const res = await fetch(path, {
+    const res = await fetch(apiUrl(path), {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
@@ -80,7 +81,7 @@ export async function fetchPublicStorefrontBrowser(
   }
   try {
     const res = await fetch(
-      `/api/v1/public/businesses/${encodeURIComponent(s)}/storefront`,
+      apiUrl(`/api/v1/public/businesses/${encodeURIComponent(s)}/storefront`),
       {
         headers: { Accept: "application/json" },
         cache: "no-store",
@@ -106,7 +107,9 @@ export async function fetchPublicItemDetailBrowser(
   }
   try {
     const res = await fetch(
-      `/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(id)}`,
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(id)}`,
+      ),
       {
         headers: { Accept: "application/json" },
         cache: "no-store",
