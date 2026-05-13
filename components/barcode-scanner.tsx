@@ -23,7 +23,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 
-      const devices = await reader.listVideoInputDevices();
+      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
       if (devices.length === 0) {
         setError("No camera found on this device.");
         return;
@@ -46,10 +46,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             if (result) {
               const barcode = result.getText();
               // Debounce: ignore repeat scans of the same barcode within 2s
-              if (
-                barcode !== lastScanRef.current ||
-                !scanTimeoutRef.current
-              ) {
+              if (barcode !== lastScanRef.current || !scanTimeoutRef.current) {
                 lastScanRef.current = barcode;
                 if (scanTimeoutRef.current) {
                   clearTimeout(scanTimeoutRef.current);
