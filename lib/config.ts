@@ -132,18 +132,25 @@ export function getServerApiOrigin(): string {
 /**
  * Browser-visible API origin for REST calls.
  *
- * Strategy: return "" so that {@link apiUrl} produces a same-origin path like
- * `/api/v1/...`. The Next.js BFF (see `next.config.ts` `rewrites`) transparently
- * forwards those to the Java backend. Keeping browser traffic same-origin
- * eliminates CORS preflights entirely — backend 502/503s no longer surface as
- * misleading "No 'Access-Control-Allow-Origin' header" errors, and CORS
- * allow-list drift in env vars cannot break the storefront.
+ * Strategy: in the browser, ALWAYS return "" so that {@link apiUrl} produces a
+ * same-origin path like `/api/v1/...`. The Next.js BFF (see `next.config.ts`
+ * `rewrites`) transparently forwards those to the Java backend.
  *
- * The legacy {@code NEXT_PUBLIC_API_BASE_URL} env var is still honored as an
- * escape hatch for non-Vercel hosts that cannot run rewrites (rare). Prefer
- * leaving it unset.
+ * Same-origin browser traffic eliminates CORS preflights entirely — backend
+ * 502/503s no longer surface as misleading "No 'Access-Control-Allow-Origin'
+ * header" errors, and CORS allow-list drift in env vars cannot break the
+ * storefront.
+ *
+ * {@code NEXT_PUBLIC_API_BASE_URL} is intentionally ignored at runtime in the
+ * browser — it's only honored on the server (SSR/route handlers) where there
+ * is no CORS and the BFF rewrite path is not exercised. This prevents a stale
+ * Vercel env var (e.g. {@code https://kiosk.zelisline.com}) from re-introducing
+ * cross-origin requests that we've worked hard to eliminate.
  */
 export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return "";
+  }
   const normalizedEnv = normalizeOrigin(RAW_API_BASE_URL);
   if (normalizedEnv.length > 0) {
     return normalizedEnv;
