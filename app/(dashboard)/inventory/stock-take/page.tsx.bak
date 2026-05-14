@@ -137,9 +137,6 @@ export default function StockTakePage() {
   const [createCategoryId, setCreateCategoryId] = useState("");
   const [createBrand, setCreateBrand] = useState("");
   const [createSize, setCreateSize] = useState("");
-  const [createMode, setCreateMode] = useState<"standalone" | "variant">(
-    "standalone",
-  );
   const [itemTypes, setItemTypes] = useState<{ id: string; label: string }[]>(
     [],
   );
@@ -173,12 +170,6 @@ export default function StockTakePage() {
     fetchItemTypes()
       .then((types) => {
         if (!cancelled) setItemTypes(types);
-      })
-      .catch(() => {});
-
-    fetchCategories()
-      .then((cats) => {
-        if (!cancelled) setCategories(cats);
       })
       .catch(() => {});
 
@@ -336,48 +327,22 @@ export default function StockTakePage() {
     }
   }, [session, countItem, countQty, countAisle]);
 
-  // ── Search for parent product (variant flow)
-  const onParentSearch = useCallback((q: string) => {
-    setCreateParentSearch(q);
-    if (!q.trim()) {
-      setCreateParentHits([]);
-      return;
-    }
-    setCreateParentSearching(true);
-    fetchItemsPage(q.trim(), { catalogScope: "SKUS_ONLY", page: 0, size: 10 })
-      .then((page) => setCreateParentHits(page.content))
-      .catch(() => setCreateParentHits([]))
-      .finally(() => setCreateParentSearching(false));
-  }, []);
-
-  // ── Create product + count (standalone & variant)
+  // ── Create product + count
   const onCreateProduct = useCallback(async () => {
     if (!session || !createName.trim() || !createCount.trim()) return;
     setLoading(true);
     setMessage("");
     try {
       const defaultItemTypeId = itemTypes.length > 0 ? itemTypes[0].id : "";
-      let created: { id: string; name: string };
-      if (createParentId) {
-        created = await createItemVariant(createParentId, {
-          variantName: createName.trim(),
-          barcode: createBarcode.trim() || undefined,
-          unitType: createUnitType,
-          categoryId: createCategoryId || undefined,
-        });
-      } else {
-        created = await createItem({
-          name: createName.trim(),
-          barcode: createBarcode.trim() || undefined,
-          unitType: createUnitType,
-          itemTypeId: defaultItemTypeId,
-          isStocked: true,
-          isSellable: true,
-          categoryId: createCategoryId || undefined,
-          brand: createBrand.trim() || undefined,
-          size: createSize.trim() || undefined,
-        });
-      }
+      const created = await createItem({
+        name: createName.trim(),
+        barcode: createBarcode.trim() || undefined,
+        unitType: createUnitType,
+        itemTypeId: defaultItemTypeId,
+        isStocked: true,
+        isSellable: true,
+      });
+      // Add to session and set count
       let s = await postStockTakeAddLine(
         session.id,
         created.id,
@@ -398,13 +363,6 @@ export default function StockTakePage() {
       setCreateBarcode("");
       setCreateCount("");
       setCreateAisle("");
-      setCreateParentId("");
-      setCreateParentLabel("");
-      setCreateParentSearch("");
-      setCreateParentHits([]);
-      setCreateCategoryId("");
-      setCreateBrand("");
-      setCreateSize("");
       setMessage(`Created and counted: ${createName.trim()}`);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Failed to create product.");
@@ -418,10 +376,6 @@ export default function StockTakePage() {
     createUnitType,
     createAisle,
     createCount,
-    createParentId,
-    createCategoryId,
-    createBrand,
-    createSize,
     itemTypes,
   ]);
 
@@ -483,16 +437,6 @@ export default function StockTakePage() {
             />
             <DashboardQuickLinks
               links={[
-                ...(canApprove
-                  ? [
-                      {
-                        href: `${APP_ROUTES.inventoryStockTake}?review=1`,
-                        label: "Pending Reviews",
-                        desc: "Approve submitted counts",
-                        icon: ClipboardList,
-                      },
-                    ]
-                  : []),
                 {
                   href: APP_ROUTES.inventoryValuation,
                   label: "Valuation",
@@ -690,25 +634,10 @@ export default function StockTakePage() {
               <div className="size-2.5 rounded-full bg-amber-400" />
               <span>{remainingCount} remaining</span>
             </div>
-            {canApprove && session ? (
-              <Link
-                href={`/inventory/stock-take/review/${session.id}`}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 -mx-2 hover:bg-amber-100 dark:hover:bg-amber-950 transition-colors"
-              >
-                <Clock className="size-4 text-amber-600" />
-                <span className="font-medium text-amber-700 dark:text-amber-400">
-                  {countedCount} pending
-                </span>
-                <span className="text-[10px] text-amber-500 ml-0.5">
-                  &rarr;
-                </span>
-              </Link>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <Clock className="size-4 text-muted-foreground" />
-                <span>{countedCount} pending</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <Clock className="size-4 text-muted-foreground" />
+              <span>{countedCount} pending</span>
+            </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="size-4 text-emerald-500" />
               <span>{confirmedCount} confirmed</span>
@@ -907,7 +836,6 @@ export default function StockTakePage() {
             confirmed={
               getLineStatus(checklistLines, countItem.id) === "confirmed"
             }
-            canApprove={canApprove}
             onQtyChange={setCountQty}
             onAisleChange={setCountAisle}
             onSubmit={onSubmitCount}
@@ -918,29 +846,18 @@ export default function StockTakePage() {
         {/* Create product modal */}
         {showCreate ? (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-t-xl sm:rounded-xl bg-background shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-md rounded-t-xl sm:rounded-xl bg-background shadow-2xl">
               <div className="flex items-start justify-between border-b px-5 py-4">
                 <div className="min-w-0">
                   <h3 className="truncate text-base font-semibold">
                     New Product
                   </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Create and count in one step
+                  </p>
                 </div>
                 <button
-                  onClick={() => {
-                    setShowCreate(false);
-                    setCreateName("");
-                    setCreateBarcode("");
-                    setCreateCount("");
-                    setCreateAisle("");
-                    setCreateParentId("");
-                    setCreateParentLabel("");
-                    setCreateParentSearch("");
-                    setCreateParentHits([]);
-                    setCreateCategoryId("");
-                    setCreateBrand("");
-                    setCreateSize("");
-                    setCreateMode("standalone");
-                  }}
+                  onClick={() => setShowCreate(false)}
                   className="ml-4 shrink-0 rounded-md p-1 hover:bg-muted"
                   aria-label="Close"
                 >
@@ -948,122 +865,14 @@ export default function StockTakePage() {
                 </button>
               </div>
               <div className="space-y-4 px-5 py-4">
-                {/* Toggle: Standalone / Variant */}
-                <div className="flex rounded-lg border bg-muted/50 p-1 gap-1">
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      createMode === "standalone"
-                        ? "bg-background shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    onClick={() => {
-                      setCreateMode("standalone");
-                      setCreateParentId("");
-                      setCreateParentLabel("");
-                      setCreateParentSearch("");
-                      setCreateParentHits([]);
-                    }}
-                  >
-                    Standalone
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      createMode === "variant"
-                        ? "bg-background shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    onClick={() => {
-                      setCreateMode("variant");
-                    }}
-                  >
-                    Variant
-                  </button>
-                </div>
-
-                {/* Variant: parent search or selected parent */}
-                {createMode === "variant" ? (
-                  createParentId ? (
-                    <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
-                      <span className="flex-1 truncate text-sm">
-                        {createParentLabel}
-                      </span>
-                      <button
-                        type="button"
-                        className="shrink-0 rounded p-0.5 hover:bg-muted"
-                        onClick={() => {
-                          setCreateParentId("");
-                          setCreateParentLabel("");
-                          setCreateParentSearch("");
-                          setCreateParentHits([]);
-                        }}
-                        aria-label="Clear parent"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <input
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                        placeholder="Search parent product…"
-                        value={createParentSearch}
-                        onChange={(e) => onParentSearch(e.target.value)}
-                        autoFocus
-                      />
-                      {createParentSearching && (
-                        <p className="text-xs text-muted-foreground">
-                          Searching…
-                        </p>
-                      )}
-                      {createParentHits.length > 0 && (
-                        <div className="max-h-36 overflow-y-auto rounded-md border">
-                          {createParentHits.map((hit) => (
-                            <button
-                              key={hit.id}
-                              type="button"
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors border-b last:border-b-0"
-                              onClick={() => {
-                                setCreateParentId(hit.id);
-                                setCreateParentLabel(
-                                  `${hit.name}${hit.sku ? ` · ${hit.sku}` : ""}`,
-                                );
-                                setCreateParentSearch("");
-                                setCreateParentHits([]);
-                              }}
-                            >
-                              <span className="font-medium">{hit.name}</span>
-                              {hit.sku && (
-                                <span className="ml-1.5 text-xs text-muted-foreground">
-                                  {hit.sku}
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                ) : null}
-
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">
-                    {createMode === "variant" ? "Variant Name" : "Product Name"}{" "}
-                    *
-                  </span>
+                  <span className="text-sm font-medium">Product Name *</span>
                   <input
                     className="rounded-md border bg-background px-3 py-2 text-sm"
-                    placeholder={
-                      createMode === "variant"
-                        ? "e.g. 500ml"
-                        : "e.g. New Cereal Brand"
-                    }
+                    placeholder="e.g. New Cereal Brand"
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    autoFocus={createMode === "standalone"}
+                    autoFocus
                   />
                 </label>
                 <label className="flex flex-col gap-1.5">
@@ -1101,43 +910,6 @@ export default function StockTakePage() {
                   </label>
                 </div>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">Category</span>
-                  <select
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
-                    value={createCategoryId}
-                    onChange={(e) => setCreateCategoryId(e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {createMode === "standalone" ? (
-                  <>
-                    <label className="flex flex-col gap-1.5">
-                      <span className="text-sm font-medium">Brand</span>
-                      <input
-                        className="rounded-md border bg-background px-3 py-2 text-sm"
-                        placeholder="e.g. Kellogg's"
-                        value={createBrand}
-                        onChange={(e) => setCreateBrand(e.target.value)}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1.5">
-                      <span className="text-sm font-medium">Size</span>
-                      <input
-                        className="rounded-md border bg-background px-3 py-2 text-sm"
-                        placeholder="e.g. 500g"
-                        value={createSize}
-                        onChange={(e) => setCreateSize(e.target.value)}
-                      />
-                    </label>
-                  </>
-                ) : null}
-                <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">Count *</span>
                   <input
                     type="number"
@@ -1160,7 +932,7 @@ export default function StockTakePage() {
                   }
                   onClick={onCreateProduct}
                 >
-                  Create &amp; Count
+                  Create & Count
                 </Button>
               </div>
             </div>
@@ -1179,7 +951,6 @@ function CountModal({
   aisle,
   loading,
   confirmed,
-  canApprove,
   onQtyChange,
   onAisleChange,
   onSubmit,
@@ -1190,7 +961,6 @@ function CountModal({
   aisle: string;
   loading: boolean;
   confirmed: boolean;
-  canApprove: boolean;
   onQtyChange: (v: string) => void;
   onAisleChange: (v: string) => void;
   onSubmit: () => void;
@@ -1258,7 +1028,7 @@ function CountModal({
                   autoFocus
                 />
               </label>
-              {canApprove && item.stockQty != null ? (
+              {item.stockQty != null ? (
                 <p className="text-xs text-muted-foreground">
                   System stock: {String(item.stockQty)} pcs
                 </p>

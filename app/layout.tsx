@@ -79,13 +79,14 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${outfit.variable} ${manrope.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <TenantHostSync />
         {withTenantProvider(tenant, body)}
       </body>

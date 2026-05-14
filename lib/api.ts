@@ -2908,9 +2908,18 @@ export async function postCancelStockTransfer(
 export type StockTakeLineRecord = {
   id: string;
   itemId: string;
+  itemName: string;
+  itemSku: string | null;
   systemQtySnapshot: number | string;
   countedQty: number | string | null;
+  adminQuantity: number | string | null;
   note: string | null;
+  aisle: string | null;
+  status: string;
+  submittedBy: string | null;
+  submittedAt: string | null;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
 };
 
 export type StockAdjustmentRequestRecord = {
@@ -2925,17 +2934,57 @@ export type StockAdjustmentRequestRecord = {
 
 export type StockTakeSessionRecord = {
   id: string;
+  sessionNumber: number;
   branchId: string;
   status: string;
+  sessionType: string;
+  sessionDate: string;
+  name: string;
   notes: string | null;
+  startedBy: string | null;
   closedAt: string | null;
+  closedBy: string | null;
   lines: StockTakeLineRecord[];
   adjustmentRequests: StockAdjustmentRequestRecord[];
 };
 
+export type ActiveStockTakeSessionResponse = {
+  session: StockTakeSessionRecord | null;
+  hasStaleSession: boolean;
+  staleSessionDate: string | null;
+  staleSessionId: string | null;
+};
+
+export type ReconciliationLineRecord = {
+  itemId: string;
+  itemName: string;
+  sku: string;
+  openingStock: number | string;
+  unitsSold: number | string;
+  expectedClosing: number | string;
+  actualClosing: number | string;
+  variance: number | string;
+};
+
+export type ReconciliationResponseRecord = {
+  morningSessionId: string;
+  eveningSessionId: string;
+  morningSessionName: string;
+  eveningSessionName: string;
+  totalReconciled: number;
+  zeroVariance: number;
+  withVariance: number;
+  morningConfirmedCount: number;
+  eveningConfirmedCount: number;
+  lines: ReconciliationLineRecord[];
+};
+
 export async function postStockTakeStart(body: {
   branchId: string;
+  sessionType: string;
+  sessionDate?: string;
   notes?: string | null;
+  itemIds?: string[] | null;
 }): Promise<StockTakeSessionRecord> {
   return request<StockTakeSessionRecord>(
     "/api/v1/inventory/stock-take/sessions",
@@ -2956,7 +3005,11 @@ export async function fetchStockTakeSession(
 
 export async function patchStockTakeCounts(
   sessionId: string,
-  lines: { lineId: string; countedQty: number | string }[],
+  lines: {
+    lineId: string;
+    countedQty: number | string;
+    aisle?: string | null;
+  }[],
 ): Promise<StockTakeSessionRecord> {
   return request<StockTakeSessionRecord>(
     `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/lines`,
@@ -2964,12 +3017,95 @@ export async function patchStockTakeCounts(
   );
 }
 
-export async function postStockTakeClose(
+export async function patchStockTakeSingleLine(
   sessionId: string,
+  lineId: string,
+  countedQty: number | string,
+  aisle?: string | null,
 ): Promise<StockTakeSessionRecord> {
   return request<StockTakeSessionRecord>(
-    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/close`,
+    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/lines/${encodeURIComponent(lineId)}`,
+    { method: "PATCH", body: { countedQty, aisle: aisle || null } },
+  );
+}
+
+export async function postStockTakeClose(
+  sessionId: string,
+  force?: boolean,
+): Promise<StockTakeSessionRecord> {
+  const query = force ? "?force=true" : "";
+  return request<StockTakeSessionRecord>(
+    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/close${query}`,
     { method: "POST" },
+  );
+}
+
+export async function fetchActiveStockTakeSession(
+  branchId: string,
+  date?: string,
+): Promise<ActiveStockTakeSessionResponse> {
+  const params = new URLSearchParams({ branchId });
+  if (date) params.set("date", date);
+  return request<ActiveStockTakeSessionResponse>(
+    `/api/v1/inventory/stock-take/sessions/active?${params.toString()}`,
+  );
+}
+
+export async function fetchStockTakeSessions(params?: {
+  branchId?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+}): Promise<StockTakeSessionRecord[]> {
+  const qs = new URLSearchParams();
+  if (params?.branchId) qs.set("branchId", params.branchId);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.from) qs.set("from", params.from);
+  if (params?.to) qs.set("to", params.to);
+  const query = qs.toString();
+  return request<StockTakeSessionRecord[]>(
+    `/api/v1/inventory/stock-take/sessions${query ? `?${query}` : ""}`,
+  );
+}
+
+export async function postStockTakeAddLine(
+  sessionId: string,
+  itemId: string,
+  aisle?: string | null,
+): Promise<StockTakeSessionRecord> {
+  return request<StockTakeSessionRecord>(
+    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/lines`,
+    { method: "POST", body: { itemId, aisle: aisle || null } },
+  );
+}
+
+export async function postStockTakeConfirmLine(
+  sessionId: string,
+  lineId: string,
+  adminQuantity?: number | string | null,
+): Promise<StockTakeSessionRecord> {
+  return request<StockTakeSessionRecord>(
+    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/lines/${encodeURIComponent(lineId)}/confirm`,
+    { method: "POST", body: adminQuantity != null ? { adminQuantity } : {} },
+  );
+}
+
+export async function fetchStockTakeReconciliation(
+  morningSessionId?: string,
+  eveningSessionId?: string,
+  branchId?: string,
+  date?: string,
+): Promise<ReconciliationResponseRecord> {
+  const params = new URLSearchParams();
+  if (morningSessionId?.trim())
+    params.set("morningSessionId", morningSessionId.trim());
+  if (eveningSessionId?.trim())
+    params.set("eveningSessionId", eveningSessionId.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (date?.trim()) params.set("date", date.trim());
+  const qs = params.toString();
+  return request<ReconciliationResponseRecord>(
+    `/api/v1/inventory/stock-take/sessions/reconciliation${qs ? `?${qs}` : ""}`,
   );
 }
 

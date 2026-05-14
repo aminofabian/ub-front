@@ -10,7 +10,14 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  ClipboardList,
+  RefreshCw,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -28,9 +35,11 @@ import {
 import {
   fetchBranches,
   fetchRecentSales,
+  postStockTakeStart,
   type BranchRecord,
   type RecentSaleRow,
 } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 function formatMoney(
   n: number | string | null | undefined,
@@ -95,6 +104,17 @@ export default function AnalyticsActivityPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [recentSales, setRecentSales] = useState<RecentSaleRow[]>([]);
   const [saleSearch, setSaleSearch] = useState("");
+
+  // ── Stock-take from sales
+  const router = useRouter();
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [showStockTakeDialog, setShowStockTakeDialog] = useState(false);
+  const [stockTakeBranchId, setStockTakeBranchId] = useState("");
+  const [stockTakeNotes, setStockTakeNotes] = useState("");
+  const [stockTakeLoading, setStockTakeLoading] = useState(false);
+  const [stockTakeMessage, setStockTakeMessage] = useState("");
 
   const dateRange = useMemo(() => {
     if (preset === "custom") {
@@ -175,6 +195,59 @@ export default function AnalyticsActivityPage() {
         s.saleId.toLowerCase().includes(q),
     );
   }, [recentSales, saleSearch]);
+
+  // Deduplicate sales by item ID for stock-take selection (keep the first name)
+  const uniqueSaleItems = useMemo(() => {
+    const seen = new Map<string, { itemId: string; itemName: string }>();
+    for (const s of recentSales) {
+      if (!seen.has(s.itemId)) {
+        seen.set(s.itemId, { itemId: s.itemId, itemName: s.itemName });
+      }
+    }
+    return [...seen.values()];
+  }, [recentSales]);
+
+  const toggleSelectItem = useCallback((itemId: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedItemIds(new Set(uniqueSaleItems.map((s) => s.itemId)));
+  }, [uniqueSaleItems]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedItemIds(new Set());
+  }, []);
+
+  const onStartStockTake = useCallback(async () => {
+    if (selectedItemIds.size === 0 || !stockTakeBranchId) return;
+    setStockTakeLoading(true);
+    setStockTakeMessage("");
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const session = await postStockTakeStart({
+        branchId: stockTakeBranchId,
+        sessionType: "morning",
+        sessionDate: today,
+        notes:
+          stockTakeNotes.trim() ||
+          `Stock take from ${selectedItemIds.size} sale items`,
+        itemIds: [...selectedItemIds],
+      });
+      router.push(`/inventory/stock-take/review/${session.id}`);
+    } catch (e) {
+      setStockTakeMessage(
+        e instanceof Error ? e.message : "Failed to start session.",
+      );
+    } finally {
+      setStockTakeLoading(false);
+    }
+  }, [selectedItemIds, stockTakeBranchId, stockTakeNotes, router]);
 
   if (loading && !refreshing) {
     return (
@@ -326,19 +399,35 @@ export default function AnalyticsActivityPage() {
           title={`Sale lines (${filteredSales.length})`}
           icon={ShoppingCart}
           action={
-            <div className="relative">
-              <Search
-                className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <input
-                placeholder="Search…"
-                value={saleSearch}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSaleSearch(e.target.value)
-                }
-                className="h-7 rounded-lg border border-border/50 bg-muted/30 pl-7 pr-2.5 text-[11px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50"
-              />
+            <div className="flex items-center gap-2">
+              {selectedItemIds.size > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Default to the filtered branch or first branch
+                    setStockTakeBranchId(branchId || (branches[0]?.id ?? ""));
+                    setShowStockTakeDialog(true);
+                  }}
+                  className="flex items-center gap-1.5 h-7 rounded-lg border border-primary/30 bg-primary/10 px-2.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <ClipboardList className="size-3" />
+                  Stock Take ({selectedItemIds.size})
+                </button>
+              ) : null}
+              <div className="relative">
+                <Search
+                  className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  placeholder="Search…"
+                  value={saleSearch}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setSaleSearch(e.target.value)
+                  }
+                  className="h-7 rounded-lg border border-border/50 bg-muted/30 pl-7 pr-2.5 text-[11px] outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-muted-foreground/50"
+                />
+              </div>
             </div>
           }
         >
@@ -347,6 +436,21 @@ export default function AnalyticsActivityPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b-2 border-border/50 text-left">
+                    <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 w-8 text-center text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
+                      <input
+                        type="checkbox"
+                        checked={
+                          uniqueSaleItems.length > 0 &&
+                          selectedItemIds.size === uniqueSaleItems.length
+                        }
+                        onChange={() => {
+                          if (selectedItemIds.size === uniqueSaleItems.length)
+                            clearSelection();
+                          else selectAll();
+                        }}
+                        className="size-3.5 accent-primary"
+                      />
+                    </th>
                     <th className="sticky top-0 z-10 bg-muted/20 pb-2.5 pt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70 backdrop-blur-sm">
                       <span className="inline-flex items-center gap-1">
                         Date
@@ -411,6 +515,14 @@ export default function AnalyticsActivityPage() {
                           isEven ? "bg-transparent" : "bg-muted/[0.15]",
                         )}
                       >
+                        <td className="py-2.5 pl-2.5 w-8 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedItemIds.has(s.itemId)}
+                            onChange={() => toggleSelectItem(s.itemId)}
+                            className="size-3.5 accent-primary"
+                          />
+                        </td>
                         <td className="py-2.5 pl-2.5 text-xs whitespace-nowrap">
                           <span className="block text-[11px] font-medium text-foreground/90 leading-tight">
                             {date.toLocaleDateString(undefined, {
@@ -530,6 +642,75 @@ export default function AnalyticsActivityPage() {
             </div>
           )}
         </SectionCard>
+
+        {/* Stock Take Dialog */}
+        {showStockTakeDialog ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-sm rounded-xl bg-background shadow-2xl">
+              <div className="flex items-start justify-between border-b px-5 py-4">
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-semibold">
+                    Start Stock Take
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedItemIds.size} item
+                    {selectedItemIds.size > 1 ? "s" : ""} from sales
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowStockTakeDialog(false);
+                    setStockTakeMessage("");
+                  }}
+                  className="ml-4 shrink-0 rounded-md p-1 hover:bg-muted"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="space-y-4 px-5 py-4">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">Branch *</span>
+                  <select
+                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    value={stockTakeBranchId}
+                    onChange={(e) => setStockTakeBranchId(e.target.value)}
+                  >
+                    <option value="">Select branch…</option>
+                    {branches
+                      .filter((b) => b.active)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">Notes</span>
+                  <input
+                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    placeholder={`Stock take from ${selectedItemIds.size} sale items`}
+                    value={stockTakeNotes}
+                    onChange={(e) => setStockTakeNotes(e.target.value)}
+                  />
+                </label>
+                {stockTakeMessage ? (
+                  <p className="text-sm text-destructive">{stockTakeMessage}</p>
+                ) : null}
+              </div>
+              <div className="border-t px-5 py-4">
+                <Button
+                  className="w-full"
+                  disabled={stockTakeLoading || !stockTakeBranchId}
+                  onClick={onStartStockTake}
+                >
+                  {stockTakeLoading ? "Creating…" : "Start Stock Take"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

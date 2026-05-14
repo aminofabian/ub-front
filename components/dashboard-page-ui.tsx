@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Loader2,
@@ -70,9 +71,15 @@ export function dashboardHintClass() {
   return "text-xs leading-relaxed text-muted-foreground";
 }
 
-export type DashboardFeedbackKind = "success" | "error";
+export type DashboardFeedbackKind = "success" | "error" | "warning";
 
-export function DashboardFeedback({ kind, text }: { kind: DashboardFeedbackKind; text: string }) {
+export function DashboardFeedback({
+  kind,
+  text,
+}: {
+  kind: DashboardFeedbackKind;
+  text: string;
+}) {
   return (
     <div
       role="status"
@@ -80,7 +87,10 @@ export function DashboardFeedback({ kind, text }: { kind: DashboardFeedbackKind;
         "flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm leading-relaxed shadow-sm",
         kind === "success" &&
           "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-950 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-50",
-        kind === "error" && "border-destructive/25 bg-destructive/5 text-destructive",
+        kind === "error" &&
+          "border-destructive/25 bg-destructive/5 text-destructive",
+        kind === "warning" &&
+          "border-amber-500/25 bg-amber-500/[0.07] text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-50",
       )}
     >
       {kind === "success" ? (
@@ -88,10 +98,26 @@ export function DashboardFeedback({ kind, text }: { kind: DashboardFeedbackKind;
           className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
           aria-hidden
         />
+      ) : kind === "warning" ? (
+        <AlertTriangle
+          className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+          aria-hidden
+        />
       ) : (
-        <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+        <AlertCircle
+          className="mt-0.5 size-4 shrink-0 text-destructive"
+          aria-hidden
+        />
       )}
-      <span className={cn("min-w-0", kind === "error" && "text-destructive")}>{text}</span>
+      <span
+        className={cn(
+          "min-w-0",
+          kind === "error" && "text-destructive",
+          kind === "warning" && "text-amber-950 dark:text-amber-50",
+        )}
+      >
+        {text}
+      </span>
     </div>
   );
 }
@@ -100,7 +126,10 @@ export function DashboardFeedback({ kind, text }: { kind: DashboardFeedbackKind;
 export function DashboardNotice({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-border/80 bg-muted/30 px-4 py-3 text-sm text-foreground shadow-sm">
-      <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <AlertCircle
+        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
       <span>{text}</span>
     </div>
   );
@@ -136,7 +165,10 @@ export function DashboardQuickLinks({
               "active:translate-y-0 active:shadow-sm",
             )}
           >
-            <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <Icon
+              className="size-3.5 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
             {label}
             <ArrowRight
               className="size-3 shrink-0 text-muted-foreground opacity-60"
@@ -171,7 +203,9 @@ export function DashboardQuickLinks({
                 aria-hidden
               />
             </span>
-            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{desc}</span>
+            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+              {desc}
+            </span>
           </span>
         </Link>
       ))}
@@ -235,7 +269,9 @@ export function DashboardPageHero({
             {title}
           </h1>
           {description ? (
-            <div className="max-w-prose text-[15px] leading-relaxed text-muted-foreground">{description}</div>
+            <div className="max-w-prose text-[15px] leading-relaxed text-muted-foreground">
+              {description}
+            </div>
           ) : null}
         </div>
       </div>
@@ -248,7 +284,9 @@ export function DashboardLoading({ label = "Loading…" }: { label?: string }) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center gap-4 py-28">
       <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
-      <p className="font-sans text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="font-sans text-sm font-medium text-muted-foreground">
+        {label}
+      </p>
     </div>
   );
 }
@@ -266,10 +304,19 @@ export function DashboardLoadError({
     <div className="mx-auto w-full max-w-lg py-16">
       <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-8 text-center shadow-sm ring-1 ring-destructive/10">
         <AlertCircle className="mx-auto size-10 text-destructive" aria-hidden />
-        <h1 className="mt-5 text-lg font-semibold tracking-tight text-foreground">{title}</h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">{message}</p>
+        <h1 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
+          {title}
+        </h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          {message}
+        </p>
         {onRetry ? (
-          <Button className="mt-8 gap-2" variant="outline" type="button" onClick={onRetry}>
+          <Button
+            className="mt-8 gap-2"
+            variant="outline"
+            type="button"
+            onClick={onRetry}
+          >
             <RefreshCw className="size-4" aria-hidden />
             Try again
           </Button>
@@ -296,7 +343,9 @@ export function DashboardAccessDenied({
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Lock className="size-6" aria-hidden />
         </div>
-        <h1 className="mt-4 text-lg font-semibold tracking-tight text-foreground">{title}</h1>
+        <h1 className="mt-4 text-lg font-semibold tracking-tight text-foreground">
+          {title}
+        </h1>
         <div className="mt-2 text-sm text-muted-foreground">{description}</div>
         {backHref ? (
           <Button asChild className="mt-6" variant="outline">

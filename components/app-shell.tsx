@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -96,6 +96,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
+      {
+        href: APP_ROUTES.inventoryStockTakeReconciliation,
+        label: "Reconciliation",
+      },
     ],
   },
   {
@@ -115,6 +119,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: ShoppingBag,
     items: [
       { href: APP_ROUTES.analytics, label: "Analytics" },
+      { href: APP_ROUTES.analyticsActivity, label: "Activity" },
       { href: APP_ROUTES.salesReports, label: "Sales by category" },
       {
         href: APP_ROUTES.storefrontWebOrders,
@@ -404,6 +409,16 @@ export function AppShell({ children }: AppShellProps) {
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
+
+  // ── Auto-redirect stock managers to the stock-take page ──────────────────
+  useEffect(() => {
+    if (me && pathname === APP_ROUTES.business) {
+      const roleKey = me.role?.key?.trim().toLowerCase();
+      if (roleKey === "stock_manager") {
+        router.replace(APP_ROUTES.inventoryStockTake);
+      }
+    }
+  }, [me, pathname, router]);
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-muted/30">
