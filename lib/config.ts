@@ -132,20 +132,22 @@ export function getServerApiOrigin(): string {
 /**
  * Browser-visible API origin for REST calls.
  *
- * Order: `NEXT_PUBLIC_API_BASE_URL` → PalMart production host → same-origin BFF proxy.
+ * Strategy: return "" so that {@link apiUrl} produces a same-origin path like
+ * `/api/v1/...`. The Next.js BFF (see `next.config.ts` `rewrites`) transparently
+ * forwards those to the Java backend. Keeping browser traffic same-origin
+ * eliminates CORS preflights entirely — backend 502/503s no longer surface as
+ * misleading "No 'Access-Control-Allow-Origin' header" errors, and CORS
+ * allow-list drift in env vars cannot break the storefront.
+ *
+ * The legacy {@code NEXT_PUBLIC_API_BASE_URL} env var is still honored as an
+ * escape hatch for non-Vercel hosts that cannot run rewrites (rare). Prefer
+ * leaving it unset.
  */
 export function getApiBaseUrl(): string {
   const normalizedEnv = normalizeOrigin(RAW_API_BASE_URL);
   if (normalizedEnv.length > 0) {
     return normalizedEnv;
   }
-
-  if (typeof window !== "undefined") {
-    if (isPalmartProductionHost(window.location.hostname)) {
-      return REMOTE_API_ORIGIN;
-    }
-  }
-
   return "";
 }
 
