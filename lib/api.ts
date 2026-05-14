@@ -3079,6 +3079,28 @@ export async function postStockTakeAddLine(
   );
 }
 
+export async function postStockTakeCreateItemAndAddLine(
+  sessionId: string,
+  body: {
+    name: string;
+    barcode?: string;
+    unitType?: string;
+    itemTypeId: string;
+    categoryId?: string;
+    brand?: string;
+    size?: string;
+    isStocked?: boolean;
+    isSellable?: boolean;
+    countedQty: number | string;
+    aisle?: string | null;
+  },
+): Promise<StockTakeSessionRecord> {
+  return request<StockTakeSessionRecord>(
+    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/lines/with-product`,
+    { method: "POST", body },
+  );
+}
+
 export async function postStockTakeConfirmLine(
   sessionId: string,
   lineId: string,

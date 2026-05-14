@@ -154,6 +154,7 @@ type NavGate = {
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
   canManageImports: boolean;
+  roleKey: string | undefined;
 };
 
 function featureFlagAllows(
@@ -166,6 +167,28 @@ function featureFlagAllows(
 }
 
 function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
+  // Restricted roles: only explicitly-allowed pages
+  if (gate.roleKey === "stock_manager") {
+    const allowed: readonly string[] = [
+      APP_ROUTES.inventoryStockTake,
+      APP_ROUTES.inventoryStockTakeReconciliation,
+      APP_ROUTES.inventoryValuation,
+      APP_ROUTES.inventoryTransfers,
+      APP_ROUTES.purchasingAddSupplies,
+    ];
+    return allowed.includes(item.href);
+  }
+
+  if (gate.roleKey === "cashier") {
+    const allowed: readonly string[] = [
+      APP_ROUTES.salesQuick,
+      APP_ROUTES.cashier,
+      APP_ROUTES.shifts,
+      APP_ROUTES.purchasingAddSupplies,
+    ];
+    return allowed.includes(item.href);
+  }
+
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
@@ -296,6 +319,9 @@ export function AppShell({ children }: AppShellProps) {
   } = useDashboard();
 
   const isOwner = me?.role?.key === "owner";
+  const isStockManager =
+    me?.role?.key?.trim().toLowerCase() === "stock_manager";
+  const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
   const canReadNotifications = hasPermission(
     me?.permissions,
     Permission.ReportsNotificationsRead,
@@ -326,6 +352,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewStorefrontOrders,
       canQuickSale,
       canManageImports,
+      roleKey: me?.role?.key?.trim().toLowerCase(),
     };
     return NAV_SECTIONS.map((section) => ({
       ...section,
@@ -395,13 +422,44 @@ export function AppShell({ children }: AppShellProps) {
     .charAt(0)
     .toUpperCase();
 
+  const visibleBottomTabs = useMemo(() => {
+    const roleKey = me?.role?.key?.trim().toLowerCase();
+    if (roleKey === "stock_manager") {
+      return BOTTOM_TABS.map((tab) =>
+        tab.id === "inventory"
+          ? { ...tab, href: APP_ROUTES.inventoryStockTake }
+          : tab,
+      ).filter(
+        (tab) =>
+          !tab.href ||
+          tab.href === APP_ROUTES.inventoryStockTake ||
+          tab.id === "more",
+      );
+    }
+    if (roleKey === "cashier") {
+      return BOTTOM_TABS.map((tab) => {
+        if (tab.id === "sales")
+          return { ...tab, href: APP_ROUTES.salesQuick };
+        if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
+        return tab;
+      }).filter(
+        (tab) =>
+          !tab.href ||
+          tab.href === APP_ROUTES.salesQuick ||
+          tab.href === APP_ROUTES.shifts ||
+          tab.id === "more",
+      );
+    }
+    return BOTTOM_TABS;
+  }, [me]);
+
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
-    for (const tab of BOTTOM_TABS) {
+    for (const tab of visibleBottomTabs) {
       if (tab.matchSectionIds.includes(activeSectionId ?? "")) return tab.id;
     }
     return null;
-  }, [activeSectionId]);
+  }, [activeSectionId, visibleBottomTabs]);
 
   // ── Phase 9: multi_branch gate ────────────────────────────────────────
   const multiBranch = featureFlags?.multi_branch !== false;
@@ -410,13 +468,41 @@ export function AppShell({ children }: AppShellProps) {
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
 
-  // ── Auto-redirect stock managers to the stock-take page ──────────────────
+  // ── Auto-redirect restricted roles away from unauthorized pages ──────────
   useEffect(() => {
-    if (me && pathname === APP_ROUTES.business) {
-      const roleKey = me.role?.key?.trim().toLowerCase();
-      if (roleKey === "stock_manager") {
+    if (!me) return;
+    const roleKey = me.role?.key?.trim().toLowerCase();
+
+    if (roleKey === "stock_manager") {
+      const allowed = [
+        APP_ROUTES.inventoryStockTake,
+        APP_ROUTES.inventoryValuation,
+        APP_ROUTES.inventoryTransfers,
+        APP_ROUTES.purchasingAddSupplies,
+      ];
+      const isAllowed = allowed.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+      );
+      if (!isAllowed) {
         router.replace(APP_ROUTES.inventoryStockTake);
       }
+      return;
+    }
+
+    if (roleKey === "cashier") {
+      const allowed = [
+        APP_ROUTES.salesQuick,
+        APP_ROUTES.cashier,
+        APP_ROUTES.shifts,
+        APP_ROUTES.purchasingAddSupplies,
+      ];
+      const isAllowed = allowed.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+      );
+      if (!isAllowed) {
+        router.replace(APP_ROUTES.salesQuick);
+      }
+      return;
     }
   }, [me, pathname, router]);
 
@@ -433,79 +519,104 @@ export function AppShell({ children }: AppShellProps) {
           </p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pb-4">
-          {visibleSections.map((section) => {
-            const Icon = section.icon;
-            const routeOpen = sectionHasActiveItem(pathname, section.items);
-            const isOpen = routeOpen || userExpandedSectionIds.has(section.id);
-            const sectionActive = activeSectionId === section.id;
-            return (
-              <div
-                key={section.id}
-                className={cn(
-                  "rounded-lg border border-transparent transition-colors",
-                  sectionActive && "border-primary/15 bg-primary/[0.04]",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.id)}
+          {isStockManager || isCashier ? (
+            <div className="space-y-0.5">
+              {visibleSections
+                .flatMap((s) => s.items)
+                .map((item) => {
+                  const active = itemIsActive(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "block rounded-md py-1.5 pl-2.5 pr-2 text-[13px] leading-snug transition-colors",
+                        active
+                          ? "bg-accent font-medium text-accent-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+            </div>
+          ) : (
+            visibleSections.map((section) => {
+              const Icon = section.icon;
+              const routeOpen = sectionHasActiveItem(pathname, section.items);
+              const isOpen =
+                routeOpen || userExpandedSectionIds.has(section.id);
+              const sectionActive = activeSectionId === section.id;
+              return (
+                <div
+                  key={section.id}
                   className={cn(
-                    "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
-                    "hover:bg-muted/80",
-                    routeOpen && "cursor-default",
+                    "rounded-lg border border-transparent transition-colors",
+                    sectionActive && "border-primary/15 bg-primary/[0.04]",
                   )}
-                  aria-expanded={isOpen}
                 >
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(section.id)}
                     className={cn(
-                      "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/40",
-                      sectionActive &&
-                        "border-primary/25 bg-primary/10 text-primary",
+                      "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
+                      "hover:bg-muted/80",
+                      routeOpen && "cursor-default",
                     )}
+                    aria-expanded={isOpen}
                   >
-                    <Icon className="size-3.5" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1 font-medium leading-none">
-                      {section.title}
-                      <ChevronDown
-                        className={cn(
-                          "size-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
-                          isOpen ? "rotate-0" : "-rotate-90",
-                        )}
-                        aria-hidden
-                      />
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/40",
+                        sectionActive &&
+                          "border-primary/25 bg-primary/10 text-primary",
+                      )}
+                    >
+                      <Icon className="size-3.5" aria-hidden />
                     </span>
-                    <span className="mt-1 block text-[11px] font-normal leading-snug text-muted-foreground">
-                      {section.blurb}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1 font-medium leading-none">
+                        {section.title}
+                        <ChevronDown
+                          className={cn(
+                            "size-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+                            isOpen ? "rotate-0" : "-rotate-90",
+                          )}
+                          aria-hidden
+                        />
+                      </span>
+                      <span className="mt-1 block text-[11px] font-normal leading-snug text-muted-foreground">
+                        {section.blurb}
+                      </span>
                     </span>
-                  </span>
-                </button>
-                {isOpen ? (
-                  <ul className="relative mx-1 mb-1.5 mt-0.5 space-y-0.5 border-l border-border/70 pl-2 ml-4">
-                    {section.items.map((item) => {
-                      const active = itemIsActive(pathname, item.href);
-                      return (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            className={cn(
-                              "block rounded-md py-1.5 pl-2.5 pr-2 text-[13px] leading-snug text-muted-foreground transition-colors",
-                              "hover:bg-accent hover:text-accent-foreground",
-                              active &&
-                                "bg-accent font-medium text-accent-foreground",
-                            )}
-                          >
-                            {item.label}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
-              </div>
-            );
-          })}
+                  </button>
+                  {isOpen ? (
+                    <ul className="relative mx-1 mb-1.5 mt-0.5 space-y-0.5 border-l border-border/70 pl-2 ml-4">
+                      {section.items.map((item) => {
+                        const active = itemIsActive(pathname, item.href);
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              className={cn(
+                                "block rounded-md py-1.5 pl-2.5 pr-2 text-[13px] leading-snug text-muted-foreground transition-colors",
+                                "hover:bg-accent hover:text-accent-foreground",
+                                active &&
+                                  "bg-accent font-medium text-accent-foreground",
+                              )}
+                            >
+                              {item.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
         </nav>
       </aside>
 
@@ -652,7 +763,7 @@ export function AppShell({ children }: AppShellProps) {
           )}
         >
           <div className="flex items-center justify-around px-2 py-1">
-            {BOTTOM_TABS.map((tab) => {
+            {visibleBottomTabs.map((tab) => {
               const Icon = tab.icon;
               const isMoreTab = tab.id === "more";
               const isActive = activeBottomTabId === tab.id;
@@ -822,13 +933,11 @@ export function AppShell({ children }: AppShellProps) {
               </div>
 
               {/* Navigation sections */}
-              {visibleSections.map((section) => (
-                <div key={section.id}>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                    {section.title}
-                  </p>
-                  <div className="space-y-0.5">
-                    {section.items.map((item) => {
+              {isStockManager || isCashier ? (
+                <div className="space-y-0.5">
+                  {visibleSections
+                    .flatMap((s) => s.items)
+                    .map((item) => {
                       const active = itemIsActive(pathname, item.href);
                       return (
                         <Link
@@ -846,9 +955,36 @@ export function AppShell({ children }: AppShellProps) {
                         </Link>
                       );
                     })}
-                  </div>
                 </div>
-              ))}
+              ) : (
+                visibleSections.map((section) => (
+                  <div key={section.id}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                      {section.title}
+                    </p>
+                    <div className="space-y-0.5">
+                      {section.items.map((item) => {
+                        const active = itemIsActive(pathname, item.href);
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setMoreOpen(false)}
+                            className={cn(
+                              "block rounded-md px-3 py-2 text-sm transition-colors",
+                              active
+                                ? "bg-accent font-medium text-accent-foreground"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
 
               {/* Logout */}
               <Button

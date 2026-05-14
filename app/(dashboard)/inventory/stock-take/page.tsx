@@ -36,6 +36,7 @@ import {
   fetchStockTakeSessions,
   patchStockTakeSingleLine,
   postStockTakeAddLine,
+  postStockTakeCreateItemAndAddLine,
   postStockTakeStart,
   type BranchRecord,
   type CategoryRecord,
@@ -357,16 +358,33 @@ export default function StockTakePage() {
     setMessage("");
     try {
       const defaultItemTypeId = itemTypes.length > 0 ? itemTypes[0].id : "";
-      let created: { id: string; name: string };
+      let s: StockTakeSessionRecord;
+
       if (createParentId) {
-        created = await createItemVariant(createParentId, {
+        // Variant flow: keep the old multi-call path (variants are less common)
+        const created = await createItemVariant(createParentId, {
           variantName: createName.trim(),
           barcode: createBarcode.trim() || undefined,
           unitType: createUnitType,
           categoryId: createCategoryId || undefined,
         });
+        s = await postStockTakeAddLine(
+          session.id,
+          created.id,
+          createAisle.trim() || null,
+        );
+        const line = s.lines.find((l) => l.itemId === created.id);
+        if (line) {
+          s = await patchStockTakeSingleLine(
+            s.id,
+            line.id,
+            createCount.trim(),
+            createAisle.trim() || null,
+          );
+        }
       } else {
-        created = await createItem({
+        // Standalone flow: atomic create + count in one call
+        s = await postStockTakeCreateItemAndAddLine(session.id, {
           name: createName.trim(),
           barcode: createBarcode.trim() || undefined,
           unitType: createUnitType,
@@ -376,22 +394,11 @@ export default function StockTakePage() {
           categoryId: createCategoryId || undefined,
           brand: createBrand.trim() || undefined,
           size: createSize.trim() || undefined,
+          countedQty: createCount.trim(),
+          aisle: createAisle.trim() || null,
         });
       }
-      let s = await postStockTakeAddLine(
-        session.id,
-        created.id,
-        createAisle.trim() || null,
-      );
-      const line = s.lines.find((l) => l.itemId === created.id);
-      if (line) {
-        s = await patchStockTakeSingleLine(
-          s.id,
-          line.id,
-          createCount.trim(),
-          createAisle.trim() || null,
-        );
-      }
+
       setSession(s);
       setShowCreate(false);
       setCreateName("");
@@ -522,6 +529,69 @@ export default function StockTakePage() {
             />
           ) : null}
 
+          {canRun ? (
+            <div className="space-y-4 rounded-lg border bg-card p-6 shadow-sm">
+              <h3 className="text-lg font-semibold">Open New Session</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Session Type
+                  </span>
+                  <select
+                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    value={selSessionType}
+                    onChange={(e) =>
+                      setSelSessionType(e.target.value as "morning" | "evening")
+                    }
+                  >
+                    <option value="morning">🌅 Morning</option>
+                    <option value="evening">🌙 Evening</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Branch
+                  </span>
+                  <select
+                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    value={selBranchId}
+                    onChange={(e) => setSelBranchId(e.target.value)}
+                  >
+                    <option value="">Select branch…</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Notes (optional)
+                </span>
+                <input
+                  className="rounded-md border bg-background px-3 py-2 text-sm"
+                  placeholder="e.g. Counting aisles 1-4"
+                  value={startNotes}
+                  onChange={(e) => setStartNotes(e.target.value)}
+                />
+              </label>
+              <Button
+                disabled={loading || !selBranchId.trim()}
+                onClick={onStartSession}
+                className="w-full sm:w-auto"
+              >
+                Start Session
+              </Button>
+            </div>
+          ) : (
+            <DashboardFeedback
+              kind="error"
+              text="You do not have permission to start a stocktake session."
+            />
+          )}
+
           {/* Admin: pending sessions to review */}
           {canApprove ? (
             <div className="space-y-3 rounded-lg border bg-card p-6 shadow-sm">
@@ -591,69 +661,6 @@ export default function StockTakePage() {
               )}
             </div>
           ) : null}
-
-          {canRun ? (
-            <div className="space-y-4 rounded-lg border bg-card p-6 shadow-sm">
-              <h3 className="text-lg font-semibold">Open New Session</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Session Type
-                  </span>
-                  <select
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
-                    value={selSessionType}
-                    onChange={(e) =>
-                      setSelSessionType(e.target.value as "morning" | "evening")
-                    }
-                  >
-                    <option value="morning">🌅 Morning</option>
-                    <option value="evening">🌙 Evening</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Branch
-                  </span>
-                  <select
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
-                    value={selBranchId}
-                    onChange={(e) => setSelBranchId(e.target.value)}
-                  >
-                    <option value="">Select branch…</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Notes (optional)
-                </span>
-                <input
-                  className="rounded-md border bg-background px-3 py-2 text-sm"
-                  placeholder="e.g. Counting aisles 1-4"
-                  value={startNotes}
-                  onChange={(e) => setStartNotes(e.target.value)}
-                />
-              </label>
-              <Button
-                disabled={loading || !selBranchId.trim()}
-                onClick={onStartSession}
-                className="w-full sm:w-auto"
-              >
-                Start Session
-              </Button>
-            </div>
-          ) : (
-            <DashboardFeedback
-              kind="error"
-              text="You do not have permission to start a stocktake session."
-            />
-          )}
         </div>
       </div>
     );
@@ -1088,6 +1095,7 @@ export default function StockTakePage() {
                       <option value="litre">litre</option>
                       <option value="pack">pack</option>
                       <option value="box">box</option>
+                      <option value="carton">carton</option>
                     </select>
                   </label>
                   <label className="flex flex-col gap-1.5">
@@ -1258,7 +1266,7 @@ function CountModal({
                   autoFocus
                 />
               </label>
-              {canApprove && item.stockQty != null ? (
+              {item.stockQty != null ? (
                 <p className="text-xs text-muted-foreground">
                   System stock: {String(item.stockQty)} pcs
                 </p>
