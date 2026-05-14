@@ -172,13 +172,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // ── Stock managers and cashiers are locked to their assigned branch ─────
+  const branchLockedRole =
+    me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
+    me?.role?.key?.trim().toLowerCase() === "cashier";
+
   const setBranchId = useCallback(
     (id: string) => {
+      if (branchLockedRole) {
+        return; // branch switching disabled for stock managers and cashiers
+      }
       userTouchedBranchRef.current = true;
       setBranchIdState(id);
       writePersistedBranch(business?.id ?? null, id);
     },
-    [business?.id],
+    [business?.id, branchLockedRole],
   );
 
   const setItemTypeId = useCallback(
@@ -203,7 +211,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!me) return;
-     
+
     void refreshBranches();
     void refreshItemTypes();
   }, [me, refreshBranches, refreshItemTypes]);
@@ -211,6 +219,23 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   // ── seed branchId ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (branches.length === 0) return;
+
+    // Stock managers and cashiers are forced to their assigned branch.
+    if (branchLockedRole) {
+      const assigned = me?.branchId?.trim();
+      if (assigned && branches.some((b) => b.id === assigned)) {
+        if (assigned !== branchId) {
+          setBranchIdState(assigned);
+        }
+        return;
+      }
+      // Fallback: if no assigned branch, use first available.
+      if (!branchId && branches[0]?.id) {
+        setBranchIdState(branches[0].id);
+      }
+      return;
+    }
+
     if (userTouchedBranchRef.current) {
       if (branchId && branches.some((b) => b.id === branchId)) return;
     }
@@ -220,13 +245,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const id = candidate?.trim();
       if (id && branches.some((b) => b.id === id)) {
         if (id !== branchId) {
-           
           setBranchIdState(id);
         }
         return;
       }
     }
-  }, [branches, business?.id, me?.branchId, branchId]);
+  }, [branches, business?.id, me?.branchId, branchId, branchLockedRole]);
 
   // ── seed itemTypeId ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -241,7 +265,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const id = candidate?.trim();
       if (id && itemTypes.some((t) => t.id === id)) {
         if (id !== itemTypeId) {
-           
           setItemTypeIdState(id);
         }
         return;

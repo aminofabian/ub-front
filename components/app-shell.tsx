@@ -7,6 +7,7 @@ import {
   Banknote,
   Building2,
   ChevronDown,
+  Lock,
   LogOut,
   MapPin,
   Package,
@@ -438,8 +439,7 @@ export function AppShell({ children }: AppShellProps) {
     }
     if (roleKey === "cashier") {
       return BOTTOM_TABS.map((tab) => {
-        if (tab.id === "sales")
-          return { ...tab, href: APP_ROUTES.salesQuick };
+        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.salesQuick };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
       }).filter(
@@ -638,8 +638,19 @@ export function AppShell({ children }: AppShellProps) {
 
           <div className="flex items-center gap-3">
             {canReadNotifications ? <NotificationBell /> : null}
-            {/* Phase 9: Branch selector — visible when multi_branch flag is on */}
-            {multiBranch ? (
+            {/* Phase 9: Branch selector — hidden for stock managers and cashiers who are locked to their assigned branch */}
+            {isStockManager || isCashier ? (
+              currentBranch ? (
+                <span
+                  className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30 cursor-not-allowed"
+                  title="Branch switching is disabled for your role"
+                >
+                  <Lock className="size-3" aria-hidden />
+                  <MapPin className="size-3.5" aria-hidden />
+                  {currentBranch.name}
+                </span>
+              ) : null
+            ) : multiBranch ? (
               <select
                 className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                 value={branchId}

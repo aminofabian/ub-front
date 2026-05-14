@@ -42,6 +42,8 @@ export default function InventoryValuationPage() {
   const { me, business } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.InventoryRead);
   const currency = business?.currency?.trim() || "KES";
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isBranchLockedRole = roleKey === "stock_manager" || roleKey === "cashier";
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchFilter, setBranchFilter] = useState("");
@@ -84,6 +86,18 @@ export default function InventoryValuationPage() {
     };
   }, [allowed]);
 
+  useEffect(() => {
+    if (!allowed || !isBranchLockedRole) return;
+    const assigned = me?.branchId?.trim();
+    if (assigned) {
+      setBranchFilter(assigned);
+      setMessage("");
+    } else {
+      setBranchFilter("");
+      setMessage("Your account is not assigned to a branch. Contact your administrator.");
+    }
+  }, [allowed, isBranchLockedRole, me?.branchId]);
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -110,9 +124,19 @@ export default function InventoryValuationPage() {
           title="Stock valuation"
           description={
             <>
-              Extension value is Σ(quantity remaining × unit cost) per active batch. Filter by branch or view all
-              branches; totals use the same basis as the API report. Choose a branch and click <strong>Refresh</strong>{" "}
-              to load.
+              Extension value is Σ(quantity remaining × unit cost) per active batch.
+              {isBranchLockedRole ? (
+                <>
+                  {" "}
+                  Your role is scoped to your assigned branch. Click <strong>Refresh</strong> to load.
+                </>
+              ) : (
+                <>
+                  {" "}
+                  Filter by branch or view all branches; totals use the same basis as the API report. Choose a branch
+                  and click <strong>Refresh</strong> to load.
+                </>
+              )}
             </>
           }
         />
@@ -139,11 +163,13 @@ export default function InventoryValuationPage() {
           <select
             className="rounded border bg-background px-2 py-1.5"
             value={branchFilter}
+            disabled={isBranchLockedRole}
             onChange={(event) => setBranchFilter(event.target.value)}
           >
-            <option value="">All branches</option>
+            {isBranchLockedRole ? null : <option value="">All branches</option>}
             {branches
               .filter((b) => b.active)
+              .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
               .map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -151,7 +177,7 @@ export default function InventoryValuationPage() {
               ))}
           </select>
         </label>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || (isBranchLockedRole && !me?.branchId?.trim())}>
           {loading ? "Loading…" : "Refresh"}
         </Button>
       </form>

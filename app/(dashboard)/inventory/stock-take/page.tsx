@@ -82,6 +82,8 @@ function formatCountedQty(line: StockTakeLineRecord | undefined): string {
 
 export default function StockTakePage() {
   const { me } = useDashboard();
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isBranchLockedRole = roleKey === "stock_manager" || roleKey === "cashier";
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
   const canApprove = hasPermission(
@@ -162,11 +164,16 @@ export default function StockTakePage() {
         if (!cancelled) {
           const active = list.filter((b) => b.active);
           setBranches(active);
-          // Default to user's branch if assigned
-          if (active.length > 0 && !selBranchId) {
+          setSelBranchId((prev) => {
+            if (prev) return prev;
+            if (active.length === 0) return "";
+            if (isBranchLockedRole) {
+              const ub = me?.branchId?.trim();
+              return ub && active.some((b) => b.id === ub) ? ub : "";
+            }
             const userBranch = active.find((b) => b.id === me?.branchId);
-            setSelBranchId(userBranch?.id ?? active[0].id);
-          }
+            return userBranch?.id ?? active[0].id;
+          });
         }
       })
       .catch(() => {});
@@ -183,8 +190,8 @@ export default function StockTakePage() {
       })
       .catch(() => {});
 
-    // Check for active session
-    const branchId = me?.branchId ?? "";
+    // Check for active session (uses JWT branch; branch-locked users must have branch_id set)
+    const branchId = me?.branchId?.trim() ?? "";
     if (branchId) {
       fetchActiveStockTakeSession(branchId)
         .then((res) => {
@@ -203,7 +210,15 @@ export default function StockTakePage() {
     return () => {
       cancelled = true;
     };
-  }, [allowed, me?.branchId, selBranchId]);
+  }, [allowed, isBranchLockedRole, me?.branchId, me?.role?.key]);
+
+  useEffect(() => {
+    if (!allowed || !isBranchLockedRole) return;
+    const assigned = me?.branchId?.trim();
+    if (assigned) {
+      setSelBranchId(assigned);
+    }
+  }, [allowed, isBranchLockedRole, me?.branchId]);
 
   // ── Admin: load pending sessions
   useEffect(() => {
@@ -512,12 +527,16 @@ export default function StockTakePage() {
                   desc: "Move stock",
                   icon: ArrowRightLeft,
                 },
-                {
-                  href: APP_ROUTES.branches,
-                  label: "Branches",
-                  desc: "Locations",
-                  icon: MapPin,
-                },
+                ...(isBranchLockedRole
+                  ? []
+                  : [
+                      {
+                        href: APP_ROUTES.branches,
+                        label: "Branches",
+                        desc: "Locations",
+                        icon: MapPin,
+                      },
+                    ]),
               ]}
             />
           </header>
@@ -526,6 +545,13 @@ export default function StockTakePage() {
             <DashboardFeedback
               kind="error"
               text={`⚠️ You have an open stocktake from ${staleSessionDate ?? "a previous date"}. Contact an admin to close it before starting a new one.`}
+            />
+          ) : null}
+
+          {isBranchLockedRole && !me?.branchId?.trim() ? (
+            <DashboardFeedback
+              kind="error"
+              text="Your account is not assigned to a branch. Contact your administrator before starting a stock take."
             />
           ) : null}
 
@@ -555,14 +581,19 @@ export default function StockTakePage() {
                   <select
                     className="rounded-md border bg-background px-3 py-2 text-sm"
                     value={selBranchId}
+                    disabled={isBranchLockedRole}
                     onChange={(e) => setSelBranchId(e.target.value)}
                   >
-                    <option value="">Select branch…</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
+                    {!isBranchLockedRole ? (
+                      <option value="">Select branch…</option>
+                    ) : null}
+                    {branches
+                      .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
                   </select>
                 </label>
               </div>
@@ -578,7 +609,11 @@ export default function StockTakePage() {
                 />
               </label>
               <Button
-                disabled={loading || !selBranchId.trim()}
+                disabled={
+                  loading ||
+                  !selBranchId.trim() ||
+                  (isBranchLockedRole && !me?.branchId?.trim())
+                }
                 onClick={onStartSession}
                 className="w-full sm:w-auto"
               >
