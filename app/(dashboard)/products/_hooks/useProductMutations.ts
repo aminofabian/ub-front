@@ -659,7 +659,7 @@ export function useProductMutations(d: Dependencies) {
         row.variantName.trim(),
       );
       if (effectiveDrafts.length === 0) {
-        setMessage("Add at least one option label.");
+        setMessage("Add at least one variant name.");
         return;
       }
       for (const row of effectiveDrafts) {
@@ -939,7 +939,7 @@ export function useProductMutations(d: Dependencies) {
         }
       }
       setVariantInlineEditId(null);
-      setMessage("Option updated.");
+      setMessage("Variant updated.");
     } catch (err) {
       if (!(err instanceof ApiRequestError))
         setMessage(err instanceof Error ? err.message : "Update failed.");

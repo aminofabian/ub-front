@@ -65,7 +65,7 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           <option value="ALL">All items</option>
           <option value="SKUS_ONLY">SKUs only</option>
           <option value="PARENTS_ONLY">Groups only</option>
-          <option value="VARIANTS_ONLY">Options only</option>
+          <option value="VARIANTS_ONLY">Variants only</option>
         </select>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">

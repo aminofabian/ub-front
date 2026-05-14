@@ -462,13 +462,13 @@ export default function ProductsPage() {
             <FormDrawerMessageBanner text={catalog.message} />
           ) : undefined
         }
-        title="Add variants"
+        title="Add variants to parent"
         description={
           variantDrawerParentIsGroup
-            ? `Add SKUs under “${variantDrawerParentName}”. Each row has its own prices and stock; story and reorder fields use the selector when you add several rows.`
-            : `Add options under “${variantDrawerParentName}”. Each row has its own prices and stock.`
+            ? `Parent group “${variantDrawerParentName}”. Add one or more variant rows—each becomes its own SKU with its own prices and stock. When you add several rows, use the selector for shared description and reorder fields.`
+            : `Parent product “${variantDrawerParentName}”. Add one or more variant rows—each becomes its own SKU with its own prices and stock.`
         }
-        contextLabel="Variants"
+        contextLabel={variantDrawerParentIsGroup ? "Parent group" : "Parent product"}
         icon={<Layers className="size-5 text-primary" />}
         width="wide"
         footer={

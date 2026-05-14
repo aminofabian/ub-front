@@ -77,7 +77,7 @@ export function VirtualizedCatalogBody({
         <span className="font-semibold uppercase tracking-wide text-foreground/80">Row key</span>
         <span className="inline-flex items-center gap-1">
           <span className="h-2 w-1 rounded-sm bg-amber-500 shadow-sm dark:bg-amber-400" aria-hidden />
-          <span className="font-medium text-amber-950 dark:text-amber-100">Label</span>
+          <span className="font-medium text-amber-950 dark:text-amber-100">Parent</span>
         </span>
         <span className="text-muted-foreground/60">·</span>
         <span className="inline-flex items-center gap-1">
@@ -87,7 +87,7 @@ export function VirtualizedCatalogBody({
         <span className="text-muted-foreground/60">·</span>
         <span className="inline-flex items-center gap-1">
           <CornerDownRight className="size-3 shrink-0 text-violet-500/80 dark:text-violet-400/90" aria-hidden />
-          <span className="font-medium text-violet-900 dark:text-violet-200">Option</span>
+          <span className="font-medium text-violet-900 dark:text-violet-200">Variant</span>
         </span>
       </div>
 
@@ -147,9 +147,9 @@ export function VirtualizedCatalogBody({
                   ref={virtualizer.measureElement}
                   aria-label={
                     isVariant
-                      ? `Option ${optionLabel ? optionLabel : ""}: ${row.name}`
+                      ? `Variant ${optionLabel ? `${optionLabel}: ` : ""}${row.name}`
                       : isGroupLabel
-                        ? `Group label: ${row.name}`
+                        ? `Parent product: ${row.name}`
                         : `Product: ${row.name}`
                   }
                   className={cn(

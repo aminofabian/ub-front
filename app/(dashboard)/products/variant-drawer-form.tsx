@@ -442,11 +442,14 @@ export function VariantDrawerForm({
         </div>
         <div className="min-w-0 space-y-0.5">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/90">
-            {parentIsProductGroup ? "Group" : "Under"}
+            {parentIsProductGroup ? "Parent group" : "Parent product"}
           </p>
           <p className="text-sm font-semibold leading-tight text-foreground">{parentDisplayName}</p>
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Each row = one SKU with its own prices &amp; stock. Name required per row you save.
+            Each row is one variant SKU under this parent. Use{" "}
+            <span className="font-medium text-foreground">Add another variant</span> for several at
+            once—each row can have its own prices and stock. A variant name is required for every row
+            you create.
           </p>
         </div>
       </div>
@@ -460,7 +463,9 @@ export function VariantDrawerForm({
             <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2">
               <div className="flex min-w-0 items-center gap-1.5">
                 <Sparkles className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-                <h3 className="truncate text-xs font-semibold text-foreground">Option {index + 1}</h3>
+                <h3 className="truncate text-xs font-semibold text-foreground">
+                  Variant {index + 1}
+                </h3>
               </div>
               {index > 0 ? (
                 <Button
@@ -478,8 +483,8 @@ export function VariantDrawerForm({
 
             <div className="space-y-2">
               <label className="flex flex-col gap-1">
-                <FieldLabel requiredMark hint="Shoppers see this.">
-                  Name
+                <FieldLabel requiredMark hint="Shown to shoppers; distinguishes this variant from siblings.">
+                  Variant name
                 </FieldLabel>
                 <input
                   className={cn(icComfort, "font-medium")}
@@ -488,7 +493,7 @@ export function VariantDrawerForm({
                   onChange={(event) => patchRow(index, { variantName: event.target.value })}
                   required={index === 0}
                   autoComplete="off"
-                  aria-label={`Option name ${index + 1}`}
+                  aria-label={`Variant name ${index + 1}`}
                 />
               </label>
 
@@ -537,7 +542,7 @@ export function VariantDrawerForm({
 
               <div className="grid grid-cols-2 gap-2">
                 <label className="flex flex-col gap-1">
-                  <FieldLabel hint="Parent if empty.">Brand</FieldLabel>
+                  <FieldLabel hint="Inherits from parent if empty.">Brand</FieldLabel>
                   <input
                     className={icComfort}
                     placeholder="—"
@@ -559,10 +564,10 @@ export function VariantDrawerForm({
               </div>
 
               <label className="flex flex-col gap-1">
-                <FieldLabel hint="Receipts.">Display name</FieldLabel>
+                <FieldLabel hint="Receipts; inherits parent title if empty.">Display name</FieldLabel>
                 <input
                   className={icComfort}
-                  placeholder="Parent if empty"
+                  placeholder="Same as parent if empty"
                   value={row.name}
                   onChange={(event) => patchRow(index, { name: event.target.value })}
                   aria-label={`Display name ${index + 1}`}
@@ -604,7 +609,7 @@ export function VariantDrawerForm({
           onClick={addVariantDraftRow}
         >
           <Plus className="size-3.5" aria-hidden />
-          Add row
+          Add another variant
         </Button>
       </div>
 
@@ -615,11 +620,11 @@ export function VariantDrawerForm({
             className={cn(ic, "h-8 max-w-[14rem] text-xs py-1")}
             value={extrasRow}
             onChange={(event) => setExtrasRow(Number(event.target.value))}
-            aria-label="Which option for story and reorder"
+            aria-label="Which variant row for shared description and reorder fields"
           >
             {variantDraftRows.map((r, i) => (
               <option key={i} value={i}>
-                {r.variantName.trim() || `Option ${i + 1}`}
+                {r.variantName.trim() || `Variant ${i + 1}`}
               </option>
             ))}
           </select>
@@ -678,12 +683,12 @@ export function VariantDrawerForm({
               </span>
               {extrasRow !== 0 && variantDraftRows.length > 1 ? (
                 <p className="text-[10px] text-muted-foreground">
-                  Switch story target to option 1 to attach cover (one upload per save).
+                  Switch story target to variant 1 to attach cover (one upload per save).
                 </p>
               ) : (
                 <>
                   <p className="text-[10px] text-muted-foreground">
-                    After save{batchCount > 1 ? ", first SKU only." : "."}
+                    After save{batchCount > 1 ? ", first variant row only." : "."}
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <input

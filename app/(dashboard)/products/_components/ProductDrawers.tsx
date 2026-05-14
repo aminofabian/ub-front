@@ -655,7 +655,7 @@ export function ProductQuickEditAllDrawer({
       title={detail.detail?.name ?? "Edit product"}
       description={
         detail.detail?.variantName
-          ? `Option · ${detail.detail.variantName}`
+          ? `Variant · ${detail.detail.variantName}`
           : "Edit all fields"
       }
       contextLabel="Quick edit"
@@ -827,7 +827,7 @@ export function ProductMobileDetailDrawer({
       banner={banner}
       title={d?.name ?? ""}
       description={d?.variantName ?? (d?.sku ? `SKU ${d.sku}` : "")}
-      contextLabel={d?.variantOfItemId ? "Option SKU" : "Product"}
+      contextLabel={d?.variantOfItemId ? "Variant SKU" : "Product"}
       icon={
         d?.variantOfItemId ? (
           <Layers className="size-5 text-violet-600" />

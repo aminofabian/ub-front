@@ -246,12 +246,12 @@ export function ProductDetailPanel(props: Props) {
           <div className="flex flex-wrap gap-1">
             {detail.variantOfItemId ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-300">
-                <Layers className="size-2.5" aria-hidden /> Option
+                <Layers className="size-2.5" aria-hidden /> Variant
               </span>
             ) : variantRows.length > 0 ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                <Package className="size-2.5" aria-hidden /> Group ·{" "}
-                {variantRows.length}
+                <Package className="size-2.5" aria-hidden /> Parent ·{" "}
+                {variantRows.length} variant{variantRows.length === 1 ? "" : "s"}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
@@ -306,7 +306,7 @@ export function ProductDetailPanel(props: Props) {
             type="button"
             onClick={() => setActiveDrawer("add-variant")}
             className="flex size-7 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted/60"
-            aria-label="Add option SKU"
+            aria-label="Add variant under parent"
           >
             <Layers className="size-3.5" aria-hidden />
           </button>
@@ -321,15 +321,15 @@ export function ProductDetailPanel(props: Props) {
             aria-hidden
           />
           <span>
-            Option of{" "}
+            This SKU is a variant of{" "}
             {variantParentDisplayName ? (
               <strong className="font-semibold">
                 {variantParentDisplayName}
               </strong>
             ) : (
-              "this group"
+              "its parent product"
             )}
-            . Tap another row to switch options.
+            . Tap a variant in the list below to switch SKUs.
           </span>
         </div>
       )}
@@ -713,34 +713,47 @@ export function ProductDetailPanel(props: Props) {
         </section>
       )}
 
-      {/* ── 4. Options / Variants ─────────────────────────────────────── */}
+      {/* ── 4. Variants (child SKUs of parent) ─────────────────────────── */}
       <section className={sectionCls}>
         <header className={cn(sectionHeadCls, "justify-between")}>
-          <div className="flex items-center gap-2">
-            <Layers className="size-3.5 text-muted-foreground/70" aria-hidden />
-            <span className={sectionLabelCls}>
-              Options{variantRows.length > 0 ? ` · ${variantRows.length}` : ""}
-            </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+              <span className={sectionLabelCls}>
+                Variants{variantRows.length > 0 ? ` · ${variantRows.length}` : ""}
+              </span>
+            </div>
+            {detail.variantOfItemId && variantParentDisplayName ? (
+              <p className="pl-6 text-[10px] leading-snug text-muted-foreground">
+                Same parent as{" "}
+                <span className="font-medium text-foreground">{variantParentDisplayName}</span>
+              </p>
+            ) : !detail.variantOfItemId && variantRows.length > 0 ? (
+              <p className="pl-6 text-[10px] leading-snug text-muted-foreground">
+                Child SKUs for this parent. Add several at once from the drawer.
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
-            className="flex items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
+            className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
             onClick={() => setActiveDrawer("add-variant")}
           >
-            <PackagePlus className="size-3" aria-hidden /> Add
+            <PackagePlus className="size-3" aria-hidden /> Add variants
           </button>
         </header>
         {variantRows.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-            <p className="text-[11px] text-muted-foreground">
-              No variants yet.
+            <p className="max-w-[16rem] text-[11px] text-muted-foreground">
+              No variants yet. Open the drawer to add one or many—each row becomes a variant SKU under
+              this parent.
             </p>
             <button
               type="button"
               onClick={() => setActiveDrawer("add-variant")}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
             >
-              <PackagePlus className="size-3" aria-hidden /> Add first variant
+              <PackagePlus className="size-3" aria-hidden /> Add variants
             </button>
           </div>
         ) : (
@@ -850,7 +863,7 @@ export function ProductDetailPanel(props: Props) {
                         </div>
                       </div>
                       <p className="mt-2 text-[11px] text-muted-foreground">
-                        Option label and SKU are set at creation — adjust from{" "}
+                        Variant name and SKU are set at creation — adjust from{" "}
                         <button
                           type="button"
                           className="font-medium text-primary underline-offset-2 hover:underline"

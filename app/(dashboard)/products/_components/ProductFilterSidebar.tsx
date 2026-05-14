@@ -51,7 +51,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
             <option value="ALL">Full tree</option>
             <option value="SKUS_ONLY">Sellable SKUs only</option>
             <option value="PARENTS_ONLY">Group labels only</option>
-            <option value="VARIANTS_ONLY">Option SKUs only</option>
+            <option value="VARIANTS_ONLY">Variant SKUs only</option>
           </select>
         </label>
         <label className="flex cursor-pointer items-center gap-2 text-xs">
