@@ -1001,6 +1001,8 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
 
 export default function ShiftsPage() {
   const { me } = useDashboard();
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isBranchLockedRole = roleKey === "stock_manager" || roleKey === "cashier";
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canRead = hasPermission(me?.permissions, Permission.ShiftsRead);
@@ -1051,6 +1053,14 @@ export default function ShiftsPage() {
       cancelled = true;
     };
   }, [allowed]);
+
+  useEffect(() => {
+    if (!allowed || !isBranchLockedRole) return;
+    const assigned = me?.branchId?.trim();
+    if (assigned) {
+      setBranchFilter(assigned);
+    }
+  }, [allowed, isBranchLockedRole, me?.branchId]);
 
   // Load shifts
   const loadShifts = useCallback(
@@ -1105,6 +1115,27 @@ export default function ShiftsPage() {
 
   const refreshOpenShift = useCallback(async () => {
     if (!branches.length) return;
+
+    if (isBranchLockedRole) {
+      const bid = me?.branchId?.trim();
+      if (!bid || !branches.some((b) => b.id === bid)) {
+        setCurrentOpenShift(null);
+        return;
+      }
+      try {
+        const s = await fetchCurrentShift(bid);
+        if (s.status === "open") {
+          setCurrentOpenShift(s);
+          return;
+        }
+      } catch {
+        setCurrentOpenShift(null);
+        return;
+      }
+      setCurrentOpenShift(null);
+      return;
+    }
+
     // Check first available branch for open shift
     for (const b of branches) {
       try {
@@ -1118,7 +1149,7 @@ export default function ShiftsPage() {
       }
     }
     setCurrentOpenShift(null);
-  }, [branches]);
+  }, [branches, isBranchLockedRole, me?.branchId]);
 
   useEffect(() => {
     refreshOpenShift().catch(() => undefined);
@@ -1143,7 +1174,10 @@ export default function ShiftsPage() {
 
     if (action === "open-shift") {
       if (canOpen) {
-        setOpenShiftPreferredBranchId(bid || null);
+        const assigned = me?.branchId?.trim();
+        setOpenShiftPreferredBranchId(
+          isBranchLockedRole ? assigned || null : bid || null,
+        );
         setOpenModal(true);
       }
       clearQuery();
@@ -1153,6 +1187,15 @@ export default function ShiftsPage() {
     if (!bid || !canClose) {
       clearQuery();
       return;
+    }
+
+    if (isBranchLockedRole) {
+      const assigned = me?.branchId?.trim();
+      if (!assigned || bid !== assigned) {
+        setError("That register is not available for your account.");
+        clearQuery();
+        return;
+      }
     }
 
     if (action !== "close-shift" && action !== "new-drawout") {
@@ -1179,7 +1222,7 @@ export default function ShiftsPage() {
         clearQuery();
       }
     })();
-  }, [allowed, searchParams, canOpen, canClose, router]);
+  }, [allowed, searchParams, canOpen, canClose, router, isBranchLockedRole, me?.branchId]);
 
   const handleShiftOpened = useCallback(
     (shift: ShiftRecord) => {
@@ -1263,12 +1306,16 @@ export default function ShiftsPage() {
         <div className="mt-8">
           <DashboardQuickLinks
             links={[
-              {
-                href: APP_ROUTES.branches,
-                label: "Branches",
-                desc: "Locations",
-                icon: MapPin,
-              },
+              ...(isBranchLockedRole
+                ? []
+                : [
+                    {
+                      href: APP_ROUTES.branches,
+                      label: "Branches",
+                      desc: "Locations",
+                      icon: MapPin,
+                    },
+                  ]),
               {
                 href: APP_ROUTES.salesQuick,
                 label: "Quick sale",
@@ -1326,15 +1373,20 @@ export default function ShiftsPage() {
               <select
                 className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs")}
                 value={branchFilter}
+                disabled={isBranchLockedRole}
                 onChange={(e) => setBranchFilter(e.target.value)}
                 aria-label="Filter by branch"
               >
-                <option value="">All Branches</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
+                {isBranchLockedRole ? null : (
+                  <option value="">All Branches</option>
+                )}
+                {branches
+                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -1475,6 +1527,7 @@ export default function ShiftsPage() {
         }}
         branches={branches}
         preferredBranchId={openShiftPreferredBranchId}
+        lockBranchSelectionTo={isBranchLockedRole ? me?.branchId ?? null : null}
         onOpened={handleShiftOpened}
       />
       <CloseShiftModal

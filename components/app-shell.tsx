@@ -879,7 +879,7 @@ export function AppShell({ children }: AppShellProps) {
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Branch
                   </label>
-                  {isOwner ? (
+                  {!isStockManager && !isCashier && isOwner ? (
                     <select
                       className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                       value={branchId}
@@ -905,8 +905,22 @@ export function AppShell({ children }: AppShellProps) {
                       )}
                     </select>
                   ) : currentBranch ? (
-                    <span className="mt-1 flex w-full items-center gap-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium text-muted-foreground">
-                      <MapPin className="size-3.5" aria-hidden />
+                    <span
+                      className={cn(
+                        "mt-1 flex w-full items-center gap-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium text-muted-foreground",
+                        (isStockManager || isCashier) && "cursor-not-allowed",
+                      )}
+                      title={
+                        isStockManager || isCashier
+                          ? "Branch switching is disabled for your role"
+                          : undefined
+                      }
+                    >
+                      {isStockManager || isCashier ? (
+                        <Lock className="size-3.5 shrink-0" aria-hidden />
+                      ) : (
+                        <MapPin className="size-3.5 shrink-0" aria-hidden />
+                      )}
                       {currentBranch.name}
                     </span>
                   ) : null}

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -57,6 +58,7 @@ export function CashierShell({ children }: CashierShellProps) {
   const router = useRouter();
   const online = useOnlineStatus();
   const {
+    me,
     business,
     loading,
     branches,
@@ -70,6 +72,9 @@ export function CashierShell({ children }: CashierShellProps) {
 
   const currentBranch = branches.find((b) => b.id === branchId);
   const showBranchPicker = canQuickSale;
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const branchLockedRole =
+    roleKey === "stock_manager" || roleKey === "cashier";
 
   const brandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),
@@ -104,31 +109,46 @@ export function CashierShell({ children }: CashierShellProps) {
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {showBranchPicker ? (
-                <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <span className="hidden sm:inline">Branch</span>
-                  <select
-                    className="h-8 max-w-[10rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-                    value={branchId}
-                    onChange={(e) => setBranchId(e.target.value)}
-                    disabled={branchesLoading || branches.length === 0}
-                    aria-label="Select branch"
+                branchLockedRole ? (
+                  <span
+                    className="inline-flex h-8 max-w-[10rem] items-center gap-1.5 rounded-md border bg-muted/30 px-2 text-xs font-medium text-muted-foreground"
+                    title="Branch switching is disabled for your role"
                   >
-                    {branches.length === 0 ? (
-                      <option value="">
-                        {branchesLoading ? "Loading…" : "No branches"}
-                      </option>
-                    ) : (
-                      <>
-                        {!branchId ? <option value="">Select…</option> : null}
-                        {branches.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                </label>
+                    <Lock className="size-3 shrink-0" aria-hidden />
+                    <span className="truncate">
+                      {currentBranch?.name?.trim() ||
+                        (me?.branchId?.trim() ? "Branch" : "—")}
+                    </span>
+                  </span>
+                ) : (
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <span className="hidden sm:inline">Branch</span>
+                    <select
+                      className="h-8 max-w-[10rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                      value={branchId}
+                      onChange={(e) => setBranchId(e.target.value)}
+                      disabled={branchesLoading || branches.length === 0}
+                      aria-label="Select branch"
+                    >
+                      {branches.length === 0 ? (
+                        <option value="">
+                          {branchesLoading ? "Loading…" : "No branches"}
+                        </option>
+                      ) : (
+                        <>
+                          {!branchId ? (
+                            <option value="">Select…</option>
+                          ) : null}
+                          {branches.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                  </label>
+                )
               ) : null}
               {showBranchPicker ? (
                 <PosCatalogItemTypeSelect

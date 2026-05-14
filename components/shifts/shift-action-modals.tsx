@@ -248,6 +248,7 @@ export function OpenShiftModal({
   branches,
   onOpened,
   preferredBranchId,
+  lockBranchSelectionTo,
 }: {
   open: boolean;
   onClose: () => void;
@@ -255,6 +256,8 @@ export function OpenShiftModal({
   onOpened: (shift: ShiftRecord) => void;
   /** When opening from POS deep link, pre-select this branch if valid. */
   preferredBranchId?: string | null;
+  /** When set (e.g. cashier), branch/register cannot be changed. */
+  lockBranchSelectionTo?: string | null;
 }) {
   const [branchId, setBranchId] = useState("");
   const [notes, setNotes] = useState("");
@@ -264,21 +267,25 @@ export function OpenShiftModal({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const lockedBranch = lockBranchSelectionTo?.trim() ?? "";
+
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
       const initial =
-        preferredBranchId?.trim() &&
-        branches.some((b) => b.id === preferredBranchId.trim())
-          ? preferredBranchId.trim()
-          : "";
+        lockedBranch && branches.some((b) => b.id === lockedBranch)
+          ? lockedBranch
+          : preferredBranchId?.trim() &&
+              branches.some((b) => b.id === preferredBranchId.trim())
+            ? preferredBranchId.trim()
+            : "";
       setBranchId(initial);
       setNotes("");
       setQuantities(createEmptyDenominationQuantities());
       setError("");
       setLoading(false);
     }
-  }, [open, preferredBranchId, branches]);
+  }, [open, preferredBranchId, branches, lockedBranch]);
 
   const totalCash = useMemo(
     () =>
@@ -351,11 +358,15 @@ export function OpenShiftModal({
               <select
                 className={dashboardSelectClass(loading)}
                 value={branchId}
+                disabled={!!lockedBranch}
                 onChange={(e) => setBranchId(e.target.value)}
               >
-                <option value="">— Select a branch —</option>
+                {!lockedBranch ? (
+                  <option value="">— Select a branch —</option>
+                ) : null}
                 {branches
                   .filter((b) => b.active)
+                  .filter((b) => !lockedBranch || b.id === lockedBranch)
                   .map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}

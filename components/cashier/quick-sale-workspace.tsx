@@ -67,7 +67,7 @@ import {
 } from "@/lib/cart-session";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { usePosCatalogItemType } from "@/components/cashier-shell";
-import { ScanLine } from "lucide-react";
+import { ScanLine, Lock } from "lucide-react";
 import {
   CloseShiftModal,
   DrawoutModal,
@@ -140,6 +140,10 @@ export function QuickSaleWorkspace({
   const canVoid =
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
+
+  const branchLockedRole =
+    me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
+    me?.role?.key?.trim().toLowerCase() === "cashier";
 
   const [topProducts, setTopProducts] = useState<TopProductRecord[]>([]);
   const [search, setSearch] = useState("");
@@ -1119,6 +1123,7 @@ export function QuickSaleWorkspace({
           onClose={() => setOpenShiftModal(false)}
           branches={branches.filter((b) => b.active)}
           preferredBranchId={branchId?.trim() || null}
+          lockBranchSelectionTo={branchLockedRole ? me?.branchId ?? null : null}
           onOpened={() => {
             setOpenShiftModal(false);
             setNotice("Shift opened successfully.");
@@ -1185,19 +1190,32 @@ export function QuickSaleWorkspace({
       <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/20 p-4">
         <label className="flex min-w-[14rem] flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Branch</span>
-          <select
-            className="rounded border bg-background px-2 py-1.5"
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            disabled={branchesLoading || branches.length === 0}
-          >
-            <option value="">—</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+          {branchLockedRole ? (
+            <span
+              className="inline-flex min-h-[2.25rem] items-center gap-2 rounded border bg-background px-2 py-1.5 text-sm text-muted-foreground"
+              title="Branch switching is disabled for your role"
+            >
+              <Lock className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate font-medium text-foreground">
+                {activeBranchName ||
+                  (me?.branchId?.trim() ? "Your branch" : "No branch assigned")}
+              </span>
+            </span>
+          ) : (
+            <select
+              className="rounded border bg-background px-2 py-1.5"
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              disabled={branchesLoading || branches.length === 0}
+            >
+              <option value="">—</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
       </div>
 
