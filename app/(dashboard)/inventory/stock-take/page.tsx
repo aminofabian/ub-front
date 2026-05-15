@@ -113,7 +113,10 @@ export default function StockTakePage() {
     me?.permissions,
     Permission.StocktakeApprove,
   );
-  const canDelete = hasPermission(me?.permissions, Permission.StocktakeDelete);
+  const canDelete =
+    hasPermission(me?.permissions, Permission.StocktakeDelete) ||
+    roleKey === "owner" ||
+    roleKey === "admin";
   const allowed = canRead || canRun || canApprove;
 
   // ── Session state
@@ -744,10 +747,11 @@ export default function StockTakePage() {
                           </div>
                         </Link>
                         {canDelete ? (
-                          <button
+                          <Button
                             type="button"
-                            className="ml-3 shrink-0 rounded-md p-1.5 text-muted-foreground/60 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400 transition-colors"
-                            title="Delete session"
+                            variant="outline"
+                            size="sm"
+                            className="ml-3 shrink-0 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -755,7 +759,8 @@ export default function StockTakePage() {
                             }}
                           >
                             <Trash2 className="size-4" />
-                          </button>
+                            Delete
+                          </Button>
                         ) : null}
                       </div>
                     );
@@ -829,14 +834,16 @@ export default function StockTakePage() {
             </div>
           </div>
           {canDelete ? (
-            <button
+            <Button
               type="button"
-              className="shrink-0 rounded-md p-1.5 text-muted-foreground/60 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400 transition-colors"
-              title="Delete session"
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
               onClick={() => onDeleteSession(session)}
             >
               <Trash2 className="size-4" />
-            </button>
+              Delete session
+            </Button>
           ) : null}
         </div>
 
@@ -951,6 +958,9 @@ export default function StockTakePage() {
                         <div className="truncate font-medium">{item.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {item.sku}
+                          {item.barcode?.trim()
+                            ? ` · ${item.barcode.trim()}`
+                            : ""}
                           {item.categoryName ? ` · ${item.categoryName}` : ""}
                         </div>
                       </div>
