@@ -15,6 +15,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 
 type Props = {
   itemTypeCount: number;
@@ -23,13 +24,26 @@ type Props = {
 
 export function ProductHeroHeader({ itemTypeCount, onCreateNew }: Props) {
   return (
-    <section className={DASHBOARD_SECTION_SURFACE}>
+    <section
+      className={cn(
+        DASHBOARD_SECTION_SURFACE,
+        "relative overflow-hidden",
+      )}
+    >
+      <div
+        className="pointer-events-none absolute -right-8 -top-10 size-40 rounded-full bg-primary/[0.07] blur-2xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-12 left-1/3 size-32 rounded-full bg-amber-400/[0.06] blur-2xl"
+        aria-hidden
+      />
       <DashboardPageHero
         compact
         icon={Package}
         eyebrow="Catalog"
         title="Products"
-        description={null}
+        description="Browse parents, variant groups, and SKUs in one tree."
       />
       <div className="mt-5 flex flex-col gap-4 border-t border-border/50 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <DashboardQuickLinks

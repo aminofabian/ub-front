@@ -258,7 +258,7 @@ export default function ProductsPage() {
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-3 sm:p-4 lg:flex-row lg:items-stretch lg:gap-4 lg:p-4">
               <ProductFilterSidebar catalog={catalog} />
               <div className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2 lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-hidden lg:pr-1">
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/25 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-gradient-to-r from-muted/40 via-muted/20 to-transparent px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:from-muted/30 dark:via-muted/15 dark:to-transparent dark:ring-white/[0.04]">
                   <span
                     className={cn(
                       dashboardHintClass(),
