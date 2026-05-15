@@ -98,6 +98,7 @@ function getLineDisplayName(line: StockTakeLineRecord): string {
 export default function StockTakePage() {
   const { me } = useDashboard();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const canSeeSystemStock = roleKey === "owner" || roleKey === "admin";
   const isBranchLockedRole =
     roleKey === "stock_manager" || roleKey === "cashier";
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
@@ -342,11 +343,13 @@ export default function StockTakePage() {
       const line = session
         ? getLineByItemId(session.lines, item.id)
         : undefined;
-      setCountItem(item);
+      setCountItem(
+        canSeeSystemStock ? item : { ...item, stockQty: undefined },
+      );
       setCountQty(formatCountedQty(line));
       setCountAisle(line?.aisle ?? "");
     },
-    [session],
+    [session, canSeeSystemStock],
   );
 
   // ── Submit count
@@ -891,7 +894,9 @@ export default function StockTakePage() {
                       id: line.itemId,
                       name: getLineDisplayName(line),
                       sku: line.itemSku ?? "",
-                      stockQty: canApprove ? line.systemQtySnapshot : undefined,
+                      stockQty: canSeeSystemStock
+                        ? line.systemQtySnapshot
+                        : undefined,
                     });
                   }}
                 >
@@ -1022,7 +1027,7 @@ export default function StockTakePage() {
             confirmed={
               getLineStatus(checklistLines, countItem.id) === "confirmed"
             }
-            canApprove={canApprove}
+            canSeeSystemStock={canSeeSystemStock}
             onQtyChange={setCountQty}
             onAisleChange={setCountAisle}
             onSubmit={onSubmitCount}
@@ -1295,7 +1300,7 @@ function CountModal({
   aisle,
   loading,
   confirmed,
-  canApprove,
+  canSeeSystemStock,
   onQtyChange,
   onAisleChange,
   onSubmit,
@@ -1306,7 +1311,7 @@ function CountModal({
   aisle: string;
   loading: boolean;
   confirmed: boolean;
-  canApprove: boolean;
+  canSeeSystemStock: boolean;
   onQtyChange: (v: string) => void;
   onAisleChange: (v: string) => void;
   onSubmit: () => void;
@@ -1374,7 +1379,7 @@ function CountModal({
                   autoFocus
                 />
               </label>
-              {canApprove && item.stockQty != null ? (
+              {canSeeSystemStock && item.stockQty != null ? (
                 <p className="text-xs text-muted-foreground">
                   System stock: {String(item.stockQty)} pcs
                 </p>
