@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Layers,
   List,
   Loader2,
   MousePointerClick,
@@ -15,7 +14,7 @@ import {
   DashboardNotice,
   dashboardHintClass,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
+import { FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
@@ -23,18 +22,17 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import {
   type ProductDrawerId,
   panelClass,
-  VARIANT_INPUT_CLASS,
 } from "./_types";
 import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
 import { useQuickEdit } from "./_hooks/useQuickEdit";
 import { useProductMutations } from "./_hooks/useProductMutations";
 import { VirtualizedCatalogBody } from "./_components/VirtualizedCatalogBody";
-import { VariantDrawerForm } from "./variant-drawer-form";
 import { ProductDetailPanel } from "./_components/ProductDetailPanel";
 import { ProductHeroHeader } from "./_components/ProductHeroHeader";
 import { ProductMobileFilterBar } from "./_components/ProductMobileFilterBar";
 import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
+import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import {
   ProductEditDrawer,
@@ -455,83 +453,28 @@ export default function ProductsPage() {
         m={m}
       />
 
-      <FormDrawer
-        open={activeDrawer === "add-variant" && !!D}
-        onOpenChange={(o) => {
-          if (!o) setActiveDrawer(null);
-        }}
-        banner={
-          activeDrawer === "add-variant" && catalog.message.trim() ? (
-            <FormDrawerMessageBanner text={catalog.message} />
-          ) : undefined
-        }
-        title="Add variants to parent"
-        description={
-          variantDrawerParentIsGroup
-            ? `Parent group “${variantDrawerParentName}”. Add one or more variant rows—each becomes its own SKU with its own prices and stock. When you add several rows, use the selector for shared description and reorder fields.`
-            : `Parent product “${variantDrawerParentName}”. Add one or more variant rows—each becomes its own SKU with its own prices and stock.`
-        }
-        contextLabel={variantDrawerParentIsGroup ? "Parent group" : "Parent product"}
-        icon={<Layers className="size-5 text-primary" />}
-        width="wide"
-        footer={
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setActiveDrawer(null)}
-              disabled={m.variantCreateBusy}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="add-variant-form"
-              disabled={m.variantCreateBusy || variantCreateSubmitCount === 0}
-              className="gap-2"
-            >
-              {m.variantCreateBusy ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  {variantCreateSubmitCount > 1
-                    ? `Creating ${variantCreateSubmitCount} variants…`
-                    : "Creating variant…"}
-                </>
-              ) : variantCreateSubmitCount > 1 ? (
-                `Create ${variantCreateSubmitCount} variants`
-              ) : (
-                "Create variant"
-              )}
-            </Button>
-          </div>
-        }
-      >
-        {D && (
-          <VariantDrawerForm
-            variantDraftRows={m.variantDraftRows}
-            setVariantDraftRows={m.setVariantDraftRows}
-            addVariantDraftRow={m.addVariantDraftRow}
-            removeVariantDraftRow={m.removeVariantDraftRow}
-            parentDisplayName={variantDrawerParentName}
-            parentIsProductGroup={variantDrawerParentIsGroup}
-            suggestedNextSku={m.nextAutoSkuHint}
-            sortedCategories={catalog.sortedCategories}
-            branches={m.branches}
-            suppliersForLink={m.suppliersForLink}
-            suppliersLoading={m.suppliersLoading}
-            loadSuppliersForLink={m.loadSuppliersForLink}
-            canLinkSupplier={canLinkSupplier}
-            canListSuppliers={canListSuppliers}
-            canSetSellPrice={canSetSellPrice}
-            canInventoryWrite={canInventoryWrite}
-            currencyCode={business?.currency?.trim() || ""}
-            pendingVariantImage={m.pendingVariantImage}
-            setPendingVariantImage={m.setPendingVariantImage}
-            onSubmit={m.onAddVariant}
-            inputClassName={VARIANT_INPUT_CLASS}
-          />
-        )}
-      </FormDrawer>
+      {D ? (
+        <VariantCreateDrawer
+          open={activeDrawer === "add-variant"}
+          onClose={() => setActiveDrawer(null)}
+          banner={
+            activeDrawer === "add-variant" && catalog.message.trim() ? (
+              <FormDrawerMessageBanner text={catalog.message} />
+            ) : undefined
+          }
+          parentDisplayName={variantDrawerParentName}
+          parentIsProductGroup={variantDrawerParentIsGroup}
+          variantCreateSubmitCount={variantCreateSubmitCount}
+          sortedCategories={catalog.sortedCategories}
+          branches={m.branches}
+          m={m}
+          canLinkSupplier={canLinkSupplier}
+          canListSuppliers={canListSuppliers}
+          canSetSellPrice={canSetSellPrice}
+          canInventoryWrite={canInventoryWrite}
+          currencyCode={business?.currency?.trim() || ""}
+        />
+      ) : null}
 
       <ProductQuickEditAllDrawer
         open={quick.quickEditAllOpen}
