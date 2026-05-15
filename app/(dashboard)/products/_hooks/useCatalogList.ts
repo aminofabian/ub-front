@@ -18,7 +18,8 @@ import {
   sortCatalogRowsParentFirst,
 } from "../_components/catalog-list-styles";
 
-export function useCatalogList() {
+export function useCatalogList(catalogBranchId?: string | null) {
+  const branchIdForStock = catalogBranchId?.trim() || undefined;
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [listRows, setListRows] = useState<ItemSummaryRecord[]>([]);
@@ -87,6 +88,7 @@ export function useCatalogList() {
         barcode: barcodeExact.trim() || undefined,
         noBarcode: filterNoBarcode,
         includeInactive: filterIncludeInactive,
+        branchId: branchIdForStock,
         page: 0,
         size: 80,
       });
@@ -102,7 +104,7 @@ export function useCatalogList() {
     } finally {
       setListLoadingInitial(false);
     }
-  }, [debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive]);
+  }, [debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive, branchIdForStock]);
 
   const loadMoreCatalog = useCallback(async () => {
     if (listLast || listLoadingMore || listLoadingInitial || nextPageRef.current <= 0) return;
@@ -116,6 +118,7 @@ export function useCatalogList() {
         barcode: barcodeExact.trim() || undefined,
         noBarcode: filterNoBarcode,
         includeInactive: filterIncludeInactive,
+        branchId: branchIdForStock,
         page: pagen,
         size: 80,
       });
@@ -129,7 +132,7 @@ export function useCatalogList() {
     } finally {
       setListLoadingMore(false);
     }
-  }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive]);
+  }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive, branchIdForStock]);
 
   useEffect(() => {
     const fromRows = buildVariantIdsByParentId(listRows);

@@ -34,9 +34,15 @@ import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import type { QuickEditApi } from "../_hooks/useQuickEdit";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import { ProductDetailPanel } from "./ProductDetailPanel";
-import { coverImageUrl, formatMutationError, galleryImageUrl } from "../_utils";
+import {
+  coverImageUrl,
+  formatMutationError,
+  galleryImageUrl,
+  toNumber,
+} from "../_utils";
 import { postStockIncrease } from "@/lib/api";
 import { useEffect, useState, type ComponentProps } from "react";
+import { StockIncreaseFields } from "./StockIncreaseFields";
 type Cat = { id: string; name: string; active: boolean };
 
 // ─── Edit drawer ─────────────────────────────────────────────────────────────
@@ -88,31 +94,47 @@ export function ProductEditDrawer({
     if (!open || !d) return;
     setStockQty("");
     setStockBranchId(headerBranchId || m.branches[0]?.id || "");
-    setStockUnitCost(dr.buyingPriceStr?.trim() || "");
-  }, [open, d?.id, headerBranchId, dr.buyingPriceStr, m.branches]);
+    const cost =
+      toNumber(d.buyingPrice) ??
+      toNumber(dr.buyingPriceStr) ??
+      null;
+    setStockUnitCost(cost != null ? String(cost) : "");
+  }, [open, d?.id, d?.buyingPrice, headerBranchId, dr.buyingPriceStr, m.branches]);
 
-  const handleStockIncrease = async () => {
-    if (!d) return;
+  // Default "Show on online shop" to checked whenever the edit drawer opens.
+  useEffect(() => {
+    if (!open || !d) return;
+    detail.setPatchDraft((p) => ({ ...p, webPublished: true }));
+  }, [open, d?.id, detail.setPatchDraft]);
+
+  const handleStockIncrease = async (): Promise<boolean> => {
+    if (!d) return false;
+    if (d.isStocked === false) {
+      setMessage(
+        "This SKU is not stocked. Turn on stock tracking for this product, or add stock on a variant row instead.",
+      );
+      return false;
+    }
     const qtyRaw = stockQty.trim();
     if (!qtyRaw) {
       setMessage("Enter a quantity to add.");
-      return;
+      return false;
     }
     const qty = Number(qtyRaw);
     if (!Number.isFinite(qty) || qty <= 0) {
       setMessage("Quantity must be a positive number.");
-      return;
+      return false;
     }
     const branchId = stockBranchId.trim();
     if (!branchId) {
       setMessage("Select a branch.");
-      return;
+      return false;
     }
     const costRaw = stockUnitCost.trim();
     const unitCost = costRaw === "" ? 0 : Number(costRaw);
     if (!Number.isFinite(unitCost) || unitCost < 0) {
       setMessage("Unit cost must be a valid non-negative number.");
-      return;
+      return false;
     }
     setStockSaving(true);
     setMessage("");
@@ -127,11 +149,22 @@ export function ProductEditDrawer({
       await refreshSelectedDetail();
       setStockQty("");
       setMessage("Stock increased.");
+      return true;
     } catch (e) {
       setMessage(formatMutationError(e, "Stock adjustment failed."));
+      return false;
     } finally {
       setStockSaving(false);
     }
+  };
+
+  const onEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (stockQty.trim()) {
+      const ok = await handleStockIncrease();
+      if (!ok) return;
+    }
+    await m.onPatchItem(e);
   };
 
   return (
@@ -167,7 +200,7 @@ export function ProductEditDrawer({
         <form
           id="edit-product-form"
           className={productFormStackClass}
-          onSubmit={m.onPatchItem}
+          onSubmit={(e) => void onEditSubmit(e)}
         >
           <ProductFormField label="Name" required>
             <input
@@ -374,66 +407,38 @@ export function ProductEditDrawer({
             </div>
           </div>
 
-          {/* ── Stock adjustment ──────────────────────────────────── */}
-          <div className={productFormSectionClass}>
-            <p className={cn("flex items-center gap-1.5", productFormSectionTitleClass)}>
-              <Building2 className="size-3" aria-hidden />
-              Stock adjustment
-            </p>
-            <p className="text-[10px] leading-snug text-muted-foreground">
-              Adds to on-hand at the selected branch. Click Add stock — Save changes does not apply here.
-            </p>
-            <div className={productFormStackClass}>
-              <ProductFormField label="Branch">
-                <select
-                  className={productFormSelectClass}
-                  value={stockBranchId}
-                  onChange={(e) => setStockBranchId(e.target.value)}
-                >
-                  <option value="">— Select branch —</option>
-                  {m.branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </ProductFormField>
-              <div className={productFormGrid2Class}>
-                <ProductFormField label="Qty to add">
-                  <input
-                    className={productFormInputClass}
-                    inputMode="decimal"
-                    placeholder="e.g. 10"
-                    value={stockQty}
-                    onChange={(e) => setStockQty(e.target.value)}
-                  />
-                </ProductFormField>
-                <ProductFormField label="Unit cost">
-                  <input
-                    className={productFormInputClass}
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={stockUnitCost}
-                    onChange={(e) => setStockUnitCost(e.target.value)}
-                  />
-                </ProductFormField>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                className="h-7 gap-1 text-xs"
-                disabled={stockSaving}
-                onClick={() => void handleStockIncrease()}
-              >
-                {stockSaving ? (
-                  <Loader2 className="size-3 animate-spin" aria-hidden />
-                ) : (
-                  <Plus className="size-3" aria-hidden />
-                )}
-                {stockSaving ? "Adding…" : "Add stock"}
-              </Button>
-            </div>
-          </div>
+          <StockIncreaseFields
+            branches={m.branches}
+            branchId={stockBranchId}
+            onBranchIdChange={setStockBranchId}
+            quantity={stockQty}
+            onQuantityChange={setStockQty}
+            unitCost={stockUnitCost}
+            onUnitCostChange={setStockUnitCost}
+            itemId={d.id}
+            currentUnitCost={
+              toNumber(d.buyingPrice) ?? toNumber(dr.buyingPriceStr)
+            }
+            hint={
+              d.isStocked === false
+                ? "This SKU is not stocked — enable stock tracking before adding quantity."
+                : "Click Add stock, or fill qty and use Save changes."
+            }
+          />
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 gap-1 text-xs"
+            disabled={stockSaving}
+            onClick={() => void handleStockIncrease()}
+          >
+            {stockSaving ? (
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+            ) : (
+              <Plus className="size-3" aria-hidden />
+            )}
+            {stockSaving ? "Adding…" : "Add stock"}
+          </Button>
 
           <label className="flex items-center gap-2 text-sm">
             <input

@@ -46,3 +46,7 @@ export const productFormInlineEditClass = cn(
 );
 
 export const productFormStackClass = "flex flex-col gap-2.5";
+
+/** Live preview line under stock / cost inputs */
+export const productFormPreviewClass =
+  "text-[10px] leading-snug text-muted-foreground";

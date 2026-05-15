@@ -64,7 +64,6 @@ export type ParentDraft = {
   minStockLevel: string;
   reorderLevel: string;
   reorderQty: string;
-  imageKey: string;
   supplierId: string;
   supplierSku: string;
   defaultCostPrice: string;
@@ -95,7 +94,6 @@ export const EMPTY_PARENT: ParentDraft = {
   minStockLevel: "",
   reorderLevel: "",
   reorderQty: "",
-  imageKey: "",
   supplierId: "",
   supplierSku: "",
   defaultCostPrice: "",

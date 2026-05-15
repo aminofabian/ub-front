@@ -63,13 +63,15 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       const id = (itemIdOverride?.trim() || selectedId?.trim()) ?? "";
       if (!id) return;
       try {
-        const row = await fetchItemById(id);
+        const row = await fetchItemById(id, { branchId: pricingBranchId });
         setDetail(row);
         setPatchDraft(buildDraft(row));
         const parentOfVariant = row.variantOfItemId?.trim();
         if (parentOfVariant) {
           try {
-            const parentRow = await fetchItemById(parentOfVariant);
+            const parentRow = await fetchItemById(parentOfVariant, {
+              branchId: pricingBranchId,
+            });
             setParentVariants(parentRow.variants ?? []);
             setVariantParentDisplayName(parentRow.name?.trim() || null);
           } catch {
@@ -119,14 +121,16 @@ export function useProductDetail(branchIdForPricing?: string | null) {
     let cancelled = false;
     void (async () => {
       try {
-        const row = await fetchItemById(selectedId);
+        const row = await fetchItemById(selectedId, { branchId: pricingBranchId });
         if (cancelled) return;
         setDetail(row);
         setPatchDraft(buildDraft(row));
         const parentOfVariant = row.variantOfItemId?.trim();
         if (parentOfVariant) {
           try {
-            const parentRow = await fetchItemById(parentOfVariant);
+            const parentRow = await fetchItemById(parentOfVariant, {
+              branchId: pricingBranchId,
+            });
             if (!cancelled) {
               setParentVariants(parentRow.variants ?? []);
               setVariantParentDisplayName(parentRow.name?.trim() || null);

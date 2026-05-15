@@ -73,7 +73,7 @@ export default function ProductsPage() {
     Permission.InventoryWrite,
   );
 
-  const catalog = useCatalogList();
+  const catalog = useCatalogList(branchId);
   const detail = useProductDetail(branchId);
   const quick = useQuickEdit({
     selectedId: detail.selectedId,

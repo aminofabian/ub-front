@@ -265,16 +265,15 @@ export function useProductMutations(d: Dependencies) {
     setParentDraft((prev) => ({ ...prev, itemTypeId: seedId }));
   }, [itemTypes, dashboardItemTypeId]);
 
-  // ─── seed openingBranchId from header ───
+  // ─── seed openingBranchId from header when create drawer is used ───
   useEffect(() => {
-    if (headerBranchId.trim()) {
-      setParentDraft((prev) =>
-        prev.openingBranchId
-          ? prev
-          : { ...prev, openingBranchId: headerBranchId },
-      );
-    }
-  }, [headerBranchId]);
+    if (!headerBranchId.trim()) return;
+    setParentDraft((prev) =>
+      prev.openingBranchId.trim()
+        ? prev
+        : { ...prev, openingBranchId: headerBranchId.trim() },
+    );
+  }, [headerBranchId, activeDrawer]);
 
   // ─── seed variant draft brand from parent when drawer opens ─────────────
   useEffect(() => {
@@ -364,10 +363,9 @@ export function useProductMutations(d: Dependencies) {
                 : {}),
               isWeighed: parentDraft.isWeighed,
               isSellable: parentDraft.isSellable,
-              isStocked: parentDraft.isStocked,
-              ...(parentDraft.imageKey.trim()
-                ? { imageKey: parentDraft.imageKey.trim() }
-                : {}),
+              isStocked:
+                parentDraft.isStocked ||
+                Boolean(parentDraft.openingQty.trim()),
               buyingPrice: parseNum(parentDraft.buyingPrice, "Buy price"),
               bundleQty: parseNum(parentDraft.bundleQty, "Pack qty", true),
               bundlePrice: parseNum(parentDraft.bundlePrice, "Sell price"),
@@ -384,13 +382,15 @@ export function useProductMutations(d: Dependencies) {
         // Supplier link — standalone only
         const sup = parentDraft.supplierId.trim();
         if (!isCreatingGroup && canLinkSupplier && sup) {
-          const cost = parseNum(parentDraft.defaultCostPrice, "Default cost");
+          const cost =
+            parseNum(parentDraft.defaultCostPrice, "Default cost") ??
+            parseNum(parentDraft.buyingPrice, "Buy price");
           try {
             await addItemSupplierLink(created.id, {
               supplierId: sup,
               setPrimary: parentDraft.setPrimarySupplier,
               supplierSku: parentDraft.supplierSku.trim() || undefined,
-              defaultCostPrice: cost,
+              ...(cost != null ? { defaultCostPrice: cost } : {}),
             });
           } catch (linkErr) {
             await refreshFullCatalog();
@@ -423,27 +423,35 @@ export function useProductMutations(d: Dependencies) {
           parentDraft.openingBranchId.trim()
         ) {
           const qty = Number(parentDraft.openingQty.trim());
-          const uc = parentDraft.openingUnitCost.trim() || undefined;
-          const ucVal = uc ? Number(uc) : undefined;
-          try {
-            const payload: {
-              branchId: string;
-              itemId: string;
-              quantity: number;
-              unitCost?: number;
-              notes: string;
-            } = {
-              branchId: parentDraft.openingBranchId.trim(),
-              itemId: created.id,
-              quantity: qty,
-              notes: "Opening stock from product creation",
-            };
-            if (uc && Number.isFinite(ucVal)) payload.unitCost = ucVal;
-            await postStockIncrease(
-              payload as Parameters<typeof postStockIncrease>[0],
-            );
-          } catch {
-            setMessage("Product created but opening stock failed.");
+          if (!Number.isFinite(qty) || qty <= 0) {
+            setMessage("Opening quantity must be a positive number.");
+          } else {
+            const ucRaw = parentDraft.openingUnitCost.trim();
+            const buy = parseNum(parentDraft.buyingPrice, "Buy price");
+            const unitCost =
+              ucRaw === ""
+                ? (buy ?? 0)
+                : Number(ucRaw);
+            if (!Number.isFinite(unitCost) || unitCost < 0) {
+              setMessage("Opening unit cost must be a valid non-negative number.");
+            } else {
+              try {
+                await postStockIncrease({
+                  branchId: parentDraft.openingBranchId.trim(),
+                  itemId: created.id,
+                  quantity: qty,
+                  unitCost,
+                  notes: "Opening stock from product creation",
+                });
+              } catch (stockErr) {
+                setMessage(
+                  formatMutationError(
+                    stockErr,
+                    "Product created but opening stock failed.",
+                  ),
+                );
+              }
+            }
           }
         }
         setPendingCreateImage(null);
@@ -464,8 +472,7 @@ export function useProductMutations(d: Dependencies) {
           );
         }
       } catch (err) {
-        if (!(err instanceof ApiRequestError))
-          setMessage(err instanceof Error ? err.message : "Create failed.");
+        setMessage(formatMutationError(err, "Create failed."));
       } finally {
         parentCreateSubmittingRef.current = false;
         setParentCreateBusy(false);
@@ -503,7 +510,7 @@ export function useProductMutations(d: Dependencies) {
         barcode: patchDraft.barcode,
         description: patchDraft.description,
         active: patchDraft.active,
-        webPublished: patchDraft.webPublished,
+        webPublished: patchDraft.webPublished ?? true,
         imageKey: patchDraft.imageKey,
         categoryId: patchDraft.categoryId.trim(),
       };

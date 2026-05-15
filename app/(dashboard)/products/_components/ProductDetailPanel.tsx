@@ -28,6 +28,7 @@ import { type ProductEditDraft, type QuickEditKey } from "../_types";
 import {
   coverImageUrl,
   effectiveSupplierUnitCost,
+  effectiveOnHand,
   formatAmount,
   toNumber,
 } from "../_utils";
@@ -279,7 +280,7 @@ export function ProductDetailPanel(props: Props) {
     </button>
   );
 
-  const stockLevel = toNumber(detail.currentStock);
+  const stockLevel = effectiveOnHand(detail);
   const minStock = toNumber(detail.minStockLevel);
   const stockLow =
     stockLevel != null && minStock != null && stockLevel <= minStock;
@@ -758,6 +759,8 @@ export function ProductDetailPanel(props: Props) {
                     onQuantityChange={setQuickStock}
                     unitCost={quickStockUnitCost}
                     onUnitCostChange={setQuickStockUnitCost}
+                    itemId={selectedId}
+                    currentUnitCost={primaryCost}
                     className="border-0 p-0 shadow-none ring-0"
                     hint="Adds to on-hand at the selected branch."
                   />

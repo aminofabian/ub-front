@@ -48,6 +48,17 @@ export function effectiveSupplierUnitCost(
   return buy ?? null;
 }
 
+/** Branch batch on-hand when available; otherwise item-level currentStock. */
+export function effectiveOnHand(
+  detail: {
+    stockQty?: number | string | null;
+    currentStock?: number | string | null;
+  } | null | undefined,
+): number | null {
+  if (!detail) return null;
+  return toNumber(detail.stockQty) ?? toNumber(detail.currentStock);
+}
+
 export function formatAmount(value: number | null | undefined): string {
   if (value == null) return "—";
   return value.toLocaleString(undefined, {

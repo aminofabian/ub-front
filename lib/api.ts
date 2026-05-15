@@ -1699,8 +1699,19 @@ export async function fetchItems(
   return page.content;
 }
 
-export async function fetchItemById(itemId: string): Promise<ItemDetailRecord> {
-  return request<ItemDetailRecord>(`${API_ROUTES.items}/${itemId}`);
+export async function fetchItemById(
+  itemId: string,
+  opts?: { branchId?: string | null },
+): Promise<ItemDetailRecord> {
+  const params = new URLSearchParams();
+  const branchId = opts?.branchId?.trim();
+  if (branchId) {
+    params.set("branchId", branchId);
+  }
+  const qs = params.toString();
+  return request<ItemDetailRecord>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export async function fetchItemSupplierLinks(

@@ -9,16 +9,13 @@ import {
   Camera,
   X,
   Upload,
-  Tag,
   Boxes,
   FileText,
-  MapPin,
   Loader2,
   ChevronDown,
   ChevronRight,
   Barcode,
   Hash,
-  TrendingUp,
   Truck,
   Settings2,
   Plus,
@@ -34,6 +31,9 @@ import {
   productFormInputClass,
   productFormLabelClass,
 } from "./product-form-styles";
+import { StockIncreaseFields } from "./StockIncreaseFields";
+import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
+import { toNumber } from "../_utils";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  Types
@@ -249,6 +249,27 @@ export function ProductCreateDrawer({
     }
   }, [open]);
 
+  const syncCostsFromBuyingPrice = useCallback(
+    (buyingPrice: string, prev: typeof m.parentDraft) => {
+      const buy = toNumber(buyingPrice);
+      if (buy == null) return { ...prev, buyingPrice };
+      const packQty = Math.max(1, toNumber(prev.bundleQty) ?? 1);
+      const perUnit = buy / packQty;
+      const perUnitStr = Number.isFinite(perUnit) ? String(perUnit) : "";
+      return {
+        ...prev,
+        buyingPrice,
+        openingUnitCost: prev.openingUnitCost.trim()
+          ? prev.openingUnitCost
+          : perUnitStr,
+        defaultCostPrice: prev.defaultCostPrice.trim()
+          ? prev.defaultCostPrice
+          : String(buy),
+      };
+    },
+    [],
+  );
+
   /* ── Image preview ── */
   useEffect(() => {
     if (!m.pendingCreateImage) {
@@ -306,8 +327,22 @@ export function ProductCreateDrawer({
 
   /* ── Derived: has detail data ── */
   const hasDetailData = Boolean(
-    m.parentDraft.description || m.parentDraft.unitType || m.parentDraft.imageKey,
+    m.parentDraft.description || m.parentDraft.unitType,
   );
+
+  /** Per sellable unit — used to value opening stock batches (buy ÷ pack qty). */
+  const costPerUnit = useMemo(() => {
+    const buy = toNumber(m.parentDraft.buyingPrice);
+    const pack = Math.max(1, toNumber(m.parentDraft.bundleQty) ?? 1);
+    if (buy != null) return buy / pack;
+    const sup = toNumber(m.parentDraft.defaultCostPrice);
+    if (sup != null && pack > 0) return sup / pack;
+    return null;
+  }, [
+    m.parentDraft.buyingPrice,
+    m.parentDraft.bundleQty,
+    m.parentDraft.defaultCostPrice,
+  ]);
 
   /* ── Submit wrapper that optionally keeps drawer open ── */
   const handleSubmit = useCallback(
@@ -342,7 +377,6 @@ export function ProductCreateDrawer({
         minStockLevel: "",
         reorderLevel: "",
         reorderQty: "",
-        imageKey: "",
         supplierId: "",
         supplierSku: "",
         defaultCostPrice: "",
@@ -476,11 +510,6 @@ export function ProductCreateDrawer({
                 </span>
               ) : null}
             </div>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
-              {isGroup
-                ? "Container — add variants with their own SKUs, prices and stock"
-                : "Standalone SKU — sold directly with its own barcode and price"}
-            </p>
           </div>
         </div>
 
@@ -512,7 +541,6 @@ export function ProductCreateDrawer({
               <p className={cn("text-sm font-medium", !isGroup ? "text-primary" : "text-foreground")}>
                 Standalone SKU
               </p>
-              <p className="text-[11px] text-muted-foreground">Has barcode, price & stock. Sold individually.</p>
             </div>
           </button>
           <button
@@ -539,7 +567,6 @@ export function ProductCreateDrawer({
               <p className={cn("text-sm font-medium", isGroup ? "text-primary" : "text-foreground")}>
                 Product group
               </p>
-              <p className="text-[11px] text-muted-foreground">Just a label. Variants carry SKUs & prices.</p>
             </div>
           </button>
         </div>
@@ -554,7 +581,7 @@ export function ProductCreateDrawer({
               {isGroup ? "Group name" : "Product name"}
               <input
                 className={cn(icClass(), "text-base font-medium")}
-                placeholder={isGroup ? "e.g. Brookside Milk" : "What customers see on receipts"}
+                placeholder={isGroup ? "Group name" : "Product name"}
                 value={m.parentDraft.name}
                 onChange={(e) => m.setParentDraft((p) => ({ ...p, name: e.target.value }))}
                 required
@@ -635,7 +662,6 @@ export function ProductCreateDrawer({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Drop an image or click to browse</p>
-                  <p className="text-[11px] text-muted-foreground">JPG, PNG, WEBP</p>
                 </div>
               </div>
             )}
@@ -651,9 +677,7 @@ export function ProductCreateDrawer({
             />
           </div>
 
-          {/* Brand + Size */}
-          {!isGroup && (
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
               <Label>
                 Brand
                 <input
@@ -673,101 +697,17 @@ export function ProductCreateDrawer({
                 />
               </Label>
             </div>
-          )}
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/*  PRICING — standalone only                                      */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {!isGroup && (
-          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card/90 via-background to-muted/15 p-4 shadow-sm sm:p-5">
-            <div className="mb-4 flex items-center gap-2 border-b border-border/35 pb-3">
-              <Tag className="size-4 text-primary" />
-              <span className="font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Pricing
-              </span>
-              {marginInfo && marginInfo.valid && (
-                <span
-                  className={cn(
-                    "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    marginInfo.margin >= 20
-                      ? "bg-emerald-500/10 text-emerald-700"
-                      : marginInfo.margin >= 10
-                        ? "bg-amber-500/10 text-amber-700"
-                        : "bg-red-500/10 text-red-700",
-                  )}
-                >
-                  <TrendingUp className="size-3" />
-                  {marginInfo.margin.toFixed(1)}% margin
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {/* Buy → Pack → Sell row */}
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Label>
-                  <span className="flex items-center gap-1">
-                    Buy price
-                    {currencyCode && <span className="text-[10px] font-normal text-muted-foreground">({currencyCode})</span>}
-                  </span>
-                  <NumberInput
-                    value={m.parentDraft.buyingPrice}
-                    onChange={(v) => m.setParentDraft((p) => ({ ...p, buyingPrice: v }))}
-                    placeholder="0.00"
-                  />
-                </Label>
-                <Label>
-                  Pack qty
-                  <NumberInput
-                    value={m.parentDraft.bundleQty}
-                    onChange={(v) => m.setParentDraft((p) => ({ ...p, bundleQty: v }))}
-                    placeholder="1"
-                    min="1"
-                    step="1"
-                  />
-                </Label>
-                <Label>
-                  <span className="flex items-center gap-1">
-                    Sell price
-                    {currencyCode && <span className="text-[10px] font-normal text-muted-foreground">({currencyCode})</span>}
-                  </span>
-                  <NumberInput
-                    value={m.parentDraft.bundlePrice}
-                    onChange={(v) => m.setParentDraft((p) => ({ ...p, bundlePrice: v }))}
-                    placeholder="0.00"
-                  />
-                </Label>
-              </div>
-
-              {/* Margin detail strip */}
-              {marginInfo && marginInfo.valid && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                  <span>
-                    Unit cost: <strong className="text-foreground">{marginInfo.unitCost.toFixed(2)}</strong>
-                  </span>
-                  <span>
-                    Profit: <strong className="text-foreground">{marginInfo.profit.toFixed(2)}</strong>
-                  </span>
-                  <span>
-                    Margin: <strong className="text-foreground">{marginInfo.margin.toFixed(1)}%</strong>
-                  </span>
-                </div>
-              )}
-
-              {/* Pack label */}
-              <Label>
-                Pack label
-                <input
-                  className={icClass()}
-                  placeholder='e.g. "6-pack"'
-                  value={m.parentDraft.bundleName}
-                  onChange={(e) => m.setParentDraft((p) => ({ ...p, bundleName: e.target.value }))}
-                />
-              </Label>
-            </div>
-          </div>
-        )}
+        {!isGroup ? (
+          <ProductCreatePricingSection
+            draft={m.parentDraft}
+            setDraft={m.setParentDraft}
+            syncCostsFromBuyingPrice={syncCostsFromBuyingPrice}
+            currencyCode={currencyCode}
+            marginInfo={marginInfo}
+          />
+        ) : null}
 
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/*  STOCK — standalone only                                        */}
@@ -777,58 +717,31 @@ export function ProductCreateDrawer({
             <SectionToggle
               icon={Boxes}
               label="Stock & inventory"
-              hint="Opening quantity, tracking and reorder levels"
               expanded={expanded.stock}
               onToggle={() => toggleSection("stock")}
             />
 
             {expanded.stock && (
               <div className="space-y-4 rounded-2xl border border-border/50 bg-gradient-to-br from-card/90 via-background to-muted/15 p-4 shadow-sm sm:p-5">
-                {/* Opening stock — the most important */}
-                <div>
-                  <div className="mb-2 flex items-center gap-2">
-                    <MapPin className="size-3.5 text-primary" />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                      Opening stock
-                    </span>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <Label>
-                      Branch
-                      <select
-                        className={icClass()}
-                        value={m.parentDraft.openingBranchId}
-                        onChange={(e) => m.setParentDraft((p) => ({ ...p, openingBranchId: e.target.value }))}
-                      >
-                        <option value="">— None —</option>
-                        {branches.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
-                    </Label>
-                    <Label>
-                      Quantity
-                      <NumberInput
-                        value={m.parentDraft.openingQty}
-                        onChange={(v) => m.setParentDraft((p) => ({ ...p, openingQty: v }))}
-                        placeholder="0"
-                      />
-                    </Label>
-                    <Label>
-                      <span className="flex items-center gap-1">
-                        Unit cost
-                        {currencyCode && <span className="text-[10px] font-normal text-muted-foreground">({currencyCode})</span>}
-                      </span>
-                      <NumberInput
-                        value={m.parentDraft.openingUnitCost}
-                        onChange={(v) => m.setParentDraft((p) => ({ ...p, openingUnitCost: v }))}
-                        placeholder="0.00"
-                      />
-                    </Label>
-                  </div>
-                </div>
+                <StockIncreaseFields
+                  minimal
+                  mode="opening"
+                  branches={branches}
+                  branchId={m.parentDraft.openingBranchId}
+                  onBranchIdChange={(id) =>
+                    m.setParentDraft((p) => ({ ...p, openingBranchId: id }))
+                  }
+                  quantity={m.parentDraft.openingQty}
+                  onQuantityChange={(v) =>
+                    m.setParentDraft((p) => ({ ...p, openingQty: v }))
+                  }
+                  unitCost={m.parentDraft.openingUnitCost}
+                  onUnitCostChange={(v) =>
+                    m.setParentDraft((p) => ({ ...p, openingUnitCost: v }))
+                  }
+                  currentUnitCost={costPerUnit}
+                  className="border-0 bg-transparent p-0 shadow-none ring-0"
+                />
 
                 {/* Tracking toggles */}
                 <div className="flex flex-wrap gap-2">
@@ -897,7 +810,6 @@ export function ProductCreateDrawer({
             <SectionToggle
               icon={Hash}
               label="Identifiers"
-              hint="SKU, barcode and internal codes"
               expanded={expanded.identifiers}
               onToggle={() => toggleSection("identifiers")}
               badge={
@@ -965,7 +877,6 @@ export function ProductCreateDrawer({
             <SectionToggle
               icon={Truck}
               label="Supplier"
-              hint="Link a supplier and their reference"
               expanded={expanded.supplier}
               onToggle={() => toggleSection("supplier")}
               badge={
@@ -1019,7 +930,11 @@ export function ProductCreateDrawer({
                   <Label>
                     <span className="flex items-center gap-1">
                       Default cost
-                      {currencyCode && <span className="text-[10px] font-normal text-muted-foreground">({currencyCode})</span>}
+                      {currencyCode ? (
+                        <span className="text-[10px] font-normal text-muted-foreground">
+                          ({currencyCode})
+                        </span>
+                      ) : null}
                     </span>
                     <NumberInput
                       value={m.parentDraft.defaultCostPrice}
@@ -1045,7 +960,6 @@ export function ProductCreateDrawer({
           <SectionToggle
             icon={FileText}
             label="More details"
-            hint="Description, unit type and image URL"
             expanded={expanded.details}
             onToggle={() => toggleSection("details")}
             badge={
@@ -1060,33 +974,24 @@ export function ProductCreateDrawer({
                 Description
                 <textarea
                   className={cn(icClass(), "min-h-[4rem] resize-y")}
-                  placeholder="Optional — visible on receipts and storefront"
+                  placeholder="Optional"
                   value={m.parentDraft.description}
                   onChange={(e) => m.setParentDraft((p) => ({ ...p, description: e.target.value }))}
                 />
               </Label>
-              {!isGroup && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Label>
-                    Unit
-                    <input
-                      className={icClass()}
-                      placeholder="each, kg, box…"
-                      value={m.parentDraft.unitType}
-                      onChange={(e) => m.setParentDraft((p) => ({ ...p, unitType: e.target.value }))}
-                    />
-                  </Label>
-                  <Label>
-                    Image URL
-                    <input
-                      className={icClass()}
-                      placeholder="https://…"
-                      value={m.parentDraft.imageKey}
-                      onChange={(e) => m.setParentDraft((p) => ({ ...p, imageKey: e.target.value }))}
-                    />
-                  </Label>
-                </div>
-              )}
+              {!isGroup ? (
+                <Label>
+                  Unit
+                  <input
+                    className={icClass()}
+                    placeholder="each, kg, box…"
+                    value={m.parentDraft.unitType}
+                    onChange={(e) =>
+                      m.setParentDraft((p) => ({ ...p, unitType: e.target.value }))
+                    }
+                  />
+                </Label>
+              ) : null}
             </div>
           )}
         </div>

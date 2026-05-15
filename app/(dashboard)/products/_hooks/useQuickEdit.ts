@@ -252,6 +252,12 @@ export function useQuickEdit({
       setMessage("You do not have permission to adjust stock.");
       return;
     }
+    if (detail?.isStocked === false) {
+      setMessage(
+        "This SKU is not stocked. Enable stock tracking or add stock on a variant instead.",
+      );
+      return;
+    }
     const qtyRaw = quickStock.trim();
     if (!qtyRaw) {
       setMessage("Enter a quantity to add.");
