@@ -289,7 +289,7 @@ export function useProductMutations(d: Dependencies) {
   // CREATE PARENT
   // ══════════════════════════════════════════════════════════════════════════
   const onCreateParent = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
+    async (e: React.FormEvent<HTMLFormElement>, opts?: { keepOpen?: boolean }) => {
       e.preventDefault();
       if (parentCreateSubmittingRef.current) return;
       parentCreateSubmittingRef.current = true;
@@ -453,7 +453,7 @@ export function useProductMutations(d: Dependencies) {
           setActiveDrawer("add-variant");
           setMessage("Group created — add your first variant.");
         } else {
-          setActiveDrawer(null);
+          if (!opts?.keepOpen) setActiveDrawer(null);
           const linked = canLinkSupplier && sup;
           setMessage(
             linked ? "Product created and linked." : "Product created.",
