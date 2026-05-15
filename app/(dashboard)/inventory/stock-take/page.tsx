@@ -96,9 +96,15 @@ function getLineDisplayName(line: StockTakeLineRecord): string {
 // ── Page ──────────────────────────────────────────────────────────────
 
 export default function StockTakePage() {
-  const { me } = useDashboard();
+  const { me, business } = useDashboard();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const canSeeSystemStock = roleKey === "owner" || roleKey === "admin";
+  const showSystemStockToStockManager = Boolean(
+    business?.inventory?.stocktake?.showSystemStockToStockManager,
+  );
+  const canSeeSystemStock =
+    roleKey === "owner" ||
+    roleKey === "admin" ||
+    (roleKey === "stock_manager" && showSystemStockToStockManager);
   const isBranchLockedRole =
     roleKey === "stock_manager" || roleKey === "cashier";
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);

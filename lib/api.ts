@@ -358,6 +358,14 @@ export type BrandingRecord = {
   metaKeywords?: string | null;
 };
 
+export type StocktakeSettingsRecord = {
+  showSystemStockToStockManager?: boolean;
+};
+
+export type InventorySettingsRecord = {
+  stocktake?: StocktakeSettingsRecord;
+};
+
 export type BusinessRecord = {
   id?: string;
   name: string;
@@ -368,6 +376,7 @@ export type BusinessRecord = {
   active?: boolean;
   subscriptionTier?: string;
   storefront?: StorefrontSettingsRecord;
+  inventory?: InventorySettingsRecord;
   branding?: BrandingRecord;
   /**
    * Hostname of the active primary domain mapping, when one is set. The login
@@ -412,11 +421,20 @@ export type StorefrontPatchPayload = {
   featuredItemIds?: string[] | null;
 };
 
+export type StocktakePatchPayload = {
+  showSystemStockToStockManager?: boolean;
+};
+
+export type InventoryPatchPayload = {
+  stocktake?: StocktakePatchPayload;
+};
+
 export type PatchBusinessPayload = {
   name?: string;
   subscriptionTier?: string;
   active?: boolean;
   storefront?: StorefrontPatchPayload;
+  inventory?: InventoryPatchPayload;
 };
 
 export type BrandingPatchPayload = {

@@ -12,6 +12,7 @@ import {
   Loader2,
   MapPin,
   Palette,
+  ClipboardList,
   Pencil,
   RefreshCw,
   Save,
@@ -63,6 +64,10 @@ type StorefrontForm = {
   featuredLines: string;
 };
 
+type InventoryForm = {
+  showSystemStockToStockManager: boolean;
+};
+
 const DEFAULT_EDITABLE: EditableBusiness = {
   name: "",
   subscriptionTier: "starter",
@@ -77,6 +82,10 @@ const DEFAULT_STOREFRONT: StorefrontForm = {
   featuredLines: "",
 };
 
+const DEFAULT_INVENTORY: InventoryForm = {
+  showSystemStockToStockManager: false,
+};
+
 function storefrontFromRecord(b: BusinessRecord | null): StorefrontForm {
   const s = b?.storefront;
   return {
@@ -85,6 +94,14 @@ function storefrontFromRecord(b: BusinessRecord | null): StorefrontForm {
     label: String(s?.label ?? ""),
     announcement: String(s?.announcement ?? ""),
     featuredLines: (s?.featuredItemIds ?? []).join("\n"),
+  };
+}
+
+function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
+  return {
+    showSystemStockToStockManager: Boolean(
+      b?.inventory?.stocktake?.showSystemStockToStockManager,
+    ),
   };
 }
 
@@ -108,12 +125,13 @@ function hintClass() {
 }
 
 export default function BusinessPage() {
-  const { canManageBusinessSettings } = useDashboard();
+  const { canManageBusinessSettings, refreshSession } = useDashboard();
   const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [editable, setEditable] = useState<EditableBusiness>(DEFAULT_EDITABLE);
   const [storefront, setStorefront] =
     useState<StorefrontForm>(DEFAULT_STOREFRONT);
+  const [inventory, setInventory] = useState<InventoryForm>(DEFAULT_INVENTORY);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -132,6 +150,7 @@ export default function BusinessPage() {
           active: Boolean(payload.active ?? true),
         });
         setStorefront(storefrontFromRecord(payload));
+        setInventory(inventoryFromRecord(payload));
       })
       .catch((error) => {
         setLoadFailed(true);
@@ -179,8 +198,15 @@ export default function BusinessPage() {
           announcement: storefront.announcement.trim() || null,
           featuredItemIds: parseFeaturedLines(storefront.featuredLines),
         };
+        body.inventory = {
+          stocktake: {
+            showSystemStockToStockManager:
+              inventory.showSystemStockToStockManager,
+          },
+        };
       }
       await updateBusiness(body);
+      await refreshSession();
       const next = await fetchBusiness();
       skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
@@ -190,6 +216,7 @@ export default function BusinessPage() {
         active: Boolean(next.active ?? true),
       });
       setStorefront(storefrontFromRecord(next));
+      setInventory(inventoryFromRecord(next));
       setSettingsDrawerOpen(false);
       setFeedback({ kind: "success", text: "Your changes were saved." });
     } catch (error) {
@@ -222,6 +249,7 @@ export default function BusinessPage() {
       active: Boolean(snapshot.active ?? true),
     });
     setStorefront(storefrontFromRecord(snapshot));
+    setInventory(inventoryFromRecord(snapshot));
   }, [snapshot]);
 
   const onSettingsDrawerOpenChange = (open: boolean) => {
@@ -722,6 +750,37 @@ export default function BusinessPage() {
                   </p>
                 </div>
               </div>
+            </FormDrawerFields>
+          ) : null}
+
+          {canManageBusinessSettings ? (
+            <FormDrawerFields
+              legend="Stock take"
+              hint="Control what stock managers see while counting."
+            >
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  checked={inventory.showSystemStockToStockManager}
+                  onChange={(event) =>
+                    setInventory((previous) => ({
+                      ...previous,
+                      showSystemStockToStockManager: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="space-y-1">
+                  <span className="flex items-center gap-2 font-medium">
+                    <ClipboardList className="size-4 text-muted-foreground" />
+                    Show system stock to stock managers
+                  </span>
+                  <span className={hintClass()}>
+                    When enabled, stock managers see on-hand quantity in the
+                    count modal. Owners and admins always see it.
+                  </span>
+                </span>
+              </label>
             </FormDrawerFields>
           ) : null}
         </form>
