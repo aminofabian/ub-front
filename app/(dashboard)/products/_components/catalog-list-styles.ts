@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { CornerDownRight, Package, Tag } from "lucide-react";
 
-import type { ItemSummaryRecord } from "@/lib/api";
+import { fetchItemById, type ItemSummaryRecord } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export type CatalogRowKind = "group" | "variant" | "standalone";
 
@@ -18,9 +19,31 @@ export type CatalogRowMeta = {
 
 /** Extra vertical space between one parent product and the next. */
 export const CATALOG_PARENT_BLOCK_GAP_PX = {
-  comfortable: 14,
-  dense: 8,
+  comfortable: 16,
+  dense: 10,
 } as const;
+
+/** Shared grid for header + rows (checkbox · thumb · product · stock · meta). */
+export const catalogListGridClass =
+  "grid w-full items-center gap-x-3 gap-y-0 grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_auto] md:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_5.25rem_minmax(6.5rem,max-content)]";
+
+/** Variant ids under a parent from loaded rows, then item detail when needed. */
+export async function resolveVariantIdsForParent(
+  parentId: string,
+  listRows: ItemSummaryRecord[],
+): Promise<string[]> {
+  const pid = parentId.trim();
+  const fromList = listRows
+    .filter((r) => r.variantOfItemId?.trim() === pid)
+    .map((r) => r.id);
+  try {
+    const detail = await fetchItemById(pid);
+    const fromApi = (detail.variants ?? []).map((v) => v.id);
+    return fromApi.length > 0 ? fromApi : fromList;
+  } catch {
+    return fromList;
+  }
+}
 
 export type CatalogRowTone = {
   label: string;
@@ -30,10 +53,56 @@ export type CatalogRowTone = {
   border: string;
   text: string;
   muted: string;
-  rowBg: string;
-  rowActive: string;
   gradient: string;
+  rowHover: string;
+  rowChecked: string;
+  rowBulk: string;
+  rowDetailActive: string;
 };
+
+export function catalogRowInteractionClasses(
+  tone: CatalogRowTone,
+  state: {
+    isDetailActive: boolean;
+    isBulkSelected: boolean;
+    isCheckboxChecked: boolean;
+  },
+): string {
+  const { isDetailActive, isBulkSelected, isCheckboxChecked } = state;
+  const showChecked = isCheckboxChecked && !isDetailActive && !isBulkSelected;
+  const showBulk = isBulkSelected && !isDetailActive;
+
+  return cn(
+    "cursor-pointer transition-[background-color,box-shadow,ring-width,ring-color] duration-150 ease-out",
+    tone.gradient,
+    !isDetailActive && !showBulk && !showChecked && tone.rowHover,
+    !isDetailActive && "hover:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] dark:hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+    showChecked && tone.rowChecked,
+    showBulk && tone.rowBulk,
+    isDetailActive && tone.rowDetailActive,
+  );
+}
+
+export function catalogRowAccentClasses(
+  tone: CatalogRowTone,
+  state: {
+    isDetailActive: boolean;
+    isBulkSelected: boolean;
+    isCheckboxChecked: boolean;
+    isGroup: boolean;
+  },
+): string {
+  const highlighted =
+    state.isDetailActive || state.isBulkSelected || state.isCheckboxChecked;
+  return cn(
+    "pointer-events-none absolute left-0 rounded-r-full transition-all duration-150",
+    tone.accent,
+    state.isGroup ? "top-0.5 bottom-0.5" : "top-1 bottom-1",
+    highlighted ? "w-1 opacity-100 shadow-sm" : "w-[3px] opacity-90",
+    state.isDetailActive && "w-1.5 opacity-100",
+    !highlighted && "group-hover:w-1 group-hover:opacity-100",
+  );
+}
 
 export function catalogRowKind(row: ItemSummaryRecord): CatalogRowKind {
   if (row.groupLabelOnly === true) return "group";
@@ -41,12 +110,94 @@ export function catalogRowKind(row: ItemSummaryRecord): CatalogRowKind {
   return "standalone";
 }
 
-export function buildCatalogRowMeta(rows: ItemSummaryRecord[]): Map<string, CatalogRowMeta> {
-  const variantCountByParent = new Map<string, number>();
+/** Flat list with each parent immediately followed by its variants (roots sorted by name). */
+export function sortCatalogRowsParentFirst(
+  rows: ItemSummaryRecord[],
+): ItemSummaryRecord[] {
+  if (rows.length <= 1) return rows;
+
+  const childrenMap = new Map<string, ItemSummaryRecord[]>();
   for (const row of rows) {
     const parentId = row.variantOfItemId?.trim();
     if (!parentId) continue;
-    variantCountByParent.set(parentId, (variantCountByParent.get(parentId) ?? 0) + 1);
+    const list = childrenMap.get(parentId) ?? [];
+    list.push(row);
+    childrenMap.set(parentId, list);
+  }
+
+  for (const [parentId, list] of childrenMap) {
+    childrenMap.set(
+      parentId,
+      [...list].sort(
+        (a, b) =>
+          (a.variantName ?? a.name).localeCompare(b.variantName ?? b.name, undefined, {
+            sensitivity: "base",
+          }) || a.sku.localeCompare(b.sku, undefined, { sensitivity: "base" }),
+      ),
+    );
+  }
+
+  const visited = new Set<string>();
+  const result: ItemSummaryRecord[] = [];
+
+  const walk = (item: ItemSummaryRecord) => {
+    if (visited.has(item.id)) return;
+    visited.add(item.id);
+    result.push(item);
+    for (const child of childrenMap.get(item.id) ?? []) {
+      walk(child);
+    }
+  };
+
+  const roots = rows
+    .filter((row) => {
+      const hasChildren = (childrenMap.get(row.id)?.length ?? 0) > 0;
+      return hasChildren || !row.variantOfItemId;
+    })
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    );
+
+  for (const root of roots) {
+    walk(root);
+  }
+
+  for (const row of rows) {
+    if (!visited.has(row.id)) {
+      walk(row);
+    }
+  }
+
+  return result;
+}
+
+export function buildVariantIdsByParentId(
+  rows: ItemSummaryRecord[],
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const row of rows) {
+    const parentId = row.variantOfItemId?.trim();
+    if (!parentId) continue;
+    const list = map.get(parentId) ?? [];
+    list.push(row.id);
+    map.set(parentId, list);
+  }
+  return map;
+}
+
+/** Parent group label or sellable parent that has option rows beneath it. */
+export function isCatalogParentSelectorRow(
+  row: ItemSummaryRecord,
+  variantCount: number,
+): boolean {
+  return row.groupLabelOnly === true || (variantCount > 0 && !row.variantOfItemId);
+}
+
+export function buildCatalogRowMeta(rows: ItemSummaryRecord[]): Map<string, CatalogRowMeta> {
+  const variantIdsByParent = buildVariantIdsByParentId(rows);
+  const variantCountByParent = new Map<string, number>();
+  for (const [parentId, ids] of variantIdsByParent) {
+    variantCountByParent.set(parentId, ids.length);
   }
 
   const meta = new Map<string, CatalogRowMeta>();
@@ -87,10 +238,12 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
       border: "border-amber-500/35",
       text: "text-amber-950 dark:text-amber-50",
       muted: "text-amber-800/70 dark:text-amber-300/70",
-      rowBg: "hover:bg-amber-500/[0.05]",
-      rowActive: "bg-amber-500/[0.09] ring-amber-500/25",
-      gradient:
-        "bg-gradient-to-r from-amber-500/[0.14] via-amber-500/[0.06] to-transparent dark:from-amber-500/[0.16] dark:via-amber-950/30",
+      gradient: "bg-amber-500/[0.06] dark:bg-amber-500/[0.08]",
+      rowHover: "hover:bg-amber-500/10 dark:hover:bg-amber-500/12",
+      rowChecked: "bg-amber-500/12 ring-1 ring-inset ring-amber-500/30",
+      rowBulk: "bg-amber-500/10 ring-1 ring-inset ring-amber-500/25",
+      rowDetailActive:
+        "z-[2] bg-amber-500/14 shadow-sm ring-2 ring-inset ring-amber-500/40 dark:bg-amber-500/18 dark:ring-amber-400/35",
     };
   }
   if (kind === "variant") {
@@ -102,10 +255,12 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
       border: "border-violet-500/30",
       text: "text-violet-950 dark:text-violet-50",
       muted: "text-violet-800/65 dark:text-violet-300/65",
-      rowBg: "hover:bg-violet-500/[0.04]",
-      rowActive: "bg-violet-500/[0.08] ring-violet-500/20",
-      gradient:
-        "bg-gradient-to-r from-violet-500/[0.1] via-violet-500/[0.03] to-transparent dark:from-violet-500/[0.12] dark:via-violet-950/25",
+      gradient: "bg-violet-500/[0.05] dark:bg-violet-500/[0.07]",
+      rowHover: "hover:bg-violet-500/10 dark:hover:bg-violet-500/12",
+      rowChecked: "bg-violet-500/12 ring-1 ring-inset ring-violet-500/30",
+      rowBulk: "bg-violet-500/10 ring-1 ring-inset ring-violet-400/25",
+      rowDetailActive:
+        "z-[2] bg-violet-500/14 shadow-sm ring-2 ring-inset ring-violet-500/40 dark:bg-violet-500/18 dark:ring-violet-400/35",
     };
   }
   const parentish = variantCount > 0;
@@ -123,13 +278,21 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
     muted: parentish
       ? "text-teal-800/70 dark:text-teal-300/70"
       : "text-emerald-800/70 dark:text-emerald-300/70",
-    rowBg: parentish ? "hover:bg-teal-500/[0.04]" : "hover:bg-emerald-500/[0.04]",
-    rowActive: parentish
-      ? "bg-teal-500/[0.08] ring-teal-500/20"
-      : "bg-emerald-500/[0.08] ring-emerald-500/20",
     gradient: parentish
-      ? "bg-gradient-to-r from-teal-500/[0.1] via-teal-500/[0.04] to-transparent dark:from-teal-500/[0.12] dark:via-teal-950/25"
-      : "bg-gradient-to-r from-emerald-500/[0.08] via-emerald-500/[0.03] to-transparent dark:from-emerald-500/[0.1] dark:via-emerald-950/20",
+      ? "bg-teal-500/[0.05] dark:bg-teal-500/[0.07]"
+      : "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06]",
+    rowHover: parentish
+      ? "hover:bg-teal-500/10 dark:hover:bg-teal-500/12"
+      : "hover:bg-emerald-500/10 dark:hover:bg-emerald-500/12",
+    rowChecked: parentish
+      ? "bg-teal-500/12 ring-1 ring-inset ring-teal-500/30"
+      : "bg-emerald-500/12 ring-1 ring-inset ring-emerald-500/30",
+    rowBulk: parentish
+      ? "bg-teal-500/10 ring-1 ring-inset ring-teal-500/25"
+      : "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/25",
+    rowDetailActive: parentish
+      ? "z-[2] bg-teal-500/14 shadow-sm ring-2 ring-inset ring-teal-500/40 dark:bg-teal-500/18 dark:ring-teal-400/35"
+      : "z-[2] bg-emerald-500/14 shadow-sm ring-2 ring-inset ring-emerald-500/40 dark:bg-emerald-500/18 dark:ring-emerald-400/35",
   };
 }
 
@@ -141,13 +304,13 @@ export function catalogRowHeightPx(
   const gap =
     startsParentBlock ? CATALOG_PARENT_BLOCK_GAP_PX[density] : 0;
   if (density === "dense") {
-    if (kind === "group") return 46 + gap;
-    if (kind === "variant") return 30;
-    return 34 + gap;
+    if (kind === "group") return 50 + gap;
+    if (kind === "variant") return 36;
+    return 38 + gap;
   }
-  if (kind === "group") return 58 + gap;
-  if (kind === "variant") return 40;
-  return 44 + gap;
+  if (kind === "group") return 62 + gap;
+  if (kind === "variant") return 46;
+  return 48 + gap;
 }
 
 export function catalogStockTone(qty: number | string | null | undefined): {

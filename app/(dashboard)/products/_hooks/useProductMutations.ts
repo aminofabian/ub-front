@@ -32,7 +32,11 @@ import {
   type VariantDraft,
   EMPTY_PARENT,
 } from "../_types";
-import { buildCreateVariantBody, bundlePatchFromVariantDraft } from "../_utils";
+import {
+  buildCreateVariantBody,
+  bundlePatchFromVariantDraft,
+  formatMutationError,
+} from "../_utils";
 import { emptyVariantDraft } from "../_types";
 
 type Dependencies = {
@@ -488,6 +492,10 @@ export function useProductMutations(d: Dependencies) {
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!selectedId) return;
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return;
+      }
       setMessage("");
       const body: Record<string, unknown> = {
         name: patchDraft.name,
@@ -553,12 +561,12 @@ export function useProductMutations(d: Dependencies) {
         setActiveDrawer(null);
         setMessage("Product updated.");
       } catch (err) {
-        if (!(err instanceof ApiRequestError))
-          setMessage(err instanceof Error ? err.message : "Update failed.");
+        setMessage(formatMutationError(err, "Update failed."));
       }
     },
     [
       selectedId,
+      canCatalogWrite,
       patchDraft,
       refreshFullCatalog,
       refreshSelectedDetail,

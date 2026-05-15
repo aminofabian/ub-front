@@ -79,17 +79,17 @@ function DrawerSection({
       onToggle={(event) => setOpen(event.currentTarget.open)}
       className="group overflow-hidden rounded-lg border border-border/60 bg-card/50"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3 py-2 sm:px-3.5 [&::-webkit-details-marker]:hidden">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/[0.08] text-primary">
-          <Icon className="size-3.5" strokeWidth={2} aria-hidden />
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 sm:px-3 [&::-webkit-details-marker]:hidden">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/[0.08] text-primary">
+          <Icon className="size-3" strokeWidth={2} aria-hidden />
         </span>
         <span className="min-w-0 flex-1 text-left leading-tight">
-          <span className="block text-xs font-semibold text-foreground">{title}</span>
-          <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">{subtitle}</span>
+          <span className="block text-[11px] font-semibold text-foreground">{title}</span>
+          <span className="mt-px block text-[10px] leading-snug text-muted-foreground">{subtitle}</span>
         </span>
         <SectionChevron />
       </summary>
-      <div className="border-t border-border/40 bg-muted/10 px-3 pb-3 pt-2.5 sm:px-3.5">{children}</div>
+      <div className="border-t border-border/40 bg-muted/10 px-2.5 pb-2.5 pt-2 sm:px-3">{children}</div>
     </details>
   );
 }
@@ -105,7 +105,7 @@ function FieldLabel({
 }) {
   return (
     <span className="flex flex-col gap-0">
-      <span className="text-[11px] font-medium text-foreground">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {children}
         {requiredMark ? <span className="text-destructive"> *</span> : null}
       </span>

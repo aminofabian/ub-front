@@ -9,7 +9,7 @@ import {
   type PatchItemPayload,
 } from "@/lib/api";
 import { type QuickEditKey } from "../_types";
-import { toNumber } from "../_utils";
+import { formatMutationError, toNumber } from "../_utils";
 
 type Params = {
   selectedId: string | null;
@@ -70,7 +70,11 @@ export function useQuickEdit({
 
   const runQuickPatch = useCallback(
     async (body: PatchItemPayload, successMsg: string) => {
-      if (!selectedId || !canCatalogWrite) return;
+      if (!selectedId) return;
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return;
+      }
       setQuickSaving(true);
       setMessage("");
       try {
@@ -80,8 +84,7 @@ export function useQuickEdit({
         setQuickEdit(null);
         setMessage(successMsg);
       } catch (e) {
-        if (!(e instanceof ApiRequestError))
-          setMessage(e instanceof Error ? e.message : "Update failed.");
+        setMessage(formatMutationError(e, "Update failed."));
       } finally {
         setQuickSaving(false);
       }
@@ -244,7 +247,11 @@ export function useQuickEdit({
 
   // ── Stock adjustment via inventory API ──────────────────────────────
   const saveQuickStock = useCallback(async () => {
-    if (!selectedId || !canInventoryWrite) return;
+    if (!selectedId) return;
+    if (!canInventoryWrite) {
+      setMessage("You do not have permission to adjust stock.");
+      return;
+    }
     const qtyRaw = quickStock.trim();
     if (!qtyRaw) {
       setMessage("Enter a quantity to add.");
@@ -261,11 +268,7 @@ export function useQuickEdit({
       return;
     }
     const costRaw = quickStockUnitCost.trim();
-    if (!costRaw) {
-      setMessage("Enter a unit cost.");
-      return;
-    }
-    const unitCost = Number(costRaw);
+    const unitCost = costRaw === "" ? 0 : Number(costRaw);
     if (!Number.isFinite(unitCost) || unitCost < 0) {
       setMessage("Unit cost must be a valid non-negative number.");
       return;
@@ -284,8 +287,7 @@ export function useQuickEdit({
       setQuickEdit(null);
       setMessage("Stock increased.");
     } catch (e) {
-      if (!(e instanceof ApiRequestError))
-        setMessage(e instanceof Error ? e.message : "Stock adjustment failed.");
+      setMessage(formatMutationError(e, "Stock adjustment failed."));
     } finally {
       setQuickSaving(false);
     }
@@ -384,8 +386,7 @@ export function useQuickEdit({
       setQuickEditAllOpen(false);
       setMessage("Product updated.");
     } catch (e) {
-      if (!(e instanceof ApiRequestError))
-        setQeaError(e instanceof Error ? e.message : "Update failed.");
+      setQeaError(formatMutationError(e, "Update failed."));
     } finally {
       setQeaSaving(false);
     }

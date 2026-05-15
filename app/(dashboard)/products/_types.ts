@@ -37,7 +37,7 @@ export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   imageKey: "",
   description: "",
   active: true,
-  webPublished: false,
+  webPublished: true,
   categoryId: "",
 };
 
@@ -187,8 +187,10 @@ export type QuickEditKey =
 
 // ─── shared style constants ───────────────────────────────────────────────────
 
-export const VARIANT_INPUT_CLASS =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground";
+export {
+  productFormInputClass as VARIANT_INPUT_CLASS,
+  productFormInputClass as quickInputClass,
+} from "./_components/product-form-styles";
 
 export const panelClass = cn(
   "rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] backdrop-blur-sm",
@@ -198,23 +200,20 @@ export const panelClass = cn(
 export const filterLabelClass =
   "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/90";
 
-export const quickInputClass = cn(
-  "w-full rounded-xl border border-input/80 bg-background px-3 py-2 text-sm shadow-sm",
-  "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
-);
-
 // ─── detail-panel section style tokens ───────────────────────────────────────
 
-export const sectionCls = "overflow-hidden rounded-xl border border-border/60";
+/** @deprecated Prefer product-detail-styles — kept for drawers that import _types */
+export const sectionCls =
+  "overflow-hidden rounded-xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
 
 export const sectionHeadCls =
-  "flex items-center gap-2 border-b border-border/40 bg-muted/30 px-3 py-2";
+  "flex items-center gap-2 border-b border-border/45 px-3 py-2.5 bg-muted/30 dark:bg-muted/35";
 
 export const sectionLabelCls =
-  "text-[10px] font-semibold uppercase tracking-widest text-muted-foreground";
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/70";
 
 export const fieldRowCls =
-  "group flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/25";
+  "group flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 hover:bg-muted/40";
 
 export const fieldLabelCls =
   "text-[10px] font-medium uppercase tracking-wide text-muted-foreground";
@@ -222,4 +221,4 @@ export const fieldLabelCls =
 export const fieldValueCls = "text-sm font-medium text-foreground truncate";
 
 export const inlineEditCls =
-  "flex flex-col gap-2.5 bg-primary/[0.03] px-3 py-3 ring-1 ring-inset ring-primary/15";
+  "flex flex-col gap-2.5 border-l-2 border-primary/40 bg-primary/[0.05] px-3 py-3 ring-1 ring-inset ring-primary/15";

@@ -31,16 +31,30 @@ import {
   formatAmount,
   toNumber,
 } from "../_utils";
+import { quickInputClass } from "../_types";
 import {
-  sectionCls,
-  sectionHeadCls,
-  sectionLabelCls,
-  fieldRowCls,
-  fieldLabelCls,
-  fieldValueCls,
-  inlineEditCls,
-  quickInputClass,
-} from "../_types";
+  productFormFieldClass,
+  productFormGrid2Class,
+  productFormInputClass,
+  productFormInputMonoClass,
+  productFormLabelClass,
+} from "./product-form-styles";
+import { StockIncreaseFields } from "./StockIncreaseFields";
+import {
+  detailFieldRowClass,
+  detailInlineEditClass,
+  detailPanelKind,
+  detailPanelTone,
+  detailSectionClass,
+  detailSectionHeadClass,
+  detailSectionLabelClass,
+  detailStatCellClass,
+  detailFieldLabelClass,
+  detailFieldValueClass,
+  detailActionBtnClass,
+  detailActionBtnPrimaryClass,
+  detailStatValueClass,
+} from "./product-detail-styles";
 
 type Props = {
   detail: ItemDetailRecord;
@@ -54,7 +68,9 @@ type Props = {
   primaryCost: number | null;
   marginPct: number | null;
   canCatalogWrite: boolean;
+  canInventoryWrite: boolean;
   canLinkSupplier: boolean;
+  branches: { id: string; name: string }[];
   // quick-edit
   quickEdit: QuickEditKey;
   quickProductName: string;
@@ -119,6 +135,8 @@ export function ProductDetailPanel(props: Props) {
     primaryCost,
     marginPct,
     canCatalogWrite,
+    canInventoryWrite,
+    branches,
     quickEdit,
     quickProductName,
     setQuickProductName,
@@ -141,6 +159,10 @@ export function ProductDetailPanel(props: Props) {
     quickStock,
     setQuickStock,
     saveQuickStock,
+    quickStockBranchId,
+    setQuickStockBranchId,
+    quickStockUnitCost,
+    setQuickStockUnitCost,
     quickSaving,
     openQuickEdit,
     cancelQuickEdit,
@@ -166,27 +188,64 @@ export function ProductDetailPanel(props: Props) {
 
   const [scannerOpen, setScannerOpen] = useState(false);
 
+  const panelKind = detailPanelKind(detail, variantRows.length);
+  const panelTone = detailPanelTone(panelKind);
+  const isParentish = panelKind === "group" || panelKind === "parent";
+
   const saveCancelBtns = (onSave: () => void) => (
-    <div className="flex gap-2">
+    <div className="flex shrink-0 gap-1.5">
       <Button
         type="button"
         size="sm"
-        className="h-7 gap-1 rounded-lg text-xs"
+        className="h-7 gap-1 rounded-md px-2 text-[10px]"
         disabled={quickSaving}
         onClick={onSave}
       >
-        <Save />
+        <Save className="size-3" />
+        Save
       </Button>
       <Button
         type="button"
         size="sm"
         variant="ghost"
-        className="h-7 rounded-lg text-xs"
+        className="h-7 rounded-md px-2 text-[10px]"
         disabled={quickSaving}
         onClick={cancelQuickEdit}
       >
         Cancel
       </Button>
+    </div>
+  );
+
+  const onInlineEnter =
+    (onSave: () => void) => (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "TEXTAREA") return;
+      e.preventDefault();
+      onSave();
+    };
+
+  const inlineEdit = (
+    label: string,
+    onSave: () => void,
+    input: React.ReactNode,
+    trailing?: React.ReactNode,
+  ) => (
+    <div
+      className={detailInlineEditClass}
+      onKeyDown={onInlineEnter(onSave)}
+    >
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="min-w-0 flex-1">
+          <span className={cn(productFormLabelClass, "mb-1 block")}>
+            {label}
+          </span>
+          {input}
+        </label>
+        {trailing}
+        {saveCancelBtns(onSave)}
+      </div>
     </div>
   );
 
@@ -198,14 +257,14 @@ export function ProductDetailPanel(props: Props) {
   ) => (
     <button
       type="button"
-      className={fieldRowCls}
+      className={detailFieldRowClass}
       onClick={() => openQuickEdit(key)}
     >
       <div className="min-w-0">
-        <p className={fieldLabelCls}>{label}</p>
+        <p className={detailFieldLabelClass}>{label}</p>
         <p
           className={cn(
-            fieldValueCls,
+            detailFieldValueClass,
             mono && "font-mono",
             key === "bundlePrice" && "font-bold tabular-nums",
           )}
@@ -220,44 +279,85 @@ export function ProductDetailPanel(props: Props) {
     </button>
   );
 
+  const stockLevel = toNumber(detail.currentStock);
+  const minStock = toNumber(detail.minStockLevel);
+  const stockLow =
+    stockLevel != null && minStock != null && stockLevel <= minStock;
+
+  const thumbUrl = coverImageUrl(detail);
+  const titleInitial = (detail.name?.trim() || "?").charAt(0).toUpperCase();
+  const heroTitle =
+    isParentish && variantRows.length > 0
+      ? `${detail.name} (${variantRows.length})`
+      : detail.name;
+
+  const KindIcon = panelKind === "variant" ? Layers : Package;
+  const kindLabel =
+    panelKind === "variant"
+      ? "Variant"
+      : panelKind === "group"
+        ? "Group"
+        : panelKind === "parent"
+          ? `Parent · ${variantRows.length} variant${variantRows.length === 1 ? "" : "s"}`
+          : "Standalone";
+
   return (
-    <div className="space-y-3">
-      {/* ── 0. Identity strip ──────────────────────────────────────────── */}
-      <div className="flex items-start gap-3">
-        <div className="relative size-11 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted shadow-sm">
-          {coverImageUrl(detail) ? (
-            <Image
-              src={coverImageUrl(detail)!}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="44px"
-            />
+    <div className="space-y-2.5">
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-xl border border-border/55 p-2.5 shadow-sm ring-1 ring-inset",
+          panelTone.heroGradient,
+          panelTone.heroRing,
+        )}
+      >
+        <span
+          className={cn(
+            "pointer-events-none absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full",
+            panelTone.accent,
+          )}
+          aria-hidden
+        />
+        <div className="flex items-start gap-2 pl-1.5">
+          {isParentish && !thumbUrl ? (
+            <span
+              className={cn(
+                "flex size-11 shrink-0 items-center justify-center rounded-lg border border-dashed text-sm font-bold tracking-tight shadow-sm ring-1 ring-black/[0.04]",
+                panelTone.accentLight,
+              )}
+            >
+              {titleInitial}
+            </span>
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <Package
-                className="size-5 text-muted-foreground/40"
-                aria-hidden
-              />
+            <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.04]">
+              {thumbUrl ? (
+                <Image
+                  src={thumbUrl}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="44px"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Package
+                    className="size-5 text-muted-foreground/40"
+                    aria-hidden
+                  />
+                </div>
+              )}
             </div>
           )}
-        </div>
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap gap-1">
-            {detail.variantOfItemId ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-300">
-                <Layers className="size-2.5" aria-hidden /> Variant
-              </span>
-            ) : variantRows.length > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                <Package className="size-2.5" aria-hidden /> Parent ·{" "}
-                {variantRows.length} variant{variantRows.length === 1 ? "" : "s"}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-                <Package className="size-2.5" aria-hidden /> Standalone
-              </span>
-            )}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                panelTone.badge,
+              )}
+            >
+              <KindIcon className="size-2.5" aria-hidden />
+              {kindLabel}
+            </span>
             {detail.active === false && (
               <span className="inline-flex items-center rounded-full border border-destructive/25 bg-destructive/5 px-2 py-0.5 text-[10px] font-medium text-destructive">
                 Inactive
@@ -269,19 +369,34 @@ export function ProductDetailPanel(props: Props) {
               </span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-            {detail.sku && <span className="font-mono">{detail.sku}</span>}
+          <h3
+            className={cn(
+              "text-sm font-semibold leading-snug tracking-tight text-foreground",
+              isParentish && "capitalize",
+            )}
+          >
+            {heroTitle}
+          </h3>
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
+            {detail.sku && (
+              <span className="font-mono font-medium">{detail.sku}</span>
+            )}
             {detail.barcode && (
-              <span className="font-mono opacity-60">{detail.barcode}</span>
+              <span className="font-mono opacity-70">{detail.barcode}</span>
             )}
             {detail.brand && (
-              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">
+              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px] font-medium text-foreground/80">
                 {detail.brand}
               </span>
             )}
             {detail.size && (
-              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px]">
+              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px] font-medium text-foreground/80">
                 {detail.size}
+              </span>
+            )}
+            {detail.variantName && (
+              <span className="font-medium text-violet-700 dark:text-violet-300">
+                {detail.variantName}
               </span>
             )}
           </div>
@@ -290,14 +405,14 @@ export function ProductDetailPanel(props: Props) {
           <button
             type="button"
             onClick={() => setActiveDrawer("edit-product")}
-            className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+            className={detailActionBtnPrimaryClass}
           >
             <PencilLine className="size-3" aria-hidden /> Edit
           </button>
           <button
             type="button"
             onClick={() => setActiveDrawer("photos")}
-            className="flex size-7 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted/60"
+            className={cn(detailActionBtnClass, "size-6")}
             aria-label="Photos"
           >
             <Camera className="size-3.5" aria-hidden />
@@ -305,17 +420,23 @@ export function ProductDetailPanel(props: Props) {
           <button
             type="button"
             onClick={() => setActiveDrawer("add-variant")}
-            className="flex size-7 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted/60"
+            className={cn(detailActionBtnClass, "size-6")}
             aria-label="Add variant under parent"
           >
             <Layers className="size-3.5" aria-hidden />
           </button>
         </div>
+        </div>
       </div>
 
       {/* Variant context notice */}
       {detail.variantOfItemId && (
-        <div className="flex items-start gap-2 rounded-lg border border-violet-500/20 bg-violet-500/[0.04] px-3 py-2 text-[11px] leading-snug text-violet-800 dark:text-violet-200">
+        <div
+          className={cn(
+            "flex items-start gap-1.5 rounded-lg border px-2.5 py-2 text-[10px] leading-snug",
+            panelTone.notice,
+          )}
+        >
           <Layers
             className="mt-0.5 size-3 shrink-0 text-violet-500"
             aria-hidden
@@ -335,52 +456,54 @@ export function ProductDetailPanel(props: Props) {
       )}
 
       {/* ── 1. Pricing ────────────────────────────────────────────────── */}
-      <section className={sectionCls}>
-        <header className={sectionHeadCls}>
+      <section className={detailSectionClass}>
+        <header className={detailSectionHeadClass}>
           <CircleDollarSign
-            className="size-3.5 text-muted-foreground/70"
+            className="size-3 text-muted-foreground/70"
             aria-hidden
           />
-          <span className={sectionLabelCls}>Pricing</span>
+          <span className={detailSectionLabelClass}>Pricing</span>
         </header>
         <div className="grid grid-cols-4 divide-x divide-border/40 bg-background/50">
           {(
             [
-              ["Shelf", formatAmount(sellPrice), "font-bold"],
-              ["Cost", formatAmount(primaryCost), "font-semibold"],
+              ["Shelf", formatAmount(sellPrice), "font-bold", "default"] as const,
+              ["Cost", formatAmount(primaryCost), "font-semibold", "default"] as const,
               [
                 "Margin",
                 marginPct != null ? `${marginPct.toFixed(1)}%` : "—",
                 marginPct != null && marginPct > 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "",
-              ],
+                marginPct != null && marginPct > 0 ? "success" : "default",
+              ] as const,
               [
                 "Stock",
-                formatAmount(toNumber(detail.currentStock)),
-                toNumber(detail.currentStock) != null &&
-                toNumber(detail.currentStock)! <=
-                  (toNumber(detail.minStockLevel) ?? 0)
-                  ? "text-destructive font-semibold"
-                  : "font-semibold",
-              ],
-            ] as const
-          ).map(([label, value, cls]) => (
-            <div key={label} className="px-3 py-2.5">
-              <p className={fieldLabelCls}>{label}</p>
-              <p
-                className={cn(
-                  "mt-0.5 text-sm tabular-nums text-foreground",
-                  cls,
-                )}
-              >
+                formatAmount(stockLevel),
+                stockLow ? "text-destructive font-semibold" : "font-semibold",
+                stockLow ? "danger" : "default",
+              ] as const,
+            ]
+          ).map(([label, value, cls, highlight]) => (
+            <div
+              key={label}
+              className={detailStatCellClass(
+                highlight === "success"
+                  ? "success"
+                  : highlight === "danger"
+                    ? "danger"
+                    : "default",
+              )}
+            >
+              <p className={detailFieldLabelClass}>{label}</p>
+              <p className={cn(detailStatValueClass, cls)}>
                 {value}
               </p>
             </div>
           ))}
         </div>
         {supplierLinks.length === 0 && (
-          <p className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+          <p className="border-t border-border/40 px-2.5 py-1.5 text-[10px] text-muted-foreground">
             Link a supplier to see cost &amp; margin.
           </p>
         )}
@@ -388,14 +511,14 @@ export function ProductDetailPanel(props: Props) {
 
       {/* ── 2. Fields ─────────────────────────────────────────────────── */}
       {canCatalogWrite && (
-        <section className={sectionCls}>
-          <header className={cn(sectionHeadCls, "justify-between")}>
+        <section className={detailSectionClass}>
+          <header className={cn(detailSectionHeadClass, "justify-between")}>
             <div className="flex items-center gap-2">
               <Pencil
-                className="size-3.5 text-muted-foreground/70"
+                className="size-3 text-muted-foreground/70"
                 aria-hidden
               />
-              <span className={sectionLabelCls}>Fields</span>
+              <span className={detailSectionLabelClass}>Fields</span>
             </div>
             <div className="flex items-center gap-3">
               {quickSaving && (
@@ -415,63 +538,57 @@ export function ProductDetailPanel(props: Props) {
           <div className="divide-y divide-border/40 bg-background/50">
             {/* Name */}
             {quickEdit === "productName" ? (
-              <div className={inlineEditCls}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Display name
-                </span>
+              inlineEdit(
+                "Display name",
+                saveQuickProductName,
                 <input
                   autoFocus
-                  className={quickInputClass}
+                  className={productFormInputClass}
                   value={quickProductName}
                   onChange={(e) => setQuickProductName(e.target.value)}
                   placeholder="Customer-facing title"
-                />
-                {saveCancelBtns(saveQuickProductName)}
-              </div>
+                />,
+              )
             ) : (
               fieldBtn("Name", detail.name, "productName")
             )}
             {/* SKU */}
             {quickEdit === "sku" ? (
-              <div className={inlineEditCls}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  SKU
-                </span>
+              inlineEdit(
+                "SKU",
+                saveQuickSku,
                 <input
                   autoFocus
-                  className={cn(quickInputClass, "font-mono")}
+                  className={productFormInputMonoClass}
                   value={quickSku}
                   onChange={(e) => setQuickSku(e.target.value)}
                   placeholder="SKU-001"
-                />
-                {saveCancelBtns(saveQuickSku)}
-              </div>
+                />,
+              )
             ) : (
               fieldBtn("SKU", detail.sku, "sku", true)
             )}
             {/* Barcode */}
             {quickEdit === "barcode" ? (
-              <div className={inlineEditCls}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Barcode
-                </span>
+              inlineEdit(
+                "Barcode",
+                () => void saveQuickBarcode(),
                 <input
                   autoFocus
-                  className={cn(quickInputClass, "font-mono")}
+                  className={productFormInputMonoClass}
                   value={quickBarcode}
                   onChange={(e) => setQuickBarcode(e.target.value)}
                   placeholder="Scan or type…"
-                />
+                />,
                 <button
                   type="button"
                   onClick={() => setScannerOpen(true)}
-                  className="flex size-7 items-center justify-center rounded-md border bg-background text-muted-foreground hover:bg-muted"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
                   aria-label="Scan barcode with camera"
                 >
                   <Camera className="size-3.5" />
-                </button>
-                {saveCancelBtns(() => void saveQuickBarcode())}
-              </div>
+                </button>,
+              )
             ) : (
               fieldBtn(
                 "Barcode",
@@ -483,35 +600,31 @@ export function ProductDetailPanel(props: Props) {
 
             {/* Pack qty + Shelf price side by side */}
             {quickEdit === "bundleQty" ? (
-              <div className={cn(inlineEditCls)}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Pack qty
-                </span>
+              inlineEdit(
+                "Pack qty",
+                saveQuickBundleQty,
                 <input
                   autoFocus
-                  className={quickInputClass}
+                  className={productFormInputClass}
                   inputMode="numeric"
                   value={quickBundleQty}
                   onChange={(e) => setQuickBundleQty(e.target.value)}
                   placeholder="e.g. 6"
-                />
-                {saveCancelBtns(saveQuickBundleQty)}
-              </div>
+                />,
+              )
             ) : quickEdit === "bundlePrice" ? (
-              <div className={cn(inlineEditCls)}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Shelf price
-                </span>
+              inlineEdit(
+                "Shelf price",
+                saveQuickBundlePrice,
                 <input
                   autoFocus
-                  className={quickInputClass}
+                  className={productFormInputClass}
                   inputMode="decimal"
                   value={quickBundlePrice}
                   onChange={(e) => setQuickBundlePrice(e.target.value)}
                   placeholder="0.00"
-                />
-                {saveCancelBtns(saveQuickBundlePrice)}
-              </div>
+                />,
+              )
             ) : (
               <div className="grid grid-cols-2 divide-x divide-border/40">
                 {fieldBtn(
@@ -529,35 +642,31 @@ export function ProductDetailPanel(props: Props) {
 
             {/* Cost + Min stock side by side */}
             {quickEdit === "buyingPrice" ? (
-              <div className={cn(inlineEditCls)}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Cost price
-                </span>
+              inlineEdit(
+                "Cost price",
+                saveQuickBuyingPrice,
                 <input
                   autoFocus
-                  className={quickInputClass}
+                  className={productFormInputClass}
                   inputMode="decimal"
                   value={quickBuyingPrice}
                   onChange={(e) => setQuickBuyingPrice(e.target.value)}
                   placeholder="0.00"
-                />
-                {saveCancelBtns(saveQuickBuyingPrice)}
-              </div>
+                />,
+              )
             ) : quickEdit === "minStock" ? (
-              <div className={cn(inlineEditCls)}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Min stock
-                </span>
+              inlineEdit(
+                "Min stock",
+                saveQuickMinStock,
                 <input
                   autoFocus
-                  className={quickInputClass}
+                  className={productFormInputClass}
                   inputMode="decimal"
                   value={quickMinStock}
                   onChange={(e) => setQuickMinStock(e.target.value)}
                   placeholder="e.g. 5"
-                />
-                {saveCancelBtns(saveQuickMinStock)}
-              </div>
+                />,
+              )
             ) : (
               <div className="grid grid-cols-2 divide-x divide-border/40">
                 {fieldBtn(
@@ -575,26 +684,29 @@ export function ProductDetailPanel(props: Props) {
 
             {/* Reorder */}
             {quickEdit === "reorder" ? (
-              <div className={inlineEditCls}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
+              <div
+                className={detailInlineEditClass}
+                onKeyDown={onInlineEnter(saveQuickReorder)}
+              >
+                <span className={cn(productFormLabelClass, "mb-2 block")}>
                   Reorder
                 </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-                    At level
+                <div className={productFormGrid2Class}>
+                  <label className={productFormFieldClass}>
+                    <span className={productFormLabelClass}>At level</span>
                     <input
                       autoFocus
-                      className={quickInputClass}
+                      className={productFormInputClass}
                       inputMode="decimal"
                       value={quickReorderLevel}
                       onChange={(e) => setQuickReorderLevel(e.target.value)}
                       placeholder="e.g. 10"
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-                    Order qty
+                  <label className={productFormFieldClass}>
+                    <span className={productFormLabelClass}>Order qty</span>
                     <input
-                      className={quickInputClass}
+                      className={productFormInputClass}
                       inputMode="decimal"
                       value={quickReorderQty}
                       onChange={(e) => setQuickReorderQty(e.target.value)}
@@ -602,16 +714,18 @@ export function ProductDetailPanel(props: Props) {
                     />
                   </label>
                 </div>
-                {saveCancelBtns(saveQuickReorder)}
+                <div className="mt-2 flex justify-end">
+                  {saveCancelBtns(saveQuickReorder)}
+                </div>
               </div>
             ) : (
               <button
                 type="button"
-                className={fieldRowCls}
+                className={detailFieldRowClass}
                 onClick={() => openQuickEdit("reorder")}
               >
                 <div className="min-w-0">
-                  <p className={fieldLabelCls}>Reorder</p>
+                  <p className={detailFieldLabelClass}>Reorder</p>
                   <p className="text-xs tabular-nums text-muted-foreground">
                     At{" "}
                     <strong className="text-foreground">
@@ -630,28 +744,57 @@ export function ProductDetailPanel(props: Props) {
               </button>
             )}
 
-            {/* Stock qty */}
-            {quickEdit === "stock" ? (
-              <div className={inlineEditCls}>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  Stock qty
-                </span>
-                <input
-                  autoFocus
-                  className={quickInputClass}
-                  inputMode="decimal"
-                  value={quickStock}
-                  onChange={(e) => setQuickStock(e.target.value)}
-                  placeholder="Current on‑hand"
-                />
-                {saveCancelBtns(saveQuickStock)}
-              </div>
-            ) : (
-              fieldBtn(
-                "Stock qty",
-                formatAmount(toNumber(detail.currentStock)),
-                "stock",
+            {canInventoryWrite ? (
+              quickEdit === "stock" ? (
+                <div
+                  className={detailInlineEditClass}
+                  onKeyDown={onInlineEnter(saveQuickStock)}
+                >
+                  <StockIncreaseFields
+                    branches={branches}
+                    branchId={quickStockBranchId}
+                    onBranchIdChange={setQuickStockBranchId}
+                    quantity={quickStock}
+                    onQuantityChange={setQuickStock}
+                    unitCost={quickStockUnitCost}
+                    onUnitCostChange={setQuickStockUnitCost}
+                    className="border-0 p-0 shadow-none ring-0"
+                    hint="Adds to on-hand at the selected branch."
+                  />
+                  <div className="mt-2 flex justify-end">
+                    {saveCancelBtns(saveQuickStock)}
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={detailFieldRowClass}
+                  onClick={() => openQuickEdit("stock")}
+                >
+                  <div className="min-w-0">
+                    <p className={detailFieldLabelClass}>On-hand stock</p>
+                    <p className={detailFieldValueClass}>
+                      {formatAmount(stockLevel)}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      Tap to add stock (qty + unit cost)
+                    </p>
+                  </div>
+                  <PackagePlus
+                    className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
+                    aria-hidden
+                  />
+                </button>
               )
+            ) : (
+              <div className={detailFieldRowClass}>
+                <div className="min-w-0">
+                  <p className={detailFieldLabelClass}>On-hand stock</p>
+                  <p className={detailFieldValueClass}>
+                    {formatAmount(stockLevel)}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
         </section>
@@ -659,14 +802,14 @@ export function ProductDetailPanel(props: Props) {
 
       {/* ── 3. Suppliers ──────────────────────────────────────────────── */}
       {supplierLinks.length > 0 && (
-        <section className={sectionCls}>
-          <header className={cn(sectionHeadCls, "justify-between")}>
+        <section className={detailSectionClass}>
+          <header className={cn(detailSectionHeadClass, "justify-between")}>
             <div className="flex items-center gap-2">
               <Building2
-                className="size-3.5 text-muted-foreground/70"
+                className="size-3 text-muted-foreground/70"
                 aria-hidden
               />
-              <span className={sectionLabelCls}>Suppliers</span>
+              <span className={detailSectionLabelClass}>Suppliers</span>
             </div>
             <button
               type="button"
@@ -680,11 +823,11 @@ export function ProductDetailPanel(props: Props) {
             {supplierLinks.map((link) => (
               <div
                 key={link.id}
-                className="flex items-center justify-between gap-3 px-3 py-2.5"
+                className="flex items-center justify-between gap-2 px-2.5 py-2"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate text-sm font-medium text-foreground">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="truncate text-xs font-medium text-foreground">
                       {link.supplierName}
                     </span>
                     {link.primary && (
@@ -704,7 +847,7 @@ export function ProductDetailPanel(props: Props) {
                     </span>
                   )}
                 </div>
-                <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-foreground">
+                <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-foreground">
                   {formatAmount(effectiveSupplierUnitCost(link, undefined))}
                 </span>
               </div>
@@ -714,22 +857,22 @@ export function ProductDetailPanel(props: Props) {
       )}
 
       {/* ── 4. Variants (child SKUs of parent) ─────────────────────────── */}
-      <section className={sectionCls}>
-        <header className={cn(sectionHeadCls, "justify-between")}>
+      <section className={detailSectionClass}>
+        <header className={cn(detailSectionHeadClass, "justify-between")}>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
-              <span className={sectionLabelCls}>
+            <div className="flex items-center gap-1.5">
+              <Layers className="size-3 shrink-0 text-muted-foreground/70" aria-hidden />
+              <span className={detailSectionLabelClass}>
                 Variants{variantRows.length > 0 ? ` · ${variantRows.length}` : ""}
               </span>
             </div>
             {detail.variantOfItemId && variantParentDisplayName ? (
-              <p className="pl-6 text-[10px] leading-snug text-muted-foreground">
+              <p className="pl-5 text-[10px] leading-snug text-muted-foreground">
                 Same parent as{" "}
                 <span className="font-medium text-foreground">{variantParentDisplayName}</span>
               </p>
             ) : !detail.variantOfItemId && variantRows.length > 0 ? (
-              <p className="pl-6 text-[10px] leading-snug text-muted-foreground">
+              <p className="pl-5 text-[10px] leading-snug text-muted-foreground">
                 Child SKUs for this parent. Add several at once from the drawer.
               </p>
             ) : null}
@@ -743,7 +886,7 @@ export function ProductDetailPanel(props: Props) {
           </button>
         </header>
         {variantRows.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+          <div className="flex flex-col items-center gap-1.5 px-2.5 py-4 text-center">
             <p className="max-w-[16rem] text-[11px] text-muted-foreground">
               No variants yet. Open the drawer to add one or many—each row becomes a variant SKU under
               this parent.
@@ -768,8 +911,9 @@ export function ProductDetailPanel(props: Props) {
                     role="button"
                     tabIndex={0}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors hover:bg-muted/25",
-                      vSelected && "bg-primary/[0.06]",
+                      "flex cursor-pointer items-center gap-2 px-2.5 py-2 transition-colors",
+                      !vSelected && panelTone.variantRowHover,
+                      vSelected && panelTone.variantRowActive,
                       editing && "bg-muted/20",
                     )}
                     onClick={() => {
@@ -782,13 +926,13 @@ export function ProductDetailPanel(props: Props) {
                       }
                     }}
                   >
-                    <div className="relative size-8 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-muted">
+                    <div className="relative size-7 shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted">
                       {vThumb ? (
                         <Image
                           src={vThumb}
                           alt=""
-                          width={32}
-                          height={32}
+                          width={28}
+                          height={28}
                           className="object-cover"
                         />
                       ) : (
@@ -801,7 +945,7 @@ export function ProductDetailPanel(props: Props) {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-xs font-medium text-foreground">
                         {v.name}
                       </p>
                       {v.variantName && (

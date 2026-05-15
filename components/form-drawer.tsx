@@ -254,15 +254,7 @@ export function FormDrawer({
             ) : null}
 
             <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-12 bg-gradient-to-b from-background via-background/90 to-transparent"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-12 bg-gradient-to-t from-background via-background/90 to-transparent"
-                aria-hidden
-              />
-              <div className="relative z-0 space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6">
+              <div className="space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6">
                 {children}
               </div>
             </div>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronRight, Layers } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { kioskCategoryPillClass } from "@/components/cashier/kiosk-listing-styles";
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
@@ -11,9 +11,13 @@ import { cn } from "@/lib/utils";
 
 import {
   buildCatalogRowMeta,
+  catalogListGridClass,
+  catalogRowAccentClasses,
   catalogRowHeightPx,
+  catalogRowInteractionClasses,
   catalogRowTone,
   catalogStockTone,
+  isCatalogParentSelectorRow,
 } from "./catalog-list-styles";
 
 export type CatalogDensity = "comfortable" | "dense";
@@ -21,11 +25,12 @@ export type CatalogDensity = "comfortable" | "dense";
 export type VirtualizedCatalogBodyProps = {
   rows: ItemSummaryRecord[];
   categoryById: Map<string, CategoryRecord>;
+  variantIdsByParentId: Map<string, string[]>;
   selectedId: string | null;
   selectedIds: Set<string>;
   density: CatalogDensity;
   onRowClick: (id: string) => void;
-  onToggleRowSelect: (id: string) => void;
+  onToggleRowSelect: (id: string) => void | Promise<void>;
   isRowActive: (row: ItemSummaryRecord) => boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -36,6 +41,7 @@ export type VirtualizedCatalogBodyProps = {
 export function VirtualizedCatalogBody({
   rows,
   categoryById,
+  variantIdsByParentId,
   selectedId,
   selectedIds,
   density,
@@ -110,15 +116,17 @@ export function VirtualizedCatalogBody({
       </div>
 
       <div
-        className="grid shrink-0 grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-border/50 bg-muted/40 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm md:grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_5.5rem_4.5rem_auto]"
+        className={cn(
+          catalogListGridClass,
+          "shrink-0 border-b border-border/50 bg-muted/40 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+        )}
         role="row"
       >
         <span className="sr-only">Select</span>
         <span className="sr-only">Image</span>
         <span>Product</span>
-        <span className="hidden md:block">SKU</span>
         <span className="hidden text-right md:block">Stock</span>
-        <span className="sr-only">Category</span>
+        <span className="hidden text-right md:block">Category</span>
       </div>
 
       <div
@@ -172,8 +180,47 @@ export function VirtualizedCatalogBody({
               const stock = catalogStockTone(row.stockQty);
               const isGroup = meta.kind === "group";
               const isVariant = meta.kind === "variant";
+              const isParentRow = !isVariant;
+              const variantIdsUnderParent =
+                variantIdsByParentId.get(row.id) ??
+                rows
+                  .filter((r) => r.variantOfItemId?.trim() === row.id)
+                  .map((r) => r.id);
               const thumbSize = isGroup ? "size-9" : isVariant ? "size-7" : "size-8";
               const titleInitial = row.name.trim().charAt(0).toUpperCase() || "?";
+              const effectiveVariantCount = Math.max(
+                meta.variantCount,
+                variantIdsUnderParent.length,
+              );
+              const isParentSelector = isCatalogParentSelectorRow(
+                row,
+                effectiveVariantCount,
+              );
+              const displayName =
+                isParentSelector && effectiveVariantCount > 0
+                  ? `${row.name} (${effectiveVariantCount})`
+                  : row.name;
+
+              let checkboxChecked = selectedIds.has(row.id);
+              let checkboxIndeterminate = false;
+              if (isParentSelector && variantIdsUnderParent.length > 0) {
+                const targetIds = isGroup ? variantIdsUnderParent : [row.id, ...variantIdsUnderParent];
+                checkboxChecked =
+                  targetIds.length > 0 && targetIds.every((tid) => selectedIds.has(tid));
+                checkboxIndeterminate =
+                  !checkboxChecked && targetIds.some((tid) => selectedIds.has(tid));
+              }
+              const rowBulkSelected =
+                (isParentSelector &&
+                  variantIdsUnderParent.length > 0 &&
+                  variantIdsUnderParent.some((vid) => selectedIds.has(vid)) &&
+                  !checkboxChecked) ||
+                (checkboxChecked && !isParentSelector);
+              const rowInteraction = {
+                isDetailActive: active,
+                isBulkSelected: rowBulkSelected,
+                isCheckboxChecked: checkboxChecked && !active,
+              };
 
               return (
                 <div
@@ -185,7 +232,7 @@ export function VirtualizedCatalogBody({
                 >
                   {meta.startsParentBlock ? (
                     <div
-                      className={cn("shrink-0", density === "dense" ? "h-2" : "h-3.5")}
+                      className={cn("shrink-0", density === "dense" ? "h-2.5" : "h-4")}
                       aria-hidden
                     />
                   ) : null}
@@ -200,15 +247,11 @@ export function VirtualizedCatalogBody({
                           : `Product: ${row.name}`
                     }
                     className={cn(
-                      "group relative grid w-full grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-border/25 px-2.5 text-left transition-[background,box-shadow] duration-150 md:grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_5.5rem_4.5rem_auto]",
-                      tone.gradient,
-                      tone.rowBg,
-                      active
-                        ? cn("z-[1] shadow-sm ring-1 ring-inset", tone.rowActive)
-                        : undefined,
+                      catalogListGridClass,
+                      "group relative border-b border-border/25 px-2.5 py-1.5 text-left",
+                      catalogRowInteractionClasses(tone, rowInteraction),
                       row.active === false && "opacity-55",
-                      meta.opensVariantGroup && "border-b-amber-500/15",
-                      isVariant && "pl-1 md:pl-2",
+                      isVariant && "ml-5 md:ml-9",
                     )}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {
@@ -219,18 +262,17 @@ export function VirtualizedCatalogBody({
                     }}
                   >
                   <span
-                    className={cn(
-                      "pointer-events-none absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full",
-                      tone.accent,
-                      isGroup && "top-0.5 bottom-0.5 w-1 rounded-r-md",
-                    )}
+                    className={catalogRowAccentClasses(tone, {
+                      ...rowInteraction,
+                      isGroup,
+                    })}
                     aria-hidden
                   />
 
                   {isVariant ? (
                     <span
-                      className="pointer-events-none absolute bottom-0 top-0 w-px bg-violet-400/25 dark:bg-violet-500/20"
-                      style={{ left: "1.125rem" }}
+                      className="pointer-events-none absolute bottom-0 top-0 w-px bg-violet-400/30 dark:bg-violet-500/25"
+                      style={{ left: "1.75rem" }}
                       aria-hidden
                     />
                   ) : null}
@@ -242,74 +284,99 @@ export function VirtualizedCatalogBody({
                   >
                     <input
                       type="checkbox"
-                      className="size-3.5 rounded border-input shadow-sm"
-                      checked={selectedIds.has(row.id)}
-                      onChange={() => onToggleRowSelect(row.id)}
-                      aria-label={`Select ${row.name}`}
+                      className={cn(
+                        "size-3.5 rounded border-input shadow-sm transition-shadow",
+                        (checkboxChecked || rowBulkSelected) &&
+                          "border-primary/50 ring-1 ring-primary/20",
+                      )}
+                      ref={(el) => {
+                        if (el) el.indeterminate = checkboxIndeterminate;
+                      }}
+                      checked={checkboxChecked}
+                      onChange={() => void onToggleRowSelect(row.id)}
+                      aria-label={
+                        isParentSelector && variantIdsUnderParent.length > 0
+                          ? isGroup
+                            ? `Select all variants under ${row.name}`
+                            : `Select ${row.name} and all variants`
+                          : `Select ${row.name}`
+                      }
                     />
                   </span>
 
                   <span className="relative z-[1] flex items-center">
-                    {listThumb ? (
+                    {isParentRow ? (
+                      listThumb ? (
+                        <span
+                          className={cn(
+                            "relative block shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.03]",
+                            thumbSize,
+                            isGroup && "rounded-xl ring-amber-500/15",
+                          )}
+                        >
+                          <Image
+                            src={listThumb}
+                            alt=""
+                            width={isGroup ? 36 : 32}
+                            height={isGroup ? 36 : 32}
+                            className="object-cover"
+                          />
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "flex shrink-0 items-center justify-center rounded-lg border border-dashed font-bold tracking-tight",
+                            thumbSize,
+                            tone.accentLight,
+                            isGroup ? "rounded-xl text-sm" : "text-xs",
+                          )}
+                        >
+                          {titleInitial}
+                        </span>
+                      )
+                    ) : listThumb ? (
                       <span
                         className={cn(
-                          "relative block shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.03]",
+                          "relative block shrink-0 overflow-hidden rounded-md border border-border/50 bg-muted",
                           thumbSize,
-                          isGroup && "rounded-xl ring-amber-500/15",
                         )}
                       >
                         <Image
                           src={listThumb}
                           alt=""
-                          width={isGroup ? 36 : isVariant ? 28 : 32}
-                          height={isGroup ? 36 : isVariant ? 28 : 32}
+                          width={28}
+                          height={28}
                           className="object-cover"
                         />
                       </span>
                     ) : (
                       <span
-                        className={cn(
-                          "flex shrink-0 items-center justify-center rounded-lg border border-dashed font-bold tracking-tight",
-                          thumbSize,
-                          tone.accentLight,
-                          isGroup ? "rounded-xl text-sm" : "text-xs",
-                        )}
-                      >
-                        {titleInitial}
-                      </span>
+                        className={cn("shrink-0 rounded-md bg-muted/50", thumbSize)}
+                        aria-hidden
+                      />
                     )}
                   </span>
 
-                  <span
+                  <div
                     className={cn(
-                      "relative z-[1] flex min-w-0 flex-col justify-center gap-0.5",
-                      isVariant && "pl-2",
+                      "relative z-[1] min-w-0",
+                      isVariant && "pl-1 md:pl-2",
                     )}
                   >
-                    <span className="flex min-w-0 items-center gap-1.5">
+                    <div className="flex min-w-0 items-center gap-1.5">
                       {isVariant ? (
                         <TypeIcon className={cn("size-3.5 shrink-0", tone.muted)} aria-hidden />
                       ) : null}
                       <span
                         className={cn(
-                          "min-w-0 truncate font-semibold tracking-tight",
+                          "min-w-0 truncate font-semibold leading-snug tracking-tight",
                           isGroup ? "text-[15px]" : "text-sm",
                           tone.text,
+                          isParentSelector && "capitalize",
                         )}
                       >
-                        {row.name}
+                        {displayName}
                       </span>
-                      {meta.variantCount > 0 ? (
-                        <span
-                          className={cn(
-                            "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
-                            tone.accentLight,
-                          )}
-                        >
-                          <Layers className="size-2.5 opacity-70" aria-hidden />
-                          {meta.variantCount}
-                        </span>
-                      ) : null}
                       {isGroup ? (
                         <span
                           className={cn(
@@ -320,37 +387,32 @@ export function VirtualizedCatalogBody({
                           Group
                         </span>
                       ) : null}
-                    </span>
-                    <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      {row.active === false ? (
+                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Inactive
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
                       {isVariant && optionLabel ? (
-                        <span className={cn("truncate text-[11px] font-medium", tone.muted)}>
+                        <span className={cn("shrink-0 text-[11px] font-medium", tone.muted)}>
                           {optionLabel}
                         </span>
                       ) : null}
                       {row.sku ? (
-                        <span className="truncate font-mono text-[10px] text-muted-foreground md:hidden">
+                        <span
+                          className="min-w-0 break-all font-mono text-[11px] leading-tight text-muted-foreground"
+                          title={row.sku}
+                        >
                           {row.sku}
                         </span>
+                      ) : !isGroup ? (
+                        <span className="text-[11px] text-muted-foreground/40">No SKU</span>
                       ) : null}
-                      {row.active === false ? (
-                        <span className="rounded-full bg-muted px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Inactive
-                        </span>
-                      ) : null}
-                    </span>
-                  </span>
+                    </div>
+                  </div>
 
-                  <span className="relative z-[1] hidden min-w-0 md:block">
-                    {row.sku ? (
-                      <span className="block truncate font-mono text-[11px] text-muted-foreground">
-                        {row.sku}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground/35">—</span>
-                    )}
-                  </span>
-
-                  <span className="relative z-[1] hidden justify-end md:flex">
+                  <span className="relative z-[1] hidden min-w-0 justify-end md:flex">
                     {stock.label ? (
                       <span
                         className={cn(
@@ -368,11 +430,11 @@ export function VirtualizedCatalogBody({
                     )}
                   </span>
 
-                  <span className="relative z-[1] flex items-center justify-end gap-1.5">
+                  <span className="relative z-[1] flex min-w-0 items-center justify-end gap-1 md:gap-1.5">
                     {categoryLabel ? (
                       <span
                         className={cn(
-                          "hidden max-w-[7rem] truncate rounded-md px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide lg:inline",
+                          "hidden whitespace-normal rounded-md px-1.5 py-0.5 text-left text-[9px] font-semibold uppercase leading-snug tracking-wide md:inline-block",
                           kioskCategoryPillClass(categoryLabel),
                         )}
                       >
@@ -381,10 +443,13 @@ export function VirtualizedCatalogBody({
                     ) : null}
                     <ChevronRight
                       className={cn(
-                        "pointer-events-none size-4 shrink-0 text-muted-foreground/70 transition-all duration-150",
-                        selectedId === row.id
-                          ? "translate-x-0 opacity-80"
-                          : "translate-x-0 opacity-0 group-hover:translate-x-0.5 group-hover:opacity-55",
+                        "pointer-events-none size-4 shrink-0 transition-all duration-150",
+                        active
+                          ? "translate-x-0.5 text-foreground opacity-100"
+                          : "text-muted-foreground/50 opacity-0 group-hover:translate-x-0.5 group-hover:text-muted-foreground group-hover:opacity-70",
+                        (checkboxChecked || rowBulkSelected) &&
+                          !active &&
+                          "text-primary/70 opacity-60",
                       )}
                       aria-hidden
                     />

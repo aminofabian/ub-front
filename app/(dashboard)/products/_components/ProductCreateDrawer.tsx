@@ -30,6 +30,10 @@ import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { BranchRecord } from "@/lib/api";
+import {
+  productFormInputClass,
+  productFormLabelClass,
+} from "./product-form-styles";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  Types
@@ -123,7 +127,7 @@ function Label({
   required?: boolean;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1.5 text-xs font-medium text-muted-foreground", className)}>
+    <label className={cn("flex flex-col gap-1", productFormLabelClass, className)}>
       <span className="flex items-center gap-1">
         {children}
         {required ? <span className="text-destructive">*</span> : null}
@@ -134,9 +138,7 @@ function Label({
 
 function icClass(disabled?: boolean) {
   return cn(
-    "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm transition-colors shadow-sm",
-    "focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
-    "placeholder:text-muted-foreground/60",
+    productFormInputClass,
     disabled && "bg-muted/50 text-muted-foreground cursor-not-allowed",
   );
 }

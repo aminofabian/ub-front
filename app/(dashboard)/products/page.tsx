@@ -187,6 +187,8 @@ export default function ProductsPage() {
     primaryCost: detail.primaryCost,
     marginPct: detail.marginPct,
     canCatalogWrite,
+    canInventoryWrite,
+    branches,
     canLinkSupplier,
     quickEdit: quick.quickEdit,
     quickProductName: quick.quickProductName,
@@ -258,7 +260,7 @@ export default function ProductsPage() {
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-3 sm:p-4 lg:flex-row lg:items-stretch lg:gap-4 lg:p-4">
               <ProductFilterSidebar catalog={catalog} />
               <div className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2 lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-hidden lg:pr-1">
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-gradient-to-r from-muted/40 via-muted/20 to-transparent px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:from-muted/30 dark:via-muted/15 dark:to-transparent dark:ring-white/[0.04]">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/25 dark:ring-white/[0.04]">
                   <span
                     className={cn(
                       dashboardHintClass(),
@@ -343,6 +345,7 @@ export default function ProductsPage() {
                   <VirtualizedCatalogBody
                     rows={catalog.listRows}
                     categoryById={catalog.categoryById}
+                    variantIdsByParentId={catalog.variantIdsByParent}
                     selectedId={detail.selectedId}
                     selectedIds={catalog.rowSelection}
                     density={catalog.listDensity}
@@ -367,12 +370,12 @@ export default function ProductsPage() {
                 >
                   {D ? (
                     <>
-                      <div className="shrink-0 border-b border-border/50 bg-muted/35 px-4 py-3.5 sm:px-5">
-                        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                      <div className="shrink-0 border-b border-border/50 bg-muted/35 px-3 py-2 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/25 dark:ring-white/[0.04] sm:px-3.5">
+                        <h2 className="text-xs font-semibold tracking-tight text-foreground">
                           Product details
                         </h2>
                       </div>
-                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
+                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:px-3.5 sm:py-3">
                         <ProductDetailPanel {...p} />
                       </div>
                     </>

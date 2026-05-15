@@ -11,6 +11,12 @@ import {
   type ItemSummaryRecord,
   type ItemTypeRecord,
 } from "@/lib/api";
+import {
+  buildVariantIdsByParentId,
+  isCatalogParentSelectorRow,
+  resolveVariantIdsForParent,
+  sortCatalogRowsParentFirst,
+} from "../_components/catalog-list-styles";
 
 export function useCatalogList() {
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
@@ -32,8 +38,25 @@ export function useCatalogList() {
   const [filterIncludeInactive, setFilterIncludeInactive] = useState(false);
 
   const [rowSelection, setRowSelection] = useState<Set<string>>(() => new Set());
+  const [variantIdsByParentId, setVariantIdsByParentId] = useState<
+    Record<string, string[]>
+  >({});
   const [listDensity, setListDensity] = useState<"comfortable" | "dense">("comfortable");
   const [message, setMessage] = useState("");
+
+  const variantIdsByParent = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const [parentId, ids] of Object.entries(variantIdsByParentId)) {
+      if (ids.length > 0) map.set(parentId, ids);
+    }
+    return map;
+  }, [variantIdsByParentId]);
+
+  /** Parents first, then their variants — API default sort is flat by name. */
+  const catalogRows = useMemo(
+    () => sortCatalogRowsParentFirst(listRows),
+    [listRows],
+  );
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)),
@@ -108,14 +131,62 @@ export function useCatalogList() {
     }
   }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive]);
 
-  const onToggleRowSelect = useCallback((id: string) => {
-    setRowSelection((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  useEffect(() => {
+    const fromRows = buildVariantIdsByParentId(listRows);
+    setVariantIdsByParentId((prev) => {
+      const next = { ...prev };
+      for (const [parentId, ids] of fromRows) {
+        const existing = next[parentId];
+        if (!existing || ids.length >= existing.length) {
+          next[parentId] = ids;
+        }
+      }
       return next;
     });
-  }, []);
+  }, [listRows]);
+
+  const onToggleRowSelect = useCallback(
+    async (id: string) => {
+      const row = listRows.find((r) => r.id === id);
+      if (!row) return;
+
+      const localVariantIds = listRows
+        .filter((r) => r.variantOfItemId?.trim() === id)
+        .map((r) => r.id);
+      const cachedVariantIds = variantIdsByParentId[id];
+      const isGroupLabel = row.groupLabelOnly === true;
+      const variantCount =
+        cachedVariantIds?.length ?? localVariantIds.length;
+      const isParentSelector = isCatalogParentSelectorRow(row, variantCount);
+
+      let variantIds = cachedVariantIds ?? localVariantIds;
+      if (isParentSelector) {
+        variantIds = await resolveVariantIdsForParent(id, listRows);
+        setVariantIdsByParentId((prev) => ({ ...prev, [id]: variantIds }));
+      }
+
+      setRowSelection((prev) => {
+        if (!isParentSelector) {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        }
+
+        const targetIds = isGroupLabel ? variantIds : [id, ...variantIds];
+        const allOn =
+          targetIds.length > 0 && targetIds.every((tid) => prev.has(tid));
+        const next = new Set(prev);
+        if (allOn) {
+          for (const tid of targetIds) next.delete(tid);
+        } else {
+          for (const tid of targetIds) next.add(tid);
+        }
+        return next;
+      });
+    },
+    [listRows, variantIdsByParentId],
+  );
 
   const resetFilters = useCallback(() => {
     setSearch("");
@@ -165,7 +236,9 @@ export function useCatalogList() {
 
   return {
     itemTypes, categories, sortedCategories, categoryById,
-    listRows, listTotalElements, listLast, listLoadingInitial, listLoadingMore,
+    listRows: catalogRows,
+    listRowsRaw: listRows,
+    listTotalElements, listLast, listLoadingInitial, listLoadingMore,
     search, setSearch, debouncedSearch, setDebouncedSearch,
     filterCategoryId, setFilterCategoryId,
     includeCategoryDescendants, setIncludeCategoryDescendants,
@@ -173,7 +246,7 @@ export function useCatalogList() {
     barcodeExact, setBarcodeExact,
     filterNoBarcode, setFilterNoBarcode,
     filterIncludeInactive, setFilterIncludeInactive,
-    rowSelection, setRowSelection, onToggleRowSelect,
+    rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     listDensity, setListDensity,
     message, setMessage,
     loadCategoriesAndTypes, refreshFullCatalog, loadMoreCatalog, resetFilters,

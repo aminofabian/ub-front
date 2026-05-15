@@ -1,4 +1,5 @@
 import {
+  ApiRequestError,
   type CreateVariantPayload,
   type ItemDetailRecord,
   type ItemImageRecord,
@@ -7,6 +8,16 @@ import {
 import { type VariantDraft } from "./_types";
 
 // ─── numeric helpers ──────────────────────────────────────────────────────────
+
+/** User-visible message for catalog/inventory mutation failures (includes API errors). */
+export function formatMutationError(
+  error: unknown,
+  fallback = "Request failed.",
+): string {
+  if (error instanceof ApiRequestError) return error.message;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+}
 
 export function toNumber(value: number | string | null | undefined): number | null {
   if (value == null || value === "") return null;

@@ -38,7 +38,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
         </label>
         <label className="flex flex-col gap-1.5">
           <span className={filterLabelClass}>Category</span>
-          <select className={cn(quickInputClass, "cursor-pointer py-2.5")} value={catalog.filterCategoryId}
+          <select className={cn(quickInputClass, "cursor-pointer")} value={catalog.filterCategoryId}
             onChange={(e) => catalog.setFilterCategoryId(e.target.value)}>
             <option value="">All categories</option>
             {catalog.sortedCategories.map((c) => <option key={c.id} value={c.id}>{c.name}{!c.active ? " (inactive)" : ""}</option>)}
@@ -46,7 +46,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
         </label>
         <label className="flex flex-col gap-1.5">
           <span className={filterLabelClass}>Scope</span>
-          <select className={cn(quickInputClass, "cursor-pointer py-2.5")} value={catalog.catalogScope}
+          <select className={cn(quickInputClass, "cursor-pointer")} value={catalog.catalogScope}
             onChange={(e) => catalog.setCatalogScope(e.target.value as typeof catalog.catalogScope)}>
             <option value="ALL">Full tree</option>
             <option value="SKUS_ONLY">Sellable SKUs only</option>

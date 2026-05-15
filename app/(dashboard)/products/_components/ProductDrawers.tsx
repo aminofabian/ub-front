@@ -18,15 +18,25 @@ import {
   type FormDrawerProps,
 } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
-import { VARIANT_INPUT_CLASS } from "../_types";
+import { ProductFormField } from "./ProductFormField";
+import {
+  productFormGrid2Class,
+  productFormGrid3Class,
+  productFormInputClass,
+  productFormInputMonoClass,
+  productFormSectionClass,
+  productFormSectionTitleClass,
+  productFormSelectClass,
+  productFormStackClass,
+  productFormTextareaClass,
+} from "./product-form-styles";
 import type { ProductDetailApi } from "../_hooks/useProductDetail";
 import type { QuickEditApi } from "../_hooks/useQuickEdit";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import { ProductDetailPanel } from "./ProductDetailPanel";
-import { galleryImageUrl, coverImageUrl } from "../_utils";
-import { postStockIncrease, ApiRequestError } from "@/lib/api";
-import { useState, type ComponentProps } from "react";
-
+import { coverImageUrl, formatMutationError, galleryImageUrl } from "../_utils";
+import { postStockIncrease } from "@/lib/api";
+import { useEffect, useState, type ComponentProps } from "react";
 type Cat = { id: string; name: string; active: boolean };
 
 // ─── Edit drawer ─────────────────────────────────────────────────────────────
@@ -70,9 +80,16 @@ export function ProductEditDrawer({
   const d = detail.detail;
   const dr = detail.patchDraft;
   const [stockQty, setStockQty] = useState("");
-  const [stockBranchId, setStockBranchId] = useState(headerBranchId || "");
+  const [stockBranchId, setStockBranchId] = useState("");
   const [stockUnitCost, setStockUnitCost] = useState("");
   const [stockSaving, setStockSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open || !d) return;
+    setStockQty("");
+    setStockBranchId(headerBranchId || m.branches[0]?.id || "");
+    setStockUnitCost(dr.buyingPriceStr?.trim() || "");
+  }, [open, d?.id, headerBranchId, dr.buyingPriceStr, m.branches]);
 
   const handleStockIncrease = async () => {
     if (!d) return;
@@ -92,11 +109,7 @@ export function ProductEditDrawer({
       return;
     }
     const costRaw = stockUnitCost.trim();
-    if (!costRaw) {
-      setMessage("Enter a unit cost.");
-      return;
-    }
-    const unitCost = Number(costRaw);
+    const unitCost = costRaw === "" ? 0 : Number(costRaw);
     if (!Number.isFinite(unitCost) || unitCost < 0) {
       setMessage("Unit cost must be a valid non-negative number.");
       return;
@@ -115,8 +128,7 @@ export function ProductEditDrawer({
       setStockQty("");
       setMessage("Stock increased.");
     } catch (e) {
-      if (!(e instanceof ApiRequestError))
-        setMessage(e instanceof Error ? e.message : "Stock adjustment failed.");
+      setMessage(formatMutationError(e, "Stock adjustment failed."));
     } finally {
       setStockSaving(false);
     }
@@ -154,51 +166,44 @@ export function ProductEditDrawer({
       {d && (
         <form
           id="edit-product-form"
-          className="space-y-4"
+          className={productFormStackClass}
           onSubmit={m.onPatchItem}
         >
-          <Lbl label="Name">
+          <ProductFormField label="Name" required>
             <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              className={productFormInputClass}
               value={dr.name ?? ""}
               onChange={(e) =>
                 detail.setPatchDraft((p) => ({ ...p, name: e.target.value }))
               }
             />
-          </Lbl>
-          <Lbl label="SKU">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono"
-              value={dr.sku ?? ""}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({ ...p, sku: e.target.value }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Barcode">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono"
-              value={dr.barcode ?? ""}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({ ...p, barcode: e.target.value }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Description">
-            <textarea
-              className="min-h-[6rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              value={dr.description ?? ""}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  description: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Category">
+          </ProductFormField>
+          <div className={productFormGrid2Class}>
+            <ProductFormField label="SKU" required>
+              <input
+                className={productFormInputMonoClass}
+                value={dr.sku ?? ""}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({ ...p, sku: e.target.value }))
+                }
+              />
+            </ProductFormField>
+            <ProductFormField label="Barcode">
+              <input
+                className={productFormInputMonoClass}
+                value={dr.barcode ?? ""}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    barcode: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+          </div>
+          <ProductFormField label="Category">
             <select
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              className={productFormSelectClass}
               value={dr.categoryId}
               onChange={(e) =>
                 detail.setPatchDraft((p) => ({
@@ -214,96 +219,109 @@ export function ProductEditDrawer({
                 </option>
               ))}
             </select>
-          </Lbl>
-          <Lbl label="Shelf price">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={dr.bundlePriceStr}
+          </ProductFormField>
+          <ProductFormField label="Description">
+            <textarea
+              className={productFormTextareaClass}
+              value={dr.description ?? ""}
               onChange={(e) =>
                 detail.setPatchDraft((p) => ({
                   ...p,
-                  bundlePriceStr: e.target.value,
+                  description: e.target.value,
                 }))
               }
             />
-          </Lbl>
-          <Lbl label="Pack qty">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              inputMode="numeric"
-              placeholder="1"
-              value={dr.bundleQtyStr}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  bundleQtyStr: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Buying price">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={dr.buyingPriceStr}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  buyingPriceStr: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Min stock">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              inputMode="decimal"
-              placeholder="0"
-              value={dr.minStockLevelStr}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  minStockLevelStr: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Reorder level">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              inputMode="decimal"
-              placeholder="0"
-              value={dr.reorderLevelStr}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  reorderLevelStr: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
-          <Lbl label="Reorder qty">
-            <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              inputMode="decimal"
-              placeholder="0"
-              value={dr.reorderQtyStr}
-              onChange={(e) =>
-                detail.setPatchDraft((p) => ({
-                  ...p,
-                  reorderQtyStr: e.target.value,
-                }))
-              }
-            />
-          </Lbl>
-          {/* ── Cover image upload ──────────────────────────────── */}
-          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/10 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Cover image
-            </p>
+          </ProductFormField>
+          <div className={productFormGrid2Class}>
+            <ProductFormField label="Shelf price">
+              <input
+                className={productFormInputClass}
+                inputMode="decimal"
+                placeholder="0.00"
+                value={dr.bundlePriceStr}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    bundlePriceStr: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+            <ProductFormField label="Pack qty">
+              <input
+                className={productFormInputClass}
+                inputMode="numeric"
+                placeholder="1"
+                value={dr.bundleQtyStr}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    bundleQtyStr: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+          </div>
+          <div className={productFormGrid2Class}>
+            <ProductFormField label="Cost">
+              <input
+                className={productFormInputClass}
+                inputMode="decimal"
+                placeholder="0.00"
+                value={dr.buyingPriceStr}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    buyingPriceStr: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+            <ProductFormField label="Min stock">
+              <input
+                className={productFormInputClass}
+                inputMode="decimal"
+                placeholder="0"
+                value={dr.minStockLevelStr}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    minStockLevelStr: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+            <ProductFormField label="Reorder at">
+              <input
+                className={productFormInputClass}
+                inputMode="decimal"
+                placeholder="0"
+                value={dr.reorderLevelStr}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    reorderLevelStr: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+            <ProductFormField label="Reorder qty">
+              <input
+                className={productFormInputClass}
+                inputMode="decimal"
+                placeholder="0"
+                value={dr.reorderQtyStr}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    reorderQtyStr: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+          </div>
+          <div className={productFormSectionClass}>
+            <p className={productFormSectionTitleClass}>Cover image</p>
             {coverImageUrl(d) ? (
               <div className="relative mx-auto h-36 w-full max-w-xs overflow-hidden rounded-lg border bg-background shadow-sm">
                 <Image
@@ -329,7 +347,7 @@ export function ProductEditDrawer({
                 }
               />
               <input
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs"
+                className={productFormInputClass}
                 placeholder="Alt text (optional)"
                 value={m.catalogImageAlt}
                 onChange={(e) => m.setCatalogImageAlt(e.target.value)}
@@ -357,16 +375,18 @@ export function ProductEditDrawer({
           </div>
 
           {/* ── Stock adjustment ──────────────────────────────────── */}
-          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/10 p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <Building2 className="size-3.5" aria-hidden />
+          <div className={productFormSectionClass}>
+            <p className={cn("flex items-center gap-1.5", productFormSectionTitleClass)}>
+              <Building2 className="size-3" aria-hidden />
               Stock adjustment
             </p>
-            <div className="space-y-3">
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                Branch
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              Adds to on-hand at the selected branch. Click Add stock — Save changes does not apply here.
+            </p>
+            <div className={productFormStackClass}>
+              <ProductFormField label="Branch">
                 <select
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  className={productFormSelectClass}
                   value={stockBranchId}
                   onChange={(e) => setStockBranchId(e.target.value)}
                 >
@@ -377,27 +397,27 @@ export function ProductEditDrawer({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                Quantity to add
-                <input
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  inputMode="decimal"
-                  placeholder="e.g. 10"
-                  value={stockQty}
-                  onChange={(e) => setStockQty(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                Unit cost
-                <input
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={stockUnitCost}
-                  onChange={(e) => setStockUnitCost(e.target.value)}
-                />
-              </label>
+              </ProductFormField>
+              <div className={productFormGrid2Class}>
+                <ProductFormField label="Qty to add">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    placeholder="e.g. 10"
+                    value={stockQty}
+                    onChange={(e) => setStockQty(e.target.value)}
+                  />
+                </ProductFormField>
+                <ProductFormField label="Unit cost">
+                  <input
+                    className={productFormInputClass}
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={stockUnitCost}
+                    onChange={(e) => setStockUnitCost(e.target.value)}
+                  />
+                </ProductFormField>
+              </div>
               <Button
                 type="button"
                 size="sm"
@@ -431,7 +451,7 @@ export function ProductEditDrawer({
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={dr.webPublished ?? false}
+              checked={dr.webPublished ?? true}
               onChange={(e) =>
                 detail.setPatchDraft((p) => ({
                   ...p,
@@ -444,21 +464,6 @@ export function ProductEditDrawer({
         </form>
       )}
     </FormDrawer>
-  );
-}
-
-function Lbl({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-      {label}
-      {children}
-    </label>
   );
 }
 
@@ -543,7 +548,7 @@ export function ProductPhotosDrawer({
               }
             />
             <input
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              className={productFormInputClass}
               placeholder="Alt text"
               value={m.catalogImageAlt}
               onChange={(e) => m.setCatalogImageAlt(e.target.value)}
@@ -688,27 +693,25 @@ export function ProductQuickEditAllDrawer({
     >
       <form
         id="quick-edit-all-form"
-        className="space-y-5"
+        className={productFormStackClass}
         onSubmit={(e) => {
           e.preventDefault();
           void quick.saveQuickEditAll();
         }}
       >
         <FormDrawerFields legend="Identity">
-          <F label="Display name">
-            <span className="text-destructive">*</span>
+          <F label="Display name" required>
             <input
-              className={VARIANT_INPUT_CLASS}
+              className={productFormInputClass}
               value={quick.qeaName}
               onChange={(e) => quick.setQeaName(e.target.value)}
               required
             />
           </F>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <F label="SKU">
-              <span className="text-destructive">*</span>
+          <div className={productFormGrid2Class}>
+            <F label="SKU" required>
               <input
-                className={cn(VARIANT_INPUT_CLASS, "font-mono")}
+                className={productFormInputMonoClass}
                 value={quick.qeaSku}
                 onChange={(e) => quick.setQeaSku(e.target.value)}
                 required
@@ -716,7 +719,7 @@ export function ProductQuickEditAllDrawer({
             </F>
             <F label="Barcode">
               <input
-                className={cn(VARIANT_INPUT_CLASS, "font-mono")}
+                className={productFormInputMonoClass}
                 value={quick.qeaBarcode}
                 onChange={(e) => quick.setQeaBarcode(e.target.value)}
               />
@@ -724,38 +727,38 @@ export function ProductQuickEditAllDrawer({
           </div>
         </FormDrawerFields>
         <FormDrawerFields legend="Pricing">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className={productFormGrid3Class}>
             <F label="Shelf price">
               <input
-                className={VARIANT_INPUT_CLASS}
+                className={productFormInputClass}
                 inputMode="decimal"
                 value={quick.qeaBundlePrice}
                 onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
               />
             </F>
-            <F label="Buying price">
+            <F label="Cost">
               <input
-                className={VARIANT_INPUT_CLASS}
+                className={productFormInputClass}
                 inputMode="decimal"
                 value={quick.qeaBuyingPrice}
                 onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
               />
             </F>
+            <F label="Pack qty">
+              <input
+                className={productFormInputClass}
+                inputMode="numeric"
+                value={quick.qeaBundleQty}
+                onChange={(e) => quick.setQeaBundleQty(e.target.value)}
+              />
+            </F>
           </div>
-          <F label="Units per pack">
-            <input
-              className={VARIANT_INPUT_CLASS}
-              inputMode="numeric"
-              value={quick.qeaBundleQty}
-              onChange={(e) => quick.setQeaBundleQty(e.target.value)}
-            />
-          </F>
         </FormDrawerFields>
         <FormDrawerFields legend="Stock">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className={productFormGrid3Class}>
             <F label="Min stock">
               <input
-                className={VARIANT_INPUT_CLASS}
+                className={productFormInputClass}
                 inputMode="decimal"
                 value={quick.qeaMinStock}
                 onChange={(e) => quick.setQeaMinStock(e.target.value)}
@@ -763,7 +766,7 @@ export function ProductQuickEditAllDrawer({
             </F>
             <F label="Reorder at">
               <input
-                className={VARIANT_INPUT_CLASS}
+                className={productFormInputClass}
                 inputMode="decimal"
                 value={quick.qeaReorderLevel}
                 onChange={(e) => quick.setQeaReorderLevel(e.target.value)}
@@ -771,7 +774,7 @@ export function ProductQuickEditAllDrawer({
             </F>
             <F label="Order qty">
               <input
-                className={VARIANT_INPUT_CLASS}
+                className={productFormInputClass}
                 inputMode="decimal"
                 value={quick.qeaReorderQty}
                 onChange={(e) => quick.setQeaReorderQty(e.target.value)}
@@ -780,9 +783,9 @@ export function ProductQuickEditAllDrawer({
           </div>
         </FormDrawerFields>
         <FormDrawerFields legend="Description">
-          <F label="Product description">
+          <F label="Notes">
             <textarea
-              className={cn(VARIANT_INPUT_CLASS, "min-h-24 resize-y")}
+              className={productFormTextareaClass}
               value={quick.qeaDescription}
               onChange={(e) => quick.setQeaDescription(e.target.value)}
             />
@@ -793,12 +796,19 @@ export function ProductQuickEditAllDrawer({
   );
 }
 
-function F({ label, children }: { label: string; children: React.ReactNode }) {
+function F({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <label className="flex flex-col gap-1 text-xs">
-      {label}
+    <ProductFormField label={label} required={required}>
       {children}
-    </label>
+    </ProductFormField>
   );
 }
 

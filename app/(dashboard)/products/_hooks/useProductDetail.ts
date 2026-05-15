@@ -44,7 +44,7 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       barcode: row.barcode,
       description: row.description,
       active: row.active ?? true,
-      webPublished: row.webPublished ?? false,
+      webPublished: row.webPublished ?? true,
       bundlePriceStr: numStr(row.bundlePrice),
       bundleQtyStr: numStr(row.bundleQty),
       buyingPriceStr: numStr(row.buyingPrice),
