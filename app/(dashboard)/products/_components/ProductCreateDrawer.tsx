@@ -14,6 +14,7 @@ import {
   FileText,
   FolderOpen,
   MapPin,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ type Props = {
     | "onCreateParent"
     | "pendingCreateImage"
     | "setPendingCreateImage"
+    | "parentCreateBusy"
   >;
   canLinkSupplier: boolean;
   canListSuppliers: boolean;
@@ -168,15 +170,25 @@ export function ProductCreateDrawer({
       icon={<PackagePlus className="size-5 text-primary" aria-hidden />}
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={m.parentCreateBusy}>
             Cancel
           </Button>
           <Button
             type="submit"
             form="create-parent-form"
-            disabled={catalog.itemTypes.length === 0}
+            disabled={catalog.itemTypes.length === 0 || m.parentCreateBusy}
+            className="gap-2"
           >
-            {isGroup ? "Create group" : "Create product"}
+            {m.parentCreateBusy ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                {isGroup ? "Creating group…" : "Creating product…"}
+              </>
+            ) : isGroup ? (
+              "Create group"
+            ) : (
+              "Create product"
+            )}
           </Button>
         </div>
       }

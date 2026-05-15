@@ -477,6 +477,7 @@ export default function ProductsPage() {
               type="button"
               variant="outline"
               onClick={() => setActiveDrawer(null)}
+              disabled={m.variantCreateBusy}
             >
               Cancel
             </Button>
@@ -484,12 +485,20 @@ export default function ProductsPage() {
               type="submit"
               form="add-variant-form"
               disabled={m.variantCreateBusy || variantCreateSubmitCount === 0}
+              className="gap-2"
             >
-              {m.variantCreateBusy
-                ? "Creating…"
-                : variantCreateSubmitCount > 1
-                  ? `Create ${variantCreateSubmitCount} variants`
-                  : "Create variant"}
+              {m.variantCreateBusy ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  {variantCreateSubmitCount > 1
+                    ? `Creating ${variantCreateSubmitCount} variants…`
+                    : "Creating variant…"}
+                </>
+              ) : variantCreateSubmitCount > 1 ? (
+                `Create ${variantCreateSubmitCount} variants`
+              ) : (
+                "Create variant"
+              )}
             </Button>
           </div>
         }

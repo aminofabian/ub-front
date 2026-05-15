@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiRequestError,
   addItemSupplierLink,
@@ -111,6 +111,9 @@ export function useProductMutations(d: Dependencies) {
     () => [emptyVariantDraft()],
   );
   const [variantCreateBusy, setVariantCreateBusy] = useState(false);
+  const [parentCreateBusy, setParentCreateBusy] = useState(false);
+  const parentCreateSubmittingRef = useRef(false);
+  const variantCreateSubmittingRef = useRef(false);
   const [variantInlineEditId, setVariantInlineEditId] = useState<string | null>(
     null,
   );
@@ -288,6 +291,9 @@ export function useProductMutations(d: Dependencies) {
   const onCreateParent = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      if (parentCreateSubmittingRef.current) return;
+      parentCreateSubmittingRef.current = true;
+      setParentCreateBusy(true);
       setMessage("");
       const savedType = parentDraft.itemTypeId;
 
@@ -456,6 +462,9 @@ export function useProductMutations(d: Dependencies) {
       } catch (err) {
         if (!(err instanceof ApiRequestError))
           setMessage(err instanceof Error ? err.message : "Create failed.");
+      } finally {
+        parentCreateSubmittingRef.current = false;
+        setParentCreateBusy(false);
       }
     },
     [
@@ -645,35 +654,39 @@ export function useProductMutations(d: Dependencies) {
   const onAddVariant = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const sid = selectedId?.trim() || "";
-      const did = detail?.id?.trim() || "";
-      const pid =
-        sid && did && sid !== did
-          ? sid
-          : detail?.variantOfItemId?.trim() || did || sid;
-      if (!pid) {
-        setMessage("Select a product first.");
-        return;
-      }
-      const effectiveDrafts: VariantDraft[] = variantDraftRows.filter((row) =>
-        row.variantName.trim(),
-      );
-      if (effectiveDrafts.length === 0) {
-        setMessage("Add at least one variant name.");
-        return;
-      }
-      for (const row of effectiveDrafts) {
-        if (row.openingQty.trim() && !row.openingBranchId.trim()) {
-          setMessage(
-            `Opening stock for “${row.variantName.trim()}” needs a branch.`,
-          );
+      if (variantCreateSubmittingRef.current) return;
+      variantCreateSubmittingRef.current = true;
+      setVariantCreateBusy(true);
+      setMessage("");
+      try {
+        const sid = selectedId?.trim() || "";
+        const did = detail?.id?.trim() || "";
+        const pid =
+          sid && did && sid !== did
+            ? sid
+            : detail?.variantOfItemId?.trim() || did || sid;
+        if (!pid) {
+          setMessage("Select a product first.");
           return;
         }
-      }
-      setMessage("");
-      setVariantCreateBusy(true);
-      const warnings: string[] = [];
-      try {
+        const effectiveDrafts: VariantDraft[] = variantDraftRows.filter(
+          (row) => row.variantName.trim(),
+        );
+        if (effectiveDrafts.length === 0) {
+          setMessage("Add at least one variant name.");
+          return;
+        }
+        for (const row of effectiveDrafts) {
+          if (row.openingQty.trim() && !row.openingBranchId.trim()) {
+            setMessage(
+              `Opening stock for “${row.variantName.trim()}” needs a branch.`,
+            );
+            return;
+          }
+        }
+        setMessage("");
+        const warnings: string[] = [];
+        try {
         let lastVid: string | null = null;
         for (let i = 0; i < effectiveDrafts.length; i++) {
           const variantDraft = effectiveDrafts[i];
@@ -809,12 +822,14 @@ export function useProductMutations(d: Dependencies) {
               ? "Variant created."
               : `Created ${n} variants.`,
         );
-      } catch (err) {
-        if (!(err instanceof ApiRequestError))
-          setMessage(
-            err instanceof Error ? err.message : "Create variant failed.",
-          );
+        } catch (err) {
+          if (!(err instanceof ApiRequestError))
+            setMessage(
+              err instanceof Error ? err.message : "Create variant failed.",
+            );
+        }
       } finally {
+        variantCreateSubmittingRef.current = false;
         setVariantCreateBusy(false);
       }
     },
@@ -977,6 +992,7 @@ export function useProductMutations(d: Dependencies) {
     addVariantDraftRow,
     removeVariantDraftRow,
     variantCreateBusy,
+    parentCreateBusy,
     variantInlineEditId,
     variantEditName,
     setVariantEditName,
