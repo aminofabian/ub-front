@@ -48,6 +48,7 @@ import {
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { StockTakeSearchResults } from "./_components/StockTakeSearchResults";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -91,7 +92,6 @@ function getLineDisplayName(line: StockTakeLineRecord): string {
   if (sku) return sku;
   return "Unnamed item";
 }
-
 
 // ── Page ──────────────────────────────────────────────────────────────
 
@@ -930,82 +930,21 @@ export default function StockTakePage() {
           </details>
         ) : null}
 
-        {/* Search results */}
-        {search.trim() || searchHits.length > 0 ? (
-          <div className="space-y-1">
-            {searching ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                Searching…
-              </p>
-            ) : searchHits.length > 0 ? (
-              <div className="max-h-64 overflow-auto rounded-md border">
-                {searchHits.map((item) => {
-                  const status = getLineStatus(checklistLines, item.id);
-                  const existingLine = getLineByItemId(checklistLines, item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      disabled={status === "confirmed"}
-                      className={cn(
-                        "flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-muted/50 border-b last:border-0 transition-colors",
-                        status === "confirmed" &&
-                          "opacity-60 cursor-not-allowed",
-                      )}
-                      onClick={() => openCountModal(item)}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{item.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.sku}
-                          {item.barcode?.trim()
-                            ? ` · ${item.barcode.trim()}`
-                            : ""}
-                          {item.categoryName ? ` · ${item.categoryName}` : ""}
-                        </div>
-                      </div>
-                      {status === "confirmed" ? (
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                          <CheckCircle2 className="mr-1 inline size-3" />
-                          Confirmed
-                        </span>
-                      ) : status === "submitted" ? (
-                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-                          <Clock className="mr-1 inline size-3" />
-                          {formatCountedQty(existingLine)} pcs
-                        </span>
-                      ) : null}
-                      {!getLineByItemId(checklistLines, item.id) ? (
-                        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                          <Plus className="mr-0.5 inline size-3" />
-                          Add
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-2 py-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No products found
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setCreateBarcode(search.trim());
-                    setCreateName(search.trim());
-                    setShowCreate(true);
-                  }}
-                >
-                  <Plus className="mr-1 size-3.5" />
-                  Create &quot;{search.trim()}&quot;
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : null}
+        <StockTakeSearchResults
+          search={search}
+          searching={searching}
+          items={searchHits}
+          checklistLines={checklistLines}
+          getLineStatus={getLineStatus}
+          getLineByItemId={getLineByItemId}
+          formatCountedQty={formatCountedQty}
+          onSelect={openCountModal}
+          onCreateProduct={() => {
+            setCreateBarcode(search.trim());
+            setCreateName(search.trim());
+            setShowCreate(true);
+          }}
+        />
 
         {/* Summary bar */}
         <div className="rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
