@@ -2905,6 +2905,16 @@ export async function postCancelStockTransfer(
   );
 }
 
+export type StockTakeLineBatchRecord = {
+  id: string;
+  batchId: string;
+  batchNumber: string | null;
+  expiryDate: string | null;
+  systemQtySnapshot: number | string;
+  countedQty: number | string | null;
+  sortOrder: number;
+};
+
 export type StockTakeLineRecord = {
   id: string;
   itemId: string;
@@ -2920,6 +2930,8 @@ export type StockTakeLineRecord = {
   submittedAt: string | null;
   confirmedBy: string | null;
   confirmedAt: string | null;
+  updatedAt: string | null;
+  batches: StockTakeLineBatchRecord[];
 };
 
 export type StockAdjustmentRequestRecord = {
@@ -2930,6 +2942,14 @@ export type StockAdjustmentRequestRecord = {
   systemQtySnapshot: number | string;
   countedQty: number | string;
   status: string;
+};
+
+export type StockTakeSessionSummary = {
+  totalCount: number;
+  pendingCount: number;
+  submittedCount: number;
+  confirmedCount: number;
+  remainingCount: number;
 };
 
 export type StockTakeSessionRecord = {
@@ -2946,6 +2966,7 @@ export type StockTakeSessionRecord = {
   closedBy: string | null;
   lines: StockTakeLineRecord[];
   adjustmentRequests: StockAdjustmentRequestRecord[];
+  summary: StockTakeSessionSummary;
 };
 
 export type ActiveStockTakeSessionResponse = {
@@ -3022,10 +3043,13 @@ export async function patchStockTakeSingleLine(
   lineId: string,
   countedQty: number | string,
   aisle?: string | null,
+  batches?: { batchId: string; countedQty: number | string }[],
 ): Promise<StockTakeSessionRecord> {
+  const body: Record<string, unknown> = { countedQty, aisle: aisle || null };
+  if (batches && batches.length > 0) body.batches = batches;
   return request<StockTakeSessionRecord>(
     `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}/lines/${encodeURIComponent(lineId)}`,
-    { method: "PATCH", body: { countedQty, aisle: aisle || null } },
+    { method: "PATCH", body },
   );
 }
 

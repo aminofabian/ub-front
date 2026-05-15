@@ -80,6 +80,19 @@ function formatCountedQty(line: StockTakeLineRecord | undefined): string {
   return String(line.countedQty);
 }
 
+/** Return a human-readable label for a stock-take line.
+ *  Falls back to SKU or a generic label when the backend sends a raw UUID as itemName. */
+function getLineDisplayName(line: StockTakeLineRecord): string {
+  const name = line.itemName?.trim();
+  if (name && !/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/i.test(name)) {
+    return name;
+  }
+  const sku = line.itemSku?.trim();
+  if (sku) return sku;
+  return "Unnamed item";
+}
+
+
 // ── Page ──────────────────────────────────────────────────────────────
 
 export default function StockTakePage() {
@@ -488,14 +501,14 @@ export default function StockTakePage() {
   // ── Computed
   const checklistLines = useMemo(() => session?.lines ?? [], [session]);
 
-  const totalChecklist = checklistLines.length;
-  const countedCount = checklistLines.filter(
+  const totalChecklist = session?.summary?.totalCount ?? checklistLines.length;
+  const countedCount = session?.summary?.submittedCount ?? checklistLines.filter(
     (l) => l.status === "submitted",
   ).length;
-  const confirmedCount = checklistLines.filter(
+  const confirmedCount = session?.summary?.confirmedCount ?? checklistLines.filter(
     (l) => l.status === "confirmed",
   ).length;
-  const remainingCount = totalChecklist - countedCount - confirmedCount;
+  const remainingCount = session?.summary?.remainingCount ?? (totalChecklist - countedCount - confirmedCount);
 
   const uncountedLines = useMemo(
     () => checklistLines.filter((l) => l.status === "pending"),
@@ -876,13 +889,13 @@ export default function StockTakePage() {
                   onClick={() => {
                     openCountModal({
                       id: line.itemId,
-                      name: line.itemName,
+                      name: getLineDisplayName(line),
                       sku: line.itemSku ?? "",
-                      stockQty: line.systemQtySnapshot,
+                      stockQty: canApprove ? line.systemQtySnapshot : undefined,
                     });
                   }}
                 >
-                  <span className="truncate font-medium">{line.itemName}</span>
+                  <span className="truncate font-medium">{getLineDisplayName(line)}</span>
                   {line.aisle ? (
                     <span className="ml-2 shrink-0 text-xs text-muted-foreground">
                       {line.aisle}
@@ -1361,7 +1374,7 @@ function CountModal({
                   autoFocus
                 />
               </label>
-              {item.stockQty != null ? (
+              {canApprove && item.stockQty != null ? (
                 <p className="text-xs text-muted-foreground">
                   System stock: {String(item.stockQty)} pcs
                 </p>

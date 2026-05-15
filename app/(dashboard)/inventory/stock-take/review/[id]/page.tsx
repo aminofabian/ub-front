@@ -29,6 +29,7 @@ import {
   postStockTakeConfirmLine,
   postStockTakeClose,
   type StockTakeSessionRecord,
+  type StockTakeLineRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,18 @@ function formatQty(v: number | string | null | undefined): string {
 type FilterMode = "all" | "pending" | "confirmed" | "not-counted";
 
 // ── Page ──────────────────────────────────────────────────────────────
+
+/** Return a human-readable label for a stock-take line.
+ *  Falls back to SKU or a generic label when the backend sends a raw UUID as itemName. */
+function getLineDisplayName(line: StockTakeLineRecord): string {
+  const name = line.itemName?.trim();
+  if (name && !/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/i.test(name)) {
+    return name;
+  }
+  const sku = line.itemSku?.trim();
+  if (sku) return sku;
+  return "Unnamed item";
+}
 
 export default function StockTakeReviewPage() {
   const params = useParams();
@@ -409,7 +422,7 @@ export default function StockTakeReviewPage() {
                 </tr>
               ) : (
                 filteredLines.map((line) => {
-                  const label = line.itemName;
+                  const label = getLineDisplayName(line);
                   const sku = line.itemSku ?? "";
                   const system = parseNum(line.systemQtySnapshot);
                   const adminQty = parseNum(adminQtys[line.id]);

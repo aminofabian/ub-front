@@ -25,6 +25,7 @@ import {
   fetchStockTakeReconciliation,
   type BranchRecord,
   type ReconciliationResponseRecord,
+  type ReconciliationLineRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,18 @@ function varianceBg(v: number): string {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────
+
+/** Return a human-readable label for a reconciliation line.
+ *  Falls back to SKU or a generic label when the backend sends a raw UUID. */
+function getReconLineName(line: ReconciliationLineRecord): string {
+  const name = line.itemName?.trim();
+  if (name && !/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/i.test(name)) {
+    return name;
+  }
+  const sku = line.sku?.trim();
+  if (sku) return sku;
+  return "Unnamed item";
+}
 
 export default function ReconciliationPage() {
   const { me } = useDashboard();
@@ -293,7 +306,7 @@ export default function ReconciliationPage() {
                       >
                         <td className="px-3 py-2.5">
                           <div className="max-w-[12rem] truncate font-medium">
-                            {line.itemName || line.itemId}
+                            {getReconLineName(line)}
                           </div>
                           {line.sku ? (
                             <div className="text-xs text-muted-foreground">
