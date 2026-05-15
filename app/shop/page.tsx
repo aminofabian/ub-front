@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { StorefrontCatalogHome } from "@/components/storefront/storefront-catalog-home";
 import { APP_BASE_URL } from "@/lib/config";
 import { fetchPublicStorefront } from "@/lib/public-storefront";
+import { redirectLegacyShopCategoryQuery } from "@/lib/shop-legacy-category-redirect";
 import {
   resolveStorefrontSlug,
   resolveTenantContext,
@@ -66,10 +67,19 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ShopPage({ searchParams }: PageProps) {
   const sp = await searchParams;
+  const slug = await resolveStorefrontSlug();
+  const legacy = sp.categoryId?.trim();
+  if (legacy && slug) {
+    await redirectLegacyShopCategoryQuery({
+      storefrontSlug: slug,
+      categoryId: legacy,
+      q: sp.q?.trim(),
+    });
+  }
   return (
     <StorefrontCatalogHome
       q={sp.q?.trim() || undefined}
-      categoryId={sp.categoryId?.trim() || undefined}
+      categoryId={legacy || undefined}
     />
   );
 }

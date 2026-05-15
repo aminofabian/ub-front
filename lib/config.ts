@@ -45,9 +45,11 @@ export const APP_ROUTES = {
 } as const;
 
 /** Public product detail (Phase 15 storefront). */
-export function shopItemPath(itemId: string): string {
-  return `/shop/items/${encodeURIComponent(itemId)}`;
+export function shopItemPath(sku: string): string {
+  return `/${encodeURIComponent(sku)}`;
 }
+
+export { shopItemPathFromCard } from "./shop-item-url";
 
 /** Dashboard category detail by slug. */
 export function categorySlugPath(slug: string): string {

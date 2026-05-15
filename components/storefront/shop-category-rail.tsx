@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { Flame, LayoutGrid } from "lucide-react";
 import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import type { PublicCategory } from "@/lib/public-storefront";
-import { shopListPath } from "@/lib/shop-url";
+import {
+  activeStorefrontCategorySlugFromPathname,
+  shopListPath,
+  storefrontCategoryPathSlug,
+} from "@/lib/shop-url";
 import { cn } from "@/lib/utils";
 
 function RailLinks({
@@ -18,8 +22,9 @@ function RailLinks({
   primaryHex: string | null;
   accentHex: string | null;
 }) {
+  const pathname = usePathname();
   const sp = useSearchParams();
-  const activeCategoryId = sp.get("categoryId")?.trim() ?? "";
+  const pathSlug = activeStorefrontCategorySlugFromPathname(pathname);
   const q = sp.get("q")?.trim() ?? "";
 
   const roots = useMemo(
@@ -51,11 +56,14 @@ function RailLinks({
           aria-label="Shop by category"
         >
           {roots.map((c) => {
-            const active = c.id === activeCategoryId;
+            const seg = storefrontCategoryPathSlug(c);
+            const active =
+              pathSlug !== "" &&
+              (seg === pathSlug || seg.toLowerCase() === pathSlug.toLowerCase());
             return (
               <Link
                 key={c.id}
-                href={shopListPath({ categoryId: c.id, q })}
+                href={shopListPath({ categoryPathSlug: seg, q })}
                 className={cn(
                   "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition",
                   active ? "bg-white/20 font-semibold" : "hover:bg-white/10",

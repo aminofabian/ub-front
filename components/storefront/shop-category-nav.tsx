@@ -1,9 +1,16 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import type { PublicCategory } from "@/lib/public-storefront";
-import { shopListPath } from "@/lib/shop-url";
+import {
+  activeStorefrontCategorySlugFromPathname,
+  shopListPath,
+  storefrontCategoryPathSlug,
+} from "@/lib/shop-url";
 
 function depthMemo(
   id: string,
@@ -72,10 +79,23 @@ export default function ShopCategoryNav({
   q?: string;
   accentHex?: string | null;
 }) {
+  const pathname = usePathname();
+  const pathSlug = activeStorefrontCategorySlugFromPathname(pathname);
   const byId = new Map(categories.map((c) => [c.id, c]));
   const memo = new Map<string, number>();
   const accent =
     accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
+
+  const isCategoryActive = (c: PublicCategory) => {
+    const seg = storefrontCategoryPathSlug(c);
+    if (pathSlug !== "") {
+      return seg === pathSlug || seg.toLowerCase() === pathSlug.toLowerCase();
+    }
+    const aid = activeCategoryId?.trim();
+    return Boolean(aid && c.id === aid);
+  };
+
+  const allProductsActive = pathSlug === "" && !activeCategoryId?.trim();
 
   return (
     <nav
@@ -91,7 +111,7 @@ export default function ShopCategoryNav({
         <li>
           <NavRowLink
             href={shopListPath({ q })}
-            active={!activeCategoryId}
+            active={allProductsActive}
             paddingLeft={14}
             accent={accent}
           >
@@ -101,11 +121,11 @@ export default function ShopCategoryNav({
         {categories.map((c) => {
           const d = depthMemo(c.id, byId, memo);
           const pad = 14 + d * 12;
-          const active = c.id === activeCategoryId;
+          const active = isCategoryActive(c);
           return (
             <li key={c.id}>
               <NavRowLink
-                href={shopListPath({ categoryId: c.id, q })}
+                href={shopListPath({ categoryPathSlug: storefrontCategoryPathSlug(c), q })}
                 active={active}
                 paddingLeft={pad}
                 accent={accent}

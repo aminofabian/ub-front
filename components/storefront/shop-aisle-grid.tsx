@@ -13,7 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { PublicCategory } from "@/lib/public-storefront";
-import { shopListPath } from "@/lib/shop-url";
+import { shopListPath, storefrontCategoryPathSlug } from "@/lib/shop-url";
 import { categoryIconImageUrl } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,7 @@ export function ShopAisleGrid({
           return (
             <AisleCard
               key={c.id}
-              href={shopListPath({ categoryId: c.id })}
+              href={shopListPath({ categoryPathSlug: storefrontCategoryPathSlug(c) })}
               label={c.name}
               Icon={Icon}
               customIconSrc={customIconSrc}

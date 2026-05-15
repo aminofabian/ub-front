@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { Button } from "@/components/ui/button";
-import { shopItemPath } from "@/lib/config";
+import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
@@ -103,7 +103,7 @@ export default function ShopProductGrid({
             >
               {/* Image */}
               <Link
-                href={shopItemPath(item.id)}
+                href={shopItemPathFromCard(item)}
                 className="relative block aspect-square w-full overflow-hidden bg-muted/30"
                 aria-label={title}
               >
@@ -152,7 +152,7 @@ export default function ShopProductGrid({
               {/* Content */}
               <div className="flex flex-1 flex-col gap-2 p-3">
                 <Link
-                  href={shopItemPath(item.id)}
+                  href={shopItemPathFromCard(item)}
                   className="line-clamp-2 text-[12px] font-medium leading-[1.35] text-foreground/85 transition-colors hover:text-foreground"
                 >
                   {title}

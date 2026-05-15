@@ -24,9 +24,15 @@ function isHexColor(value: string): boolean {
 export async function StorefrontCatalogHome({
   q,
   categoryId,
+  categoryHeading,
+  categoryPathSlug,
 }: {
   q?: string;
   categoryId?: string;
+  /** Human-readable heading when filtering by category (not the raw id). */
+  categoryHeading?: string;
+  /** Canonical `/shop/c/:slug` segment for links and search form action. */
+  categoryPathSlug?: string;
 }) {
   const tenant = await resolveTenantContext();
   const slug = await resolveStorefrontSlug();
@@ -108,13 +114,15 @@ export async function StorefrontCatalogHome({
 
             <section id="shop-catalog" className="scroll-mt-24">
               <ShopCatalogWithMore
-                key={`${q ?? ""}\0${categoryId ?? ""}`}
+                key={`${q ?? ""}\0${categoryId ?? ""}\0${categoryPathSlug ?? ""}`}
                 slug={slug}
                 currency={list.currency}
                 initialItems={list.items}
                 initialNextCursor={list.nextCursor}
                 q={q}
                 categoryId={categoryId}
+                categoryHeading={categoryHeading}
+                categoryPathSlug={categoryPathSlug}
                 accentHex={accentHex}
               />
             </section>

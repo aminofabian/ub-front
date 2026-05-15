@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-button";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
-import { shopItemPath } from "@/lib/config";
+import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
 
@@ -47,7 +47,7 @@ export function ShopSidebarTopPicksLive({
           return (
             <li key={item.id} className="flex items-center gap-2.5 py-2">
               <Link
-                href={shopItemPath(item.id)}
+                href={shopItemPathFromCard(item)}
                 className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted/40"
               >
                 {item.imageUrl ? (
@@ -67,7 +67,7 @@ export function ShopSidebarTopPicksLive({
               </Link>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={shopItemPath(item.id)}
+                  href={shopItemPathFromCard(item)}
                   className="line-clamp-2 text-[12px] font-medium leading-snug text-foreground/85 hover:underline"
                 >
                   {title}

@@ -9,6 +9,7 @@ export const WEB_CART_CHANGED_EVENT = "ub-web-cart-changed";
 
 export type PublicWebCartLine = {
   itemId: string;
+  sku: string;
   name: string;
   variantName: string | null;
   imageUrl: string | null;

@@ -3,9 +3,11 @@
  */
 
 import { getServerApiOrigin } from "@/lib/config";
+import { resolvePublicItemIdFromShopUrlSegment } from "@/lib/shop-item-url";
 
 export type PublicCatalogItemCard = {
   id: string;
+  sku: string;
   name: string;
   variantName: string | null;
   imageUrl: string | null;
@@ -36,6 +38,7 @@ export type PublicItemImage = {
 
 export type PublicCatalogVariant = {
   id: string;
+  sku: string;
   name: string;
   variantName: string | null;
   imageUrl: string | null;
@@ -45,6 +48,7 @@ export type PublicCatalogVariant = {
 
 export type PublicCatalogItemDetail = {
   id: string;
+  sku: string;
   name: string;
   description: string | null;
   variantName: string | null;
@@ -490,15 +494,15 @@ export async function fetchTenantContext(
 
 export async function fetchPublicItemDetail(
   slug: string,
-  itemId: string,
+  urlSegment: string,
 ): Promise<PublicCatalogItemDetail | null> {
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
-  const id = itemId.trim();
-  if (!s || !id) {
+  const itemId = resolvePublicItemIdFromShopUrlSegment(urlSegment) || urlSegment;
+  if (!s || !itemId) {
     return null;
   }
-  const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(id)}`;
+  const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(itemId)}`;
   try {
     const res = await fetch(url, STORE_PRICE_FETCH_INIT);
     if (res.status === 404) {

@@ -4,21 +4,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { ClipboardList, Store, UserRound } from "lucide-react";
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopBasketPill } from "@/components/storefront/shop-basket-pill";
 import { APP_ROUTES } from "@/lib/config";
+import { activeStorefrontCategorySlugFromPathname } from "@/lib/shop-url";
 
 function SearchFields({ primaryHex }: { primaryHex: string | null }) {
+  const pathname = usePathname();
   const sp = useSearchParams();
   const q = sp.get("q")?.trim() ?? "";
+  const pathSlug = activeStorefrontCategorySlugFromPathname(pathname);
   const categoryId = sp.get("categoryId")?.trim() || undefined;
+  const searchActionPath =
+    pathSlug !== "" ? pathname || APP_ROUTES.shop : undefined;
   return (
     <ShopSearchBar
       variant="header"
       defaultQuery={q || undefined}
-      categoryId={categoryId}
+      categoryId={pathSlug ? undefined : categoryId}
+      searchActionPath={searchActionPath}
       accentHex={primaryHex}
     />
   );

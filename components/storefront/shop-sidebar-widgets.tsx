@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { ShopNewsletterCard } from "@/components/storefront/shop-newsletter-card";
 import { ShopSidebarTopPicksLive } from "@/components/storefront/shop-sidebar-top-picks-live";
-import { APP_ROUTES, shopItemPath } from "@/lib/config";
+import { APP_ROUTES, shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 
@@ -97,7 +97,7 @@ function FeaturedCard({
           return (
             <Link
               key={t.id}
-              href={shopItemPath(t.id)}
+              href={shopItemPathFromCard(t)}
               className="relative aspect-square overflow-hidden rounded-lg bg-white/90 ring-1 ring-white/20 transition hover:brightness-95"
             >
               {t.imageUrl ? (

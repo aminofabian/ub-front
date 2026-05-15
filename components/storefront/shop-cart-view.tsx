@@ -149,7 +149,7 @@ export default function ShopCartView({ slug }: { slug: string }) {
               className="flex gap-4 rounded-xl border border-border/70 bg-card/50 p-3 sm:p-4"
             >
               <Link
-                href={shopItemPath(line.itemId)}
+                href={shopItemPath(line.sku)}
                 className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-24"
               >
                 {line.imageUrl ? (
@@ -161,7 +161,7 @@ export default function ShopCartView({ slug }: { slug: string }) {
                 )}
               </Link>
               <div className="min-w-0 flex-1 space-y-2">
-                <Link href={shopItemPath(line.itemId)} className="font-medium hover:underline">
+                <Link href={shopItemPath(line.sku)} className="font-medium hover:underline">
                   {title}
                 </Link>
                 <p className="text-sm text-muted-foreground">{unit} each</p>

@@ -4,6 +4,7 @@ import { StorefrontCatalogHome } from "@/components/storefront/storefront-catalo
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
+import { redirectLegacyShopCategoryQuery } from "@/lib/shop-legacy-category-redirect";
 import { resolveStorefrontSlugFromHost } from "@/lib/storefront-slug";
 
 type PageProps = {
@@ -16,11 +17,19 @@ export default async function HomePage({ searchParams }: PageProps) {
   // Tenant-mapped host → render the storefront in place at `/`.
   if (hostSlug) {
     const sp = await searchParams;
+    const legacy = sp.categoryId?.trim();
+    if (legacy) {
+      await redirectLegacyShopCategoryQuery({
+        storefrontSlug: hostSlug,
+        categoryId: legacy,
+        q: sp.q?.trim(),
+      });
+    }
     return (
       <StorefrontShell>
         <StorefrontCatalogHome
           q={sp.q?.trim() || undefined}
-          categoryId={sp.categoryId?.trim() || undefined}
+          categoryId={legacy || undefined}
         />
       </StorefrontShell>
     );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { PublicStorefrontPayload } from "@/lib/public-storefront";
 import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
-import { APP_ROUTES, shopItemPath } from "@/lib/config";
+import { APP_ROUTES, shopItemPathFromCard } from "@/lib/config";
 
 export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) {
   const label = data.label?.trim() || data.businessName;
@@ -50,7 +50,7 @@ export default function ShopWindow({ data }: { data: PublicStorefrontPayload }) 
 
         <div className="mt-8 flex gap-4 overflow-x-auto overflow-y-visible pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
           {featured.map((item) => {
-            const href = shopItemPath(item.id);
+            const href = shopItemPathFromCard(item);
             const title = item.variantName
               ? `${item.name} · ${item.variantName}`
               : item.name;

@@ -6,11 +6,14 @@ import { cn } from "@/lib/utils";
 export default function ShopSearchBar({
   defaultQuery,
   categoryId,
+  searchActionPath,
   accentHex,
   variant = "default",
 }: {
   defaultQuery?: string;
   categoryId?: string;
+  /** When set (e.g. `/shop/c/bakery`), GET search keeps the shopper on that category. */
+  searchActionPath?: string;
   /** Tenant primary (#RRGGBB) used for the submit control. */
   accentHex?: string | null;
   /** Header variant matches the masthead pill in the mockup. */
@@ -19,11 +22,12 @@ export default function ShopSearchBar({
   const validAccent =
     accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
   const inputId = variant === "header" ? "shop-header-search-q" : "shop-search-q";
+  const formAction = (searchActionPath?.trim() || APP_ROUTES.shop) as string;
 
   if (variant === "header") {
     return (
       <form
-        action={APP_ROUTES.shop}
+        action={formAction}
         method="get"
         className="group relative flex h-12 items-stretch overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.04] transition-shadow focus-within:border-primary/30 focus-within:shadow-md"
         role="search"
@@ -64,7 +68,7 @@ export default function ShopSearchBar({
 
   return (
     <form
-      action={APP_ROUTES.shop}
+      action={formAction}
       method="get"
       className="group relative flex flex-col gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm ring-1 ring-black/[0.04] transition-shadow focus-within:border-primary/30 focus-within:shadow-md focus-within:ring-primary/15 dark:ring-white/[0.06] sm:flex-row sm:items-stretch sm:rounded-full sm:pr-1 sm:pl-1"
       role="search"

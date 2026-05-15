@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
-import { apiUrl } from "@/lib/config";
+import { APP_ROUTES, apiUrl } from "@/lib/config";
 import type {
   PublicCatalogItemCard,
   PublicCatalogListPayload,
@@ -19,6 +19,8 @@ export default function ShopCatalogWithMore({
   initialNextCursor,
   q,
   categoryId,
+  categoryHeading,
+  categoryPathSlug,
   accentHex,
 }: {
   slug: string;
@@ -27,6 +29,8 @@ export default function ShopCatalogWithMore({
   initialNextCursor: string | null;
   q?: string;
   categoryId?: string;
+  categoryHeading?: string;
+  categoryPathSlug?: string;
   accentHex?: string | null;
 }) {
   const [items, setItems] = useState<PublicCatalogItemCard[]>(initialItems);
@@ -78,9 +82,31 @@ export default function ShopCatalogWithMore({
     <div className="space-y-4">
       {/* Section header */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-          {filtered ? `Results for "${q || categoryId}"` : "All Products"}
-        </h2>
+        <div className="min-w-0 flex-1">
+          {categoryHeading ? (
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
+                {categoryHeading}
+              </h2>
+              {categoryPathSlug ? (
+                <span
+                  className="truncate font-mono text-[10px] font-normal normal-case tracking-normal text-muted-foreground/55"
+                  title={`URL: ${APP_ROUTES.shop}/c/${categoryPathSlug}`}
+                >
+                  /{categoryPathSlug}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
+              {filtered && q?.trim()
+                ? `Results for "${q.trim()}"`
+                : filtered
+                  ? "Filtered results"
+                  : "All Products"}
+            </h2>
+          )}
+        </div>
         <span className="text-[11px] font-medium tabular-nums text-muted-foreground/50">
           {items.length} {items.length === 1 ? "item" : "items"}
         </span>
@@ -90,7 +116,7 @@ export default function ShopCatalogWithMore({
         items={items}
         currency={currency}
         filtered={filtered}
-        clearHref={`/shop`}
+        clearHref={APP_ROUTES.shop}
         slug={slug}
         accentHex={accentHex}
       />
