@@ -12,6 +12,7 @@ import {
   Search,
   CheckCircle2,
   Clock,
+  Trash2,
 } from "lucide-react";
 
 import {
@@ -28,6 +29,7 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   createItem,
   createItemVariant,
+  deleteStockTakeSession,
   fetchActiveStockTakeSession,
   fetchBranches,
   fetchCategories,
@@ -83,13 +85,15 @@ function formatCountedQty(line: StockTakeLineRecord | undefined): string {
 export default function StockTakePage() {
   const { me } = useDashboard();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const isBranchLockedRole = roleKey === "stock_manager" || roleKey === "cashier";
+  const isBranchLockedRole =
+    roleKey === "stock_manager" || roleKey === "cashier";
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
   const canApprove = hasPermission(
     me?.permissions,
     Permission.StocktakeApprove,
   );
+  const canDelete = hasPermission(me?.permissions, Permission.StocktakeDelete);
   const allowed = canRead || canRun || canApprove;
 
   // ── Session state
@@ -294,6 +298,30 @@ export default function StockTakePage() {
       setLoading(false);
     }
   }, [selBranchId, selSessionType, startNotes]);
+
+  // ── Delete session (admin only)
+  const onDeleteSession = useCallback(async (s: StockTakeSessionRecord) => {
+    if (
+      !window.confirm(
+        `Delete session "${s.name}"?\n\nThis will permanently remove the session and all its count data. This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      await deleteStockTakeSession(s.id);
+      setPendingSessions((prev) => prev.filter((p) => p.id !== s.id));
+      // If the deleted session is the active one, clear it too
+      setSession((prev) => (prev?.id === s.id ? null : prev));
+      setMessage("Session deleted.");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Failed to delete session.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // ── Open count modal
   const openCountModal = useCallback(
@@ -588,7 +616,9 @@ export default function StockTakePage() {
                       <option value="">Select branch…</option>
                     ) : null}
                     {branches
-                      .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+                      .filter(
+                        (b) => !isBranchLockedRole || b.id === me?.branchId,
+                      )
                       .map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.name}
@@ -649,43 +679,63 @@ export default function StockTakePage() {
                       (l) => l.status === "confirmed",
                     ).length;
                     return (
-                      <Link
+                      <div
                         key={s.id}
-                        href={`/inventory/stock-take/review/${s.id}`}
                         className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b last:border-0 transition-colors"
                       >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            {s.sessionNumber > 0 ? (
-                              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-medium">
-                                #{s.sessionNumber}
+                        <Link
+                          href={`/inventory/stock-take/review/${s.id}`}
+                          className="flex-1 min-w-0 flex items-center justify-between"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              {s.sessionNumber > 0 ? (
+                                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-medium">
+                                  #{s.sessionNumber}
+                                </span>
+                              ) : null}
+                              <span className="truncate font-medium">
+                                {s.name}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {s.branchId}
+                              {s.startedBy
+                                ? ` · Started by ${s.startedBy}`
+                                : ""}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex shrink-0 items-center gap-3 text-xs">
+                            <span className="text-muted-foreground">
+                              {totalCount} items
+                            </span>
+                            {pendingCount > 0 ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                                {pendingCount} pending
                               </span>
                             ) : null}
-                            <span className="truncate font-medium">
-                              {s.name}
-                            </span>
+                            {confirmedCount > 0 ? (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                                {confirmedCount} confirmed
+                              </span>
+                            ) : null}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {s.branchId}
-                            {s.startedBy ? ` · Started by ${s.startedBy}` : ""}
-                          </div>
-                        </div>
-                        <div className="ml-4 flex shrink-0 items-center gap-3 text-xs">
-                          <span className="text-muted-foreground">
-                            {totalCount} items
-                          </span>
-                          {pendingCount > 0 ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-                              {pendingCount} pending
-                            </span>
-                          ) : null}
-                          {confirmedCount > 0 ? (
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                              {confirmedCount} confirmed
-                            </span>
-                          ) : null}
-                        </div>
-                      </Link>
+                        </Link>
+                        {canDelete ? (
+                          <button
+                            type="button"
+                            className="ml-3 shrink-0 rounded-md p-1.5 text-muted-foreground/60 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400 transition-colors"
+                            title="Delete session"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onDeleteSession(s);
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
@@ -707,7 +757,7 @@ export default function StockTakePage() {
       <div className="space-y-6">
         {/* Session header */}
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border bg-card p-4 shadow-sm">
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               {session.sessionNumber > 0 ? (
                 <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-medium">
@@ -756,6 +806,16 @@ export default function StockTakePage() {
               <span>{confirmedCount} confirmed</span>
             </div>
           </div>
+          {canDelete ? (
+            <button
+              type="button"
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground/60 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400 transition-colors"
+              title="Delete session"
+              onClick={() => onDeleteSession(session)}
+            >
+              <Trash2 className="size-4" />
+            </button>
+          ) : null}
         </div>
 
         {/* Admin quick link to other pending sessions */}

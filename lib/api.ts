@@ -3040,6 +3040,13 @@ export async function postStockTakeClose(
   );
 }
 
+export async function deleteStockTakeSession(sessionId: string): Promise<void> {
+  return request<void>(
+    `/api/v1/inventory/stock-take/sessions/${encodeURIComponent(sessionId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function fetchActiveStockTakeSession(
   branchId: string,
   date?: string,

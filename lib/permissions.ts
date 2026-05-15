@@ -24,6 +24,7 @@ export const Permission = {
   StocktakeRead: "stocktake.read",
   StocktakeRun: "stocktake.run",
   StocktakeApprove: "stocktake.approve",
+  StocktakeDelete: "stocktake.delete",
   PricingRead: "pricing.read",
   PricingSellPriceSet: "pricing.sell_price.set",
   PricingRulesManage: "pricing.rules.manage",
