@@ -21,7 +21,7 @@ export function ShopFooterMart({
 
   return (
     <footer
-      className="mt-auto text-white"
+      className="fixed inset-x-0 bottom-0 z-40 text-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
       style={primary ? { backgroundColor: primary } : { backgroundColor: "var(--color-primary)" }}
     >
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6 sm:py-6">

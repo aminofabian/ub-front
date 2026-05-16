@@ -59,7 +59,7 @@ export async function StorefrontShell({
   const locationHint = process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT?.trim() || null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] dark:bg-background">
+    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:8.75rem] dark:bg-background">
       <ShopUtilityBar primaryHex={primary} locationHint={locationHint} />
       {slug ? (
         <ShopHeaderBar
@@ -76,7 +76,9 @@ export async function StorefrontShell({
           <RailFallback />
         )}
       </Suspense>
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 pb-[var(--shop-footer-offset,9.5rem)]">
+        {children}
+      </div>
       <ShopFooterMart primaryHex={primary} storeName={headerTitle} />
       <ShopStorefrontRealtime currency={currency} branding={branding} />
     </div>

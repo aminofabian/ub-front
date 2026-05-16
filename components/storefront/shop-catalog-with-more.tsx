@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowRight, Loader2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
@@ -10,7 +10,6 @@ import type {
   PublicCatalogItemCard,
   PublicCatalogListPayload,
 } from "@/lib/public-storefront";
-import { cn } from "@/lib/utils";
 
 export default function ShopCatalogWithMore({
   slug,
@@ -37,6 +36,9 @@ export default function ShopCatalogWithMore({
   const [next, setNext] = useState<string | null>(initialNextCursor);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const busyRef = useRef(false);
+  const nextRef = useRef<string | null>(initialNextCursor);
 
   useStorefrontCatalogSync({
     slug,
@@ -46,14 +48,24 @@ export default function ShopCatalogWithMore({
     setItems,
   });
 
+  useEffect(() => {
+    nextRef.current = next;
+  }, [next]);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
   const loadMore = useCallback(async () => {
-    if (!next || busy) return;
+    const cursor = nextRef.current;
+    if (!cursor || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
       const p = new URLSearchParams();
       p.set("limit", "24");
-      p.set("cursor", next);
+      p.set("cursor", cursor);
       const qt = q?.trim();
       if (qt) p.set("q", qt);
       const cid = categoryId?.trim();
@@ -69,12 +81,41 @@ export default function ShopCatalogWithMore({
       const payload = (await res.json()) as PublicCatalogListPayload;
       setItems((prev) => [...prev, ...payload.items]);
       setNext(payload.nextCursor);
+      nextRef.current = payload.nextCursor;
     } catch {
       setError("Could not load more.");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [busy, next, q, categoryId, slug]);
+  }, [q, categoryId, slug]);
+
+  const loadMoreRef = useRef(loadMore);
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
+
+  useEffect(() => {
+    if (!next) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMoreRef.current();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px 152px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [next]);
 
   const filtered = Boolean(q?.trim() || categoryId?.trim());
 
@@ -126,30 +167,20 @@ export default function ShopCatalogWithMore({
       ) : null}
 
       {next ? (
-        <div className="flex justify-center pt-1">
-          <button
-            type="button"
-            onClick={() => void loadMore()}
-            disabled={busy}
-            className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-lg border border-border/50 bg-card px-6 text-sm font-medium text-foreground transition-all hover:border-border hover:bg-muted/30 disabled:opacity-50",
-            )}
-          >
-            {busy ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading…
-              </>
-            ) : (
-              <>
-                Show more
-                <ArrowRight className="h-3.5 w-3.5" />
-              </>
-            )}
-          </button>
+        <div
+          ref={sentinelRef}
+          className="flex min-h-14 items-center justify-center py-4"
+          aria-live="polite"
+          aria-busy={busy}
+        >
+          {busy ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+          ) : (
+            <span className="sr-only">Scroll for more products</span>
+          )}
         </div>
       ) : items.length > 0 ? (
-        <p className="text-center text-[11px] text-muted-foreground/40">
+        <p className="pb-2 text-center text-[11px] text-muted-foreground/40">
           End of catalog
         </p>
       ) : null}
