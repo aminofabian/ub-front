@@ -9,6 +9,7 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
+import { startSessionRefresh } from "@/lib/session-refresh";
 
 type CashierLayoutProps = {
   children: React.ReactNode;
@@ -26,12 +27,18 @@ export default function CashierLayout({ children }: CashierLayoutProps) {
     }
     setCheckedAuth(true);
 
+    const stopRefresh = startSessionRefresh();
+
     // Phase 9: Register service worker for PWA offline support
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
         // Service worker registration is best-effort; failures are non-blocking.
       });
     }
+
+    return () => {
+      stopRefresh();
+    };
   }, [router]);
 
   if (!checkedAuth) {

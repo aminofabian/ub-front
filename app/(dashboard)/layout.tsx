@@ -11,6 +11,7 @@ import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
+import { startSessionRefresh } from "@/lib/session-refresh";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -43,8 +44,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       }
     })();
 
+    const stopRefresh = startSessionRefresh();
+
     return () => {
       cancelled = true;
+      stopRefresh();
     };
   }, [router]);
 

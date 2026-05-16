@@ -655,8 +655,10 @@ export function buildRequestHeaders(
   return headers;
 }
 
-export function shouldAttemptRefresh(problemCode?: string): boolean {
-  return problemCode === ERROR_CODES.tokenExpired;
+export function shouldAttemptRefresh(problem?: { code?: string; title?: string } | null): boolean {
+  if (problem?.code === ERROR_CODES.tokenExpired) return true;
+  if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) return true;
+  return false;
 }
 
 function getNetworkErrorMessage(): string {
@@ -667,7 +669,7 @@ function getNetworkErrorMessage(): string {
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
 
-async function tryRefreshToken(): Promise<boolean> {
+export async function tryRefreshToken(): Promise<boolean> {
   const session = getSessionTokens();
   if (!session) {
     return false;
@@ -747,7 +749,7 @@ async function request<T>(
       .json()
       .catch(() => ({}));
     const problem = parseProblem(payload);
-    const shouldRefresh = shouldAttemptRefresh(problem?.code);
+    const shouldRefresh = shouldAttemptRefresh(problem);
     if (!shouldRefresh) {
       const message = formatApiProblemMessage(payload);
       if (signOutClientForProblem(response.status, payload, { requiresAuth })) {
@@ -803,7 +805,7 @@ async function requestMultipartJson<T>(
       .json()
       .catch(() => ({}));
     const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
+    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
       response = await execute();
     } else {
       const message = formatApiProblemMessage(payload);
@@ -885,7 +887,7 @@ async function postIntegrationsJsonImport(
       .json()
       .catch(() => ({}));
     const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
+    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
       response = await execute();
     } else {
       const message = formatApiProblemMessage(payload);
@@ -975,7 +977,7 @@ async function requestBinary(path: string): Promise<Blob> {
       .json()
       .catch(() => ({}));
     const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
+    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
       response = await execute();
     } else {
       const message = formatApiProblemMessage(payload);
@@ -3844,7 +3846,7 @@ export async function tryPostSale(
       .json()
       .catch(() => ({}));
     const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem?.code) && (await tryRefreshToken())) {
+    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
       outcome = await execute();
       if (outcome.kind === "network") {
         return { ok: false, status: 0, message: outcome.message };
