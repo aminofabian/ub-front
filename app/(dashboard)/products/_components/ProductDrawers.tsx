@@ -202,7 +202,7 @@ export function ProductEditDrawer({
           className={productFormStackClass}
           onSubmit={(e) => void onEditSubmit(e)}
         >
-          <ProductFormField label="Name" required>
+          <ProductFormField label={d.variantOfItemId ? "Display name" : "Name"} required>
             <input
               className={productFormInputClass}
               value={dr.name ?? ""}
@@ -211,6 +211,20 @@ export function ProductEditDrawer({
               }
             />
           </ProductFormField>
+          {d.variantOfItemId ? (
+            <ProductFormField label="Variant label" required>
+              <input
+                className={productFormInputClass}
+                value={dr.variantName ?? ""}
+                onChange={(e) =>
+                  detail.setPatchDraft((p) => ({
+                    ...p,
+                    variantName: e.target.value,
+                  }))
+                }
+              />
+            </ProductFormField>
+          ) : null}
           <div className={productFormGrid2Class}>
             <ProductFormField label="SKU" required>
               <input

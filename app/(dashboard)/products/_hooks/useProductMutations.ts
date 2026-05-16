@@ -514,6 +514,14 @@ export function useProductMutations(d: Dependencies) {
         imageKey: patchDraft.imageKey,
         categoryId: patchDraft.categoryId.trim(),
       };
+      if (detail?.variantOfItemId?.trim()) {
+        const vn = patchDraft.variantName?.trim() ?? "";
+        if (!vn) {
+          setMessage("Variant label is required.");
+          return;
+        }
+        body.variantName = vn;
+      }
       const setNum = (
         raw: string,
         key: string,
@@ -575,6 +583,7 @@ export function useProductMutations(d: Dependencies) {
       selectedId,
       canCatalogWrite,
       patchDraft,
+      detail,
       refreshFullCatalog,
       refreshSelectedDetail,
       setActiveDrawer,

@@ -53,6 +53,7 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       reorderQtyStr: numStr(row.reorderQty),
       imageKey: row.imageKey ?? "",
       categoryId: row.categoryId ?? "",
+      variantName: row.variantName ?? "",
     }),
     [],
   );

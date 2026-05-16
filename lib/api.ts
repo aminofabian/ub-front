@@ -539,6 +539,7 @@ export type PatchItemPayload = {
   reorderQty?: number;
   brand?: string;
   size?: string;
+  variantName?: string;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */

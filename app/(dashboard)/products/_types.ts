@@ -25,6 +25,8 @@ export type ProductEditDraft = {
   reorderQtyStr: string;
   imageKey: string;
   categoryId: string;
+  /** Option / variant label (PATCH only for variant SKUs). */
+  variantName: string;
 };
 
 export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
@@ -39,6 +41,7 @@ export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   active: true,
   webPublished: true,
   categoryId: "",
+  variantName: "",
 };
 
 // ─── create-parent draft ──────────────────────────────────────────────────────
