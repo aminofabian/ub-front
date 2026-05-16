@@ -5,7 +5,10 @@ import { ShopFooterMart } from "@/components/storefront/shop-footer-mart";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
 import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
-import { fetchPublicCategories, fetchPublicStorefront } from "@/lib/public-storefront";
+import {
+  fetchPublicCategories,
+  fetchPublicStorefront,
+} from "@/lib/public-storefront";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
 
 function isHexColor(value: string): boolean {
@@ -40,8 +43,8 @@ export async function StorefrontShell({
   const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
   const primary = isHexColor(primaryRaw) ? primaryRaw : null;
   const accent = isHexColor(accentRaw) ? accentRaw : null;
-  const categories = categoriesPayload?.categories ?? [];
   const currency = storefront?.currency?.trim() || "KES";
+  const categories = categoriesPayload?.categories ?? [];
   const branding = tenant?.branding
     ? {
         displayName: tenant.branding.displayName,
@@ -71,7 +74,11 @@ export async function StorefrontShell({
       ) : null}
       <Suspense fallback={<RailFallback />}>
         {slug ? (
-          <ShopCategoryRail categories={categories} primaryHex={primary} accentHex={accent} />
+          <ShopCategoryRail
+            categories={categories}
+            primaryHex={primary}
+            accentHex={accent}
+          />
         ) : (
           <RailFallback />
         )}
