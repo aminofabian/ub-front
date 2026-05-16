@@ -91,27 +91,29 @@ export function VirtualizedCatalogBody({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]">
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/45 bg-[linear-gradient(180deg,oklch(0.97_0.004_90),oklch(0.99_0.002_90))] px-3 py-2 text-[10px] leading-snug text-muted-foreground dark:bg-muted/35">
-        <span className="font-bold uppercase tracking-[0.14em] text-foreground/75">Catalog</span>
-        <span className="hidden h-3 w-px bg-border/60 sm:block" aria-hidden />
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 rounded-full bg-amber-500 shadow-sm" aria-hidden />
-          <span className="font-semibold text-amber-950 dark:text-amber-100">Parent group</span>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/45 bg-muted/30 px-3 py-2 text-[10px] leading-snug text-muted-foreground dark:bg-muted/25">
+        <span className="font-heading font-bold uppercase tracking-[0.14em] text-foreground/80">
+          Catalog
         </span>
-        <span className="text-muted-foreground/50">·</span>
+        <span className="hidden h-3 w-px bg-border sm:block" aria-hidden />
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 rounded-full bg-teal-500 shadow-sm" aria-hidden />
-          <span className="font-semibold text-teal-900 dark:text-teal-100">With variants</span>
+          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-1 shadow-sm" aria-hidden />
+          <span className="font-medium text-foreground/85">Parent group</span>
         </span>
-        <span className="text-muted-foreground/50">·</span>
+        <span className="text-muted-foreground/40">·</span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 rounded-full bg-emerald-500 shadow-sm" aria-hidden />
-          <span className="font-semibold text-emerald-900 dark:text-emerald-200">Standalone</span>
+          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-2 shadow-sm" aria-hidden />
+          <span className="font-medium text-foreground/85">With variants</span>
         </span>
-        <span className="text-muted-foreground/50">·</span>
+        <span className="text-muted-foreground/40">·</span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 rounded-full bg-violet-500 shadow-sm" aria-hidden />
-          <span className="font-semibold text-violet-900 dark:text-violet-200">Variant</span>
+          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-3 shadow-sm" aria-hidden />
+          <span className="font-medium text-foreground/85">Standalone</span>
+        </span>
+        <span className="text-muted-foreground/40">·</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-4 shadow-sm" aria-hidden />
+          <span className="font-medium text-foreground/85">Variant</span>
         </span>
       </div>
 
@@ -271,7 +273,7 @@ export function VirtualizedCatalogBody({
 
                   {isVariant ? (
                     <span
-                      className="pointer-events-none absolute bottom-0 top-0 w-px bg-violet-400/30 dark:bg-violet-500/25"
+                      className="pointer-events-none absolute bottom-0 top-0 w-px bg-border/70 dark:bg-border"
                       style={{ left: "1.75rem" }}
                       aria-hidden
                     />
@@ -369,9 +371,10 @@ export function VirtualizedCatalogBody({
                       ) : null}
                       <span
                         className={cn(
-                          "min-w-0 truncate font-semibold leading-snug tracking-tight",
-                          isGroup ? "text-[15px]" : "text-sm",
-                          tone.text,
+                          "min-w-0 truncate leading-snug tracking-tight",
+                          isGroup ? "text-[15px] font-semibold" : "text-sm",
+                          isVariant ? "font-medium text-foreground" : "font-semibold",
+                          !isVariant && tone.text,
                           isParentSelector && "capitalize",
                         )}
                       >
@@ -395,7 +398,7 @@ export function VirtualizedCatalogBody({
                     </div>
                     <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
                       {isVariant && optionLabel ? (
-                        <span className={cn("shrink-0 text-[11px] font-medium", tone.muted)}>
+                        <span className="shrink-0 text-[11px] font-normal text-muted-foreground">
                           {optionLabel}
                         </span>
                       ) : null}
