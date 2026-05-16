@@ -121,6 +121,7 @@ export async function StorefrontCatalogHome({
                 currency={list.currency}
                 initialItems={list.items}
                 initialNextCursor={list.nextCursor}
+                initialTotalCount={list.totalCount}
                 q={q}
                 categoryId={categoryId}
                 categoryHeading={categoryHeading}

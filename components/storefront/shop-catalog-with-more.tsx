@@ -16,6 +16,7 @@ export default function ShopCatalogWithMore({
   currency,
   initialItems,
   initialNextCursor,
+  initialTotalCount,
   q,
   categoryId,
   categoryHeading,
@@ -26,6 +27,7 @@ export default function ShopCatalogWithMore({
   currency: string;
   initialItems: PublicCatalogItemCard[];
   initialNextCursor: string | null;
+  initialTotalCount?: number;
   q?: string;
   categoryId?: string;
   categoryHeading?: string;
@@ -34,6 +36,7 @@ export default function ShopCatalogWithMore({
 }) {
   const [items, setItems] = useState<PublicCatalogItemCard[]>(initialItems);
   const [next, setNext] = useState<string | null>(initialNextCursor);
+  const [totalCount] = useState<number>(initialTotalCount ?? initialItems.length);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -149,7 +152,9 @@ export default function ShopCatalogWithMore({
           )}
         </div>
         <span className="text-[11px] font-medium tabular-nums text-muted-foreground/50">
-          {items.length} {items.length === 1 ? "item" : "items"}
+          {totalCount > items.length
+            ? `${items.length} of ${totalCount}`
+            : `${items.length} ${items.length === 1 ? "item" : "items"}`}
         </span>
       </div>
 

@@ -39,6 +39,7 @@ function pickIcon(name: string): LucideIcon {
 function AisleCard({
   href,
   label,
+  itemCount,
   Icon,
   customIconSrc,
   tint,
@@ -46,6 +47,7 @@ function AisleCard({
 }: {
   href: string;
   label: string;
+  itemCount?: number;
   Icon: LucideIcon;
   customIconSrc?: string | null;
   tint: string | null;
@@ -56,7 +58,7 @@ function AisleCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex w-[5.5rem] shrink-0 flex-col items-center gap-2 rounded-xl border border-border/40 bg-card p-3 transition-all duration-200 hover:border-border hover:shadow-sm sm:w-[6.25rem] sm:p-4",
+        "group relative flex w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-xl border border-border/40 bg-card p-3 transition-all duration-200 hover:border-border hover:shadow-sm sm:w-[6.25rem] sm:p-4",
       )}
     >
       <span
@@ -81,6 +83,11 @@ function AisleCard({
       <span className="line-clamp-2 text-center text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
         {label}
       </span>
+      {typeof itemCount === "number" && itemCount >= 0 ? (
+        <span className="text-[10px] tabular-nums text-muted-foreground/60">
+          {itemCount} {itemCount === 1 ? "item" : "items"}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -116,6 +123,7 @@ export function ShopAisleSlider({
           key={`${c.id}${keySuffix}`}
           href={shopListPath({ categoryPathSlug: storefrontCategoryPathSlug(c) })}
           label={c.name}
+          itemCount={c.itemCount}
           Icon={Icon}
           customIconSrc={customIconSrc}
           tint={tint}

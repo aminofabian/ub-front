@@ -64,6 +64,7 @@ export type PublicCatalogListPayload = {
   currency: string;
   items: PublicCatalogItemCard[];
   nextCursor: string | null;
+  totalCount: number;
 };
 
 export type PublicCategory = {
@@ -73,6 +74,7 @@ export type PublicCategory = {
   slug: string;
   /** Emoji / key, or HTTPS URL for a custom icon image (Cloudinary). */
   icon?: string | null;
+  itemCount?: number;
 };
 
 export type PublicCategoryListPayload = {
