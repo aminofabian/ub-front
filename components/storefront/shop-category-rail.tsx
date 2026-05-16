@@ -53,7 +53,7 @@ function RailLinks({
         </Link>
         <nav
           className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto py-1.5"
-          aria-label="Shop by category"
+          aria-label="Shop by aisle"
         >
           {roots.map((c) => {
             const seg = storefrontCategoryPathSlug(c);

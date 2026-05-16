@@ -174,3 +174,23 @@
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
+
+@keyframes aisle-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-aisle-marquee {
+  animation: aisle-marquee var(--aisle-marquee-duration, 60s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aisle-marquee {
+    animation: none;
+    overflow-x: auto;
+  }
+}
