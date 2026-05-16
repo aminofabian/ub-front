@@ -106,21 +106,25 @@ function SectionToggle({
   );
 }
 
+/** Title row stacks above controls — never put inputs in the same flex row as the caption (they get zero width). */
 function Label({
+  title,
   children,
   required,
   className,
 }: {
+  title: React.ReactNode;
   children: React.ReactNode;
   required?: boolean;
   className?: string;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1", productFormLabelClass, className)}>
-      <span className="flex items-center gap-1">
-        {children}
+    <label className={cn("flex flex-col gap-1", className)}>
+      <span className={cn("flex items-center gap-1", productFormLabelClass)}>
+        {title}
         {required ? <span className="text-destructive">*</span> : null}
       </span>
+      {children}
     </label>
   );
 }
@@ -201,8 +205,7 @@ function VariantRowPricing({
       </div>
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Label>
-            Pack qty
+          <Label title="Pack qty">
             <NumberInput
               value={draft.bundleQty}
               onChange={(v) => onPatch({ bundleQty: v })}
@@ -211,8 +214,7 @@ function VariantRowPricing({
               step="1"
             />
           </Label>
-          <Label>
-            Pack label
+          <Label title="Pack label">
             <input
               className={productFormInputClass}
               placeholder="6-pack"
@@ -222,16 +224,14 @@ function VariantRowPricing({
           </Label>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Label>
-            Sell price{cur}
+          <Label title={`Sell price${cur}`}>
             <NumberInput
               value={draft.bundlePrice}
               onChange={(v) => onPatch({ bundlePrice: v })}
               placeholder="0.00"
             />
           </Label>
-          <Label>
-            Buy price{cur}
+          <Label title={`Buy price${cur}`}>
             <NumberInput
               value={draft.defaultCostPrice}
               onChange={(v) => onPatch(syncCostsFromBuy(v, draft))}
@@ -320,8 +320,7 @@ function VariantRowCard({
         ) : null}
       </div>
 
-      <Label required>
-        Variant name
+      <Label title="Variant name" required>
         <input
           className={cn(productFormInputClass, "text-sm font-medium")}
           placeholder="Red · 500 ml"
@@ -333,11 +332,14 @@ function VariantRowCard({
       </Label>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Label>
-          <span className="flex items-center gap-1">
-            <Hash className="size-3" aria-hidden />
-            SKU
-          </span>
+        <Label
+          title={
+            <span className="flex items-center gap-1 normal-case">
+              <Hash className="size-3" aria-hidden />
+              SKU
+            </span>
+          }
+        >
           <div className="flex gap-2">
             <input
               className={cn(productFormInputClass, "min-w-0 flex-1 font-mono text-xs")}
@@ -358,11 +360,14 @@ function VariantRowCard({
             ) : null}
           </div>
         </Label>
-        <Label>
-          <span className="flex items-center gap-1">
-            <Barcode className="size-3" aria-hidden />
-            Barcode
-          </span>
+        <Label
+          title={
+            <span className="flex items-center gap-1 normal-case">
+              <Barcode className="size-3" aria-hidden />
+              Barcode
+            </span>
+          }
+        >
           <input
             className={productFormInputClass}
             placeholder="Scan or type"
@@ -373,16 +378,14 @@ function VariantRowCard({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Label>
-          Brand
+        <Label title="Brand">
           <input
             className={productFormInputClass}
             value={row.brand}
             onChange={(e) => onPatch({ brand: e.target.value })}
           />
         </Label>
-        <Label>
-          Size
+        <Label title="Size">
           <input
             className={productFormInputClass}
             value={row.size}
@@ -391,8 +394,7 @@ function VariantRowCard({
         </Label>
       </div>
 
-      <Label>
-        Display name
+      <Label title="Display name">
         <input
           className={productFormInputClass}
           placeholder="Optional"
@@ -455,8 +457,7 @@ function VariantRowCard({
                   {suppliersLoading ? "Loading…" : "Load suppliers"}
                 </Button>
               ) : null}
-              <Label>
-                Supplier
+              <Label title="Supplier">
                 <select
                   className={productFormSelectClass}
                   value={
@@ -475,8 +476,7 @@ function VariantRowCard({
                 </select>
               </Label>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Label>
-                  Supplier SKU
+                <Label title="Supplier SKU">
                   <input
                     className={productFormInputClass}
                     value={row.supplierSku}
@@ -508,16 +508,14 @@ function VariantRowCard({
           />
           {expanded.branchPrice ? (
             <div className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border/50 bg-muted/10 p-3">
-              <Label>
-                Price{currencyCode ? ` (${currencyCode})` : ""}
+              <Label title={`Price${currencyCode ? ` (${currencyCode})` : ""}`}>
                 <NumberInput
                   value={row.sellingPrice}
                   onChange={(v) => onPatch({ sellingPrice: v })}
                   placeholder="0.00"
                 />
               </Label>
-              <Label>
-                Effective from
+              <Label title="Effective from">
                 <input
                   type="date"
                   className={productFormInputClass}
@@ -525,8 +523,7 @@ function VariantRowCard({
                   onChange={(e) => onPatch({ sellEffectiveFrom: e.target.value })}
                 />
               </Label>
-              <Label className="sm:col-span-2">
-                Branch
+              <Label title="Branch" className="sm:col-span-2">
                 <select
                   className={productFormSelectClass}
                   value={row.sellBranchId}
@@ -680,8 +677,7 @@ export function VariantDrawerForm({
         />
         {detailsOpen ? (
           <div className={cn(cardClass, "space-y-4")}>
-            <Label>
-              Description
+            <Label title="Description">
               <textarea
                 className={productFormTextareaClass}
                 placeholder="Optional"
@@ -690,8 +686,7 @@ export function VariantDrawerForm({
               />
             </Label>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Label>
-                Category
+              <Label title="Category">
                 <select
                   className={productFormSelectClass}
                   value={extrasDraft.categoryId}
@@ -705,8 +700,7 @@ export function VariantDrawerForm({
                   ))}
                 </select>
               </Label>
-              <Label>
-                Unit
+              <Label title="Unit">
                 <input
                   className={productFormInputClass}
                   placeholder="each"
@@ -769,22 +763,19 @@ export function VariantDrawerForm({
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <Label>
-                Min stock
+              <Label title="Min stock">
                 <NumberInput
                   value={extrasDraft.minStockLevel}
                   onChange={(v) => patchRow(extrasRow, { minStockLevel: v })}
                 />
               </Label>
-              <Label>
-                Reorder at
+              <Label title="Reorder at">
                 <NumberInput
                   value={extrasDraft.reorderLevel}
                   onChange={(v) => patchRow(extrasRow, { reorderLevel: v })}
                 />
               </Label>
-              <Label>
-                Reorder qty
+              <Label title="Reorder qty">
                 <NumberInput
                   value={extrasDraft.reorderQty}
                   onChange={(v) => patchRow(extrasRow, { reorderQty: v })}
