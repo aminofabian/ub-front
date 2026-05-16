@@ -35,7 +35,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
   return (
     <aside
       className={cn(
-        "hidden min-h-0 w-full max-w-full shrink-0 flex-col border-border/40 lg:flex lg:w-[min(16rem,30vw)] lg:max-w-[18rem] lg:border-r lg:pr-3 xl:max-w-[19rem]",
+        "hidden min-h-0 min-w-0 w-full max-w-full shrink-0 flex-col border-border/40 lg:flex lg:border-r lg:pr-3",
       )}
     >
       <div className="flex shrink-0 items-center gap-2 border-b border-border/35 pb-2.5 text-foreground">

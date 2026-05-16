@@ -242,8 +242,8 @@ export default function ProductsPage() {
 
   return (
     <>
-      <div className="relative -mx-4 flex h-full min-h-0 w-[calc(100%+2rem)] max-w-none flex-col gap-4 overflow-hidden px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4">
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-4 overflow-x-hidden px-3 pb-6 sm:px-4 md:px-4">
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-4">
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
             onCreateNew={() => setActiveDrawer("create-parent")}
@@ -255,9 +255,9 @@ export default function ProductsPage() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 p-3 sm:p-4 lg:flex-row lg:items-stretch lg:gap-4 lg:p-4">
+            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-4 overflow-x-hidden p-3 sm:p-4 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(0,min(22rem,34vw))] lg:items-stretch lg:gap-4 lg:p-4">
               <ProductFilterSidebar catalog={catalog} />
-              <div className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2 lg:min-h-0 lg:flex-[3_1_0%] lg:overflow-hidden lg:pr-1">
+              <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-2 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/25 dark:ring-white/[0.04]">
                   <span
                     className={cn(
@@ -360,7 +360,7 @@ export default function ProductsPage() {
                   />
                 </div>
               </div>
-              <div className="hidden lg:flex lg:min-h-0 lg:flex-[2_1_0%] lg:min-w-[22rem] lg:flex-col lg:border-l lg:border-border/50 lg:pl-3 xl:min-w-[24rem] 2xl:min-w-[26rem]">
+              <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
                 <div
                   className={cn(
                     "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]",

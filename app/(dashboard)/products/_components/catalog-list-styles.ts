@@ -23,9 +23,15 @@ export const CATALOG_PARENT_BLOCK_GAP_PX = {
   dense: 10,
 } as const;
 
-/** Shared grid for header + rows (checkbox · thumb · product · stock · category). */
+/** Shared grid: checkbox · thumb · product · stock · category · chevron (fixed trailing cols align all rows). */
 export const catalogListGridClass =
-  "grid w-full items-center gap-x-3 gap-y-0 grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_auto] md:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_4.75rem_minmax(0,min(12rem,26vw))]";
+  "grid w-full min-w-0 max-w-full items-center gap-x-2.5 gap-y-0 sm:gap-x-3 " +
+  "grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_1.25rem] " +
+  "md:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_4.75rem_9.5rem_1.25rem]";
+
+/** Right-align content inside fixed stock / category tracks. */
+export const catalogListMetricCellClass =
+  "relative z-[1] flex w-full min-w-0 items-center justify-end justify-self-end";
 
 /** Variant ids under a parent from loaded rows, then item detail when needed. */
 export async function resolveVariantIdsForParent(

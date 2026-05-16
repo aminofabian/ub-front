@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   buildCatalogRowMeta,
   catalogListGridClass,
+  catalogListMetricCellClass,
   catalogRowHeightPx,
   catalogRowInteractionClasses,
   catalogRowTone,
@@ -89,7 +90,7 @@ export function VirtualizedCatalogBody({
   }, [density, rows.length, virtualizer]);
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]">
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden rounded-2xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]">
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/45 bg-muted/30 px-3 py-2 text-[10px] leading-snug text-muted-foreground dark:bg-muted/25">
         <span className="font-heading font-bold uppercase tracking-[0.14em] text-foreground/80">
           Catalog
@@ -131,8 +132,9 @@ export function VirtualizedCatalogBody({
           <span className="sr-only">Image</span>
         </span>
         <span className="min-w-0 self-center text-left">Product</span>
-        <span className="hidden min-w-0 text-right md:block">Stock</span>
-        <span className="hidden min-w-0 text-right md:block">Category</span>
+        <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>Stock</span>
+        <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>Category</span>
+        <span className="sr-only">Open</span>
       </div>
 
       <div
@@ -233,7 +235,7 @@ export function VirtualizedCatalogBody({
                   key={row.id}
                   data-index={vi.index}
                   ref={virtualizer.measureElement}
-                  className="absolute left-0 top-0 flex w-full flex-col"
+                  className="absolute left-0 top-0 flex w-full min-w-0 max-w-full flex-col"
                   style={{ transform: `translateY(${vi.start}px)` }}
                 >
                   {meta.startsParentBlock ? (
@@ -254,10 +256,9 @@ export function VirtualizedCatalogBody({
                     }
                     className={cn(
                       catalogListGridClass,
-                      "group relative border-b border-border/25 px-2.5 py-1.5 text-left",
+                      "group relative min-w-0 max-w-full border-b border-border/25 px-2.5 py-1.5 text-left",
                       catalogRowInteractionClasses(tone, rowInteraction),
                       row.active === false && "opacity-55",
-                      isVariant && "ml-5 md:ml-9",
                     )}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {
@@ -359,7 +360,7 @@ export function VirtualizedCatalogBody({
                   <div
                     className={cn(
                       "relative z-[1] min-w-0",
-                      isVariant && "pl-1 md:pl-2",
+                      isVariant && "pl-3 md:pl-5",
                     )}
                   >
                     <div className="flex min-w-0 items-center gap-1.5">
@@ -412,11 +413,11 @@ export function VirtualizedCatalogBody({
                     </div>
                   </div>
 
-                  <span className="relative z-[1] hidden min-w-0 items-center justify-end md:flex">
+                  <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>
                     {stock.label ? (
                       <span
                         className={cn(
-                          "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
+                          "whitespace-nowrap rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
                           stock.className,
                         )}
                       >
@@ -426,22 +427,29 @@ export function VirtualizedCatalogBody({
                         ) : null}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground/35">—</span>
+                      <span className="whitespace-nowrap text-[11px] text-muted-foreground/35">—</span>
                     )}
                   </span>
 
-                  <span className="relative z-[1] flex min-w-0 items-center justify-end gap-1 md:gap-1.5">
+                  <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>
                     {categoryLabel ? (
                       <span
                         className={cn(
-                          "hidden min-w-0 max-w-full truncate rounded-md px-1.5 py-0.5 text-end text-[9px] font-semibold uppercase leading-snug tracking-wide md:block md:overflow-hidden",
+                          "max-w-full truncate rounded-md px-1.5 py-0.5 text-end text-[9px] font-semibold uppercase leading-snug tracking-wide",
                           kioskCategoryPillClass(categoryLabel),
                         )}
                         title={categoryLabel}
                       >
                         {categoryLabel}
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/35" aria-hidden>
+                        —
+                      </span>
+                    )}
+                  </span>
+
+                  <span className="relative z-[1] flex items-center justify-center justify-self-end">
                     <ChevronRight
                       className={cn(
                         "pointer-events-none size-4 shrink-0 transition-all duration-150",
