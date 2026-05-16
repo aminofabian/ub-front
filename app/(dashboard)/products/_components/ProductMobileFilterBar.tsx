@@ -41,9 +41,9 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           </button>
         ) : null}
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
         <select
-          className={cn(dashboardSelectClass(), "h-10 truncate")}
+          className={cn(dashboardSelectClass(), "h-10 min-w-0 w-full truncate")}
           value={catalog.filterCategoryId}
           onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
           aria-label="Filter by category"
@@ -57,7 +57,7 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           ))}
         </select>
         <select
-          className={cn(dashboardSelectClass(), "h-10")}
+          className={cn(dashboardSelectClass(), "h-10 min-w-0 w-full")}
           value={catalog.catalogScope}
           onChange={(e) => catalog.setCatalogScope(e.target.value as typeof catalog.catalogScope)}
           aria-label="Catalog scope"

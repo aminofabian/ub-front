@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import {
   buildCatalogRowMeta,
   catalogListGridClass,
-  catalogRowAccentClasses,
   catalogRowHeightPx,
   catalogRowInteractionClasses,
   catalogRowTone,
@@ -123,12 +122,17 @@ export function VirtualizedCatalogBody({
           "shrink-0 border-b border-border/50 bg-muted/40 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
         )}
         role="row"
+        aria-label="Catalog columns"
       >
-        <span className="sr-only">Select</span>
-        <span className="sr-only">Image</span>
-        <span>Product</span>
-        <span className="hidden text-right md:block">Stock</span>
-        <span className="hidden text-right md:block">Category</span>
+        <span className="relative flex min-w-[1.75rem] items-center justify-center">
+          <span className="sr-only">Select</span>
+        </span>
+        <span className="relative flex min-w-[2.25rem] items-center justify-center">
+          <span className="sr-only">Image</span>
+        </span>
+        <span className="min-w-0 self-center text-left">Product</span>
+        <span className="hidden min-w-0 text-right md:block">Stock</span>
+        <span className="hidden min-w-0 text-right md:block">Category</span>
       </div>
 
       <div
@@ -263,13 +267,6 @@ export function VirtualizedCatalogBody({
                       }
                     }}
                   >
-                  <span
-                    className={catalogRowAccentClasses(tone, {
-                      ...rowInteraction,
-                      isGroup,
-                    })}
-                    aria-hidden
-                  />
 
                   {isVariant ? (
                     <span
@@ -415,7 +412,7 @@ export function VirtualizedCatalogBody({
                     </div>
                   </div>
 
-                  <span className="relative z-[1] hidden min-w-0 justify-end md:flex">
+                  <span className="relative z-[1] hidden min-w-0 items-center justify-end md:flex">
                     {stock.label ? (
                       <span
                         className={cn(
@@ -437,9 +434,10 @@ export function VirtualizedCatalogBody({
                     {categoryLabel ? (
                       <span
                         className={cn(
-                          "hidden whitespace-normal rounded-md px-1.5 py-0.5 text-left text-[9px] font-semibold uppercase leading-snug tracking-wide md:inline-block",
+                          "hidden min-w-0 max-w-full truncate rounded-md px-1.5 py-0.5 text-end text-[9px] font-semibold uppercase leading-snug tracking-wide md:block md:overflow-hidden",
                           kioskCategoryPillClass(categoryLabel),
                         )}
+                        title={categoryLabel}
                       >
                         {categoryLabel}
                       </span>

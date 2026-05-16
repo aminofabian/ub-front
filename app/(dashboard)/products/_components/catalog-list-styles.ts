@@ -23,9 +23,9 @@ export const CATALOG_PARENT_BLOCK_GAP_PX = {
   dense: 10,
 } as const;
 
-/** Shared grid for header + rows (checkbox · thumb · product · stock · meta). */
+/** Shared grid for header + rows (checkbox · thumb · product · stock · category). */
 export const catalogListGridClass =
-  "grid w-full items-center gap-x-3 gap-y-0 grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_auto] md:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_5.25rem_minmax(6.5rem,max-content)]";
+  "grid w-full items-center gap-x-3 gap-y-0 grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_auto] md:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_4.75rem_minmax(0,min(12rem,26vw))]";
 
 /** Variant ids under a parent from loaded rows, then item detail when needed. */
 export async function resolveVariantIdsForParent(
@@ -80,27 +80,6 @@ export function catalogRowInteractionClasses(
     showChecked && tone.rowChecked,
     showBulk && tone.rowBulk,
     isDetailActive && tone.rowDetailActive,
-  );
-}
-
-export function catalogRowAccentClasses(
-  tone: CatalogRowTone,
-  state: {
-    isDetailActive: boolean;
-    isBulkSelected: boolean;
-    isCheckboxChecked: boolean;
-    isGroup: boolean;
-  },
-): string {
-  const highlighted =
-    state.isDetailActive || state.isBulkSelected || state.isCheckboxChecked;
-  return cn(
-    "pointer-events-none absolute left-0 rounded-r-full transition-all duration-150",
-    tone.accent,
-    state.isGroup ? "top-0.5 bottom-0.5" : "top-1 bottom-1",
-    highlighted ? "w-1 opacity-100 shadow-sm" : "w-[3px] opacity-90",
-    state.isDetailActive && "w-1.5 opacity-100",
-    !highlighted && "group-hover:w-1 group-hover:opacity-100",
   );
 }
 
