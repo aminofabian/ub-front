@@ -1063,7 +1063,7 @@ export default function BrandingPage() {
           </>
         }
         contextLabel="Appearance"
-        banner={feedback ? <FormDrawerMessageBanner text={feedback.text} /> : undefined}
+        banner={feedback ? (feedback.kind === "error" ? <FormDrawerMessageBanner text={feedback.text} /> : <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-gradient-to-br from-green-50 via-green-50/50 to-transparent px-3.5 py-3 text-sm text-green-700 shadow-sm dark:border-green-800 dark:from-green-950/30 dark:text-green-400">{feedback.text}</div>) : undefined}
         icon={<Palette className="size-5 text-primary" aria-hidden />}
         width="wide"
         footer={
