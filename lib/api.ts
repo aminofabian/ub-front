@@ -356,6 +356,8 @@ export type BrandingRecord = {
   ogImage?: string | null;
   /** Comma-separated meta keywords */
   metaKeywords?: string | null;
+  /** Hero banner image URLs for the storefront carousel */
+  heroBannerUrls?: string[] | null;
 };
 
 export type StocktakeSettingsRecord = {
@@ -449,6 +451,7 @@ export type BrandingPatchPayload = {
   ogImage?: string | null;
   ogImagePublicId?: string | null;
   metaKeywords?: string | null;
+  heroBannerUrls?: string[] | null;
 };
 
 export type CreateUserPayload = {
@@ -655,9 +658,12 @@ export function buildRequestHeaders(
   return headers;
 }
 
-export function shouldAttemptRefresh(problem?: { code?: string; title?: string } | null): boolean {
+export function shouldAttemptRefresh(
+  problem?: { code?: string; title?: string } | null,
+): boolean {
   if (problem?.code === ERROR_CODES.tokenExpired) return true;
-  if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) return true;
+  if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken)
+    return true;
   return false;
 }
 
@@ -1313,6 +1319,39 @@ export async function uploadMyBrandingOgImage(
 export async function clearMyBrandingOgImage(): Promise<BusinessRecord> {
   return request<BusinessRecord>(`${MY_BRANDING_PATH}/og-image`, {
     method: "DELETE",
+  });
+}
+
+export async function uploadMyBrandingBanner(
+  file: File,
+  businessId: string,
+): Promise<BusinessRecord> {
+  const folder = `ub/${businessId}/branding/banners`;
+  const sig = await getCloudinarySignature(folder);
+  const result = await uploadToCloudinary(file, sig);
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/banners`, {
+    method: "POST",
+    body: {
+      url: result.secure_url,
+      publicId: result.public_id,
+    },
+  });
+}
+
+export async function deleteMyBrandingBanner(
+  index: number,
+): Promise<BusinessRecord> {
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/banners/${index}`, {
+    method: "DELETE",
+  });
+}
+
+export async function reorderMyBrandingBanners(
+  orderedUrls: string[],
+): Promise<BusinessRecord> {
+  return request<BusinessRecord>(`${MY_BRANDING_PATH}/banners/reorder`, {
+    method: "PUT",
+    body: orderedUrls,
   });
 }
 

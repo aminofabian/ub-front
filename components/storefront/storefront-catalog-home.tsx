@@ -79,6 +79,7 @@ export async function StorefrontCatalogHome({
   const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
   const accentHex = isHexColor(accentRaw) ? accentRaw : null;
   const logoUrl = tenant?.branding?.logoUrl ?? null;
+  const heroBannerUrls = tenant?.branding?.heroBannerUrls ?? null;
 
   const featured: PublicCatalogItemCard[] =
     storefront?.featured?.length && storefront.featured.length > 0
@@ -102,6 +103,7 @@ export async function StorefrontCatalogHome({
               accentHex={accentHex}
               showcaseImage={showcaseImage}
               logoUrl={logoUrl}
+              heroBannerUrls={heroBannerUrls}
             />
 
             <ShopTrustStrip primaryHex={primary} />

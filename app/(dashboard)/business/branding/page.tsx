@@ -24,7 +24,7 @@ import {
   DashboardFeedback,
   DashboardPageHero,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { FormDrawer, FormDrawerFields, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { setDocumentFavicon } from "@/lib/document-favicon";
@@ -33,8 +33,11 @@ import {
   clearMyBrandingFavicon,
   clearMyBrandingLogo,
   clearMyBrandingOgImage,
+  deleteMyBrandingBanner,
   fetchBusiness,
+  reorderMyBrandingBanners,
   updateMyBranding,
+  uploadMyBrandingBanner,
   uploadMyBrandingFavicon,
   uploadMyBrandingLogo,
   uploadMyBrandingOgImage,
@@ -53,6 +56,8 @@ const ACCEPTED_FAVICON_TYPES =
 const MAX_FAVICON_BYTES = 512 * 1024;
 const ACCEPTED_OG_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
 const MAX_OG_IMAGE_BYTES = 4 * 1024 * 1024;
+const ACCEPTED_BANNER_TYPES = "image/png,image/jpeg,image/webp";
+const MAX_BANNER_BYTES = 5 * 1024 * 1024;
 
 type FormState = {
   displayName: string;
@@ -63,6 +68,7 @@ type FormState = {
   metaDescription: string;
   ogImage: string;
   metaKeywords: string;
+  heroBannerUrls: string[];
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -77,6 +83,7 @@ function emptyForm(): FormState {
     metaDescription: "",
     ogImage: "",
     metaKeywords: "",
+    heroBannerUrls: [],
   };
 }
 
@@ -90,6 +97,7 @@ function formFromBranding(b: BrandingRecord | undefined | null): FormState {
     metaDescription: String(b?.metaDescription ?? ""),
     ogImage: String(b?.ogImage ?? ""),
     metaKeywords: String(b?.metaKeywords ?? ""),
+    heroBannerUrls: b?.heroBannerUrls ?? [],
   };
 }
 
@@ -473,6 +481,112 @@ function OgImageSection({
   );
 }
 
+function BannerSection({
+  banners,
+  busy,
+  onUpload,
+  onDelete,
+  onReorder,
+}: {
+  banners: string[];
+  busy: boolean;
+  onUpload: (file: File) => Promise<void>;
+  onDelete: (index: number) => Promise<void>;
+  onReorder: (urls: string[]) => Promise<void>;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const onPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      void onUpload(file);
+    }
+    event.target.value = "";
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-3">
+        {banners.map((url, i) => (
+          <div key={`${url}-${i}`} className="relative group">
+            <Image
+              src={url}
+              alt={`Banner ${i + 1}`}
+              width={200}
+              height={80}
+              className="h-20 w-40 rounded-lg border object-cover shadow-sm"
+              unoptimized
+            />
+            <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition bg-black/40 rounded-lg">
+              {i > 0 && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  className="size-7"
+                  onClick={() => {
+                    const next = [...banners];
+                    [next[i], next[i - 1]] = [next[i - 1], next[i]];
+                    void onReorder(next);
+                  }}
+                >
+                  ←
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="icon"
+                variant="destructive"
+                className="size-7"
+                disabled={busy}
+                onClick={() => void onDelete(i)}
+              >
+                ✕
+              </Button>
+              {i < banners.length - 1 && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  className="size-7"
+                  onClick={() => {
+                    const next = [...banners];
+                    [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                    void onReorder(next);
+                  }}
+                >
+                  →
+                </Button>
+              )}
+            </div>
+            <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+              {i + 1}
+            </span>
+          </div>
+        ))}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_BANNER_TYPES}
+          className="hidden"
+          onChange={onPick}
+        />
+        <button
+          type="button"
+          disabled={busy}
+          className="flex h-20 w-40 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors"
+          onClick={() => inputRef.current?.click()}
+        >
+          <span className="text-xs text-muted-foreground">+ Add banner</span>
+        </button>
+      </div>
+      <p className={hintClass()}>
+        PNG, JPEG, or WEBP · max 5 MB each. Banners slide automatically on your
+        storefront.
+      </p>
+    </div>
+  );
+}
+
 function LockedNotice() {
   return (
     <div className="mx-auto max-w-lg py-16">
@@ -559,6 +673,7 @@ export default function BrandingPage() {
   const [logoBusy, setLogoBusy] = useState(false);
   const [faviconBusy, setFaviconBusy] = useState(false);
   const [ogImageBusy, setOgImageBusy] = useState(false);
+  const [bannerBusy, setBannerBusy] = useState(false);
   const [brandingDrawerOpen, setBrandingDrawerOpen] = useState(false);
   const skipDrawerResetAfterSave = useRef(false);
 
@@ -777,9 +892,72 @@ export default function BrandingPage() {
     }
   };
 
+  const onBannerUpload = async (file: File) => {
+    if (!snapshot?.id) {
+      setFeedback({ kind: "error", text: "Business not loaded yet." });
+      return;
+    }
+    if (file.size > MAX_BANNER_BYTES) {
+      setFeedback({ kind: "error", text: "Banner exceeds the 5 MB limit." });
+      return;
+    }
+    setBannerBusy(true);
+    setFeedback(null);
+    try {
+      const next = await uploadMyBrandingBanner(file, snapshot.id);
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setFeedback({ kind: "success", text: "Banner added." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Banner upload failed."),
+      });
+    } finally {
+      setBannerBusy(false);
+    }
+  };
+
+  const onBannerDelete = async (index: number) => {
+    setBannerBusy(true);
+    setFeedback(null);
+    try {
+      const next = await deleteMyBrandingBanner(index);
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setFeedback({ kind: "success", text: "Banner removed." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not remove banner."),
+      });
+    } finally {
+      setBannerBusy(false);
+    }
+  };
+
+  const onBannerReorder = async (orderedUrls: string[]) => {
+    setBannerBusy(true);
+    setFeedback(null);
+    try {
+      const next = await reorderMyBrandingBanners(orderedUrls);
+      setSnapshot(next);
+      setForm(formFromBranding(next.branding));
+      setFeedback({ kind: "success", text: "Banners reordered." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: messageFor(error, "Could not reorder banners."),
+      });
+    } finally {
+      setBannerBusy(false);
+    }
+  };
+
   const logoUrl = snapshot?.branding?.logoUrl ?? null;
   const faviconUrl = snapshot?.branding?.faviconUrl ?? form.faviconUrl;
   const ogImageUrl = snapshot?.branding?.ogImage ?? form.ogImage;
+  const bannerUrls = snapshot?.branding?.heroBannerUrls ?? [];
 
   if (isLoading) {
     return (
@@ -818,7 +996,8 @@ export default function BrandingPage() {
     );
   }
 
-  const drawerBusy = isSaving || logoBusy || faviconBusy || ogImageBusy;
+  const drawerBusy =
+    isSaving || logoBusy || faviconBusy || ogImageBusy || bannerBusy;
 
   return (
     <>
@@ -884,6 +1063,7 @@ export default function BrandingPage() {
           </>
         }
         contextLabel="Appearance"
+        banner={feedback ? <FormDrawerMessageBanner text={feedback.text} /> : undefined}
         icon={<Palette className="size-5 text-primary" aria-hidden />}
         width="wide"
         footer={
@@ -899,7 +1079,7 @@ export default function BrandingPage() {
             <Button
               type="submit"
               form="branding-edit-form"
-              disabled={isSaving || logoBusy || faviconBusy}
+              disabled={isSaving || logoBusy || faviconBusy || bannerBusy}
             >
               {isSaving ? (
                 <>
@@ -926,6 +1106,19 @@ export default function BrandingPage() {
               busy={logoBusy}
               onUpload={onLogoUpload}
               onClear={onLogoClear}
+            />
+          </FormDrawerFields>
+
+          <FormDrawerFields
+            legend="Hero Banners"
+            hint="Images that rotate in the storefront hero area. Drag to reorder is not available — use the arrow buttons."
+          >
+            <BannerSection
+              banners={bannerUrls}
+              busy={bannerBusy}
+              onUpload={onBannerUpload}
+              onDelete={onBannerDelete}
+              onReorder={onBannerReorder}
             />
           </FormDrawerFields>
 

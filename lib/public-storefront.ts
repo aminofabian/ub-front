@@ -95,6 +95,8 @@ export type TenantBranding = {
   ogImage: string | null;
   /** Comma-separated meta keywords */
   metaKeywords: string | null;
+  /** Hero banner image URLs for the storefront carousel */
+  heroBannerUrls: string[] | null;
 };
 
 export type TenantPasswordPolicy = {
@@ -412,6 +414,11 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
       typeof b?.metaKeywords === "string" && b.metaKeywords.trim().length > 0
         ? b.metaKeywords.trim()
         : null,
+    heroBannerUrls: Array.isArray(b?.heroBannerUrls)
+      ? (b.heroBannerUrls as string[]).filter(
+          (u: unknown) => typeof u === "string" && u.trim(),
+        )
+      : null,
   };
 
   const a = asObject(o.authConfig);
@@ -498,7 +505,8 @@ export async function fetchPublicItemDetail(
 ): Promise<PublicCatalogItemDetail | null> {
   const base = backendOrigin();
   const s = sanitizeStorefrontSlug(slug);
-  const itemId = resolvePublicItemIdFromShopUrlSegment(urlSegment) || urlSegment;
+  const itemId =
+    resolvePublicItemIdFromShopUrlSegment(urlSegment) || urlSegment;
   if (!s || !itemId) {
     return null;
   }
