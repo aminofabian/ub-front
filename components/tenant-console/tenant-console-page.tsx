@@ -12,9 +12,7 @@ import { cn } from "@/lib/utils";
 
 export function TenantConsolePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showShopSignIn, setShowShopSignIn] = useState(false);
   const [businessName, setBusinessName] = useState("");
-  const [shopSlug, setShopSlug] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,21 +46,6 @@ export function TenantConsolePage() {
       );
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const onShopSignIn = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const slug = shopSlug.trim().toLowerCase();
-    if (!slug) {
-      setErrorMessage("Enter your shop name.");
-      return;
-    }
-    const shopUrl = slugDerivedShopUrl(slug);
-    if (shopUrl) {
-      window.location.assign(`${shopUrl}/login`);
-    } else {
-      setErrorMessage("Could not determine your shop URL. Try again.");
     }
   };
 
@@ -135,60 +118,15 @@ export function TenantConsolePage() {
                 Back
               </button>
             </div>
-          ) : showShopSignIn ? (
-            <div className="mt-8 rounded-2xl border border-border bg-muted/30 p-5 text-left">
-              <h3 className="text-sm font-bold text-foreground">
-                Sign in to your shop
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Enter your shop name to go to your sign-in page.
-              </p>
-              <form className="mt-4 space-y-3" onSubmit={onShopSignIn}>
-                <div className="flex items-center gap-0">
-                  <input
-                    className={cn(
-                      "flex-1 rounded-l-xl border border-border bg-background px-4 py-3 text-sm shadow-sm outline-none transition placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25",
-                    )}
-                    placeholder="your-shop"
-                    value={shopSlug}
-                    onChange={(e) => setShopSlug(e.target.value)}
-                    autoComplete="off"
-                    required
-                  />
-                  <span className="rounded-r-xl border-y border-r border-border bg-muted/50 px-3 py-3 text-sm text-muted-foreground">
-                    .kiosk.ke
-                  </span>
-                </div>
-                <Button
-                  type="submit"
-                  className="h-12 w-full rounded-xl text-[15px] font-semibold"
-                >
-                  Go to sign in →
-                </Button>
-              </form>
-              <button
-                type="button"
-                className="mt-3 w-full text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                onClick={() => {
-                  setShowShopSignIn(false);
-                  setErrorMessage("");
-                }}
-              >
-                Back
-              </button>
-            </div>
           ) : (
             <>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-3">
                 <Button
-                  onClick={() => {
-                    setShowShopSignIn(true);
-                    setErrorMessage("");
-                  }}
+                  asChild
                   size="lg"
                   className="h-11 w-full min-w-[9.5rem] px-6 text-base sm:w-auto"
                 >
-                  Sign in
+                  <Link href={APP_ROUTES.login}>Sign in</Link>
                 </Button>
                 <Button
                   onClick={() => {
@@ -202,21 +140,6 @@ export function TenantConsolePage() {
                   Create your shop
                 </Button>
               </div>
-
-              <p className="mt-3 text-xs text-muted-foreground">
-                Already have a shop?{" "}
-                <button
-                  type="button"
-                  className="font-semibold underline underline-offset-4 hover:text-foreground"
-                  onClick={() => {
-                    setShowShopSignIn(true);
-                    setErrorMessage("");
-                  }}
-                >
-                  Sign in here
-                </button>
-                .
-              </p>
             </>
           )}
 
