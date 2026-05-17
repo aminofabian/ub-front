@@ -47,7 +47,7 @@ function SignupPageContent() {
   const searchParams = useSearchParams();
   const [, ensureTenantResolved] = useTenantIdPrefill();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams.get("email")?.trim() ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");

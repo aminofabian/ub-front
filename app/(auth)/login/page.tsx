@@ -305,16 +305,24 @@ function LoginPageContent() {
       // Persist the new tenant ID
       setSessionTenantId(result.tenantId);
 
-      // Proceed with the original login flow based on current mode
-      if (mode === AUTH_MODE.pin) {
-        await loginWithPin(email, pin, branchId);
-        await syncSlugAndNavigate(router, APP_ROUTES.products, "push");
+      // Redirect to signup on the new business subdomain.
+      // The business was just created — no user account exists yet, so
+      // auto-login would always fail. The signup page will pick up
+      // the tenant from session and prefill the email.
+      const shopUrl = slugDerivedShopUrl(result.slug);
+      const signupParams = new URLSearchParams();
+      if (email.trim()) signupParams.set("email", email.trim());
+      const signupQs = signupParams.toString();
+      if (shopUrl) {
+        window.location.assign(
+          `${shopUrl}/signup${signupQs ? `?${signupQs}` : ""}`,
+        );
       } else {
-        await loginWithPassword(email, password);
-        const dest = await resolveAfterPasswordAuth();
-        await syncSlugAndNavigate(router, dest, "push");
+        await router.push(
+          `${APP_ROUTES.signup}${signupQs ? `?${signupQs}` : ""}`,
+        );
       }
-      setShowOnboarding(false);
+      return;
     } catch (error) {
       setErrorMessage(
         error instanceof Error
