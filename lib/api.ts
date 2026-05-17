@@ -112,6 +112,8 @@ type LoginResponse = {
 
 const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
 const PUBLIC_HOST_ONBOARD_PATH = "/api/v1/public/host/onboard";
+const PUBLIC_HOST_RESOLVE_BY_EMAIL_PATH =
+  "/api/v1/public/host/resolve-by-email";
 
 /**
  * Maps a storefront hostname (or full shop URL) to the tenant UUID via the public host resolve API.
@@ -194,6 +196,41 @@ export async function onboardBusiness(
     if (error instanceof Error) {
       throw error;
     }
+    return null;
+  }
+}
+
+/**
+ * Looks up a user's business by email so the frontend can redirect
+ * visitors from the landing page to their correct tenant subdomain.
+ */
+export async function resolveBusinessByEmail(
+  email: string,
+): Promise<{ tenantId: string; tenantName: string; slug: string } | null> {
+  const e = email.trim().toLowerCase();
+  if (!e) return null;
+  const url = `${apiUrl(PUBLIC_HOST_RESOLVE_BY_EMAIL_PATH)}?email=${encodeURIComponent(e)}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      tenantId?: unknown;
+      tenantName?: unknown;
+      slug?: unknown;
+    };
+    const tenantId =
+      typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
+    if (!tenantId) return null;
+    return {
+      tenantId,
+      tenantName:
+        typeof payload.tenantName === "string" ? payload.tenantName.trim() : "",
+      slug: typeof payload.slug === "string" ? payload.slug.trim() : "",
+    };
+  } catch {
     return null;
   }
 }
