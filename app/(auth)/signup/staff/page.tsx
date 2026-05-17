@@ -24,11 +24,22 @@ import {
 } from "@/lib/auth-tenant-prefill";
 import { fetchMe, registerAccount, onboardBusiness } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold shadow-md transition hover:brightness-[0.97] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
+
+function extractVerificationToken(
+  url: string | null | undefined,
+): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).searchParams.get("token");
+  } catch {
+    return null;
+  }
+}
 
 function StaffSignupPageContent() {
   const tenant = useOptionalTenant();
@@ -188,7 +199,6 @@ function StaffSignupPageContent() {
       }
 
       setSessionTenantId(result.tenantId);
-      setShowOnboarding(false);
 
       // No invite token needed — first user in a new business becomes owner
       const registerResult = await registerAccount(
@@ -196,26 +206,42 @@ function StaffSignupPageContent() {
         email.trim(),
         password,
       );
+
+      // Redirect to the business subdomain
+      const shopUrl = slugDerivedShopUrl(result.slug);
+      if (shopUrl) {
+        if (registerResult.status.toLowerCase() === "active") {
+          window.location.assign(`${shopUrl}/login`);
+        } else {
+          const token = extractVerificationToken(
+            registerResult.verificationUrl,
+          );
+          if (token) {
+            window.location.assign(
+              `${shopUrl}/verify-email?token=${encodeURIComponent(token)}`,
+            );
+          } else {
+            window.location.assign(`${shopUrl}/login`);
+          }
+        }
+        return;
+      }
+
+      // Fallback
+      setShowOnboarding(false);
       if (registerResult.status.toLowerCase() === "active") {
-        setVerificationLink(null);
         setSuccessMessage(
           `Account ready for ${registerResult.email}. You can sign in at the workspace.`,
         );
       } else {
         const link = registerResult.verificationUrl?.trim();
         if (link) {
-          setSuccessMessage(
-            `Verify your email for ${registerResult.email}. Use the link below.`,
-          );
+          setSuccessMessage(`Verify your email for ${registerResult.email}.`);
           setVerificationLink(link);
         } else {
-          const base = `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`;
-          const localHint =
-            process.env.NODE_ENV === "development"
-              ? " Locally, if the API has no SMTP, the link is only in the backend terminal."
-              : "";
-          setSuccessMessage(base + localHint);
-          setVerificationLink(null);
+          setSuccessMessage(
+            `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`,
+          );
         }
       }
     } catch (error) {

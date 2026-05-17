@@ -322,18 +322,21 @@ function LoginPageContent() {
         }
       />
 
-      <p className="mt-1 text-sm text-muted-foreground">
-        New here?{" "}
-        <Link
-          href={APP_ROUTES.signup}
-          className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
-        >
-          Create a shopper account
-        </Link>
-      </p>
+      {/* Sign-up link — only on business subdomains */}
+      {tenant ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          New here?{" "}
+          <Link
+            href={APP_ROUTES.signup}
+            className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
+          >
+            Sign up
+          </Link>
+        </p>
+      ) : null}
 
-      {/* Onboarding CTA */}
-      {!showOnboarding ? (
+      {/* Onboarding CTA — only on landing page */}
+      {!tenant && !showOnboarding ? (
         <button
           type="button"
           className="mt-5 flex w-full items-center gap-3 rounded-2xl border-2 border-[var(--auth-accent)] bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] p-4 text-left shadow-sm transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_14%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_20%,#18181b)]"
@@ -365,224 +368,244 @@ function LoginPageContent() {
         </button>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className={modeBtn(mode === AUTH_MODE.password)}
-          onClick={() => setMode(AUTH_MODE.password)}
-        >
-          Email &amp; password
-        </button>
-        <button
-          type="button"
-          className={modeBtn(mode === AUTH_MODE.pin)}
-          onClick={() => setMode(AUTH_MODE.pin)}
-        >
-          PIN login
-        </button>
-      </div>
+      {/* Landing page: only onboarding, no login */}
+      {!tenant && !showOnboarding ? (
+        <p className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_18%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_5%,white)] px-4 py-3 text-center text-xs text-muted-foreground dark:bg-[color-mix(in_srgb,var(--auth-accent)_8%,#18181b)]">
+          Login is only available on your business subdomain.
+          <br />
+          Create your shop above and sign in from{" "}
+          <span className="font-semibold text-foreground">
+            your-shop.kiosk.ke
+          </span>
+          .
+        </p>
+      ) : null}
 
-      {showOnboarding ? (
+      {/* Login forms — only when tenant exists or during onboarding */}
+      {tenant || showOnboarding ? (
         <>
-          <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] p-5 backdrop-blur-md dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)]">
-            <h3 className="mb-1 text-sm font-bold text-foreground">
-              Name your business
-            </h3>
-            <p className="mb-4 text-xs text-muted-foreground">
-              Pick a name for your shop. You&apos;ll get a free subdomain and
-              become the{" "}
-              <span className="font-semibold text-foreground">owner</span>.
-            </p>
-            <form className="space-y-3" onSubmit={onOnboardSubmit}>
+          <div className="mt-6 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={modeBtn(mode === AUTH_MODE.password)}
+              onClick={() => setMode(AUTH_MODE.password)}
+            >
+              Email &amp; password
+            </button>
+            <button
+              type="button"
+              className={modeBtn(mode === AUTH_MODE.pin)}
+              onClick={() => setMode(AUTH_MODE.pin)}
+            >
+              PIN login
+            </button>
+          </div>
+
+          {showOnboarding ? (
+            <>
+              <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] p-5 backdrop-blur-md dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)]">
+                <h3 className="mb-1 text-sm font-bold text-foreground">
+                  Name your business
+                </h3>
+                <p className="mb-4 text-xs text-muted-foreground">
+                  Pick a name for your shop. You&apos;ll get a free subdomain
+                  and become the{" "}
+                  <span className="font-semibold text-foreground">owner</span>.
+                </p>
+                <form className="space-y-3" onSubmit={onOnboardSubmit}>
+                  <div>
+                    <label
+                      className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                      htmlFor="onboard-business-name"
+                    >
+                      Business name
+                    </label>
+                    <input
+                      id="onboard-business-name"
+                      className={authInputClassName}
+                      placeholder="My Shop"
+                      value={businessName}
+                      onChange={(event) => setBusinessName(event.target.value)}
+                      autoComplete="organization"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className={primaryCtaClass}
+                    disabled={isOnboarding}
+                    style={{
+                      backgroundColor: "var(--auth-accent)",
+                      color: "var(--auth-accent-ink)",
+                    }}
+                  >
+                    {isOnboarding
+                      ? "Creating business…"
+                      : "Create business & sign in"}
+                  </button>
+                </form>
+              </div>
+              <button
+                type="button"
+                className="mt-3 w-full text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                onClick={() => {
+                  setShowOnboarding(false);
+                  setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+                }}
+              >
+                Back to sign in
+              </button>
+            </>
+          ) : mode === AUTH_MODE.password ? (
+            <form className="mt-6 space-y-4" onSubmit={onPasswordLogin}>
               <div>
                 <label
                   className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  htmlFor="onboard-business-name"
+                  htmlFor="login-email"
                 >
-                  Business name
+                  Email
                 </label>
                 <input
-                  id="onboard-business-name"
+                  id="login-email"
                   className={authInputClassName}
-                  placeholder="My Shop"
-                  value={businessName}
-                  onChange={(event) => setBusinessName(event.target.value)}
-                  autoComplete="organization"
+                  type="email"
+                  placeholder="you@business.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </div>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <label
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    htmlFor="login-password"
+                  >
+                    Password
+                  </label>
+                  <Link
+                    href={APP_ROUTES.forgotPassword}
+                    className="text-xs font-semibold text-[var(--auth-accent)] hover:underline"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    className={cn(authInputClassName, "pr-12")}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                    minLength={passwordMinLength}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Minimum {passwordMinLength} characters.
+                </p>
+              </div>
+              <button
+                type="submit"
+                className={primaryCtaClass}
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: "var(--auth-accent)",
+                  color: "var(--auth-accent-ink)",
+                }}
+              >
+                {isSubmitting ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
+          ) : (
+            <form className="mt-6 space-y-4" onSubmit={onPinLogin}>
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  htmlFor="pin-login-email"
+                >
+                  Email
+                </label>
+                <input
+                  id="pin-login-email"
+                  className={authInputClassName}
+                  type="email"
+                  placeholder="Cashier email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  htmlFor="pin-branch-id"
+                >
+                  Branch ID
+                </label>
+                <input
+                  id="pin-branch-id"
+                  className={authInputClassName}
+                  type="text"
+                  placeholder="Branch UUID"
+                  value={branchId}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  htmlFor="pin-value"
+                >
+                  PIN
+                </label>
+                <input
+                  id="pin-value"
+                  className={authInputClassName}
+                  type="password"
+                  placeholder="4–6 digits"
+                  value={pin}
+                  onChange={(event) => setPin(event.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   required
                 />
               </div>
               <button
                 type="submit"
                 className={primaryCtaClass}
-                disabled={isOnboarding}
+                disabled={isSubmitting}
                 style={{
                   backgroundColor: "var(--auth-accent)",
                   color: "var(--auth-accent-ink)",
                 }}
               >
-                {isOnboarding
-                  ? "Creating business…"
-                  : "Create business & sign in"}
+                {isSubmitting ? "Signing in…" : "Sign in with PIN"}
               </button>
             </form>
-          </div>
-          <button
-            type="button"
-            className="mt-3 w-full text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            onClick={() => {
-              setShowOnboarding(false);
-              setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
-            }}
-          >
-            Back to sign in
-          </button>
+          )}
         </>
-      ) : mode === AUTH_MODE.password ? (
-        <form className="mt-6 space-y-4" onSubmit={onPasswordLogin}>
-          <div>
-            <label
-              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              htmlFor="login-email"
-            >
-              Email
-            </label>
-            <input
-              id="login-email"
-              className={authInputClassName}
-              type="email"
-              placeholder="you@business.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="username"
-              required
-            />
-          </div>
-          <div>
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <label
-                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                htmlFor="login-password"
-              >
-                Password
-              </label>
-              <Link
-                href={APP_ROUTES.forgotPassword}
-                className="text-xs font-semibold text-[var(--auth-accent)] hover:underline"
-              >
-                Forgot?
-              </Link>
-            </div>
-            <div className="relative">
-              <input
-                id="login-password"
-                className={cn(authInputClassName, "pr-12")}
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                minLength={passwordMinLength}
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground transition hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/10"
-                onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Minimum {passwordMinLength} characters.
-            </p>
-          </div>
-          <button
-            type="submit"
-            className={primaryCtaClass}
-            disabled={isSubmitting}
-            style={{
-              backgroundColor: "var(--auth-accent)",
-              color: "var(--auth-accent-ink)",
-            }}
-          >
-            {isSubmitting ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      ) : (
-        <form className="mt-6 space-y-4" onSubmit={onPinLogin}>
-          <div>
-            <label
-              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              htmlFor="pin-login-email"
-            >
-              Email
-            </label>
-            <input
-              id="pin-login-email"
-              className={authInputClassName}
-              type="email"
-              placeholder="Cashier email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="username"
-              required
-            />
-          </div>
-          <div>
-            <label
-              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              htmlFor="pin-branch-id"
-            >
-              Branch ID
-            </label>
-            <input
-              id="pin-branch-id"
-              className={authInputClassName}
-              type="text"
-              placeholder="Branch UUID"
-              value={branchId}
-              onChange={(event) => setBranchId(event.target.value)}
-              autoComplete="off"
-              required
-            />
-          </div>
-          <div>
-            <label
-              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              htmlFor="pin-value"
-            >
-              PIN
-            </label>
-            <input
-              id="pin-value"
-              className={authInputClassName}
-              type="password"
-              placeholder="4–6 digits"
-              value={pin}
-              onChange={(event) => setPin(event.target.value)}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className={primaryCtaClass}
-            disabled={isSubmitting}
-            style={{
-              backgroundColor: "var(--auth-accent)",
-              color: "var(--auth-accent-ink)",
-            }}
-          >
-            {isSubmitting ? "Signing in…" : "Sign in with PIN"}
-          </button>
-        </form>
-      )}
+      ) : null}
 
       {errorMessage ? (
         <div className="mt-5">

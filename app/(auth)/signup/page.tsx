@@ -24,11 +24,22 @@ import {
 } from "@/lib/auth-tenant-prefill";
 import { registerAccount, fetchMe, onboardBusiness } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold shadow-md transition hover:brightness-[0.97] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
+
+function extractVerificationToken(
+  url: string | null | undefined,
+): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).searchParams.get("token");
+  } catch {
+    return null;
+  }
+}
 
 function SignupPageContent() {
   const tenant = useOptionalTenant();
@@ -168,7 +179,6 @@ function SignupPageContent() {
       }
 
       setSessionTenantId(result.tenantId);
-      setShowOnboarding(false);
 
       // Proceed with the signup flow
       const registerResult = await registerAccount(
@@ -176,26 +186,41 @@ function SignupPageContent() {
         email.trim(),
         password,
       );
+      // Redirect to the business subdomain
+      const shopUrl = slugDerivedShopUrl(result.slug);
+      if (shopUrl) {
+        if (registerResult.status.toLowerCase() === "active") {
+          window.location.assign(`${shopUrl}/login`);
+        } else {
+          const token = extractVerificationToken(
+            registerResult.verificationUrl,
+          );
+          if (token) {
+            window.location.assign(
+              `${shopUrl}/verify-email?token=${encodeURIComponent(token)}`,
+            );
+          } else {
+            window.location.assign(`${shopUrl}/login`);
+          }
+        }
+        return;
+      }
+
+      // Fallback: stay on page (localhost without suffix configured)
+      setShowOnboarding(false);
       if (registerResult.status.toLowerCase() === "active") {
-        setVerificationLink(null);
         setSuccessMessage(
           `Account ready for ${registerResult.email}. You can sign in.`,
         );
       } else {
         const link = registerResult.verificationUrl?.trim();
         if (link) {
-          setSuccessMessage(
-            `Verify your email for ${registerResult.email}. Use the link below (shown because the API is configured to return it when mail is unavailable).`,
-          );
+          setSuccessMessage(`Verify your email for ${registerResult.email}.`);
           setVerificationLink(link);
         } else {
-          const base = `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`;
-          const localHint =
-            process.env.NODE_ENV === "development"
-              ? " Locally, if the API has no SMTP, the link is only in the backend terminal (yellow WARN + INFO with the verify URL), not in your inbox."
-              : "";
-          setSuccessMessage(base + localHint);
-          setVerificationLink(null);
+          setSuccessMessage(
+            `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`,
+          );
         }
       }
     } catch (error) {
@@ -212,7 +237,7 @@ function SignupPageContent() {
   return (
     <AuthSplitShell tenant={tenant}>
       <AuthPageHeader
-        title="Create a shopper account"
+        title="Create your account"
         description="Browse the storefront, save carts, and check out pickups with your profile."
       />
       <p className="mt-1 text-sm text-muted-foreground">
@@ -308,7 +333,7 @@ function SignupPageContent() {
               setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
             }}
           >
-            Back to shopper sign up
+            Back to sign up
           </button>
         </>
       ) : (
@@ -429,7 +454,7 @@ function SignupPageContent() {
       ) : null}
 
       <div className="mt-10 flex items-center justify-between gap-4 border-t border-black/[0.06] pt-6 text-sm dark:border-white/10">
-        <span className="text-muted-foreground">Have a shopper login?</span>
+        <span className="text-muted-foreground">Already have an account?</span>
         <Link
           href={APP_ROUTES.login}
           className="font-semibold underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
