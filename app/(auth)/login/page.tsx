@@ -29,6 +29,7 @@ import {
   fetchMe,
   loginWithPassword,
   loginWithPin,
+  onboardBusiness,
 } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import {
@@ -143,6 +144,9 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [isOnboarding, setIsOnboarding] = useState(false);
   const router = useRouter();
 
   const resolveAfterPasswordAuth = useCallback(async (): Promise<string> => {
@@ -188,7 +192,7 @@ function LoginPageContent() {
     try {
       const id = await ensureTenantResolved();
       if (!id?.trim()) {
-        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        setShowOnboarding(true);
         return;
       }
       persistTenantId(id);
@@ -210,7 +214,7 @@ function LoginPageContent() {
     try {
       const id = await ensureTenantResolved();
       if (!id?.trim()) {
-        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        setShowOnboarding(true);
         return;
       }
       persistTenantId(id);
@@ -222,6 +226,80 @@ function LoginPageContent() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onOnboardSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsOnboarding(true);
+    setErrorMessage("");
+
+    try {
+      // Determine the host to associate with the new business
+      const urlQ = searchParams.get("url");
+      const hostQ = searchParams.get("host");
+      const queryCombined =
+        [urlQ, hostQ].map((s) => s?.trim()).find((s) => s && s.length > 0) ??
+        "";
+      const fromQuery = queryCombined
+        ? (() => {
+            try {
+              const withProtocol = queryCombined.includes("://")
+                ? queryCombined
+                : `https://${queryCombined}`;
+              return new URL(withProtocol).hostname?.toLowerCase() ?? null;
+            } catch {
+              const first = queryCombined
+                .split("/")[0]
+                ?.split(":")[0]
+                ?.trim()
+                .toLowerCase();
+              return first && first.length > 0 ? first : null;
+            }
+          })()
+        : null;
+      const host =
+        fromQuery ??
+        (typeof window !== "undefined"
+          ? window.location.hostname.toLowerCase()
+          : null);
+
+      if (!host) {
+        setErrorMessage(
+          "Could not determine the domain. Please add ?url= with your shop URL.",
+        );
+        return;
+      }
+
+      const result = await onboardBusiness(host, businessName);
+      if (!result?.tenantId) {
+        setErrorMessage(
+          "Could not create business. Please try a different name.",
+        );
+        return;
+      }
+
+      // Persist the new tenant ID
+      setSessionTenantId(result.tenantId);
+
+      // Proceed with the original login flow based on current mode
+      if (mode === AUTH_MODE.pin) {
+        await loginWithPin(email, pin, branchId);
+        await syncSlugAndNavigate(router, APP_ROUTES.products, "push");
+      } else {
+        await loginWithPassword(email, password);
+        const dest = await resolveAfterPasswordAuth();
+        await syncSlugAndNavigate(router, dest, "push");
+      }
+      setShowOnboarding(false);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not create business. Please try again.",
+      );
+    } finally {
+      setIsOnboarding(false);
     }
   };
 
@@ -253,16 +331,39 @@ function LoginPageContent() {
           Create a shopper account
         </Link>
       </p>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Store staff invited by your manager should use the{" "}
-        <Link
-          href={APP_ROUTES.signupStaff}
-          className="font-semibold text-foreground underline decoration-[var(--auth-accent)] decoration-2 underline-offset-4 hover:opacity-90"
+
+      {/* Onboarding CTA */}
+      {!showOnboarding ? (
+        <button
+          type="button"
+          className="mt-5 flex w-full items-center gap-3 rounded-2xl border-2 border-[var(--auth-accent)] bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] p-4 text-left shadow-sm transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_14%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_20%,#18181b)]"
+          onClick={() => {
+            setShowOnboarding(true);
+            setErrorMessage("");
+          }}
         >
-          staff invite signup
-        </Link>{" "}
-        with the shared token — not this public link.
-      </p>
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
+            style={{
+              backgroundColor: "var(--auth-accent)",
+              color: "var(--auth-accent-ink)",
+            }}
+          >
+            🏪
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-foreground">
+              Create your shop
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Get a free subdomain and start selling in seconds.
+            </p>
+          </div>
+          <span className="shrink-0 text-lg font-bold text-[var(--auth-accent)]">
+            →
+          </span>
+        </button>
+      ) : null}
 
       <div className="mt-6 grid grid-cols-2 gap-2">
         <button
@@ -281,7 +382,62 @@ function LoginPageContent() {
         </button>
       </div>
 
-      {mode === AUTH_MODE.password ? (
+      {showOnboarding ? (
+        <>
+          <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] p-5 backdrop-blur-md dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)]">
+            <h3 className="mb-1 text-sm font-bold text-foreground">
+              Name your business
+            </h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Pick a name for your shop. You&apos;ll get a free subdomain and
+              become the{" "}
+              <span className="font-semibold text-foreground">owner</span>.
+            </p>
+            <form className="space-y-3" onSubmit={onOnboardSubmit}>
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  htmlFor="onboard-business-name"
+                >
+                  Business name
+                </label>
+                <input
+                  id="onboard-business-name"
+                  className={authInputClassName}
+                  placeholder="My Shop"
+                  value={businessName}
+                  onChange={(event) => setBusinessName(event.target.value)}
+                  autoComplete="organization"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className={primaryCtaClass}
+                disabled={isOnboarding}
+                style={{
+                  backgroundColor: "var(--auth-accent)",
+                  color: "var(--auth-accent-ink)",
+                }}
+              >
+                {isOnboarding
+                  ? "Creating business…"
+                  : "Create business & sign in"}
+              </button>
+            </form>
+          </div>
+          <button
+            type="button"
+            className="mt-3 w-full text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => {
+              setShowOnboarding(false);
+              setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+            }}
+          >
+            Back to sign in
+          </button>
+        </>
+      ) : mode === AUTH_MODE.password ? (
         <form className="mt-6 space-y-4" onSubmit={onPasswordLogin}>
           <div>
             <label

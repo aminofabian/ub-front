@@ -111,6 +111,7 @@ type LoginResponse = {
 };
 
 const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
+const PUBLIC_HOST_ONBOARD_PATH = "/api/v1/public/host/onboard";
 
 /**
  * Maps a storefront hostname (or full shop URL) to the tenant UUID via the public host resolve API.
@@ -137,6 +138,62 @@ export async function fetchTenantIdForHost(
       typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
     return id.length > 0 ? id : null;
   } catch {
+    return null;
+  }
+}
+
+/**
+ * Self-service business onboarding: creates a business for an unmapped host
+ * so the visitor can proceed to login or signup.
+ *
+ * @returns full host-resolve response with tenantId, tenantName, slug, etc.
+ */
+export async function onboardBusiness(
+  host: string,
+  name: string,
+): Promise<{ tenantId: string; tenantName: string; slug: string } | null> {
+  const h = host.trim();
+  const n = name.trim();
+  if (!h || !n) {
+    return null;
+  }
+  const url = apiUrl(PUBLIC_HOST_ONBOARD_PATH);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: n, host: h }),
+    });
+    if (!response.ok) {
+      const problem = await response.json().catch(() => null);
+      const detail =
+        (problem as { detail?: string } | null)?.detail ??
+        "Could not create business. The name may already be taken.";
+      throw new Error(detail);
+    }
+    const payload = (await response.json()) as {
+      tenantId?: unknown;
+      tenantName?: unknown;
+      slug?: unknown;
+    };
+    const tenantId =
+      typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
+    if (!tenantId) {
+      return null;
+    }
+    return {
+      tenantId,
+      tenantName:
+        typeof payload.tenantName === "string" ? payload.tenantName.trim() : "",
+      slug: typeof payload.slug === "string" ? payload.slug.trim() : "",
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
     return null;
   }
 }
