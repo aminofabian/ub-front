@@ -242,13 +242,22 @@ function SignupPageContent() {
         }
       } else {
         // Fields not filled — user clicked the CTA before entering their
-        // details. Drop back to the signup form so they can fill it in.
+        // details. Redirect to the business subdomain's signup page so the
+        // tenant resolves from the hostname (no cross-origin session issues).
+        if (shopUrl) {
+          const signupParams = new URLSearchParams();
+          const qsEmail = searchParams.get("email")?.trim();
+          if (qsEmail) signupParams.set("email", qsEmail);
+          const qs = signupParams.toString();
+          window.location.assign(`${shopUrl}/signup${qs ? `?${qs}` : ""}`);
+          return;
+        }
+        // Fallback: stay on page (localhost without suffix configured)
         setShowOnboarding(false);
         setErrorMessage("");
-        // Pre-fill email if we have it from a query param (redirect from login)
-        const qsEmail = searchParams.get("email")?.trim();
-        if (qsEmail) {
-          setEmail(qsEmail);
+        const qsEmail2 = searchParams.get("email")?.trim();
+        if (qsEmail2) {
+          setEmail(qsEmail2);
         }
       }
     } catch (error) {
