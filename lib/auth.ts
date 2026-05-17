@@ -31,13 +31,66 @@ export function clearSessionTokens(): void {
   window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
 }
 
-/** Clears tokens and sends the user to login (e.g. unusable access JWT). */
+/** Clears ALL session-related data on logout: tokens, tenant context, branch/item-type selections, caches. */
+export function clearAllSessionData(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  // Auth tokens
+  window.localStorage.removeItem(STORAGE_KEYS.accessToken);
+  window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  // Tenant context
+  window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
+  window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
+  // Branch / item-type selections (all business IDs)
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i);
+    if (
+      key &&
+      (key.startsWith("palmart:selectedBranch:") ||
+        key.startsWith("palmart:selectedItemType:"))
+    ) {
+      keysToRemove.push(key);
+    }
+  }
+  for (const key of keysToRemove) {
+    window.localStorage.removeItem(key);
+  }
+  // Catalog search cache
+  window.localStorage.removeItem("ub_catalog_item_search_v1");
+  // Web cart handle (guest storefront)
+  window.localStorage.removeItem("ub.webCart.v1");
+}
+
+/** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
 export function signOutClientAndRedirectToLogin(): void {
   if (typeof window === "undefined") {
     return;
   }
-  clearSessionTokens();
+  // Tear down realtime WebSocket before clearing tokens
+  try {
+    // Dynamic import to avoid circular dependency at module-load time
+    const disconnectFn = (window as unknown as Record<string, unknown>)[
+      "__ub_disconnectRealtime"
+    ] as (() => void) | undefined;
+    if (disconnectFn) {
+      disconnectFn();
+    }
+  } catch {
+    /* ignore */
+  }
+  clearAllSessionData();
   window.location.assign(APP_ROUTES.login);
+}
+
+/** Registers a global reference to disconnectRealtimeClient so signOutClientAndRedirectToLogin can call it without a circular import. */
+export function registerRealtimeDisconnect(fn: () => void): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  (window as unknown as Record<string, unknown>)["__ub_disconnectRealtime"] =
+    fn;
 }
 
 export function setSessionTenantId(id: string): void {
@@ -72,7 +125,9 @@ export function persistSessionTenantHost(hostname: string): void {
  * After login, map tenant slug to the hostname the API expects ({slug}.{NEXT_PUBLIC_APP_BASE_URL host}).
  * Safe while staying on localhost in the browser — tokens remain on this origin.
  */
-export function persistTenantHostFromSlug(slug: string | null | undefined): void {
+export function persistTenantHostFromSlug(
+  slug: string | null | undefined,
+): void {
   if (typeof window === "undefined") {
     return;
   }

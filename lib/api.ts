@@ -11,6 +11,7 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import {
+  clearAllSessionData,
   clearSessionTokens,
   getSessionTokens,
   setSessionTokens,
@@ -1228,7 +1229,8 @@ export async function resetPasswordWithToken(
 }
 
 /**
- * Revokes the current refresh session server-side when possible, then clears local tokens.
+ * Revokes the current refresh session server-side when possible, then clears ALL local session data.
+ * Also disconnects the realtime WebSocket to prevent stale connections from attempting re-auth.
  */
 export async function logoutRemote(): Promise<void> {
   const session = getSessionTokens();
@@ -1242,7 +1244,17 @@ export async function logoutRemote(): Promise<void> {
       /* network errors — still clear client */
     }
   }
-  clearSessionTokens();
+
+  // Tear down realtime WebSocket BEFORE clearing tokens so it doesn't attempt re-auth
+  try {
+    const { disconnectRealtimeClient } = await import("@/lib/realtime");
+    disconnectRealtimeClient();
+  } catch {
+    /* realtime module may not be loaded on this page */
+  }
+
+  // Clear all persisted session data (tokens, tenant context, branch/item-type selections, caches)
+  clearAllSessionData();
 }
 
 export async function fetchMe(): Promise<MeResponse> {

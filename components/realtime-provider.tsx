@@ -12,6 +12,7 @@ import {
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getSessionTokens } from "@/lib/auth";
+import { APP_ROUTES } from "@/lib/config";
 import { showPriceChangedToast } from "@/components/price-changed-toast";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
@@ -52,6 +53,14 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     useState<RealtimeConnectionState>("disconnected");
 
   useEffect(() => {
+    // Never connect on auth pages — no tenant context is available
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith(APP_ROUTES.login)
+    ) {
+      return;
+    }
+
     const tokens = getSessionTokens();
     if (!tokens) return;
 
@@ -73,11 +82,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           }
         : {}),
       onPriceChanged: (frame) => {
-        showPriceChangedToast(
-          frame,
-          currencyRef.current,
-          brandingRef.current,
-        );
+        showPriceChangedToast(frame, currencyRef.current, brandingRef.current);
       },
       onConnectionStateChange: (state) => {
         setConnectionState(state);

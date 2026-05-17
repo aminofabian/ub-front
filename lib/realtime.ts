@@ -12,7 +12,11 @@
  * @see docs/REALTIME_WEBSOCKET_PLAN.md
  */
 
-import { getSessionTokens, setSessionTokens } from "./auth";
+import {
+  getSessionTokens,
+  registerRealtimeDisconnect,
+  setSessionTokens,
+} from "./auth";
 import {
   API_ROUTES,
   apiUrl,
@@ -212,10 +216,7 @@ export class RealtimeClient {
   private lastPollNotificationId: string | null = null;
 
   /** Register a multiplexed listener and merge channels/handlers. */
-  registerListener(
-    id: string,
-    listener: RealtimeListenerOptions,
-  ): () => void {
+  registerListener(id: string, listener: RealtimeListenerOptions): () => void {
     this.listeners.set(id, listener);
     void this.syncListeners();
     return () => {
@@ -292,9 +293,8 @@ export class RealtimeClient {
     }
 
     for (const key of LISTENER_HANDLER_KEYS) {
-      const callbacks: Array<
-        NonNullable<RealtimeListenerOptions[typeof key]>
-      > = [];
+      const callbacks: Array<NonNullable<RealtimeListenerOptions[typeof key]>> =
+        [];
       for (const listener of this.listeners.values()) {
         const callback = listener[key];
         if (callback) {
@@ -629,3 +629,7 @@ export function disconnectRealtimeClient(): void {
   _instance?.disconnect();
   _instance = null;
 }
+
+// Register the disconnect function so signOutClientAndRedirectToLogin can tear down
+// the realtime connection without a circular import on auth.ts.
+registerRealtimeDisconnect(disconnectRealtimeClient);
