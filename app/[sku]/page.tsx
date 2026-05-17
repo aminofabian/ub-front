@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import { APP_BASE_URL, APP_ROUTES } from "@/lib/config";
 import {
@@ -33,7 +33,9 @@ export async function generateMetadata({
   const shopLabel =
     storefront?.label?.trim() || storefront?.businessName || "Shop";
   const base = APP_BASE_URL.replace(/\/+$/, "");
-  const canonicalPath = item ? shopItemPathFromCard(item) : `/${encodeURIComponent(sku)}`;
+  const canonicalPath = item
+    ? shopItemPathFromCard(item)
+    : `/${encodeURIComponent(sku)}`;
   const canonical = `${base}${canonicalPath}`;
   if (!item)
     return { title: `Product · ${shopLabel}`, alternates: { canonical } };
@@ -58,7 +60,7 @@ export async function generateMetadata({
 export default async function ShopItemPage({ params }: PageProps) {
   const { sku } = await params;
   const slug = await resolveStorefrontSlug();
-  if (!slug) notFound();
+  if (!slug) redirect("/");
   const item = await fetchPublicItemDetail(slug, sku);
   if (!item) notFound();
   if (!shopItemUrlSegmentIsCanonical(sku, item)) {

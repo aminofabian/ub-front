@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
   getSessionTokens,
+  persistSessionTenantHost,
   setSessionTenantId,
 } from "@/lib/auth";
 import {
@@ -179,15 +180,22 @@ function SignupPageContent() {
       }
 
       setSessionTenantId(result.tenantId);
+      // Tell the backend which host to use for verification links
+      const shopUrl = slugDerivedShopUrl(result.slug);
+      if (shopUrl) {
+        try {
+          persistSessionTenantHost(new URL(shopUrl).hostname);
+        } catch {
+          /* ignore */
+        }
+      }
 
-      // Proceed with the signup flow
       const registerResult = await registerAccount(
         name.trim(),
         email.trim(),
         password,
       );
       // Redirect to the business subdomain
-      const shopUrl = slugDerivedShopUrl(result.slug);
       if (shopUrl) {
         if (registerResult.status.toLowerCase() === "active") {
           window.location.assign(`${shopUrl}/login`);

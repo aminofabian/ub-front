@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   clearSessionTenantId,
   getSessionTokens,
+  persistSessionTenantHost,
   setSessionTenantId,
 } from "@/lib/auth";
 import {
@@ -199,6 +200,15 @@ function StaffSignupPageContent() {
       }
 
       setSessionTenantId(result.tenantId);
+      // Tell the backend which host to use for verification links
+      const shopUrl = slugDerivedShopUrl(result.slug);
+      if (shopUrl) {
+        try {
+          persistSessionTenantHost(new URL(shopUrl).hostname);
+        } catch {
+          /* ignore */
+        }
+      }
 
       // No invite token needed — first user in a new business becomes owner
       const registerResult = await registerAccount(
@@ -208,7 +218,6 @@ function StaffSignupPageContent() {
       );
 
       // Redirect to the business subdomain
-      const shopUrl = slugDerivedShopUrl(result.slug);
       if (shopUrl) {
         if (registerResult.status.toLowerCase() === "active") {
           window.location.assign(`${shopUrl}/login`);
