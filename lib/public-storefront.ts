@@ -46,6 +46,22 @@ export type PublicCatalogVariant = {
   qtyOnHand?: number | null;
 };
 
+export type PublicBarcodeLookup = {
+  id: string;
+  sku: string;
+  barcode: string;
+  name: string;
+  description: string | null;
+  brand: string | null;
+  size: string | null;
+  businessName: string;
+  businessSlug: string;
+  currency: string;
+  price: number | null;
+  qtyOnHand: number | null;
+  images: PublicItemImage[];
+};
+
 export type PublicCatalogItemDetail = {
   id: string;
   sku: string;
@@ -496,6 +512,48 @@ export async function fetchTenantContext(
       return null;
     }
     return normalizeTenantContext(await res.json());
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicBarcode(
+  barcode: string,
+): Promise<PublicBarcodeLookup | null> {
+  const base = backendOrigin();
+  const code = barcode.trim();
+  if (!code) return null;
+  const url = `${base}/api/v1/public/barcode/${encodeURIComponent(code)}`;
+  try {
+    const res = await fetch(url, STORE_PRICE_FETCH_INIT);
+    if (res.status === 404) return null;
+    if (!res.ok) return null;
+    return (await res.json()) as PublicBarcodeLookup;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicItemByBarcode(
+  slug: string,
+  barcode: string,
+): Promise<PublicCatalogItemDetail | null> {
+  const base = backendOrigin();
+  const s = sanitizeStorefrontSlug(slug);
+  const code = barcode.trim();
+  if (!s || !code) {
+    return null;
+  }
+  const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/by-barcode/${encodeURIComponent(code)}`;
+  try {
+    const res = await fetch(url, STORE_PRICE_FETCH_INIT);
+    if (res.status === 404) {
+      return null;
+    }
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as PublicCatalogItemDetail;
   } catch {
     return null;
   }

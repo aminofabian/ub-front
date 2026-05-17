@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/config";
 import type {
+  PublicBarcodeLookup,
   PublicCatalogItemDetail,
   PublicCatalogListPayload,
   PublicStorefrontPayload,
@@ -109,6 +110,51 @@ export async function fetchPublicItemDetailBrowser(
     const res = await fetch(
       apiUrl(
         `/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/${encodeURIComponent(id)}`,
+      ),
+      {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as PublicCatalogItemDetail;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicBarcodeBrowser(
+  barcode: string,
+): Promise<PublicBarcodeLookup | null> {
+  const code = barcode.trim();
+  if (!code) return null;
+  try {
+    const res = await fetch(
+      apiUrl(`/api/v1/public/barcode/${encodeURIComponent(code)}`),
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as PublicBarcodeLookup;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicItemByBarcodeBrowser(
+  slug: string,
+  barcode: string,
+): Promise<PublicCatalogItemDetail | null> {
+  const s = sanitizeStorefrontSlug(slug);
+  const code = barcode.trim();
+  if (!s || !code) {
+    return null;
+  }
+  try {
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items/by-barcode/${encodeURIComponent(code)}`,
       ),
       {
         headers: { Accept: "application/json" },
