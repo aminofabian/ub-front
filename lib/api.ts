@@ -173,8 +173,9 @@ export async function onboardBusiness(
     if (!response.ok) {
       const problem = await response.json().catch(() => null);
       const detail =
-        (problem as { detail?: string } | null)?.detail ??
-        "Could not create business. The name may already be taken.";
+        (problem as { detail?: string; title?: string } | null)?.detail ??
+        (problem as { title?: string } | null)?.title ??
+        `Could not create business (HTTP ${response.status}). The name may already be taken.`;
       throw new Error(detail);
     }
     const payload = (await response.json()) as {
