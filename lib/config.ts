@@ -234,7 +234,14 @@ function resolveAppBaseUrl(): string {
   if (typeof window === "undefined") {
     return APP_BASE_URL;
   }
-  const baseHost = new URL(APP_BASE_URL).hostname;
+  let baseHost: string;
+  try {
+    baseHost = new URL(APP_BASE_URL).hostname;
+  } catch {
+    // NEXT_PUBLIC_APP_BASE_URL is missing a protocol (e.g. "kiosk.ke" instead
+    // of "https://kiosk.ke"). Fall back to the browser's current origin.
+    return window.location.origin;
+  }
   if (!BARE_LOCAL_HOSTS.has(baseHost)) {
     return APP_BASE_URL; // already configured for production
   }
@@ -273,10 +280,24 @@ export function slugDerivedShopUrl(slug: string): string {
   if (!s) {
     return "";
   }
-  const base = new URL(resolveAppBaseUrl());
-  const host = `${s}.${base.hostname}`;
-  const port = base.port ? `:${base.port}` : "";
-  return `${base.protocol}//${host}${port}`;
+  try {
+    const base = new URL(resolveAppBaseUrl());
+    const host = `${s}.${base.hostname}`;
+    const port = base.port ? `:${base.port}` : "";
+    return `${base.protocol}//${host}${port}`;
+  } catch {
+    // resolveAppBaseUrl returned something that isn't a valid URL.
+    // Last resort: derive from the browser's current origin.
+    if (typeof window !== "undefined") {
+      try {
+        const origin = new URL(window.location.origin);
+        return `${origin.protocol}//${s}.${origin.hostname}${origin.port ? `:${origin.port}` : ""}`;
+      } catch {
+        /* give up */
+      }
+    }
+    return "";
+  }
 }
 
 /**
@@ -298,7 +319,19 @@ export function hostDerivedShopUrl(
   if (raw.includes("/") || raw.includes(" ")) {
     return "";
   }
-  const base = new URL(resolveAppBaseUrl());
-  const port = base.port ? `:${base.port}` : "";
-  return `${base.protocol}//${raw}${port}`;
+  try {
+    const base = new URL(resolveAppBaseUrl());
+    const port = base.port ? `:${base.port}` : "";
+    return `${base.protocol}//${raw}${port}`;
+  } catch {
+    if (typeof window !== "undefined") {
+      try {
+        const origin = new URL(window.location.origin);
+        return `${origin.protocol}//${raw}${origin.port ? `:${origin.port}` : ""}`;
+      } catch {
+        /* give up */
+      }
+    }
+    return "";
+  }
 }
