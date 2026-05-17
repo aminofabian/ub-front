@@ -190,45 +190,65 @@ function SignupPageContent() {
         }
       }
 
-      const registerResult = await registerAccount(
-        name.trim(),
-        email.trim(),
-        password,
-      );
-      // Redirect to the business subdomain
-      if (shopUrl) {
-        if (registerResult.status.toLowerCase() === "active") {
-          window.location.assign(`${shopUrl}/login`);
-        } else {
-          const token = extractVerificationToken(
-            registerResult.verificationUrl,
-          );
-          if (token) {
-            window.location.assign(
-              `${shopUrl}/verify-email?token=${encodeURIComponent(token)}`,
-            );
-          } else {
+      // If the signup form fields are filled, proceed to register and redirect.
+      // Otherwise just hide onboarding — the tenant is now in session, so the
+      // user can fill in the form and submit signup normally.
+      const hasSignupFields =
+        name.trim().length > 0 &&
+        email.trim().length > 0 &&
+        password.length > 0;
+
+      if (hasSignupFields) {
+        const registerResult = await registerAccount(
+          name.trim(),
+          email.trim(),
+          password,
+        );
+        // Redirect to the business subdomain
+        if (shopUrl) {
+          if (registerResult.status.toLowerCase() === "active") {
             window.location.assign(`${shopUrl}/login`);
+          } else {
+            const token = extractVerificationToken(
+              registerResult.verificationUrl,
+            );
+            if (token) {
+              window.location.assign(
+                `${shopUrl}/verify-email?token=${encodeURIComponent(token)}`,
+              );
+            } else {
+              window.location.assign(`${shopUrl}/login`);
+            }
+          }
+          return;
+        }
+
+        // Fallback: stay on page (localhost without suffix configured)
+        setShowOnboarding(false);
+        if (registerResult.status.toLowerCase() === "active") {
+          setSuccessMessage(
+            `Account ready for ${registerResult.email}. You can sign in.`,
+          );
+        } else {
+          const link = registerResult.verificationUrl?.trim();
+          if (link) {
+            setSuccessMessage(`Verify your email for ${registerResult.email}.`);
+            setVerificationLink(link);
+          } else {
+            setSuccessMessage(
+              `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`,
+            );
           }
         }
-        return;
-      }
-
-      // Fallback: stay on page (localhost without suffix configured)
-      setShowOnboarding(false);
-      if (registerResult.status.toLowerCase() === "active") {
-        setSuccessMessage(
-          `Account ready for ${registerResult.email}. You can sign in.`,
-        );
       } else {
-        const link = registerResult.verificationUrl?.trim();
-        if (link) {
-          setSuccessMessage(`Verify your email for ${registerResult.email}.`);
-          setVerificationLink(link);
-        } else {
-          setSuccessMessage(
-            `You're almost done. We sent a link to ${registerResult.email}. Open it to verify, then sign in.`,
-          );
+        // Fields not filled — user clicked the CTA before entering their
+        // details. Drop back to the signup form so they can fill it in.
+        setShowOnboarding(false);
+        setErrorMessage("");
+        // Pre-fill email if we have it from a query param (redirect from login)
+        const qsEmail = searchParams.get("email")?.trim();
+        if (qsEmail) {
+          setEmail(qsEmail);
         }
       }
     } catch (error) {
