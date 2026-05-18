@@ -12,6 +12,8 @@ import { formatDisplayPrice } from "@/lib/public-storefront";
 import { shopItemPathFromCard } from "@/lib/shop-item-url";
 import { cn } from "@/lib/utils";
 
+import { goldCtaClass, landingCardClass } from "../tenant-console/landing/landing-styles";
+
 /** Parsed result of a GTIN / UPC / EAN barcode. */
 function parseBarcode(raw: string): string | null {
   const clean = raw.replace(/[\s\-._]/g, "").trim();
@@ -34,6 +36,7 @@ type LookupState =
 
 type BarcodeLookupProps = {
   variant?: "page" | "compact";
+  theme?: "storefront" | "platform";
   primaryHex?: string | null;
   accentHex?: string | null;
   className?: string;
@@ -41,10 +44,12 @@ type BarcodeLookupProps = {
 
 export function BarcodeLookup({
   variant = "page",
+  theme = "storefront",
   primaryHex,
   className,
 }: BarcodeLookupProps) {
-  const primary = resolveHex(primaryHex);
+  const isPlatform = theme === "platform";
+  const primary = isPlatform ? null : resolveHex(primaryHex);
   const isCompact = variant === "compact";
 
   const [input, setInput] = useState("");
@@ -105,7 +110,7 @@ export function BarcodeLookup({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {!isCompact ? (
+      {!isCompact && !isPlatform ? (
         <div className="flex items-start gap-3 rounded-xl border border-border/30 bg-card/70 p-4 backdrop-blur-sm sm:p-5">
           <span
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
@@ -138,7 +143,10 @@ export function BarcodeLookup({
       <form onSubmit={handleSubmit}>
         <div
           className={cn(
-            "flex items-stretch overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.04] transition-shadow focus-within:border-primary/30 focus-within:shadow-md",
+            "flex items-stretch overflow-hidden rounded-xl border shadow-sm transition-shadow",
+            isPlatform
+              ? "border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] focus-within:border-[var(--kiosk-gold-border)] focus-within:shadow-[0_4px_20px_-6px_var(--kiosk-success-shadow)]"
+              : "border-border/70 bg-card ring-1 ring-black/[0.04] focus-within:border-primary/30 focus-within:shadow-md",
             isCompact ? "h-11" : "h-12 sm:h-[3.25rem]",
           )}
           role="search"
@@ -154,13 +162,23 @@ export function BarcodeLookup({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Enter barcode number…"
-            className="min-w-0 flex-1 border-0 bg-transparent px-4 font-mono text-sm tracking-wide outline-none placeholder:text-muted-foreground/60 focus-visible:ring-0 sm:text-base"
+            className={cn(
+              "min-w-0 flex-1 border-0 bg-transparent px-4 font-mono text-sm tracking-wide outline-none focus-visible:ring-0 sm:text-base",
+              isPlatform
+                ? "text-[var(--kiosk-text)] placeholder:text-[var(--kiosk-text-dim)]"
+                : "placeholder:text-muted-foreground/60",
+            )}
             disabled={state.phase === "loading"}
           />
           <button
             type="button"
             onClick={() => setScannerOpen(true)}
-            className="flex w-11 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+            className={cn(
+              "flex w-11 shrink-0 items-center justify-center border-l transition-colors",
+              isPlatform
+                ? "border-[var(--kiosk-border)] text-[var(--kiosk-text-muted)] hover:bg-[var(--kiosk-gold-soft)] hover:text-[var(--kiosk-gold)]"
+                : "border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+            )}
             aria-label="Scan barcode with camera"
             title="Scan with camera"
           >
@@ -170,11 +188,14 @@ export function BarcodeLookup({
             type="submit"
             disabled={submitDisabled}
             className={cn(
-              "flex shrink-0 items-center justify-center px-4 text-sm font-semibold text-white transition hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5",
-              !primary && "bg-primary",
-              isCompact ? "min-w-[5.5rem]" : "min-w-[6.5rem]",
+              "flex shrink-0 items-center justify-center px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 sm:px-5",
+              isPlatform
+                ? `${goldCtaClass} !rounded-none !px-5 !py-0 !shadow-none hover:!translate-y-0 min-w-[6.5rem]`
+                : "text-white hover:brightness-110 active:brightness-95",
+              !isPlatform && !primary && "bg-primary",
+              !isPlatform && (isCompact ? "min-w-[5.5rem]" : "min-w-[6.5rem]"),
             )}
-            style={primary ? { backgroundColor: primary } : undefined}
+            style={!isPlatform && primary ? { backgroundColor: primary } : undefined}
           >
             {state.phase === "loading" ? (
               <span className="flex items-center gap-2">
@@ -188,33 +209,60 @@ export function BarcodeLookup({
         </div>
       </form>
 
-      {state.phase === "loading" ? <LookupSkeleton compact={isCompact} /> : null}
+      {state.phase === "loading" ? (
+        <LookupSkeleton compact={isCompact} isPlatform={isPlatform} />
+      ) : null}
 
       {state.phase === "not-found" ? (
-        <StatusCard>
+        <StatusCard isPlatform={isPlatform}>
           <PackageSearch
             className="mx-auto h-10 w-10 text-muted-foreground/50"
             aria-hidden
           />
-          <h2 className="mt-3 text-base font-semibold text-foreground">
+          <h2
+            className={cn(
+              "mt-3 text-base font-semibold",
+              isPlatform
+                ? "font-heading text-[var(--kiosk-text)]"
+                : "text-foreground",
+            )}
+          >
             No product found
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p
+            className={cn(
+              "mt-1 text-sm",
+              isPlatform ? "text-[var(--kiosk-text-muted)]" : "text-muted-foreground",
+            )}
+          >
             Barcode{" "}
-            <span className="font-mono font-medium text-foreground">
+            <span
+              className={cn(
+                "font-mono font-medium",
+                isPlatform ? "text-[var(--kiosk-text)]" : "text-foreground",
+              )}
+            >
               {state.code}
             </span>{" "}
             doesn&apos;t match any product in our catalog.
           </p>
-          <ResetButton primary={primary} onReset={resetLookup} />
+          <ResetButton
+            primary={primary}
+            isPlatform={isPlatform}
+            onReset={resetLookup}
+          />
         </StatusCard>
       ) : null}
 
       {state.phase === "error" ? (
-        <StatusCard className="border-red-200/80 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/30">
+        <StatusCard
+          isPlatform={isPlatform}
+          className="border-red-200/80 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/30"
+        >
           <p className="text-sm text-red-700 dark:text-red-300">{state.message}</p>
           <ResetButton
             primary={primary}
+            isPlatform={isPlatform}
             onReset={resetLookup}
             labelClassName="text-red-700 dark:text-red-300"
           />
@@ -226,6 +274,7 @@ export function BarcodeLookup({
           item={state.item}
           primary={primary}
           compact={isCompact}
+          isPlatform={isPlatform}
           onReset={resetLookup}
         />
       ) : null}
@@ -240,14 +289,19 @@ export function BarcodeLookup({
 function StatusCard({
   children,
   className,
+  isPlatform = false,
 }: {
   children: React.ReactNode;
   className?: string;
+  isPlatform?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/30 bg-card/70 p-6 text-center backdrop-blur-sm",
+        "rounded-xl border p-6 text-center backdrop-blur-sm",
+        isPlatform
+          ? cn(landingCardClass, "bg-[var(--kiosk-elevated)]")
+          : "border-border/30 bg-card/70",
         className,
       )}
     >
@@ -260,10 +314,12 @@ function ResetButton({
   primary,
   onReset,
   labelClassName,
+  isPlatform = false,
 }: {
   primary: string | null;
   onReset: () => void;
   labelClassName?: string;
+  isPlatform?: boolean;
 }) {
   return (
     <button
@@ -271,36 +327,52 @@ function ResetButton({
       onClick={onReset}
       className={cn(
         "mt-4 text-sm font-semibold hover:underline",
-        labelClassName ?? (primary ? undefined : "text-primary"),
+        labelClassName ??
+          (isPlatform
+            ? "text-[var(--kiosk-gold)]"
+            : primary
+              ? undefined
+              : "text-primary"),
       )}
-      style={primary && !labelClassName ? { color: primary } : undefined}
+      style={!isPlatform && primary && !labelClassName ? { color: primary } : undefined}
     >
       Try another barcode
     </button>
   );
 }
 
-function LookupSkeleton({ compact }: { compact: boolean }) {
+function LookupSkeleton({
+  compact,
+  isPlatform = false,
+}: {
+  compact: boolean;
+  isPlatform?: boolean;
+}) {
+  const shellClass = isPlatform
+    ? cn(landingCardClass, "border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)]")
+    : "border-border/30 bg-card/70";
+  const pulseClass = isPlatform ? "bg-[var(--kiosk-surface)]" : "bg-muted";
+
   if (compact) {
     return (
-      <div className="flex gap-3 rounded-xl border border-border/30 bg-card/70 p-3">
-        <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <div className={cn("flex gap-3 rounded-xl border p-3", shellClass)}>
+        <div className={cn("h-16 w-16 shrink-0 animate-pulse rounded-lg", pulseClass)} />
         <div className="flex flex-1 flex-col justify-center gap-2">
-          <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-          <div className="h-5 w-1/3 animate-pulse rounded bg-muted" />
+          <div className={cn("h-4 w-3/4 animate-pulse rounded", pulseClass)} />
+          <div className={cn("h-5 w-1/3 animate-pulse rounded", pulseClass)} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border/30 bg-card/70 p-6 backdrop-blur-sm">
+    <div className={cn("rounded-xl border p-6 backdrop-blur-sm", shellClass)}>
       <div className="grid gap-6 sm:grid-cols-[1fr_1.5fr]">
-        <div className="aspect-square animate-pulse rounded-xl bg-muted" />
+        <div className={cn("aspect-square animate-pulse rounded-xl", pulseClass)} />
         <div className="space-y-4">
-          <div className="h-7 w-3/4 animate-pulse rounded-lg bg-muted" />
-          <div className="h-9 w-1/3 animate-pulse rounded-lg bg-muted" />
-          <div className="h-5 w-1/2 animate-pulse rounded-lg bg-muted" />
+          <div className={cn("h-7 w-3/4 animate-pulse rounded-lg", pulseClass)} />
+          <div className={cn("h-9 w-1/3 animate-pulse rounded-lg", pulseClass)} />
+          <div className={cn("h-5 w-1/2 animate-pulse rounded-lg", pulseClass)} />
         </div>
       </div>
     </div>
@@ -311,13 +383,18 @@ function FoundCard({
   item,
   primary,
   compact,
+  isPlatform = false,
   onReset,
 }: {
   item: PublicBarcodeLookup;
   primary: string | null;
   compact: boolean;
+  isPlatform?: boolean;
   onReset: () => void;
 }) {
+  const cardShell = isPlatform
+    ? cn(landingCardClass, "border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] backdrop-blur-sm")
+    : "border-border/30 bg-card/70 backdrop-blur-sm";
   const priceLabel = formatDisplayPrice(item.currency, item.price);
   const inStock =
     item.qtyOnHand != null && Number.isFinite(item.qtyOnHand) && item.qtyOnHand > 0;
@@ -378,9 +455,14 @@ function FoundCard({
   }
 
   return (
-    <div className="rounded-xl border border-border/30 bg-card/70 p-6 backdrop-blur-sm">
+    <div className={cn("rounded-xl border p-6", cardShell)}>
       <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_1.5fr]">
-        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
+        <div
+          className={cn(
+            "relative aspect-square w-full overflow-hidden rounded-xl",
+            isPlatform ? "bg-[var(--kiosk-surface)]" : "bg-muted",
+          )}
+        >
           {item.images[0]?.url ? (
             <Image
               src={item.images[0].url}
@@ -398,56 +480,120 @@ function FoundCard({
         </div>
 
         <div>
-          <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-foreground">
+          <h2
+            className={cn(
+              "text-2xl leading-tight tracking-tight",
+              isPlatform
+                ? "font-heading font-semibold tracking-[-0.02em] text-[var(--kiosk-text)]"
+                : "font-extrabold text-foreground",
+            )}
+          >
             {item.name}
           </h2>
 
           {item.brand ? (
-            <p className="mt-1 text-sm font-medium text-muted-foreground">
+            <p
+              className={cn(
+                "mt-1 text-sm font-medium",
+                isPlatform ? "text-[var(--kiosk-text-muted)]" : "text-muted-foreground",
+              )}
+            >
               {item.brand}
               {item.size ? ` · ${item.size}` : ""}
             </p>
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-baseline gap-3">
-            <span className="text-3xl font-black tabular-nums text-foreground">
+            <span
+              className={cn(
+                "text-3xl font-black tabular-nums",
+                isPlatform ? "text-[var(--kiosk-text)]" : "text-foreground",
+              )}
+            >
               {priceLabel}
             </span>
             {inStock ? (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                  isPlatform
+                    ? "bg-[var(--kiosk-success-bg)] text-[var(--kiosk-success)]"
+                    : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400",
+                )}
+              >
                 In stock
               </span>
             ) : null}
           </div>
 
-          <p className="mt-2 text-xs text-muted-foreground">
-            SKU <span className="font-mono text-foreground">{item.sku}</span>
+          <p
+            className={cn(
+              "mt-2 text-xs",
+              isPlatform ? "text-[var(--kiosk-text-muted)]" : "text-muted-foreground",
+            )}
+          >
+            SKU{" "}
+            <span
+              className={cn(
+                "font-mono",
+                isPlatform ? "text-[var(--kiosk-text)]" : "text-foreground",
+              )}
+            >
+              {item.sku}
+            </span>
             {" · "}
             Barcode{" "}
-            <span className="font-mono text-foreground">{item.barcode}</span>
+            <span
+              className={cn(
+                "font-mono",
+                isPlatform ? "text-[var(--kiosk-text)]" : "text-foreground",
+              )}
+            >
+              {item.barcode}
+            </span>
           </p>
 
           {item.description ? (
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            <p
+              className={cn(
+                "mt-4 text-sm leading-relaxed",
+                isPlatform ? "text-[var(--kiosk-text-muted)]" : "text-muted-foreground",
+              )}
+            >
               {item.description.length > 200
                 ? `${item.description.slice(0, 200)}…`
                 : item.description}
             </p>
           ) : null}
 
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p
+            className={cn(
+              "mt-3 text-xs",
+              isPlatform ? "text-[var(--kiosk-text-muted)]" : "text-muted-foreground",
+            )}
+          >
             Sold by{" "}
-            <span className="font-medium text-foreground">{item.businessName}</span>
+            <span
+              className={cn(
+                "font-medium",
+                isPlatform ? "text-[var(--kiosk-text)]" : "text-foreground",
+              )}
+            >
+              {item.businessName}
+            </span>
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href={shopItemPathFromCard({ sku: item.sku })}
               className={cn(
-                "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110",
-                !primary && "bg-primary",
+                "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition",
+                isPlatform
+                  ? goldCtaClass
+                  : "text-white hover:brightness-110",
+                !isPlatform && !primary && "bg-primary",
               )}
-              style={primary ? { backgroundColor: primary } : undefined}
+              style={!isPlatform && primary ? { backgroundColor: primary } : undefined}
             >
               View full details
               <span aria-hidden>→</span>
@@ -455,7 +601,12 @@ function FoundCard({
             <button
               type="button"
               onClick={onReset}
-              className="rounded-xl border border-border/70 px-5 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
+              className={cn(
+                "rounded-xl border px-5 py-2.5 text-sm font-medium transition-colors",
+                isPlatform
+                  ? "border-[var(--kiosk-border-strong)] text-[var(--kiosk-text)] hover:bg-[var(--kiosk-ghost-hover-bg)]"
+                  : "border-border/70 hover:bg-muted/50",
+              )}
             >
               Look up another
             </button>
