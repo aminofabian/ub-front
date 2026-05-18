@@ -35,6 +35,31 @@ export type SaDomainRow = {
   active: boolean;
 };
 
+export type SaBusinessUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  status: string;
+  roleKey: string;
+  roleName: string;
+  branchName: string;
+  lastLoginAt: string;
+  createdAt: string;
+};
+
+export type SaBusinessStats = {
+  totalUsers: number;
+  activeUsers: number;
+  totalProducts: number;
+  totalBranches: number;
+  totalSalesToday: number;
+  revenueToday: number;
+  totalSalesThisMonth: number;
+  revenueThisMonth: number;
+  openShifts: number;
+};
+
 function getNetworkErrorMessage(): string {
   const via =
     getApiBaseUrl().length > 0
@@ -235,4 +260,22 @@ export async function changeSuperAdminPassword(
     method: "POST",
     body: JSON.stringify({ currentPassword, newPassword }),
   });
+}
+
+export async function fetchSaBusinessUsers(
+  businessId: string,
+): Promise<SaBusinessUserRow[]> {
+  return saRequest<SaBusinessUserRow[]>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/users`,
+    { method: "GET" },
+  );
+}
+
+export async function fetchSaBusinessStats(
+  businessId: string,
+): Promise<SaBusinessStats> {
+  return saRequest<SaBusinessStats>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/stats`,
+    { method: "GET" },
+  );
 }
