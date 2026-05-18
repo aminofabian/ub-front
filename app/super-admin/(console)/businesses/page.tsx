@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
-
 import { AuthAlert } from "@/components/auth/auth-alert";
+import {
+  showThemedConfirmToast,
+  showThemedErrorToast,
+  showThemedSuccessToast,
+} from "@/components/super-admin/themed-confirm-toast";
 import { Button } from "@/components/ui/button";
 import {
   type CreateSaBusinessPayload,
@@ -77,37 +80,28 @@ export default function SuperAdminBusinessesPage() {
     }
   }
 
-  const performDeleteTenant = async (b: SaBusinessRow, toastId: string | number) => {
+  const performDeleteTenant = async (b: SaBusinessRow) => {
     setDeleteError("");
     setDeletingId(b.id);
     try {
       await deleteSaBusiness(b.id);
-      toast.dismiss(toastId);
-      toast.success(`Tenant “${b.name}” deleted.`);
+      showThemedSuccessToast(`Tenant “${b.name}” deleted.`);
       await reload();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Delete failed.";
       setDeleteError(message);
-      toast.error(message);
+      showThemedErrorToast(message);
     } finally {
       setDeletingId(null);
     }
   };
 
   const onDeleteTenant = (b: SaBusinessRow) => {
-    const toastId = `delete-sa-business-${b.id}`;
-    toast.warning(`Delete tenant “${b.name}”?`, {
-      id: toastId,
+    showThemedConfirmToast({
+      id: `delete-sa-business-${b.id}`,
+      title: `Delete tenant “${b.name}”?`,
       description: `Slug: ${b.slug}. This archives the business and all users under it. It cannot be undone from the console.`,
-      duration: Infinity,
-      action: {
-        label: "Delete",
-        onClick: () => void performDeleteTenant(b, toastId),
-      },
-      cancel: {
-        label: "Cancel",
-        onClick: () => toast.dismiss(toastId),
-      },
+      onConfirm: () => performDeleteTenant(b),
     });
   };
 

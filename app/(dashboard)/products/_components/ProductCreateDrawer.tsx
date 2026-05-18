@@ -456,7 +456,7 @@ export function ProductCreateDrawer({
       <form id="create-parent-form" className="space-y-5" onSubmit={handleSubmit}>
         {catalog.itemTypes.length === 0 && (
           <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-            No item types in tenant.
+            Add departments first (Catalog → Departments).
           </div>
         )}
 
@@ -592,21 +592,27 @@ export function ProductCreateDrawer({
             </Label>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Label required>
-                Item type
-                <select
-                  className={icClass()}
-                  value={m.parentDraft.itemTypeId}
-                  onChange={(e) => m.setParentDraft((p) => ({ ...p, itemTypeId: e.target.value }))}
-                  required
-                >
-                  {catalog.itemTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </Label>
+              <div className="flex flex-col gap-1">
+                <Label required>
+                  Department
+                  <select
+                    className={icClass()}
+                    value={m.parentDraft.itemTypeId}
+                    onChange={(e) =>
+                      m.setParentDraft((p) => ({ ...p, itemTypeId: e.target.value }))
+                    }
+                    required
+                  >
+                    {catalog.itemTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </Label>
+                <p className="text-[11px] text-muted-foreground">e.g. Grocery, Retail shop</p>
+              </div>
+              <div className="flex flex-col gap-1">
               <Label>
                 Category
                 <select
@@ -623,6 +629,8 @@ export function ProductCreateDrawer({
                   ))}
                 </select>
               </Label>
+                <p className="text-[11px] text-muted-foreground">Optional</p>
+              </div>
             </div>
           </div>
 

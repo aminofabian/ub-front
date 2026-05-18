@@ -214,7 +214,7 @@ function PosCatalogItemTypeSelect({
           setPosItemTypeId(v ? v : null);
         }}
         disabled={itemTypesLoading || itemTypes.length === 0}
-        aria-label="Filter catalog by item type"
+        aria-label="Filter catalog by department"
       >
         {itemTypes.length === 0 ? (
           <option value="">{itemTypesLoading ? "Loading…" : "No types"}</option>

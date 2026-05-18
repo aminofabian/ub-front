@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
@@ -27,7 +27,7 @@ import {
   dashboardHintClass,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
-import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
+import { FormDrawer } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
@@ -40,23 +40,20 @@ import {
   updateItemType,
   deleteItemType,
 } from "@/lib/api";
+import { buildPendingSectionCreates } from "@/lib/item-type-suggestions";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+
+import { ExtraSectionNames } from "./_components/extra-section-names";
+import { SectionSuggestions } from "./_components/section-suggestions";
+
+const INITIAL_EXTRA_NAMES = [""];
 
 // ─── feedback ────────────────────────────────────────────────────────────────
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
 // ─── create draft ─────────────────────────────────────────────────────────────
-
-const EMPTY_CREATE_DRAFT: CreateItemTypePayload = {
-  key: "",
-  label: "",
-  icon: "",
-  color: "",
-  sortOrder: undefined,
-  isDefault: false,
-};
 
 // ─── edit draft ───────────────────────────────────────────────────────────────
 
@@ -86,9 +83,51 @@ export default function ItemTypesPage() {
 
   // drawers
   const [createOpen, setCreateOpen] = useState(false);
-  const [createDraft, setCreateDraft] =
-    useState<CreateItemTypePayload>(EMPTY_CREATE_DRAFT);
+  const [sectionPickLabels, setSectionPickLabels] = useState<string[]>([]);
+  const [extraNames, setExtraNames] = useState<string[]>(INITIAL_EXTRA_NAMES);
   const [createBusy, setCreateBusy] = useState(false);
+
+  const resetCreateForm = useCallback(() => {
+    setSectionPickLabels([]);
+    setExtraNames(INITIAL_EXTRA_NAMES);
+  }, []);
+
+  const existingSectionKeys = useMemo(
+    () => new Set(rows.map((r) => r.key.trim().toLowerCase())),
+    [rows],
+  );
+
+  const existingSectionLabels = useMemo(
+    () => new Set(rows.map((r) => r.label.trim().toLowerCase())),
+    [rows],
+  );
+
+  const toggleSectionPick = useCallback((label: string) => {
+    const k = label.trim().toLowerCase();
+    setSectionPickLabels((prev) =>
+      prev.some((p) => p.trim().toLowerCase() === k)
+        ? prev.filter((p) => p.trim().toLowerCase() !== k)
+        : [...prev, label],
+    );
+  }, []);
+
+  const pendingSectionCreates = useMemo(
+    () =>
+      buildPendingSectionCreates({
+        pickedLabels: sectionPickLabels,
+        extraNames,
+        existingKeys: existingSectionKeys,
+        existingLabels: existingSectionLabels,
+      }),
+    [
+      sectionPickLabels,
+      extraNames,
+      existingSectionKeys,
+      existingSectionLabels,
+    ],
+  );
+
+  const pendingSectionCount = pendingSectionCreates.length;
 
   const [editId, setEditId] = useState<string | null>(null);
   const [editBusy, setEditBusy] = useState(false);
@@ -111,7 +150,7 @@ export default function ItemTypesPage() {
       .catch(() => {
         setLoadFailed(true);
         setRows([]);
-        setFeedback({ kind: "error", text: "Failed to load item types." });
+        setFeedback({ kind: "error", text: "Failed to load departments." });
       });
   }, []);
 
@@ -121,43 +160,72 @@ export default function ItemTypesPage() {
 
   useEffect(() => {
     if (searchParams.get("onboarding") === "create-item-type" && canWrite) {
-      setCreateDraft(EMPTY_CREATE_DRAFT);
+      resetCreateForm();
       setCreateOpen(true);
     }
-  }, [searchParams, canWrite]);
+  }, [searchParams, canWrite, resetCreateForm]);
 
   // ─── create ────────────────────────────────────────────────────────────────
 
   const handleCreate = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const { key, label } = createDraft;
-      if (!key.trim() || !label.trim()) {
-        setFeedback({ kind: "error", text: "Key and label are required." });
+      const plan = pendingSectionCreates;
+      if (plan.length === 0) {
+        setFeedback({
+          kind: "error",
+          text: "Pick at least one department, or add a name below.",
+        });
         return;
       }
       setCreateBusy(true);
       setFeedback(null);
+
+      const createdRows: ItemTypeRecord[] = [];
+      let failCount = 0;
+
       try {
-        const created = await createItemType({
-          ...createDraft,
-          key: key.trim(),
-          label: label.trim(),
-        });
-        setRows((prev) => [...prev, created]);
-        setCreateOpen(false);
-        setCreateDraft(EMPTY_CREATE_DRAFT);
-        setFeedback({
-          kind: "success",
-          text: `Item type "${created.label}" created.`,
-        });
-      } catch {
-        setFeedback({ kind: "error", text: "Failed to create item type." });
+        for (let i = 0; i < plan.length; i++) {
+          const row = plan[i]!;
+          try {
+            const created = await createItemType({
+              key: row.key,
+              label: row.label,
+              sortOrder: rows.length + i,
+            });
+            createdRows.push(created);
+          } catch {
+            failCount += 1;
+          }
+        }
+
+        if (createdRows.length > 0) {
+          setRows((prev) => [...prev, ...createdRows]);
+        }
+
+        if (failCount === 0) {
+          setCreateOpen(false);
+          resetCreateForm();
+          setFeedback({
+            kind: "success",
+            text:
+              createdRows.length === 1
+                ? `Department "${createdRows[0]!.label}" created.`
+                : `Created ${createdRows.length} departments.`,
+          });
+        } else if (createdRows.length === 0) {
+          setFeedback({ kind: "error", text: "Could not create departments." });
+        } else {
+          setFeedback({
+            kind: "error",
+            text: `Created ${createdRows.length}; ${failCount} failed.`,
+          });
+        }
       } finally {
         setCreateBusy(false);
       }
     },
-    [createDraft],
+    [pendingSectionCreates, resetCreateForm, rows.length],
   );
 
   // ─── edit ──────────────────────────────────────────────────────────────────
@@ -180,7 +248,10 @@ export default function ItemTypesPage() {
     ) => {
       e.preventDefault();
       if (!draft.key.trim() || !draft.label.trim()) {
-        setFeedback({ kind: "error", text: "Key and label are required." });
+        setFeedback({
+          kind: "error",
+          text: "Short code and department name are required.",
+        });
         return;
       }
       setEditBusy(true);
@@ -191,10 +262,10 @@ export default function ItemTypesPage() {
         setEditId(null);
         setFeedback({
           kind: "success",
-          text: `Item type "${updated.label}" updated.`,
+          text: `Department "${updated.label}" updated.`,
         });
       } catch {
-        setFeedback({ kind: "error", text: "Failed to update item type." });
+        setFeedback({ kind: "error", text: "Failed to update department." });
       } finally {
         setEditBusy(false);
       }
@@ -214,10 +285,10 @@ export default function ItemTypesPage() {
       setConfirmDelete(null);
       setFeedback({
         kind: "success",
-        text: `Item type "${confirmDelete.label}" deleted.`,
+        text: `Department "${confirmDelete.label}" deleted.`,
       });
     } catch {
-      setFeedback({ kind: "error", text: "Failed to delete item type." });
+      setFeedback({ kind: "error", text: "Failed to delete department." });
     } finally {
       setDeleteBusy(false);
     }
@@ -229,20 +300,20 @@ export default function ItemTypesPage() {
     return (
       <DashboardLoadError
         title="Failed to load"
-        message={feedback?.text ?? "Could not load item types. Please try again."}
+        message={feedback?.text ?? "Could not load departments. Please try again."}
         onRetry={() => void load()}
       />
     );
   }
 
   if (!me) {
-    return <DashboardLoading label="Loading item types…" />;
+    return <DashboardLoading label="Loading departments…" />;
   }
 
   if (!hasPermission(me?.permissions, Permission.CatalogItemsRead)) {
     return (
       <DashboardAccessDenied
-        title="Item types"
+        title="Departments"
         description={
           <>
             You need <code className="text-xs">catalog.items.read</code> to view
@@ -264,8 +335,8 @@ export default function ItemTypesPage() {
               compact
               icon={Tags}
               eyebrow="Catalog"
-              title="Item types"
-              description="Manage item type classifications used across products."
+              title="Departments"
+              description="Name each area how you run the shop — Grocery, Fruits, Retail shop, Mali mali. Not products. Not Categories."
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <DashboardQuickLinks
@@ -286,7 +357,7 @@ export default function ItemTypesPage() {
                   {
                     href: APP_ROUTES.categories,
                     label: "Categories",
-                    desc: "Category tree",
+                    desc: "Separate product tree",
                     icon: LayoutGrid,
                   },
                 ]}
@@ -296,13 +367,13 @@ export default function ItemTypesPage() {
                   type="button"
                   className="h-10 min-h-10 gap-2 self-start px-4 text-sm shadow-sm transition-shadow hover:shadow-md"
                   onClick={() => {
-                    setCreateDraft(EMPTY_CREATE_DRAFT);
+                    resetCreateForm();
                     setCreateOpen(true);
                     setFeedback(null);
                   }}
                 >
                   <Plus className="size-4" aria-hidden />
-                  Create item type
+                  Add department
                 </Button>
               ) : null}
             </div>
@@ -344,7 +415,7 @@ export default function ItemTypesPage() {
               </Button>
             </div>
             <p className={cn(dashboardHintClass(), "tabular-nums")}>
-              {rows.length} item type{rows.length !== 1 ? "s" : ""}
+              {rows.length} department{rows.length !== 1 ? "s" : ""}
             </p>
           </div>
 
@@ -360,23 +431,23 @@ export default function ItemTypesPage() {
                 aria-hidden
               />
               <h2 className="mt-4 text-base font-semibold tracking-tight text-foreground">
-                No item types yet
+                No departments yet
               </h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Create your first item type to categorise products.
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                e.g. Grocery, Retail shop, Fruits
               </p>
               {canWrite ? (
                 <Button
                   type="button"
                   className="mt-6 gap-2 shadow-sm transition-shadow hover:shadow-md"
                   onClick={() => {
-                    setCreateDraft(EMPTY_CREATE_DRAFT);
+                    resetCreateForm();
                     setCreateOpen(true);
                     setFeedback(null);
                   }}
                 >
                   <Plus className="size-4" aria-hidden />
-                  Create item type
+                  Add department
                 </Button>
               ) : null}
             </div>
@@ -391,13 +462,13 @@ export default function ItemTypesPage() {
                       scope="col"
                       className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
                     >
-                      Key
+                      Short code
                     </th>
                     <th
                       scope="col"
                       className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
                     >
-                      Label
+                      Department
                     </th>
                     <th
                       scope="col"
@@ -543,12 +614,12 @@ export default function ItemTypesPage() {
         onOpenChange={(open) => {
           if (!open) {
             setCreateOpen(false);
-            setCreateDraft(EMPTY_CREATE_DRAFT);
+            resetCreateForm();
             setCreateBusy(false);
           }
         }}
-        title="Create item type"
-        description="Add a new classification that products can be grouped by."
+        title="Add departments"
+        description="Grey chips are already in your list. Tap others to select."
         contextLabel="Catalog · Create"
         icon={<Plus className="size-5 text-primary" aria-hidden />}
         banner={
@@ -566,7 +637,7 @@ export default function ItemTypesPage() {
               variant="outline"
               onClick={() => {
                 setCreateOpen(false);
-                setCreateDraft(EMPTY_CREATE_DRAFT);
+                resetCreateForm();
               }}
             >
               Cancel
@@ -574,108 +645,36 @@ export default function ItemTypesPage() {
             <Button
               type="submit"
               form="create-item-type-form"
-              disabled={createBusy}
+              disabled={createBusy || pendingSectionCount === 0}
             >
-              {createBusy ? "Creating…" : "Create"}
+              {createBusy
+                ? "Creating…"
+                : pendingSectionCount > 1
+                  ? `Create ${pendingSectionCount} departments`
+                  : pendingSectionCount === 1
+                    ? "Create department"
+                    : "Create"}
             </Button>
           </div>
         }
       >
         <form
           id="create-item-type-form"
-          className="space-y-5"
+          className="space-y-4"
           onSubmit={(e) => void handleCreate(e)}
         >
-          <FormDrawerFields legend="Identity">
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Key
-              <input
-                className={dashboardInputClass()}
-                value={createDraft.key}
-                onChange={(e) =>
-                  setCreateDraft((p) => ({ ...p, key: e.target.value }))
-                }
-                placeholder="e.g. finished-good"
-                aria-label="Item type key"
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Label
-              <input
-                className={dashboardInputClass()}
-                value={createDraft.label}
-                onChange={(e) =>
-                  setCreateDraft((p) => ({ ...p, label: e.target.value }))
-                }
-                placeholder="e.g. Finished Good"
-                aria-label="Item type label"
-              />
-            </label>
-          </FormDrawerFields>
+          <SectionSuggestions
+            existingKeySet={existingSectionKeys}
+            existingLabelSet={existingSectionLabels}
+            pickedLabels={sectionPickLabels}
+            onTogglePick={toggleSectionPick}
+            onSetPicks={setSectionPickLabels}
+            onboardingHighlight={
+              searchParams.get("onboarding") === "create-item-type"
+            }
+          />
 
-          <FormDrawerFields legend="Appearance (optional)">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Icon
-                <input
-                  className={dashboardInputClass()}
-                  value={createDraft.icon ?? ""}
-                  onChange={(e) =>
-                    setCreateDraft((p) => ({ ...p, icon: e.target.value }))
-                  }
-                  placeholder="e.g. package-icon"
-                  aria-label="Item type icon"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Color
-                <input
-                  className={dashboardInputClass()}
-                  value={createDraft.color ?? ""}
-                  onChange={(e) =>
-                    setCreateDraft((p) => ({ ...p, color: e.target.value }))
-                  }
-                  placeholder="e.g. #ff6600"
-                  aria-label="Item type color"
-                />
-              </label>
-            </div>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Sort order
-              <input
-                type="number"
-                className={dashboardInputClass()}
-                value={createDraft.sortOrder ?? ""}
-                onChange={(e) =>
-                  setCreateDraft((p) => ({
-                    ...p,
-                    sortOrder: e.target.value
-                      ? Number(e.target.value)
-                      : undefined,
-                  }))
-                }
-                placeholder="e.g. 1"
-                aria-label="Item type sort order"
-              />
-            </label>
-          </FormDrawerFields>
-
-          <FormDrawerFields legend="Default">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="size-4 rounded border-input accent-primary"
-                checked={createDraft.isDefault ?? false}
-                onChange={(e) =>
-                  setCreateDraft((p) => ({ ...p, isDefault: e.target.checked }))
-                }
-              />
-              <span className="text-foreground">Use as default item type</span>
-            </label>
-            <p className="text-xs text-muted-foreground">
-              The default item type is pre-selected when creating new products.
-            </p>
-          </FormDrawerFields>
+          <ExtraSectionNames names={extraNames} onChange={setExtraNames} />
         </form>
       </FormDrawer>
 
@@ -696,12 +695,11 @@ export default function ItemTypesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
           <div className="w-full max-w-sm rounded-2xl border border-border/70 bg-card p-6 shadow-lg ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
             <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              Delete item type?
+              Delete department?
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              You are about to delete <strong className="text-foreground">{confirmDelete.label}</strong>{" "}
-              (key: <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{confirmDelete.key}</code>). This
-              action cannot be undone.
+            <p className="mt-2 text-sm text-muted-foreground">
+              Delete <strong className="text-foreground">{confirmDelete.label}</strong>? This
+              cannot be undone.
             </p>
             <div className="mt-8 flex justify-end gap-2">
               <Button
@@ -752,6 +750,7 @@ function EditItemTypeDrawer({
     color: row.color,
     sortOrder: row.sortOrder,
     active: row.active,
+    isDefault: row.isDefault,
   });
   const [open, setOpen] = useState(true);
 
@@ -765,7 +764,6 @@ function EditItemTypeDrawer({
         }
       }}
       title={`Edit "${row.label}"`}
-      description="Update the item type details."
       contextLabel="Catalog · Edit"
       icon={<Save className="size-5 text-primary" aria-hidden />}
       banner={
@@ -789,111 +787,47 @@ function EditItemTypeDrawer({
     >
       <form
         id="edit-item-type-form"
-        className="space-y-5"
+        className="space-y-4"
         onSubmit={(e) => void onSave(e, row.id, draft)}
       >
-        <FormDrawerFields legend="Identity">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Key
-            <input
-              className={dashboardInputClass()}
-              value={draft.key}
-              onChange={(e) => setDraft((p) => ({ ...p, key: e.target.value }))}
-              placeholder="e.g. finished-good"
-              aria-label="Item type key"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Label
-            <input
-              className={dashboardInputClass()}
-              value={draft.label}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, label: e.target.value }))
-              }
-              placeholder="e.g. Finished Good"
-              aria-label="Item type label"
-            />
-          </label>
-        </FormDrawerFields>
-
-        <FormDrawerFields legend="Appearance (optional)">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Icon
-              <input
-                className={dashboardInputClass()}
-                value={draft.icon ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, icon: e.target.value }))
-                }
-                placeholder="e.g. package-icon"
-                aria-label="Item type icon"
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Color
-              <input
-                className={dashboardInputClass()}
-                value={draft.color ?? ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, color: e.target.value }))
-                }
-                placeholder="e.g. #ff6600"
-                aria-label="Item type color"
-              />
-            </label>
-          </div>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Sort order
-            <input
-              type="number"
-              className={dashboardInputClass()}
-              value={draft.sortOrder ?? ""}
-              onChange={(e) =>
-                setDraft((p) => ({
-                  ...p,
-                  sortOrder: e.target.value
-                    ? Number(e.target.value)
-                    : undefined,
-                }))
-              }
-              placeholder="e.g. 1"
-              aria-label="Item type sort order"
-            />
-          </label>
-        </FormDrawerFields>
-
-        <FormDrawerFields legend="Status">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4 rounded border-input accent-primary"
-              checked={draft.active}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, active: e.target.checked }))
-              }
-            />
-            <span className="text-foreground">Active</span>
-          </label>
-        </FormDrawerFields>
-
-        <FormDrawerFields legend="Default">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4 rounded border-input accent-primary"
-              checked={draft.isDefault ?? false}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, isDefault: e.target.checked }))
-              }
-            />
-            <span className="text-foreground">Use as default item type</span>
-          </label>
-          <p className="text-xs text-muted-foreground">
-            The default item type is pre-selected when creating new products.
-          </p>
-        </FormDrawerFields>
+        <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+          Name
+          <input
+            className={dashboardInputClass()}
+            value={draft.label}
+            onChange={(e) => setDraft((p) => ({ ...p, label: e.target.value }))}
+            aria-label="Department name"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+          Short code
+          <input
+            className={dashboardInputClass()}
+            value={draft.key}
+            onChange={(e) => setDraft((p) => ({ ...p, key: e.target.value }))}
+            aria-label="Department short code"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 rounded border-input accent-primary"
+            checked={draft.active}
+            onChange={(e) => setDraft((p) => ({ ...p, active: e.target.checked }))}
+          />
+          Active
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 rounded border-input accent-primary"
+            checked={draft.isDefault ?? false}
+            onChange={(e) =>
+              setDraft((p) => ({ ...p, isDefault: e.target.checked }))
+            }
+          />
+          Default for new products
+        </label>
       </form>
     </FormDrawer>
   );

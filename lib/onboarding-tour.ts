@@ -21,6 +21,7 @@ export type OnboardingTargetId =
 /** In-drawer (or page) regions to ring-highlight during a step. */
 export const ONBOARDING_EMPHASIS = {
   categoriesSuggestions: "categories-suggestions",
+  itemTypesSuggestions: "item-types-suggestions",
   storefrontToggle: "storefront-toggle",
 } as const;
 
@@ -137,14 +138,14 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     target: ONBOARDING_TARGETS.itemTypesDrawer,
     routeOnboardingParam: "create-item-type",
     cardAnchor: "page-left",
-    title: "Set up item types",
+    title: "Set up departments",
     keyMessage:
-      "Types help you track different kinds of stock — like cereals, fruits, or drinks.",
+      "Name departments how you like — Grocery, Fruits, Retail shop. Not product names.",
     instructions: [
-      "Type a name you'll recognize — e.g. 'Cereals', 'Drinks', 'Snacks'.",
-      "Click Create. Repeat for each type your shop needs.",
-      "Every product needs a type, but you can always add more later.",
+      "Tap departments to add them (grey ones are already set up).",
+      "Use + for custom names, then Create.",
     ],
+    emphasisTarget: ONBOARDING_EMPHASIS.itemTypesSuggestions,
   },
   {
     id: "products",
@@ -157,7 +158,7 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
       "This is what you sell — name it, price it, and say how much you have.",
     instructions: [
       "Fill in the product name, selling price, and current stock quantity.",
-      "Pick a category and item type from the dropdowns.",
+      "Pick a department, then optionally a category.",
       "Click Create to save your first product.",
     ],
   },

@@ -74,7 +74,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Package,
     items: [
       { href: APP_ROUTES.products, label: "Products" },
-      { href: APP_ROUTES.itemTypes, label: "Item types" },
+      { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.categories, label: "Categories" },
       { href: APP_ROUTES.suppliers, label: "Suppliers" },
       { href: APP_ROUTES.customers, label: "Customers" },
@@ -722,15 +722,15 @@ export function AppShell({ children }: AppShellProps) {
               value={itemTypeId}
               onChange={(e) => setItemTypeId(e.target.value)}
               disabled={itemTypesLoading || itemTypes.length === 0}
-              aria-label="Select item type"
+              aria-label="Select department"
             >
               {itemTypes.length === 0 ? (
                 <option value="">
-                  {itemTypesLoading ? "Loading…" : "No item types"}
+                  {itemTypesLoading ? "Loading…" : "No departments"}
                 </option>
               ) : (
                 <>
-                  {!itemTypeId ? <option value="">Select type…</option> : null}
+                  {!itemTypeId ? <option value="">Select department…</option> : null}
                   {itemTypes.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label}
@@ -963,23 +963,23 @@ export function AppShell({ children }: AppShellProps) {
                 </div>
                 <div>
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Item type
+                    Department
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     value={itemTypeId}
                     onChange={(e) => setItemTypeId(e.target.value)}
                     disabled={itemTypesLoading || itemTypes.length === 0}
-                    aria-label="Select item type"
+                    aria-label="Select department"
                   >
                     {itemTypes.length === 0 ? (
                       <option value="">
-                        {itemTypesLoading ? "Loading…" : "No item types"}
+                        {itemTypesLoading ? "Loading…" : "No departments"}
                       </option>
                     ) : (
                       <>
                         {!itemTypeId ? (
-                          <option value="">Select type…</option>
+                          <option value="">Select department…</option>
                         ) : null}
                         {itemTypes.map((t) => (
                           <option key={t.id} value={t.id}>
