@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 
 import { ShopAisleGrid } from "@/components/storefront/shop-aisle-grid";
-import { ShopBarcodeSection } from "@/components/storefront/shop-barcode-section";
 import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more";
 import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
 import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
@@ -108,8 +107,6 @@ export async function StorefrontCatalogHome({
             />
 
             <ShopTrustStrip primaryHex={primary} />
-
-            <ShopBarcodeSection primaryHex={primary} accentHex={accentHex} />
 
             <ShopAisleGrid
               categories={categories}
