@@ -45,6 +45,7 @@ export const APP_ROUTES = {
   shopAccount: "/shop/account",
   shopCart: "/shop/cart",
   shopCheckout: "/shop/checkout",
+  barcode: "/barcode",
   tenantSuspended: "/_status/suspended",
   tenantInactive: "/_status/inactive",
 } as const;
