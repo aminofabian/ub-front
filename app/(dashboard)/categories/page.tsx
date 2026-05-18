@@ -56,8 +56,13 @@ import {
   type SupplierRecord,
   type TaxRateRecord,
 } from "@/lib/api";
-import { SUGGESTED_CATALOG_CATEGORIES } from "@/lib/category-suggestions";
-import { ONBOARDING_EMPHASIS, ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import {
+  parseSuggestionSubKey,
+  suggestionSubKey,
+  suggestionTopKey,
+} from "@/lib/category-suggestions";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import { CategoryBulkSuggestions } from "./_components/category-bulk-suggestions";
 import { cn, categoryIconImageUrl } from "@/lib/utils";
 
 const ROOT_PARENT_VALUE = "";
@@ -191,29 +196,8 @@ function newQueueItemId(): string {
   return `q-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-/** Separator inside suggestion sub-keys (parent and child must not contain this char). */
-const SUGGESTION_SUB_SEP = "\u001f";
-
-function suggestionTopKey(parent: string): string {
-  return `top:${parent}`;
-}
-
-function suggestionSubKey(parent: string, child: string): string {
-  return `sub:${parent}${SUGGESTION_SUB_SEP}${child}`;
-}
-
-function parseSuggestionSubKey(restAfterSubPrefix: string): { parentName: string; childName: string } {
-  const i = restAfterSubPrefix.indexOf(SUGGESTION_SUB_SEP);
-  if (i < 0) {
-    return { parentName: restAfterSubPrefix, childName: "" };
-  }
-  return {
-    parentName: restAfterSubPrefix.slice(0, i),
-    childName: restAfterSubPrefix.slice(i + SUGGESTION_SUB_SEP.length),
-  };
-}
-
 /**
+
  * Build ordered creates: first the primary name + Parent dropdown, then each textarea line under that same parent,
  * then structured queue rows (each with its own parent).
  * Rows from the suggestion queue carry `queueKey` so we do not collapse different suggestion paths that share the
@@ -441,7 +425,7 @@ export default function CategoriesPage() {
   /** Multi-select keys from suggested categories before “Add selected to list”. */
   const [suggestionPickKeys, setSuggestionPickKeys] = useState<string[]>([]);
   /** When false, taxonomy checkboxes stay hidden; manual Name / More names / Parent is the default path. */
-  const [showBulkSuggestions, setShowBulkSuggestions] = useState(false);
+  const [showBulkSuggestions, setShowBulkSuggestions] = useState(true);
   const [createBusy, setCreateBusy] = useState(false);
   const [iconUploadCategoryId, setIconUploadCategoryId] = useState<string | null>(null);
   /** Parents whose child rows are revealed in the table. Loaded and refreshed as fully expanded by default. */
@@ -479,65 +463,8 @@ export default function CategoriesPage() {
     return match?.id ?? ROOT_PARENT_VALUE;
   }, [rows]);
 
-  const applySuggestedTopLevel = useCallback((parentName: string) => {
-    setCreateDraft((p) => ({
-      ...p,
-      name: parentName,
-      parentId: ROOT_PARENT_VALUE,
-    }));
-  }, []);
-
-  const applySuggestedSubcategory = useCallback(
-    (parentName: string, childName: string) => {
-      const parentId = resolveParentIdForSuggestion(parentName);
-      setCreateDraft((p) => ({
-        ...p,
-        name: childName,
-        parentId,
-      }));
-    },
-    [resolveParentIdForSuggestion],
-  );
-
-  const appendSuggestedChildrenToQueue = useCallback(
-    (parentName: string) => {
-      const children = SUGGESTED_CATALOG_CATEGORIES[parentName];
-      if (!children?.length) {
-        return;
-      }
-      const pid = resolveParentIdForSuggestion(parentName);
-      setCreateQueue((prev) => {
-        const seen = new Set(
-          prev.map((q) => q.queueKey ?? `${q.parentId}\t${q.name.trim().toLowerCase()}`),
-        );
-        const next = [...prev];
-        for (const ch of children) {
-          const qk = suggestionSubKey(parentName, ch);
-          if (seen.has(qk)) {
-            continue;
-          }
-          seen.add(qk);
-          next.push({
-            id: newQueueItemId(),
-            name: ch.trim(),
-            parentId: pid,
-            queueKey: qk,
-            suggestionParentName: parentName.trim(),
-          });
-        }
-        return next;
-      });
-    },
-    [resolveParentIdForSuggestion],
-  );
-
   const toggleSuggestionPickKey = useCallback((key: string) => {
     setSuggestionPickKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
-  }, []);
-
-  const selectEntireSuggestedGroup = useCallback((parent: string, children: string[]) => {
-    const keys = [suggestionTopKey(parent), ...children.map((c) => suggestionSubKey(parent, c))];
-    setSuggestionPickKeys((prev) => [...new Set([...prev, ...keys])]);
   }, []);
 
   const clearSuggestionPickKeys = useCallback(() => {
@@ -1995,7 +1922,7 @@ export default function CategoriesPage() {
           }
         }}
         title="New category"
-        description="Add your own names at the top, or use suggested categories below to tick ready-made groups in bulk."
+        description="Use Quick pick below for ready-made departments, or type your own names at the top."
         contextLabel="Catalog · Create"
         icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
         banner={
@@ -2020,6 +1947,24 @@ export default function CategoriesPage() {
       >
         <form id="create-category-form" className="space-y-5" onSubmit={(e) => void onCreate(e)}>
           <FormDrawerFields legend="Placement">
+            <CategoryBulkSuggestions
+              open={showBulkSuggestions}
+              onOpenChange={setShowBulkSuggestions}
+              pickKeys={suggestionPickKeys}
+              onTogglePickKey={toggleSuggestionPickKey}
+              onSetPickKeys={setSuggestionPickKeys}
+              onClearPicks={clearSuggestionPickKeys}
+              onAddPicksToQueue={addSuggestionPicksToQueue}
+              catalogNameLowerSet={catalogNameLowerSet}
+              onboardingHighlight={
+                searchParams.get("onboarding") === "create-category"
+              }
+            />
+
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Or add manually
+            </p>
+
             <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
               Name
               <input
@@ -2088,8 +2033,7 @@ export default function CategoriesPage() {
                   )
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Tick checkboxes to include rows here automatically, or use &quot;Add selected&quot; to save ticks onto
-                  the list. Each row can use a different parent. Remove clears a tick or a saved row.
+                  From your quick picks above. Remove any row you do not want before creating.
                 </p>
                 <ul className="mt-2 max-h-40 space-y-1.5 overflow-y-auto text-sm">
                   {effectiveStructuredQueue.map((q) => (
@@ -2120,188 +2064,6 @@ export default function CategoriesPage() {
                 </ul>
               </div>
             ) : null}
-
-            <div
-              className={cn(
-                "flex flex-col gap-2 rounded-xl transition-shadow",
-                searchParams.get("onboarding") === "create-category" &&
-                  "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
-              )}
-              data-onboarding-emphasis={ONBOARDING_EMPHASIS.categoriesSuggestions}
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-fit"
-                aria-expanded={showBulkSuggestions}
-                onClick={() => setShowBulkSuggestions((open) => !open)}
-              >
-                {showBulkSuggestions
-                  ? "Hide suggested categories"
-                  : "Show suggested categories"}
-                {suggestionPickKeys.length > 0 || createQueue.length > 0 ? " · draft" : ""}
-              </Button>
-              {showBulkSuggestions ? (
-                <div className="rounded-lg border border-border bg-muted/25 p-3">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs font-medium text-foreground">Suggested categories</p>
-                  <p className="mt-1 max-w-prose text-[11px] leading-snug text-muted-foreground">
-                    Tick top-level groups and/or subtypes (across sections). They appear in the create list above and
-                    count toward Create immediately—no need to click &quot;Add selected&quot; unless you want to save
-                    ticks as permanent list rows. Picks stay here after you add them. If a subtype’s group is not in
-                    your catalog yet, a missing parent group is created as a top-level category first, then subtypes
-                    are nested under it. This list shows the intended group when the parent did not exist yet.
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="xs"
-                    className="h-7"
-                    disabled={suggestionPickKeys.length === 0}
-                    onClick={() => addSuggestionPicksToQueue()}
-                  >
-                    Add selected to list ({suggestionPickKeys.length})
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    className="h-7"
-                    disabled={suggestionPickKeys.length === 0}
-                    onClick={() => clearSuggestionPickKeys()}
-                  >
-                    Clear ticks
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-0.5">
-                {Object.entries(SUGGESTED_CATALOG_CATEGORIES).map(([parent, children]) => {
-                  const parentKey = parent.trim().toLowerCase();
-                  const parentInCatalog = catalogNameLowerSet.has(parentKey);
-                  const topKey = suggestionTopKey(parent);
-                  const topChecked = suggestionPickKeys.includes(topKey);
-                  return (
-                    <details
-                      key={parent}
-                      className="rounded-md border border-border/80 bg-background px-2 py-1.5 text-sm shadow-sm"
-                    >
-                      <summary className="cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
-                        <span className="flex flex-wrap items-start gap-2">
-                          <label
-                            className="inline-flex cursor-pointer items-center gap-1.5 pt-0.5"
-                            onClick={(e) => e.stopPropagation()}
-                            onMouseDown={(e) => e.stopPropagation()}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={topChecked}
-                              onChange={() => toggleSuggestionPickKey(topKey)}
-                              className="size-3.5 shrink-0 rounded border border-input accent-primary"
-                              aria-label={`Select top-level category ${parent}`}
-                            />
-                          </label>
-                          <span className="min-w-0 flex-1 font-medium text-foreground">{parent}</span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="xs"
-                            className="h-6 font-normal"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              selectEntireSuggestedGroup(parent, children);
-                            }}
-                          >
-                            Tick all in section
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="xs"
-                            className="h-6 font-normal"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              appendSuggestedChildrenToQueue(parent);
-                            }}
-                          >
-                            Queue all subtypes
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="xs"
-                            className="h-6 font-normal"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              applySuggestedTopLevel(parent);
-                            }}
-                          >
-                            Use as top level
-                          </Button>
-                          {parentInCatalog ? (
-                            <span className="text-[10px] font-normal text-muted-foreground">In catalog</span>
-                          ) : null}
-                        </span>
-                      </summary>
-                      <div className="mt-2 grid max-h-48 gap-1.5 overflow-y-auto border-t border-border pt-2 sm:grid-cols-2">
-                        {children.map((child) => {
-                          const inCatalog = catalogNameLowerSet.has(child.trim().toLowerCase());
-                          const subKey = suggestionSubKey(parent, child);
-                          const checked = suggestionPickKeys.includes(subKey);
-                          return (
-                            <label
-                              key={child}
-                              className={cn(
-                                "flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 text-left text-xs transition-colors",
-                                checked
-                                  ? "border-primary/50 bg-primary/5"
-                                  : "border-border/80 bg-muted/10 hover:bg-muted/25",
-                              )}
-                              onMouseDown={(e) => e.stopPropagation()}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleSuggestionPickKey(subKey)}
-                                className="mt-0.5 size-3.5 shrink-0 rounded border border-input accent-primary"
-                                aria-label={`Select ${child} under ${parent}`}
-                              />
-                              <span className="min-w-0 flex-1">
-                                <span className="font-medium text-foreground">{child}</span>
-                                {inCatalog ? (
-                                  <span className="ml-1 text-[10px] text-muted-foreground">· in catalog</span>
-                                ) : null}
-                              </span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="xs"
-                                className="h-6 shrink-0 px-1.5 text-[10px] font-normal text-muted-foreground hover:text-foreground"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  applySuggestedSubcategory(parent, child);
-                                }}
-                              >
-                                Fill form
-                              </Button>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </details>
-                  );
-                })}
-              </div>
-                </div>
-              ) : null}
-            </div>
           </FormDrawerFields>
 
           <FormDrawerFields

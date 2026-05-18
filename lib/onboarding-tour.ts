@@ -126,9 +126,9 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     keyMessage:
       "The fastest start is suggested categories — ready-made lists you can tick and add in bulk.",
     instructions: [
-      "Open “Show suggested categories” in the form (highlighted below).",
-      "Tick what fits your shop — Beverages, Snacks, Produce, and more — then hit Create.",
-      "Want your own names only? Type them at the top instead.",
+      "Try a starter kit — Full grocery, Mini mart, or Fresh market.",
+      "Tap a department to select it, then fine-tune with the chips below.",
+      "Hit Create when you’re happy — or type your own names at the top.",
     ],
   },
   {

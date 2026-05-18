@@ -191,3 +191,120 @@ export const SUGGESTED_CATALOG_CATEGORIES: Record<string, string[]> = {
     "Balloons",
   ],
 };
+
+const SUGGESTION_SUB_SEP = "\u001f";
+
+export function suggestionTopKey(parent: string): string {
+  return `top:${parent}`;
+}
+
+export function suggestionSubKey(parent: string, child: string): string {
+  return `sub:${parent}${SUGGESTION_SUB_SEP}${child}`;
+}
+
+export function parseSuggestionSubKey(restAfterSubPrefix: string): {
+  parentName: string;
+  childName: string;
+} {
+  const i = restAfterSubPrefix.indexOf(SUGGESTION_SUB_SEP);
+  if (i < 0) {
+    return { parentName: restAfterSubPrefix, childName: "" };
+  }
+  return {
+    parentName: restAfterSubPrefix.slice(0, i),
+    childName: restAfterSubPrefix.slice(i + SUGGESTION_SUB_SEP.length),
+  };
+}
+
+export function keysForSuggestedGroups(groups: readonly string[]): string[] {
+  const keys: string[] = [];
+  for (const parent of groups) {
+    const children = SUGGESTED_CATALOG_CATEGORIES[parent];
+    if (!children) {
+      continue;
+    }
+    keys.push(suggestionTopKey(parent));
+    for (const child of children) {
+      keys.push(suggestionSubKey(parent, child));
+    }
+  }
+  return keys;
+}
+
+/** One-tap starter kits for the bulk category picker. */
+export const CATEGORY_STARTER_KITS = [
+  {
+    id: "full-grocery",
+    label: "Full grocery",
+    hint: "All departments",
+    emoji: "🛒",
+    groups: Object.keys(SUGGESTED_CATALOG_CATEGORIES),
+  },
+  {
+    id: "mini-mart",
+    label: "Mini mart",
+    hint: "Everyday staples",
+    emoji: "🏪",
+    groups: [
+      "Beverages",
+      "Snacks & Confectionery",
+      "Dairy & Refrigerated",
+      "Bakery",
+      "Pantry & Cooking Essentials",
+      "Personal Care & Beauty",
+      "Laundry & Cleaning",
+      "Household Supplies",
+    ],
+  },
+  {
+    id: "fresh-market",
+    label: "Fresh market",
+    hint: "Produce & protein",
+    emoji: "🥬",
+    groups: [
+      "Fresh Produce",
+      "Green Grocery",
+      "Meat, Fish & Eggs",
+      "Dairy & Refrigerated",
+    ],
+  },
+  {
+    id: "household",
+    label: "Household",
+    hint: "Home & cleaning",
+    emoji: "🧴",
+    groups: [
+      "Laundry & Cleaning",
+      "Household Supplies",
+      "Personal Care & Beauty",
+      "Baby Care",
+    ],
+  },
+] as const;
+
+/** Visual cue per department in the bulk picker. */
+export const SUGGESTED_DEPARTMENT_EMOJI: Record<string, string> = {
+  Beverages: "🥤",
+  "Dairy & Refrigerated": "🥛",
+  Bakery: "🥖",
+  "Cereals & Breakfast": "🥣",
+  "Grains & Staples": "🌾",
+  "Flours & Baking": "🧁",
+  "Pantry & Cooking Essentials": "🫒",
+  "Pasta & Noodles": "🍝",
+  "Canned & Packaged Foods": "🥫",
+  "Fresh Produce": "🍎",
+  "Green Grocery": "🥬",
+  "Meat, Fish & Eggs": "🥩",
+  "Frozen Foods": "🧊",
+  "Snacks & Confectionery": "🍫",
+  "Personal Care & Beauty": "💄",
+  "Baby Care": "👶",
+  "Laundry & Cleaning": "🧼",
+  "Household Supplies": "🏠",
+  "Health & Wellness": "💊",
+  "Stationery & School Supplies": "✏️",
+  "Mobile & Electronics Accessories": "📱",
+  "Pet Care": "🐾",
+  "Seasonal & Miscellaneous": "🎁",
+};
