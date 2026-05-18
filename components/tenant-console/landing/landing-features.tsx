@@ -41,7 +41,7 @@ export function LandingFeatures() {
             Everything you need to run retail, in one place
           </h2>
           <p className="mt-4 text-base leading-relaxed text-[var(--landing-ink-muted)] sm:text-lg">
-            Palmart is purpose-built for retailers who sell across counters and
+            Kiosk is purpose-built for retailers who sell across counters and
             screens — not a generic e-commerce template adapted for physical
             stores.
           </p>

@@ -21,7 +21,7 @@ export function TenantConsolePage() {
   const [businessName, setBusinessName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [shopHost, setShopHost] = useState("yourshop.palmart.co.ke");
+  const [shopHost, setShopHost] = useState("yourshop.kiosk.ke");
 
   const host =
     typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";

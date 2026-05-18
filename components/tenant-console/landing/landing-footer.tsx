@@ -15,7 +15,7 @@ const FOOTER_LINKS = {
     { label: "Forgot password", href: APP_ROUTES.forgotPassword },
     { label: "Verify email", href: APP_ROUTES.verifyEmail },
   ],
-  Company: [{ label: "Palmart HQ", href: APP_ROUTES.superAdminLogin }],
+  Company: [{ label: "Kiosk HQ", href: APP_ROUTES.superAdminLogin }],
 } as const;
 
 export function LandingFooter() {
@@ -42,7 +42,7 @@ export function LandingFooter() {
                 <span className="absolute inset-x-0 bottom-0 h-[3px] bg-[var(--landing-gold-bright)]" />
               </span>
               <span className="font-heading text-[1.05rem] font-bold tracking-[-0.03em]">
-                Palmart
+                Kiosk
               </span>
             </Link>
             <p className="mt-4 max-w-[28ch] text-sm leading-relaxed text-[var(--landing-ink-muted)]">
@@ -76,7 +76,7 @@ export function LandingFooter() {
         {/* ── Bottom bar ── */}
         <div className="mt-12 flex flex-col gap-4 border-t border-[var(--landing-border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] text-[var(--landing-ink-soft)]">
-            &copy; {year} Palmart. All rights reserved.
+            &copy; {year} Kiosk. All rights reserved.
           </p>
           <p className="text-[13px] text-[var(--landing-ink-soft)]">
             Built for retailers across East Africa

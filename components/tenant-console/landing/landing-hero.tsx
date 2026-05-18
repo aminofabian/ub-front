@@ -98,7 +98,7 @@ export function LandingHero({
 
           {/* Subtitle */}
           <p className="landing-reveal landing-reveal-delay-2 mt-6 max-w-[38ch] text-[1.05rem] leading-[1.65] text-[var(--landing-ink-muted)] sm:text-lg">
-            Palmart unifies your point of sale, stock, and branded online
+            Kiosk unifies your point of sale, stock, and branded online
             storefront — so every register, branch, and web order runs off the
             same real-time inventory.
           </p>

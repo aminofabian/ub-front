@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-/** Palmart landing — warm paper + deep ink + burnished gold. */
+/** Kiosk landing — warm paper + deep ink + burnished gold. */
 export const LANDING_THEME = {
   ink: "#141412",
   inkMuted: "#5f5e58",

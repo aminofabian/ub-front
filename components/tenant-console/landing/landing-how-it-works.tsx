@@ -7,7 +7,7 @@ const STEPS = [
     step: "01",
     icon: MousePointerClick,
     title: "Claim your domain",
-    body: "Pick a subdomain — yourshop.palmart.co.ke — and you're live in seconds. Upgrade to a custom domain when your brand is ready.",
+    body: "Pick a subdomain — yourshop.kiosk.ke — and you're live in seconds. Upgrade to a custom domain when your brand is ready.",
   },
   {
     step: "02",

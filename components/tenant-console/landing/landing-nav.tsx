@@ -47,7 +47,7 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
             <span className="absolute inset-x-0 bottom-0 h-[3px] bg-[var(--landing-gold-bright)]" />
           </span>
           <span className="font-heading text-[1.05rem] font-bold tracking-[-0.03em]">
-            Palmart
+            Kiosk
           </span>
         </Link>
 

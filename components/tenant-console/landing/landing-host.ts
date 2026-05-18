@@ -13,7 +13,7 @@ const CC_SLDS = new Set([
 
 export function exampleShopHost(): string {
   if (typeof window === "undefined") {
-    return "yourshop.palmart.co.ke";
+    return "yourshop.kiosk.ke";
   }
   const hostname = window.location.hostname.toLowerCase();
   if (hostname === "localhost" || hostname === "127.0.0.1") {
@@ -22,8 +22,7 @@ export function exampleShopHost(): string {
   }
   const parts = hostname.split(".");
   const minParts = CC_SLDS.has(parts[parts.length - 2] ?? "") ? 4 : 3;
-  const base =
-    parts.length >= minParts ? parts.slice(1).join(".") : hostname;
+  const base = parts.length >= minParts ? parts.slice(1).join(".") : hostname;
   return `yourshop.${base}`;
 }
 
