@@ -5,6 +5,7 @@ import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more"
 import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
 import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
 import { ShopTrustStrip } from "@/components/storefront/shop-trust-strip";
+import { ShopStorefrontComingSoon } from "@/components/storefront/shop-storefront-coming-soon";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import {
   resolveStorefrontSlug,
@@ -60,11 +61,16 @@ export async function StorefrontCatalogHome({
   ]);
 
   if (!list) {
+    const storeName =
+      tenant?.branding?.displayName ?? tenant?.tenantName ?? slug;
+    const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
+    const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
     return (
-      <ShopUnavailable
-        title="Storefront is not enabled"
-        host={tenant?.tenantName ?? slug}
-        reason={`The catalog API did not return data for slug "${slug}".`}
+      <ShopStorefrontComingSoon
+        storeName={storeName}
+        logoUrl={tenant?.branding?.logoUrl ?? null}
+        primaryHex={isHexColor(primaryRaw) ? primaryRaw : null}
+        accentHex={isHexColor(accentRaw) ? accentRaw : null}
       />
     );
   }
