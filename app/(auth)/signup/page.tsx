@@ -93,6 +93,21 @@ function SignupPageContent() {
 
     try {
       const id = await ensureTenantResolved();
+      // ---- diagnostic: dump session state before register ----
+      console.log(
+        "[signup:onSubmit] tenantId=",
+        id,
+        "hostname=",
+        typeof window !== "undefined" ? window.location.hostname : "N/A",
+      );
+      console.log(
+        "[signup:onSubmit] sessionStorage keys:",
+        Object.keys(sessionStorage).reduce(
+          (acc, k) => ({ ...acc, [k]: sessionStorage.getItem(k) }),
+          {} as Record<string, string | null>,
+        ),
+      );
+      // -------------------------------------------------------
       if (!id?.trim()) {
         setShowOnboarding(true);
         return;

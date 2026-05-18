@@ -751,6 +751,20 @@ export function buildRequestHeaders(
     headers["X-Tenant-Id"] = tenantId;
   }
 
+  // ---- diagnostic: log auth-register headers ----
+  if (
+    typeof window !== "undefined" &&
+    (headers as Record<string, unknown>)["X-Tenant-Id"]
+  ) {
+    console.log(
+      "[buildRequestHeaders] X-Tenant-Host=",
+      (headers as Record<string, unknown>)["X-Tenant-Host"],
+      "X-Tenant-Id=",
+      (headers as Record<string, unknown>)["X-Tenant-Id"],
+    );
+  }
+  // ------------------------------------------------
+
   return headers;
 }
 
