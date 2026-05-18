@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
@@ -76,24 +77,38 @@ export default function SuperAdminBusinessesPage() {
     }
   }
 
-  const onDeleteTenant = async (b: SaBusinessRow) => {
-    if (
-      !window.confirm(
-        `Delete tenant “${b.name}” (${b.slug})?\n\nThis archives the business and all users under it. It cannot be undone from the console.`,
-      )
-    ) {
-      return;
-    }
+  const performDeleteTenant = async (b: SaBusinessRow, toastId: string | number) => {
     setDeleteError("");
     setDeletingId(b.id);
     try {
       await deleteSaBusiness(b.id);
+      toast.dismiss(toastId);
+      toast.success(`Tenant “${b.name}” deleted.`);
       await reload();
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Delete failed.");
+      const message = err instanceof Error ? err.message : "Delete failed.";
+      setDeleteError(message);
+      toast.error(message);
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const onDeleteTenant = (b: SaBusinessRow) => {
+    const toastId = `delete-sa-business-${b.id}`;
+    toast.warning(`Delete tenant “${b.name}”?`, {
+      id: toastId,
+      description: `Slug: ${b.slug}. This archives the business and all users under it. It cannot be undone from the console.`,
+      duration: Infinity,
+      action: {
+        label: "Delete",
+        onClick: () => void performDeleteTenant(b, toastId),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(toastId),
+      },
+    });
   };
 
   return (
@@ -259,7 +274,7 @@ export default function SuperAdminBusinessesPage() {
                         type="button"
                         className="text-destructive hover:text-destructive"
                         disabled={deletingId !== null}
-                        onClick={() => void onDeleteTenant(b)}
+                        onClick={() => onDeleteTenant(b)}
                       >
                         {deletingId === b.id ? "Deleting…" : "Delete"}
                       </Button>

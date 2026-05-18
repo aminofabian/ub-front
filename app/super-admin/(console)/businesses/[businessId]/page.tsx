@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
@@ -173,48 +174,82 @@ function BusinessDetailInner() {
     }
   };
 
-  const onDeleteDomain = async (row: SaDomainRow) => {
+  const performDeleteDomain = async (row: SaDomainRow, toastId: string | number) => {
     if (!businessId) return;
-    if (row.primary) {
-      setError("Promote another domain to primary before deleting this one.");
-      return;
-    }
-    if (
-      !window.confirm(
-        `Delete domain "${row.domain}"?\n\nThis stops routing the host to this tenant. Active sessions on that host will be redirected to the primary domain on next request.`,
-      )
-    )
-      return;
     setBusy(true);
     setError("");
     try {
       await deleteSaDomain(businessId, row.id);
+      toast.dismiss(toastId);
+      toast.success(`Domain “${row.domain}” deleted.`);
       await loadDomains();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete domain.");
+      const message = err instanceof Error ? err.message : "Could not delete domain.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
   };
 
-  const onDeleteTenant = async () => {
+  const onDeleteDomain = (row: SaDomainRow) => {
     if (!businessId) return;
-    if (
-      !window.confirm(
-        `Permanently archive tenant "${bizName || businessId}"?\n\nAll users, domains, and sessions for this tenant will be removed from active use.`,
-      )
-    )
+    if (row.primary) {
+      setError("Promote another domain to primary before deleting this one.");
       return;
+    }
+    const toastId = `delete-sa-domain-${row.id}`;
+    toast.warning(`Delete domain “${row.domain}”?`, {
+      id: toastId,
+      description:
+        "This stops routing the host to this tenant. Active sessions on that host will be redirected to the primary domain on next request.",
+      duration: Infinity,
+      action: {
+        label: "Delete",
+        onClick: () => void performDeleteDomain(row, toastId),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(toastId),
+      },
+    });
+  };
+
+  const performDeleteTenant = async (toastId: string | number) => {
+    if (!businessId) return;
     setBusy(true);
     setError("");
     try {
       await deleteSaBusiness(businessId);
+      toast.dismiss(toastId);
+      toast.success(`Tenant “${bizName || businessId}” deleted.`);
       router.push(APP_ROUTES.superAdminBusinesses);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed.");
+      const message = err instanceof Error ? err.message : "Delete failed.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
+  };
+
+  const onDeleteTenant = () => {
+    if (!businessId) return;
+    const toastId = `delete-sa-business-${businessId}`;
+    toast.warning(`Archive tenant “${bizName || businessId}”?`, {
+      id: toastId,
+      description:
+        "All users, domains, and sessions for this tenant will be removed from active use.",
+      duration: Infinity,
+      action: {
+        label: "Delete",
+        onClick: () => void performDeleteTenant(toastId),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(toastId),
+      },
+    });
   };
 
   if (!businessId) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { DashboardToaster } from "@/components/dashboard-sonner";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { logoutSuperAdmin } from "@/lib/super-admin-api";
@@ -79,6 +80,7 @@ export default function SuperAdminConsoleLayout({
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      <DashboardToaster />
     </>
   );
 }
