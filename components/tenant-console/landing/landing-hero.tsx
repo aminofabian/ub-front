@@ -124,11 +124,11 @@ export function LandingHero({
                   : "landing-reveal landing-reveal-delay-1 mb-8 font-heading text-[clamp(2.25rem,6.2vw,4.5rem)] leading-[1.04] tracking-[-0.04em] text-[var(--kiosk-text)] sm:mb-10 md:mb-12"
               }
             >
-              Point of sale,
+              Your counter deserves a till
               <br />
               <span className="relative mt-1 inline-block">
                 <span className="bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A] bg-clip-text text-transparent">
-                  built by people who use it.
+                  that works as hard as you do.
                 </span>
                 <span
                   aria-hidden
@@ -144,10 +144,7 @@ export function LandingHero({
                   : "landing-reveal landing-reveal-delay-2 mb-12 max-w-[26rem] text-[15px] leading-[1.75] text-[var(--kiosk-text-muted)] sm:mb-14 sm:text-[17px] md:mb-16 lg:max-w-[28rem]"
               }
             >
-              We run shops too. Kiosk is the till we wanted on our own
-              counters — scan products, send M-Pesa STK, keep selling when the
-              internet drops, and keep one stock count for the shop and online
-              store.
+              Get Kiosk free → No card needed. Set up in minutes.
             </p>
 
             {showOnboarding ? (
@@ -169,7 +166,7 @@ export function LandingHero({
                     className={`${heroPrimaryCtaClass} w-full justify-center font-medium sm:w-auto`}
                     onClick={onCreateShop}
                   >
-                    Start selling
+                    Get Kiosk free
                     <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden />
                   </button>
                   <a
