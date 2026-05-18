@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Building2,
   ChevronRight,
@@ -30,6 +31,7 @@ import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import {
   addItemSupplierLink,
   createSupplier,
@@ -70,6 +72,7 @@ import {
 import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
 export default function SuppliersPage() {
+  const searchParams = useSearchParams();
   const { me, loading } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
@@ -144,6 +147,12 @@ export default function SuppliersPage() {
     );
     return () => window.clearTimeout(id);
   }, [listSearch]);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "create-supplier" && canWrite) {
+      setCreateDrawerOpen(true);
+    }
+  }, [searchParams, canWrite]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1115,6 +1124,7 @@ export default function SuppliersPage() {
       {canWrite ? (
         <FormDrawer
           open={createDrawerOpen}
+          onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
           onOpenChange={onCreateDrawerOpenChange}
           title="New supplier"
           description="Only name is required. You can set commercial and payment fields at create time or later under Edit profile."

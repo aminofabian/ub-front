@@ -29,6 +29,7 @@ import {
 } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { APP_ROUTES } from "@/lib/config";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -665,10 +666,11 @@ export function NewSupplyDrawer({
   return (
     <FormDrawer
       open={open}
+      onboardingTarget={ONBOARDING_TARGETS.suppliesDrawer}
       onOpenChange={onOpenChange}
       title="New supply"
       description="Receiving branch stock increases by the quantity on each line. Totals use buying price × quantity. Shelf prices can be updated for this branch after posting (when permitted)."
-      width="extraWide"
+      width="wide"
       icon={<PackagePlus className="size-5 text-primary" aria-hidden />}
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={

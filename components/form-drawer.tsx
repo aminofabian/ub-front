@@ -7,6 +7,7 @@ import { Dialog } from "radix-ui";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import { dashboardBrandingAccentStops } from "@/lib/brand-theme";
+import type { OnboardingTargetId } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 
 export type FormDrawerProps = {
@@ -28,6 +29,8 @@ export type FormDrawerProps = {
   footer?: React.ReactNode;
   /** default ≈ md; wide ≈ 2xl; extraWide ≈ full data tables (supply lines, etc.) */
   width?: "default" | "wide" | "extraWide";
+  /** When set, marks the drawer panel for onboarding tour spotlight. */
+  onboardingTarget?: OnboardingTargetId;
 };
 
 /** Compact destructive alert for plain-string messages (API / validation). */
@@ -67,6 +70,7 @@ export function FormDrawer({
   children,
   footer,
   width = "default",
+  onboardingTarget,
 }: FormDrawerProps) {
   const dash = useOptionalDashboard();
   const brandStops = React.useMemo(
@@ -88,18 +92,24 @@ export function FormDrawer({
     : undefined;
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange} modal>
+    <Dialog.Root open={open} onOpenChange={onOpenChange} modal={!onboardingTarget}>
       <Dialog.Portal>
-        <Dialog.Overlay
-          className={cn(
-            "fixed inset-0 z-50 bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300",
-          )}
-        />
+        {!onboardingTarget ? (
+          <Dialog.Overlay
+            className={cn(
+              "fixed inset-0 z-50 bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40",
+              "data-[state=open]:animate-in data-[state=closed]:animate-out",
+              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300",
+            )}
+          />
+        ) : null}
         <Dialog.Content
+          {...(onboardingTarget
+            ? { "data-onboarding-target": onboardingTarget }
+            : {})}
           className={cn(
-            "fixed z-50 flex flex-col overflow-hidden outline-none",
+            "fixed flex flex-col overflow-hidden outline-none",
+            onboardingTarget ? "z-[250]" : "z-50",
             "border-l border-border/60 bg-background/95 shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)]",
             "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-24px_0_80px_-24px_rgba(0,0,0,0.45)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",

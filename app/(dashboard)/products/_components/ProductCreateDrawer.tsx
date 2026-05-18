@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FormDrawer, type FormDrawerProps } from "@/components/form-drawer";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ProductMutationsApi } from "../_hooks/useProductMutations";
 import type { BranchRecord } from "@/lib/api";
@@ -399,6 +400,7 @@ export function ProductCreateDrawer({
   return (
     <FormDrawer
       open={open}
+      onboardingTarget={ONBOARDING_TARGETS.productsDrawer}
       onOpenChange={(o) => {
         if (!o) onClose();
       }}

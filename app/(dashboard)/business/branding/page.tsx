@@ -3,6 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import {
   AlertCircle,
   ArrowRight,
@@ -806,6 +809,7 @@ function RelatedLinks() {
 }
 
 export default function BrandingPage() {
+  const searchParams = useSearchParams();
   const { canManageBusinessSettings } = useDashboard();
   const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
@@ -843,6 +847,13 @@ export default function BrandingPage() {
     }
     void load();
   }, [canManageBusinessSettings, load]);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "branding") {
+      skipDrawerResetAfterSave.current = false;
+      setBrandingDrawerOpen(true);
+    }
+  }, [searchParams]);
 
   const resetFormFromSnapshot = useCallback(() => {
     if (!snapshot) {
@@ -1193,6 +1204,7 @@ export default function BrandingPage() {
       <FormDrawer
         open={brandingDrawerOpen}
         onOpenChange={onBrandingDrawerOpenChange}
+        onboardingTarget={ONBOARDING_TARGETS.brandingDrawer}
         title="Edit branding"
         description={
           <>
@@ -1248,31 +1260,6 @@ export default function BrandingPage() {
               busy={logoBusy}
               onUpload={onLogoUpload}
               onClear={onLogoClear}
-            />
-          </FormDrawerFields>
-
-          <FormDrawerFields
-            legend="Hero Banners"
-            hint="Images that rotate in the storefront hero area. Drag to reorder is not available — use the arrow buttons."
-          >
-            <BannerSection
-              banners={bannerUrls}
-              busy={bannerBusy}
-              onUpload={onBannerUpload}
-              onDelete={onBannerDelete}
-              onReorder={onBannerReorder}
-            />
-          </FormDrawerFields>
-
-          <FormDrawerFields
-            legend="Favicon file"
-            hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately."
-          >
-            <FaviconSection
-              faviconUrl={faviconUrl}
-              busy={faviconBusy}
-              onUpload={onFaviconUpload}
-              onClear={onFaviconClear}
             />
           </FormDrawerFields>
 
@@ -1349,6 +1336,31 @@ export default function BrandingPage() {
                 external HTTPS URL here.
               </p>
             </div>
+          </FormDrawerFields>
+
+          <FormDrawerFields
+            legend="Hero Banners"
+            hint="Images that rotate in the storefront hero area. Drag to reorder is not available — use the arrow buttons."
+          >
+            <BannerSection
+              banners={bannerUrls}
+              busy={bannerBusy}
+              onUpload={onBannerUpload}
+              onDelete={onBannerDelete}
+              onReorder={onBannerReorder}
+            />
+          </FormDrawerFields>
+
+          <FormDrawerFields
+            legend="Favicon file"
+            hint="Browser tab icon. Prefer 32×32 or 48×48. Upload applies immediately."
+          >
+            <FaviconSection
+              faviconUrl={faviconUrl}
+              busy={faviconBusy}
+              onUpload={onFaviconUpload}
+              onClear={onFaviconClear}
+            />
           </FormDrawerFields>
 
           <FormDrawerFields

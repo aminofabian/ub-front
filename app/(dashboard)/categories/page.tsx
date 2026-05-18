@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -56,6 +57,7 @@ import {
   type TaxRateRecord,
 } from "@/lib/api";
 import { SUGGESTED_CATALOG_CATEGORIES } from "@/lib/category-suggestions";
+import { ONBOARDING_EMPHASIS, ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { cn, categoryIconImageUrl } from "@/lib/utils";
 
 const ROOT_PARENT_VALUE = "";
@@ -406,6 +408,7 @@ function isCategoryRowExpandedVisible(
 }
 
 export default function CategoriesPage() {
+  const searchParams = useSearchParams();
   const { loading, canViewCategories, canManageCategories, canViewSuppliers } = useDashboard();
   const [rows, setRows] = useState<CategoryRecord[]>([]);
   const [createDraft, setCreateDraft] = useState<CreateDraft>(EMPTY_CREATE);
@@ -727,6 +730,13 @@ export default function CategoriesPage() {
     }
     queueMicrotask(() => void refresh());
   }, [refresh, loading, canViewCategories]);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "create-category") {
+      setActiveDrawer("create");
+      setShowBulkSuggestions(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!canManageCategories || !canViewSuppliers) {
@@ -1972,6 +1982,7 @@ export default function CategoriesPage() {
       {/* Drawers */}
       <FormDrawer
         open={activeDrawer === "create"}
+        onboardingTarget={ONBOARDING_TARGETS.categoriesDrawer}
         onOpenChange={(open) => {
           if (!open) {
             setActiveDrawer(null);
@@ -1984,7 +1995,7 @@ export default function CategoriesPage() {
           }
         }}
         title="New category"
-        description="Enter one or more categories below (name, parent, optional batch lines). Open “Suggested categories” only if you want the taxonomy bulk picker."
+        description="Add your own names at the top, or use suggested categories below to tick ready-made groups in bulk."
         contextLabel="Catalog · Create"
         icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
         banner={
@@ -2110,7 +2121,14 @@ export default function CategoriesPage() {
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-2">
+            <div
+              className={cn(
+                "flex flex-col gap-2 rounded-xl transition-shadow",
+                searchParams.get("onboarding") === "create-category" &&
+                  "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
+              )}
+              data-onboarding-emphasis={ONBOARDING_EMPHASIS.categoriesSuggestions}
+            >
               <Button
                 type="button"
                 variant="outline"
@@ -2120,8 +2138,8 @@ export default function CategoriesPage() {
                 onClick={() => setShowBulkSuggestions((open) => !open)}
               >
                 {showBulkSuggestions
-                  ? "Hide suggested categories (bulk)"
-                  : "Show suggested categories (bulk)"}
+                  ? "Hide suggested categories"
+                  : "Show suggested categories"}
                 {suggestionPickKeys.length > 0 || createQueue.length > 0 ? " · draft" : ""}
               </Button>
               {showBulkSuggestions ? (

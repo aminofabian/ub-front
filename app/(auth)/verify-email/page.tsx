@@ -19,6 +19,7 @@ import {
 } from "@/lib/auth-tenant-prefill";
 import { resendVerificationEmail, verifyEmailAddress } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { markOnboardingTourPending } from "@/lib/onboarding-tour";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -61,6 +62,7 @@ function VerifyEmailContent() {
           return;
         }
         await verifyEmailAddress(token);
+        markOnboardingTourPending();
         setMessage("Your email is verified. You can sign in.");
         router.replace(APP_ROUTES.login);
       } catch (error: unknown) {
@@ -89,6 +91,7 @@ function VerifyEmailContent() {
       }
       persistTenantId(id);
       await verifyEmailAddress(token);
+      markOnboardingTourPending();
       setMessage("Your email is verified. You can sign in.");
       router.replace(APP_ROUTES.login);
     } catch (error) {

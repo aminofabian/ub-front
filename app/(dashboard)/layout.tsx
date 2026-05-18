@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
+import { OnboardingTourProvider } from "@/components/onboarding/onboarding-tour-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
@@ -59,7 +60,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <DashboardProvider>
       <RealtimeProvider>
-        <AppShell>{children}</AppShell>
+        <Suspense fallback={null}>
+          <OnboardingTourProvider>
+            <AppShell>{children}</AppShell>
+          </OnboardingTourProvider>
+        </Suspense>
         <DashboardToaster />
       </RealtimeProvider>
     </DashboardProvider>

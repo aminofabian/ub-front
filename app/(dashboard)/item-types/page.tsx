@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Building2,
   CheckCircle2,
@@ -30,6 +31,7 @@ import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import {
   type ItemTypeRecord,
   type CreateItemTypePayload,
@@ -71,6 +73,7 @@ type ConfirmDelete = {
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function ItemTypesPage() {
+  const searchParams = useSearchParams();
   const { me } = useDashboard();
   const canWrite = hasPermission(me?.permissions, Permission.CatalogItemsWrite);
 
@@ -115,6 +118,13 @@ export default function ItemTypesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "create-item-type" && canWrite) {
+      setCreateDraft(EMPTY_CREATE_DRAFT);
+      setCreateOpen(true);
+    }
+  }, [searchParams, canWrite]);
 
   // ─── create ────────────────────────────────────────────────────────────────
 
@@ -529,6 +539,7 @@ export default function ItemTypesPage() {
       {/* Create drawer */}
       <FormDrawer
         open={createOpen}
+        onboardingTarget={ONBOARDING_TARGETS.itemTypesDrawer}
         onOpenChange={(open) => {
           if (!open) {
             setCreateOpen(false);

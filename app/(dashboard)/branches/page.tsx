@@ -26,6 +26,7 @@ import {
   patchBranch,
   type BranchRecord,
 } from "@/lib/api";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 
 type BranchDraft = {
   name: string;
@@ -247,7 +248,10 @@ export default function BranchesPage() {
       ) : null}
 
       {canManage ? (
-        <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+        <section
+          data-onboarding-target={ONBOARDING_TARGETS.addBranch}
+          className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6"
+        >
           <div className="flex items-center gap-2">
             <Plus className="size-4 text-primary" aria-hidden />
             <h2 className="text-lg font-semibold tracking-tight">Add branch</h2>

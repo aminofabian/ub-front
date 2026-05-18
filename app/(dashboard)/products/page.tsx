@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   List,
   Loader2,
@@ -43,6 +44,7 @@ import {
 import { usePosEvents } from "@/hooks/use-pos-events";
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
   const {
     me,
     business,
@@ -96,6 +98,12 @@ export default function ProductsPage() {
     mq.addEventListener("change", () => setIsLg(mq.matches));
     return () => mq.removeEventListener("change", () => setIsLg(mq.matches));
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "create-product") {
+      setActiveDrawer("create-parent");
+    }
+  }, [searchParams]);
 
   const m = useProductMutations({
     selectedId: detail.selectedId,

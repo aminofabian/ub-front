@@ -26,6 +26,7 @@ import {
 import { registerAccount, fetchMe, onboardBusiness } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
+import { markOnboardingTourPending } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
@@ -114,6 +115,7 @@ function SignupPageContent() {
       }
       persistTenantId(id);
       const result = await registerAccount(name.trim(), email.trim(), password);
+      markOnboardingTourPending();
       if (result.status.toLowerCase() === "active") {
         setVerificationLink(null);
         setSuccessMessage(
@@ -219,6 +221,7 @@ function SignupPageContent() {
           email.trim(),
           password,
         );
+        markOnboardingTourPending();
         // Redirect to the business subdomain
         if (shopUrl) {
           if (registerResult.status.toLowerCase() === "active") {

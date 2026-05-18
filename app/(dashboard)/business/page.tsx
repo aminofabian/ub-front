@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
@@ -37,6 +38,7 @@ import {
   type BusinessRecord,
   type PatchBusinessPayload,
 } from "@/lib/api";
+import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 
 const MAX_FEATURED = 12;
 
@@ -86,11 +88,30 @@ const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
 };
 
-function storefrontFromRecord(b: BusinessRecord | null): StorefrontForm {
+function defaultCatalogBranchId(
+  branches: BranchRecord[],
+  currentId: string,
+): string {
+  if (currentId.trim()) {
+    return currentId.trim();
+  }
+  const active = branches.filter((b) => b.active);
+  const pool = active.length > 0 ? active : branches;
+  return pool[0]?.id ?? "";
+}
+
+function storefrontFromRecord(
+  b: BusinessRecord | null,
+  branches: BranchRecord[] = [],
+): StorefrontForm {
   const s = b?.storefront;
+  const catalogBranchId = defaultCatalogBranchId(
+    branches,
+    String(s?.catalogBranchId ?? "").trim(),
+  );
   return {
     enabled: Boolean(s?.enabled),
-    catalogBranchId: String(s?.catalogBranchId ?? "").trim(),
+    catalogBranchId,
     label: String(s?.label ?? ""),
     announcement: String(s?.announcement ?? ""),
     featuredLines: (s?.featuredItemIds ?? []).join("\n"),
@@ -125,6 +146,7 @@ function hintClass() {
 }
 
 export default function BusinessPage() {
+  const searchParams = useSearchParams();
   const { canManageBusinessSettings, refreshSession } = useDashboard();
   const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -149,7 +171,7 @@ export default function BusinessPage() {
           subscriptionTier: String(payload.subscriptionTier ?? "starter"),
           active: Boolean(payload.active ?? true),
         });
-        setStorefront(storefrontFromRecord(payload));
+        setStorefront(storefrontFromRecord(payload, branches));
         setInventory(inventoryFromRecord(payload));
       })
       .catch((error) => {
@@ -174,9 +196,63 @@ export default function BusinessPage() {
       return;
     }
     fetchBranches()
-      .then(setBranches)
+      .then((list) => {
+        setBranches(list);
+        setStorefront((prev) => {
+          const catalogBranchId = defaultCatalogBranchId(
+            list,
+            prev.catalogBranchId,
+          );
+          if (catalogBranchId === prev.catalogBranchId) {
+            return prev;
+          }
+          return { ...prev, catalogBranchId };
+        });
+      })
       .catch(() => setBranches([]));
   }, [canManageBusinessSettings]);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") !== "storefront") {
+      return;
+    }
+    skipDrawerResetAfterSave.current = false;
+    setSettingsDrawerOpen(true);
+    if (!canManageBusinessSettings) {
+      return;
+    }
+    void fetchBranches()
+      .then((list) => {
+        setBranches(list);
+        setStorefront((prev) => {
+          const catalogBranchId = defaultCatalogBranchId(
+            list,
+            prev.catalogBranchId,
+          );
+          if (catalogBranchId === prev.catalogBranchId) {
+            return prev;
+          }
+          return { ...prev, catalogBranchId };
+        });
+      })
+      .catch(() => setBranches([]));
+  }, [searchParams, canManageBusinessSettings]);
+
+  useEffect(() => {
+    if (branches.length === 0) {
+      return;
+    }
+    setStorefront((prev) => {
+      const catalogBranchId = defaultCatalogBranchId(
+        branches,
+        prev.catalogBranchId,
+      );
+      if (!catalogBranchId || catalogBranchId === prev.catalogBranchId) {
+        return prev;
+      }
+      return { ...prev, catalogBranchId };
+    });
+  }, [branches]);
 
   const onSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -215,7 +291,7 @@ export default function BusinessPage() {
         subscriptionTier: String(next.subscriptionTier ?? "starter"),
         active: Boolean(next.active ?? true),
       });
-      setStorefront(storefrontFromRecord(next));
+      setStorefront(storefrontFromRecord(next, branches));
       setInventory(inventoryFromRecord(next));
       setSettingsDrawerOpen(false);
       setFeedback({ kind: "success", text: "Your changes were saved." });
@@ -248,9 +324,9 @@ export default function BusinessPage() {
       subscriptionTier: String(snapshot.subscriptionTier ?? "starter"),
       active: Boolean(snapshot.active ?? true),
     });
-    setStorefront(storefrontFromRecord(snapshot));
+    setStorefront(storefrontFromRecord(snapshot, branches));
     setInventory(inventoryFromRecord(snapshot));
-  }, [snapshot]);
+  }, [snapshot, branches]);
 
   const onSettingsDrawerOpenChange = (open: boolean) => {
     if (!open) {
@@ -477,6 +553,7 @@ export default function BusinessPage() {
       <FormDrawer
         open={settingsDrawerOpen}
         onOpenChange={onSettingsDrawerOpenChange}
+        onboardingTarget={ONBOARDING_TARGETS.settingsDrawer}
         title="Edit business settings"
         description={
           <>

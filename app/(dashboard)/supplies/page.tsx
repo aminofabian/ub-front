@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BarChart3, CreditCard, FileEdit, Loader2, PackagePlus, RefreshCw, Truck } from "lucide-react";
 
 import {
@@ -57,6 +58,7 @@ function statusBadge(status: string): { label: string; className: string } {
 }
 
 export default function SuppliesPage() {
+  const searchParams = useSearchParams();
   const { me, loading, canPathBWrite, canPathBRead, canViewSuppliers, canViewCategories, canViewApAging } =
     useDashboard();
 
@@ -97,6 +99,12 @@ export default function SuppliesPage() {
      
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") === "create-supply" && canOpenNewSupply) {
+      setNewOpen(true);
+    }
+  }, [searchParams, canOpenNewSupply]);
 
   if (loading) {
     return <DashboardLoading />;
