@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Manrope, Outfit } from "next/font/google";
+import {
+  DM_Sans,
+  DM_Serif_Display,
+  Geist_Mono,
+  Manrope,
+  Outfit,
+} from "next/font/google";
 import type { ReactNode } from "react";
 
 import { TenantProvider } from "@/components/providers/tenant-provider";
@@ -31,6 +37,21 @@ const manrope = Manrope({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  display: "swap",
+});
+
+const dmSerifDisplay = DM_Serif_Display({
+  variable: "--font-dm-serif",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+  style: ["normal", "italic"],
 });
 
 export async function generateViewport(): Promise<Viewport> {
@@ -78,7 +99,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${manrope.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${manrope.variable} ${geistMono.variable} ${dmSans.variable} ${dmSerifDisplay.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

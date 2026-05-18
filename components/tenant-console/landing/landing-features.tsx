@@ -1,86 +1,276 @@
 "use client";
 
-import { ArrowRightLeft, GlobeLock, Store, Users } from "lucide-react";
-
-const FEATURES = [
-  {
-    icon: Store,
-    title: "Point of sale",
-    body: "Fast checkout with branch-aware pricing, shift management, and offline-ready registers — built for counters that can't afford sync delays.",
-  },
-  {
-    icon: GlobeLock,
-    title: "Online storefront",
-    body: "Publish your catalog and take web orders on the same stock ledger your team sees at the register. No double-entry, no spreadsheets.",
-  },
-  {
-    icon: ArrowRightLeft,
-    title: "Real-time sync",
-    body: "Stock moves, sales close, and inventory adjusts instantly across every branch and channel. Walk-in or web — one source of truth.",
-  },
-  {
-    icon: Users,
-    title: "Multi-branch access",
-    body: "Role-based permissions let staff see only their branch, while owners manage everything from a single dashboard. Grow without chaos.",
-  },
-] as const;
+import { landingCardClass, sectionLabelClass } from "./landing-styles";
 
 export function LandingFeatures() {
   return (
-    <section
-      id="platform"
-      className="border-t border-[var(--landing-border)] bg-[var(--landing-paper)]"
-    >
-      <div className="mx-auto max-w-[74rem] px-5 py-20 sm:px-8 sm:py-28">
-        {/* ── Section header ── */}
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.20em] text-[var(--landing-ink-muted)]">
-            Platform
-          </p>
-          <h2 className="font-heading mt-4 text-3xl font-bold tracking-[-0.035em] sm:text-4xl xl:text-[2.65rem] xl:leading-[1.05]">
-            Everything you need to run retail, in one place
+    <section id="features" className="px-5 py-28 sm:px-10">
+      <div className="mx-auto max-w-[1100px]">
+        {/* ── Header ── */}
+        <div className="mb-[72px]">
+          <p className={`${sectionLabelClass} mb-4`}>Platform</p>
+          <h2
+            className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
+            style={{ fontFamily: "'DM Serif Display', serif" }}
+          >
+            POS, inventory, storefront, and analytics — in one system.
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-[var(--landing-ink-muted)] sm:text-lg">
-            Kiosk is purpose-built for retailers who sell across counters and
-            screens — not a generic e-commerce template adapted for physical
-            stores.
-          </p>
         </div>
 
-        {/* ── Feature cards ── */}
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:mt-16">
-          {FEATURES.map((feature) => (
+        {/* ── Bento grid ── */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Large card — POS */}
+          <div
+            className={`${landingCardClass} relative overflow-hidden p-8 md:col-span-2`}
+          >
             <div
-              key={feature.title}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 shadow-[0_1px_3px_rgba(20,20,18,0.03)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(20,20,18,0.07)] hover:border-[var(--landing-border-strong)] sm:p-7"
+              className="pointer-events-none absolute right-0 top-0 h-[280px] w-[280px]"
+              style={{
+                background:
+                  "radial-gradient(ellipse at top right, var(--kiosk-gold-soft) 0%, transparent 70%)",
+              }}
+            />
+            <p className={`${sectionLabelClass} mb-4`}>Point of sale</p>
+            <h3
+              className="mb-4 font-serif text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
+              style={{ fontFamily: "'DM Serif Display', serif" }}
             >
-              {/* Icon */}
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--landing-gold-surface)] transition-colors duration-400 group-hover:bg-[var(--landing-gold-soft)]">
-                <feature.icon
-                  className="h-5 w-5 transition-colors duration-400"
-                  style={{ color: "var(--landing-gold)" }}
-                  aria-hidden
-                />
-              </div>
+              Checkout in seconds,
+              <br />
+              not steps.
+            </h3>
+            <p className="max-w-[380px] text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
+              A fast, offline-ready POS with a built-in barcode scanner. Process
+              sales, accept M-Pesa, split payments, apply discounts, and print
+              receipts — all from one screen.
+            </p>
 
-              <h3 className="font-heading mt-5 text-lg font-semibold tracking-[-0.02em] text-[var(--landing-ink)]">
-                {feature.title}
-              </h3>
-              <p className="mt-2.5 text-[15px] leading-relaxed text-[var(--landing-ink-muted)]">
-                {feature.body}
-              </p>
-
-              {/* Subtle corner glow on hover */}
+            {/* Mini POS mockup */}
+            <div className="mt-8 flex gap-4">
               <div
-                aria-hidden
-                className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-60"
+                className="flex-1 rounded-[10px] border p-4"
                 style={{
-                  background:
-                    "radial-gradient(circle, var(--landing-gold-soft), transparent 68%)",
+                  backgroundColor: "var(--kiosk-elevated)",
+                  borderColor: "var(--kiosk-border-soft)",
+                }}
+              >
+                {[
+                  { name: "Bottled Water 500ml", price: 45 },
+                  { name: "White Bread 400g", price: 65 },
+                  { name: "Milk 1L", price: 75 },
+                ].map((item, i) => (
+                  <div
+                    key={item.name}
+                    className="flex justify-between py-2 text-xs"
+                    style={{
+                      borderBottom:
+                        i < 2 ? "1px solid var(--kiosk-border-soft)" : "none",
+                    }}
+                  >
+                    <span className="text-[var(--kiosk-text-muted)]">
+                      {item.name}
+                    </span>
+                    <span className="text-[var(--kiosk-text)]">
+                      KES {item.price}
+                    </span>
+                  </div>
+                ))}
+                <div
+                  className="mt-4 rounded-md py-3 text-center text-xs font-medium text-[var(--kiosk-bg)]"
+                  style={{ backgroundColor: "var(--kiosk-gold)" }}
+                >
+                  Charge KES 185
+                </div>
+              </div>
+              {/* Numpad hint */}
+              <div className="hidden w-[100px] flex-col gap-2 sm:flex">
+                {[
+                  ["1", "2", "3"],
+                  ["4", "5", "6"],
+                  ["7", "8", "9"],
+                ].map((row, ri) => (
+                  <div key={ri} className="flex gap-2">
+                    {row.map((n) => (
+                      <div
+                        key={n}
+                        className="flex aspect-square flex-1 items-center justify-center rounded-md border text-[13px]"
+                        style={{
+                          backgroundColor: "var(--kiosk-panel)",
+                          borderColor: "var(--kiosk-border-soft)",
+                          color: "var(--kiosk-text-soft)",
+                        }}
+                      >
+                        {n}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Small card — Inventory */}
+          <div className={`${landingCardClass} p-8`}>
+            <p className={`${sectionLabelClass} mb-4`}>Real-time inventory</p>
+            <h3
+              className="mb-4 font-serif text-2xl leading-[1.2] text-[var(--kiosk-text)]"
+              style={{ fontFamily: "'DM Serif Display', serif" }}
+            >
+              Stock truth, everywhere at once.
+            </h3>
+            <p className="text-sm leading-[1.6] text-[var(--kiosk-text-soft)]">
+              Real-time stock across every branch and your online store. Run
+              stock-takes, transfer between locations, track supply batches, and
+              get low-stock alerts automatically.
+            </p>
+
+            <div className="mt-7 flex flex-col gap-2.5">
+              {[
+                { name: "Bread 400g", stock: 24, pct: 80 },
+                { name: "Milk 1L", stock: 8, pct: 27 },
+                { name: "Sugar 2kg", stock: 3, pct: 10 },
+              ].map((item) => (
+                <div key={item.name}>
+                  <div className="mb-1.5 flex justify-between">
+                    <span className="text-xs text-[var(--kiosk-text-muted)]">
+                      {item.name}
+                    </span>
+                    <span
+                      className="text-xs"
+                      style={{
+                        color:
+                          item.stock < 5
+                            ? "var(--kiosk-danger)"
+                            : "var(--kiosk-text-soft)",
+                      }}
+                    >
+                      {item.stock} left
+                    </span>
+                  </div>
+                  <div
+                    className="h-[3px] overflow-hidden rounded-sm"
+                    style={{
+                      backgroundColor: "var(--kiosk-border)",
+                    }}
+                  >
+                    <div
+                      className="h-full rounded-sm"
+                      style={{
+                        width: `${item.pct}%`,
+                        backgroundColor:
+                          item.stock < 5
+                            ? "var(--kiosk-danger-bar)"
+                            : "var(--kiosk-gold)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Small card — Storefront */}
+          <div className={`${landingCardClass} p-8`}>
+            <p className={`${sectionLabelClass} mb-4`}>Online storefront</p>
+            <h3
+              className="mb-4 font-serif text-2xl leading-[1.2] text-[var(--kiosk-text)]"
+              style={{ fontFamily: "'DM Serif Display', serif" }}
+            >
+              Your branded shop, live in minutes.
+            </h3>
+            <p className="text-sm leading-[1.6] text-[var(--kiosk-text-soft)]">
+              Publish a branded online store with your logo and colors.
+              Customers browse, add to cart, and check out with M-Pesa — all
+              pulling from your live inventory.
+            </p>
+            <div className="mt-7 inline-flex items-center gap-2">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: "var(--kiosk-success)",
+                  boxShadow: "0 0 0 2px var(--kiosk-success-shadow)",
                 }}
               />
+              <span
+                className="text-xs"
+                style={{ color: "var(--kiosk-success)" }}
+              >
+                yourshop.kiosk.ke is live
+              </span>
             </div>
-          ))}
+          </div>
+
+          {/* Large card — Multi-branch */}
+          <div className={`${landingCardClass} p-8 md:col-span-2`}>
+            <p className={`${sectionLabelClass} mb-4`}>Multi-branch</p>
+            <h3
+              className="mb-4 font-serif text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
+              style={{ fontFamily: "'DM Serif Display', serif" }}
+            >
+              One dashboard.
+              <br />
+              Every location.
+            </h3>
+            <p className="max-w-[440px] text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
+              Add branches, assign staff with role-based permissions, track
+              shifts, manage suppliers and purchase orders, and transfer stock —
+              all from one dashboard.
+            </p>
+
+            <div className="mt-8 grid grid-cols-3 gap-3">
+              {[
+                {
+                  branch: "Westlands",
+                  sales: "KES 42,100",
+                  status: "Open",
+                },
+                {
+                  branch: "Karen",
+                  sales: "KES 31,800",
+                  status: "Open",
+                },
+                {
+                  branch: "CBD",
+                  sales: "KES 10,420",
+                  status: "Closed",
+                },
+              ].map((b) => (
+                <div
+                  key={b.branch}
+                  className="rounded-lg border p-3.5"
+                  style={{
+                    backgroundColor: "var(--kiosk-elevated)",
+                    borderColor: "var(--kiosk-border-soft)",
+                  }}
+                >
+                  <div
+                    className="mb-1.5 text-[11px]"
+                    style={{ color: "var(--kiosk-text-dim)" }}
+                  >
+                    {b.branch}
+                  </div>
+                  <div className="mb-1.5 text-base font-medium text-[var(--kiosk-text)]">
+                    {b.sales}
+                  </div>
+                  <span
+                    className="inline-block rounded-full px-2 py-0.5 text-[10px]"
+                    style={{
+                      backgroundColor:
+                        b.status === "Open"
+                          ? "var(--kiosk-success-bg)"
+                          : "var(--kiosk-danger-bg)",
+                      color:
+                        b.status === "Open"
+                          ? "var(--kiosk-success)"
+                          : "var(--kiosk-danger)",
+                    }}
+                  >
+                    {b.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

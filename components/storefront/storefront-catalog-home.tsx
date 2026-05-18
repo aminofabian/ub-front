@@ -91,10 +91,10 @@ export async function StorefrontCatalogHome({
 
   return (
     <div className="bg-[oklch(0.985_0.002_90)] dark:bg-background">
-      <div className="mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-6 sm:pb-20 sm:pt-5">
-        <div className="grid gap-5 lg:grid-cols-12 lg:gap-6 lg:items-start">
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
+        <div className="grid gap-6 lg:grid-cols-12 lg:gap-7 lg:items-start">
           {/* Main content */}
-          <main className="min-w-0 space-y-5 lg:col-span-9">
+          <main className="min-w-0 space-y-6 lg:col-span-9">
             <ShopHeroMart
               title={heroTitle}
               tagline={announcement}

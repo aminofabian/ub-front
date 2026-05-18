@@ -137,6 +137,11 @@
     h6 {
         @apply font-heading;
     }
+
+    /* DM Serif Display utility — used by Kiosk landing sections */
+    .font-serif {
+        font-family: var(--font-dm-serif), "DM Serif Display", Georgia, serif;
+    }
 }
 
 /* Premium storefront animations */
@@ -195,7 +200,7 @@
     }
 }
 
-/* Kiosk platform landing — staggered entrance */
+/* ── Kiosk dark landing — staggered entrance ── */
 @keyframes landing-reveal {
     from {
         opacity: 0;

@@ -13,7 +13,10 @@ import { exampleShopHost } from "./landing/landing-host";
 import { LandingHero } from "./landing/landing-hero";
 import { LandingHowItWorks } from "./landing/landing-how-it-works";
 import { LandingNav } from "./landing/landing-nav";
+import { LandingPricing } from "./landing/landing-pricing";
+import { LandingStats } from "./landing/landing-stats";
 import { landingRootStyle } from "./landing/landing-styles";
+import { LandingTestimonials } from "./landing/landing-testimonials";
 import { LandingTrustBar } from "./landing/landing-trust-bar";
 
 export function TenantConsolePage() {
@@ -94,6 +97,9 @@ export function TenantConsolePage() {
             <LandingTrustBar />
             <LandingFeatures />
             <LandingHowItWorks />
+            <LandingStats />
+            <LandingTestimonials />
+            <LandingPricing />
             <LandingCta onCreateShop={openOnboarding} />
           </>
         ) : null}

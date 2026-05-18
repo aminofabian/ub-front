@@ -1,4 +1,5 @@
 export const APP_ROUTES = {
+  overview: "/overview",
   login: "/login",
   authHandoff: "/auth/handoff",
   signup: "/signup",
@@ -24,6 +25,7 @@ export const APP_ROUTES = {
   purchasingAddSupplies: "/supplies",
   purchasingApAging: "/purchasing/ap-aging",
   purchasingRecordPayment: "/purchasing/record-payment",
+  inventoryStock: "/inventory/stock",
   inventoryValuation: "/inventory/valuation",
   inventoryTransfers: "/inventory/transfers",
   inventoryStockTake: "/inventory/stock-take",
@@ -33,6 +35,8 @@ export const APP_ROUTES = {
   shifts: "/shifts",
   analytics: "/analytics",
   analyticsActivity: "/analytics/activity",
+  sales: "/sales",
+  salesTransactions: "/sales/transactions",
   salesReports: "/sales/reports",
   storefrontWebOrders: "/storefront/web-orders",
   salesQuick: "/sales/quick",

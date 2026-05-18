@@ -174,20 +174,22 @@ function ShopByAisleMenu({
         aria-haspopup="true"
       >
         <LayoutGrid className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="hidden whitespace-nowrap sm:inline">Shop by Aisle</span>
+        <span className="hidden whitespace-nowrap sm:inline">
+          Shop by Aisle
+        </span>
         <span className="sm:hidden">Aisles</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-white/85" aria-hidden />
       </button>
 
       <div
         className={cn(
-          "pointer-events-none invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-opacity duration-150",
-          "group-hover/aisle:pointer-events-auto group-hover/aisle:visible group-hover/aisle:opacity-100",
-          "group-focus-within/aisle:pointer-events-auto group-focus-within/aisle:visible group-focus-within/aisle:opacity-100",
+          "pointer-events-none invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-all duration-200 translate-y-1",
+          "group-hover/aisle:pointer-events-auto group-hover/aisle:visible group-hover/aisle:opacity-100 group-hover/aisle:translate-y-0",
+          "group-focus-within/aisle:pointer-events-auto group-focus-within/aisle:visible group-focus-within/aisle:opacity-100 group-focus-within/aisle:translate-y-0",
         )}
         onMouseLeave={() => setHoveredRootId(undefined)}
       >
-        <div className="flex w-[min(calc(100vw-2rem),56rem)] max-h-[min(75vh,28rem)] overflow-hidden rounded-lg border border-border/60 bg-white shadow-xl ring-1 ring-black/5">
+        <div className="flex w-[min(calc(100vw-2rem),58rem)] max-h-[min(75vh,28rem)] overflow-hidden rounded-xl border border-border/40 bg-white shadow-2xl shadow-black/5 ring-1 ring-black/5">
           <aside className="w-[11.5rem] shrink-0 overflow-y-auto border-r border-border/50 bg-muted/40 sm:w-[13rem]">
             <ul role="menu">
               <li role="none">
@@ -357,8 +359,15 @@ export function ShopCategoryRail({
 
   return (
     <div
-      className={cn("text-white", !primary && "bg-primary")}
-      style={primary ? { backgroundColor: primary } : undefined}
+      className={cn("text-white shadow-sm", !primary && "bg-primary")}
+      style={
+        primary
+          ? {
+              backgroundColor: primary,
+              boxShadow: `0 2px 16px ${primary}22`,
+            }
+          : undefined
+      }
     >
       <div className="mx-auto flex max-w-7xl items-stretch gap-2 px-4 sm:px-6">
         <ShopByAisleMenu
@@ -382,7 +391,9 @@ export function ShopCategoryRail({
           <span
             className="rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase text-white shadow"
             style={
-              accent ? { backgroundColor: accent } : { backgroundColor: "#dc2626" }
+              accent
+                ? { backgroundColor: accent }
+                : { backgroundColor: "#dc2626" }
             }
           >
             Hot

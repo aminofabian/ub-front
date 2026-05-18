@@ -3,9 +3,8 @@
 import { ArrowRight } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
-import { authInputClassName } from "@/components/auth/auth-split-shell";
 
-import { goldCtaClass } from "./landing-styles";
+import { goldCtaClass, sectionLabelClass } from "./landing-styles";
 
 type LandingOnboardingProps = {
   businessName: string;
@@ -26,29 +25,30 @@ export function LandingOnboarding({
 }: LandingOnboardingProps) {
   return (
     <div className="landing-reveal landing-reveal-delay-3 w-full max-w-md animate-fade-in-up">
-      <div className="rounded-[1.25rem] border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 shadow-[0_20px_48px_rgba(15,15,14,0.08)] sm:p-7">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--landing-ink-muted)]">
-          Step 1 of 2
-        </p>
-        <h2 className="font-heading mt-2 text-xl font-bold tracking-[-0.03em] sm:text-2xl">
+      <div className="rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] p-6 sm:p-7">
+        <p className={sectionLabelClass}>Step 1 of 2</p>
+        <h2
+          className="mt-2 font-serif text-xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-2xl"
+          style={{ fontFamily: "'DM Serif Display', serif" }}
+        >
           Name your business
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--landing-ink-muted)]">
-          You&apos;ll claim a subdomain, become owner, and finish account setup on
-          the next screen.
+        <p className="mt-2 text-sm leading-relaxed text-[var(--kiosk-text-soft)]">
+          You&apos;ll claim a subdomain, become owner, and finish account setup
+          on the next screen.
         </p>
 
         <form className="mt-5 space-y-4" onSubmit={onSubmit}>
           <div>
             <label
               htmlFor="landing-business-name"
-              className="mb-2 block text-xs font-medium text-[var(--landing-ink)]"
+              className="mb-2 block text-xs font-medium text-[var(--kiosk-text)]"
             >
               Business name
             </label>
             <input
               id="landing-business-name"
-              className={authInputClassName}
+              className="w-full rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-panel)] px-4 py-3 text-sm text-[var(--kiosk-text)] placeholder-[var(--kiosk-text-dim)] outline-none transition-colors focus:border-[var(--kiosk-gold-border)] focus:ring-2 focus:ring-[var(--kiosk-gold-soft)]"
               placeholder="Sunrise Bakery"
               value={businessName}
               onChange={(e) => onBusinessNameChange(e.target.value)}
@@ -75,10 +75,10 @@ export function LandingOnboarding({
 
         <button
           type="button"
-          className="mt-4 w-full text-center text-sm text-[var(--landing-ink-muted)] transition-colors hover:text-[var(--landing-ink)]"
+          className="mt-4 w-full text-center text-sm text-[var(--kiosk-text-dim)] transition-colors hover:text-[var(--kiosk-text-muted)]"
           onClick={onBack}
         >
-          ← Back
+          &larr; Back
         </button>
 
         {errorMessage ? (

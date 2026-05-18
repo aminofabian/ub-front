@@ -52,15 +52,16 @@ export function ShopHeroMart({
 
   const heroSurfaces = primary
     ? ({
-        "--hero-bg": `color-mix(in srgb, ${primary} 72%, rgb(2 6 23))`,
-        "--hero-panel-from": `color-mix(in srgb, ${primary} 48%, rgb(2 6 23))`,
-        "--hero-panel-to": `color-mix(in srgb, ${primary} 14%, rgb(2 6 23))`,
-        "--hero-fade-edge": `color-mix(in srgb, ${primary} 78%, rgb(2 6 23))`,
+        "--hero-bg": `color-mix(in srgb, ${primary} 78%, #020617)`,
+        "--hero-panel-from": `color-mix(in srgb, ${primary} 52%, #020617)`,
+        "--hero-panel-to": `color-mix(in srgb, ${primary} 16%, #020617)`,
+        "--hero-fade-edge": `color-mix(in srgb, ${primary} 82%, #020617)`,
+        "--hero-glow": `${primary}30`,
       } as Record<string, string>)
     : undefined;
 
-  const headline = tagline?.trim() || "Everyday Essentials.";
-  const subhead = "Close to You.";
+  const headline = tagline?.trim() || "Quality essentials, delivered.";
+  const subhead = "Right to your door.";
 
   // --- Carousel state ---
   const banners = heroBannerUrls?.length ? heroBannerUrls : null;
@@ -77,14 +78,12 @@ export function ShopHeroMart({
     setActiveIndex((prev) => (prev - 1 + banners.length) % banners.length);
   }, [banners]);
 
-  // Auto-rotate every 5 seconds
   useEffect(() => {
     if (!banners || banners.length <= 1) return;
     const timer = setInterval(goNext, 5000);
     return () => clearInterval(timer);
   }, [banners, goNext]);
 
-  // Reset active index when banners change
   useEffect(() => {
     setActiveIndex(0);
   }, [banners]);
@@ -92,8 +91,8 @@ export function ShopHeroMart({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-xl text-white shadow-sm",
-        !primary && "bg-[#0b1d12]",
+        "relative overflow-hidden rounded-2xl text-white shadow-lg shadow-black/10",
+        !primary && "bg-[#0a1020]",
       )}
       style={
         primary
@@ -101,10 +100,41 @@ export function ShopHeroMart({
           : undefined
       }
     >
-      <div className="grid min-h-[200px] gap-0 sm:min-h-[240px] sm:grid-cols-[1fr_1.2fr]">
-        {/* Left — copy */}
-        <div className="relative z-10 flex flex-col justify-center gap-3 px-5 py-6 sm:px-8 sm:py-8">
-          <h1 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+      {/* ── Atmosphere glow ── */}
+      <div
+        className="pointer-events-none absolute -right-[15%] -top-[20%] h-[280px] w-[280px] rounded-full blur-3xl opacity-30"
+        style={{
+          background: primary
+            ? `radial-gradient(circle, var(--hero-glow), transparent 70%)`
+            : "radial-gradient(circle, rgba(245,158,11,0.18), transparent 70%)",
+        }}
+        aria-hidden
+      />
+
+      <div className="grid min-h-[220px] gap-0 sm:min-h-[260px] sm:grid-cols-[1fr_1.15fr]">
+        {/* ── Left — copy ── */}
+        <div className="relative z-10 flex flex-col justify-center gap-4 px-6 py-7 sm:px-8 sm:py-9">
+          {/* Brand badge */}
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3 py-1 backdrop-blur-sm">
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={
+                accent
+                  ? { backgroundColor: accent }
+                  : primary
+                    ? {
+                        backgroundColor: `color-mix(in srgb, ${primary} 60%, white)`,
+                      }
+                    : { backgroundColor: "#f59e0b" }
+              }
+              aria-hidden
+            />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
+              {title}
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-bold leading-[1.08] tracking-[-0.03em] sm:text-3xl lg:text-[2.2rem]">
             <span className="block">{headline}</span>
             <span
               className="block"
@@ -112,21 +142,24 @@ export function ShopHeroMart({
                 accent
                   ? { color: accent }
                   : primary
-                    ? { color: `color-mix(in srgb, ${primary} 55%, white)` }
+                    ? { color: `color-mix(in srgb, ${primary} 50%, white)` }
                     : { color: "#f59e0b" }
               }
             >
               {subhead}
             </span>
           </h1>
-          <p className="max-w-xs text-xs leading-relaxed text-white/70 sm:text-sm">
-            Quality products, low prices, delivered fast.
+
+          <p className="max-w-sm text-[13px] leading-relaxed text-white/55 sm:text-sm">
+            Fresh products, fair prices, and fast delivery — all from your
+            neighborhood store, now online.
           </p>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link
               href="#shop-catalog"
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-lg px-5 text-xs font-semibold shadow-sm transition hover:brightness-110",
+                "inline-flex h-10 items-center gap-2 rounded-xl px-5 text-[13px] font-semibold shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
                 !accent && !primary && "bg-amber-500 text-white",
               )}
               style={
@@ -134,21 +167,21 @@ export function ShopHeroMart({
                   ? { backgroundColor: accent, color: "#fff" }
                   : primary
                     ? {
-                        backgroundColor: `color-mix(in srgb, ${primary} 82%, white)`,
-                        color: `color-mix(in srgb, ${primary} 8%, rgb(2 6 23))`,
+                        backgroundColor: `color-mix(in srgb, ${primary} 75%, white)`,
+                        color: `color-mix(in srgb, ${primary} 5%, #020617)`,
                       }
                     : undefined
               }
             >
-              Shop Now
-              <ArrowRight className="h-3.5 w-3.5" />
+              Shop now
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
             {wa ? (
               <a
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/25 bg-white/5 px-4 text-xs font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/18 bg-white/5 px-5 text-[13px] font-semibold text-white transition-all duration-300 hover:bg-white/10 hover:border-white/25 hover:-translate-y-0.5"
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 WhatsApp
@@ -157,11 +190,11 @@ export function ShopHeroMart({
           </div>
         </div>
 
-        {/* Right — showcase / carousel */}
+        {/* ── Right — showcase / carousel ── */}
         <div
           className={cn(
-            "group relative min-h-[160px] overflow-hidden sm:min-h-0",
-            !primary && "bg-gradient-to-br from-[#1f3a26] to-[#0b1d12]",
+            "group relative min-h-[180px] overflow-hidden sm:min-h-0",
+            !primary && "bg-gradient-to-br from-[#142238] to-[#0a1020]",
           )}
           style={
             primary
@@ -212,7 +245,7 @@ export function ShopHeroMart({
                 <>
                   <button
                     type="button"
-                    className="absolute left-2 top-1/2 z-20 -translate-y-1/2 flex size-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:bg-black/60 transition-opacity"
+                    className="absolute left-3 top-1/2 z-20 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/35 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100 hover:bg-black/50 hover:scale-105"
                     onClick={goPrev}
                     aria-label="Previous banner"
                   >
@@ -220,7 +253,7 @@ export function ShopHeroMart({
                   </button>
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 z-20 -translate-y-1/2 flex size-8 items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:bg-black/60 transition-opacity"
+                    className="absolute right-3 top-1/2 z-20 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/35 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100 hover:bg-black/50 hover:scale-105"
                     onClick={goNext}
                     aria-label="Next banner"
                   >
@@ -231,16 +264,16 @@ export function ShopHeroMart({
 
               {/* Dot indicators */}
               {banners.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
+                <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
                   {banners.map((_, i) => (
                     <button
                       key={i}
                       type="button"
                       className={cn(
-                        "size-2 rounded-full transition-all",
+                        "h-2 rounded-full transition-all duration-300",
                         i === activeIndex
-                          ? "bg-white scale-110"
-                          : "bg-white/50 hover:bg-white/70",
+                          ? "w-5 bg-white"
+                          : "w-2 bg-white/40 hover:bg-white/60",
                       )}
                       onClick={() => setActiveIndex(i)}
                       aria-label={`Go to banner ${i + 1}`}
@@ -267,10 +300,12 @@ export function ShopHeroMart({
               branchHint={branchHint}
             />
           )}
+
+          {/* Edge fade */}
           <div
             className={cn(
-              "pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r to-transparent sm:w-16",
-              !primary && "from-[#0b1d12]",
+              "pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r to-transparent",
+              !primary && "from-[#0a1020]",
             )}
             style={
               primary
@@ -301,7 +336,7 @@ function ShopWindowIllustration({
   return (
     <div className="relative flex h-full items-center justify-center">
       <div
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0 opacity-25"
         style={
           primary
             ? {
@@ -311,26 +346,24 @@ function ShopWindowIllustration({
         }
         aria-hidden
       />
-      <div className="relative z-10 flex flex-col items-center gap-2 px-4 text-center">
+      <div className="relative z-10 flex flex-col items-center gap-3 px-4 text-center">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoUrl}
             alt=""
-            className="max-h-12 w-auto max-w-[10rem] rounded-lg bg-white/95 p-1.5 object-contain shadow-md"
+            className="max-h-14 w-auto max-w-[11rem] rounded-xl bg-white/95 p-2 object-contain shadow-lg"
           />
         ) : (
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
-            <Store className="h-6 w-6" />
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8 ring-1 ring-white/15 backdrop-blur-sm">
+            <Store className="h-7 w-7" />
           </span>
         )}
-        <p className="text-sm font-semibold tracking-tight text-white">
-          {title}
-        </p>
+        <p className="text-base font-bold tracking-tight text-white">{title}</p>
         {branchHint ? (
-          <p className="text-[11px] text-white/60">From {branchHint}</p>
+          <p className="text-[12px] text-white/50">From {branchHint}</p>
         ) : (
-          <p className="text-[11px] text-white/60">
+          <p className="text-[12px] text-white/50">
             Local prices · Same-day pickup
           </p>
         )}

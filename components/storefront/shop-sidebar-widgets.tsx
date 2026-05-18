@@ -33,7 +33,7 @@ export function ShopSidebarWidgets({
   const threshold = freeDeliveryThreshold ?? 1500;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <FeaturedCard featured={featured} primary={primary} />
       <FreeDeliveryCard
         accent={accent}
@@ -80,15 +80,15 @@ function FeaturedCard({
 
   return (
     <aside
-      className="overflow-hidden rounded-xl shadow-sm"
+      className="overflow-hidden rounded-2xl shadow-md"
       style={{
         backgroundColor: primary ?? "var(--color-primary)",
       }}
     >
-      <div className="px-4 pb-3 pt-3.5">
-        <p className="text-sm font-bold text-white">Featured</p>
-        <p className="mt-0.5 text-[11px] text-white/60">
-          Staff picks from this catalog
+      <div className="px-4 pb-3 pt-4">
+        <p className="text-sm font-bold text-white">Featured picks</p>
+        <p className="mt-0.5 text-[11px] text-white/55">
+          Staff favorites from this catalog
         </p>
       </div>
       <div className="grid grid-cols-4 gap-1.5 px-4">
@@ -98,7 +98,7 @@ function FeaturedCard({
             <Link
               key={t.id}
               href={shopItemPathFromCard(t)}
-              className="relative aspect-square overflow-hidden rounded-lg bg-white/90 ring-1 ring-white/20 transition hover:brightness-95"
+              className="relative aspect-square overflow-hidden rounded-lg bg-white/90 ring-1 ring-white/15 transition-all duration-200 hover:scale-105 hover:ring-white/30"
             >
               {t.imageUrl ? (
                 <Image
@@ -142,10 +142,10 @@ function FreeDeliveryCard({
   const accentColor = accent ?? "#f59e0b";
   return (
     <aside
-      className="relative overflow-hidden rounded-xl border px-4 pb-4 pt-3.5"
+      className="relative overflow-hidden rounded-2xl border px-4 pb-4 pt-4"
       style={{
-        backgroundColor: `${accentColor}0d`,
-        borderColor: `${accentColor}30`,
+        backgroundColor: `${accentColor}0a`,
+        borderColor: `${accentColor}25`,
       }}
     >
       <p

@@ -97,8 +97,8 @@ export default function ShopProductGrid({
           >
             <article
               className={cn(
-                "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-200 hover:border-border hover:shadow-md",
-                isOutOfStock && "opacity-60",
+                "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/30 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-border/60 hover:shadow-lg",
+                isOutOfStock && "opacity-55",
               )}
             >
               {/* Image */}
@@ -112,13 +112,13 @@ export default function ShopProductGrid({
                     src={item.imageUrl}
                     alt={title}
                     fill
-                    className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.04]"
+                    className="object-contain p-4 transition-transform duration-400 group-hover:scale-[1.05]"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <span className="text-4xl font-bold text-muted-foreground/20 select-none">
+                  <div className="flex h-full items-center justify-center bg-muted/20">
+                    <span className="text-4xl font-bold text-muted-foreground/15 select-none">
                       {item.name.slice(0, 1).toUpperCase()}
                     </span>
                   </div>
@@ -128,7 +128,7 @@ export default function ShopProductGrid({
                 {badge.show ? (
                   <span
                     className={cn(
-                      "absolute left-2 top-2 rounded-md px-2 py-0.5 text-[10px] font-semibold",
+                      "absolute left-2 top-2 z-10 rounded-lg px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm",
                       badge.tone,
                     )}
                   >
@@ -153,14 +153,14 @@ export default function ShopProductGrid({
               <div className="flex flex-1 flex-col gap-2 p-3">
                 <Link
                   href={shopItemPathFromCard(item)}
-                  className="line-clamp-2 text-[12px] font-medium leading-[1.35] text-foreground/85 transition-colors hover:text-foreground"
+                  className="line-clamp-2 text-[13px] font-medium leading-[1.35] text-foreground/85 transition-colors hover:text-foreground"
                 >
                   {title}
                 </Link>
 
                 <div className="mt-auto flex items-end justify-between gap-2">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-bold tabular-nums tracking-tight text-foreground">
+                    <span className="text-[15px] font-bold tabular-nums tracking-tight text-foreground">
                       {priceLabel}
                     </span>
                     {stockLabel ? (

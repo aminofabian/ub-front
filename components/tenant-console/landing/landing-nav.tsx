@@ -16,77 +16,95 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16);
+    const onScroll = () => setScrolled(window.scrollY > 60);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <header
+    <nav
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-500",
+        "fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-5 transition-all duration-300 sm:px-10",
         scrolled
-          ? "border-b border-[var(--landing-border)] bg-[color-mix(in_srgb,var(--landing-paper)_90%,white)] shadow-[0_1px_3px_rgba(20,20,18,0.04),0_8px_32px_rgba(20,20,18,0.05)] backdrop-blur-xl"
+          ? "border-b border-[var(--kiosk-border-soft)] bg-[var(--kiosk-nav-blur-bg)] backdrop-blur-xl"
           : "border-b border-transparent bg-transparent",
       )}
     >
-      <div className="mx-auto flex h-[4rem] max-w-[74rem] items-center justify-between gap-6 px-5 sm:px-8">
-        {/* ── Logo ── */}
-        <Link
-          href="/"
-          className="group flex shrink-0 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--landing-paper)]"
-        >
-          <span
-            className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] bg-[var(--landing-ink)] text-[#faf9f7] transition-transform duration-300 group-hover:scale-[1.02]"
-            aria-hidden
-          >
-            <span className="font-heading text-sm font-extrabold tracking-tighter">
-              P
-            </span>
-            <span className="absolute inset-x-0 bottom-0 h-[3px] bg-[var(--landing-gold-bright)]" />
-          </span>
-          <span className="font-heading text-[1.05rem] font-bold tracking-[-0.03em]">
-            Kiosk
-          </span>
-        </Link>
+      {/* ── Logo ── */}
+      <Link
+        href="/"
+        className="flex items-center gap-2 focus-visible:outline-none"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <rect x="3" y="3" width="8" height="8" rx="2" fill="#C8A96E" />
+          <rect
+            x="13"
+            y="3"
+            width="8"
+            height="8"
+            rx="2"
+            fill="#C8A96E"
+            opacity="0.5"
+          />
+          <rect
+            x="3"
+            y="13"
+            width="8"
+            height="8"
+            rx="2"
+            fill="#C8A96E"
+            opacity="0.5"
+          />
+          <rect
+            x="13"
+            y="13"
+            width="8"
+            height="8"
+            rx="2"
+            fill="#C8A96E"
+            opacity="0.3"
+          />
+        </svg>
+        <span className="text-[17px] font-medium tracking-[-0.01em] text-[var(--kiosk-text)]">
+          Kiosk
+        </span>
+      </Link>
 
-        {/* ── Desktop nav ── */}
-        <nav
-          className="hidden items-center gap-8 text-sm font-medium text-[var(--landing-ink-muted)] md:flex"
-          aria-label="Primary"
-        >
+      {/* ── Desktop links ── */}
+      <div className="hidden items-center gap-9 md:flex">
+        {[
+          { href: "#features", label: "Features" },
+          { href: "#how", label: "How it works" },
+          { href: "#pricing", label: "Pricing" },
+          { href: "#stories", label: "Stories" },
+        ].map((link) => (
           <a
-            href="#platform"
-            className="transition-colors hover:text-[var(--landing-ink)]"
+            key={link.href}
+            href={link.href}
+            className="text-sm font-normal tracking-[0.01em] text-[var(--kiosk-text-muted)] transition-colors duration-200 hover:text-[var(--kiosk-text)]"
           >
-            Platform
+            {link.label}
           </a>
-          <a
-            href="#domains"
-            className="transition-colors hover:text-[var(--landing-ink)]"
-          >
-            Domains
-          </a>
-        </nav>
-
-        {/* ── CTAs ── */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href={APP_ROUTES.login}
-            className="hidden rounded-full px-4 py-2 text-sm font-medium text-[var(--landing-ink-muted)] transition-colors hover:text-[var(--landing-ink)] sm:inline-block"
-          >
-            Sign in
-          </Link>
-          <button
-            type="button"
-            className={`${goldCtaClass} text-sm`}
-            onClick={onCreateShop}
-          >
-            Create your shop
-          </button>
-        </div>
+        ))}
       </div>
-    </header>
+
+      {/* ── CTAs ── */}
+      <div className="flex items-center gap-3">
+        <Link
+          href={APP_ROUTES.login}
+          className="hidden text-sm font-normal tracking-[0.01em] text-[var(--kiosk-text-muted)] transition-colors duration-200 hover:text-[var(--kiosk-text)] sm:inline"
+        >
+          Sign in
+        </Link>
+        <button
+          type="button"
+          className={`${goldCtaClass} !px-4 !py-2 !text-[13px]`}
+          onClick={onCreateShop}
+        >
+          Get started
+        </button>
+      </div>
+    </nav>
   );
 }

@@ -2367,6 +2367,10 @@ export type RecentSaleRow = {
   cashierName: string;
   customerName: string;
   paymentMethod: string;
+  /** Comma-separated payment methods on the sale (when provided by API). */
+  paymentMethods?: string | null;
+  /** walk_in (POS) or online_store (storefront). */
+  channel?: string | null;
   itemId: string;
   itemName: string;
   quantity: number | string;
@@ -2388,6 +2392,21 @@ export async function fetchRecentSales(
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function fetchRecentWebOrderLines(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<RecentSaleRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<RecentSaleRow[]>(
+    `/api/v1/sales/intelligence/recent-web-order-lines${qs ? `?${qs}` : ""}`,
   );
 }
 

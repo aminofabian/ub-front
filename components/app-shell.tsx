@@ -7,6 +7,7 @@ import {
   Banknote,
   Building2,
   ChevronDown,
+  LayoutDashboard,
   Lock,
   LogOut,
   MapPin,
@@ -45,6 +46,13 @@ type NavSection = {
 };
 
 const NAV_SECTIONS: readonly NavSection[] = [
+  {
+    id: "overview",
+    title: "Home",
+    blurb: "Dashboard overview",
+    icon: LayoutDashboard,
+    items: [{ href: APP_ROUTES.overview, label: "Overview" }],
+  },
   {
     id: "org",
     title: "Organization",
@@ -94,6 +102,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Warehouse,
     items: [
       { href: APP_ROUTES.inventorySupplyBatches, label: "Supply batches" },
+      { href: APP_ROUTES.inventoryStock, label: "Stock" },
       { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
@@ -119,6 +128,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
     blurb: "Channels, reports, checkout",
     icon: ShoppingBag,
     items: [
+      { href: APP_ROUTES.sales, label: "Sales" },
+      { href: APP_ROUTES.salesTransactions, label: "Transactions" },
       { href: APP_ROUTES.analytics, label: "Analytics" },
       { href: APP_ROUTES.analyticsActivity, label: "Activity" },
       { href: APP_ROUTES.salesReports, label: "Sales by category" },
@@ -171,8 +182,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   // Restricted roles: only explicitly-allowed pages
   if (gate.roleKey === "stock_manager") {
     const allowed: readonly string[] = [
+      APP_ROUTES.overview,
       APP_ROUTES.inventoryStockTake,
       APP_ROUTES.inventoryStockTakeReconciliation,
+      APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryValuation,
       APP_ROUTES.inventoryTransfers,
       APP_ROUTES.purchasingAddSupplies,
@@ -182,6 +195,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
 
   if (gate.roleKey === "cashier") {
     const allowed: readonly string[] = [
+      APP_ROUTES.overview,
       APP_ROUTES.salesQuick,
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
@@ -190,6 +204,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return allowed.includes(item.href);
   }
 
+  if (item.href === APP_ROUTES.overview) return true;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
@@ -202,6 +217,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
     return gate.canRecordSupplierPayment;
+  if (item.href === APP_ROUTES.inventoryStock)
+    return gate.canViewInventoryValuation;
   if (item.href === APP_ROUTES.inventoryValuation)
     return gate.canViewInventoryValuation;
   if (item.href === APP_ROUTES.inventoryTransfers)
@@ -212,6 +229,9 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
+  if (item.href === APP_ROUTES.sales) return gate.canViewSalesIntelligence;
+  if (item.href === APP_ROUTES.salesTransactions)
+    return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesReports)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
@@ -245,6 +265,13 @@ type BottomTab = {
 
 const BOTTOM_TABS: readonly BottomTab[] = [
   {
+    id: "overview",
+    label: "Home",
+    icon: LayoutDashboard,
+    href: APP_ROUTES.overview,
+    matchSectionIds: ["overview"],
+  },
+  {
     id: "catalog",
     label: "Catalog",
     icon: Package,
@@ -255,7 +282,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     id: "inventory",
     label: "Stock",
     icon: Warehouse,
-    href: APP_ROUTES.inventorySupplyBatches,
+    href: APP_ROUTES.inventoryStock,
     matchSectionIds: ["purchasing", "inventory"],
   },
   {
@@ -414,11 +441,14 @@ export function AppShell({ children }: AppShellProps) {
     router.push(APP_ROUTES.login);
   };
 
+  const userDisplayName =
+    me?.name?.trim() || me?.email?.trim() || tenantTitle;
+
   const headerSubtitle = loading
     ? "Loading session…"
-    : [business?.name, me?.email].filter(Boolean).join(" · ");
+    : [business?.name, userDisplayName].filter(Boolean).join(" · ");
 
-  const userInitial = (me?.email ?? tenantTitle).charAt(0).toUpperCase();
+  const userInitial = userDisplayName.charAt(0).toUpperCase();
   const businessInitial = (business?.name ?? tenantTitle)
     .charAt(0)
     .toUpperCase();
@@ -433,18 +463,21 @@ export function AppShell({ children }: AppShellProps) {
       ).filter(
         (tab) =>
           !tab.href ||
+          tab.href === APP_ROUTES.overview ||
           tab.href === APP_ROUTES.inventoryStockTake ||
           tab.id === "more",
       );
     }
     if (roleKey === "cashier") {
       return BOTTOM_TABS.map((tab) => {
-        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.salesQuick };
+        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.sales };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
       }).filter(
         (tab) =>
           !tab.href ||
+          tab.href === APP_ROUTES.overview ||
+          tab.href === APP_ROUTES.sales ||
           tab.href === APP_ROUTES.salesQuick ||
           tab.href === APP_ROUTES.shifts ||
           tab.id === "more",
@@ -476,6 +509,7 @@ export function AppShell({ children }: AppShellProps) {
     if (roleKey === "stock_manager") {
       const allowed = [
         APP_ROUTES.inventoryStockTake,
+        APP_ROUTES.inventoryStock,
         APP_ROUTES.inventoryValuation,
         APP_ROUTES.inventoryTransfers,
         APP_ROUTES.purchasingAddSupplies,
@@ -866,9 +900,11 @@ export function AppShell({ children }: AppShellProps) {
                   {userInitial}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{me?.email}</p>
+                  <p className="text-sm font-medium">{userDisplayName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {business?.name}
+                    {me?.email?.trim() && me.email !== userDisplayName
+                      ? me.email
+                      : business?.name}
                   </p>
                 </div>
               </div>

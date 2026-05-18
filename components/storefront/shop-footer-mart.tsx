@@ -1,10 +1,10 @@
 import { CreditCard, Headphones, Lock, Smartphone } from "lucide-react";
 
 const ITEMS = [
-  { icon: Smartphone, label: "Download Our App", sub: "Coming Soon" },
-  { icon: CreditCard, label: "Pay with M-Pesa", sub: "Fast and Secure" },
-  { icon: Headphones, label: "24/7 Support", sub: "We are here to help" },
-  { icon: Lock, label: "100% Secure", sub: "Your data is safe" },
+  { icon: Smartphone, label: "Mobile Friendly", sub: "Shop on any device" },
+  { icon: CreditCard, label: "Pay with M-Pesa", sub: "Fast and secure" },
+  { icon: Headphones, label: "Customer Support", sub: "We're here to help" },
+  { icon: Lock, label: "100% Secure", sub: "Your data is protected" },
 ] as const;
 
 export function ShopFooterMart({
@@ -21,23 +21,30 @@ export function ShopFooterMart({
 
   return (
     <footer
-      className="fixed inset-x-0 bottom-0 z-40 text-white shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
-      style={primary ? { backgroundColor: primary } : { backgroundColor: "var(--color-primary)" }}
+      className="fixed inset-x-0 bottom-0 z-40 text-white shadow-[0_-4px_24px_rgba(0,0,0,0.10)]"
+      style={
+        primary
+          ? { backgroundColor: primary }
+          : { backgroundColor: "var(--color-primary)" }
+      }
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6 sm:py-6">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6 sm:py-5">
         {ITEMS.map(({ icon: Icon, label, sub }) => (
           <div key={label} className="flex items-center gap-3">
-            <Icon className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 sm:h-10 sm:w-10">
+              <Icon className="h-[18px] w-[18px] opacity-90" aria-hidden />
+            </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold leading-tight">{label}</p>
-              <p className="text-[11px] text-white/75">{sub}</p>
+              <p className="text-[13px] font-semibold leading-tight">{label}</p>
+              <p className="text-[11px] text-white/65">{sub}</p>
             </div>
           </div>
         ))}
       </div>
-      <div className="border-t border-white/10 py-3 text-center text-[11px] text-white/85">
-        <p className="mx-auto max-w-7xl px-4">
-          © {new Date().getFullYear()} {storeName}. Prices and availability may vary by branch.
+      <div className="border-t border-white/8 py-3 text-center">
+        <p className="mx-auto max-w-7xl px-4 text-[11px] text-white/70">
+          &copy; {new Date().getFullYear()} {storeName}. Prices and availability
+          may vary by branch.
         </p>
       </div>
     </footer>

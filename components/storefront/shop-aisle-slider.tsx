@@ -58,12 +58,12 @@ function AisleCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-xl border border-border/40 bg-card p-3 transition-all duration-200 hover:border-border hover:shadow-sm sm:w-[6.25rem] sm:p-4",
+        "group relative flex w-[5.5rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-border/30 bg-card/80 p-3 transition-all duration-300 hover:-translate-y-1 hover:border-border/60 hover:shadow-md sm:w-[6.25rem] sm:p-4",
       )}
     >
       <span
-        className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors sm:h-12 sm:w-12"
-        style={{ backgroundColor: `${color}14` }}
+        className="flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-105 sm:h-12 sm:w-12"
+        style={{ backgroundColor: `${color}12` }}
       >
         {customIconSrc ? (
           <span className="relative h-7 w-7 overflow-hidden rounded-md sm:h-8 sm:w-8">
@@ -77,7 +77,11 @@ function AisleCard({
             />
           </span>
         ) : (
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden style={{ color }} />
+          <Icon
+            className="h-5 w-5 sm:h-6 sm:w-6"
+            aria-hidden
+            style={{ color }}
+          />
         )}
       </span>
       <span className="line-clamp-2 text-center text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
@@ -121,7 +125,9 @@ export function ShopAisleSlider({
       return (
         <AisleCard
           key={`${c.id}${keySuffix}`}
-          href={shopListPath({ categoryPathSlug: storefrontCategoryPathSlug(c) })}
+          href={shopListPath({
+            categoryPathSlug: storefrontCategoryPathSlug(c),
+          })}
           label={c.name}
           itemCount={c.itemCount}
           Icon={Icon}
@@ -138,9 +144,7 @@ export function ShopAisleSlider({
     <div
       className="relative w-full overflow-hidden"
       aria-label="Shop by aisle"
-      style={
-        { "--aisle-marquee-duration": `${durationSec}s` } as CSSProperties
-      }
+      style={{ "--aisle-marquee-duration": `${durationSec}s` } as CSSProperties}
     >
       <div
         className={cn(
