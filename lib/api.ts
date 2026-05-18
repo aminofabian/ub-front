@@ -843,6 +843,9 @@ async function request<T>(
       method,
     );
     const headers = new Headers(headersInit);
+    if (!requiresAuth) {
+      headers.delete("Authorization");
+    }
     const idem = explicitIdempotencyKey?.trim();
     if (idem && IDEMPOTENCY_METHODS.includes(method)) {
       headers.set("Idempotency-Key", idem);

@@ -60,11 +60,30 @@ function targetUrl(req: NextRequest, segments: string[] | undefined): URL | null
   return u;
 }
 
+function resolveTenantHostHeader(req: NextRequest): string | null {
+  const fromClient = req.headers.get("x-tenant-host")?.trim();
+  if (fromClient) {
+    return fromClient;
+  }
+  const forwarded = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  if (forwarded) {
+    return forwarded;
+  }
+  const host = req.headers.get("host")?.split(":")[0]?.trim();
+  return host && host.length > 0 ? host : null;
+}
+
 function buildUpstreamHeaders(req: NextRequest): Headers {
   const h = new Headers();
   for (const name of HEADER_ALLOWLIST) {
     const v = req.headers.get(name);
     if (v) h.set(name, v);
+  }
+  if (!h.get("x-tenant-host")) {
+    const tenantHost = resolveTenantHostHeader(req);
+    if (tenantHost) {
+      h.set("x-tenant-host", tenantHost);
+    }
   }
   return h;
 }
@@ -180,6 +199,18 @@ export async function proxyToBackend(
     );
   }
   clearTimeout(timeoutId);
+
+  if (
+    upstream.status >= 400 &&
+    url.pathname.includes("/auth/")
+  ) {
+    console.warn("[backend-proxy] upstream auth error", {
+      status: upstream.status,
+      pathname: url.pathname,
+      tenantHost: headers.get("x-tenant-host"),
+      tenantId: headers.get("x-tenant-id"),
+    });
+  }
 
   // 204/205/304 must not carry a body. Passing `upstream.body` here can hang or
   // break the client (e.g. POST /api/v1/auth/resend-verification → 204 No Content).
