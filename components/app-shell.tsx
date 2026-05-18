@@ -19,6 +19,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { KioskLogo } from "@/components/brand/kiosk-logo";
+import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
@@ -545,10 +547,32 @@ export function AppShell({ children }: AppShellProps) {
       {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────────── */}
       <aside className="hidden md:flex sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background">
         <div className="border-b p-4">
-          <h1 className="text-lg font-semibold leading-tight tracking-tight">
-            {tenantTitle}
-          </h1>
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+          <Link
+            href={APP_ROUTES.overview}
+            className="mb-3 flex items-center gap-2.5 rounded-lg outline-none ring-offset-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
+          >
+            {business?.branding?.logoUrl?.trim() ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={business.branding.logoUrl.trim()}
+                alt=""
+                className="h-8 w-8 shrink-0 rounded-lg object-contain"
+              />
+            ) : (
+              <KioskLogoMark size="sm" variant="default" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold leading-tight tracking-tight">
+                {tenantTitle}
+              </span>
+              {!business?.branding?.logoUrl?.trim() ? (
+                <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
+                  Powered by Kiosk
+                </span>
+              ) : null}
+            </span>
+          </Link>
+          <p className="text-[11px] leading-snug text-muted-foreground">
             Navigate by area — groups collapse to reduce noise.
           </p>
         </div>

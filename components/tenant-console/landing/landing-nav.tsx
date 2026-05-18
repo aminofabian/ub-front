@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -25,51 +26,13 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
   return (
     <nav
       className={cn(
-        "fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-5 transition-all duration-300 sm:px-10",
+        "fixed inset-x-0 top-0 z-50 flex h-[4.25rem] items-center justify-between px-5 transition-all duration-300 sm:h-[4.5rem] sm:px-10",
         scrolled
           ? "border-b border-[var(--kiosk-border-soft)] bg-[var(--kiosk-nav-blur-bg)] backdrop-blur-xl"
           : "border-b border-transparent bg-transparent",
       )}
     >
-      {/* ── Logo ── */}
-      <Link
-        href="/"
-        className="flex items-center gap-2 focus-visible:outline-none"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <rect x="3" y="3" width="8" height="8" rx="2" fill="var(--kiosk-gold)" />
-          <rect
-            x="13"
-            y="3"
-            width="8"
-            height="8"
-            rx="2"
-            fill="var(--kiosk-gold)"
-            opacity="0.5"
-          />
-          <rect
-            x="3"
-            y="13"
-            width="8"
-            height="8"
-            rx="2"
-            fill="var(--kiosk-gold)"
-            opacity="0.5"
-          />
-          <rect
-            x="13"
-            y="13"
-            width="8"
-            height="8"
-            rx="2"
-            fill="var(--kiosk-gold)"
-            opacity="0.3"
-          />
-        </svg>
-        <span className="font-serif text-[17px] font-medium tracking-[-0.01em] text-[var(--kiosk-text)]">
-          Kiosk
-        </span>
-      </Link>
+      <KioskLogo href="/" size="lg" variant="landing" layout="badge" />
 
       {/* ── Desktop links ── */}
       <div className="hidden items-center gap-9 md:flex">

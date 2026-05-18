@@ -1,3 +1,7 @@
+import { PLATFORM_DOMAIN } from "@/lib/config";
+
+export { PLATFORM_DOMAIN };
+
 const CC_SLDS = new Set([
   "co",
   "com",
@@ -11,9 +15,9 @@ const CC_SLDS = new Set([
   "go",
 ]);
 
-export function exampleShopHost(): string {
+export function exampleShopHost(slug = "yourshop"): string {
   if (typeof window === "undefined") {
-    return "yourshop.kiosk.ke";
+    return `${slug}.${PLATFORM_DOMAIN}`;
   }
   const hostname = window.location.hostname.toLowerCase();
   if (hostname === "localhost" || hostname === "127.0.0.1") {

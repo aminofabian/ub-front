@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -45,12 +46,13 @@ export default function SuperAdminConsoleLayout({
       <header className="border-b border-border/80 bg-background/90 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-8">
-            <Link
+            <KioskLogo
               href={APP_ROUTES.superAdminBusinesses}
-              className="text-sm font-semibold tracking-tight text-foreground"
-            >
-              UB Super-admin
-            </Link>
+              size="sm"
+              wordmark="Kiosk"
+              tagline="Super admin"
+              showTagline
+            />
             <nav className="flex gap-5 text-sm">
               <Link
                 href={APP_ROUTES.superAdminBusinesses}

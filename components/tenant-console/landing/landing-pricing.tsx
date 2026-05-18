@@ -51,7 +51,7 @@ export function LandingPricing() {
         <div className="mb-[72px]">
           <p className={`${sectionLabelClass} mb-4`}>Pricing</p>
           <h2
-            className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
+            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
             style={{ maxWidth: "480px" }}
           >
             Simple pricing. No surprises.
@@ -66,7 +66,7 @@ export function LandingPricing() {
             </p>
             <div className="mb-2 flex items-baseline gap-1.5">
               <span
-                className="font-serif text-5xl text-[var(--kiosk-text)]"
+                className="font-heading text-5xl text-[var(--kiosk-text)]"
               >
                 Free
               </span>
@@ -110,7 +110,7 @@ export function LandingPricing() {
             </p>
             <div className="mb-2 flex items-baseline gap-1.5">
               <span
-                className="font-serif text-5xl text-[var(--kiosk-text)]"
+                className="font-heading text-5xl text-[var(--kiosk-text)]"
               >
                 KES 2,900
               </span>

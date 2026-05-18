@@ -11,6 +11,7 @@
     --font-mono: var(--font-geist-mono);
     /* Display / titles: Cormorant Garamond; body uses DM Sans via font-sans. */
     --font-heading: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+    --font-serif: var(--font-heading);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -243,6 +244,350 @@
         animation: none;
         opacity: 1;
         transform: none;
+    }
+}
+
+/* ── Landing hero — creative composition ── */
+@keyframes hero-backdrop-drift {
+    0%,
+    100% {
+        transform: scale(1.05) translate(0, 0);
+    }
+    50% {
+        transform: scale(1.1) translate(-1.5%, 1%);
+    }
+}
+
+@keyframes hero-mesh-drift {
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(3%, -2%) scale(1.05);
+    }
+    66% {
+        transform: translate(-2%, 2%) scale(0.98);
+    }
+}
+
+@keyframes hero-border-shine {
+    0% {
+        --hero-shine-angle: 0deg;
+    }
+    100% {
+        --hero-shine-angle: 360deg;
+    }
+}
+
+@keyframes hero-tag-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes hero-pos-line-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes hero-pos-scan-flash {
+    0% {
+        opacity: 0;
+        background: transparent;
+    }
+    35% {
+        opacity: 1;
+        background: color-mix(in srgb, var(--kiosk-gold) 14%, transparent);
+    }
+    100% {
+        opacity: 0;
+        background: transparent;
+    }
+}
+
+@keyframes hero-pos-total-pop {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes hero-pos-status-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.55;
+    }
+}
+
+@keyframes hero-pos-scan-icon {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+}
+
+@keyframes hero-pos-pay-ready {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--kiosk-gold) 0%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--kiosk-gold) 28%, transparent);
+    }
+}
+
+@keyframes hero-pos-stk-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes hero-pos-phone-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.12);
+        opacity: 1;
+    }
+}
+
+@keyframes hero-pos-stk-dot {
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.35;
+    }
+    40% {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
+}
+
+@keyframes hero-stage-tilt {
+    0%,
+    100% {
+        transform: perspective(1400px) rotateY(-6deg) rotateX(3deg) translateY(0);
+    }
+    50% {
+        transform: perspective(1400px) rotateY(-4deg) rotateX(2deg) translateY(-6px);
+    }
+}
+
+.landing-page .hero-backdrop-drift {
+    animation: hero-backdrop-drift 28s ease-in-out infinite;
+}
+
+.landing-page .hero-mesh-a {
+    animation: hero-mesh-drift 18s ease-in-out infinite;
+}
+
+.landing-page .hero-mesh-b {
+    animation: hero-mesh-drift 24s ease-in-out infinite reverse;
+}
+
+.landing-page .hero-border-glow {
+    background: conic-gradient(
+        from var(--hero-shine-angle, 0deg) at 50% 50%,
+        rgba(40, 167, 69, 0.55),
+        rgba(40, 167, 69, 0.08),
+        transparent 25%,
+        rgba(32, 134, 59, 0.35),
+        rgba(40, 167, 69, 0.55)
+    );
+    animation: hero-border-shine 10s linear infinite;
+}
+
+/* ── Kiosk premium logo ── */
+@property --kiosk-logo-shine-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes kiosk-logo-border-shine {
+    to {
+        --kiosk-logo-shine-angle: 360deg;
+    }
+}
+
+@keyframes kiosk-logo-rule-shimmer {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scaleX(0.92);
+    }
+    50% {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+.landing-page .kiosk-logo-badge-ring {
+    background: conic-gradient(
+        from var(--kiosk-logo-shine-angle, 0deg) at 50% 50%,
+        rgba(50, 200, 90, 0.7),
+        rgba(40, 167, 69, 0.15),
+        transparent 28%,
+        rgba(32, 134, 59, 0.45),
+        rgba(184, 232, 198, 0.5),
+        rgba(50, 200, 90, 0.7)
+    );
+    animation: kiosk-logo-border-shine 14s linear infinite;
+}
+
+.landing-page .kiosk-logo-rule {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--kiosk-gold) 35%,
+        #b8e8c6 50%,
+        var(--kiosk-gold) 65%,
+        transparent 100%
+    );
+    animation: kiosk-logo-rule-shimmer 5s ease-in-out infinite;
+}
+
+.landing-page .kiosk-logo-wordmark {
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.landing-page .hero-tag {
+    animation: hero-tag-float 6s ease-in-out infinite;
+}
+
+.landing-page .hero-tag-delay {
+    animation-delay: 1.8s;
+}
+
+.landing-page .hero-tag-delay-2 {
+    animation-delay: 3.2s;
+}
+
+.landing-page .hero-pos-line-in {
+    animation: hero-pos-line-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .hero-pos-scan-flash {
+    animation: hero-pos-scan-flash 0.42s ease-out forwards;
+}
+
+.landing-page .hero-pos-total-pop {
+    animation: hero-pos-total-pop 0.35s ease-out;
+}
+
+.landing-page .hero-pos-status-pulse {
+    animation: hero-pos-status-pulse 1.8s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-scan-icon {
+    animation: hero-pos-scan-icon 1.4s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-pay-ready {
+    animation: hero-pos-pay-ready 2.4s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-stk-in {
+    animation: hero-pos-stk-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .hero-pos-phone-pulse {
+    animation: hero-pos-phone-pulse 1.5s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-stk-dots span:nth-child(1) {
+    animation: hero-pos-stk-dot 1.2s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-stk-dots span:nth-child(2) {
+    animation: hero-pos-stk-dot 1.2s ease-in-out 0.15s infinite;
+}
+
+.landing-page .hero-pos-stk-dots span:nth-child(3) {
+    animation: hero-pos-stk-dot 1.2s ease-in-out 0.3s infinite;
+}
+
+.landing-page .hero-stage-tilt {
+    animation: hero-stage-tilt 9s ease-in-out infinite;
+    transform-style: preserve-3d;
+}
+
+.landing-page .hero-premium-frame {
+    box-shadow:
+        0 0 0 1px rgba(20, 20, 18, 0.06),
+        0 12px 40px -8px rgba(20, 20, 18, 0.14),
+        0 40px 80px -24px rgba(20, 20, 18, 0.18);
+}
+
+.landing-page .hero-premium-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 767px) {
+    .landing-page .hero-stage-tilt {
+        animation: none;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-page .hero-backdrop-drift,
+    .landing-page .hero-mesh-a,
+    .landing-page .hero-mesh-b,
+    .landing-page .hero-border-glow,
+    .landing-page .hero-tag,
+    .landing-page .hero-pos-line-in,
+    .landing-page .hero-pos-scan-flash,
+    .landing-page .hero-pos-total-pop,
+    .landing-page .hero-pos-status-pulse,
+    .landing-page .hero-pos-scan-icon,
+    .landing-page .hero-pos-pay-ready,
+    .landing-page .hero-pos-stk-in,
+    .landing-page .hero-pos-phone-pulse,
+    .landing-page .hero-pos-stk-dots span,
+    .landing-page .hero-stage-tilt,
+    .landing-page .kiosk-logo-badge-ring,
+    .landing-page .kiosk-logo-rule {
+        animation: none;
     }
 }
 

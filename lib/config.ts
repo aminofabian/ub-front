@@ -114,6 +114,9 @@ const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";
 const RAW_REALTIME_WS_ORIGIN =
   process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() ?? "";
 
+/** Platform apex domain — tenant shops are `{slug}.kiosk.ke`. */
+export const PLATFORM_DOMAIN = "kiosk.ke";
+
 /** Hosted Java API origin (no trailing slash). */
 export const REMOTE_API_ORIGIN = "https://kiosk.zelisline.com";
 
@@ -121,9 +124,14 @@ function normalizeOrigin(origin: string): string {
   return origin.replace(/\/+$/, "");
 }
 
-function isPalmartProductionHost(hostname: string): boolean {
+function isPlatformProductionHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
-  return host === "palmart.co.ke" || host.endsWith(".palmart.co.ke");
+  return (
+    host === "kiosk.ke" ||
+    host.endsWith(".kiosk.ke") ||
+    host === "palmart.co.ke" ||
+    host.endsWith(".palmart.co.ke")
+  );
 }
 
 /**
@@ -208,7 +216,7 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
     return `${url.origin}/api/v1/realtime`;
   }
 
-  if (isPalmartProductionHost(window.location.hostname)) {
+  if (isPlatformProductionHost(window.location.hostname)) {
     const remote = new URL(REMOTE_API_ORIGIN);
     remote.protocol = "wss:";
     return `${remote.origin}/api/v1/realtime`;

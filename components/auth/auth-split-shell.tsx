@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Sparkles } from "lucide-react";
+import { KioskLogo } from "@/components/brand/kiosk-logo";
+import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import {
@@ -114,10 +115,16 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
   const brand =
     tenant?.branding?.displayName?.trim() ||
     tenant?.tenantName?.trim() ||
-    "Palmart";
+    "Kiosk";
   const logoUrl = tenant?.branding?.logoUrl?.trim() || null;
   const faviconUrl = tenant?.branding?.faviconUrl?.trim() || null;
   const slug = tenant?.slug?.trim();
+  const logoWordmark = tenant ? brand : "Kiosk";
+  const logoTagline = tenant
+    ? slug
+      ? slug.replace(/-/g, " · ")
+      : "Point of sale"
+    : "Retail platform";
 
   return (
     <div
@@ -196,37 +203,34 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
             <div
               className="flex items-center gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--auth-primary)_20%,transparent)] bg-white/70 px-3 py-2 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/[0.06]"
             >
-              {faviconUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={faviconUrl}
-                  alt=""
-                  className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-inner ring-2 ring-[color-mix(in_srgb,var(--auth-primary)_25%,transparent)]"
-                />
-              ) : (
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[var(--auth-accent-ink)] shadow-md"
-                  style={{ background: "linear-gradient(145deg, var(--auth-primary), var(--auth-secondary))" }}
-                >
-                  <Sparkles className="h-5 w-5" strokeWidth={2} />
-                </div>
-              )}
               {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoUrl}
-                  alt={brand}
-                  className="h-9 max-w-[min(200px,45vw)] object-contain object-left"
-                />
+                <>
+                  {faviconUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={faviconUrl}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-inner ring-2 ring-[color-mix(in_srgb,var(--auth-primary)_25%,transparent)]"
+                    />
+                  ) : (
+                    <KioskLogoMark size={40} variant="auth" />
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoUrl}
+                    alt={brand}
+                    className="h-9 max-w-[min(200px,45vw)] object-contain object-left"
+                  />
+                </>
               ) : (
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold tracking-tight text-foreground">{brand}</p>
-                  {slug ? (
-                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                      {slug.replace(/-/g, " · ")}
-                    </p>
-                  ) : null}
-                </div>
+                <KioskLogo
+                  size="sm"
+                  variant="auth"
+                  wordmark={logoWordmark}
+                  tagline={logoTagline}
+                  showTagline
+                  className="pointer-events-none"
+                />
               )}
             </div>
 

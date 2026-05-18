@@ -28,7 +28,7 @@ export function LandingOnboarding({
       <div className="rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] p-6 sm:p-7">
         <p className={sectionLabelClass}>Step 1 of 2</p>
         <h2
-          className="mt-2 font-serif text-xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-2xl"
+          className="mt-2 font-heading text-xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-2xl"
         >
           Name your business
         </h2>

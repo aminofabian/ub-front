@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { KioskLogo } from "@/components/brand/kiosk-logo";
+
 const FOOTER_COLS = [
   {
     label: "Product",
@@ -22,50 +24,17 @@ export function LandingFooter() {
         <div className="mb-16 grid gap-12 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
           {/* Brand */}
           <div>
-            <div className="mb-4 flex items-center gap-2">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-              >
-                <rect x="3" y="3" width="8" height="8" rx="2" fill="var(--kiosk-gold)" />
-                <rect
-                  x="13"
-                  y="3"
-                  width="8"
-                  height="8"
-                  rx="2"
-                  fill="var(--kiosk-gold)"
-                  opacity="0.5"
-                />
-                <rect
-                  x="3"
-                  y="13"
-                  width="8"
-                  height="8"
-                  rx="2"
-                  fill="var(--kiosk-gold)"
-                  opacity="0.4"
-                />
-                <rect
-                  x="13"
-                  y="13"
-                  width="8"
-                  height="8"
-                  rx="2"
-                  fill="var(--kiosk-gold)"
-                  opacity="0.2"
-                />
-              </svg>
-              <span className="font-serif text-base font-medium text-[var(--kiosk-text)]">
-                Kiosk
-              </span>
+            <div className="mb-4">
+              <KioskLogo
+                href="/"
+                size="md"
+                variant="landing"
+                showTagline
+                tagline="KIOSK.KE"
+              />
             </div>
             <p className="max-w-[260px] text-sm leading-[1.6] text-[var(--kiosk-text-dim)]">
-              Point of sale, inventory, and online storefront — unified for
-              modern retail.
+              Built by shop owners who sell at the counter every day.
             </p>
           </div>
 

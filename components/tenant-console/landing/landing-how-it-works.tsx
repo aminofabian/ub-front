@@ -30,7 +30,7 @@ export function LandingHowItWorks() {
         <div className="mb-20">
           <p className={`${sectionLabelClass} mb-4`}>Getting started</p>
           <h2
-            className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
+            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
             style={{ maxWidth: "560px" }}
           >
             Set up in an afternoon. Run it for years.

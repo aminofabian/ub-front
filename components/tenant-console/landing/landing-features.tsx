@@ -1,8 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+import { exampleShopHost } from "./landing-host";
 import { landingCardClass, sectionLabelClass } from "./landing-styles";
 
 export function LandingFeatures() {
+  const [shopHost, setShopHost] = useState(() => exampleShopHost());
+
+  useEffect(() => {
+    setShopHost(exampleShopHost());
+  }, []);
   return (
     <section id="features" className="px-5 py-28 sm:px-10">
       <div className="mx-auto max-w-[1100px]">
@@ -10,7 +18,7 @@ export function LandingFeatures() {
         <div className="mb-[72px]">
           <p className={`${sectionLabelClass} mb-4`}>Platform</p>
           <h2
-            className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
+            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
           >
             POS, inventory, storefront, and analytics — in one system.
           </h2>
@@ -31,7 +39,7 @@ export function LandingFeatures() {
             />
             <p className={`${sectionLabelClass} mb-4`}>Point of sale</p>
             <h3
-              className="mb-4 font-serif text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
+              className="mb-4 font-heading text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
             >
               Checkout in seconds,
               <br />
@@ -111,7 +119,7 @@ export function LandingFeatures() {
           <div className={`${landingCardClass} p-8`}>
             <p className={`${sectionLabelClass} mb-4`}>Real-time inventory</p>
             <h3
-              className="mb-4 font-serif text-2xl leading-[1.2] text-[var(--kiosk-text)]"
+              className="mb-4 font-heading text-2xl leading-[1.2] text-[var(--kiosk-text)]"
             >
               Stock truth, everywhere at once.
             </h3>
@@ -170,7 +178,7 @@ export function LandingFeatures() {
           <div className={`${landingCardClass} p-8`}>
             <p className={`${sectionLabelClass} mb-4`}>Online storefront</p>
             <h3
-              className="mb-4 font-serif text-2xl leading-[1.2] text-[var(--kiosk-text)]"
+              className="mb-4 font-heading text-2xl leading-[1.2] text-[var(--kiosk-text)]"
             >
               Your branded shop, live in minutes.
             </h3>
@@ -191,7 +199,7 @@ export function LandingFeatures() {
                 className="text-xs"
                 style={{ color: "var(--kiosk-success)" }}
               >
-                yourshop.kiosk.ke is live
+                {shopHost} is live
               </span>
             </div>
           </div>
@@ -200,7 +208,7 @@ export function LandingFeatures() {
           <div className={`${landingCardClass} p-8 md:col-span-2`}>
             <p className={`${sectionLabelClass} mb-4`}>Multi-branch</p>
             <h3
-              className="mb-4 font-serif text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
+              className="mb-4 font-heading text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
             >
               One dashboard.
               <br />

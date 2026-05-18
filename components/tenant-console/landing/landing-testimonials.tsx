@@ -30,7 +30,7 @@ export function LandingTestimonials() {
         <div className="mb-[72px]">
           <p className={`${sectionLabelClass} mb-4`}>Stories</p>
           <h2
-            className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
+            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
           >
             Heard from the floor.
           </h2>

@@ -33,7 +33,7 @@ export function LandingStats() {
         {STATS.map((s) => (
           <div key={s.label}>
             <div
-              className="mb-3 font-serif text-[clamp(36px,5vw,52px)] leading-none text-[var(--kiosk-text)]"
+              className="mb-3 font-heading text-[clamp(36px,5vw,52px)] leading-none text-[var(--kiosk-text)]"
             >
               {s.value}
             </div>

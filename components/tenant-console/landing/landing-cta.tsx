@@ -34,7 +34,7 @@ export function LandingCta({ onCreateShop }: LandingCtaProps) {
 
       <div className="relative z-10 mx-auto max-w-[600px]">
         <h2
-          className="mb-6 font-serif text-[clamp(36px,5vw,64px)] leading-[1.06] tracking-[-0.02em] text-[var(--kiosk-text)]"
+          className="mb-6 font-heading text-[clamp(36px,5vw,64px)] leading-[1.06] tracking-[-0.02em] text-[var(--kiosk-text)]"
         >
           Ready to unify your operation?
         </h2>
