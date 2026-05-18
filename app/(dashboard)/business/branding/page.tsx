@@ -7,6 +7,8 @@ import {
   AlertCircle,
   ArrowRight,
   Building2,
+  ChevronDown,
+  ChevronUp,
   Globe,
   Loader2,
   Lock,
@@ -26,6 +28,11 @@ import {
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
+import {
+  BRANDING_COLOR_PRESETS,
+  brandingPresetMatches,
+  type BrandingColorPreset,
+} from "@/lib/branding-color-presets";
 import { APP_ROUTES } from "@/lib/config";
 import { setDocumentFavicon } from "@/lib/document-favicon";
 import { cn } from "@/lib/utils";
@@ -142,6 +149,140 @@ function labelClass() {
 
 function hintClass() {
   return "text-xs leading-relaxed text-muted-foreground";
+}
+
+function BrandingColorPresetCard({
+  preset,
+  selected,
+  onSelect,
+}: {
+  preset: BrandingColorPreset;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <li role="presentation">
+      <button
+        type="button"
+        role="option"
+        aria-selected={selected}
+        onClick={onSelect}
+        className={cn(
+          "flex w-full flex-col gap-2 rounded-xl border bg-card p-2.5 text-left shadow-sm transition-all",
+          "hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+          selected
+            ? "border-primary ring-2 ring-primary/20"
+            : "border-border/80",
+        )}
+      >
+        <span className="flex gap-1">
+          <span
+            className="h-7 flex-1 rounded-md border border-black/10 shadow-inner"
+            style={{ backgroundColor: preset.primary }}
+            aria-hidden
+          />
+          <span
+            className="h-7 flex-1 rounded-md border border-black/10 shadow-inner"
+            style={{ backgroundColor: preset.accent }}
+            aria-hidden
+          />
+        </span>
+        <span className="truncate text-xs font-medium leading-tight text-foreground">
+          {preset.name}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function BrandingColorPresetPicker({
+  primaryColor,
+  accentColor,
+  onSelect,
+}: {
+  primaryColor: string;
+  accentColor: string;
+  onSelect: (preset: BrandingColorPreset) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const activePreset = BRANDING_COLOR_PRESETS.find((preset) =>
+    brandingPresetMatches(preset, primaryColor, accentColor),
+  );
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className={labelClass()}>Color themes</p>
+        <p className={cn(hintClass(), "mt-1")}>
+          Pick a ready-made primary and accent pair, or fine-tune with the
+          controls below.
+        </p>
+      </div>
+
+      {activePreset && !expanded ? (
+        <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-muted/30 px-3 py-2">
+          <span className="flex gap-1">
+            <span
+              className="size-5 rounded border border-black/10 shadow-inner"
+              style={{ backgroundColor: activePreset.primary }}
+              aria-hidden
+            />
+            <span
+              className="size-5 rounded border border-black/10 shadow-inner"
+              style={{ backgroundColor: activePreset.accent }}
+              aria-hidden
+            />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+            {activePreset.name}
+          </span>
+        </div>
+      ) : null}
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full justify-between gap-2"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((open) => !open)}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <Palette className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="truncate">
+            {expanded
+              ? "Hide color themes"
+              : `Browse ${BRANDING_COLOR_PRESETS.length} color themes`}
+          </span>
+        </span>
+        {expanded ? (
+          <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        ) : (
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+      </Button>
+
+      {expanded ? (
+        <ul
+          role="listbox"
+          aria-label="Branding color themes"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+        >
+          {BRANDING_COLOR_PRESETS.map((preset) => (
+            <BrandingColorPresetCard
+              key={preset.name}
+              preset={preset}
+              selected={brandingPresetMatches(
+                preset,
+                primaryColor,
+                accentColor,
+              )}
+              onSelect={() => onSelect(preset)}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 function ColorField({
@@ -1157,6 +1298,18 @@ export default function BrandingPage() {
                 business name when empty.
               </p>
             </div>
+
+            <BrandingColorPresetPicker
+              primaryColor={form.primaryColor}
+              accentColor={form.accentColor}
+              onSelect={(preset) =>
+                setForm((s) => ({
+                  ...s,
+                  primaryColor: preset.primary.toUpperCase(),
+                  accentColor: preset.accent.toUpperCase(),
+                }))
+              }
+            />
 
             <div className="grid gap-6 sm:grid-cols-2">
               <ColorField
