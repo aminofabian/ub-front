@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { KioskLogo } from "@/components/brand/kiosk-logo";
-import { KioskLogoMark } from "@/components/brand/kiosk-logo-mark";
+import { Sparkles } from "lucide-react";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
+
+import { TenantLogo } from "@/components/brand/tenant-logo";
 
 import {
   BRAND_ACCENT,
@@ -118,6 +119,7 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
     "Kiosk";
   const logoUrl = tenant?.branding?.logoUrl?.trim() || null;
   const faviconUrl = tenant?.branding?.faviconUrl?.trim() || null;
+  const primaryColor = tenant?.branding?.primaryColor ?? null;
   const slug = tenant?.slug?.trim();
   const logoWordmark = tenant ? brand : "Kiosk";
   const logoTagline = tenant
@@ -188,51 +190,33 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
             "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(135deg,transparent_40%,color-mix(in_srgb,var(--auth-primary)_8%,transparent)_100%)]",
           )}
         >
-          {/* Watermark logo */}
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- tenant asset URLs
-            <img
-              src={logoUrl}
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute -right-16 top-24 w-[min(100%,380px)] max-w-none rotate-[-8deg] select-none opacity-[0.06] blur-[0.5px] dark:opacity-[0.09]"
-            />
-          ) : null}
+          <TenantLogo
+            brand={brand}
+            logoUrl={logoUrl}
+            variant="auth-watermark"
+            primaryColor={primaryColor}
+          />
 
           <div className="relative z-[1] mb-8 flex flex-wrap items-center gap-3">
-            <div
-              className="flex items-center gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--auth-primary)_20%,transparent)] bg-white/70 px-3 py-2 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/[0.06]"
-            >
-              {logoUrl ? (
-                <>
-                  {faviconUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={faviconUrl}
-                      alt=""
-                      className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-inner ring-2 ring-[color-mix(in_srgb,var(--auth-primary)_25%,transparent)]"
-                    />
-                  ) : (
-                    <KioskLogoMark size={40} variant="auth" />
-                  )}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={logoUrl}
-                    alt={brand}
-                    className="h-9 max-w-[min(200px,45vw)] object-contain object-left"
-                  />
-                </>
-              ) : (
-                <KioskLogo
-                  size="sm"
-                  variant="auth"
-                  wordmark={logoWordmark}
-                  tagline={logoTagline}
-                  showTagline
-                  className="pointer-events-none"
-                />
-              )}
-            </div>
+            <TenantLogo
+              brand={brand}
+              logoUrl={logoUrl}
+              faviconUrl={faviconUrl}
+              primaryColor={primaryColor}
+              variant="auth-badge"
+              size="sm"
+              showTagline={!logoUrl}
+              tagline={logoTagline}
+              kioskFallback={
+                tenant
+                  ? undefined
+                  : {
+                      wordmark: logoWordmark,
+                      tagline: logoTagline,
+                      size: "sm",
+                    }
+              }
+            />
 
             <span
               className="ml-auto hidden items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--auth-primary)] sm:inline-flex"
@@ -280,20 +264,12 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-          {/* Hero watermark logo */}
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 w-[min(90%,320px)] -translate-x-1/2 -translate-y-1/2 opacity-[0.18] mix-blend-overlay"
-            />
-          ) : (
-            <p className="pointer-events-none absolute left-1/2 top-[42%] w-full -translate-x-1/2 -translate-y-1/2 px-6 text-center font-black uppercase leading-none tracking-tighter text-white/25 sm:text-5xl">
-              {brand}
-            </p>
-          )}
+          <TenantLogo
+            brand={brand}
+            logoUrl={logoUrl}
+            variant="auth-hero-watermark"
+            primaryColor={primaryColor}
+          />
 
           <div className="absolute left-5 right-5 top-6 flex justify-center">
             <div className="flex max-w-[90%] flex-col items-center gap-2">

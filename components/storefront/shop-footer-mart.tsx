@@ -1,5 +1,7 @@
 import { CreditCard, Headphones, Lock, Smartphone } from "lucide-react";
 
+import { TenantLogo } from "@/components/brand/tenant-logo";
+
 const ITEMS = [
   { icon: Smartphone, label: "Mobile Friendly", sub: "Shop on any device" },
   { icon: CreditCard, label: "Pay with M-Pesa", sub: "Fast and secure" },
@@ -10,9 +12,11 @@ const ITEMS = [
 export function ShopFooterMart({
   primaryHex,
   storeName,
+  logoUrl,
 }: {
   primaryHex: string | null;
   storeName: string;
+  logoUrl?: string | null;
 }) {
   const primary =
     primaryHex && /^#[0-9a-fA-F]{6}$/.test(primaryHex.trim())
@@ -28,6 +32,19 @@ export function ShopFooterMart({
           : { backgroundColor: "var(--color-primary)" }
       }
     >
+      <div className="border-b border-white/12">
+        <div className="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 sm:py-5">
+          <TenantLogo
+            brand={storeName}
+            logoUrl={logoUrl}
+            primaryColor={primary}
+            variant="footer"
+            size="md"
+            tone="dark"
+          />
+        </div>
+      </div>
+
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-4 py-5 sm:grid-cols-4 sm:px-6 sm:py-5">
         {ITEMS.map(({ icon: Icon, label, sub }) => (
           <div key={label} className="flex items-center gap-3">
@@ -41,6 +58,7 @@ export function ShopFooterMart({
           </div>
         ))}
       </div>
+
       <div className="border-t border-white/8 py-3 text-center">
         <p className="mx-auto max-w-7xl px-4 text-[11px] text-white/70">
           &copy; {new Date().getFullYear()} {storeName}. Prices and availability

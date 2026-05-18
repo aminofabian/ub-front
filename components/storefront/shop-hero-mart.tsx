@@ -5,12 +5,12 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
-  Store,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { TenantLogo } from "@/components/brand/tenant-logo";
 import { cn } from "@/lib/utils";
 
 function whatsAppOrderHref(): string | null {
@@ -347,18 +347,12 @@ function ShopWindowIllustration({
         aria-hidden
       />
       <div className="relative z-10 flex flex-col items-center gap-3 px-4 text-center">
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoUrl}
-            alt=""
-            className="max-h-14 w-auto max-w-[11rem] rounded-xl bg-white/95 p-2 object-contain shadow-lg"
-          />
-        ) : (
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8 ring-1 ring-white/15 backdrop-blur-sm">
-            <Store className="h-7 w-7" />
-          </span>
-        )}
+        <TenantLogo
+          brand={title}
+          logoUrl={logoUrl}
+          primaryColor={primary}
+          variant="storefront-hero"
+        />
         <p className="text-base font-bold tracking-tight text-white">{title}</p>
         {branchHint ? (
           <p className="text-[12px] text-white/50">From {branchHint}</p>

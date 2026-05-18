@@ -23,6 +23,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { TenantLogo } from "@/components/brand/tenant-logo";
+
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   DASHBOARD_MAX,
@@ -366,48 +368,17 @@ function BrandingPreview({
         style={{ borderColor: `${primary}55` }}
       >
         <div className="flex flex-wrap items-center gap-3">
-          {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt="Logo preview"
-              width={48}
-              height={48}
-              className="size-12 rounded-lg border border-border/60 object-contain"
-              unoptimized
-            />
-          ) : (
-            <div
-              className="flex size-12 items-center justify-center rounded-lg text-lg font-bold text-white shadow-sm"
-              style={{ backgroundColor: primary }}
-            >
-              {display.slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {faviconPreview ? (
-                <Image
-                  src={faviconPreview}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="size-5 rounded border border-border/60 object-contain"
-                  unoptimized
-                />
-              ) : null}
-              <p
-                className="truncate text-base font-semibold"
-                style={{ color: primary }}
-              >
-                {display}
-              </p>
-            </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Header + favicon as shoppers see them
-            </p>
-          </div>
+          <TenantLogo
+            brand={display}
+            logoUrl={logoUrl}
+            faviconUrl={faviconPreview}
+            primaryColor={primary}
+            variant="preview"
+            tagline="Header + favicon as shoppers see them"
+            className="flex-1 min-w-0"
+          />
           <span
-            className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
+            className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm shrink-0"
             style={{ backgroundColor: accent }}
           >
             Sale
@@ -420,11 +391,13 @@ function BrandingPreview({
 
 function LogoSection({
   logoUrl,
+  primaryColor,
   busy,
   onUpload,
   onClear,
 }: {
   logoUrl: string | null | undefined;
+  primaryColor?: string | null;
   busy: boolean;
   onUpload: (file: File) => Promise<void>;
   onClear: () => Promise<void>;
@@ -440,20 +413,12 @@ function LogoSection({
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        {logoUrl ? (
-          <Image
-            src={logoUrl}
-            alt="Current logo"
-            width={80}
-            height={80}
-            className="size-20 rounded-xl border border-border/60 bg-muted/30 object-contain shadow-sm"
-            unoptimized
-          />
-        ) : (
-          <div className="flex size-20 items-center justify-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 text-xs text-muted-foreground">
-            No logo
-          </div>
-        )}
+        <TenantLogo
+          brand="Your logo"
+          logoUrl={logoUrl}
+          primaryColor={primaryColor}
+          variant="upload"
+        />
         <div className="flex flex-wrap gap-2">
           <input
             ref={inputRef}
@@ -1257,6 +1222,7 @@ export default function BrandingPage() {
           >
             <LogoSection
               logoUrl={logoUrl}
+              primaryColor={form.primaryColor}
               busy={logoBusy}
               onUpload={onLogoUpload}
               onClear={onLogoClear}

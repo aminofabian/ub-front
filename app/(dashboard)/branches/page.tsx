@@ -88,8 +88,17 @@ export default function BranchesPage() {
   const [loadPass, setLoadPass] = useState(0);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createdBranchName, setCreatedBranchName] = useState<string | null>(null);
 
   const canManage = canManageBusinessSettings;
+
+  useEffect(() => {
+    if (!createdBranchName) {
+      return;
+    }
+    const timer = window.setTimeout(() => setCreatedBranchName(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [createdBranchName]);
 
   const load = useCallback(() => {
     return fetchBranches()
@@ -127,15 +136,16 @@ export default function BranchesPage() {
     event.preventDefault();
     setCreating(true);
     setFeedback(null);
+    const branchName = draft.name.trim();
     try {
       await createBranch({
-        name: draft.name.trim(),
+        name: branchName,
         address: draft.address.trim() || undefined,
       });
       setDraft(EMPTY_DRAFT);
+      setCreatedBranchName(branchName);
       await load();
       await refreshSession();
-      setFeedback({ kind: "success", text: "Branch created." });
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -256,15 +266,41 @@ export default function BranchesPage() {
             <Plus className="size-4 text-primary" aria-hidden />
             <h2 className="text-lg font-semibold tracking-tight">Add branch</h2>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Create a location, then tune address and active status in the table.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create a location, then tune address and active status in the table.
+          </p>
+          {createdBranchName ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className={cn(
+                "mt-4 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm",
+                "text-emerald-950 dark:text-emerald-50",
+              )}
+            >
+              <CheckCircle2
+                className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                aria-hidden
+              />
+              <div className="min-w-0 space-y-0.5">
+                <p className="font-semibold">
+                  &ldquo;{createdBranchName}&rdquo; was added successfully
+                </p>
+                <p className="text-emerald-900/80 dark:text-emerald-100/80">
+                  You can tune its address and active status in the table below.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <form className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-12" onSubmit={onCreate}>
             <input
               className={cn(inputClass(), "md:col-span-5")}
               placeholder="Branch name"
               value={draft.name}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, name: event.target.value }))
-              }
+              onChange={(event) => {
+                setCreatedBranchName(null);
+                setDraft((previous) => ({ ...previous, name: event.target.value }));
+              }}
               required
               aria-label="New branch name"
             />
@@ -272,9 +308,10 @@ export default function BranchesPage() {
               className={cn(inputClass(), "md:col-span-5")}
               placeholder="Address (optional)"
               value={draft.address}
-              onChange={(event) =>
-                setDraft((previous) => ({ ...previous, address: event.target.value }))
-              }
+              onChange={(event) => {
+                setCreatedBranchName(null);
+                setDraft((previous) => ({ ...previous, address: event.target.value }));
+              }}
               aria-label="New branch address"
             />
             <Button className="md:col-span-2" type="submit" disabled={creating} size="lg">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -30,21 +31,17 @@ export function TenantStatusPage({ status }: { status: Status }) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-border/70 bg-card/95 p-10 text-center shadow-sm">
-        {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logo}
-            alt={`${display} logo`}
-            className="mx-auto mb-6 max-h-12 w-auto max-w-[min(100%,16rem)] object-contain"
+        <div className="mb-6 flex justify-center">
+          <TenantLogo
+            brand={display}
+            logoUrl={logo}
+            primaryColor={primary}
+            variant="auth-badge"
+            size="md"
+            tagline="Workspace"
+            showTagline
           />
-        ) : (
-          <p
-            className="mb-6 text-xs font-semibold uppercase tracking-[0.25em]"
-            style={primary ? { color: primary } : undefined}
-          >
-            {display}
-          </p>
-        )}
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight">{heading}</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
         <div className="mt-8 flex justify-center">

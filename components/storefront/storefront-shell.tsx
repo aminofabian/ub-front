@@ -38,7 +38,7 @@ export async function StorefrontShell({
   const title =
     storefront?.label?.trim() || storefront?.businessName || tenant?.tenantName || "Shop";
   const headerTitle = tenant?.branding?.displayName ?? title;
-  const logoUrl = tenant?.branding?.logoUrl ?? null;
+  const logoUrl = tenant?.branding?.logoUrl?.trim() || null;
   const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
   const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
   const primary = isHexColor(primaryRaw) ? primaryRaw : null;
@@ -67,7 +67,7 @@ export async function StorefrontShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:8.75rem] dark:bg-background">
+    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:13.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background">
       <ShopUtilityBar primaryHex={primary} locationHint={locationHint} />
       {slug ? (
         <ShopHeaderBar
@@ -91,7 +91,11 @@ export async function StorefrontShell({
       <div className="flex-1 pb-[var(--shop-footer-offset,9.5rem)]">
         {children}
       </div>
-      <ShopFooterMart primaryHex={primary} storeName={headerTitle} />
+      <ShopFooterMart
+        primaryHex={primary}
+        storeName={headerTitle}
+        logoUrl={logoUrl}
+      />
       <ShopStorefrontRealtime currency={currency} branding={branding} />
     </div>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+
+import { TenantMonogramLockup } from "@/components/brand/tenant-monogram";
 import Link from "next/link";
 import {
   Suspense,
@@ -329,7 +331,7 @@ function ComingSoonPageBody({
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
         >
-          {logoUrl ? (
+          {logoUrl?.trim() ? (
             <Image
               src={logoUrl}
               alt={displayName}
@@ -339,7 +341,12 @@ function ComingSoonPageBody({
               unoptimized
             />
           ) : (
-            displayName
+            <TenantMonogramLockup
+              brand={displayName}
+              primaryColor={accent}
+              size="sm"
+              showTagline={false}
+            />
           )}
         </a>
         <span className="rounded-full border border-[var(--cs-accent)] bg-[var(--cs-accent-pale)] px-3.5 py-1 text-[11px] font-normal uppercase tracking-[0.14em] text-[var(--cs-accent)]">
