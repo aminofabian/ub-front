@@ -61,6 +61,16 @@ export default function SuperAdminConsoleLayout({
               >
                 Businesses
               </Link>
+              <Link
+                href={APP_ROUTES.superAdminSettings}
+                className={
+                  pathname === APP_ROUTES.superAdminSettings
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+              >
+                Settings
+              </Link>
             </nav>
           </div>
           <Button variant="outline" size="sm" type="button" onClick={onSignOut}>

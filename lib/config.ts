@@ -8,6 +8,7 @@ export const APP_ROUTES = {
   resetPassword: "/reset-password",
   superAdminLogin: "/super-admin/login",
   superAdminBusinesses: "/super-admin/businesses",
+  superAdminSettings: "/super-admin/settings",
   business: "/business",
   businessBranding: "/business/branding",
   businessDomains: "/business/domains",

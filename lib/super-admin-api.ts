@@ -43,7 +43,10 @@ function getNetworkErrorMessage(): string {
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
 
-export async function loginSuperAdmin(email: string, password: string): Promise<SuperAdminLoginResult> {
+export async function loginSuperAdmin(
+  email: string,
+  password: string,
+): Promise<SuperAdminLoginResult> {
   let response: Response;
   try {
     response = await fetch(apiUrl(API_ROUTES.superAdminAuthLogin), {
@@ -82,7 +85,11 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (method !== "GET" && method !== "HEAD") {
     headers["Content-Type"] = "application/json";
   }
-  if (init.headers && typeof init.headers === "object" && !Array.isArray(init.headers)) {
+  if (
+    init.headers &&
+    typeof init.headers === "object" &&
+    !Array.isArray(init.headers)
+  ) {
     Object.assign(headers, init.headers as Record<string, string>);
   }
   let response: Response;
@@ -108,7 +115,10 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchSaBusinesses(page = 0, size = 50): Promise<SaBusinessRow[]> {
+export async function fetchSaBusinesses(
+  page = 0,
+  size = 50,
+): Promise<SaBusinessRow[]> {
   const params = new URLSearchParams({
     page: String(page),
     size: String(size),
@@ -131,7 +141,9 @@ export type CreateSaBusinessPayload = {
   primaryDomain?: string;
 };
 
-export async function createSaBusiness(body: CreateSaBusinessPayload): Promise<SaBusinessRow> {
+export async function createSaBusiness(
+  body: CreateSaBusinessPayload,
+): Promise<SaBusinessRow> {
   return saRequest<SaBusinessRow>(API_ROUTES.superAdminBusinesses, {
     method: "POST",
     body: JSON.stringify(body),
@@ -148,10 +160,13 @@ export async function patchSaBusiness(
   businessId: string,
   body: PatchSaBusinessPayload,
 ): Promise<SaBusinessRow> {
-  return saRequest<SaBusinessRow>(`${API_ROUTES.superAdminBusinesses}/${businessId}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
+  return saRequest<SaBusinessRow>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export async function deleteSaBusiness(businessId: string): Promise<void> {
@@ -160,30 +175,64 @@ export async function deleteSaBusiness(businessId: string): Promise<void> {
   });
 }
 
-export async function fetchSaDomains(businessId: string): Promise<SaDomainRow[]> {
+export async function fetchSaDomains(
+  businessId: string,
+): Promise<SaDomainRow[]> {
   return saRequest<SaDomainRow[]>(
     `${API_ROUTES.superAdminBusinesses}/${businessId}/domains`,
     { method: "GET" },
   );
 }
 
-export async function addSaDomain(businessId: string, domain: string): Promise<SaDomainRow> {
-  return saRequest<SaDomainRow>(`${API_ROUTES.superAdminBusinesses}/${businessId}/domains`, {
-    method: "POST",
-    body: JSON.stringify({ domain: domain.trim().toLowerCase() }),
-  });
+export async function addSaDomain(
+  businessId: string,
+  domain: string,
+): Promise<SaDomainRow> {
+  return saRequest<SaDomainRow>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/domains`,
+    {
+      method: "POST",
+      body: JSON.stringify({ domain: domain.trim().toLowerCase() }),
+    },
+  );
 }
 
-export async function setSaPrimaryDomain(businessId: string, domainId: string): Promise<SaDomainRow> {
+export async function setSaPrimaryDomain(
+  businessId: string,
+  domainId: string,
+): Promise<SaDomainRow> {
   return saRequest<SaDomainRow>(
     `${API_ROUTES.superAdminBusinesses}/${businessId}/domains/${domainId}/primary`,
     { method: "POST" },
   );
 }
 
-export async function deleteSaDomain(businessId: string, domainId: string): Promise<void> {
+export async function deleteSaDomain(
+  businessId: string,
+  domainId: string,
+): Promise<void> {
   await saRequest<unknown>(
     `${API_ROUTES.superAdminBusinesses}/${businessId}/domains/${domainId}`,
     { method: "DELETE" },
   );
+}
+
+export type SuperAdminMe = {
+  superAdminId: string;
+  email: string;
+  name: string;
+};
+
+export async function fetchSuperAdminMe(): Promise<SuperAdminMe> {
+  return saRequest<SuperAdminMe>("/api/v1/super-admin/me", { method: "GET" });
+}
+
+export async function changeSuperAdminPassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await saRequest<unknown>("/api/v1/super-admin/me/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 }
