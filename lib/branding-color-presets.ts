@@ -6,7 +6,7 @@ export type BrandingColorPreset = {
 };
 
 export const BRANDING_COLOR_PRESETS: BrandingColorPreset[] = [
-  { name: "Fresh Green", primary: "#2E7D32", accent: "#A5D6A7" },
+  { name: "Fresh Green", primary: "#28A745", accent: "#20863B" },
   { name: "Royal Blue", primary: "#1565C0", accent: "#90CAF9" },
   { name: "Sunset Orange", primary: "#EF6C00", accent: "#FFCC80" },
   { name: "Modern Purple", primary: "#6A1B9A", accent: "#CE93D8" },

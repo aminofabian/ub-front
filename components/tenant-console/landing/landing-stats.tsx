@@ -34,7 +34,6 @@ export function LandingStats() {
           <div key={s.label}>
             <div
               className="mb-3 font-serif text-[clamp(36px,5vw,52px)] leading-none text-[var(--kiosk-text)]"
-              style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               {s.value}
             </div>

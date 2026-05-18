@@ -4,6 +4,10 @@ import Image from "next/image";
 import { Sparkles } from "lucide-react";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 
+import {
+  BRAND_ACCENT,
+  BRAND_PRIMARY,
+} from "@/lib/brand-colors";
 import type { TenantContext } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
@@ -14,8 +18,6 @@ export const authInputClassName = cn(
   "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--auth-primary)_30%,transparent)]",
   "dark:border-white/10 dark:bg-white/[0.07]",
 );
-
-const DEFAULT_PRIMARY = "#d9a441";
 
 function normalizeHex(color: string | null | undefined): string | null {
   if (!color) {
@@ -65,17 +67,32 @@ function inkForAccent(hex: string): string {
  * {@link TenantBranding#accentColor} when valid hex; derives a softer companion when accent is absent.
  */
 export function authThemeStyle(tenant: TenantContext | null): CSSProperties {
+  const hasTenantBrand =
+    normalizeHex(tenant?.branding?.primaryColor) ??
+    normalizeHex(tenant?.branding?.accentColor);
+
   const primary =
     normalizeHex(tenant?.branding?.primaryColor) ??
     normalizeHex(tenant?.branding?.accentColor) ??
-    DEFAULT_PRIMARY;
+    BRAND_PRIMARY;
 
   const accentHex = normalizeHex(tenant?.branding?.accentColor);
-  const secondary =
-    accentHex && accentHex !== primary ? accentHex : mixTowardWhite(primary, 0.34);
+  const secondary = accentHex && accentHex !== primary
+    ? accentHex
+    : hasTenantBrand
+      ? mixTowardWhite(primary, 0.34)
+      : BRAND_ACCENT;
+
+  const primaryHover =
+    accentHex && accentHex !== primary
+      ? accentHex
+      : hasTenantBrand
+        ? mixTowardWhite(primary, 0.12)
+        : BRAND_ACCENT;
 
   return {
     "--auth-primary": primary,
+    "--auth-primary-hover": primaryHover,
     "--auth-secondary": secondary,
     "--auth-accent": primary,
     "--auth-accent-ink": inkForAccent(primary),

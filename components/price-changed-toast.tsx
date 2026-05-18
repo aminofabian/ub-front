@@ -2,11 +2,10 @@
 
 import { toast } from "sonner";
 
+import { BRAND_PRIMARY } from "@/lib/brand-colors";
 import { dashboardBrandingAccentStops } from "@/lib/brand-theme";
 import type { BrandingRecord } from "@/lib/api";
 import type { RealtimeFrame } from "@/lib/realtime";
-
-const DEFAULT_PRIMARY = "#0f766e";
 const MAX_SEEN_PRICE_EVENTS = 128;
 const seenPriceEventIds = new Set<string>();
 
@@ -71,7 +70,7 @@ export function showPriceChangedToast(
   }
 
   const primary =
-    dashboardBrandingAccentStops(branding)?.from ?? DEFAULT_PRIMARY;
+    dashboardBrandingAccentStops(branding)?.from ?? BRAND_PRIMARY;
   const showPrior = hasMeaningfulPrior(oldAmount, newAmount);
   const newLabel = formatMoney(currency, newAmount);
   const oldLabel =

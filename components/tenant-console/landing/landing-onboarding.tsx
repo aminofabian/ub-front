@@ -29,7 +29,6 @@ export function LandingOnboarding({
         <p className={sectionLabelClass}>Step 1 of 2</p>
         <h2
           className="mt-2 font-serif text-xl font-bold tracking-[-0.02em] text-[var(--kiosk-text)] sm:text-2xl"
-          style={{ fontFamily: "'DM Serif Display', serif" }}
         >
           Name your business
         </h2>

@@ -28,6 +28,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
+import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
 import {
   BRANDING_COLOR_PRESETS,
   brandingPresetMatches,
@@ -54,8 +55,8 @@ import {
 } from "@/lib/api";
 
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
-const DEFAULT_PRIMARY = "#0F766E";
-const DEFAULT_ACCENT = "#F59E0B";
+const DEFAULT_PRIMARY = BRAND_PRIMARY;
+const DEFAULT_ACCENT = BRAND_ACCENT;
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_FAVICON_TYPES =

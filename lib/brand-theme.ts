@@ -1,9 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { BrandingRecord } from "@/lib/api";
-
-/** Matches dashboard branding default when tenant has not saved a palette yet. */
-const DEFAULT_PRIMARY = "#0f766e";
+import { BRAND_ACCENT, BRAND_PRIMARY } from "@/lib/brand-colors";
 
 function normalizeHex(color: string | null | undefined): string | null {
   if (!color) {
@@ -77,14 +75,21 @@ export function dashboardBrandingAccentStops(
  * Set on an ancestor so portaled modals receive variables when applied to {@link DialogContent}.
  */
 export function posBrandThemeStyle(branding: BrandingRecord | null | undefined): CSSProperties {
+  const hasTenantBrand =
+    normalizeHex(branding?.primaryColor) ?? normalizeHex(branding?.accentColor);
+
   const primary =
     normalizeHex(branding?.primaryColor) ??
     normalizeHex(branding?.accentColor) ??
-    DEFAULT_PRIMARY;
+    BRAND_PRIMARY;
 
   const accentHex = normalizeHex(branding?.accentColor);
   const secondary =
-    accentHex && accentHex !== primary ? accentHex : mixTowardWhite(primary, 0.34);
+    accentHex && accentHex !== primary
+      ? accentHex
+      : hasTenantBrand
+        ? mixTowardWhite(primary, 0.34)
+        : BRAND_ACCENT;
 
   return {
     "--pos-primary": primary,

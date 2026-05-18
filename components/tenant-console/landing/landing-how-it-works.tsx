@@ -31,10 +31,7 @@ export function LandingHowItWorks() {
           <p className={`${sectionLabelClass} mb-4`}>Getting started</p>
           <h2
             className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-            style={{
-              fontFamily: "'DM Serif Display', serif",
-              maxWidth: "560px",
-            }}
+            style={{ maxWidth: "560px" }}
           >
             Set up in an afternoon. Run it for years.
           </h2>

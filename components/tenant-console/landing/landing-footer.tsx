@@ -30,14 +30,14 @@ export function LandingFooter() {
                 fill="none"
                 aria-hidden
               >
-                <rect x="3" y="3" width="8" height="8" rx="2" fill="#C8A96E" />
+                <rect x="3" y="3" width="8" height="8" rx="2" fill="var(--kiosk-gold)" />
                 <rect
                   x="13"
                   y="3"
                   width="8"
                   height="8"
                   rx="2"
-                  fill="#C8A96E"
+                  fill="var(--kiosk-gold)"
                   opacity="0.5"
                 />
                 <rect
@@ -46,7 +46,7 @@ export function LandingFooter() {
                   width="8"
                   height="8"
                   rx="2"
-                  fill="#C8A96E"
+                  fill="var(--kiosk-gold)"
                   opacity="0.4"
                 />
                 <rect
@@ -55,11 +55,11 @@ export function LandingFooter() {
                   width="8"
                   height="8"
                   rx="2"
-                  fill="#C8A96E"
+                  fill="var(--kiosk-gold)"
                   opacity="0.2"
                 />
               </svg>
-              <span className="text-base font-medium text-[var(--kiosk-text)]">
+              <span className="font-serif text-base font-medium text-[var(--kiosk-text)]">
                 Kiosk
               </span>
             </div>

@@ -71,7 +71,7 @@ export function TenantConsolePage() {
 
   return (
     <div
-      className="landing-page min-h-screen font-sans antialiased selection:bg-[var(--landing-gold-soft)] selection:text-[var(--landing-ink)]"
+      className="landing-page min-h-screen antialiased selection:bg-[var(--kiosk-gold-soft)] selection:text-[var(--kiosk-text)]"
       style={landingRootStyle()}
     >
       <LandingNav onCreateShop={openOnboarding} />

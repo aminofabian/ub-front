@@ -32,7 +32,7 @@ function CheckIcon() {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
       <path
         d="M2 7l3.5 3.5L12 3"
-        stroke="#C8A96E"
+        stroke="var(--kiosk-gold)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -52,10 +52,7 @@ export function LandingPricing() {
           <p className={`${sectionLabelClass} mb-4`}>Pricing</p>
           <h2
             className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-            style={{
-              fontFamily: "'DM Serif Display', serif",
-              maxWidth: "480px",
-            }}
+            style={{ maxWidth: "480px" }}
           >
             Simple pricing. No surprises.
           </h2>
@@ -70,7 +67,6 @@ export function LandingPricing() {
             <div className="mb-2 flex items-baseline gap-1.5">
               <span
                 className="font-serif text-5xl text-[var(--kiosk-text)]"
-                style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 Free
               </span>
@@ -106,7 +102,7 @@ export function LandingPricing() {
               backgroundColor: "var(--kiosk-gold-surface)",
             }}
           >
-            <span className="absolute -top-3 left-8 rounded-full bg-[var(--kiosk-gold)] px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-[var(--kiosk-bg)]">
+            <span className="absolute -top-3 left-8 rounded-full bg-[var(--kiosk-gold)] px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-[var(--kiosk-cta-text)]">
               Most popular
             </span>
             <p className="mb-5 text-[13px] font-medium text-[var(--kiosk-gold)]">
@@ -115,7 +111,6 @@ export function LandingPricing() {
             <div className="mb-2 flex items-baseline gap-1.5">
               <span
                 className="font-serif text-5xl text-[var(--kiosk-text)]"
-                style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 KES 2,900
               </span>

@@ -31,7 +31,6 @@ export function LandingTestimonials() {
           <p className={`${sectionLabelClass} mb-4`}>Stories</p>
           <h2
             className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-            style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             Heard from the floor.
           </h2>
@@ -45,7 +44,6 @@ export function LandingTestimonials() {
             >
               <p
                 className="mb-7 text-[15px] leading-[1.7] italic text-[var(--kiosk-text-muted)]"
-                style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 &ldquo;{t.quote}&rdquo;
               </p>

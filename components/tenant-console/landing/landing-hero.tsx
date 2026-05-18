@@ -76,10 +76,7 @@ export function LandingHero({
         </div>
 
         {/* ── Heading ── */}
-        <h1
-          className="landing-reveal landing-reveal-delay-1 mb-8 max-w-[820px] font-serif text-[clamp(44px,7vw,88px)] leading-[1.02] tracking-[-0.02em] text-[var(--kiosk-text)]"
-          style={{ fontFamily: "'DM Serif Display', serif" }}
-        >
+        <h1 className="landing-reveal landing-reveal-delay-1 mb-8 max-w-[820px] font-serif text-[clamp(44px,7vw,88px)] leading-[1.02] tracking-[-0.02em] text-[var(--kiosk-text)]">
           Every register,
           <br />
           <em style={{ color: "var(--kiosk-gold)" }}>one inventory.</em>
@@ -133,7 +130,7 @@ export function LandingHero({
                   >
                     <path
                       d="M2 7l3.5 3.5L12 3"
-                      stroke="#C8A96E"
+                      stroke="var(--kiosk-gold)"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -157,7 +154,7 @@ export function LandingHero({
             className="h-[60px] -mt-px rounded-b-xl"
             style={{
               background:
-                "linear-gradient(to bottom, rgba(200,169,110,0.03), transparent)",
+                "linear-gradient(to bottom, rgba(40,167,69,0.03), transparent)",
             }}
             aria-hidden
           />
@@ -225,14 +222,14 @@ function DashboardMockup() {
               fill="none"
               aria-hidden
             >
-              <rect x="3" y="3" width="8" height="8" rx="2" fill="#C8A96E" />
+              <rect x="3" y="3" width="8" height="8" rx="2" fill="var(--kiosk-gold)" />
               <rect
                 x="13"
                 y="3"
                 width="8"
                 height="8"
                 rx="2"
-                fill="#C8A96E"
+                fill="var(--kiosk-gold)"
                 opacity="0.5"
               />
               <rect
@@ -241,7 +238,7 @@ function DashboardMockup() {
                 width="8"
                 height="8"
                 rx="2"
-                fill="#C8A96E"
+                fill="var(--kiosk-gold)"
                 opacity="0.4"
               />
               <rect
@@ -250,7 +247,7 @@ function DashboardMockup() {
                 width="8"
                 height="8"
                 rx="2"
-                fill="#C8A96E"
+                fill="var(--kiosk-gold)"
                 opacity="0.2"
               />
             </svg>

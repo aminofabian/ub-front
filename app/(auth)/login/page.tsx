@@ -128,7 +128,7 @@ const AUTH_MODE = {
 type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 
 const primaryCtaClass =
-  "inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold shadow-md transition hover:brightness-[0.97] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
 
 function LoginPageContent() {
   const tenant = useOptionalTenant();
@@ -450,10 +450,6 @@ function LoginPageContent() {
                 type="submit"
                 className={primaryCtaClass}
                 disabled={isOnboarding}
-                style={{
-                  backgroundColor: "var(--auth-accent)",
-                  color: "var(--auth-accent-ink)",
-                }}
               >
                 {isOnboarding
                   ? "Creating business…"
@@ -540,10 +536,6 @@ function LoginPageContent() {
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
-            style={{
-              backgroundColor: "var(--auth-accent)",
-              color: "var(--auth-accent-ink)",
-            }}
           >
             {isSubmitting ? "Signing in…" : "Sign in"}
           </button>
@@ -609,10 +601,6 @@ function LoginPageContent() {
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
-            style={{
-              backgroundColor: "var(--auth-accent)",
-              color: "var(--auth-accent-ink)",
-            }}
           >
             {isSubmitting ? "Signing in…" : "Sign in with PIN"}
           </button>

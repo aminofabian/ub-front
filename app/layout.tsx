@@ -1,11 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  DM_Sans,
-  DM_Serif_Display,
-  Geist_Mono,
-  Manrope,
-  Outfit,
-} from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 
 import { TenantProvider } from "@/components/providers/tenant-provider";
@@ -22,18 +16,6 @@ import {
 } from "@/lib/storefront-slug";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-  display: "swap",
-});
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -42,23 +24,25 @@ const geistMono = Geist_Mono({
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
-const dmSerifDisplay = DM_Serif_Display({
-  variable: "--font-dm-serif",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
+  weight: ["300", "400", "500", "600"],
   style: ["normal", "italic"],
+  display: "swap",
 });
+
+const BRAND_THEME_COLOR = "#28A745";
 
 export async function generateViewport(): Promise<Viewport> {
   const tenant = await resolveTenantContext();
   const fromBrand = themeColorFromTenant(tenant);
   return {
-    themeColor: fromBrand ?? "#171717",
+    themeColor: fromBrand ?? BRAND_THEME_COLOR,
   };
 }
 
@@ -99,7 +83,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${manrope.variable} ${geistMono.variable} ${dmSans.variable} ${dmSerifDisplay.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${dmSans.variable} ${cormorant.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -107,7 +91,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <TenantHostSync />
         {withTenantProvider(tenant, body)}
       </body>

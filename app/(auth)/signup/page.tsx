@@ -29,7 +29,7 @@ import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
-  "inline-flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold shadow-md transition hover:brightness-[0.97] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
 
 function extractVerificationToken(
   url: string | null | undefined,
@@ -366,10 +366,6 @@ function SignupPageContent() {
                 type="submit"
                 className={primaryCtaClass}
                 disabled={isOnboarding}
-                style={{
-                  backgroundColor: "var(--auth-accent)",
-                  color: "var(--auth-accent-ink)",
-                }}
               >
                 {isOnboarding
                   ? "Creating business…"
@@ -462,10 +458,6 @@ function SignupPageContent() {
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
-            style={{
-              backgroundColor: "var(--auth-accent)",
-              color: "var(--auth-accent-ink)",
-            }}
           >
             {isSubmitting ? "Creating account…" : "Submit"}
           </button>

@@ -11,7 +11,6 @@ export function LandingFeatures() {
           <p className={`${sectionLabelClass} mb-4`}>Platform</p>
           <h2
             className="font-serif text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-            style={{ fontFamily: "'DM Serif Display', serif" }}
           >
             POS, inventory, storefront, and analytics — in one system.
           </h2>
@@ -33,7 +32,6 @@ export function LandingFeatures() {
             <p className={`${sectionLabelClass} mb-4`}>Point of sale</p>
             <h3
               className="mb-4 font-serif text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
-              style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               Checkout in seconds,
               <br />
@@ -76,7 +74,7 @@ export function LandingFeatures() {
                   </div>
                 ))}
                 <div
-                  className="mt-4 rounded-md py-3 text-center text-xs font-medium text-[var(--kiosk-bg)]"
+                  className="mt-4 rounded-md py-3 text-center text-xs font-medium text-[var(--kiosk-cta-text)]"
                   style={{ backgroundColor: "var(--kiosk-gold)" }}
                 >
                   Charge KES 185
@@ -114,7 +112,6 @@ export function LandingFeatures() {
             <p className={`${sectionLabelClass} mb-4`}>Real-time inventory</p>
             <h3
               className="mb-4 font-serif text-2xl leading-[1.2] text-[var(--kiosk-text)]"
-              style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               Stock truth, everywhere at once.
             </h3>
@@ -174,7 +171,6 @@ export function LandingFeatures() {
             <p className={`${sectionLabelClass} mb-4`}>Online storefront</p>
             <h3
               className="mb-4 font-serif text-2xl leading-[1.2] text-[var(--kiosk-text)]"
-              style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               Your branded shop, live in minutes.
             </h3>
@@ -205,7 +201,6 @@ export function LandingFeatures() {
             <p className={`${sectionLabelClass} mb-4`}>Multi-branch</p>
             <h3
               className="mb-4 font-serif text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
-              style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               One dashboard.
               <br />
