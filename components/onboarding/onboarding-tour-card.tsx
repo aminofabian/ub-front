@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Sparkles, X } from "lucide-react";
 
@@ -24,6 +24,9 @@ type Props = {
   onSkipStep: () => void;
   onSkipTour: () => void;
   isCompleteStep?: boolean;
+  /** Step 9 — no branch yet; show back to branch setup. */
+  branchSetupRequired?: boolean;
+  onBackToBranch?: () => void;
 };
 
 export function OnboardingTourCard({
@@ -36,7 +39,10 @@ export function OnboardingTourCard({
   onSkipStep,
   onSkipTour,
   isCompleteStep,
+  branchSetupRequired = false,
+  onBackToBranch,
 }: Props) {
+  const router = useRouter();
   const isLast = step.id === "complete";
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardSize, setCardSize] = useState(ONBOARDING_CARD_SIZE_DEFAULT);
@@ -139,22 +145,69 @@ export function OnboardingTourCard({
 
       {isCompleteStep ? (
         <div className="mt-4 flex flex-col gap-2">
-          <Button type="button" className="w-full gap-2" asChild>
-            <Link href={APP_ROUTES.overview} onClick={onNext}>
-              Go to dashboard
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
+          {branchSetupRequired ? (
+            <>
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm leading-relaxed text-amber-950 dark:text-amber-100">
+                Branch is required. Select a branch or add your first shop
+                location before using the dashboard.
+              </p>
+              <Button
+                type="button"
+                className="w-full gap-2"
+                onClick={onBackToBranch}
+              >
+                <ArrowLeft className="size-4" aria-hidden />
+                Back to add a branch
+              </Button>
+            </>
+          ) : null}
+          <Button
+            type="button"
+            className="w-full gap-2"
+            disabled={branchSetupRequired}
+            onClick={() => {
+              onNext();
+              router.push(APP_ROUTES.overview);
+            }}
+          >
+            Go to dashboard
+            <ArrowRight className="size-4" aria-hidden />
           </Button>
-          <Button type="button" variant="outline" className="w-full" asChild>
-            <Link href={APP_ROUTES.products} onClick={onNext}>
-              Add more products
-            </Link>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={branchSetupRequired}
+            onClick={() => {
+              onNext();
+              router.push(APP_ROUTES.products);
+            }}
+          >
+            Add more products
           </Button>
-          <Button type="button" variant="ghost" className="w-full" asChild>
-            <Link href={APP_ROUTES.analytics} onClick={onNext}>
-              Explore reports
-            </Link>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            disabled={branchSetupRequired}
+            onClick={() => {
+              onNext();
+              router.push(APP_ROUTES.analytics);
+            }}
+          >
+            Explore reports
           </Button>
+          {canGoBack && !branchSetupRequired ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              onClick={onBack}
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Back
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className="mt-5 flex flex-wrap items-center gap-2">

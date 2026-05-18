@@ -14,6 +14,7 @@ import {
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { getOnboardingTourState } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
 import {
   addDays,
@@ -93,7 +94,11 @@ function fmtTrendPct(current: number, previous: number): string | null {
   return `${sign}${delta.toFixed(1)}%`;
 }
 
-function formatPeriodSubtitle(period: Period, from: string, to: string): string {
+function formatPeriodSubtitle(
+  period: Period,
+  from: string,
+  to: string,
+): string {
   const end = parseISODate(to);
   const endLabel = end.toLocaleDateString("en-GB", {
     day: "numeric",
@@ -292,6 +297,82 @@ function OverviewSkeleton() {
   );
 }
 
+function PostTourChecklist() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    // Show if the tour was recently completed (within last 48 hours)
+    const state = getOnboardingTourState();
+    if (state.status !== "completed") {
+      return;
+    }
+    const updated = state.updatedAt ? new Date(state.updatedAt).getTime() : 0;
+    const hoursSince = (Date.now() - updated) / (1000 * 60 * 60);
+    if (hoursSince <= 48) {
+      setShow(true);
+    }
+  }, []);
+
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className={cn("text-sm font-medium", OVERVIEW_MUTED)}>
+          Getting started
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShow(false)}
+          className="text-xs font-medium text-[#888888] hover:text-foreground transition-colors"
+        >
+          Dismiss
+        </button>
+      </div>
+      <div className={cn(OVERVIEW_SURFACE, "divide-y divide-[#EEEEEE]")}>
+        {[
+          {
+            href: APP_ROUTES.sales,
+            label: "Record your first sale",
+            desc: "Use the cashier or quick sale to process a transaction.",
+            icon: ShoppingCart,
+          },
+          {
+            href: APP_ROUTES.users,
+            label: "Invite your staff",
+            desc: "Add cashiers and managers so your team can help run the shop.",
+            icon: Users,
+          },
+          {
+            href: APP_ROUTES.analytics,
+            label: "Check your reports",
+            desc: "See sales trends, profit margins, and top products.",
+            icon: BarChart3,
+          },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9F6F0]/60"
+          >
+            <item.icon className="size-4 shrink-0 text-[#B08D48]" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-black">{item.label}</p>
+              <p className="text-xs text-[#888888]">{item.desc}</p>
+            </div>
+            <ArrowRight
+              className="ml-auto size-4 shrink-0 text-[#CCCCCC]"
+              aria-hidden
+            />
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function OverviewPage() {
   const { me, business, branchId } = useDashboard();
 
@@ -302,9 +383,8 @@ export default function OverviewPage() {
   const [prevWeekPl, setPrevWeekPl] = useState<ProfitAndLossResponse | null>(
     null,
   );
-  const [weekRegister, setWeekRegister] = useState<SalesRegisterResponse | null>(
-    null,
-  );
+  const [weekRegister, setWeekRegister] =
+    useState<SalesRegisterResponse | null>(null);
   const [prevWeekRegister, setPrevWeekRegister] =
     useState<SalesRegisterResponse | null>(null);
   const [valuation, setValuation] =
@@ -326,8 +406,7 @@ export default function OverviewPage() {
         period === "today"
           ? toISODate(addDays(new Date(), -11))
           : weekRange.from;
-      const chartTo =
-        period === "today" ? toISODate(new Date()) : weekRange.to;
+      const chartTo = period === "today" ? toISODate(new Date()) : weekRange.to;
       const branch = branchId || undefined;
 
       const [
@@ -359,11 +438,9 @@ export default function OverviewPage() {
             )
           : Promise.resolve(null),
         period === "week"
-          ? fetchSalesRegister(
-              activeRange.from,
-              activeRange.to,
-              branch,
-            ).catch(() => null)
+          ? fetchSalesRegister(activeRange.from, activeRange.to, branch).catch(
+              () => null,
+            )
           : Promise.resolve(null),
         period === "week"
           ? fetchSalesRegister(prevRange.from, prevRange.to, branch).catch(
@@ -381,9 +458,7 @@ export default function OverviewPage() {
       setValuation(v ?? null);
       setOwnerSummary(owner ?? null);
       setCatalogueCount(itemsPage?.totalElements ?? null);
-      setChartRevenue(
-        (chartReg?.days ?? []).map((d) => toNum(d.revenue)),
-      );
+      setChartRevenue((chartReg?.days ?? []).map((d) => toNum(d.revenue)));
     } catch {
       /* gracefully degrade */
     } finally {
@@ -544,7 +619,11 @@ export default function OverviewPage() {
           Quick access
         </h2>
         <div className="flex flex-wrap gap-3">
-          <QuickChip href={APP_ROUTES.sales} label="Sales" icon={ShoppingCart} />
+          <QuickChip
+            href={APP_ROUTES.sales}
+            label="Sales"
+            icon={ShoppingCart}
+          />
           <QuickChip href="/products" label="Catalogue" icon={Package} />
           <QuickChip href="/inventory" label="Inventory" icon={Boxes} />
           <QuickChip href="/analytics" label="Analytics" icon={BarChart3} />
@@ -552,6 +631,8 @@ export default function OverviewPage() {
           <QuickChip href="/customers" label="Customers" icon={Users} />
         </div>
       </section>
+
+      <PostTourChecklist />
 
       {ownerSummary?.topSkusLast30Days &&
       ownerSummary.topSkusLast30Days.length > 0 ? (

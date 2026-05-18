@@ -21,6 +21,7 @@ export type OnboardingTargetId =
 /** In-drawer (or page) regions to ring-highlight during a step. */
 export const ONBOARDING_EMPHASIS = {
   categoriesSuggestions: "categories-suggestions",
+  storefrontToggle: "storefront-toggle",
 } as const;
 
 export type OnboardingEmphasisId =
@@ -74,11 +75,13 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     id: "branch",
     route: APP_ROUTES.branches,
     target: ONBOARDING_TARGETS.addBranch,
+    routeOnboardingParam: "add-branch",
     title: "Add your shop location",
     keyMessage: "Tell us where you sell. You can add more locations later.",
     instructions: [
-      "Enter your shop name and address.",
-      "More than one location? Add each as its own branch.",
+      "Type your shop name in the highlighted form below.",
+      "Add an address if you want — it's optional.",
+      "Click Create to save your first location.",
     ],
   },
   {
@@ -87,13 +90,15 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     target: ONBOARDING_TARGETS.settingsDrawer,
     routeOnboardingParam: "storefront",
     cardAnchor: "page-left",
+    emphasisTarget: ONBOARDING_EMPHASIS.storefrontToggle,
     title: "Sell online? (optional)",
-    keyMessage: "Turn on a web shop so customers can browse and order from you.",
+    keyMessage:
+      "Turn on a web shop so customers can browse and order from you.",
     optional: true,
     instructions: [
-      "Switch the storefront on if you want to sell online.",
-      "Pick which branch shows on the web, then save.",
-      "Only selling in person? Skip this step.",
+      "Toggle Storefront on in the drawer (look for the highlighted switch).",
+      "Pick which branch shows on the web, then click Save.",
+      "Only selling in person? Tap Skip step below.",
     ],
   },
   {
@@ -105,8 +110,9 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     title: "Your logo and colors",
     keyMessage: "Make receipts and your shop look like your brand.",
     instructions: [
-      "Upload your logo and pick your colors.",
-      "Add your shop name, then save.",
+      "Upload your logo in the drawer — square images work best.",
+      "Pick a primary color and accent color from the palette.",
+      "Add your shop display name, then click Save branding.",
     ],
   },
   {
@@ -135,8 +141,9 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     keyMessage:
       "Types help you track different kinds of stock — like cereals, fruits, or drinks.",
     instructions: [
-      "Give each type a name you’ll recognize in your shop.",
-      "Every product needs a type. You can add more anytime.",
+      "Type a name you'll recognize — e.g. 'Cereals', 'Drinks', 'Snacks'.",
+      "Click Create. Repeat for each type your shop needs.",
+      "Every product needs a type, but you can always add more later.",
     ],
   },
   {
@@ -146,10 +153,12 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     routeOnboardingParam: "create-product",
     cardAnchor: "page-left",
     title: "Add a product",
-    keyMessage: "This is what you sell — name it, price it, and say how much you have.",
+    keyMessage:
+      "This is what you sell — name it, price it, and say how much you have.",
     instructions: [
-      "Fill in the name, price, and how many you have in stock.",
-      "Pick a category and type, then save.",
+      "Fill in the product name, selling price, and current stock quantity.",
+      "Pick a category and item type from the dropdowns.",
+      "Click Create to save your first product.",
     ],
   },
   {
@@ -159,11 +168,13 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     routeOnboardingParam: "create-supplier",
     cardAnchor: "page-left",
     title: "Add a supplier (optional)",
-    keyMessage: "A supplier is who you buy stock from. Add one before you log deliveries.",
+    keyMessage:
+      "A supplier is who you buy stock from. Add one before you log deliveries.",
     optional: true,
     instructions: [
-      "Enter their name — that’s enough to start.",
-      "Phone or payment details can wait until later.",
+      "Enter the supplier's name in the drawer — that's enough to start.",
+      "Phone number and payment details can wait until later.",
+      "Don't have supplier info yet? Tap Skip step.",
     ],
   },
   {
@@ -173,11 +184,13 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     routeOnboardingParam: "create-supply",
     cardAnchor: "page-left",
     title: "Log stock you received (optional)",
-    keyMessage: "When goods arrive from a supplier, record them here so your stock stays right.",
+    keyMessage:
+      "When goods arrive from a supplier, record them here so your stock stays right.",
     optional: true,
     instructions: [
-      "Choose your supplier, then add what came in.",
-      "Save to update your stock levels.",
+      "Pick your supplier from the dropdown, then add each item you received.",
+      "Enter the quantity and buying price for each line.",
+      "Click Post to update your stock levels automatically.",
     ],
   },
   {
@@ -185,34 +198,58 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
     route: APP_ROUTES.overview,
     target: null,
     title: "You're ready!",
-    keyMessage: "Your shop is set up. You can change any of this later from the menu.",
+    keyMessage:
+      "Your shop is set up. You can change any of this later from the menu.",
     instructions: [],
   },
 ] as const;
 
-/** Drawer panels used by the tour (for anchor polling and layout). */
-export const ONBOARDING_DRAWER_TARGETS = [
-  ONBOARDING_TARGETS.settingsDrawer,
-  ONBOARDING_TARGETS.brandingDrawer,
-  ONBOARDING_TARGETS.categoriesDrawer,
-  ONBOARDING_TARGETS.itemTypesDrawer,
-  ONBOARDING_TARGETS.productsDrawer,
-  ONBOARDING_TARGETS.supplierDrawer,
-  ONBOARDING_TARGETS.suppliesDrawer,
-] as const satisfies readonly OnboardingTargetId[];
+/** Drawer panels used by the tour — derived from steps with `cardAnchor: "page-left"`. */
+export const ONBOARDING_DRAWER_TARGETS = ONBOARDING_TOUR_STEPS.filter(
+  (s) => s.cardAnchor === "page-left" && s.target !== null,
+)
+  .map((s) => s.target!)
+  .filter((v, i, a) => a.indexOf(v) === i) as readonly OnboardingTargetId[];
 
-export function isOnboardingDrawerTarget(
-  target: OnboardingTargetId,
-): target is (typeof ONBOARDING_DRAWER_TARGETS)[number] {
+export function isOnboardingDrawerTarget(target: OnboardingTargetId): boolean {
   return (ONBOARDING_DRAWER_TARGETS as readonly string[]).includes(target);
 }
 
-const ONBOARDING_STEP_IDS = new Set(
-  ONBOARDING_TOUR_STEPS.map((s) => s.id),
-);
+// ── Analytics ────────────────────────────────────────────────────
+
+export type OnboardingTourEvent =
+  | { kind: "step-entered"; stepId: OnboardingStepId; stepNumber: number }
+  | { kind: "step-completed"; stepId: OnboardingStepId; stepNumber: number }
+  | { kind: "step-skipped"; stepId: OnboardingStepId; stepNumber: number }
+  | { kind: "tour-completed" }
+  | { kind: "tour-dismissed"; lastStepId: OnboardingStepId };
+
+export type OnboardingTourAnalyticsHandler = (
+  event: OnboardingTourEvent,
+) => void;
+
+let analyticsHandler: OnboardingTourAnalyticsHandler | null = null;
+
+export function setOnboardingTourAnalytics(
+  handler: OnboardingTourAnalyticsHandler | null,
+): void {
+  analyticsHandler = handler;
+}
+
+export function emitOnboardingTourEvent(event: OnboardingTourEvent): void {
+  try {
+    analyticsHandler?.(event);
+  } catch {
+    // Analytics must never break the tour.
+  }
+}
+
+const ONBOARDING_STEP_IDS = new Set(ONBOARDING_TOUR_STEPS.map((s) => s.id));
 
 function isOnboardingStepId(id: unknown): id is OnboardingStepId {
-  return typeof id === "string" && ONBOARDING_STEP_IDS.has(id as OnboardingStepId);
+  return (
+    typeof id === "string" && ONBOARDING_STEP_IDS.has(id as OnboardingStepId)
+  );
 }
 
 const DEFAULT_STATE: OnboardingTourState = {
@@ -328,15 +365,11 @@ export function resetOnboardingTourForDev(): void {
   }
 }
 
-export function onboardingTargetSelector(
-  target: OnboardingTargetId,
-): string {
+export function onboardingTargetSelector(target: OnboardingTargetId): string {
   return `[data-onboarding-target="${target}"]`;
 }
 
-export function onboardingEmphasisSelector(
-  id: OnboardingEmphasisId,
-): string {
+export function onboardingEmphasisSelector(id: OnboardingEmphasisId): string {
   return `[data-onboarding-emphasis="${id}"]`;
 }
 
@@ -344,9 +377,7 @@ export function stepById(id: OnboardingStepId): OnboardingTourStep | undefined {
   return ONBOARDING_TOUR_STEPS.find((s) => s.id === id);
 }
 
-export function nextStepId(
-  current: OnboardingStepId,
-): OnboardingStepId | null {
+export function nextStepId(current: OnboardingStepId): OnboardingStepId | null {
   const idx = ONBOARDING_TOUR_STEPS.findIndex((s) => s.id === current);
   if (idx < 0 || idx >= ONBOARDING_TOUR_STEPS.length - 1) {
     return null;
@@ -354,9 +385,7 @@ export function nextStepId(
   return ONBOARDING_TOUR_STEPS[idx + 1]?.id ?? null;
 }
 
-export function prevStepId(
-  current: OnboardingStepId,
-): OnboardingStepId | null {
+export function prevStepId(current: OnboardingStepId): OnboardingStepId | null {
   const idx = ONBOARDING_TOUR_STEPS.findIndex((s) => s.id === current);
   if (idx <= 0) {
     return null;
@@ -374,4 +403,19 @@ export function tourRouteForStep(step: OnboardingTourStep): string {
   }
   const sep = step.route.includes("?") ? "&" : "?";
   return `${step.route}${sep}onboarding=${encodeURIComponent(step.routeOnboardingParam)}`;
+}
+
+/** True when the user must add or select a branch before dashboard data can load. */
+export function needsBranchSetup(
+  branches: readonly { id: string }[],
+  branchId: string,
+): boolean {
+  if (branches.length === 0) {
+    return true;
+  }
+  const id = branchId.trim();
+  if (!id) {
+    return true;
+  }
+  return !branches.some((b) => b.id === id);
 }

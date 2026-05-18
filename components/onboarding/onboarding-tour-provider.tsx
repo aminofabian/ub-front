@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { OnboardingSpotlight } from "@/components/onboarding/onboarding-spotlight";
 import { OnboardingTourCard } from "@/components/onboarding/onboarding-tour-card";
 import {
@@ -19,7 +20,9 @@ import {
   activateOnboardingTour,
   completeOnboardingTour,
   dismissOnboardingTour,
+  emitOnboardingTourEvent,
   getOnboardingTourState,
+  needsBranchSetup,
   nextStepId,
   prevStepId,
   setOnboardingTourStep,
@@ -53,6 +56,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { branchId, branches } = useDashboard();
   const [active, setActive] = useState(false);
   const [stepId, setStepId] = useState<OnboardingStepId>("branch");
   const [mounted, setMounted] = useState(false);
@@ -68,8 +72,14 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   const goToStep = useCallback(
     (id: OnboardingStepId) => {
       const next = resolveStep(id);
+      const num = stepIndex(id) + 1;
       setOnboardingTourStep(id);
       setStepId(id);
+      emitOnboardingTourEvent({
+        kind: "step-entered",
+        stepId: id,
+        stepNumber: num,
+      });
       router.push(tourRouteForStep(next));
     },
     [router],
@@ -91,9 +101,16 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   }, [startTour]);
 
   const advance = useCallback(() => {
+    const currentNum = stepNumber;
     const nextId = nextStepId(step.id);
+    emitOnboardingTourEvent({
+      kind: "step-completed",
+      stepId: step.id,
+      stepNumber: currentNum,
+    });
     if (!nextId) {
       completeOnboardingTour();
+      emitOnboardingTourEvent({ kind: "tour-completed" });
       setActive(false);
       return;
     }
@@ -102,7 +119,7 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
       return;
     }
     goToStep(nextId);
-  }, [goToStep, step.id]);
+  }, [goToStep, step.id, stepNumber]);
 
   const goBack = useCallback(() => {
     const prevId = prevStepId(step.id);
@@ -114,18 +131,33 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
 
   const canGoBack = prevStepId(step.id) !== null;
 
+  const branchSetupRequired = useMemo(
+    () => needsBranchSetup(branches, branchId),
+    [branches, branchId],
+  );
+
+  const goToBranchStep = useCallback(() => {
+    goToStep("branch");
+  }, [goToStep]);
+
   const skipStep = useCallback(() => {
+    emitOnboardingTourEvent({
+      kind: "step-skipped",
+      stepId: step.id,
+      stepNumber: stepNumber,
+    });
     advance();
-  }, [advance]);
+  }, [advance, step.id, stepNumber]);
 
   const skipTour = useCallback(() => {
+    emitOnboardingTourEvent({ kind: "tour-dismissed", lastStepId: step.id });
     dismissOnboardingTour();
     setActive(false);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("onboarding");
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
-  }, [pathname, router, searchParams]);
+  }, [pathname, router, searchParams, step.id]);
 
   const finishComplete = useCallback(() => {
     completeOnboardingTour();
@@ -166,7 +198,10 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
               active={active}
               dimMode={pageOnly ? "page-only" : "full"}
             />
-            <div className="pointer-events-none fixed inset-0" style={{ zIndex: 500 }}>
+            <div
+              className="pointer-events-none fixed inset-0"
+              style={{ zIndex: 500 }}
+            >
               <OnboardingTourCard
                 step={step}
                 stepNumber={stepNumber}
@@ -174,6 +209,10 @@ export function OnboardingTourProvider({ children }: { children: ReactNode }) {
                 onNext={isCompleteStep ? finishComplete : advance}
                 onBack={goBack}
                 canGoBack={canGoBack && !isCompleteStep}
+                branchSetupRequired={
+                  isCompleteStep && branchSetupRequired
+                }
+                onBackToBranch={goToBranchStep}
                 onSkipStep={skipStep}
                 onSkipTour={skipTour}
                 isCompleteStep={isCompleteStep}

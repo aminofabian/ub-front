@@ -697,7 +697,10 @@ export default function BusinessPage() {
               legend="Online storefront"
               hint="Public catalog and pickup flow. Prices follow the branch you choose."
             >
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50">
+              <label
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50"
+                data-onboarding-emphasis="storefront-toggle"
+              >
                 <input
                   type="checkbox"
                   className="size-4 rounded border-input text-primary focus:ring-ring"
