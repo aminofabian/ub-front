@@ -1,0 +1,201 @@
+@keyframes csFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes csFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes csFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes csSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes csPulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes csScrollX {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.page {
+  --cs-cream: #f5f0e8;
+  --cs-warm-white: #faf7f2;
+  --cs-charcoal: #1a1814;
+  --cs-charcoal-mid: #2c2820;
+  --cs-warm-gray: #8a8278;
+  --cs-accent: var(--cs-brand-accent, #c8963e);
+  --cs-accent-light: var(--cs-brand-accent-light, #e8b86d);
+  --cs-accent-pale: var(--cs-brand-accent-pale, #f5e6c8);
+  --cs-border: color-mix(in srgb, var(--cs-accent) 20%, transparent);
+  --cs-border-subtle: rgba(26, 24, 20, 0.08);
+
+  font-family: var(--font-dm-sans, "DM Sans"), sans-serif;
+  background: var(--cs-warm-white);
+  color: var(--cs-charcoal);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.serif {
+  font-family: var(--font-cormorant), "Cormorant Garamond", serif;
+}
+
+.nav {
+  animation: csFadeDown 0.8s ease forwards;
+}
+
+.heroEyebrow {
+  animation: csFadeUp 0.9s ease 0.3s forwards;
+  opacity: 0;
+}
+
+.heroTitle {
+  animation: csFadeUp 1s ease 0.45s forwards;
+  opacity: 0;
+}
+
+.heroSubtitle {
+  animation: csFadeUp 1s ease 0.55s forwards;
+  opacity: 0;
+}
+
+.heroDesc {
+  animation: csFadeUp 1s ease 0.7s forwards;
+  opacity: 0;
+}
+
+.heroActions {
+  animation: csFadeUp 1s ease 0.85s forwards;
+  opacity: 0;
+}
+
+.heroCountdown {
+  animation: csFadeUp 1s ease 1s forwards;
+  opacity: 0;
+}
+
+.visualGrid {
+  animation: csFadeIn 1.2s ease 0.6s forwards;
+  opacity: 0;
+}
+
+.floatingTag {
+  animation: csSlideInRight 0.8s ease 1.4s forwards;
+  opacity: 0;
+}
+
+.tagDot {
+  animation: csPulseDot 2s ease infinite;
+}
+
+.btnPrimary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cs-accent);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+
+.btnPrimary:hover::before {
+  transform: translateX(0);
+}
+
+.categoriesStrip {
+  animation: csScrollX 18s linear infinite;
+  width: max-content;
+}
+
+.categoriesStrip:hover {
+  animation-play-state: paused;
+}
+
+.catCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cs-charcoal);
+  transform: translateY(100%);
+  transition: transform 0.4s ease;
+}
+
+.catCard:hover::before {
+  transform: translateY(0);
+}
+
+.catIcon,
+.catName,
+.catCount {
+  position: relative;
+  z-index: 1;
+}
+
+.catCard:hover .catIcon {
+  color: var(--cs-accent-light);
+}
+
+.catCard:hover .catName {
+  color: var(--cs-cream);
+}
+
+.catCard:hover .catCount {
+  color: rgba(245, 240, 232, 0.5);
+}
+
+.promiseItem {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease,
+    background 0.3s ease;
+}
+
+.promiseItemVisible {
+  opacity: 1;
+  transform: translateY(0);
+}

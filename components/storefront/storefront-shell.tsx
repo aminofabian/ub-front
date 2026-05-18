@@ -60,6 +60,11 @@ export async function StorefrontShell({
     : null;
 
   const locationHint = process.env.NEXT_PUBLIC_STOREFRONT_LOCATION_HINT?.trim() || null;
+  const isComingSoon = Boolean(slug && !storefront);
+
+  if (isComingSoon) {
+    return <div className="min-h-screen">{children}</div>;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:8.75rem] dark:bg-background">
