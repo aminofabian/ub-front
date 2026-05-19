@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -21,6 +21,10 @@ import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
+  branchReceiptDraft,
+  branchReceiptPayload,
+} from "@/lib/branch-receipt";
+import {
   createBranch,
   fetchBranches,
   patchBranch,
@@ -31,6 +35,11 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 type BranchDraft = {
   name: string;
   address: string;
+};
+
+type BranchEditRow = BranchDraft & {
+  active: boolean;
+  receipt: ReturnType<typeof branchReceiptDraft>;
 };
 
 const EMPTY_DRAFT: BranchDraft = { name: "", address: "" };
@@ -82,7 +91,7 @@ export default function BranchesPage() {
   const { refreshSession, canManageBusinessSettings } = useDashboard();
   const [rows, setRows] = useState<BranchRecord[]>([]);
   const [draft, setDraft] = useState<BranchDraft>(EMPTY_DRAFT);
-  const [edits, setEdits] = useState<Record<string, BranchDraft & { active: boolean }>>({});
+  const [edits, setEdits] = useState<Record<string, BranchEditRow>>({});
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadPass, setLoadPass] = useState(0);
@@ -104,12 +113,13 @@ export default function BranchesPage() {
     return fetchBranches()
       .then((list) => {
         setRows(list);
-        const nextEdits: Record<string, BranchDraft & { active: boolean }> = {};
+        const nextEdits: Record<string, BranchEditRow> = {};
         for (const b of list) {
           nextEdits[b.id] = {
             name: b.name,
             address: b.address ?? "",
             active: b.active,
+            receipt: branchReceiptDraft(b.receipt),
           };
         }
         setEdits(nextEdits);
@@ -169,6 +179,7 @@ export default function BranchesPage() {
         name: row.name.trim(),
         address: row.address.trim() || undefined,
         active: row.active,
+        receipt: branchReceiptPayload(row.receipt),
       });
       await load();
       setFeedback({ kind: "success", text: "Branch updated." });
@@ -230,8 +241,8 @@ export default function BranchesPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Branches</h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Stores, warehouses, and counters for this business. Branches power pricing on the storefront and cashier
-            context. Editing requires{" "}
+            Stores, warehouses, and counters for this business. Set receipt contact details per branch (phone, website,
+            footer message) — they print on cashier receipts. Editing requires{" "}
             <span className="font-mono text-xs text-muted-foreground/90">business.manage_settings</span>.
           </p>
         </div>
@@ -356,8 +367,10 @@ export default function BranchesPage() {
             <tbody>
               {rows.map((branch) => {
                 const row = edits[branch.id];
+                const colSpan = canManage ? 4 : 3;
                 return (
-                  <tr key={branch.id} className="border-b border-border/40 last:border-0">
+                  <Fragment key={branch.id}>
+                  <tr className="border-b border-border/40">
                     <td className="px-4 py-3 align-top sm:px-5">
                       {canManage && row ? (
                         <input
@@ -451,9 +464,8 @@ export default function BranchesPage() {
                       <td className="px-4 py-3 align-top sm:px-5">
                         <Button
                           size="sm"
-                          variant="outline"
                           type="button"
-                          className="gap-1.5"
+                          className="gap-1.5 font-semibold shadow-sm"
                           disabled={savingId === branch.id}
                           onClick={() => void onSaveRow(branch.id)}
                         >
@@ -467,6 +479,105 @@ export default function BranchesPage() {
                       </td>
                     ) : null}
                   </tr>
+                  {canManage && row ? (
+                    <tr key={`${branch.id}-receipt`} className="border-b border-border/40 bg-muted/15 last:border-0">
+                      <td colSpan={colSpan} className="px-4 py-3 sm:px-5">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Receipt details (printed at checkout)
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            className={cn(inputClass(), "text-sm")}
+                            placeholder="Phone (e.g. 254712345678)"
+                            value={row.receipt.phone}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [branch.id]: {
+                                  ...row,
+                                  receipt: { ...row.receipt, phone: e.target.value },
+                                },
+                              }))
+                            }
+                            aria-label={`Receipt phone for ${branch.name}`}
+                          />
+                          <input
+                            className={cn(inputClass(), "text-sm")}
+                            placeholder="Email"
+                            type="email"
+                            value={row.receipt.email}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [branch.id]: {
+                                  ...row,
+                                  receipt: { ...row.receipt, email: e.target.value },
+                                },
+                              }))
+                            }
+                            aria-label={`Receipt email for ${branch.name}`}
+                          />
+                          <input
+                            className={cn(inputClass(), "text-sm sm:col-span-2")}
+                            placeholder="Website (https://yourshop.com)"
+                            value={row.receipt.website}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [branch.id]: {
+                                  ...row,
+                                  receipt: { ...row.receipt, website: e.target.value },
+                                },
+                              }))
+                            }
+                            aria-label={`Receipt website for ${branch.name}`}
+                          />
+                          <textarea
+                            className={cn(inputClass(), "min-h-[4rem] text-sm sm:col-span-2")}
+                            placeholder="Footer message on receipt (optional)"
+                            value={row.receipt.footerNote}
+                            onChange={(e) =>
+                              setEdits((prev) => ({
+                                ...prev,
+                                [branch.id]: {
+                                  ...row,
+                                  receipt: {
+                                    ...row.receipt,
+                                    footerNote: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            aria-label={`Receipt footer for ${branch.name}`}
+                          />
+                        </div>
+                        <p className="mt-2 text-[10px] text-muted-foreground">
+                          Leave blank to omit. If website is empty, your business primary domain is used when
+                          available.
+                        </p>
+                        <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Saves branch name, address, status, and receipt details together.
+                          </p>
+                          <Button
+                            type="button"
+                            size="lg"
+                            className="w-full shrink-0 gap-2 font-semibold shadow-md sm:w-auto sm:min-w-[11rem]"
+                            disabled={savingId === branch.id}
+                            onClick={() => void onSaveRow(branch.id)}
+                          >
+                            {savingId === branch.id ? (
+                              <Loader2 className="size-4 animate-spin" aria-hidden />
+                            ) : (
+                              <Save className="size-4" aria-hidden />
+                            )}
+                            Save receipt details
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                  </Fragment>
                 );
               })}
             </tbody>

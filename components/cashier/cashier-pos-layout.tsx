@@ -142,6 +142,8 @@ export type CashierPosLayoutProps = {
     | "setMpesaSplitStr"
     | "splitMpesaRef"
     | "setSplitMpesaRef"
+    | "cashTenderStr"
+    | "setCashTenderStr"
     | "canLookupCustomers"
     | "customerPhoneQuery"
     | "setCustomerPhoneQuery"
@@ -151,6 +153,7 @@ export type CashierPosLayoutProps = {
     | "selectedCustomer"
     | "setSelectedCustomer"
     | "onComplete"
+    | "canCompleteSale"
     | "loading"
     | "outboxCount"
     | "outboxBusy"
@@ -159,6 +162,7 @@ export type CashierPosLayoutProps = {
     | "notice"
     | "canVoid"
     | "lastSale"
+    | "lastReceipt"
     | "lastSaleCustomerName"
     | "voidNotes"
     | "setVoidNotes"
@@ -166,6 +170,7 @@ export type CashierPosLayoutProps = {
     | "voidLoading"
     | "onDownloadReceiptPdf"
     | "receiptLoading"
+    | "onStartNewSale"
   >;
 };
 

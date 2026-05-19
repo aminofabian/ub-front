@@ -25,6 +25,8 @@ import {
   isUnmappedTenantHostProblem,
 } from "@/lib/problem";
 import { toast } from "sonner";
+import type { BranchReceiptSettings } from "@/lib/branch-receipt";
+import { parseBranchReceipt } from "@/lib/branch-receipt";
 
 type RequestMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -500,6 +502,7 @@ export type BranchRecord = {
   businessId: string;
   name: string;
   address?: string;
+  receipt?: BranchReceiptSettings;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -508,13 +511,28 @@ export type BranchRecord = {
 export type CreateBranchPayload = {
   name: string;
   address?: string;
+  receipt?: BranchReceiptSettings;
 };
 
 export type PatchBranchPayload = {
   name?: string;
   address?: string;
+  receipt?: BranchReceiptSettings;
   active?: boolean;
 };
+
+function normalizeBranchRecord(raw: Record<string, unknown>): BranchRecord {
+  return {
+    id: String(raw.id ?? ""),
+    businessId: String(raw.businessId ?? ""),
+    name: String(raw.name ?? ""),
+    address: typeof raw.address === "string" ? raw.address : undefined,
+    receipt: parseBranchReceipt(raw.receipt),
+    active: Boolean(raw.active),
+    createdAt: typeof raw.createdAt === "string" ? raw.createdAt : undefined,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : undefined,
+  };
+}
 
 export type UserListFilters = {
   status?: string;
@@ -1609,7 +1627,9 @@ export async function fetchUsers(
 export async function fetchBranches(): Promise<BranchRecord[]> {
   const path = `${API_ROUTES.branches}?${DEFAULT_PAGE_QUERY}`;
   const payload = await request<unknown>(path);
-  return parseList(payload);
+  return parseList(payload).map((row) =>
+    normalizeBranchRecord(row as Record<string, unknown>),
+  );
 }
 
 export async function createBranch(body: CreateBranchPayload): Promise<void> {
@@ -3958,6 +3978,7 @@ export type SaleRecord = {
   items: SaleItemResponseRecord[];
   voidedAt?: string | null;
   voidedBy?: string | null;
+  soldByName?: string | null;
   voidJournalEntryId?: string | null;
   voidNotes?: string | null;
 };

@@ -57,6 +57,15 @@ import {
   MAX_CARTS,
   type CartSession,
 } from "@/lib/cart-session";
+import {
+  customerPhoneValidationMessage,
+  isValidCustomerPhone,
+} from "@/lib/customer-phone";
+import { resolveReceiptWebsite } from "@/lib/branch-receipt";
+import {
+  buildPosReceiptSnapshot,
+  type PosReceiptSnapshot,
+} from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { usePosCatalogItemType } from "@/components/cashier-shell";
 import {
@@ -188,6 +197,7 @@ export function QuickSaleWorkspace({
   const cashSplitStr = activeCart.cashSplitStr;
   const mpesaSplitStr = activeCart.mpesaSplitStr;
   const splitMpesaRef = activeCart.splitMpesaRef;
+  const cashTenderStr = activeCart.cashTenderStr;
   // customerSearchBusy stays local (not per-cart)
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
 
@@ -227,6 +237,10 @@ export function QuickSaleWorkspace({
     (s: string) => updateActiveCart({ splitMpesaRef: s }),
     [updateActiveCart],
   );
+  const setCashTenderStr = useCallback(
+    (s: string) => updateActiveCart({ cashTenderStr: s }),
+    [updateActiveCart],
+  );
 
   // ── Cart management ───────────────────────────────────────────────
 
@@ -238,6 +252,9 @@ export function QuickSaleWorkspace({
   const [outboxCount, setOutboxCount] = useState(0);
   const [outboxBusy, setOutboxBusy] = useState(false);
   const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
+    null,
+  );
   const [lastSaleCustomerName, setLastSaleCustomerName] = useState<
     string | null
   >(null);
@@ -289,6 +306,14 @@ export function QuickSaleWorkspace({
       setCustomerHits([]);
       return;
     }
+    if (payMethod === "customer_credit") {
+      const phoneErr = customerPhoneValidationMessage(q);
+      if (phoneErr) {
+        setError(phoneErr);
+        setNotice("");
+        return;
+      }
+    }
     if (!online) {
       setError("Go online to search customers.");
       return;
@@ -305,7 +330,7 @@ export function QuickSaleWorkspace({
     } finally {
       setCustomerSearchBusy(false);
     }
-  }, [customerPhoneQuery, online, setCustomerHits]);
+  }, [customerPhoneQuery, online, payMethod, setCustomerHits]);
 
   const refreshTopProducts = useCallback(() => {
     setTopProducts(getTopProducts(business?.id ?? null, 8));
@@ -525,6 +550,46 @@ export function QuickSaleWorkspace({
     return roundMoney2(t);
   }, [lines]);
 
+  const canCompleteSale = useMemo(() => {
+    if (lines.length === 0 || grandTotal <= 0) {
+      return false;
+    }
+    if (splitPay) {
+      const c = parseMoney(cashSplitStr);
+      const m = parseMoney(mpesaSplitStr);
+      if (c == null || m == null || c <= 0 || m <= 0) {
+        return false;
+      }
+      return Math.abs(roundMoney2(c + m) - grandTotal) <= 0.001;
+    }
+    if (payMethod === "cash") {
+      const tender = parseMoney(cashTenderStr.trim());
+      return tender != null && tender >= grandTotal;
+    }
+    if (payMethodNeedsCustomer(payMethod)) {
+      if (!selectedCustomer) {
+        return false;
+      }
+      if (
+        payMethod === "customer_credit" &&
+        !isValidCustomerPhone(customerPhoneQuery)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }, [
+    lines.length,
+    grandTotal,
+    splitPay,
+    cashSplitStr,
+    mpesaSplitStr,
+    payMethod,
+    cashTenderStr,
+    selectedCustomer,
+    customerPhoneQuery,
+  ]);
+
   const addLine = useCallback(
     (item: ItemSummaryRecord, qty: number = 1, unitPrice: string = "") => {
       const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
@@ -636,27 +701,43 @@ export function QuickSaleWorkspace({
       return;
     }
     if (!splitPay && payMethodNeedsCustomer(payMethod)) {
+      if (payMethod === "customer_credit") {
+        const phoneErr = customerPhoneValidationMessage(customerPhoneQuery);
+        if (phoneErr) {
+          setError(phoneErr);
+          setNotice("");
+          return;
+        }
+      }
       if (!selectedCustomer) {
         setError("Find and select a customer for this payment type.");
         setNotice("");
         return;
       }
     }
-    if (!splitPay && payMethod === "mpesa_manual" && !mpesaRef.trim()) {
-      setError("Enter an M-Pesa reference for manual M-Pesa sales.");
-      setNotice("");
-      return;
+    let cashTendered: number | null = null;
+    if (!splitPay && payMethod === "cash") {
+      const raw = cashTenderStr.trim();
+      const tender = parseMoney(raw);
+      if (tender == null) {
+        setError("Enter the amount received from the customer.");
+        setNotice("");
+        return;
+      }
+      if (tender < grandTotal) {
+        setError(
+          `Amount received (${tender.toFixed(2)}) is less than the total (${grandTotal.toFixed(2)}).`,
+        );
+        setNotice("");
+        return;
+      }
+      cashTendered = tender;
     }
     if (splitPay) {
       const c = parseMoney(cashSplitStr);
       const m = parseMoney(mpesaSplitStr);
       if (c == null || m == null || c <= 0 || m <= 0) {
         setError("Split tender needs positive cash and M-Pesa amounts.");
-        setNotice("");
-        return;
-      }
-      if (!splitMpesaRef.trim()) {
-        setError("Enter the M-Pesa reference for the split.");
         setNotice("");
         return;
       }
@@ -676,14 +757,15 @@ export function QuickSaleWorkspace({
           {
             method: "mpesa_manual" as const,
             amount: parseMoney(mpesaSplitStr)!,
-            reference: splitMpesaRef.trim(),
+            reference: splitMpesaRef.trim() || null,
           },
         ]
       : [
           {
             method: payMethod,
             amount: grandTotal,
-            reference: payMethod === "mpesa_manual" ? mpesaRef.trim() : null,
+            reference:
+              payMethod === "mpesa_manual" ? mpesaRef.trim() || null : null,
           },
         ];
 
@@ -702,7 +784,12 @@ export function QuickSaleWorkspace({
       item: line.item,
       qty: parseQty(line.quantity) ?? 1,
     }));
-
+    const receiptCartLines = [...lines];
+    const receiptCustomerName = selectedCustomer?.name?.trim() || null;
+    const receiptBranch = branches.find((b) => b.id === bid);
+    const receiptBranchName = receiptBranch?.name?.trim() ?? "";
+    const receiptCurrency = business?.currency?.trim() || "KES";
+    const receiptBusinessName = business?.name?.trim() || "Store";
     const recordTopSellers = () => {
       recordSaleLines(business?.id ?? null, linesSnapshot);
       refreshTopProducts();
@@ -775,6 +862,28 @@ export function QuickSaleWorkspace({
       const result = await tryPostSaleWithRetries(salePayload, idem);
       if (result.ok) {
         setLastSale(result.sale);
+        setLastReceipt(
+          buildPosReceiptSnapshot({
+            businessName: receiptBusinessName,
+            logoUrl: business?.branding?.logoUrl ?? null,
+            branchName: receiptBranchName,
+            branchAddress: receiptBranch?.address?.trim() || null,
+            branchPhone: receiptBranch?.receipt?.phone ?? null,
+            branchEmail: receiptBranch?.receipt?.email ?? null,
+            branchWebsite: resolveReceiptWebsite(
+              receiptBranch?.receipt?.website,
+              business?.primaryDomain,
+            ),
+            branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
+            servedByName: me?.name?.trim() || result.sale.soldByName?.trim() || null,
+            currency: receiptCurrency,
+            cartLines: receiptCartLines,
+            sale: result.sale,
+            customerName: receiptCustomerName,
+            cashTendered,
+            clientSoldAt: salePayload.clientSoldAt ?? undefined,
+          }),
+        );
         setVoidNotes("");
         recordTopSellers();
         clearCartUi();
@@ -842,8 +951,11 @@ export function QuickSaleWorkspace({
     cashSplitStr,
     mpesaSplitStr,
     splitMpesaRef,
+    cashTenderStr,
     selectedCustomer,
     business,
+    branches,
+    me,
     refreshOutbox,
     refreshTopProducts,
     activeCartId,
@@ -860,6 +972,11 @@ export function QuickSaleWorkspace({
         notes: voidNotes || null,
       });
       setLastSale(updated);
+      setLastReceipt((prev) =>
+        prev && prev.saleId === updated.id
+          ? { ...prev, voided: true, status: updated.status }
+          : prev,
+      );
       setVoidNotes("");
       setNotice(
         `Sale ${updated.id} voided. Same-shift reversal applied to stock, ledger, and drawer (cash).`,
@@ -870,6 +987,14 @@ export function QuickSaleWorkspace({
       setVoidLoading(false);
     }
   }, [lastSale, canVoid, voidNotes]);
+
+  const onStartNewSale = useCallback(() => {
+    setLastSale(null);
+    setLastReceipt(null);
+    setVoidNotes("");
+    setNotice("");
+    setError("");
+  }, []);
 
   const onDownloadReceiptPdf = useCallback(async () => {
     if (!lastSale) {
@@ -1082,6 +1207,8 @@ export function QuickSaleWorkspace({
             setMpesaSplitStr,
             splitMpesaRef,
             setSplitMpesaRef,
+            cashTenderStr,
+            setCashTenderStr,
             canLookupCustomers,
             customerPhoneQuery,
             setCustomerPhoneQuery,
@@ -1091,6 +1218,7 @@ export function QuickSaleWorkspace({
             selectedCustomer,
             setSelectedCustomer,
             onComplete: () => void onComplete().catch(() => undefined),
+            canCompleteSale,
             loading,
             outboxCount,
             outboxBusy,
@@ -1099,6 +1227,7 @@ export function QuickSaleWorkspace({
             notice,
             canVoid,
             lastSale,
+            lastReceipt,
             lastSaleCustomerName,
             voidNotes,
             setVoidNotes,
@@ -1107,6 +1236,7 @@ export function QuickSaleWorkspace({
             onDownloadReceiptPdf: () =>
               void onDownloadReceiptPdf().catch(() => undefined),
             receiptLoading,
+            onStartNewSale,
           }}
       />
       {isCashier ? (

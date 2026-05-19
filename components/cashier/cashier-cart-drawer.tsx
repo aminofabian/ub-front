@@ -22,7 +22,9 @@ import {
 } from "@/lib/api";
 import { cashierItemPrimaryLabel, posSearchItemDetailLine } from "@/lib/cashier-item-display";
 import { CashierCurrencySuffix, CashierDottedLeader } from "./cashier-currency-inline";
-import { Permission } from "@/lib/permissions";
+import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
+import { isValidCustomerPhone } from "@/lib/customer-phone";
+import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { cn } from "@/lib/utils";
 
 const DRAWER_SECTION_TITLE = cn(
@@ -66,11 +68,6 @@ function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
   );
 }
 
-function isSaleVoided(sale: SaleRecord): boolean {
-  const v = sale.voidedAt;
-  return v != null && String(v).length > 0;
-}
-
 function lineSubtotal(line: CartLineLike): number {
   const q = Number(line.quantity);
   const p = Number(line.unitPrice);
@@ -104,6 +101,8 @@ export type CashierCartDrawerProps = {
   setMpesaSplitStr: (s: string) => void;
   splitMpesaRef: string;
   setSplitMpesaRef: (s: string) => void;
+  cashTenderStr: string;
+  setCashTenderStr: (s: string) => void;
 
   canLookupCustomers: boolean;
   customerPhoneQuery: string;
@@ -115,6 +114,7 @@ export type CashierCartDrawerProps = {
   setSelectedCustomer: (c: CustomerRecord | null) => void;
 
   onComplete: () => void;
+  canCompleteSale: boolean;
   loading: boolean;
 
   outboxCount: number;
@@ -126,6 +126,7 @@ export type CashierCartDrawerProps = {
 
   canVoid: boolean;
   lastSale: SaleRecord | null;
+  lastReceipt: PosReceiptSnapshot | null;
   lastSaleCustomerName: string | null;
   voidNotes: string;
   setVoidNotes: (s: string) => void;
@@ -133,6 +134,7 @@ export type CashierCartDrawerProps = {
   voidLoading: boolean;
   onDownloadReceiptPdf: () => void;
   receiptLoading: boolean;
+  onStartNewSale: () => void;
 };
 
 function PayChip({
@@ -194,6 +196,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     setMpesaSplitStr,
     splitMpesaRef,
     setSplitMpesaRef,
+    cashTenderStr,
+    setCashTenderStr,
     canLookupCustomers,
     customerPhoneQuery,
     setCustomerPhoneQuery,
@@ -203,6 +207,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     selectedCustomer,
     setSelectedCustomer,
     onComplete,
+    canCompleteSale,
     loading,
     outboxCount,
     outboxBusy,
@@ -211,14 +216,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     notice,
     canVoid,
     lastSale,
-    lastSaleCustomerName,
+    lastReceipt,
     voidNotes,
     setVoidNotes,
     onVoidLastSale,
     voidLoading,
     onDownloadReceiptPdf,
     receiptLoading,
+    onStartNewSale,
   } = props;
+
+  const saleComplete = lastSale != null && lastReceipt != null;
 
   const totalItems = lines.reduce((acc, l) => {
     const q = Number(l.quantity);
@@ -234,11 +242,40 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
         overlayClassName="bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40"
         className={cn(
           "max-w-[min(100%,22rem)] gap-0 border-border/40 p-0 shadow-2xl sm:max-w-md",
-          "bg-gradient-to-b from-background to-muted/12 dark:to-muted/8",
+          "flex flex-col bg-gradient-to-b from-background to-muted/12 dark:to-muted/8",
         )}
         style={brandTheme}
         showCloseButton
       >
+        {saleComplete ? (
+          <>
+            <div className="relative shrink-0 border-b border-border/40 px-5 py-4 print:hidden">
+              <DialogHeader className="min-w-0 pr-10">
+                <DialogTitle className="text-base font-semibold tracking-tight">
+                  Sale complete
+                </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Receipt and summary for the completed sale
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+            <PosSaleCompletePanel
+              sale={lastSale}
+              receipt={lastReceipt}
+              currency={currency}
+              error={error}
+              canVoid={canVoid}
+              voidNotes={voidNotes}
+              setVoidNotes={setVoidNotes}
+              onVoidLastSale={onVoidLastSale}
+              voidLoading={voidLoading}
+              onDownloadReceiptPdf={onDownloadReceiptPdf}
+              receiptLoading={receiptLoading}
+              onStartNewSale={onStartNewSale}
+            />
+          </>
+        ) : (
+          <>
         <div className="relative shrink-0 border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.05)] dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
           <span
             className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-[var(--pos-primary)] shadow-[2px_0_14px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
@@ -503,8 +540,47 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 className={drawerFieldClass("h-9 w-full px-3")}
                 value={mpesaRef}
                 onChange={(e) => setMpesaRef(e.target.value)}
-                placeholder="M-Pesa reference (e.g. QPH12ABC)"
+                placeholder="M-Pesa reference (optional)"
               />
+            ) : null}
+
+            {!splitPay && payMethod === "cash" ? (
+              <label className="block space-y-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Amount received ({currency})
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className={drawerFieldClass("h-9 w-full px-3 text-right tabular-nums")}
+                  value={cashTenderStr}
+                  onChange={(e) => setCashTenderStr(e.target.value)}
+                  placeholder="0.00"
+                  required
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {cashTenderStr.trim() ? (
+                    <>
+                      Change:{" "}
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {(() => {
+                          const tender = Number(cashTenderStr.trim());
+                          if (
+                            !Number.isFinite(tender) ||
+                            tender < grandTotal
+                          ) {
+                            return "—";
+                          }
+                          return (tender - grandTotal).toFixed(2);
+                        })()}
+                      </span>{" "}
+                      <CashierCurrencySuffix code={currency} />
+                    </>
+                  ) : (
+                    "Required — enter cash handed over by the customer."
+                  )}
+                </p>
+              </label>
             ) : null}
 
             {splitPay ? (
@@ -539,7 +615,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   className={drawerFieldClass("h-8 w-full px-3 text-sm")}
                   value={splitMpesaRef}
                   onChange={(e) => setSplitMpesaRef(e.target.value)}
-                  placeholder="M-Pesa reference"
+                  placeholder="M-Pesa reference (optional)"
                 />
               </div>
             ) : null}
@@ -564,19 +640,31 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         onSearchCustomers();
                       }
                     }}
-                    placeholder="Phone (2547…)"
+                    placeholder="Phone (2547… or 07…)"
                     disabled={!online}
                   />
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    disabled={!online || customerSearchBusy}
+                    disabled={
+                      !online ||
+                      customerSearchBusy ||
+                      (payMethod === "customer_credit" &&
+                        !isValidCustomerPhone(customerPhoneQuery))
+                    }
                     onClick={onSearchCustomers}
                   >
                     {customerSearchBusy ? "…" : "Find"}
                   </Button>
                 </div>
+                {payMethod === "customer_credit" &&
+                customerPhoneQuery.trim() &&
+                !isValidCustomerPhone(customerPhoneQuery) ? (
+                  <p className="text-[10px] text-destructive">
+                    Enter at least 9 digits (e.g. 254712345678).
+                  </p>
+                ) : null}
                 {customerHits.length > 0 ? (
                   <ul className="max-h-40 space-y-1 overflow-y-auto">
                     {customerHits.map((c) => (
@@ -640,86 +728,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           {error ? <DashboardFeedback kind="error" text={error} /> : null}
           </div>
 
-          {lastSale ? (
-            <section className={cn(drawerSectionShell, "space-y-3")}>
-              <h3 className={cn(DRAWER_SECTION_TITLE, "border-b border-border/35 pb-2.5")}>Last sale</h3>
-              <dl className="grid gap-2 text-xs">
-                <div>
-                  <dt className="inline text-muted-foreground">Sale</dt>{" "}
-                  <dd className="inline rounded-md bg-muted/50 px-1.5 py-px font-mono text-[11px] text-foreground">
-                    {lastSale.id}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Total</dt>{" "}
-                  <dd className="inline-flex items-baseline gap-0.5 tabular-nums">
-                    <span>{Number(lastSale.grandTotal).toFixed(2)}</span>
-                    <CashierCurrencySuffix code={currency} />
-                  </dd>
-                </div>
-                {lastSale.customerId ? (
-                  <div>
-                    <dt className="inline text-muted-foreground">Customer</dt>{" "}
-                    <dd className="inline">
-                      {lastSaleCustomerName ? (
-                        <>
-                          <span className="font-medium">{lastSaleCustomerName}</span>{" "}
-                          <span className="font-mono text-muted-foreground">
-                            ({lastSale.customerId})
-                          </span>
-                        </>
-                      ) : (
-                        <span className="font-mono">{lastSale.customerId}</span>
-                      )}
-                    </dd>
-                  </div>
-                ) : null}
-                {isSaleVoided(lastSale) ? (
-                  <div>
-                    <dt className="inline text-muted-foreground">Voided</dt>{" "}
-                    <dd className="inline">{String(lastSale.voidedAt)}</dd>
-                  </div>
-                ) : null}
-              </dl>
-              <div className="flex flex-wrap gap-2 border-t border-border/30 pt-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={receiptLoading}
-                  onClick={onDownloadReceiptPdf}
-                >
-                  {receiptLoading ? "…" : "Receipt PDF"}
-                </Button>
-                {canVoid && !isSaleVoided(lastSale) ? (
-                  <>
-                    <input
-                      className={drawerFieldClass("h-8 min-w-[7rem] flex-1 px-2 text-xs")}
-                      value={voidNotes}
-                      onChange={(e) => setVoidNotes(e.target.value)}
-                      placeholder="Void notes (optional)"
-                      disabled={voidLoading}
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      disabled={voidLoading}
-                      onClick={onVoidLastSale}
-                    >
-                      {voidLoading ? "…" : "Void sale"}
-                    </Button>
-                  </>
-                ) : null}
-              </div>
-              {!canVoid && !isSaleVoided(lastSale) ? (
-                <p className="text-[10px] text-muted-foreground">
-                  Need <code>{Permission.SalesVoidOwn}</code> or{" "}
-                  <code>{Permission.SalesVoidAny}</code> to void.
-                </p>
-              ) : null}
-            </section>
-          ) : null}
           </div>
         </div>
 
@@ -743,12 +751,19 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
             type="button"
             size="lg"
             className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
-            disabled={loading || lines.length === 0 || !branchSelected}
+            disabled={
+              loading ||
+              lines.length === 0 ||
+              !branchSelected ||
+              !canCompleteSale
+            }
             onClick={onComplete}
           >
             {loading ? "Recording…" : "Complete sale"}
           </Button>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

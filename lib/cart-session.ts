@@ -19,6 +19,8 @@ export type CartSession = {
   cashSplitStr: string;
   mpesaSplitStr: string;
   splitMpesaRef: string;
+  /** Amount customer handed over (cash checkout). */
+  cashTenderStr: string;
 };
 
 /** Mirror of CartLine from quick-sale-workspace — keep in sync. */
@@ -51,6 +53,7 @@ export function createEmptyCartSession(): CartSession {
     cashSplitStr: "",
     mpesaSplitStr: "",
     splitMpesaRef: "",
+    cashTenderStr: "",
   };
 }
 
