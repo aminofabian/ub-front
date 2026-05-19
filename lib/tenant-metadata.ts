@@ -4,8 +4,29 @@ import type { Metadata } from "next";
 
 import type { TenantContext } from "@/lib/public-storefront";
 
-const PLATFORM_TITLE = "Admin";
-const PLATFORM_DESCRIPTION = "Business management platform.";
+const PLATFORM_TITLE = "Kiosk — Point of Sale, Storefront & Cashier";
+const PLATFORM_DESCRIPTION =
+  "Kiosk is the all-in-one POS platform that powers your storefront, cashier counter, inventory, and sales — everything you need to run your retail business, online and in-store.";
+
+const BRAND_THEME_COLOR = "#28A745";
+
+const PLATFORM_KEYWORDS = [
+  "POS",
+  "point of sale",
+  "storefront",
+  "cashier",
+  "cash register",
+  "inventory management",
+  "retail POS",
+  "sales",
+  "barcode scanner",
+  "multi-store",
+  "small business POS",
+  "shop counter",
+  "digital storefront",
+  "ecommerce",
+  "payment terminal",
+];
 
 function isHex3or6(s: string): boolean {
   return /^#[0-9A-Fa-f]{3}$/.test(s) || /^#[0-9A-Fa-f]{6}$/.test(s);
@@ -64,8 +85,39 @@ export function metadataFromTenantAndHost(
 
   const platform: Metadata = {
     metadataBase,
-    title: PLATFORM_TITLE,
+    title: {
+      default: PLATFORM_TITLE,
+      template: `%s · ${PLATFORM_TITLE}`,
+    },
     description: PLATFORM_DESCRIPTION,
+    keywords: PLATFORM_KEYWORDS,
+    applicationName: "Kiosk",
+    appleWebApp: {
+      capable: true,
+      title: "Kiosk POS",
+    },
+    openGraph: {
+      type: "website",
+      title: PLATFORM_TITLE,
+      description: PLATFORM_DESCRIPTION,
+      siteName: "Kiosk",
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: PLATFORM_TITLE,
+      description: PLATFORM_DESCRIPTION,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+    },
+    other: {
+      "og:type": "website",
+      "theme-color": BRAND_THEME_COLOR,
+    },
   };
 
   if (!tenant) {
@@ -84,7 +136,8 @@ export function metadataFromTenantAndHost(
   const metaKeywords = tenant.branding.metaKeywords?.trim();
 
   const description =
-    metaDescription || `${displayName} — business management platform.`;
+    metaDescription ||
+    `${displayName} — a Kiosk-powered store. Browse products, scan barcodes, and check out at the cashier counter — your digital storefront and POS, all in one place.`;
   const favicon = tenant.branding.faviconUrl?.trim();
   const logo = tenant.branding.logoUrl?.trim();
 
@@ -110,11 +163,20 @@ export function metadataFromTenantAndHost(
     },
     description,
     applicationName: displayName,
-    other: metaKeywords
-      ? {
-          keywords: metaKeywords,
-        }
-      : undefined,
+    other: {
+      keywords:
+        metaKeywords ||
+        [
+          displayName,
+          "storefront",
+          "shop online",
+          "POS",
+          "point of sale",
+          "products",
+          "prices",
+          "in stock",
+        ].join(", "),
+    },
     appleWebApp: {
       capable: true,
       title: displayName,
