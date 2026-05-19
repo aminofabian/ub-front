@@ -416,7 +416,7 @@ export function TenantLogo({
       <div className={cn("flex flex-col items-center gap-3", className)}>
         <TenantMonogramMark brand={brand || "Your shop"} primaryColor={primary} size="lg" />
         <p className="text-center text-xs text-muted-foreground">
-          Generated from your shop name until you upload a logo
+          Auto-generated from your shop name — upload anytime to replace
         </p>
       </div>
     );

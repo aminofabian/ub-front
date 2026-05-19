@@ -26,7 +26,7 @@ import {
 import { fetchMe, registerAccount, onboardBusiness } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
-import { markOnboardingTourPending } from "@/lib/onboarding-tour";
+import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
 
 const primaryCtaClass =
@@ -120,7 +120,6 @@ function StaffSignupPageContent() {
           staffInviteToken: tokenTrim,
         },
       );
-      markOnboardingTourPending();
       if (result.status.toLowerCase() === "active") {
         setVerificationLink(null);
         setSuccessMessage(
@@ -218,7 +217,7 @@ function StaffSignupPageContent() {
         email.trim(),
         password,
       );
-      markOnboardingTourPending();
+      markOnboardingQuestionnairePending();
 
       // Redirect to the business subdomain
       if (shopUrl) {

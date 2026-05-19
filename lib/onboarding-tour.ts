@@ -1,6 +1,7 @@
 "use client";
 
 import { APP_ROUTES } from "@/lib/config";
+import { markOnboardingQuestionnairePending } from "@/lib/onboarding-questionnaire";
 
 const STORAGE_KEY = "palmart.onboardingTour.v1";
 
@@ -309,12 +310,9 @@ export function getOnboardingTourState(): OnboardingTourState {
   return readState();
 }
 
+/** @deprecated New signups use {@link markOnboardingQuestionnairePending}. */
 export function markOnboardingTourPending(): void {
-  writeState({
-    status: "pending",
-    stepId: ONBOARDING_TOUR_STEPS[0]?.id ?? "branch",
-    updatedAt: new Date().toISOString(),
-  });
+  markOnboardingQuestionnairePending();
 }
 
 export function shouldStartOnboardingTour(): boolean {

@@ -475,6 +475,17 @@ export type BusinessRecord = {
   subscriptionTier?: string;
   storefront?: StorefrontSettingsRecord;
   inventory?: InventorySettingsRecord;
+  profile?: {
+    storeType?: string | null;
+  };
+  onboarding?: {
+    status?: string;
+    step?: number;
+    updatedAt?: string | null;
+    completedAt?: string | null;
+    dismissedAt?: string | null;
+    answers?: Record<string, unknown> | null;
+  };
   branding?: BrandingRecord;
   /**
    * Hostname of the active primary domain mapping, when one is set. The login
@@ -1477,6 +1488,57 @@ export async function reorderMyBrandingBanners(
     method: "PUT",
     body: orderedUrls,
   });
+}
+
+const MY_ONBOARDING_PATH = "/api/v1/businesses/me/onboarding";
+
+export type OnboardingAnswersRecord = {
+  branchCount?: string;
+  branchLocalities?: string[];
+  storeType?: string;
+  selectedDepartments?: string[];
+  onlineStore?: string;
+  displayName?: string;
+  primaryColor?: string;
+  accentColor?: string;
+};
+
+export type OnboardingStateRecord = {
+  status: string;
+  step: number;
+  updatedAt?: string | null;
+  completedAt?: string | null;
+  dismissedAt?: string | null;
+  answers?: OnboardingAnswersRecord | null;
+};
+
+export type StoreSectionStarterKitRecord = {
+  id: string;
+  label: string;
+  sections: readonly string[];
+};
+
+export async function fetchOnboardingState(): Promise<OnboardingStateRecord> {
+  return request<OnboardingStateRecord>(MY_ONBOARDING_PATH);
+}
+
+export async function patchOnboardingState(body: {
+  status?: string;
+  step?: number;
+  answers?: OnboardingAnswersRecord;
+}): Promise<OnboardingStateRecord> {
+  return request<OnboardingStateRecord>(MY_ONBOARDING_PATH, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export async function fetchStoreSectionStarterKits(): Promise<
+  StoreSectionStarterKitRecord[]
+> {
+  return request<StoreSectionStarterKitRecord[]>(
+    `${MY_ONBOARDING_PATH}/store-section-kits`,
+  );
 }
 
 export type DomainRecord = {

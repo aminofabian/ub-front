@@ -14,7 +14,7 @@ import {
 
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
-import { getOnboardingTourState } from "@/lib/onboarding-tour";
+import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
 import {
   addDays,
@@ -297,12 +297,12 @@ function OverviewSkeleton() {
   );
 }
 
-function PostTourChecklist() {
+function PostSetupChecklist() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Show if the tour was recently completed (within last 48 hours)
-    const state = getOnboardingTourState();
+    // Show if setup questionnaire was recently completed (within last 48 hours)
+    const state = getOnboardingQuestionnaireState();
     if (state.status !== "completed") {
       return;
     }
@@ -632,7 +632,7 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <PostTourChecklist />
+      <PostSetupChecklist />
 
       {ownerSummary?.topSkusLast30Days &&
       ownerSummary.topSkusLast30Days.length > 0 ? (

@@ -805,12 +805,16 @@
     transform: translateY(-1px);
 }
 
-/* ── Tenant monogram — clear luxury lockup ── */
+/* ── Tenant monogram — generated ecommerce store logo ── */
 .tenant-monogram-shell {
     position: relative;
     flex-shrink: 0;
-    filter: drop-shadow(0 2px 8px rgba(26, 17, 8, 0.22));
+    filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.12));
     transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.tenant-monogram-svg {
+    overflow: visible;
 }
 
 .tenant-monogram-lockup {
@@ -825,7 +829,7 @@
 a:hover .tenant-monogram-shell,
 button:hover .tenant-monogram-shell {
     transform: translateY(-1px);
-    filter: drop-shadow(0 4px 12px rgba(26, 17, 8, 0.28));
+    filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.14));
 }
 
 @media (prefers-reduced-motion: reduce) {
