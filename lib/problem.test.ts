@@ -1,6 +1,29 @@
 import { describe, expect, it } from "bun:test";
 
-import { isUnmappedTenantHostProblem } from "@/lib/problem";
+import { isItemNotFoundProblem, isUnmappedTenantHostProblem } from "@/lib/problem";
+
+describe("isItemNotFoundProblem", () => {
+  it("matches pricing/catalog item missing detail", () => {
+    expect(
+      isItemNotFoundProblem({
+        type: "urn:problem:bad-request",
+        title: "Bad Request",
+        status: 400,
+        detail: "Item not found",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores unrelated problems", () => {
+    expect(
+      isItemNotFoundProblem({
+        title: "Bad Request",
+        status: 400,
+        detail: "Branch not found",
+      }),
+    ).toBe(false);
+  });
+});
 
 describe("isUnmappedTenantHostProblem", () => {
   it("matches tenant-not-found problem type", () => {

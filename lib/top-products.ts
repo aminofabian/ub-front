@@ -154,6 +154,25 @@ export function recordSaleLines(
  * Only includes rows with real activity (cart adds / completed sales on this browser).
  * Data lives in localStorage under {@link storageKey}; it is not the server catalog.
  */
+/** Drop a cached frequent item (e.g. after server reports the catalog row is gone). */
+export function removeTopProduct(
+  businessId: string | undefined | null,
+  itemId: string,
+): boolean {
+  const id = itemId?.trim();
+  if (!id) {
+    return false;
+  }
+  const store = readStore(businessId);
+  if (!store.entries[id]) {
+    return false;
+  }
+  delete store.entries[id];
+  store.updatedAt = Date.now();
+  writeStore(businessId, store);
+  return true;
+}
+
 export function getTopProducts(
   businessId: string | undefined | null,
   limit = 8,

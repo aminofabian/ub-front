@@ -18,11 +18,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
 import {
-  fetchCurrentSellingPrice,
   itemListThumbnailUrl,
   type CategoryTreeNodeRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
+import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
 import {
@@ -81,6 +81,9 @@ export type CashierPosLayoutProps = {
   branchSelected: boolean;
   /** Used to resolve branch-scoped shelf prices in the add-item modal. */
   branchId: string;
+  /** Scopes local frequent-item cache pruning when pricing returns "Item not found". */
+  businessId?: string | null;
+  onStalePosItem?: (itemId: string) => void;
   /** Brand CSS variables for portaled dialogs (must be set on each modal root). */
   dialogBrandTheme: CSSProperties;
 
@@ -341,6 +344,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     branchesLoading,
     branchSelected,
     branchId,
+    businessId,
+    onStalePosItem,
     dialogBrandTheme,
     search,
     setSearch,
@@ -441,15 +446,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
     let cancelled = false;
     const bid = branchId?.trim() || undefined;
+    const shelfCtx = { businessId, onStaleItem: onStalePosItem };
     void Promise.all(
       ids.map(async (id) => {
-        try {
-          const r = await fetchCurrentSellingPrice(id, bid);
-          const label = formatShelfPriceLabel(r.price, currency);
-          return [id, label ?? ""] as const;
-        } catch {
+        const r = await fetchPosShelfPrice(id, bid, shelfCtx);
+        if (!r) {
           return [id, ""] as const;
         }
+        const label = formatShelfPriceLabel(r.price, currency);
+        return [id, label ?? ""] as const;
       }),
     ).then((pairs) => {
       if (cancelled) return;
@@ -464,22 +469,32 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     return () => {
       cancelled = true;
     };
-  }, [online, branchId, currency, hitIdsKey, topIdsKey]);
+  }, [
+    online,
+    branchId,
+    businessId,
+    currency,
+    hitIdsKey,
+    topIdsKey,
+    onStalePosItem,
+  ]);
 
   usePosEvents({
     onPriceChanged: (frame) => {
       const itemId = String(frame.data.itemId ?? "");
       if (!itemId || !online) return;
       const bid = branchId?.trim() || undefined;
-      void fetchCurrentSellingPrice(itemId, bid)
-        .then((r) => {
-          const label = formatShelfPriceLabel(r.price, currency);
-          setTileShelfPrices((prev) => ({
-            ...prev,
-            [itemId]: label ?? "",
-          }));
-        })
-        .catch(() => {});
+      void fetchPosShelfPrice(itemId, bid, {
+        businessId,
+        onStaleItem: onStalePosItem,
+      }).then((r) => {
+        if (!r) return;
+        const label = formatShelfPriceLabel(r.price, currency);
+        setTileShelfPrices((prev) => ({
+          ...prev,
+          [itemId]: label ?? "",
+        }));
+      });
     },
   });
 
@@ -1087,6 +1102,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         currency={currency}
         uiCopy={uiCopy}
         branchId={branchId}
+        businessId={businessId}
+        onStaleItem={onStalePosItem}
         online={online}
         brandTheme={dialogBrandTheme}
         onOpenChange={(o) => {

@@ -107,6 +107,16 @@ export function parseProblem(payload: unknown): ProblemResponse | null {
 }
 
 /** Unknown tenant host from {@code DomainBusinessResolverFilter} (404 problem+json). */
+/** Catalog/pricing row missing (deleted item, wrong tenant, etc.). */
+export function isItemNotFoundProblem(payload: unknown): boolean {
+  const problem = parseProblem(payload);
+  if (!problem) {
+    return false;
+  }
+  const detail = problem.detail?.trim().toLowerCase() ?? "";
+  return detail === "item not found";
+}
+
 export function isUnmappedTenantHostProblem(payload: unknown): boolean {
   const problem = parseProblem(payload);
   if (!problem) {

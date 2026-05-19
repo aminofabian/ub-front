@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
-import { readCachedItemsSearch, writeCachedItemsSearch } from "@/lib/catalog-search-cache";
+import {
+  pruneItemFromCatalogSearchCache,
+  readCachedItemsSearch,
+  writeCachedItemsSearch,
+} from "@/lib/catalog-search-cache";
 
 describe("catalog-search-cache", () => {
   const store: Record<string, string> = {};
@@ -32,5 +36,16 @@ describe("catalog-search-cache", () => {
     const hit = readCachedItemsSearch("soda");
     expect(hit?.items).toHaveLength(1);
     expect(hit?.items[0].id).toBe("1");
+  });
+
+  it("prunes a deleted item from all cached queries", () => {
+    writeCachedItemsSearch("a", [
+      { id: "gone", name: "Old", sku: "O1", active: true },
+      { id: "keep", name: "Stay", sku: "K1", active: true },
+    ]);
+    writeCachedItemsSearch("b", [{ id: "gone", name: "Old", sku: "O1", active: true }]);
+    pruneItemFromCatalogSearchCache("gone");
+    expect(readCachedItemsSearch("a")?.items.map((i) => i.id)).toEqual(["keep"]);
+    expect(readCachedItemsSearch("b")).toBeNull();
   });
 });

@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { fetchCurrentSellingPrice, itemListThumbnailUrl, type ItemSummaryRecord } from "@/lib/api";
+import { itemListThumbnailUrl, type ItemSummaryRecord } from "@/lib/api";
+import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import { cashierItemPrimaryLabel, posSearchItemDetailLine } from "@/lib/cashier-item-display";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
@@ -64,6 +65,8 @@ type CashierProductModalProps = {
   uiCopy: CashierPosUiCopy;
   /** When set (and online), shelf price is prefilled for this branch. */
   branchId?: string | null;
+  businessId?: string | null;
+  onStaleItem?: (itemId: string) => void;
   online?: boolean;
   /** Business brand CSS variables (dialogs are portaled). */
   brandTheme: CSSProperties;
@@ -82,6 +85,8 @@ export function CashierProductModal({
   currency,
   uiCopy,
   branchId,
+  businessId,
+  onStaleItem,
   online = true,
   brandTheme,
   onOpenChange,
@@ -113,22 +118,23 @@ export function CashierProductModal({
     const itemId = item.id;
     const bid = branchId?.trim() || undefined;
     let cancelled = false;
-    void fetchCurrentSellingPrice(itemId, bid)
-      .then((rec) => {
+    void fetchPosShelfPrice(itemId, bid, { businessId, onStaleItem }).then(
+      (rec) => {
         if (cancelled) return;
+        if (!rec) {
+          setShelfCaption(uiCopy.modalShelfUnavailable);
+          return;
+        }
         const label = formatShelfPriceLabel(rec.price, currency);
         setShelfCaption(label ?? uiCopy.modalShelfNone);
         const next = shelfPriceToInputString(rec.price);
         if (next) setUnitPrice(next);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setShelfCaption(uiCopy.modalShelfUnavailable);
-      });
+      },
+    );
     return () => {
       cancelled = true;
     };
-  }, [open, item?.id, branchId, online, currency, uiCopy]);
+  }, [open, item?.id, branchId, businessId, onStaleItem, online, currency, uiCopy]);
 
   const thumb = useMemo(() => (item ? itemListThumbnailUrl(item) : null), [item]);
   const headerTitle = useMemo(() => (item ? cashierItemPrimaryLabel(item) : ""), [item]);

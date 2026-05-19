@@ -3546,6 +3546,7 @@ export async function fetchSellPriceSuggestion(
 export async function fetchCurrentSellingPrice(
   itemId: string,
   branchId?: string,
+  options?: Pick<RequestOptions, "toast">,
 ): Promise<CurrentSellingPriceRecord> {
   const params = new URLSearchParams({ itemId: itemId.trim() });
   if (branchId?.trim()) {
@@ -3553,6 +3554,7 @@ export async function fetchCurrentSellingPrice(
   }
   return request<CurrentSellingPriceRecord>(
     `/api/v1/pricing/current-selling-price?${params.toString()}`,
+    options,
   );
 }
 

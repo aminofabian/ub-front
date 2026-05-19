@@ -80,3 +80,29 @@ export function writeCachedItemsSearch(query: string, items: ItemSummaryRecord[]
   f.entries[norm] = { t: Date.now(), items };
   save(f);
 }
+
+/** Remove a deleted item from all cached search result sets. */
+export function pruneItemFromCatalogSearchCache(itemId: string): void {
+  const id = itemId.trim();
+  if (!id) {
+    return;
+  }
+  const f = load();
+  let changed = false;
+  for (const key of Object.keys(f.entries)) {
+    const row = f.entries[key];
+    const filtered = row.items.filter((item) => item.id !== id);
+    if (filtered.length === row.items.length) {
+      continue;
+    }
+    changed = true;
+    if (filtered.length === 0) {
+      delete f.entries[key];
+    } else {
+      f.entries[key] = { ...row, items: filtered };
+    }
+  }
+  if (changed) {
+    save(f);
+  }
+}

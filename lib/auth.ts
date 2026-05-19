@@ -49,7 +49,8 @@ export function clearAllSessionData(): void {
     if (
       key &&
       (key.startsWith("palmart:selectedBranch:") ||
-        key.startsWith("palmart:selectedItemType:"))
+        key.startsWith("palmart:selectedItemType:") ||
+        key.startsWith("palmart:topProducts:v1:"))
     ) {
       keysToRemove.push(key);
     }

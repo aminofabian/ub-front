@@ -336,6 +336,14 @@ export function QuickSaleWorkspace({
     setTopProducts(getTopProducts(business?.id ?? null, 8));
   }, [business?.id]);
 
+  const handleStalePosItem = useCallback(
+    (itemId: string) => {
+      refreshTopProducts();
+      setHits((prev) => prev.filter((h) => h.id !== itemId));
+    },
+    [refreshTopProducts],
+  );
+
   useEffect(() => {
     if (!canSell) {
       return;
@@ -1145,6 +1153,8 @@ export function QuickSaleWorkspace({
         branchesLoading={branchesLoading}
         branchSelected={branchSelected}
         branchId={branchId}
+        businessId={business?.id ?? null}
+        onStalePosItem={handleStalePosItem}
         dialogBrandTheme={dialogBrandTheme}
           search={search}
           setSearch={setSearch}
