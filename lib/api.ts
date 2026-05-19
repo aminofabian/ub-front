@@ -1200,11 +1200,15 @@ export async function registerAccount(
   });
 }
 
-export async function verifyEmailAddress(token: string): Promise<void> {
+export async function verifyEmailAddress(
+  token: string,
+  options?: { toast?: boolean },
+): Promise<void> {
   await request(API_ROUTES.verifyEmail, {
     method: "POST",
     body: { token },
     requiresAuth: false,
+    toast: options?.toast,
   });
 }
 

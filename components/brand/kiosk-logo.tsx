@@ -39,6 +39,8 @@ export type KioskLogoProps = {
   size?: keyof typeof LOCKUP;
   variant?: KioskLogoMarkProps["variant"];
   layout?: "inline" | "badge";
+  /** Nav lockup — green mark, no badge box, rule line, or heavy chrome. */
+  plain?: boolean;
   wordmark?: string;
   showDomain?: boolean;
   tagline?: string;
@@ -54,41 +56,48 @@ function LogoWordmark({
   size,
   variant,
   showDomain,
+  plain,
 }: {
   name: string;
   size: keyof typeof LOCKUP;
   variant: KioskLogoMarkProps["variant"];
   showDomain: boolean;
+  plain?: boolean;
 }) {
   const isLanding = variant === "landing";
+
+  const wordmarkClass = cn(
+    "kiosk-logo-wordmark font-heading font-semibold uppercase leading-none",
+    plain ? "tracking-[0.14em]" : "tracking-[0.16em]",
+    LOCKUP[size].word,
+    isLanding ? "text-[var(--kiosk-text)]" : "text-foreground",
+  );
+
+  const tldClass = cn(
+    "kiosk-logo-tld inline-flex items-center rounded-md font-sans font-bold uppercase leading-none tracking-[0.12em] text-white",
+    LOCKUP[size].pill,
+    plain
+      ? "shadow-[0_1px_4px_color-mix(in_srgb,var(--kiosk-gold)_28%,transparent)]"
+      : "shadow-[0_2px_8px_color-mix(in_srgb,var(--kiosk-gold)_45%,transparent)]",
+    isLanding
+      ? "bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A]"
+      : "bg-gradient-to-r from-[#20863B] via-primary to-[#32B85A]",
+  );
+
+  if (plain) {
+    return (
+      <span className="inline-flex items-baseline gap-2 leading-none">
+        <span className={wordmarkClass}>{name}</span>
+        {showDomain ? <span className={tldClass}>.KE</span> : null}
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex flex-col justify-center leading-none">
       <span className="inline-flex items-center gap-2">
-        <span
-          className={cn(
-            "kiosk-logo-wordmark font-heading font-semibold uppercase leading-none tracking-[0.16em]",
-            LOCKUP[size].word,
-            isLanding
-              ? "text-[var(--kiosk-text)]"
-              : "text-foreground",
-          )}
-        >
-          {name}
-        </span>
-        {showDomain ? (
-          <span
-            className={cn(
-              "kiosk-logo-tld inline-flex items-center rounded-md font-sans font-bold uppercase leading-none tracking-[0.12em] text-white shadow-[0_2px_8px_color-mix(in_srgb,var(--kiosk-gold)_45%,transparent)]",
-              LOCKUP[size].pill,
-              isLanding
-                ? "bg-gradient-to-r from-[#20863B] via-[var(--kiosk-gold)] to-[#32B85A]"
-                : "bg-gradient-to-r from-[#20863B] via-primary to-[#32B85A]",
-            )}
-          >
-            .KE
-          </span>
-        ) : null}
+        <span className={wordmarkClass}>{name}</span>
+        {showDomain ? <span className={tldClass}>.KE</span> : null}
       </span>
       <span
         aria-hidden
@@ -137,6 +146,7 @@ function LogoContent({
   size,
   variant,
   layout,
+  plain,
   wordmark,
   showDomain,
   tagline,
@@ -147,6 +157,7 @@ function LogoContent({
   | "size"
   | "variant"
   | "layout"
+  | "plain"
   | "wordmark"
   | "showDomain"
   | "tagline"
@@ -166,14 +177,30 @@ function LogoContent({
       : "text-muted-foreground";
 
   const lockup = (
-    <span className={cn("inline-flex items-center", gap)}>
-      <KioskLogoMark size={mark} variant={variant} className={markClassName} />
-      <span className="flex min-w-0 flex-col justify-center">
+    <span
+      className={cn(
+        "inline-flex items-center",
+        plain ? "gap-3 sm:gap-3.5" : gap,
+      )}
+    >
+      <KioskLogoMark
+        size={mark}
+        variant={variant}
+        plain={plain}
+        className={markClassName}
+      />
+      <span
+        className={cn(
+          "flex min-w-0",
+          plain ? "items-center" : "flex-col justify-center",
+        )}
+      >
         <LogoWordmark
           name={name}
           size={s}
           variant={variant}
           showDomain={showKe}
+          plain={plain}
         />
         {showTagline ? (
           <span
@@ -242,6 +269,7 @@ export function KioskLogo({
   size = "md",
   variant = "default",
   layout = "inline",
+  plain = false,
   wordmark,
   showDomain,
   tagline,
@@ -252,12 +280,24 @@ export function KioskLogo({
   onClick,
 }: KioskLogoProps) {
   return (
-    <LogoShell href={href} onClick={onClick} className={className}>
-      <span className="block transition-[transform,filter] duration-500 ease-out group-hover:brightness-[1.03] group-active:scale-[0.98]">
+    <LogoShell
+      href={href}
+      onClick={onClick}
+      className={cn(plain && "kiosk-logo--plain", className)}
+    >
+      <span
+        className={cn(
+          "block transition-[transform,filter] duration-500 ease-out",
+          plain
+            ? "group-hover:brightness-[1.02]"
+            : "group-hover:brightness-[1.03] group-active:scale-[0.98]",
+        )}
+      >
         <LogoContent
           size={size}
           variant={variant}
           layout={layout}
+          plain={plain}
           wordmark={wordmark}
           showDomain={showDomain}
           tagline={tagline}

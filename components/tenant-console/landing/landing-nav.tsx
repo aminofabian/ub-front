@@ -32,7 +32,7 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
           : "border-b border-transparent bg-transparent",
       )}
     >
-      <KioskLogo href="/" size="lg" variant="landing" layout="badge" />
+      <KioskLogo href="/" size="lg" variant="landing" plain />
 
       {/* ── Desktop links ── */}
       <div className="hidden items-center gap-9 md:flex">

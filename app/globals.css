@@ -484,6 +484,11 @@
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+.landing-page .kiosk-logo--plain .kiosk-logo-wordmark {
+    text-shadow: none;
+    letter-spacing: 0.12em;
+}
+
 .landing-page .hero-tag {
     animation: hero-tag-float 6s ease-in-out infinite;
 }
