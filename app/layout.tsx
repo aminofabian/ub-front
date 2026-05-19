@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, DM_Sans, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { TenantProvider } from "@/components/providers/tenant-provider";
@@ -91,9 +92,25 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+      <body
+        className="min-h-full flex flex-col font-sans"
+        suppressHydrationWarning
+      >
         <TenantHostSync />
         {withTenantProvider(tenant, body)}
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-QTMX2VD4Y8"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-QTMX2VD4Y8');
+          `}
+        </Script>
       </body>
     </html>
   );
