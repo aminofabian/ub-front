@@ -9,6 +9,7 @@ import { kioskCategoryPillClass } from "@/components/cashier/kiosk-listing-style
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import {
   buildCatalogRowMeta,
   catalogListGridClass,
@@ -144,13 +145,7 @@ export function VirtualizedCatalogBody({
         onScroll={(event) => checkLoadMore(event.currentTarget)}
       >
         {initialLoading ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-24">
-            <span className="relative flex size-10 items-center justify-center">
-              <span className="absolute inset-0 animate-ping rounded-full bg-primary/15" aria-hidden />
-              <span className="size-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" aria-hidden />
-            </span>
-            <p className="text-sm font-medium text-muted-foreground">Loading catalog…</p>
-          </div>
+          <CatalogListSkeleton density={density} />
         ) : rows.length === 0 ? (
           <div className="mx-4 my-14 rounded-2xl border border-dashed border-border/60 bg-muted/15 px-6 py-12 text-center">
             <p className="text-sm font-semibold text-foreground">No products match</p>
@@ -470,8 +465,8 @@ export function VirtualizedCatalogBody({
           </div>
         )}
         {loadingMore ? (
-          <div className="sticky bottom-0 border-t border-border/40 bg-background/95 py-2 text-center text-xs font-medium text-muted-foreground backdrop-blur-md">
-            Loading more products…
+          <div className="border-t border-border/40 bg-background/95 backdrop-blur-md">
+            <CatalogListSkeleton density={density} count={4} />
           </div>
         ) : null}
       </div>

@@ -1,15 +1,16 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
+import { ShopProductGridSkeleton } from "@/components/storefront/shop-product-grid-skeleton";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import type {
   PublicCatalogItemCard,
   PublicCatalogListPayload,
 } from "@/lib/public-storefront";
+import { cn } from "@/lib/utils";
 
 export default function ShopCatalogWithMore({
   slug,
@@ -171,18 +172,20 @@ export default function ShopCatalogWithMore({
         <p className="text-center text-xs text-destructive">{error}</p>
       ) : null}
 
+      {busy ? <ShopProductGridSkeleton count={8} /> : null}
+
       {next ? (
         <div
           ref={sentinelRef}
-          className="flex min-h-14 items-center justify-center py-4"
-          aria-live="polite"
-          aria-busy={busy}
-        >
-          {busy ? (
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
-          ) : (
-            <span className="sr-only">Scroll for more products</span>
+          className={cn(
+            "py-2",
+            busy ? "min-h-2" : "flex min-h-14 items-center justify-center",
           )}
+          aria-live="polite"
+        >
+          {!busy ? (
+            <span className="sr-only">Scroll for more products</span>
+          ) : null}
         </div>
       ) : items.length > 0 ? (
         <p className="pb-2 text-center text-[11px] text-muted-foreground/40">
