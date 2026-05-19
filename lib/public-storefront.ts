@@ -60,6 +60,10 @@ export type PublicBarcodeLookup = {
   price: number | null;
   qtyOnHand: number | null;
   images: PublicItemImage[];
+  /** Non-null when this is a variant — the parent item's name. */
+  parentName: string | null;
+  /** The variant's own label (e.g. "500ml"). Null for standalone items. */
+  variantName: string | null;
 };
 
 export type PublicCatalogItemDetail = {

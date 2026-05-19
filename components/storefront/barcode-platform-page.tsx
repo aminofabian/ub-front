@@ -624,10 +624,25 @@ function SearchResultRow({ item }: { item: PublicBarcodeLookup }) {
             )}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--kiosk-text)]">
-              {item.name}
-            </p>
-            {item.brand ? (
+            {item.parentName ? (
+              <>
+                <p className="truncate text-xs text-[var(--kiosk-text-muted)]">
+                  {item.parentName}
+                </p>
+                <p className="truncate text-sm font-semibold text-[var(--kiosk-text)]">
+                  {item.name}
+                </p>
+              </>
+            ) : (
+              <p className="truncate text-sm font-semibold text-[var(--kiosk-text)]">
+                {item.name}
+              </p>
+            )}
+            {item.variantName ? (
+              <p className="truncate text-xs text-[var(--kiosk-text-dim)]">
+                {item.variantName}
+              </p>
+            ) : item.brand ? (
               <p className="truncate text-xs text-[var(--kiosk-text-muted)]">
                 {item.brand}
                 {item.size ? ` · ${item.size}` : ""}
