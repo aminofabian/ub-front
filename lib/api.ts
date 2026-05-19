@@ -91,7 +91,14 @@ function shouldSignOutClientForProblem(
   if (options?.requiresAuth === false || !getSessionTokens()) {
     return false;
   }
-  return status === 404 && isUnmappedTenantHostProblem(payload);
+  if (status === 404 && isUnmappedTenantHostProblem(payload)) {
+    return true;
+  }
+  // Tenant context missing — clear session so the user can re-authenticate
+  if (status === 401 && problem?.title?.includes("Tenant context missing")) {
+    return true;
+  }
+  return false;
 }
 
 function signOutClientForProblem(
