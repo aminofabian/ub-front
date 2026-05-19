@@ -375,6 +375,9 @@ function PostSetupChecklist() {
 
 export default function OverviewPage() {
   const { me, business, branchId } = useDashboard();
+  const roleKey = me?.role?.key?.trim().toLowerCase();
+  const canViewOwnerSummary =
+    roleKey !== "stock_manager" && roleKey !== "cashier";
 
   const [period, setPeriod] = useState<Period>("today");
   const [pulse, setPulse] = useState<FinancePulseResponse | null>(null);
@@ -421,7 +424,9 @@ export default function OverviewPage() {
         weekReg,
         prevWeekReg,
       ] = await Promise.all([
-        fetchDashboardOwnerSummary().catch(() => null),
+        canViewOwnerSummary
+          ? fetchDashboardOwnerSummary().catch(() => null)
+          : Promise.resolve(null),
         fetchInventoryValuation(branch).catch(() => null),
         fetchItemsPage(undefined, { page: 0, size: 1 }).catch(() => null),
         fetchSalesRegister(chartFrom, chartTo, branch).catch(() => null),
@@ -464,7 +469,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, period]);
+  }, [branchId, canViewOwnerSummary, period]);
 
   useEffect(() => {
     void load();

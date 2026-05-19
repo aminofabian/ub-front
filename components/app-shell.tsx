@@ -183,7 +183,6 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   // Restricted roles: only explicitly-allowed pages
   if (gate.roleKey === "stock_manager") {
     const allowed: readonly string[] = [
-      APP_ROUTES.overview,
       APP_ROUTES.inventoryStockTake,
       APP_ROUTES.inventoryStockTakeReconciliation,
       APP_ROUTES.inventoryStock,
@@ -196,7 +195,6 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
 
   if (gate.roleKey === "cashier") {
     const allowed: readonly string[] = [
-      APP_ROUTES.overview,
       APP_ROUTES.salesQuick,
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
@@ -351,6 +349,11 @@ export function AppShell({ children }: AppShellProps) {
   const isStockManager =
     me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
+  const homeHref = isStockManager
+    ? APP_ROUTES.inventoryStockTake
+    : isCashier
+      ? APP_ROUTES.salesQuick
+      : APP_ROUTES.overview;
   const canReadNotifications = hasPermission(
     me?.permissions,
     Permission.ReportsNotificationsRead,
@@ -409,6 +412,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewStorefrontOrders,
     canQuickSale,
     canManageImports,
+    me?.role?.key,
   ]);
 
   const activeSectionId = useMemo(() => {
@@ -463,10 +467,10 @@ export function AppShell({ children }: AppShellProps) {
           : tab,
       ).filter(
         (tab) =>
-          !tab.href ||
-          tab.href === APP_ROUTES.overview ||
-          tab.href === APP_ROUTES.inventoryStockTake ||
-          tab.id === "more",
+          tab.id !== "overview" &&
+          (!tab.href ||
+            tab.href === APP_ROUTES.inventoryStockTake ||
+            tab.id === "more"),
       );
     }
     if (roleKey === "cashier") {
@@ -474,14 +478,14 @@ export function AppShell({ children }: AppShellProps) {
         if (tab.id === "sales") return { ...tab, href: APP_ROUTES.sales };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
-      }).filter(
+      }      ).filter(
         (tab) =>
-          !tab.href ||
-          tab.href === APP_ROUTES.overview ||
-          tab.href === APP_ROUTES.sales ||
-          tab.href === APP_ROUTES.salesQuick ||
-          tab.href === APP_ROUTES.shifts ||
-          tab.id === "more",
+          tab.id !== "overview" &&
+          (!tab.href ||
+            tab.href === APP_ROUTES.sales ||
+            tab.href === APP_ROUTES.salesQuick ||
+            tab.href === APP_ROUTES.shifts ||
+            tab.id === "more"),
       );
     }
     return BOTTOM_TABS;
@@ -547,7 +551,7 @@ export function AppShell({ children }: AppShellProps) {
       <aside className="hidden md:flex sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background">
         <div className="border-b p-4">
           <Link
-            href={APP_ROUTES.overview}
+            href={homeHref}
             className="mb-3 flex items-center gap-2.5 rounded-lg outline-none ring-offset-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
           >
             <TenantLogo
