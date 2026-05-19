@@ -67,6 +67,12 @@ export type CashierPosShiftLinksProps = {
 };
 
 export type CashierPosLayoutProps = {
+  /** Page heading (default: Point of sale). */
+  pageTitle?: string;
+  /** When true, lifts fixed cart controls above the dashboard mobile bottom nav. */
+  embeddedInDashboard?: boolean;
+  /** Brand CSS variables on the layout root (POS primary colors). */
+  brandTheme?: CSSProperties;
   online: boolean;
   currency: string;
   uiCopy: CashierPosUiCopy;
@@ -320,6 +326,9 @@ function SearchHitTile({
 
 export function CashierPosLayout(props: CashierPosLayoutProps) {
   const {
+    pageTitle = "Point of sale",
+    embeddedInDashboard = false,
+    brandTheme,
     online,
     currency,
     uiCopy,
@@ -469,12 +478,18 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     },
   });
 
+  const cartFabBottomClass = embeddedInDashboard
+    ? "bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6"
+    : "bottom-4 sm:bottom-6";
+
   return (
     <div
       className={cn(
         "mx-auto w-full max-w-3xl space-y-4 px-3 pb-28 sm:max-w-4xl sm:space-y-5 sm:px-5",
+        embeddedInDashboard && "max-w-none px-0 sm:px-1",
         "bg-neutral-50/95 dark:bg-background",
       )}
+      style={brandTheme}
     >
       <section
         className={cn(DASHBOARD_SECTION_SURFACE, "border-border/50 shadow-sm")}
@@ -482,7 +497,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-              <span>Point of sale</span>
+              <span>{pageTitle}</span>
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-75"
                 aria-hidden
@@ -987,8 +1002,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {/* ── Stacked cart buttons (bottom-right) ─────────────────── */}
       <div
         className={cn(
-          "fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse items-stretch gap-2",
-          "sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end",
+          "fixed left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse items-stretch gap-2",
+          cartFabBottomClass,
+          "sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end",
         )}
       >
         {[...cartTabs].reverse().map((tab) => {
