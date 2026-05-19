@@ -142,6 +142,26 @@ export async function fetchPublicBarcodeBrowser(
   }
 }
 
+/** Search published products by name across all businesses. */
+export async function fetchPublicBarcodeSearchBrowser(
+  q: string,
+  limit = 20,
+): Promise<PublicBarcodeLookup[]> {
+  const query = q.trim();
+  if (query.length < 2) return [];
+  try {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const res = await fetch(
+      apiUrl(`/api/v1/public/barcode/search?${params.toString()}`),
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as PublicBarcodeLookup[];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPublicItemByBarcodeBrowser(
   slug: string,
   barcode: string,

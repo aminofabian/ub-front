@@ -7,9 +7,10 @@ import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 // ── SEO constants ──────────────────────────────────────────────────────────
 
-const TITLE = "Free Barcode Lookup — GTIN, UPC & EAN Scanner | Kiosk";
+const TITLE =
+  "Free Barcode Lookup & Product Search — GTIN, UPC, EAN Scanner | Kiosk";
 const DESCRIPTION =
-  "Look up any barcode instantly — type or scan GTIN, UPC, EAN-13, or retail codes. Free product lookup with prices, stock, and details. No sign-up required.";
+  "Look up any barcode or search products by name across all Kiosk-powered stores. Free barcode scanner, GTIN/UPC/EAN lookup, product search with prices, stock, and copyable barcodes. No sign-up required.";
 const KEYWORDS = [
   "barcode lookup",
   "free barcode lookup",
@@ -19,12 +20,15 @@ const KEYWORDS = [
   "EAN-13 lookup",
   "barcode scanner",
   "product barcode search",
+  "product search by name",
   "retail barcode",
   "scan barcode online",
   "barcode number search",
   "product code lookup",
   "barcode price check",
   "SKU lookup",
+  "product name search",
+  "find product barcode",
   "POS barcode",
 ];
 
@@ -34,7 +38,7 @@ function barcodeJsonLd(canonical: string) {
   return {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "Kiosk Barcode Lookup",
+    name: "Kiosk Barcode Lookup & Product Search",
     url: canonical,
     description: DESCRIPTION,
     applicationCategory: "BusinessApplication",
@@ -49,7 +53,9 @@ function barcodeJsonLd(canonical: string) {
       "GTIN / UPC / EAN-13 barcode lookup",
       "Camera-based barcode scanning",
       "Manual barcode number entry",
-      "Product details, price, and stock",
+      "Product name search across all stores",
+      "Copyable barcodes in search results",
+      "Product details, price, and store info",
       "No sign-up or app install required",
     ],
   };
