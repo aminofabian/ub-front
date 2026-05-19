@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { exampleShopHost } from "./landing-host";
+import { exampleShopHost, PLATFORM_DOMAIN } from "./landing-host";
 import { landingCardClass, sectionLabelClass } from "./landing-styles";
 
 export function LandingFeatures() {
-  const [shopHost, setShopHost] = useState(() => exampleShopHost());
+  // SSR-safe default; exampleShopHost() reads window and differs on the client.
+  const [shopHost, setShopHost] = useState(`yourshop.${PLATFORM_DOMAIN}`);
 
   useEffect(() => {
     setShopHost(exampleShopHost());

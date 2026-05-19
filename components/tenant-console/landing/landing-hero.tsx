@@ -241,7 +241,7 @@ function HeroAtmosphere() {
             alt=""
             fill
             className="object-cover object-left-top blur-2xl saturate-[1.15] contrast-[1.04]"
-            sizes="100vw"
+            sizes="(max-width: 768px) 92vw, 920px"
             priority
           />
         </div>
