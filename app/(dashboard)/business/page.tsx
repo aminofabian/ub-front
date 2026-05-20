@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import {
   DASHBOARD_MAX,
   DashboardFeedback,
@@ -390,14 +391,7 @@ export default function BusinessPage() {
   );
 
   if (isLoading) {
-    return (
-      <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-4 py-24">
-        <Loader2 className="size-10 animate-spin text-primary" aria-hidden />
-        <p className="text-sm text-muted-foreground">
-          Loading business settings…
-        </p>
-      </div>
-    );
+    return <BusinessSettingsSkeleton />;
   }
 
   if (loadFailed && !snapshot) {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
@@ -54,7 +55,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [router]);
 
   if (!checkedAuth) {
-    return <div className="p-8 text-sm text-muted-foreground">Loading...</div>;
+    return <DashboardAppShellSkeleton />;
   }
 
   return (
