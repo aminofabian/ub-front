@@ -11,8 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   fetchCreditSaleReminderSettings,
+  testCreditSaleReminderSend,
   updateCreditSaleReminderSettings,
   type CreditSaleReminderSettingsRecord,
+  type CreditSaleReminderTestResult,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +42,11 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [smsProvider, setSmsProvider] = useState("none");
   const [smsUsername, setSmsUsername] = useState("");
   const [smsApiKey, setSmsApiKey] = useState("");
+  const [testPhone, setTestPhone] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<CreditSaleReminderTestResult | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +80,46 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const formatTestSummary = (r: CreditSaleReminderTestResult): string => {
+    const parts = [
+      `Enabled: ${r.remindersEnabled ? "yes" : "no"}`,
+      `RapidAPI: ${r.rapidApiConfigured ? "yes" : "no"}`,
+      `Meta WA: ${r.metaWhatsAppConfigured ? "yes" : "no"}`,
+      `SMS: ${r.smsConfigured ? "yes" : "no"}`,
+      `Lookup: ${r.whatsAppLookupSkipped ? "skipped" : r.onWhatsApp ? "on WhatsApp" : "not on WhatsApp"} (${r.lookupDetail})`,
+      `Result: ${r.outcome} via ${r.channel} — ${r.detail}`,
+    ];
+    if (r.outcome === "stub") {
+      parts.push(
+        "SMS provider is “none”: nothing is sent to the phone (server log only). Set Africa's Talking or fix WhatsApp.",
+      );
+    }
+    return parts.join("\n");
+  };
+
+  const onTestSend = async () => {
+    if (!canEdit) return;
+    setTesting(true);
+    setTestResult(null);
+    setMessage(null);
+    try {
+      const result = await testCreditSaleReminderSend(testPhone.trim());
+      setTestResult(result);
+      const ok = result.outcome === "sent";
+      setMessage({
+        text: formatTestSummary(result),
+        kind: ok ? "success" : "error",
+      });
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? err.message : "Test send failed.",
+        kind: "error",
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +178,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
           <p className="mt-1 text-sm text-muted-foreground">
             When a customer takes items on credit, send a short payment reminder with
             your account link. WhatsApp is tried first (RapidAPI lookup + Meta); SMS
-            is the fallback.
+            is the fallback. Sends run on the server after checkout — they do not
+            appear in the browser Network tab except via &quot;Send test&quot; below.
           </p>
         </div>
       </div>
@@ -276,14 +324,42 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         </div>
 
         {canEdit ? (
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Save reminder settings"}
-          </Button>
-        ) : (
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+              <span className={dashboardLabelClass()}>Test phone</span>
+              <input
+                className={dashboardInputClass()}
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="0712345678"
+                disabled={testing}
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={testing || !testPhone.trim() || !enabled}
+              onClick={() => void onTestSend()}
+            >
+              {testing ? "Sending test…" : "Send test"}
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save reminder settings"}
+            </Button>
+          </div>
+        ) : null}
+
+        {testResult && canEdit ? (
+          <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-border/60 bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+            {formatTestSummary(testResult)}
+          </pre>
+        ) : null}
+
+        {!canEdit ? (
           <p className="text-xs text-muted-foreground">
             You need credit settings permission to change these values.
           </p>
-        )}
+        ) : null}
       </form>
     </section>
   );

@@ -5053,6 +5053,29 @@ export async function updateCreditSaleReminderSettings(
   );
 }
 
+export type CreditSaleReminderTestResult = {
+  remindersEnabled: boolean;
+  rapidApiConfigured: boolean;
+  metaWhatsAppConfigured: boolean;
+  smsConfigured: boolean;
+  whatsAppLookupSkipped: boolean;
+  onWhatsApp: boolean;
+  lookupDetail: string;
+  channel: string;
+  outcome: string;
+  detail: string;
+  messagePreview: string;
+};
+
+export async function testCreditSaleReminderSend(
+  phone: string,
+): Promise<CreditSaleReminderTestResult> {
+  return request<CreditSaleReminderTestResult>(
+    "/api/v1/credits/sale-reminder-settings/test",
+    { method: "POST", body: { phone } },
+  );
+}
+
 // ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
 
 export type SyncConflictRecord = {
