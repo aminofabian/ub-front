@@ -607,7 +607,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 value={stkAreaCode}
                                 onChange={(e) => setStkAreaCode(e.target.value)}
                                 placeholder="+254"
-                                disabled={stkPushStatus === "sending" || stkPushStatus === "sent"}
                               />
                             </label>
                             <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -620,7 +619,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 value={stkPhone}
                                 onChange={(e) => setStkPhone(e.target.value)}
                                 placeholder="712 345 678"
-                                disabled={stkPushStatus === "sending" || stkPushStatus === "sent"}
                               />
                             </label>
                           </div>
