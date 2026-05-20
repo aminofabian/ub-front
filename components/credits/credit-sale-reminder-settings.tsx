@@ -142,10 +142,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         </div>
       ) : null}
 
-      {settings && !settings.secretsReadable ? (
+      {settings?.secretsReadError ? (
         <p className="mt-4 rounded-lg border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-          {settings.secretsReadError ??
-            "API keys cannot be stored until the server encryption key is configured."}
+          {settings.secretsReadError}
         </p>
       ) : null}
 
@@ -190,7 +189,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               placeholder={
                 settings?.hasRapidApiKey ? "••••••••  (leave blank to keep)" : "Paste key"
               }
-              disabled={!canEdit || !settings?.secretsReadable}
+              disabled={!canEdit}
               autoComplete="off"
             />
           </label>
@@ -216,7 +215,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                   ? "••••••••  (leave blank to keep)"
                   : "Paste token"
               }
-              disabled={!canEdit || !settings?.secretsReadable}
+              disabled={!canEdit}
               autoComplete="off"
             />
           </label>
@@ -268,7 +267,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                       ? "••••••••  (leave blank to keep)"
                       : "Paste key"
                   }
-                  disabled={!canEdit || !settings?.secretsReadable}
+                  disabled={!canEdit}
                   autoComplete="off"
                 />
               </label>
@@ -277,7 +276,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         </div>
 
         {canEdit ? (
-          <Button type="submit" disabled={saving || !settings?.secretsReadable}>
+          <Button type="submit" disabled={saving}>
             {saving ? "Saving…" : "Save reminder settings"}
           </Button>
         ) : (
