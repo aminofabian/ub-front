@@ -4522,13 +4522,49 @@ export async function fetchSupplyPaymentHistory(
 
 export type SupplyPayOptionsRecord = {
   balanceOpen: number;
-  kopokopoActive: boolean;
+  supplierPayoutEnabled: boolean;
+  supplierPayoutGatewayReady: boolean;
+  supplierPayoutGatewayLabel: string | null;
   supplierMobilePayoutConfigured: boolean;
   payoutPhone: string | null;
   kopokopoPayEligible: boolean;
   pendingDisbursement: boolean;
   pendingDisbursementId: string | null;
 };
+
+export type SupplierPayoutGatewayOptionRecord = {
+  configId: string;
+  gatewayType: string;
+  label: string;
+  status: string;
+};
+
+export type SupplierPayoutSettingsRecord = {
+  enabled: boolean;
+  paymentGatewayConfigId: string | null;
+  gatewayType: string | null;
+  gatewayLabel: string | null;
+  gatewayReady: boolean;
+  selectableGateways: SupplierPayoutGatewayOptionRecord[];
+};
+
+export type UpdateSupplierPayoutSettingsPayload = {
+  enabled?: boolean;
+  paymentGatewayConfigId?: string | null;
+};
+
+export async function fetchSupplierPayoutSettings(): Promise<SupplierPayoutSettingsRecord> {
+  return request<SupplierPayoutSettingsRecord>("/api/v1/payments/supplier-payout");
+}
+
+export async function updateSupplierPayoutSettings(
+  body: UpdateSupplierPayoutSettingsPayload,
+): Promise<SupplierPayoutSettingsRecord> {
+  return request<SupplierPayoutSettingsRecord>("/api/v1/payments/supplier-payout", {
+    method: "PUT",
+    body,
+  });
+}
 
 export type SupplyKopokopoPayRecord = {
   accepted: boolean;

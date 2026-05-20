@@ -46,11 +46,17 @@ export default function SuperAdminPlatformPaymentsPage() {
   const onToggle = async (
     gatewayType: string,
     current: PlatformGatewayRecord,
+    field: "isEnabled" | "supplierPayoutSupported",
   ) => {
     setSaving(gatewayType);
     try {
       const body: PatchPlatformGatewayPayload = {
-        isEnabled: !current.isEnabled,
+        isEnabled:
+          field === "isEnabled" ? !current.isEnabled : current.isEnabled,
+        supplierPayoutSupported:
+          field === "supplierPayoutSupported"
+            ? !current.supplierPayoutSupported
+            : current.supplierPayoutSupported,
         displayName: current.displayName,
         description: current.description ?? undefined,
         logoUrl: current.logoUrl ?? undefined,
@@ -58,7 +64,9 @@ export default function SuperAdminPlatformPaymentsPage() {
       };
       await patchPlatformGateway(gatewayType, body);
       toast.success(
-        `${current.displayName} ${body.isEnabled ? "enabled" : "disabled"}.`,
+        field === "isEnabled"
+          ? `${current.displayName} ${body.isEnabled ? "enabled" : "disabled"} for checkout.`
+          : `${current.displayName} supplier payouts ${body.supplierPayoutSupported ? "enabled" : "disabled"}.`,
       );
       await reload();
     } catch (e) {
@@ -143,19 +151,30 @@ export default function SuperAdminPlatformPaymentsPage() {
               Sort order: {gw.sortOrder} ·{" "}
               <span className="font-mono">{gw.gatewayType}</span>
             </CardContent>
-            <CardFooter className="border-t border-border/50 bg-muted/15 pt-4">
+            <CardFooter className="flex flex-col gap-2 border-t border-border/50 bg-muted/15 pt-4">
               <Button
                 variant={gw.isEnabled ? "outline" : "default"}
                 size="sm"
                 disabled={saving === gw.gatewayType}
-                onClick={() => onToggle(gw.gatewayType, gw)}
+                onClick={() => onToggle(gw.gatewayType, gw, "isEnabled")}
                 className="w-full"
               >
                 {saving === gw.gatewayType
                   ? "Saving…"
                   : gw.isEnabled
-                    ? "Disable for platform"
-                    : "Enable for platform"}
+                    ? "Disable checkout"
+                    : "Enable checkout"}
+              </Button>
+              <Button
+                variant={gw.supplierPayoutSupported ? "outline" : "secondary"}
+                size="sm"
+                disabled={saving === gw.gatewayType}
+                onClick={() => onToggle(gw.gatewayType, gw, "supplierPayoutSupported")}
+                className="w-full"
+              >
+                {gw.supplierPayoutSupported
+                  ? "Disable supplier payouts"
+                  : "Allow supplier payouts"}
               </Button>
             </CardFooter>
           </Card>

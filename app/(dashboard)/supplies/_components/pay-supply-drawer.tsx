@@ -93,6 +93,10 @@ function paymentMethodLabel(method: string): string {
 
 type KopokopoPayPhase = "idle" | "sending" | "pending" | "success" | "failed";
 
+/** Stop polling the drawer; backend marks stale pending after ~3 min too. */
+const DISBURSEMENT_POLL_INTERVAL_MS = 2500;
+const DISBURSEMENT_POLL_MAX_MS = 3 * 60 * 1000;
+
 type PaySupplyDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -227,12 +231,27 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     );
   };
 
+  const stopWaitingForKopokopo = (message: string) => {
+    setKopokopoPhase("failed");
+    setKopokopoMessage(message);
+    setError(message);
+  };
+
   useEffect(() => {
     if (!open || !row || kopokopoPhase !== "pending") {
       return;
     }
     let cancelled = false;
+    const startedAt = Date.now();
     const poll = async () => {
+      if (Date.now() - startedAt >= DISBURSEMENT_POLL_MAX_MS) {
+        if (!cancelled) {
+          stopWaitingForKopokopo(
+            "Stopped waiting after 3 minutes. Check KopoKopo whether M-Pesa was sent, then retry or record the payment manually.",
+          );
+        }
+        return;
+      }
       try {
         const status = await fetchSupplyDisbursementStatus(row.supplierInvoiceId);
         if (cancelled) {
@@ -240,11 +259,11 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
         }
         applyDisbursementStatus(status);
       } catch {
-        /* keep polling */
+        /* keep polling until timeout */
       }
     };
     void poll();
-    const timer = window.setInterval(() => void poll(), 2500);
+    const timer = window.setInterval(() => void poll(), DISBURSEMENT_POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -383,10 +402,24 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       icon={<CreditCard className="size-5 text-primary" aria-hidden />}
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
+          {kopokopoPhase === "pending" ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() =>
+                stopWaitingForKopokopo(
+                  "Stopped waiting on this screen. If M-Pesa did not go through, retry Send M-Pesa or record the payment manually.",
+                )
+              }
+            >
+              Stop waiting
+            </Button>
+          ) : null}
           {!paidFull && balanceOpen > 0 && canPay ? (
             <Button
               type="button"
@@ -509,9 +542,27 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                           <p className="mt-1 text-xs text-muted-foreground">
                             Confirm below to send {formatMoney(balanceOpen)} via KopoKopo Send Money.
                           </p>
-                        ) : payOptions && !payOptions.kopokopoActive ? (
+                        ) : payOptions && !payOptions.supplierPayoutEnabled ? (
                           <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
-                            KopoKopo is not active — record payment manually.
+                            Supplier payouts are off.{" "}
+                            <Link
+                              href={APP_ROUTES.paymentsSettings}
+                              className="font-semibold underline"
+                            >
+                              Enable under Payments
+                            </Link>
+                            .
+                          </p>
+                        ) : payOptions && !payOptions.supplierPayoutGatewayReady ? (
+                          <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                            Choose an active payout gateway in{" "}
+                            <Link
+                              href={APP_ROUTES.paymentsSettings}
+                              className="font-semibold underline"
+                            >
+                              Payments settings
+                            </Link>
+                            .
                           </p>
                         ) : null}
                       </div>
@@ -543,6 +594,13 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                 <p className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-center text-sm text-foreground">
                   <Loader2 className="mr-2 inline size-4 animate-spin align-[-2px]" aria-hidden />
                   {kopokopoMessage ?? "Waiting for M-Pesa confirmation…"}
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Polling stops after 3 minutes, when KopoKopo confirms, or if you tap Stop waiting.
+                  </span>
+                </p>
+              ) : kopokopoPhase === "failed" && kopokopoMessage ? (
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-center text-sm text-amber-950 dark:text-amber-100">
+                  {kopokopoMessage}
                 </p>
               ) : kopokopoPhase === "success" ? (
                 <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center text-sm text-emerald-900 dark:text-emerald-100">

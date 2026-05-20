@@ -95,6 +95,7 @@ export const API_ROUTES = {
     "/api/v1/super-admin/payments/platform-gateways",
   paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
   paymentGateways: "/api/v1/payments/gateways",
+  paymentSupplierPayout: "/api/v1/payments/supplier-payout",
   paymentDisplayInstructions: "/api/v1/payments/display-instructions",
 } as const;
 

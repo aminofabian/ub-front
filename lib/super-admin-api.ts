@@ -205,6 +205,7 @@ export async function deleteSaBusiness(businessId: string): Promise<void> {
 export type PlatformGatewayRecord = {
   gatewayType: string;
   isEnabled: boolean;
+  supplierPayoutSupported: boolean;
   displayName: string;
   description: string | null;
   logoUrl: string | null;
@@ -215,6 +216,7 @@ export type PlatformGatewayRecord = {
 
 export type PatchPlatformGatewayPayload = {
   isEnabled: boolean;
+  supplierPayoutSupported?: boolean;
   displayName: string;
   description?: string;
   logoUrl?: string;

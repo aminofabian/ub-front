@@ -22,6 +22,7 @@ import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { GatewayConfigForm } from "@/components/payments/gateway-config-form";
 import { ManualMethodForm } from "@/components/payments/manual-method-form";
 import { GatewayStatusBadge } from "@/components/payments/gateway-status-badge";
+import { SupplierPayoutSettingsSection } from "@/components/payments/supplier-payout-settings-section";
 import { Button } from "@/components/ui/button";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -378,6 +379,8 @@ export default function PaymentSettingsPage() {
           </div>
         </section>
       )}
+
+      <SupplierPayoutSettingsSection canWrite={canWrite} />
 
       {/* Manual Payment Methods */}
       <section className="space-y-3">
