@@ -15,6 +15,7 @@ import {
   fetchCategoryTree,
   fetchCurrentShift,
   fetchCustomerById,
+  createCustomer,
   fetchCustomers,
   fetchItems,
   fetchPosStkPushStatus,
@@ -140,6 +141,10 @@ export function QuickSaleWorkspace({
     me?.permissions,
     Permission.CreditsCustomersRead,
   );
+  const canManageCustomers = hasPermission(
+    me?.permissions,
+    Permission.CreditsCustomersWrite,
+  );
   const canVoid =
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
@@ -195,6 +200,8 @@ export function QuickSaleWorkspace({
   const mpesaRef = activeCart.mpesaRef;
   const customerPhoneQuery = activeCart.customerPhoneQuery;
   const customerHits = activeCart.customerHits;
+  const customerNoPhoneMatch = activeCart.customerNoPhoneMatch;
+  const customerRegisterName = activeCart.customerRegisterName;
   const selectedCustomer = activeCart.selectedCustomer;
   const splitPay = activeCart.splitPay;
   const cashSplitStr = activeCart.cashSplitStr;
@@ -208,6 +215,7 @@ export function QuickSaleWorkspace({
   const stkPhone = activeCart.stkPhone;
 
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
+  const [customerRegisterBusy, setCustomerRegisterBusy] = useState(false);
   const stkConfirmedToastKey = useRef<string | null>(null);
 
   const notifyStkPaymentConfirmed = useCallback((checkoutId: string) => {
@@ -231,7 +239,18 @@ export function QuickSaleWorkspace({
     [updateActiveCart],
   );
   const setCustomerPhoneQuery = useCallback(
-    (s: string) => updateActiveCart({ customerPhoneQuery: s }),
+    (s: string) =>
+      updateActiveCart({
+        customerPhoneQuery: s,
+        customerNoPhoneMatch: false,
+        customerRegisterName: "",
+        customerHits: [],
+        selectedCustomer: null,
+      }),
+    [updateActiveCart],
+  );
+  const setCustomerRegisterName = useCallback(
+    (s: string) => updateActiveCart({ customerRegisterName: s }),
     [updateActiveCart],
   );
   const setCustomerHits = useCallback(
@@ -352,14 +371,78 @@ export function QuickSaleWorkspace({
     try {
       const rows = await fetchCustomers(q);
       setCustomerHits(rows);
-      setNotice(rows.length === 0 ? "No customers match that phone." : "");
+      updateActiveCart({
+        customerNoPhoneMatch: rows.length === 0,
+        customerRegisterName: "",
+        selectedCustomer: null,
+      });
+      setNotice("");
     } catch (e) {
       setCustomerHits([]);
+      updateActiveCart({ customerNoPhoneMatch: false, customerRegisterName: "" });
       setError(e instanceof Error ? e.message : "Customer search failed.");
     } finally {
       setCustomerSearchBusy(false);
     }
-  }, [customerPhoneQuery, online, payMethod, setCustomerHits]);
+  }, [customerPhoneQuery, online, payMethod, setCustomerHits, updateActiveCart]);
+
+  const onRegisterCustomer = useCallback(async () => {
+    const phone = customerPhoneQuery.trim();
+    const name = customerRegisterName.trim();
+    if (!phone) {
+      setError("Enter a phone number first.");
+      setNotice("");
+      return;
+    }
+    const phoneErr = customerPhoneValidationMessage(phone);
+    if (phoneErr) {
+      setError(phoneErr);
+      setNotice("");
+      return;
+    }
+    if (!name) {
+      setError("Enter the customer's name to register them.");
+      setNotice("");
+      return;
+    }
+    if (!online) {
+      setError("Go online to register a customer.");
+      setNotice("");
+      return;
+    }
+    if (!canManageCustomers) {
+      setError("You do not have permission to register customers.");
+      setNotice("");
+      return;
+    }
+    setCustomerRegisterBusy(true);
+    setError("");
+    try {
+      const created = await createCustomer({
+        name,
+        phones: [{ phone, primary: true }],
+      });
+      setCustomerHits([created]);
+      setSelectedCustomer(created);
+      updateActiveCart({
+        customerNoPhoneMatch: false,
+        customerRegisterName: "",
+      });
+      setNotice(`${created.name} registered — tab ready for credit.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not register customer.");
+    } finally {
+      setCustomerRegisterBusy(false);
+    }
+  }, [
+    canManageCustomers,
+    customerPhoneQuery,
+    customerRegisterName,
+    online,
+    setCustomerHits,
+    setSelectedCustomer,
+    updateActiveCart,
+  ]);
 
   const refreshTopProducts = useCallback(() => {
     setTopProducts(getTopProducts(business?.id ?? null, 8));
@@ -1359,11 +1442,17 @@ export function QuickSaleWorkspace({
           stkPushError,
           onStkPush,
           canLookupCustomers,
+          canManageCustomers,
           customerPhoneQuery,
           setCustomerPhoneQuery,
           customerHits,
+          customerNoPhoneMatch,
+          customerRegisterName,
+          setCustomerRegisterName,
           customerSearchBusy,
+          customerRegisterBusy,
           onSearchCustomers: () => void onSearchCustomers(),
+          onRegisterCustomer: () => void onRegisterCustomer(),
           selectedCustomer,
           setSelectedCustomer,
           onComplete: () => void onComplete().catch(() => undefined),

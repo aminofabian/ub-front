@@ -116,11 +116,17 @@ export type CashierCartDrawerProps = {
   setCashTenderStr: (s: string) => void;
 
   canLookupCustomers: boolean;
+  canManageCustomers: boolean;
   customerPhoneQuery: string;
   setCustomerPhoneQuery: (s: string) => void;
   customerHits: CustomerRecord[];
+  customerNoPhoneMatch: boolean;
+  customerRegisterName: string;
+  setCustomerRegisterName: (s: string) => void;
   customerSearchBusy: boolean;
+  customerRegisterBusy: boolean;
   onSearchCustomers: () => void;
+  onRegisterCustomer: () => void;
   selectedCustomer: CustomerRecord | null;
   setSelectedCustomer: (c: CustomerRecord | null) => void;
 
@@ -221,11 +227,17 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     cashTenderStr,
     setCashTenderStr,
     canLookupCustomers,
+    canManageCustomers,
     customerPhoneQuery,
     setCustomerPhoneQuery,
     customerHits,
+    customerNoPhoneMatch,
+    customerRegisterName,
+    setCustomerRegisterName,
     customerSearchBusy,
+    customerRegisterBusy,
     onSearchCustomers,
+    onRegisterCustomer,
     selectedCustomer,
     setSelectedCustomer,
     onComplete,
@@ -849,6 +861,72 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             </li>
                           ))}
                         </ul>
+                      ) : null}
+                      {payMethod === "customer_credit" &&
+                      customerNoPhoneMatch &&
+                      !selectedCustomer &&
+                      isValidCustomerPhone(customerPhoneQuery) ? (
+                        <div className="space-y-2.5 rounded-lg border border-dashed border-border/55 bg-background/60 p-2.5">
+                          <p className="text-xs text-muted-foreground">
+                            No customers match that phone.
+                          </p>
+                          {canManageCustomers ? (
+                            <>
+                              <p className="text-[10px] text-muted-foreground">
+                                Register them to open a credit tab, then charge
+                                this sale to it.
+                              </p>
+                              <label className="block space-y-1">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Name
+                                </span>
+                                <input
+                                  className={drawerFieldClass(
+                                    "h-9 w-full px-3",
+                                  )}
+                                  value={customerRegisterName}
+                                  onChange={(e) =>
+                                    setCustomerRegisterName(e.target.value)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      onRegisterCustomer();
+                                    }
+                                  }}
+                                  placeholder="Customer name"
+                                  disabled={!online || customerRegisterBusy}
+                                />
+                              </label>
+                              <p className="text-[10px] text-muted-foreground">
+                                Phone:{" "}
+                                <span className="font-mono text-foreground">
+                                  {customerPhoneQuery.trim()}
+                                </span>
+                              </p>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="w-full"
+                                disabled={
+                                  !online ||
+                                  customerRegisterBusy ||
+                                  !customerRegisterName.trim()
+                                }
+                                onClick={onRegisterCustomer}
+                              >
+                                {customerRegisterBusy
+                                  ? "Saving…"
+                                  : "Register & use tab"}
+                              </Button>
+                            </>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground">
+                              Ask someone with customer management access to add
+                              them from Customers, then search again.
+                            </p>
+                          )}
+                        </div>
                       ) : null}
                       {selectedCustomer ? (
                         <div className="rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)] p-2.5 text-xs shadow-sm">

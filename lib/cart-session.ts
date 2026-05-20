@@ -14,6 +14,10 @@ export type CartSession = {
   mpesaRef: string;
   customerPhoneQuery: string;
   customerHits: CustomerRecord[];
+  /** True after a phone search returned zero matches (credit tab flow). */
+  customerNoPhoneMatch: boolean;
+  /** Name for quick-register when no phone match (credit tab). */
+  customerRegisterName: string;
   selectedCustomer: CustomerRecord | null;
   splitPay: boolean;
   cashSplitStr: string;
@@ -57,6 +61,8 @@ export function createEmptyCartSession(): CartSession {
     mpesaRef: "",
     customerPhoneQuery: "",
     customerHits: [],
+    customerNoPhoneMatch: false,
+    customerRegisterName: "",
     selectedCustomer: null,
     splitPay: false,
     cashSplitStr: "",
