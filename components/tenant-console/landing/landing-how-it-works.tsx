@@ -1,6 +1,11 @@
 "use client";
 
-import { sectionLabelClass } from "./landing-styles";
+import { LandingSectionHeader } from "./landing-section-header";
+import {
+  landingSectionAltClass,
+  landingSectionBorderClass,
+  landingSectionHeaderMb,
+} from "./landing-styles";
 
 const STEPS = [
   {
@@ -24,33 +29,29 @@ export function LandingHowItWorks() {
   return (
     <section
       id="how"
-      className="border-t border-[var(--kiosk-border-soft)] px-5 py-28 sm:px-10"
+      className={`section-reveal ${landingSectionBorderClass} ${landingSectionAltClass}`}
     >
-      <div className="mx-auto max-w-[1100px]">
-        <div className="mb-20">
-          <p className={`${sectionLabelClass} mb-4`}>Getting started</p>
-          <h2
-            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-            style={{ maxWidth: "560px" }}
-          >
-            Set up in an afternoon. Run it for years.
-          </h2>
-        </div>
+      <div className="relative mx-auto max-w-[1100px]">
+        <LandingSectionHeader
+          index="02"
+          label="Getting started"
+          title="Set up in an afternoon. Run it for years."
+          description="Three deliberate steps — no consultants, no six-week rollout."
+          className={landingSectionHeaderMb}
+          titleClassName="max-w-[560px]"
+        />
 
-        <div className="grid gap-12 md:grid-cols-3">
+        <div className="landing-steps-rail grid gap-6 md:grid-cols-3 md:gap-5">
           {STEPS.map((item) => (
-            <div key={item.step}>
-              <p className="mb-6 text-[11px] font-medium tracking-[0.10em] text-[var(--kiosk-text-faint)]">
-                {item.step}
-              </p>
-              <hr className="mb-6 border-t border-[var(--kiosk-border)]" />
-              <h3 className="mb-3.5 text-xl font-medium leading-[1.3] text-[var(--kiosk-text)]">
+            <article key={item.step} className="landing-step-card">
+              <span className="landing-step-number mb-5">{item.step}</span>
+              <h3 className="mb-3 font-heading text-xl font-medium leading-[1.25] tracking-[-0.02em] text-[var(--kiosk-text)]">
                 {item.title}
               </h3>
               <p className="text-[15px] leading-[1.65] text-[var(--kiosk-text-soft)]">
                 {item.desc}
               </p>
-            </div>
+            </article>
           ))}
         </div>
       </div>

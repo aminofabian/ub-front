@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 
 import { exampleShopHost, PLATFORM_DOMAIN } from "./landing-host";
-import { landingCardClass, sectionLabelClass } from "./landing-styles";
+import { LandingSectionHeader } from "./landing-section-header";
+import {
+  landingBentoCardClass,
+  landingCardPadding,
+  landingSectionClass,
+  landingSectionHeaderMb,
+  sectionLabelClass,
+} from "./landing-styles";
 
 export function LandingFeatures() {
   // SSR-safe default; exampleShopHost() reads window and differs on the client.
@@ -13,23 +20,19 @@ export function LandingFeatures() {
     setShopHost(exampleShopHost());
   }, []);
   return (
-    <section id="features" className="px-5 py-28 sm:px-10">
+    <section id="features" className={`section-reveal ${landingSectionClass}`}>
       <div className="mx-auto max-w-[1100px]">
-        {/* ── Header ── */}
-        <div className="mb-[72px]">
-          <p className={`${sectionLabelClass} mb-4`}>Platform</p>
-          <h2
-            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-          >
-            POS, inventory, storefront, and analytics — in one system.
-          </h2>
-        </div>
+        <LandingSectionHeader
+          index="01"
+          label="Platform"
+          title="POS, inventory, storefront, and analytics — in one system."
+          description="One stock count behind the register and your online shop. No bolt-ons, no duplicate spreadsheets."
+          className={landingSectionHeaderMb}
+        />
 
-        {/* ── Bento grid ── */}
         <div className="grid gap-4 md:grid-cols-3">
-          {/* Large card — POS */}
           <div
-            className={`${landingCardClass} relative overflow-hidden p-8 md:col-span-2`}
+            className={`${landingBentoCardClass} ${landingCardPadding} md:col-span-2`}
           >
             <div
               className="pointer-events-none absolute right-0 top-0 h-[280px] w-[280px]"
@@ -39,9 +42,7 @@ export function LandingFeatures() {
               }}
             />
             <p className={`${sectionLabelClass} mb-4`}>Point of sale</p>
-            <h3
-              className="mb-4 font-heading text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
-            >
+            <h3 className="mb-4 font-heading text-2xl leading-[1.15] text-[var(--kiosk-text)] sm:text-[28px]">
               Checkout in seconds,
               <br />
               not steps.
@@ -53,7 +54,7 @@ export function LandingFeatures() {
             </p>
 
             {/* Mini POS mockup */}
-            <div className="mt-8 flex gap-4">
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <div
                 className="flex-1 rounded-[10px] border p-4"
                 style={{
@@ -117,7 +118,7 @@ export function LandingFeatures() {
           </div>
 
           {/* Small card — Inventory */}
-          <div className={`${landingCardClass} p-8`}>
+          <div className={`${landingBentoCardClass} ${landingCardPadding}`}>
             <p className={`${sectionLabelClass} mb-4`}>Real-time inventory</p>
             <h3
               className="mb-4 font-heading text-2xl leading-[1.2] text-[var(--kiosk-text)]"
@@ -176,7 +177,7 @@ export function LandingFeatures() {
           </div>
 
           {/* Small card — Storefront */}
-          <div className={`${landingCardClass} p-8`}>
+          <div className={`${landingBentoCardClass} ${landingCardPadding}`}>
             <p className={`${sectionLabelClass} mb-4`}>Online storefront</p>
             <h3
               className="mb-4 font-heading text-2xl leading-[1.2] text-[var(--kiosk-text)]"
@@ -197,7 +198,7 @@ export function LandingFeatures() {
                 }}
               />
               <span
-                className="text-xs"
+                className="break-all text-xs sm:break-normal"
                 style={{ color: "var(--kiosk-success)" }}
               >
                 {shopHost} is live
@@ -206,11 +207,9 @@ export function LandingFeatures() {
           </div>
 
           {/* Large card — Multi-branch */}
-          <div className={`${landingCardClass} p-8 md:col-span-2`}>
+          <div className={`${landingBentoCardClass} ${landingCardPadding} md:col-span-2`}>
             <p className={`${sectionLabelClass} mb-4`}>Multi-branch</p>
-            <h3
-              className="mb-4 font-heading text-[28px] leading-[1.15] text-[var(--kiosk-text)]"
-            >
+            <h3 className="mb-4 font-heading text-2xl leading-[1.15] text-[var(--kiosk-text)] sm:text-[28px]">
               One dashboard.
               <br />
               Every location.
@@ -221,7 +220,7 @@ export function LandingFeatures() {
               all from one dashboard.
             </p>
 
-            <div className="mt-8 grid grid-cols-3 gap-3">
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
                 {
                   branch: "Westlands",

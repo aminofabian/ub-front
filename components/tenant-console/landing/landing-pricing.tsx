@@ -1,10 +1,14 @@
 "use client";
 
+import { LandingSectionHeader } from "./landing-section-header";
 import {
   goldCtaClass,
   ghostCtaClass,
-  landingCardClass,
-  sectionLabelClass,
+  landingBentoCardClass,
+  landingCardPadding,
+  landingSectionAltClass,
+  landingSectionBorderClass,
+  landingSectionHeaderMb,
 } from "./landing-styles";
 
 const STARTER_FEATURES = [
@@ -45,22 +49,21 @@ export function LandingPricing() {
   return (
     <section
       id="pricing"
-      className="border-t border-[var(--kiosk-border-soft)] px-5 py-28 sm:px-10"
+      className={`section-reveal ${landingSectionBorderClass} ${landingSectionAltClass}`}
     >
-      <div className="mx-auto max-w-[1100px]">
-        <div className="mb-[72px]">
-          <p className={`${sectionLabelClass} mb-4`}>Pricing</p>
-          <h2
-            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-            style={{ maxWidth: "480px" }}
-          >
-            Simple pricing. No surprises.
-          </h2>
-        </div>
+      <div className="relative mx-auto max-w-[1100px]">
+        <LandingSectionHeader
+          index="04"
+          label="Pricing"
+          title="Simple pricing. No surprises."
+          description="Start free at one branch. Scale when you open the next door."
+          className={landingSectionHeaderMb}
+          titleClassName="max-w-[480px]"
+        />
 
         <div className="mx-auto grid max-w-[800px] gap-6 md:grid-cols-2">
           {/* Starter */}
-          <div className={`${landingCardClass} p-10`}>
+          <div className={`${landingBentoCardClass} ${landingCardPadding}`}>
             <p className="mb-5 text-[13px] font-medium text-[var(--kiosk-text-soft)]">
               Starter
             </p>
@@ -96,13 +99,14 @@ export function LandingPricing() {
 
           {/* Pro */}
           <div
-            className="relative rounded-xl border p-10"
+            className={`landing-bento-card relative overflow-hidden rounded-2xl border ${landingCardPadding}`}
             style={{
               borderColor: "var(--kiosk-gold-border-strong)",
               backgroundColor: "var(--kiosk-gold-surface)",
+              boxShadow: "0 20px 50px -24px var(--kiosk-success-shadow)",
             }}
           >
-            <span className="absolute -top-3 left-8 rounded-full bg-[var(--kiosk-gold)] px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-[var(--kiosk-cta-text)]">
+            <span className="absolute -top-3 left-5 rounded-full bg-[var(--kiosk-gold)] px-3 py-1 text-[11px] font-medium tracking-[0.04em] text-[var(--kiosk-cta-text)] sm:left-8">
               Most popular
             </span>
             <p className="mb-5 text-[13px] font-medium text-[var(--kiosk-gold)]">

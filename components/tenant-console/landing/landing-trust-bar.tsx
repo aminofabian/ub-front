@@ -13,19 +13,22 @@ const HIGHLIGHTS = [
 
 export function LandingTrustBar() {
   return (
-    <section className="border-t border-[var(--kiosk-border-soft)] px-5 py-16 sm:px-10">
-      <p className="mb-9 text-center text-xs uppercase tracking-[0.10em] text-[var(--kiosk-text-faint)]">
-        Everything included — no add-ons, no modules
-      </p>
-      <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
-        {HIGHLIGHTS.map((name) => (
-          <span
-            key={name}
-            className="text-sm font-medium tracking-[0.02em] text-[var(--kiosk-brand-muted)]"
-          >
-            {name}
-          </span>
-        ))}
+    <section className="section-reveal border-t border-[var(--kiosk-border-soft)] px-4 py-12 sm:px-10 sm:py-14">
+      <div className="mx-auto max-w-[1100px] text-center">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--kiosk-text-faint)]">
+          Included on every plan
+        </p>
+        <p className="mb-8 text-sm font-medium text-[var(--kiosk-text-soft)] sm:mb-10">
+          Everything you need at the counter — no add-ons, no modules
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-2.5">
+          {HIGHLIGHTS.map((name) => (
+            <span key={name} className="landing-trust-pill">
+              <span className="landing-trust-pill-dot" aria-hidden />
+              {name}
+            </span>
+          ))}
+        </div>
       </div>
     </section>
   );

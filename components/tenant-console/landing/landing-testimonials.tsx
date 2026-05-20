@@ -1,6 +1,12 @@
 "use client";
 
-import { sectionLabelClass } from "./landing-styles";
+import { LandingSectionHeader } from "./landing-section-header";
+import {
+  landingBentoCardClass,
+  landingSectionAltClass,
+  landingSectionClass,
+  landingSectionHeaderMb,
+} from "./landing-styles";
 
 const TESTIMONIALS = [
   {
@@ -25,37 +31,35 @@ const TESTIMONIALS = [
 
 export function LandingTestimonials() {
   return (
-    <section id="stories" className="px-5 py-28 sm:px-10">
-      <div className="mx-auto max-w-[1100px]">
-        <div className="mb-[72px]">
-          <p className={`${sectionLabelClass} mb-4`}>Stories</p>
-          <h2
-            className="font-heading text-[clamp(32px,4.5vw,54px)] leading-[1.08] tracking-[-0.02em] text-[var(--kiosk-text)]"
-          >
-            Heard from the floor.
-          </h2>
-        </div>
+    <section
+      id="stories"
+      className={`section-reveal ${landingSectionClass} ${landingSectionAltClass}`}
+    >
+      <div className="relative mx-auto max-w-[1100px]">
+        <LandingSectionHeader
+          index="03"
+          label="Stories"
+          title="Heard from the floor."
+          description="Scenarios we built for — told in the language of people who actually run the till."
+          className={landingSectionHeaderMb}
+        />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-3 md:gap-6">
           {TESTIMONIALS.map((t) => (
-            <div
+            <article
               key={t.name}
-              className="rounded-xl border border-[var(--kiosk-border)] bg-[var(--kiosk-card-bg)] p-7"
+              className={`landing-quote-card ${landingBentoCardClass} p-6 sm:p-7`}
             >
-              <p
-                className="mb-7 text-[15px] leading-[1.7] italic text-[var(--kiosk-text-muted)]"
-              >
-                &ldquo;{t.quote}&rdquo;
+              <p className="relative z-[1] mb-7 text-[15px] leading-[1.7] text-[var(--kiosk-text-muted)]">
+                {t.quote}
               </p>
-              <div>
+              <footer className="relative z-[1] border-t border-[var(--kiosk-border-soft)] pt-4">
                 <div className="mb-1 text-sm font-medium text-[var(--kiosk-text)]">
                   {t.name}
                 </div>
-                <div className="text-xs text-[var(--kiosk-text-dim)]">
-                  {t.role}
-                </div>
-              </div>
-            </div>
+                <div className="text-xs text-[var(--kiosk-text-dim)]">{t.role}</div>
+              </footer>
+            </article>
           ))}
         </div>
       </div>

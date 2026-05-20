@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ShopNewsletterCard } from "@/components/storefront/shop-newsletter-card";
+import { ShopOrderHistoryCard } from "@/components/storefront/shop-order-history-card";
 import { ShopSidebarTopPicksLive } from "@/components/storefront/shop-sidebar-top-picks-live";
 import { APP_ROUTES, shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
@@ -62,20 +63,7 @@ function FeaturedCard({
 }) {
   const reminders = featured.slice(0, 4);
   if (reminders.length === 0) {
-    return (
-      <aside className="rounded-xl border border-border/40 bg-card p-4">
-        <p className="text-xs font-semibold text-foreground">Order History</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          Sign in to view past orders and reorder.
-        </p>
-        <Link
-          href={APP_ROUTES.shopAccount}
-          className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground"
-        >
-          View account
-        </Link>
-      </aside>
-    );
+    return <ShopOrderHistoryCard primaryHex={primary} />;
   }
 
   return (

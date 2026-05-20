@@ -262,7 +262,7 @@ export function HeroPosCart() {
 
   return (
     <div
-      className={`hero-pos-cart absolute bottom-4 left-4 z-30 w-[min(100%,268px)] rounded-xl border bg-[var(--kiosk-elevated)] p-3.5 shadow-[0_12px_40px_rgba(20,20,18,0.18)] sm:bottom-6 sm:left-6 sm:p-4 lg:bottom-8 lg:left-8 ${
+      className={`hero-pos-cart absolute bottom-2 left-2 z-30 hidden w-[min(calc(100%-1rem),200px)] rounded-xl border bg-[var(--kiosk-elevated)] p-3 shadow-[0_12px_40px_rgba(20,20,18,0.18)] min-[480px]:block sm:bottom-6 sm:left-6 sm:w-[min(100%,268px)] sm:p-4 lg:bottom-8 lg:left-8 ${
         scanFlash
           ? "border-[var(--kiosk-gold)]/50"
           : stkActive

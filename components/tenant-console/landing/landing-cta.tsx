@@ -1,6 +1,6 @@
 "use client";
 
-import { goldCtaClass, ghostCtaClass } from "./landing-styles";
+import { goldCtaClass, ghostCtaClass, landingSectionClass } from "./landing-styles";
 
 type LandingCtaProps = {
   onCreateShop: () => void;
@@ -8,50 +8,33 @@ type LandingCtaProps = {
 
 export function LandingCta({ onCreateShop }: LandingCtaProps) {
   return (
-    <section className="relative overflow-hidden px-5 py-28 text-center sm:px-10">
-      {/* Grid background */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: `linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-          maskImage:
-            "radial-gradient(ellipse 60% 70% at 50% 50%, black, transparent)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse 60% 70% at 50% 50%, black, transparent)",
-        }}
-      />
-      {/* Glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[500px] -translate-x-1/2 -translate-y-1/2"
-        style={{
-          background:
-            "radial-gradient(ellipse, var(--kiosk-glow-gold) 0%, transparent 70%)",
-        }}
-      />
-
-      <div className="relative z-10 mx-auto max-w-[600px]">
-        <h2
-          className="mb-6 font-heading text-[clamp(36px,5vw,64px)] leading-[1.06] tracking-[-0.02em] text-[var(--kiosk-text)]"
-        >
-          Ready to unify your operation?
-        </h2>
-        <p className="mb-12 text-lg leading-[1.6] text-[var(--kiosk-text-soft)]">
-          Start for free. No credit card, no commitment.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <button
-            type="button"
-            className={`${goldCtaClass} !px-8 !py-3.5 !text-[15px]`}
-            onClick={onCreateShop}
-          >
-            Start your shop
-          </button>
-          <span className={`${ghostCtaClass} !px-8 !py-3.5 !text-[15px]`}>
-            Book a demo
-          </span>
+    <section className={`section-reveal ${landingSectionClass}`}>
+      <div className="mx-auto max-w-[720px] px-1">
+        <div className="landing-cta-panel relative z-10 text-center">
+          <p className="relative z-[1] mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--kiosk-gold)]">
+            Ready when you are
+          </p>
+          <h2 className="relative z-[1] mb-4 font-heading text-[clamp(28px,7vw,52px)] leading-[1.08] tracking-[-0.03em] text-[var(--kiosk-text)]">
+            Ready to unify your operation?
+          </h2>
+          <p className="relative z-[1] mx-auto mb-8 max-w-md text-base leading-[1.65] text-[var(--kiosk-text-soft)] sm:mb-10">
+            Start for free. No credit card, no commitment — your subdomain in
+            minutes.
+          </p>
+          <div className="relative z-[1] flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
+            <button
+              type="button"
+              className={`${goldCtaClass} w-full justify-center !px-8 !py-3.5 !text-[15px] shadow-[0_8px_24px_-6px_var(--kiosk-success-shadow)] sm:w-auto`}
+              onClick={onCreateShop}
+            >
+              Start your shop
+            </button>
+            <span
+              className={`${ghostCtaClass} w-full justify-center border-[var(--kiosk-border-strong)] bg-[var(--kiosk-elevated)] !px-8 !py-3.5 !text-[15px] sm:w-auto`}
+            >
+              Book a demo
+            </span>
+          </div>
         </div>
       </div>
     </section>

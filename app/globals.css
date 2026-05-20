@@ -594,7 +594,8 @@
     .landing-page .kiosk-logo-rule,
     .landing-page .landing-footer-ticker,
     .landing-page .landing-footer-panel-ring,
-    .landing-page .landing-footer-stamp {
+    .landing-page .landing-footer-stamp,
+    .landing-page .landing-hero-eyebrow-dot {
         animation: none;
     }
 }
@@ -897,6 +898,434 @@ button:hover .tenant-monogram-shell {
 
 .landing-page .animate-float-pulse {
     animation: float-pulse 8s ease-in-out infinite;
+}
+
+/* ── Landing page canvas & section system ── */
+.landing-page .landing-page-canvas {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+        radial-gradient(
+            ellipse 80% 50% at 12% -8%,
+            color-mix(in srgb, var(--kiosk-gold) 9%, transparent),
+            transparent 55%
+        ),
+        radial-gradient(
+            ellipse 60% 40% at 92% 18%,
+            color-mix(in srgb, var(--kiosk-gold) 6%, transparent),
+            transparent 50%
+        ),
+        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
+    background-size:
+        auto,
+        auto,
+        48px 48px,
+        48px 48px;
+    mask-image: linear-gradient(to bottom, black 0%, black 45%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 45%, transparent 100%);
+}
+
+.landing-page main {
+    position: relative;
+    z-index: 1;
+}
+
+.landing-page .landing-section-index {
+    display: inline-flex;
+    min-width: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px solid var(--kiosk-border);
+    background: var(--kiosk-elevated);
+    padding: 0.35rem 0.55rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--kiosk-text-faint);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.landing-page .landing-section-rule {
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        var(--kiosk-gold) 0%,
+        color-mix(in srgb, var(--kiosk-gold) 35%, transparent) 28%,
+        transparent 100%
+    );
+}
+
+.landing-page .landing-section-alt {
+    position: relative;
+}
+
+.landing-page .landing-section-alt::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        color-mix(in srgb, var(--kiosk-gold) 8%, transparent) 1px,
+        transparent 0
+    );
+    background-size: 28px 28px;
+    opacity: 0.35;
+    mask-image: linear-gradient(to bottom, black, transparent 85%);
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+.landing-page .landing-bento-card::before,
+.landing-page .landing-bento-card::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.landing-page .landing-bento-card::before {
+    top: 0.85rem;
+    left: 0.85rem;
+    border-top: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+    border-left: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+}
+
+.landing-page .landing-bento-card::after {
+    right: 0.85rem;
+    bottom: 0.85rem;
+    border-right: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+    border-bottom: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+}
+
+.landing-page .landing-bento-card:hover::before,
+.landing-page .landing-bento-card:hover::after {
+    opacity: 1;
+}
+
+.landing-page .landing-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--kiosk-gold-border);
+    background: color-mix(in srgb, var(--kiosk-gold-soft) 80%, var(--kiosk-elevated));
+    padding: 0.4rem 0.85rem 0.4rem 0.55rem;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--kiosk-gold);
+    box-shadow:
+        0 1px 2px rgba(20, 20, 18, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.landing-page .landing-hero-eyebrow-dot {
+    height: 6px;
+    width: 6px;
+    border-radius: 9999px;
+    background: var(--kiosk-gold);
+    box-shadow: 0 0 0 3px var(--kiosk-success-shadow);
+    animation: hero-pos-status-pulse 2s ease-in-out infinite;
+}
+
+.landing-page .landing-hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-right: 1.25rem;
+    border-right: 1px solid var(--kiosk-border-soft);
+}
+
+.landing-page .landing-hero-stat:last-child {
+    border-right: none;
+    padding-right: 0;
+}
+
+.landing-page .landing-hero-stat-value {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-hero-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--kiosk-text-faint);
+}
+
+.landing-page .landing-step-card {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid var(--kiosk-border);
+    background: var(--kiosk-elevated);
+    padding: 1.5rem 1.35rem;
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+}
+
+.landing-page .landing-step-card:hover {
+    border-color: var(--kiosk-gold-border);
+    box-shadow: 0 16px 40px -24px var(--kiosk-success-shadow);
+    transform: translateY(-2px);
+}
+
+.landing-page .landing-step-number {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.65rem;
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--kiosk-gold) 18%, var(--kiosk-elevated)),
+        var(--kiosk-elevated)
+    );
+    border: 1px solid var(--kiosk-gold-border);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--kiosk-gold);
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-steps-rail {
+        position: relative;
+    }
+
+    .landing-page .landing-steps-rail::before {
+        content: "";
+        position: absolute;
+        top: 2.2rem;
+        left: 8%;
+        right: 8%;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            var(--kiosk-border) 12%,
+            var(--kiosk-gold-border) 50%,
+            var(--kiosk-border) 88%,
+            transparent
+        );
+        pointer-events: none;
+    }
+}
+
+.landing-page .landing-trust-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 9999px;
+    border: 1px solid var(--kiosk-border);
+    background: var(--kiosk-elevated);
+    padding: 0.45rem 0.85rem;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--kiosk-text-soft);
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.landing-page .landing-trust-pill:hover {
+    border-color: var(--kiosk-gold-border);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px -8px var(--kiosk-success-shadow);
+}
+
+.landing-page .landing-trust-pill-dot {
+    height: 5px;
+    width: 5px;
+    border-radius: 9999px;
+    background: var(--kiosk-gold);
+    flex-shrink: 0;
+}
+
+.landing-page .landing-stat-tile {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--kiosk-gold-border) 65%, var(--kiosk-border));
+    background: color-mix(in srgb, var(--kiosk-elevated) 88%, transparent);
+    padding: 1.35rem 1.25rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.landing-page .landing-stat-tile::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 1.25rem;
+    right: 1.25rem;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(90deg, transparent, var(--kiosk-gold), transparent);
+    opacity: 0.65;
+}
+
+.landing-page .landing-quote-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.landing-page .landing-quote-card::before {
+    content: "\201C";
+    position: absolute;
+    top: 0.65rem;
+    right: 1rem;
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 4.5rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--kiosk-gold) 14%, transparent);
+    pointer-events: none;
+}
+
+.landing-page .landing-cta-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid var(--kiosk-gold-border);
+    background: color-mix(in srgb, var(--kiosk-gold-surface) 70%, var(--kiosk-elevated));
+    padding: 2.5rem 1.5rem;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+        0 24px 60px -28px var(--kiosk-success-shadow);
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-cta-panel {
+        padding: 3rem 2.5rem;
+    }
+}
+
+.landing-page .landing-cta-panel::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.5;
+    mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black, transparent);
+    -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black, transparent);
+}
+
+.landing-page .landing-mobile-bento {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--kiosk-elevated) 95%, var(--kiosk-gold-soft)),
+        var(--kiosk-elevated)
+    );
+}
+
+.landing-page .landing-hero-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .landing-page .landing-page-canvas {
+        background-size:
+            auto,
+            auto,
+            32px 32px,
+            32px 32px;
+        opacity: 0.85;
+    }
+
+    .landing-page .landing-hero-eyebrow {
+        display: flex;
+        width: fit-content;
+        max-width: 100%;
+        font-size: 11px;
+        line-height: 1.35;
+        padding: 0.35rem 0.7rem 0.35rem 0.5rem;
+    }
+
+    .landing-page .landing-hero-stat {
+        align-items: center;
+        text-align: center;
+        padding: 0.65rem 0.35rem;
+        border-right: none;
+        border-radius: 0.65rem;
+        background: color-mix(in srgb, var(--kiosk-elevated) 90%, transparent);
+        border: 1px solid var(--kiosk-border-soft);
+    }
+
+    .landing-page .landing-hero-stat-value {
+        font-size: 12px;
+    }
+
+    .landing-page .landing-hero-stat-label {
+        font-size: 9px;
+    }
+
+    .landing-page .landing-section-alt::before {
+        display: none;
+    }
+
+    .landing-page .landing-section-header-meta {
+        gap: 0.5rem;
+    }
+
+    .landing-page .landing-section-index {
+        min-width: 2.25rem;
+        font-size: 10px;
+        padding: 0.3rem 0.45rem;
+    }
+
+    .landing-page .landing-trust-pill {
+        width: 100%;
+        justify-content: flex-start;
+        font-size: 10px;
+        padding: 0.4rem 0.65rem;
+    }
+
+    .landing-page .landing-quote-card::before {
+        font-size: 3rem;
+        top: 0.25rem;
+        right: 0.5rem;
+    }
+
+    .landing-page .landing-bento-card:hover {
+        transform: none;
+    }
+
+    .landing-page .landing-bento-card::before,
+    .landing-page .landing-bento-card::after {
+        display: none;
+    }
+
+    .landing-page .landing-step-card:hover {
+        transform: none;
+    }
+
+    .landing-page .hero-border-glow {
+        animation: none;
+    }
+
+    .landing-page .landing-footer-watermark {
+        font-size: clamp(4rem, 18vw, 7rem);
+    }
 }
 
 /* ── Subtle border glow for feature cards ── */

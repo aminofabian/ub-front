@@ -133,6 +133,34 @@ export const landingCardClass =
 export const sectionLabelClass =
   "text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--kiosk-gold)]";
 
+/** Pill-wrapped section label with subtle fill. */
+export const sectionLabelPillClass =
+  "inline-flex items-center rounded-full border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--kiosk-gold)]";
+
+/** Icon container used in bento cards and steps. */
+export const landingIconWrapClass =
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] text-[var(--kiosk-gold)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
+
+/** Bento / feature card with register-corner accents. */
+export const landingBentoCardClass =
+  "landing-bento-card group relative overflow-hidden rounded-2xl border border-[var(--kiosk-border)] bg-[var(--kiosk-elevated)] transition-all duration-300 hover:border-[var(--kiosk-gold-border)] hover:shadow-[0_12px_40px_-16px_var(--kiosk-success-shadow)]";
+
 /** Logo pill badge. */
 export const logoPillClass =
   "inline-flex items-center gap-1.5 rounded-full border border-[var(--kiosk-gold-border)] bg-[var(--kiosk-gold-soft)] px-3.5 py-1.5 text-xs font-medium tracking-[0.02em] text-[var(--kiosk-gold)]";
+
+/** Standard landing section padding — tighter on phones. */
+export const landingSectionClass = "px-4 py-14 sm:px-10 sm:py-28";
+
+export const landingSectionBorderClass = `${landingSectionClass} border-t border-[var(--kiosk-border-soft)]`;
+
+export const landingSectionHeaderMb = "mb-10 sm:mb-16 md:mb-[72px]";
+
+export const landingSectionHeadingClass =
+  "font-heading text-[clamp(26px,6vw,54px)] leading-[1.1] tracking-[-0.02em] text-[var(--kiosk-text)]";
+
+export const landingCardPadding = "p-5 sm:p-8";
+
+/** Alternating section surface — use on every other block. */
+export const landingSectionAltClass =
+  "landing-section-alt border-t border-[var(--kiosk-border-soft)] bg-[color-mix(in_srgb,var(--kiosk-panel)_55%,var(--kiosk-bg))]";

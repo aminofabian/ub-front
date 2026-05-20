@@ -99,7 +99,7 @@ export function LandingFooter() {
         </div>
       </div>
 
-      <div className="relative z-10 px-5 pb-6 pt-14 sm:px-10 sm:pt-16">
+      <div className="relative z-10 px-4 pb-6 pt-10 sm:px-10 sm:pt-16">
         <div className="mx-auto max-w-[1100px]">
           {/* Main panel */}
           <div className="landing-footer-panel relative overflow-hidden rounded-[1.75rem] p-[1px]">
@@ -107,7 +107,7 @@ export function LandingFooter() {
               aria-hidden
               className="landing-footer-panel-ring absolute inset-0 rounded-[1.75rem]"
             />
-            <div className="landing-footer-panel-inner relative rounded-[calc(1.75rem-1px)] bg-[color-mix(in_srgb,var(--kiosk-elevated)_92%,transparent)] px-6 py-10 backdrop-blur-xl sm:px-10 sm:py-12">
+            <div className="landing-footer-panel-inner relative rounded-[calc(1.75rem-1px)] bg-[color-mix(in_srgb,var(--kiosk-elevated)_92%,transparent)] px-5 py-8 backdrop-blur-xl sm:px-10 sm:py-12">
               {/* POS corner brackets */}
               <div
                 aria-hidden
@@ -118,7 +118,7 @@ export function LandingFooter() {
                 className="landing-footer-corner landing-footer-corner-br"
               />
 
-              <div className="mb-12 grid gap-12 lg:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,1fr))] lg:gap-10">
+              <div className="mb-10 grid gap-10 sm:mb-12 sm:gap-12 lg:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,1fr))] lg:gap-10">
                 {/* Brand */}
                 <div className="relative">
                   <KioskLogo
