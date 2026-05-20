@@ -67,10 +67,30 @@ const CATEGORY_TEASERS = [
 ] as const;
 
 const HERO_CELLS = [
-  { icon: "Hm", name: "Fresh Groceries", price: "KSh 240–" },
-  { icon: "Cl", name: "Cleaning Essentials", price: "KSh 180–" },
-  { icon: "Bv", name: "Beverages", price: "KSh 80–" },
-  { icon: "Sk", name: "Snacks & More", price: "KSh 50–" },
+  {
+    name: "Fresh Groceries",
+    price: "KSh 240–",
+    image: "/hello/27707-supermarket-949912.jpg",
+    imageAlt: "Supermarket shelves with fresh groceries",
+  },
+  {
+    name: "Daily Essentials",
+    price: "KSh 180–",
+    image: "/hello/contaminazionivisive-bag-8319466.jpg",
+    imageAlt: "Shopping bag with everyday essentials",
+  },
+  {
+    name: "Fresh Produce",
+    price: "KSh 80–",
+    image: "/hello/fudowakira0-paprika-638654_1920.jpg",
+    imageAlt: "Fresh paprika and produce",
+  },
+  {
+    name: "Snacks & More",
+    price: "KSh 50–",
+    image: "/hello/publicdomainpictures-almonds-21502.jpg",
+    imageAlt: "Almonds and pantry snacks",
+  },
 ] as const;
 
 export type ShopStorefrontComingSoonProps = {
@@ -716,17 +736,24 @@ function HeroVisualPanel({ theme }: { theme: ComingSoonTheme }) {
           "absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-black/25",
         )}
       >
-        {HERO_CELLS.map((cell, i) => (
+        {HERO_CELLS.map((cell) => (
           <div
             key={cell.name}
-            className="relative flex items-center justify-center overflow-hidden"
-            style={{ background: theme.heroCellBgs[i] }}
+            className="relative overflow-hidden"
+            style={{ background: theme.darkBgMid }}
           >
-            <span
-              className={cn(styles.serif, styles.heroCellIcon, "text-5xl italic")}
-            >
-              {cell.icon}
-            </span>
+            <Image
+              src={cell.image}
+              alt={cell.imageAlt}
+              fill
+              sizes="(max-width: 1024px) 50vw, 25vw"
+              className="object-cover transition-transform duration-700 ease-out hover:scale-105"
+              priority
+            />
+            <div
+              className={cn(styles.heroCellOverlay, "absolute inset-0")}
+              aria-hidden
+            />
             <HeroCellLabel cell={cell} />
           </div>
         ))}
@@ -781,7 +808,7 @@ function HeroCellLabel({
   cell: (typeof HERO_CELLS)[number];
 }) {
   return (
-    <div className="absolute inset-x-5 bottom-5">
+    <div className={cn(styles.heroCellLabel, "absolute inset-x-5 bottom-5")}>
       <p
         className={cn(
           styles.heroCellLabelMuted,

@@ -105,8 +105,17 @@
   background: var(--cs-brand-dark, #121110);
 }
 
-.heroCellIcon {
-  color: color-mix(in srgb, var(--cs-on-dark) 18%, transparent);
+.heroCellOverlay {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cs-brand-dark, #121110) 8%, transparent) 0%,
+    color-mix(in srgb, var(--cs-brand-dark, #121110) 35%, transparent) 45%,
+    color-mix(in srgb, var(--cs-brand-dark, #121110) 88%, transparent) 100%
+  );
+}
+
+.heroCellLabel {
+  z-index: 2;
 }
 
 .heroCellLabelMuted {
