@@ -605,6 +605,25 @@ export type PublicPaymentInstruction = {
   swiftCode: string | null;
 };
 
+export type PublicOnlinePaymentMethod = {
+  configId: string;
+  gatewayType: string;
+  label: string | null;
+  displayName: string;
+};
+
+export type PublicCheckoutPaymentOptions = {
+  manual: PublicPaymentInstruction[];
+  online: PublicOnlinePaymentMethod[];
+};
+
+export type PublicWebStkPushResult = {
+  accepted: boolean;
+  gatewayType: string | null;
+  checkoutRequestId: string | null;
+  message: string | null;
+};
+
 /** Server-side fetch. Client components must use {@link fetchPublicPaymentInstructionsBrowser}. */
 export async function fetchPublicPaymentInstructions(
   slug: string,

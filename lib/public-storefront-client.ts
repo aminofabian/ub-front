@@ -3,7 +3,9 @@ import type {
   PublicBarcodeLookup,
   PublicCatalogItemDetail,
   PublicCatalogListPayload,
+  PublicCheckoutPaymentOptions,
   PublicPaymentInstruction,
+  PublicWebStkPushResult,
   PublicStorefrontPayload,
 } from "@/lib/public-storefront";
 import { sanitizeStorefrontSlug } from "@/lib/public-storefront";
@@ -163,28 +165,68 @@ export async function fetchPublicBarcodeSearchBrowser(
   }
 }
 
-/** Active manual payment instructions for storefront checkout (browser / BFF). */
-export async function fetchPublicPaymentInstructionsBrowser(
+/** Checkout payment options: manual instructions + online gateways (e.g. KopoKopo). */
+export async function fetchPublicCheckoutPaymentOptionsBrowser(
   slug: string,
-): Promise<PublicPaymentInstruction[]> {
+): Promise<PublicCheckoutPaymentOptions> {
   const s = sanitizeStorefrontSlug(slug);
   if (!s) {
-    return [];
+    return { manual: [], online: [] };
   }
   try {
     const res = await fetch(
       apiUrl(
-        `/api/v1/public/businesses/${encodeURIComponent(s)}/payments/display-instructions`,
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/payments/checkout-options`,
       ),
       { headers: { Accept: "application/json" }, cache: "no-store" },
     );
     if (!res.ok) {
-      return [];
+      return { manual: [], online: [] };
     }
-    return (await res.json()) as PublicPaymentInstruction[];
+    return (await res.json()) as PublicCheckoutPaymentOptions;
   } catch {
-    return [];
+    return { manual: [], online: [] };
   }
+}
+
+/** @deprecated Use {@link fetchPublicCheckoutPaymentOptionsBrowser}. */
+export async function fetchPublicPaymentInstructionsBrowser(
+  slug: string,
+): Promise<PublicPaymentInstruction[]> {
+  const opts = await fetchPublicCheckoutPaymentOptionsBrowser(slug);
+  return opts.manual;
+}
+
+export async function initiatePublicWebOrderStkPush(
+  slug: string,
+  orderId: string,
+  body: { configId?: string; phoneNumber?: string },
+): Promise<PublicWebStkPushResult> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s || !orderId.trim()) {
+    throw new Error("Missing store or order");
+  }
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/${encodeURIComponent(orderId)}/stk-push`,
+    ),
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  const data = (await res.json().catch(() => ({}))) as PublicWebStkPushResult & {
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof data.message === "string" && data.message
+        ? data.message
+        : "Could not send M-Pesa prompt",
+    );
+  }
+  return data;
 }
 
 export async function fetchPublicItemByBarcodeBrowser(

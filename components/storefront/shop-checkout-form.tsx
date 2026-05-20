@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
+import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,9 +30,12 @@ import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
   formatDisplayPrice,
-  type PublicPaymentInstruction,
+  type PublicCheckoutPaymentOptions,
 } from "@/lib/public-storefront";
-import { fetchPublicPaymentInstructionsBrowser } from "@/lib/public-storefront-client";
+import {
+  fetchPublicCheckoutPaymentOptionsBrowser,
+  initiatePublicWebOrderStkPush,
+} from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
 import {
   WEB_CART_CHANGED_EVENT,
@@ -264,9 +268,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [orderReceipt, setOrderReceipt] = useState<CheckoutOrderReceipt | null>(
     null,
   );
-  const [paymentInstructions, setPaymentInstructions] = useState<
-    PublicPaymentInstruction[]
-  >([]);
+  const [paymentOptions, setPaymentOptions] = useState<PublicCheckoutPaymentOptions>({
+    manual: [],
+    online: [],
+  });
+  const [stkBusy, setStkBusy] = useState(false);
+  const [stkSent, setStkSent] = useState(false);
+  const [stkMessage, setStkMessage] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -416,14 +424,38 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     }
   }, [loading, cart, tryPrefill]);
 
-  // Fetch payment instructions when cart loads and when order is placed
+  // Fetch payment options when cart loads
   useEffect(() => {
     if (slug && cart) {
-      fetchPublicPaymentInstructionsBrowser(slug)
-        .then(setPaymentInstructions)
-        .catch(() => setPaymentInstructions([]));
+      fetchPublicCheckoutPaymentOptionsBrowser(slug)
+        .then(setPaymentOptions)
+        .catch(() => setPaymentOptions({ manual: [], online: [] }));
     }
-  }, [slug, cart, done]);
+  }, [slug, cart]);
+
+  const paymentPhoneHint = `${areaCode} ${customerPhone}`.trim() || "your phone";
+
+  async function handleStkPay(configId: string) {
+    if (!done?.orderId) return;
+    setStkBusy(true);
+    setStkMessage(null);
+    try {
+      const result = await initiatePublicWebOrderStkPush(slug, done.orderId, {
+        configId,
+        phoneNumber: `${areaCode}${customerPhone}`.replace(/\s+/g, ""),
+      });
+      if (result.accepted) {
+        setStkSent(true);
+        setStkMessage(result.message ?? "Check your phone to approve the M-Pesa payment.");
+      } else {
+        setStkMessage(result.message ?? "Could not send M-Pesa prompt.");
+      }
+    } catch (err) {
+      setStkMessage(err instanceof Error ? err.message : "Could not send M-Pesa prompt.");
+    } finally {
+      setStkBusy(false);
+    }
+  }
 
   const requiredCheckoutFieldsComplete = Boolean(
     customerEmail.trim() &&
@@ -560,8 +592,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               Checkout
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              Place your pickup request. Payment on the web is coming soon —
-              staff may confirm via phone or WhatsApp.
+              Place your pickup request, then pay with M-Pesa on your phone or
+              using the store&apos;s payment details.
             </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
@@ -861,57 +893,20 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   {total}
                 </span>
               </div>
-              {paymentInstructions.length > 0 && (
-                <div className="mt-4 space-y-3 rounded-xl border border-border bg-background p-4">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Pay with M-Pesa
-                  </h3>
-                  {paymentInstructions.map((pi) => (
-                    <div
-                      key={pi.configId}
-                      className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900 dark:bg-emerald-950/20"
-                    >
-                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-                        {pi.label}
-                      </p>
-                      {pi.type === "till" && pi.tillNumber && (
-                        <p className="mt-1 font-mono text-lg font-bold tracking-wide text-foreground">
-                          Till: {pi.tillNumber}
-                        </p>
-                      )}
-                      {pi.type === "paybill" && pi.businessNumber && (
-                        <p className="mt-1 font-mono text-sm font-bold text-foreground">
-                          Paybill: {pi.businessNumber}
-                          {pi.accountNumber
-                            ? ` · Acct: ${pi.accountNumber}`
-                            : ""}
-                        </p>
-                      )}
-                      {pi.type === "bank_account" && (
-                        <div className="mt-1 space-y-0.5 text-sm">
-                          <p className="font-semibold text-foreground">
-                            {pi.bankName}
-                          </p>
-                          <p className="font-mono text-muted-foreground">
-                            Acct: {pi.accountNumber}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {pi.accountName}
-                          </p>
-                        </div>
-                      )}
-                      {pi.instructions && (
-                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                          {pi.instructions}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="mt-4">
+                <ShopCheckoutPaymentSection
+                  manual={paymentOptions.manual}
+                  online={paymentOptions.online}
+                  phoneHint={paymentPhoneHint}
+                  stkBusy={stkBusy}
+                  stkMessage={stkMessage}
+                  stkSent={stkSent}
+                  onStkPay={handleStkPay}
+                />
+              </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                Payment will be completed with the store when supported. Your
-                request is held as pending payment.
+                Your order is held as pending payment until the store confirms
+                receipt.
               </p>
               <Button
                 type="button"
@@ -1453,54 +1448,14 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           </div>
 
-          {paymentInstructions.length > 0 && (
-            <div className="mt-4 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
-              <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-                💳 How to pay
-              </h4>
-              {paymentInstructions.map((pi) => (
-                <div
-                  key={pi.configId}
-                  className="rounded-lg border border-emerald-200 bg-white p-3 dark:border-emerald-800 dark:bg-emerald-950/40"
-                >
-                  <p className="text-sm font-semibold text-foreground">
-                    {pi.label}
-                  </p>
-                  {pi.type === "till" && pi.tillNumber && (
-                    <p className="mt-1 font-mono text-lg font-bold tracking-wide text-foreground">
-                      Till: {pi.tillNumber}
-                    </p>
-                  )}
-                  {pi.type === "paybill" && pi.businessNumber && (
-                    <p className="mt-1 font-mono text-sm font-bold text-foreground">
-                      Paybill: {pi.businessNumber}
-                      {pi.accountNumber
-                        ? ` · Acct: ${pi.accountNumber}`
-                        : ""}
-                    </p>
-                  )}
-                  {pi.type === "bank_account" && (
-                    <div className="mt-1 space-y-0.5 text-sm">
-                      <p className="font-semibold text-foreground">
-                        {pi.bankName}
-                      </p>
-                      <p className="font-mono text-muted-foreground">
-                        Acct: {pi.accountNumber}
-                      </p>
-                      <p className="text-muted-foreground">
-                        {pi.accountName}
-                      </p>
-                    </div>
-                  )}
-                  {pi.instructions && (
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                      {pi.instructions}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="mt-4">
+            <ShopCheckoutPaymentSection
+              manual={paymentOptions.manual}
+              online={paymentOptions.online}
+              phoneHint={paymentPhoneHint}
+              showOnlineBeforeOrder={paymentOptions.online.length > 0}
+            />
+          </div>
 
           <div className="mt-5 space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:mb-24">
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
