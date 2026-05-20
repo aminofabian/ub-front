@@ -5003,6 +5003,8 @@ export type GatewayCredentialSettingsRecord = {
   hasConsumerKey: boolean;
   hasConsumerSecret: boolean;
   hasPasskey: boolean;
+  credentialsReadable: boolean;
+  readError: string | null;
 };
 
 // ── Tenant ──

@@ -117,10 +117,29 @@ export default function PaymentSettingsPage() {
       const credentialSettings = await fetchGatewayCredentialSettings(config.id);
       setDrawer({ kind: "edit", config, credentialSettings });
     } catch (e) {
-      setDrawerError(
-        e instanceof Error ? e.message : "Could not load gateway settings.",
-      );
-      setDrawer({ kind: "closed" });
+      setDrawer({
+        kind: "edit",
+        config,
+        credentialSettings: {
+          environment: "sandbox",
+          tillNumber: null,
+          shortcode: null,
+          shortcodeType: null,
+          hasClientId: false,
+          hasClientSecret: false,
+          hasApiKey: false,
+          hasSecretKey: false,
+          hasPublicKey: false,
+          hasConsumerKey: false,
+          hasConsumerSecret: false,
+          hasPasskey: false,
+          credentialsReadable: false,
+          readError:
+            e instanceof Error
+              ? e.message
+              : "Could not load saved settings. Re-enter all credentials below.",
+        },
+      });
     }
   };
 
