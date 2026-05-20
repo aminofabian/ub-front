@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
@@ -296,6 +297,20 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
   const prefilled = useRef(false);
   const termsManuallyChanged = useRef(false);
+  const paymentToastShown = useRef(false);
+
+  const notifyPaymentConfirmed = useCallback(() => {
+    setPaymentConfirmed(true);
+    setStkSent(false);
+    setStkMessage(null);
+    if (!paymentToastShown.current) {
+      paymentToastShown.current = true;
+      toast.success("Payment received", {
+        description: "Your order is confirmed. The store has been notified.",
+        duration: 10_000,
+      });
+    }
+  }, []);
 
   /** Try to prefill form fields from localStorage + signed-in shopper history. */
   const tryPrefill = useCallback(async () => {
@@ -458,7 +473,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   }
 
   useEffect(() => {
-    if (!stkSent || !done?.orderId || paymentConfirmed) {
+    if (!done?.orderId || paymentConfirmed) {
       return;
     }
     let cancelled = false;
@@ -469,8 +484,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           return;
         }
         if (status.paid) {
-          setPaymentConfirmed(true);
-          setStkMessage("Payment received — your order is confirmed.");
+          notifyPaymentConfirmed();
         } else if (status.paymentFailed) {
           setStkSent(false);
           setStkMessage(
@@ -489,7 +503,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       clearInterval(interval);
       clearTimeout(stop);
     };
-  }, [stkSent, done?.orderId, slug, paymentConfirmed]);
+  }, [done?.orderId, slug, paymentConfirmed, notifyPaymentConfirmed]);
 
   const requiredCheckoutFieldsComplete = Boolean(
     customerEmail.trim() &&
@@ -676,7 +690,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   // ── Success ──
   if (done) {
     const total = formatDisplayPrice(done.currency, done.grandTotal);
-    const statusLabel = done.status.replace(/_/g, " ");
+    const statusLabel = paymentConfirmed
+      ? "Payment confirmed"
+      : done.status.replace(/_/g, " ");
     const receipt = orderReceipt;
     const receiptSubtotalLabel =
       receipt != null
@@ -692,29 +708,81 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     return (
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 space-y-5">
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm ring-1 ring-black/[0.02] sm:p-6">
+          {paymentConfirmed ? (
+            <div
+              className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-4 shadow-sm ring-1 ring-emerald-200/80 dark:border-emerald-800 dark:bg-emerald-950/50 dark:ring-emerald-900"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex gap-3 sm:items-center">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                  <Check className="size-6" strokeWidth={3} aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-emerald-950 dark:text-emerald-50">
+                    M-Pesa payment confirmed
+                  </p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-emerald-900/90 dark:text-emerald-100/90">
+                    {total} received — your order is confirmed and the store can
+                    prepare it.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div
+            className={cn(
+              "rounded-3xl border bg-card p-5 shadow-sm ring-1 ring-black/[0.02] sm:p-6",
+              paymentConfirmed
+                ? "border-emerald-200 dark:border-emerald-900"
+                : "border-border",
+            )}
+          >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 gap-4">
                 <div
-                  className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900"
+                  className={cn(
+                    "flex size-12 shrink-0 items-center justify-center rounded-2xl ring-1",
+                    paymentConfirmed
+                      ? "bg-emerald-600 text-white ring-emerald-700 dark:ring-emerald-500"
+                      : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900",
+                  )}
                   aria-hidden
                 >
                   <Check className="size-5" strokeWidth={3} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">
-                    Order received
+                  <p
+                    className={cn(
+                      "text-xs font-bold uppercase tracking-[0.18em]",
+                      paymentConfirmed
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : "text-emerald-700 dark:text-emerald-400",
+                    )}
+                  >
+                    {paymentConfirmed ? "Paid" : "Order received"}
                   </p>
                   <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    Review your order
+                    {paymentConfirmed
+                      ? "Payment confirmed"
+                      : "Review your order"}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Your request has been sent to the store. Keep this summary
-                    for the reference number, items, and delivery details.
+                    {paymentConfirmed
+                      ? "Thank you — your M-Pesa payment was successful. Keep this page for your reference number and pickup details."
+                      : "Your request has been sent to the store. Complete M-Pesa payment below, or pay using the store's details."}
                   </p>
                 </div>
               </div>
-              <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold capitalize text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              <span
+                className={cn(
+                  "inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-xs font-semibold",
+                  paymentConfirmed
+                    ? "border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-100"
+                    : "border-amber-200 bg-amber-50 capitalize text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100",
+                )}
+              >
                 {statusLabel}
               </span>
             </div>
@@ -730,9 +798,16 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               </div>
               <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
                 <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Total due
+                  {paymentConfirmed ? "Amount paid" : "Total due"}
                 </dt>
-                <dd className="mt-1 text-lg font-bold tabular-nums text-foreground">
+                <dd
+                  className={cn(
+                    "mt-1 text-lg font-bold tabular-nums",
+                    paymentConfirmed
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-foreground",
+                  )}
+                >
                   {total}
                 </dd>
               </div>
@@ -928,20 +1003,41 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 </span>
               </div>
               <div className="mt-4">
-                <ShopCheckoutPaymentSection
-                  manual={paymentOptions.manual}
-                  online={paymentOptions.online}
-                  defaultAreaCode={areaCode}
-                  defaultPhone={customerPhone}
-                  stkBusy={stkBusy}
-                  stkMessage={stkMessage}
-                  stkSent={stkSent}
-                  onStkPay={handleStkPay}
-                />
+                {paymentConfirmed ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+                    <div className="flex items-start gap-3">
+                      <PackageCheck
+                        className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-400"
+                        aria-hidden
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-100">
+                          Online payment complete
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-emerald-900/90 dark:text-emerald-200/90">
+                          No further action needed for M-Pesa. The store will
+                          use your reference and contact details for pickup.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <ShopCheckoutPaymentSection
+                    manual={paymentOptions.manual}
+                    online={paymentOptions.online}
+                    defaultAreaCode={areaCode}
+                    defaultPhone={customerPhone}
+                    stkBusy={stkBusy}
+                    stkMessage={stkMessage}
+                    stkSent={stkSent}
+                    onStkPay={handleStkPay}
+                  />
+                )}
               </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                Your order is held as pending payment until the store confirms
-                receipt.
+                {paymentConfirmed
+                  ? "Payment is recorded on your order. Contact the store if you need to change pickup details."
+                  : "Your order is held as pending payment until you pay (M-Pesa prompt or manual transfer) and the store confirms receipt."}
               </p>
               <Button
                 type="button"
