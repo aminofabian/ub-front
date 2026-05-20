@@ -23,6 +23,8 @@ export type SupplierProfileDraft = {
   creditLimit: string;
   paymentMethodPreferred: string;
   paymentDetails: string;
+  payoutType: string;
+  payoutPhone: string;
 };
 
 export const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
@@ -37,6 +39,8 @@ export const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
   creditLimit: "",
   paymentMethodPreferred: "",
   paymentDetails: "",
+  payoutType: "manual",
+  payoutPhone: "",
 };
 
 export function SupplierProfileFields({
@@ -195,6 +199,33 @@ export function SupplierProfileFields({
               placeholder="Bank account, IBAN, SWIFT, PO references…"
             />
           </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            <span className={supFieldLabel}>KopoKopo payout</span>
+            <select
+              className={supSelect}
+              value={draft.payoutType}
+              onChange={(e) => onDraftChange({ payoutType: e.target.value })}
+            >
+              <option value="manual">Manual (record payment yourself)</option>
+              <option value="mobile_wallet">M-Pesa via KopoKopo Send Money</option>
+            </select>
+          </label>
+          {draft.payoutType === "mobile_wallet" ? (
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <span className={supFieldLabel}>M-Pesa payout phone</span>
+              <input
+                className={cn(supInput, "font-mono")}
+                value={draft.payoutPhone}
+                onChange={(e) => onDraftChange({ payoutPhone: e.target.value })}
+                maxLength={32}
+                placeholder="2547XXXXXXXX"
+                inputMode="tel"
+              />
+              <span className="text-[10px] text-muted-foreground">
+                Used when paying supplies via KopoKopo Send Money.
+              </span>
+            </label>
+          ) : null}
         </div>
       </section>
     </div>

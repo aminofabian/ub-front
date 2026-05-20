@@ -26,10 +26,15 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchSupplierById,
+  fetchSupplyDisbursementStatus,
+  fetchSupplyPayOptions,
   fetchSupplyPaymentHistory,
   postSupplierPayment,
+  postSupplyKopokopoPay,
   type PathBSupplyListRowRecord,
   type SupplierRecord,
+  type SupplyKopokopoPayRecord,
+  type SupplyPayOptionsRecord,
   type SupplyPaymentHistoryRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -86,6 +91,8 @@ function paymentMethodLabel(method: string): string {
   }
 }
 
+type KopokopoPayPhase = "idle" | "sending" | "pending" | "success" | "failed";
+
 type PaySupplyDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -114,8 +121,14 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [payOptions, setPayOptions] = useState<SupplyPayOptionsRecord | null>(null);
+  const [payOptionsLoading, setPayOptionsLoading] = useState(false);
+  const [kopokopoPhase, setKopokopoPhase] = useState<KopokopoPayPhase>("idle");
+  const [kopokopoMessage, setKopokopoMessage] = useState<string | null>(null);
 
   const balanceOpen = row ? n(row.balanceOpen) : 0;
+  const kopokopoEligible = Boolean(payOptions?.kopokopoPayEligible);
+  const payoutPhone = payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
   const paidFull = row ? row.paymentStatus === "PAID" : false;
   const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
   const preferredMethod = resolvePaymentMethod(supplier?.paymentMethodPreferred);
@@ -156,6 +169,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
 
   useEffect(() => {
     if (!open || !row) {
+      setPayOptions(null);
+      setKopokopoPhase("idle");
+      setKopokopoMessage(null);
       return;
     }
     const b = n(row.balanceOpen);
@@ -168,7 +184,72 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     setPaidAtLocal(defaultLocalDateTime());
     setError(null);
     setShowAdvanced(false);
+    setKopokopoPhase("idle");
+    setKopokopoMessage(null);
+
+    setPayOptionsLoading(true);
+    void fetchSupplyPayOptions(row.supplierInvoiceId)
+      .then((o) => {
+        setPayOptions(o);
+        if (o.pendingDisbursement) {
+          setKopokopoPhase("pending");
+          setKopokopoMessage("M-Pesa payment in progress — waiting for KopoKopo confirmation.");
+        }
+      })
+      .catch(() => setPayOptions(null))
+      .finally(() => setPayOptionsLoading(false));
   }, [open, row]);
+
+  const applyDisbursementStatus = (status: SupplyKopokopoPayRecord) => {
+    const s = (status.status ?? "").toLowerCase();
+    if (s === "success") {
+      setKopokopoPhase("success");
+      setKopokopoMessage(status.message ?? "Payment confirmed.");
+      toast.success("Supplier paid via M-Pesa", {
+        description: row
+          ? `${formatMoney(balanceOpen)} sent to ${row.supplierName || "supplier"}.`
+          : undefined,
+        duration: 8000,
+      });
+      onPaid();
+      onOpenChange(false);
+      return;
+    }
+    if (s === "failed") {
+      setKopokopoPhase("failed");
+      setKopokopoMessage(status.message ?? "KopoKopo payment failed.");
+      setError(status.message ?? "KopoKopo payment failed.");
+      return;
+    }
+    setKopokopoPhase("pending");
+    setKopokopoMessage(
+      status.message ?? "M-Pesa payment in progress — waiting for KopoKopo confirmation.",
+    );
+  };
+
+  useEffect(() => {
+    if (!open || !row || kopokopoPhase !== "pending") {
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const status = await fetchSupplyDisbursementStatus(row.supplierInvoiceId);
+        if (cancelled) {
+          return;
+        }
+        applyDisbursementStatus(status);
+      } catch {
+        /* keep polling */
+      }
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [open, row, kopokopoPhase, balanceOpen, onPaid, onOpenChange]);
 
   useEffect(() => {
     if (!showAdvanced || !row) {
@@ -236,8 +317,37 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     }
   };
 
+  const initiateKopokopoPay = async () => {
+    if (!row || !canPay || !kopokopoEligible) {
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    setKopokopoPhase("sending");
+    try {
+      const result = await postSupplyKopokopoPay(row.supplierInvoiceId);
+      setKopokopoPhase("pending");
+      setKopokopoMessage(
+        result.message ?? "M-Pesa payment sent — waiting for KopoKopo confirmation.",
+      );
+      toast.info("M-Pesa sent", {
+        description: result.message ?? "Waiting for KopoKopo to confirm the transfer.",
+        duration: 6000,
+      });
+    } catch (e) {
+      setKopokopoPhase("failed");
+      setError(e instanceof Error ? e.message : "Could not start KopoKopo payment.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onConfirmPay = () => {
     if (!row) {
+      return;
+    }
+    if (kopokopoEligible && (kopokopoPhase === "idle" || kopokopoPhase === "failed")) {
+      void initiateKopokopoPay();
       return;
     }
     const b = n(row.balanceOpen);
@@ -247,6 +357,16 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     setPaymentMethod(preferredMethod);
     setPaidAtLocal(defaultLocalDateTime());
     void submitPayment();
+  };
+
+  const confirmLabel = () => {
+    if (kopokopoPhase === "pending" || kopokopoPhase === "sending") {
+      return "Sending M-Pesa…";
+    }
+    if (kopokopoEligible) {
+      return `Send M-Pesa · ${formatMoney(balanceOpen)}`;
+    }
+    return `Confirm payment · ${formatMoney(balanceOpen)}`;
   };
 
   return (
@@ -272,14 +392,20 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
               type="button"
               className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
               onClick={() => void onConfirmPay()}
-              disabled={busy || supplierLoading}
+              disabled={
+                busy ||
+                supplierLoading ||
+                payOptionsLoading ||
+                kopokopoPhase === "pending" ||
+                kopokopoPhase === "sending"
+              }
             >
-              {busy ? (
+              {busy || kopokopoPhase === "pending" || kopokopoPhase === "sending" ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
                 <Check className="size-4" strokeWidth={3} aria-hidden />
               )}
-              Confirm payment · {formatMoney(balanceOpen)}
+              {confirmLabel()}
             </Button>
           ) : null}
         </div>
@@ -371,14 +497,35 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                     <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                     {supplierError}
                   </p>
-                ) : paymentDetails ? (
-                  <div className="mt-3 rounded-xl border border-border/80 bg-background px-3.5 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Payment &amp; remittance
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
-                      {paymentDetails}
-                    </p>
+                ) : paymentDetails || payoutPhone ? (
+                  <div className="mt-3 space-y-3">
+                    {payoutPhone ? (
+                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                          KopoKopo M-Pesa payout
+                        </p>
+                        <p className="mt-1 font-mono text-sm font-semibold text-foreground">{payoutPhone}</p>
+                        {kopokopoEligible ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Confirm below to send {formatMoney(balanceOpen)} via KopoKopo Send Money.
+                          </p>
+                        ) : payOptions && !payOptions.kopokopoActive ? (
+                          <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                            KopoKopo is not active — record payment manually.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {paymentDetails ? (
+                      <div className="rounded-xl border border-border/80 bg-background px-3.5 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Payment &amp; remittance
+                        </p>
+                        <p className="mt-2 whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
+                          {paymentDetails}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-amber-300/80 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
@@ -392,12 +539,35 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                 )}
               </section>
 
-              <p className="text-center text-xs leading-relaxed text-muted-foreground">
-                Send <span className="font-semibold text-foreground">{formatMoney(balanceOpen)}</span>{" "}
-                using the details above, then tap{" "}
-                <span className="font-semibold text-foreground">Confirm payment</span> to record it in
-                PalMart.
-              </p>
+              {kopokopoPhase === "pending" ? (
+                <p className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-center text-sm text-foreground">
+                  <Loader2 className="mr-2 inline size-4 animate-spin align-[-2px]" aria-hidden />
+                  {kopokopoMessage ?? "Waiting for M-Pesa confirmation…"}
+                </p>
+              ) : kopokopoPhase === "success" ? (
+                <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-center text-sm text-emerald-900 dark:text-emerald-100">
+                  {kopokopoMessage ?? "Payment confirmed."}
+                </p>
+              ) : (
+                <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                  {kopokopoEligible ? (
+                    <>
+                      Tap{" "}
+                      <span className="font-semibold text-foreground">Send M-Pesa</span> to pay{" "}
+                      <span className="font-semibold text-foreground">{formatMoney(balanceOpen)}</span>{" "}
+                      via KopoKopo. The ledger updates when KopoKopo confirms.
+                    </>
+                  ) : (
+                    <>
+                      Send{" "}
+                      <span className="font-semibold text-foreground">{formatMoney(balanceOpen)}</span>{" "}
+                      using the details above, then tap{" "}
+                      <span className="font-semibold text-foreground">Confirm payment</span> to record it
+                      in PalMart.
+                    </>
+                  )}
+                </p>
+              )}
 
               <div className="rounded-xl border border-border/60">
                 <button
@@ -406,7 +576,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                   onClick={() => setShowAdvanced((v) => !v)}
                   aria-expanded={showAdvanced}
                 >
-                  Adjust payment (partial, credit, reference)
+                  {kopokopoEligible
+                    ? "Record payment manually (partial, credit, reference)"
+                    : "Adjust payment (partial, credit, reference)"}
                   <ChevronDown
                     className={cn(
                       "size-4 shrink-0 text-muted-foreground transition-transform",

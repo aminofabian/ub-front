@@ -309,6 +309,8 @@ export default function SuppliersPage() {
             : "",
         paymentMethodPreferred: d.paymentMethodPreferred ?? "",
         paymentDetails: d.paymentDetails ?? "",
+        payoutType: d.payoutType ?? "manual",
+        payoutPhone: d.payoutPhone ?? "",
       });
     } catch (error) {
       if (selectionRef.current === id) {
@@ -374,6 +376,12 @@ export default function SuppliersPage() {
         ...(createDraft.paymentDetails.trim()
           ? { paymentDetails: createDraft.paymentDetails.trim() }
           : {}),
+        ...(createDraft.payoutType.trim()
+          ? { payoutType: createDraft.payoutType.trim() }
+          : {}),
+        ...(createDraft.payoutPhone.trim()
+          ? { payoutPhone: createDraft.payoutPhone.trim() }
+          : {}),
       };
       const created = await createSupplier(body);
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
@@ -436,6 +444,11 @@ export default function SuppliersPage() {
         ...(creditLimit != null ? { creditLimit } : {}),
         paymentMethodPreferred: patchDraft.paymentMethodPreferred.trim(),
         paymentDetails: patchDraft.paymentDetails.trim(),
+        payoutType: patchDraft.payoutType.trim() || undefined,
+        payoutPhone:
+          patchDraft.payoutType === "mobile_wallet"
+            ? patchDraft.payoutPhone.trim() || null
+            : null,
       });
       setDetail(next);
       setPatchDraft({
@@ -454,6 +467,8 @@ export default function SuppliersPage() {
             : "",
         paymentMethodPreferred: next.paymentMethodPreferred ?? "",
         paymentDetails: next.paymentDetails ?? "",
+        payoutType: next.payoutType ?? "manual",
+        payoutPhone: next.payoutPhone ?? "",
       });
       await refreshList();
       setProfileEditDrawerOpen(false);

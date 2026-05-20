@@ -4520,6 +4520,49 @@ export async function fetchSupplyPaymentHistory(
   );
 }
 
+export type SupplyPayOptionsRecord = {
+  balanceOpen: number;
+  kopokopoActive: boolean;
+  supplierMobilePayoutConfigured: boolean;
+  payoutPhone: string | null;
+  kopokopoPayEligible: boolean;
+  pendingDisbursement: boolean;
+  pendingDisbursementId: string | null;
+};
+
+export type SupplyKopokopoPayRecord = {
+  accepted: boolean;
+  disbursementId: string | null;
+  kopokopoSendMoneyId: string | null;
+  status: string;
+  message: string | null;
+};
+
+export async function fetchSupplyPayOptions(
+  invoiceId: string,
+): Promise<SupplyPayOptionsRecord> {
+  return request<SupplyPayOptionsRecord>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/pay-options`,
+  );
+}
+
+export async function postSupplyKopokopoPay(
+  invoiceId: string,
+): Promise<SupplyKopokopoPayRecord> {
+  return request<SupplyKopokopoPayRecord>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/pay-kopokopo`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchSupplyDisbursementStatus(
+  invoiceId: string,
+): Promise<SupplyKopokopoPayRecord> {
+  return request<SupplyKopokopoPayRecord>(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}/disbursement-status`,
+  );
+}
+
 export type SupplierRecord = {
   id: string;
   name: string;
@@ -4534,6 +4577,8 @@ export type SupplierRecord = {
   notes: string | null;
   paymentMethodPreferred: string | null;
   paymentDetails: string | null;
+  payoutType: string | null;
+  payoutPhone: string | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -4562,6 +4607,8 @@ export type CreateSupplierPayload = {
   creditLimit?: number;
   paymentMethodPreferred?: string;
   paymentDetails?: string;
+  payoutType?: string;
+  payoutPhone?: string;
 };
 
 export type PatchSupplierPayload = {
@@ -4576,6 +4623,8 @@ export type PatchSupplierPayload = {
   creditLimit?: number | null;
   paymentMethodPreferred?: string;
   paymentDetails?: string;
+  payoutType?: string;
+  payoutPhone?: string | null;
 };
 
 export type CreateSupplierContactPayload = {
