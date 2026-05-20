@@ -20,8 +20,14 @@ import {
   type SalePaymentMethod,
   type SaleRecord,
 } from "@/lib/api";
-import { cashierItemPrimaryLabel, posSearchItemDetailLine } from "@/lib/cashier-item-display";
-import { CashierCurrencySuffix, CashierDottedLeader } from "./cashier-currency-inline";
+import {
+  cashierItemPrimaryLabel,
+  posSearchItemDetailLine,
+} from "@/lib/cashier-item-display";
+import {
+  CashierCurrencySuffix,
+  CashierDottedLeader,
+} from "./cashier-currency-inline";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone } from "@/lib/customer-phone";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
@@ -87,7 +93,11 @@ export type CashierCartDrawerProps = {
   lines: CartLineLike[];
   grandTotal: number;
   removeLine: (key: string) => void;
-  updateLine: (key: string, field: "quantity" | "unitPrice", value: string) => void;
+  updateLine: (
+    key: string,
+    field: "quantity" | "unitPrice",
+    value: string,
+  ) => void;
 
   payMethod: SalePaymentMethod;
   setPayMethod: (m: SalePaymentMethod) => void;
@@ -128,6 +138,10 @@ export type CashierCartDrawerProps = {
   lastSale: SaleRecord | null;
   lastReceipt: PosReceiptSnapshot | null;
   lastSaleCustomerName: string | null;
+
+  stkPushStatus: string;
+  stkPushError: string;
+  onStkPush: () => void;
   voidNotes: string;
   setVoidNotes: (s: string) => void;
   onVoidLastSale: () => void;
@@ -163,7 +177,10 @@ function PayChip({
       )}
       style={
         active
-          ? { backgroundColor: "var(--pos-primary)", borderColor: "transparent" }
+          ? {
+              backgroundColor: "var(--pos-primary)",
+              borderColor: "transparent",
+            }
           : undefined
       }
     >
@@ -217,6 +234,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     canVoid,
     lastSale,
     lastReceipt,
+    lastSaleCustomerName,
+    stkPushStatus,
+    stkPushError,
+    onStkPush,
     voidNotes,
     setVoidNotes,
     onVoidLastSale,
@@ -276,492 +297,574 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           </>
         ) : (
           <>
-        <div className="relative shrink-0 border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.05)] dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
-          <span
-            className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-[var(--pos-primary)] shadow-[2px_0_14px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
-            aria-hidden
-          />
-          <DialogHeader className="min-w-0 space-y-1 pl-3.5 pr-10">
-            <DialogTitle className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-foreground">
-              <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
-                <ShoppingBag className="size-3.5" aria-hidden />
-              </span>
-              Cart
-            </DialogTitle>
-            <DialogDescription className="pl-[2.625rem] text-[11px] leading-relaxed text-muted-foreground">
-              {lines.length === 0
-                ? "No items yet — tap a tile or search to add."
-                : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalItems.toFixed(0)} item${totalItems === 1 ? "" : "s"}`}
-            </DialogDescription>
-          </DialogHeader>
-        </div>
-
-        <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-background via-background/90 to-transparent"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-10 bg-gradient-to-t from-background via-background/90 to-transparent"
-            aria-hidden
-          />
-          <div className="relative z-0 space-y-5 px-5 py-4">
-          {lines.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/50 bg-muted/[0.04] py-12 text-center ring-1 ring-black/[0.02] dark:bg-muted/[0.05] dark:ring-white/[0.03]">
-              <span className="inline-flex size-12 items-center justify-center rounded-xl border border-border/45 bg-background text-muted-foreground shadow-sm">
-                <ShoppingBag className="size-5 opacity-55" aria-hidden />
-              </span>
-              <div className="max-w-[18rem] space-y-1 px-3">
-                <p className="text-sm font-semibold text-foreground">Your cart is empty</p>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  Search or tap a top seller to add items.
-                </p>
-              </div>
+            <div className="relative shrink-0 border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.05)] dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
+              <span
+                className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-[var(--pos-primary)] shadow-[2px_0_14px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
+                aria-hidden
+              />
+              <DialogHeader className="min-w-0 space-y-1 pl-3.5 pr-10">
+                <DialogTitle className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-foreground">
+                  <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
+                    <ShoppingBag className="size-3.5" aria-hidden />
+                  </span>
+                  Cart
+                </DialogTitle>
+                <DialogDescription className="pl-[2.625rem] text-[11px] leading-relaxed text-muted-foreground">
+                  {lines.length === 0
+                    ? "No items yet — tap a tile or search to add."
+                    : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalItems.toFixed(0)} item${totalItems === 1 ? "" : "s"}`}
+                </DialogDescription>
+              </DialogHeader>
             </div>
-          ) : (
-            <section className="space-y-2.5">
-              <div className={drawerSectionHeader}>
-                <h3 className={DRAWER_SECTION_TITLE}>Lines</h3>
-                <span className="rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                  {lines.length} · {totalItems.toFixed(0)} qty
-                </span>
-              </div>
-            <ul className="space-y-2">
-              {lines.map((line) => {
-                const thumb = itemListThumbnailUrl(line.item);
-                const subtotal = lineSubtotal(line);
-                const qNum = Number(line.quantity) || 0;
-                const lineTitle = cashierItemPrimaryLabel(line.item);
-                const lineDetail = posSearchItemDetailLine(line.item);
-                return (
-                  <li
-                    key={line.key}
-                    className={cn(
-                      "group relative overflow-hidden rounded-xl border border-border/45 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] transition-[border-color,box-shadow] duration-200",
-                      "dark:ring-white/[0.03]",
-                      "hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md",
-                    )}
-                  >
-                    <span
-                      className="pointer-events-none absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-[var(--pos-primary)] opacity-0 shadow-[0_0_10px_color-mix(in_srgb,var(--pos-primary)_40%,transparent)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-                      aria-hidden
-                    />
-                    <div className="flex items-start gap-2.5">
-                      {thumb ? (
-                        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60">
-                          <Image
-                            src={thumb}
-                            alt=""
-                            width={44}
-                            height={44}
-                            className="h-full w-full object-cover"
-                            unoptimized
-                          />
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60 text-sm font-bold text-muted-foreground"
-                          aria-hidden
-                        >
-                          {lineTitle.trim().charAt(0).toUpperCase() || "?"}
-                        </span>
-                      )}
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="line-clamp-2 text-[13px] font-semibold leading-[1.25] tracking-tight text-foreground">
-                          {lineTitle}
-                        </p>
-                        <p className="mt-0.5 break-all text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {lineDetail}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="Remove line"
-                        onClick={() => removeLine(line.key)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
 
-                    <div className="mt-2.5 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5 text-sm">
-                      <span className="text-[11px] font-medium text-muted-foreground">Qty</span>
-                      <div className="flex items-center gap-1">
+            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-background via-background/90 to-transparent"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-10 bg-gradient-to-t from-background via-background/90 to-transparent"
+                aria-hidden
+              />
+              <div className="relative z-0 space-y-5 px-5 py-4">
+                {lines.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/50 bg-muted/[0.04] py-12 text-center ring-1 ring-black/[0.02] dark:bg-muted/[0.05] dark:ring-white/[0.03]">
+                    <span className="inline-flex size-12 items-center justify-center rounded-xl border border-border/45 bg-background text-muted-foreground shadow-sm">
+                      <ShoppingBag className="size-5 opacity-55" aria-hidden />
+                    </span>
+                    <div className="max-w-[18rem] space-y-1 px-3">
+                      <p className="text-sm font-semibold text-foreground">
+                        Your cart is empty
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        Search or tap a top seller to add items.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <section className="space-y-2.5">
+                    <div className={drawerSectionHeader}>
+                      <h3 className={DRAWER_SECTION_TITLE}>Lines</h3>
+                      <span className="rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                        {lines.length} · {totalItems.toFixed(0)} qty
+                      </span>
+                    </div>
+                    <ul className="space-y-2">
+                      {lines.map((line) => {
+                        const thumb = itemListThumbnailUrl(line.item);
+                        const subtotal = lineSubtotal(line);
+                        const qNum = Number(line.quantity) || 0;
+                        const lineTitle = cashierItemPrimaryLabel(line.item);
+                        const lineDetail = posSearchItemDetailLine(line.item);
+                        return (
+                          <li
+                            key={line.key}
+                            className={cn(
+                              "group relative overflow-hidden rounded-xl border border-border/45 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] transition-[border-color,box-shadow] duration-200",
+                              "dark:ring-white/[0.03]",
+                              "hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md",
+                            )}
+                          >
+                            <span
+                              className="pointer-events-none absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-[var(--pos-primary)] opacity-0 shadow-[0_0_10px_color-mix(in_srgb,var(--pos-primary)_40%,transparent)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                              aria-hidden
+                            />
+                            <div className="flex items-start gap-2.5">
+                              {thumb ? (
+                                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60">
+                                  <Image
+                                    src={thumb}
+                                    alt=""
+                                    width={44}
+                                    height={44}
+                                    className="h-full w-full object-cover"
+                                    unoptimized
+                                  />
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60 text-sm font-bold text-muted-foreground"
+                                  aria-hidden
+                                >
+                                  {lineTitle.trim().charAt(0).toUpperCase() ||
+                                    "?"}
+                                </span>
+                              )}
+                              <div className="min-w-0 flex-1 pt-0.5">
+                                <p className="line-clamp-2 text-[13px] font-semibold leading-[1.25] tracking-tight text-foreground">
+                                  {lineTitle}
+                                </p>
+                                <p className="mt-0.5 break-all text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  {lineDetail}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                aria-label="Remove line"
+                                onClick={() => removeLine(line.key)}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+
+                            <div className="mt-2.5 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5 text-sm">
+                              <span className="text-[11px] font-medium text-muted-foreground">
+                                Qty
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  className="h-7 w-7 border-border/55"
+                                  aria-label="Decrease"
+                                  onClick={() =>
+                                    updateLine(
+                                      line.key,
+                                      "quantity",
+                                      String(Math.max(1, qNum - 1)),
+                                    )
+                                  }
+                                >
+                                  <Minus className="size-3" />
+                                </Button>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  aria-label="Quantity"
+                                  className={drawerFieldClass(
+                                    "h-7 w-[3.25rem] py-0 text-center text-[13px] font-semibold tabular-nums",
+                                  )}
+                                  value={line.quantity}
+                                  onChange={(e) =>
+                                    updateLine(
+                                      line.key,
+                                      "quantity",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  className="h-7 w-7 border-border/55"
+                                  aria-label="Increase"
+                                  onClick={() =>
+                                    updateLine(
+                                      line.key,
+                                      "quantity",
+                                      String(qNum + 1),
+                                    )
+                                  }
+                                >
+                                  <Plus className="size-3" />
+                                </Button>
+                              </div>
+                              <span className="text-[11px] font-medium text-muted-foreground">
+                                Unit ({currency})
+                              </span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                aria-label="Unit price"
+                                placeholder="0.00"
+                                className={drawerFieldClass(
+                                  "h-7 w-full max-w-[7.5rem] py-0 pr-2 text-right text-[13px] font-medium tabular-nums",
+                                )}
+                                value={line.unitPrice}
+                                onChange={(e) =>
+                                  updateLine(
+                                    line.key,
+                                    "unitPrice",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            {subtotal > 0 ? (
+                              <p className="mt-2 flex items-end gap-2 border-t border-border/35 pt-2 text-xs font-medium tabular-nums text-muted-foreground">
+                                <span className="shrink-0">Subtotal</span>
+                                <CashierDottedLeader />
+                                <span className="inline-flex shrink-0 items-baseline gap-0.5">
+                                  <span>{subtotal.toFixed(2)}</span>
+                                  <CashierCurrencySuffix code={currency} />
+                                </span>
+                              </p>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                )}
+
+                <section className={cn(drawerSectionShell, "space-y-3")}>
+                  <div className={drawerSectionHeader}>
+                    <h3 className={DRAWER_SECTION_TITLE}>Payment</h3>
+                    <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="size-3.5 rounded border-border/60 text-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
+                        checked={splitPay}
+                        disabled={payMethodNeedsCustomer(payMethod)}
+                        onChange={(e) => {
+                          const next = e.target.checked;
+                          if (next && payMethodNeedsCustomer(payMethod)) {
+                            setPayMethod("cash");
+                          }
+                          setSplitPay(next);
+                        }}
+                      />
+                      Split cash + M-Pesa
+                    </label>
+                  </div>
+
+                  {!splitPay ? (
+                    <div className="flex flex-wrap gap-2">
+                      <PayChip
+                        active={payMethod === "cash"}
+                        onClick={() => setPayMethod("cash")}
+                      >
+                        Cash
+                      </PayChip>
+                      <PayChip
+                        active={payMethod === "mpesa_manual"}
+                        onClick={() => setPayMethod("mpesa_manual")}
+                      >
+                        M-Pesa
+                      </PayChip>
+                      {canLookupCustomers ? (
+                        <PayChip
+                          active={payMethod === "customer_credit"}
+                          onClick={() => {
+                            setSplitPay(false);
+                            setPayMethod("customer_credit");
+                          }}
+                        >
+                          Customer tab
+                        </PayChip>
+                      ) : null}
+                      {canLookupCustomers ? (
+                        <PayChip
+                          active={payMethod === "customer_wallet"}
+                          disabled={!online}
+                          onClick={() => {
+                            setSplitPay(false);
+                            setPayMethod("customer_wallet");
+                          }}
+                        >
+                          Wallet
+                        </PayChip>
+                      ) : null}
+                      {canLookupCustomers ? (
+                        <PayChip
+                          active={payMethod === "loyalty_redeem"}
+                          disabled={!online}
+                          onClick={() => {
+                            setSplitPay(false);
+                            setPayMethod("loyalty_redeem");
+                          }}
+                        >
+                          Loyalty
+                        </PayChip>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {!splitPay && payMethod === "mpesa_manual" ? (
+                    <div className="space-y-2">
+                      {stkPushStatus === "idle" &&
+                      selectedCustomer &&
+                      selectedCustomer.phones.length > 0 ? (
                         <Button
                           type="button"
-                          variant="outline"
-                          size="icon-sm"
-                          className="h-7 w-7 border-border/55"
-                          aria-label="Decrease"
-                          onClick={() =>
-                            updateLine(
-                              line.key,
-                              "quantity",
-                              String(Math.max(1, qNum - 1)),
-                            )
-                          }
+                          size="sm"
+                          className="h-9 w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                          onClick={onStkPush}
                         >
-                          <Minus className="size-3" />
+                          📱 Send M-Pesa STK Push to{" "}
+                          {selectedCustomer.phones[0]?.phone ?? "customer"}
                         </Button>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          aria-label="Quantity"
-                          className={drawerFieldClass(
-                            "h-7 w-[3.25rem] py-0 text-center text-[13px] font-semibold tabular-nums",
-                          )}
-                          value={line.quantity}
-                          onChange={(e) =>
-                            updateLine(line.key, "quantity", e.target.value)
-                          }
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon-sm"
-                          className="h-7 w-7 border-border/55"
-                          aria-label="Increase"
-                          onClick={() =>
-                            updateLine(line.key, "quantity", String(qNum + 1))
-                          }
-                        >
-                          <Plus className="size-3" />
-                        </Button>
-                      </div>
-                      <span className="text-[11px] font-medium text-muted-foreground">Unit ({currency})</span>
+                      ) : stkPushStatus === "idle" && !selectedCustomer ? (
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                          Attach a customer with a phone number to send STK
+                          Push.
+                        </p>
+                      ) : stkPushStatus === "sending" ? (
+                        <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                          Sending STK Push…
+                        </p>
+                      ) : stkPushStatus === "sent" ? (
+                        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+                          ✅ STK Push sent — customer should enter PIN
+                        </p>
+                      ) : stkPushStatus === "failed" ? (
+                        <div className="space-y-1.5">
+                          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                            ❌ {stkPushError || "STK Push failed"}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-full text-xs"
+                            onClick={onStkPush}
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {!splitPay && payMethod === "cash" ? (
+                    <label className="block space-y-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Amount received ({currency})
+                      </span>
                       <input
                         type="text"
                         inputMode="decimal"
-                        aria-label="Unit price"
-                        placeholder="0.00"
                         className={drawerFieldClass(
-                          "h-7 w-full max-w-[7.5rem] py-0 pr-2 text-right text-[13px] font-medium tabular-nums",
+                          "h-9 w-full px-3 text-right tabular-nums",
                         )}
-                        value={line.unitPrice}
-                        onChange={(e) =>
-                          updateLine(line.key, "unitPrice", e.target.value)
-                        }
+                        value={cashTenderStr}
+                        onChange={(e) => setCashTenderStr(e.target.value)}
+                        placeholder="0.00"
+                        required
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        {cashTenderStr.trim() ? (
+                          <>
+                            Change:{" "}
+                            <span className="font-semibold tabular-nums text-foreground">
+                              {(() => {
+                                const tender = Number(cashTenderStr.trim());
+                                if (
+                                  !Number.isFinite(tender) ||
+                                  tender < grandTotal
+                                ) {
+                                  return "—";
+                                }
+                                return (tender - grandTotal).toFixed(2);
+                              })()}
+                            </span>{" "}
+                            <CashierCurrencySuffix code={currency} />
+                          </>
+                        ) : (
+                          "Required — enter cash handed over by the customer."
+                        )}
+                      </p>
+                    </label>
+                  ) : null}
+
+                  {splitPay ? (
+                    <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="space-y-1">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Cash ({currency})
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className={drawerFieldClass(
+                              "h-8 w-full px-2 text-right text-sm",
+                            )}
+                            value={cashSplitStr}
+                            onChange={(e) => setCashSplitStr(e.target.value)}
+                          />
+                        </label>
+                        <label className="space-y-1">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            M-Pesa ({currency})
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className={drawerFieldClass(
+                              "h-8 w-full px-2 text-right text-sm",
+                            )}
+                            value={mpesaSplitStr}
+                            onChange={(e) => setMpesaSplitStr(e.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        className={drawerFieldClass("h-8 w-full px-3 text-sm")}
+                        value={splitMpesaRef}
+                        onChange={(e) => setSplitMpesaRef(e.target.value)}
+                        placeholder="M-Pesa reference (optional)"
                       />
                     </div>
-                    {subtotal > 0 ? (
-                      <p className="mt-2 flex items-end gap-2 border-t border-border/35 pt-2 text-xs font-medium tabular-nums text-muted-foreground">
-                        <span className="shrink-0">Subtotal</span>
-                        <CashierDottedLeader />
-                        <span className="inline-flex shrink-0 items-baseline gap-0.5">
-                          <span>{subtotal.toFixed(2)}</span>
-                          <CashierCurrencySuffix code={currency} />
-                        </span>
+                  ) : null}
+
+                  {customerNeeded && canLookupCustomers ? (
+                    <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
+                      <p className="text-xs text-muted-foreground">
+                        {payMethod === "customer_credit"
+                          ? "Search by phone, then select the customer. The full cart total posts to their tab."
+                          : payMethod === "customer_wallet"
+                            ? `Cart total is paid from the customer's store wallet (${currency}).`
+                            : "Apply loyalty redemption (server enforces caps & point cost)."}
                       </p>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-            </section>
-          )}
-
-          <section className={cn(drawerSectionShell, "space-y-3")}>
-            <div className={drawerSectionHeader}>
-              <h3 className={DRAWER_SECTION_TITLE}>Payment</h3>
-              <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="size-3.5 rounded border-border/60 text-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
-                  checked={splitPay}
-                  disabled={payMethodNeedsCustomer(payMethod)}
-                  onChange={(e) => {
-                    const next = e.target.checked;
-                    if (next && payMethodNeedsCustomer(payMethod)) {
-                      setPayMethod("cash");
-                    }
-                    setSplitPay(next);
-                  }}
-                />
-                Split cash + M-Pesa
-              </label>
-            </div>
-
-            {!splitPay ? (
-              <div className="flex flex-wrap gap-2">
-                <PayChip
-                  active={payMethod === "cash"}
-                  onClick={() => setPayMethod("cash")}
-                >
-                  Cash
-                </PayChip>
-                <PayChip
-                  active={payMethod === "mpesa_manual"}
-                  onClick={() => setPayMethod("mpesa_manual")}
-                >
-                  M-Pesa
-                </PayChip>
-                {canLookupCustomers ? (
-                  <PayChip
-                    active={payMethod === "customer_credit"}
-                    onClick={() => {
-                      setSplitPay(false);
-                      setPayMethod("customer_credit");
-                    }}
-                  >
-                    Customer tab
-                  </PayChip>
-                ) : null}
-                {canLookupCustomers ? (
-                  <PayChip
-                    active={payMethod === "customer_wallet"}
-                    disabled={!online}
-                    onClick={() => {
-                      setSplitPay(false);
-                      setPayMethod("customer_wallet");
-                    }}
-                  >
-                    Wallet
-                  </PayChip>
-                ) : null}
-                {canLookupCustomers ? (
-                  <PayChip
-                    active={payMethod === "loyalty_redeem"}
-                    disabled={!online}
-                    onClick={() => {
-                      setSplitPay(false);
-                      setPayMethod("loyalty_redeem");
-                    }}
-                  >
-                    Loyalty
-                  </PayChip>
-                ) : null}
-              </div>
-            ) : null}
-
-            {!splitPay && payMethod === "mpesa_manual" ? (
-              <input
-                className={drawerFieldClass("h-9 w-full px-3")}
-                value={mpesaRef}
-                onChange={(e) => setMpesaRef(e.target.value)}
-                placeholder="M-Pesa reference (optional)"
-              />
-            ) : null}
-
-            {!splitPay && payMethod === "cash" ? (
-              <label className="block space-y-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Amount received ({currency})
-                </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={drawerFieldClass("h-9 w-full px-3 text-right tabular-nums")}
-                  value={cashTenderStr}
-                  onChange={(e) => setCashTenderStr(e.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  {cashTenderStr.trim() ? (
-                    <>
-                      Change:{" "}
-                      <span className="font-semibold tabular-nums text-foreground">
-                        {(() => {
-                          const tender = Number(cashTenderStr.trim());
-                          if (
-                            !Number.isFinite(tender) ||
-                            tender < grandTotal
-                          ) {
-                            return "—";
-                          }
-                          return (tender - grandTotal).toFixed(2);
-                        })()}
-                      </span>{" "}
-                      <CashierCurrencySuffix code={currency} />
-                    </>
-                  ) : (
-                    "Required — enter cash handed over by the customer."
-                  )}
-                </p>
-              </label>
-            ) : null}
-
-            {splitPay ? (
-              <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="space-y-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Cash ({currency})
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      className={drawerFieldClass("h-8 w-full px-2 text-right text-sm")}
-                      value={cashSplitStr}
-                      onChange={(e) => setCashSplitStr(e.target.value)}
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      M-Pesa ({currency})
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      className={drawerFieldClass("h-8 w-full px-2 text-right text-sm")}
-                      value={mpesaSplitStr}
-                      onChange={(e) => setMpesaSplitStr(e.target.value)}
-                    />
-                  </label>
-                </div>
-                <input
-                  className={drawerFieldClass("h-8 w-full px-3 text-sm")}
-                  value={splitMpesaRef}
-                  onChange={(e) => setSplitMpesaRef(e.target.value)}
-                  placeholder="M-Pesa reference (optional)"
-                />
-              </div>
-            ) : null}
-
-            {customerNeeded && canLookupCustomers ? (
-              <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
-                <p className="text-xs text-muted-foreground">
-                  {payMethod === "customer_credit"
-                    ? "Search by phone, then select the customer. The full cart total posts to their tab."
-                    : payMethod === "customer_wallet"
-                      ? `Cart total is paid from the customer's store wallet (${currency}).`
-                      : "Apply loyalty redemption (server enforces caps & point cost)."}
-                </p>
-                <div className="flex items-center gap-2">
-                  <input
-                    className={drawerFieldClass("h-9 min-w-0 flex-1 px-3")}
-                    value={customerPhoneQuery}
-                    onChange={(e) => setCustomerPhoneQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        onSearchCustomers();
-                      }
-                    }}
-                    placeholder="Phone (2547… or 07…)"
-                    disabled={!online}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={
-                      !online ||
-                      customerSearchBusy ||
-                      (payMethod === "customer_credit" &&
-                        !isValidCustomerPhone(customerPhoneQuery))
-                    }
-                    onClick={onSearchCustomers}
-                  >
-                    {customerSearchBusy ? "…" : "Find"}
-                  </Button>
-                </div>
-                {payMethod === "customer_credit" &&
-                customerPhoneQuery.trim() &&
-                !isValidCustomerPhone(customerPhoneQuery) ? (
-                  <p className="text-[10px] text-destructive">
-                    Enter at least 9 digits (e.g. 254712345678).
-                  </p>
-                ) : null}
-                {customerHits.length > 0 ? (
-                  <ul className="max-h-40 space-y-1 overflow-y-auto">
-                    {customerHits.map((c) => (
-                      <li key={c.id}>
-                        <button
-                          type="button"
-                          className={cn(
-                            "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-all",
-                            selectedCustomer?.id === c.id
-                              ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_20%,transparent)]"
-                              : "border-border/45 bg-background/80 hover:border-[color-mix(in_srgb,var(--pos-primary)_18%,var(--border))] hover:bg-muted/30",
+                      <div className="flex items-center gap-2">
+                        <input
+                          className={drawerFieldClass(
+                            "h-9 min-w-0 flex-1 px-3",
                           )}
-                          onClick={() => setSelectedCustomer(c)}
+                          value={customerPhoneQuery}
+                          onChange={(e) =>
+                            setCustomerPhoneQuery(e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onSearchCustomers();
+                            }
+                          }}
+                          placeholder="Phone (2547… or 07…)"
+                          disabled={!online}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={
+                            !online ||
+                            customerSearchBusy ||
+                            (payMethod === "customer_credit" &&
+                              !isValidCustomerPhone(customerPhoneQuery))
+                          }
+                          onClick={onSearchCustomers}
                         >
-                          <span className="font-medium text-foreground">{c.name}</span>
-                          <span className="block text-muted-foreground">
-                            {c.phones.find((p) => p.primary)?.phone ??
-                              c.phones[0]?.phone ??
-                              "—"}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {selectedCustomer ? (
-                  <div className="rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)] p-2.5 text-xs shadow-sm">
-                    <p>
-                      Selected: <span className="font-semibold text-foreground">{selectedCustomer.name}</span>
+                          {customerSearchBusy ? "…" : "Find"}
+                        </Button>
+                      </div>
+                      {payMethod === "customer_credit" &&
+                      customerPhoneQuery.trim() &&
+                      !isValidCustomerPhone(customerPhoneQuery) ? (
+                        <p className="text-[10px] text-destructive">
+                          Enter at least 9 digits (e.g. 254712345678).
+                        </p>
+                      ) : null}
+                      {customerHits.length > 0 ? (
+                        <ul className="max-h-40 space-y-1 overflow-y-auto">
+                          {customerHits.map((c) => (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-all",
+                                  selectedCustomer?.id === c.id
+                                    ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_20%,transparent)]"
+                                    : "border-border/45 bg-background/80 hover:border-[color-mix(in_srgb,var(--pos-primary)_18%,var(--border))] hover:bg-muted/30",
+                                )}
+                                onClick={() => setSelectedCustomer(c)}
+                              >
+                                <span className="font-medium text-foreground">
+                                  {c.name}
+                                </span>
+                                <span className="block text-muted-foreground">
+                                  {c.phones.find((p) => p.primary)?.phone ??
+                                    c.phones[0]?.phone ??
+                                    "—"}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {selectedCustomer ? (
+                        <div className="rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)] p-2.5 text-xs shadow-sm">
+                          <p>
+                            Selected:{" "}
+                            <span className="font-semibold text-foreground">
+                              {selectedCustomer.name}
+                            </span>
+                          </p>
+                          <p className="flex flex-wrap items-baseline gap-x-1 tabular-nums text-muted-foreground">
+                            <span>Wallet</span>
+                            <span className="inline-flex items-baseline gap-0.5">
+                              <span>
+                                {Number(
+                                  selectedCustomer.credit.walletBalance,
+                                ).toFixed(2)}
+                              </span>
+                              <CashierCurrencySuffix code={currency} />
+                            </span>
+                            <span>
+                              · {selectedCustomer.credit.loyaltyPoints} pts
+                            </span>
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </section>
+
+                <div className="space-y-2">
+                  {outboxCount > 0 ? (
+                    <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
+                      {outboxCount} sale(s) waiting to sync.{" "}
+                      <button
+                        type="button"
+                        className="font-medium underline-offset-2 hover:underline disabled:opacity-50"
+                        disabled={outboxBusy || !online}
+                        onClick={onRetryOutbox}
+                      >
+                        {outboxBusy ? "Syncing…" : "Retry now"}
+                      </button>
                     </p>
-                    <p className="flex flex-wrap items-baseline gap-x-1 tabular-nums text-muted-foreground">
-                      <span>Wallet</span>
-                      <span className="inline-flex items-baseline gap-0.5">
-                        <span>{Number(selectedCustomer.credit.walletBalance).toFixed(2)}</span>
-                        <CashierCurrencySuffix code={currency} />
-                      </span>
-                      <span>· {selectedCustomer.credit.loyaltyPoints} pts</span>
-                    </p>
-                  </div>
-                ) : null}
+                  ) : null}
+
+                  {notice ? (
+                    <DashboardFeedback kind="success" text={notice} />
+                  ) : null}
+                  {error ? (
+                    <DashboardFeedback kind="error" text={error} />
+                  ) : null}
+                </div>
               </div>
-            ) : null}
-          </section>
-
-          <div className="space-y-2">
-          {outboxCount > 0 ? (
-            <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
-              {outboxCount} sale(s) waiting to sync.{" "}
-              <button
-                type="button"
-                className="font-medium underline-offset-2 hover:underline disabled:opacity-50"
-                disabled={outboxBusy || !online}
-                onClick={onRetryOutbox}
-              >
-                {outboxBusy ? "Syncing…" : "Retry now"}
-              </button>
-            </p>
-          ) : null}
-
-          {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
-          {error ? <DashboardFeedback kind="error" text={error} /> : null}
-          </div>
-
-          </div>
-        </div>
-
-        <div className="shrink-0 border-t border-border/40 bg-gradient-to-t from-muted/20 to-background/98 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_-10px_28px_-14px_rgba(0,0,0,0.08)] backdrop-blur-md dark:from-muted/12 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_-10px_28px_-14px_rgba(0,0,0,0.35)] supports-[backdrop-filter]:bg-background/88">
-          <div className="mb-3.5 rounded-2xl border border-border/45 bg-card/85 px-3.5 py-3 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/55 dark:ring-white/[0.04]">
-            <div className="flex items-end gap-2">
-              <span className="shrink-0 pb-0.5 text-[11px] font-medium text-muted-foreground">Total</span>
-              <CashierDottedLeader />
-              <span className="inline-flex shrink-0 items-baseline gap-0.5 text-[1.65rem] font-bold tabular-nums leading-none tracking-tight text-[var(--pos-primary)] sm:text-2xl">
-                <span>{grandTotal.toFixed(2)}</span>
-                <CashierCurrencySuffix code={currency} />
-              </span>
             </div>
-          </div>
-          {!branchSelected ? (
-            <p className="mb-3 rounded-xl border border-amber-200/50 bg-amber-50/90 px-3 py-2 text-[11px] leading-snug text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-              Pick a branch in the top nav to enable checkout.
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            size="lg"
-            className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
-            disabled={
-              loading ||
-              lines.length === 0 ||
-              !branchSelected ||
-              !canCompleteSale
-            }
-            onClick={onComplete}
-          >
-            {loading ? "Recording…" : "Complete sale"}
-          </Button>
-        </div>
+
+            <div className="shrink-0 border-t border-border/40 bg-gradient-to-t from-muted/20 to-background/98 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_-10px_28px_-14px_rgba(0,0,0,0.08)] backdrop-blur-md dark:from-muted/12 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_-10px_28px_-14px_rgba(0,0,0,0.35)] supports-[backdrop-filter]:bg-background/88">
+              <div className="mb-3.5 rounded-2xl border border-border/45 bg-card/85 px-3.5 py-3 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/55 dark:ring-white/[0.04]">
+                <div className="flex items-end gap-2">
+                  <span className="shrink-0 pb-0.5 text-[11px] font-medium text-muted-foreground">
+                    Total
+                  </span>
+                  <CashierDottedLeader />
+                  <span className="inline-flex shrink-0 items-baseline gap-0.5 text-[1.65rem] font-bold tabular-nums leading-none tracking-tight text-[var(--pos-primary)] sm:text-2xl">
+                    <span>{grandTotal.toFixed(2)}</span>
+                    <CashierCurrencySuffix code={currency} />
+                  </span>
+                </div>
+              </div>
+              {!branchSelected ? (
+                <p className="mb-3 rounded-xl border border-amber-200/50 bg-amber-50/90 px-3 py-2 text-[11px] leading-snug text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+                  Pick a branch in the top nav to enable checkout.
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                size="lg"
+                className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
+                disabled={
+                  loading ||
+                  lines.length === 0 ||
+                  !branchSelected ||
+                  !canCompleteSale
+                }
+                onClick={onComplete}
+              >
+                {loading ? "Recording…" : "Complete sale"}
+              </Button>
+            </div>
           </>
         )}
       </DialogContent>

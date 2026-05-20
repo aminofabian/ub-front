@@ -3,6 +3,7 @@ import type {
   PublicBarcodeLookup,
   PublicCatalogItemDetail,
   PublicCatalogListPayload,
+  PublicPaymentInstruction,
   PublicStorefrontPayload,
 } from "@/lib/public-storefront";
 import { sanitizeStorefrontSlug } from "@/lib/public-storefront";
@@ -157,6 +158,30 @@ export async function fetchPublicBarcodeSearchBrowser(
     );
     if (!res.ok) return [];
     return (await res.json()) as PublicBarcodeLookup[];
+  } catch {
+    return [];
+  }
+}
+
+/** Active manual payment instructions for storefront checkout (browser / BFF). */
+export async function fetchPublicPaymentInstructionsBrowser(
+  slug: string,
+): Promise<PublicPaymentInstruction[]> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s) {
+    return [];
+  }
+  try {
+    const res = await fetch(
+      apiUrl(
+        `/api/v1/public/businesses/${encodeURIComponent(s)}/payments/display-instructions`,
+      ),
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) {
+      return [];
+    }
+    return (await res.json()) as PublicPaymentInstruction[];
   } catch {
     return [];
   }

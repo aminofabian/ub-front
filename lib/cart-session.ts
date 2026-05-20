@@ -21,6 +21,12 @@ export type CartSession = {
   splitMpesaRef: string;
   /** Amount customer handed over (cash checkout). */
   cashTenderStr: string;
+  /** STK Push status: idle | sending | sent | failed */
+  stkPushStatus: string;
+  /** Gateway checkout request ID from STK push */
+  stkPushCheckoutId: string;
+  /** Last STK push error message */
+  stkPushError: string;
 };
 
 /** Mirror of CartLine from quick-sale-workspace — keep in sync. */
@@ -54,6 +60,9 @@ export function createEmptyCartSession(): CartSession {
     mpesaSplitStr: "",
     splitMpesaRef: "",
     cashTenderStr: "",
+    stkPushStatus: "idle",
+    stkPushCheckoutId: "",
+    stkPushError: "",
   };
 }
 

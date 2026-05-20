@@ -34,21 +34,28 @@ export default async function ShopCartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-3xl">
-        <Link
-          href={APP_ROUTES.shop}
-          className="text-sm font-medium text-muted-foreground hover:text-foreground"
+    <div className="min-h-screen bg-linear-to-b from-background via-background to-muted/20 px-4 py-8 sm:py-12">
+      <div className="mx-auto max-w-6xl">
+        <nav
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+          aria-label="Breadcrumb"
         >
-          ← Back to shop
-        </Link>
+          <Link href={APP_ROUTES.shop} className="transition-colors hover:text-foreground">
+            Shop
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="font-medium text-foreground">Cart</span>
+        </nav>
 
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">
-          Your cart
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Branch prices from your storefront catalog.
-        </p>
+        <header className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your cart</h1>
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+              Adjust quantities here, then checkout when you&apos;re ready. Prices reflect your
+              storefront branch catalog.
+            </p>
+          </div>
+        </header>
 
         <div className="mt-8">
           <ShopCartView slug={slug} />

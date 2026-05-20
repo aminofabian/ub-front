@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Filter, Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
+
 import { AuthAlert } from "@/components/auth/auth-alert";
 import {
   showThemedConfirmToast,
   showThemedErrorToast,
   showThemedSuccessToast,
 } from "@/components/super-admin/themed-confirm-toast";
+import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
+import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   type CreateSaBusinessPayload,
   type SaBusinessRow,
@@ -33,6 +39,12 @@ export default function SuperAdminBusinessesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
+  const [filterTier, setFilterTier] = useState("");
+
   const reload = useCallback(async () => {
     setLoadError("");
     try {
@@ -45,6 +57,29 @@ export default function SuperAdminBusinessesPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((b) => {
+      if (
+        q &&
+        !b.name.toLowerCase().includes(q) &&
+        !b.slug.toLowerCase().includes(q) &&
+        !b.id.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      if (filterActive === "active" && !b.active) return false;
+      if (filterActive === "inactive" && b.active) return false;
+      if (filterTier.trim() && b.subscriptionTier.toLowerCase() !== filterTier.trim().toLowerCase()) return false;
+      return true;
+    });
+  }, [rows, search, filterActive, filterTier]);
+
+  const activeFilterCount =
+    (search.trim() ? 1 : 0) +
+    (filterActive !== "all" ? 1 : 0) +
+    (filterTier.trim() ? 1 : 0);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +100,7 @@ export default function SuperAdminBusinessesPage() {
       setSlug("");
       setPrimaryDomain("");
       await reload();
+      setCreateOpen(false);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Create failed.");
     } finally {
@@ -105,153 +141,259 @@ export default function SuperAdminBusinessesPage() {
     });
   };
 
-  return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Businesses</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Each row is a tenant. Copy the UUID for{" "}
-          <code className="rounded bg-muted px-1 text-xs">NEXT_PUBLIC_TENANT_ID</code> or shop sign-up.
-        </p>
+  const createForm = (
+    <form className="space-y-4" onSubmit={onCreate}>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Slug drives the default hostname{" "}
+        <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs">{"{slug}." + "{parent}"}</code> — parent
+        is the hostname from <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs">NEXT_PUBLIC_APP_BASE_URL</code>.
+        Use a custom domain only when the tenant has a dedicated host.
+      </p>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground" htmlFor="sa-new-name">
+          Name
+        </label>
+        <Input id="sa-new-name" value={name} onChange={(ev) => setName(ev.target.value)} required />
       </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground" htmlFor="sa-new-slug">
+          Slug
+        </label>
+        <Input
+          id="sa-new-slug"
+          value={slug}
+          onChange={(ev) => setSlug(ev.target.value)}
+          placeholder="acme-kiosk"
+          pattern="[a-zA-Z0-9-]+"
+          required
+        />
+        {slug.trim() ? (
+          <p className="text-xs text-muted-foreground">
+            Default URL preview:{" "}
+            <code className="rounded bg-muted px-1 font-mono">{slugDerivedShopUrl(slug)}</code>
+          </p>
+        ) : null}
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground" htmlFor="sa-new-domain">
+          Custom domain (optional)
+        </label>
+        <Input
+          id="sa-new-domain"
+          value={primaryDomain}
+          onChange={(ev) => setPrimaryDomain(ev.target.value)}
+          placeholder="e.g. acme.example.com"
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground" htmlFor="sa-new-currency">
+            Currency
+          </label>
+          <Input id="sa-new-currency" value={currency} onChange={(ev) => setCurrency(ev.target.value)} maxLength={3} />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground" htmlFor="sa-new-country">
+            Country
+          </label>
+          <Input
+            id="sa-new-country"
+            value={countryCode}
+            onChange={(ev) => setCountryCode(ev.target.value)}
+            maxLength={2}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground" htmlFor="sa-new-tz">
+          Timezone
+        </label>
+        <Input id="sa-new-tz" value={timezone} onChange={(ev) => setTimezone(ev.target.value)} />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground" htmlFor="sa-new-tier">
+          Subscription tier
+        </label>
+        <Input id="sa-new-tier" value={tier} onChange={(ev) => setTier(ev.target.value)} />
+      </div>
+      {formError ? <AuthAlert variant="error">{formError}</AuthAlert> : null}
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button type="submit" disabled={busy}>
+          {busy ? "Creating…" : "Create business"}
+        </Button>
+        <Button type="button" variant="outline" disabled={busy} onClick={() => setCreateOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+
+  return (
+    <div className="space-y-8">
+      <SuperAdminPageHeader
+        title="Tenants"
+        description="Each row is a tenant. Copy the UUID for NEXT_PUBLIC_TENANT_ID or shop sign-up. Use filters to narrow the list without losing context."
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setFiltersOpen(true)}
+            >
+              <SlidersHorizontal className="size-3.5" />
+              Filters
+              {activeFilterCount > 0 ? (
+                <span className="ml-0.5 inline-flex min-w-5 justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </Button>
+            <Button type="button" size="sm" className="gap-1.5 shadow-sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="size-3.5" />
+              New tenant
+            </Button>
+          </>
+        }
+      />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
       {deleteError ? <AuthAlert variant="error">{deleteError}</AuthAlert> : null}
 
-      <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-medium">Create tenant</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Slug drives the default hostname{" "}
-          <code className="rounded bg-muted px-1 text-xs">{"{slug}." + "{parent}"}</code> — parent is the hostname from{" "}
-          <code className="rounded bg-muted px-1 text-xs">NEXT_PUBLIC_APP_BASE_URL</code>, and on the API{" "}
-          <code className="rounded bg-muted px-1 text-xs">app.tenancy.slug-domain-suffix</code> (or{" "}
-          <code className="rounded bg-muted px-1 text-xs">APP_TENANCY_SLUG_DOMAIN_SUFFIX</code>). Use custom domain below only
-          when the tenant has a dedicated host.
-        </p>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={onCreate}>
-          <label className="sm:col-span-2">
-            <span className="text-sm font-medium">Name</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={name}
-              onChange={(ev) => setName(ev.target.value)}
-              required
-            />
-          </label>
-          <label>
-            <span className="text-sm font-medium">Slug</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={slug}
-              onChange={(ev) => setSlug(ev.target.value)}
-              placeholder="acme-kiosk"
-              pattern="[a-zA-Z0-9-]+"
-              required
-            />
-            {slug.trim() ? (
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Default URL preview (no custom domain):{" "}
-                <code className="rounded bg-muted px-1">{slugDerivedShopUrl(slug)}</code>
-              </span>
-            ) : null}
-          </label>
-          <label>
-            <span className="text-sm font-medium">Custom domain (optional)</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={primaryDomain}
-              onChange={(ev) => setPrimaryDomain(ev.target.value)}
-              placeholder="Overrides default {slug} hostname, e.g. acme.example.com"
-            />
-          </label>
-          <label>
-            <span className="text-sm font-medium">Currency</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={currency}
-              onChange={(ev) => setCurrency(ev.target.value)}
-              maxLength={3}
-            />
-          </label>
-          <label>
-            <span className="text-sm font-medium">Country</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={countryCode}
-              onChange={(ev) => setCountryCode(ev.target.value)}
-              maxLength={2}
-            />
-          </label>
-          <label className="sm:col-span-2">
-            <span className="text-sm font-medium">Timezone</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={timezone}
-              onChange={(ev) => setTimezone(ev.target.value)}
-            />
-          </label>
-          <label className="sm:col-span-2">
-            <span className="text-sm font-medium">Subscription tier</span>
-            <input
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={tier}
-              onChange={(ev) => setTier(ev.target.value)}
-            />
-          </label>
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Creating…" : "Create business"}
-            </Button>
-          </div>
-        </form>
-        {formError ? (
-          <div className="mt-4">
-            <AuthAlert variant="error">{formError}</AuthAlert>
-          </div>
-        ) : null}
-      </section>
+      <SuperAdminDrawer
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Create tenant"
+        description="Provision a new business with sensible defaults. You can attach domains after creation."
+        width="wide"
+      >
+        {createForm}
+      </SuperAdminDrawer>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-medium">All tenants</h2>
-          <Button variant="outline" size="sm" type="button" onClick={() => void reload()}>
+      <SuperAdminDrawer
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        title="Filter tenants"
+        description="Refine the table client-side. Combine search with status and tier."
+      >
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="sa-filter-search">
+              Search
+            </label>
+            <Input
+              id="sa-filter-search"
+              value={search}
+              onChange={(ev) => setSearch(ev.target.value)}
+              placeholder="Name, slug, or tenant ID"
+            />
+          </div>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Status</legend>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["all", "All"],
+                  ["active", "Active"],
+                  ["inactive", "Inactive"],
+                ] as const
+              ).map(([value, label]) => (
+                <Button
+                  key={value}
+                  type="button"
+                  size="sm"
+                  variant={filterActive === value ? "default" : "outline"}
+                  className="rounded-full"
+                  onClick={() => setFilterActive(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="sa-filter-tier">
+              Tier (exact match)
+            </label>
+            <Input
+              id="sa-filter-tier"
+              value={filterTier}
+              onChange={(ev) => setFilterTier(ev.target.value)}
+              placeholder="e.g. starter"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              setSearch("");
+              setFilterActive("all");
+              setFilterTier("");
+            }}
+          >
+            Reset filters
+          </Button>
+        </div>
+      </SuperAdminDrawer>
+
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="size-4 shrink-0 opacity-70" aria-hidden />
+            <span>
+              Showing{" "}
+              <span className="font-medium text-foreground tabular-nums">{filteredRows.length}</span> of{" "}
+              <span className="font-medium text-foreground tabular-nums">{rows.length}</span>
+            </span>
+          </div>
+          <Button variant="outline" size="sm" type="button" className="gap-1.5 self-start sm:self-auto" onClick={() => void reload()}>
+            <RefreshCw className="size-3.5" />
             Refresh
           </Button>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-border/80 bg-card shadow-sm">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-border bg-muted/40 text-xs uppercase text-muted-foreground">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="border-b border-border bg-muted/35 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Slug</th>
-                <th className="px-3 py-2 font-medium">Active</th>
-                <th className="px-3 py-2 font-medium">Tier</th>
-                <th className="px-3 py-2 font-medium">Created</th>
-                <th className="px-3 py-2 font-medium">Tenant ID</th>
-                <th className="px-3 py-2 font-medium text-right">Actions</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Slug</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Tier</th>
+                <th className="px-4 py-3 font-medium">Created</th>
+                <th className="px-4 py-3 font-medium">Tenant ID</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {rows.length === 0 ? (
+            <tbody className="divide-y divide-border/50">
+              {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
-                    No businesses yet.
+                  <td colSpan={7} className="px-4 py-14 text-center text-muted-foreground">
+                    {rows.length === 0 ? "No businesses yet." : "No tenants match your filters."}
                   </td>
                 </tr>
               ) : (
-                rows.map((b) => (
-                  <tr key={b.id} className="border-b border-border/60 last:border-0">
-                    <td className="px-3 py-2 font-medium">{b.name}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{b.slug}</td>
-                    <td className="px-3 py-2">{b.active ? "Yes" : "No"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{b.subscriptionTier}</td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                filteredRows.map((b) => (
+                  <tr
+                    key={b.id}
+                    className="transition-colors hover:bg-muted/35"
+                  >
+                    <td className="px-4 py-3 font-medium text-foreground">{b.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{b.slug}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={b.active ? "success" : "secondary"}>{b.active ? "Active" : "Inactive"}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="capitalize">
+                        {b.subscriptionTier}
+                      </Badge>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground tabular-nums">
                       {new Date(b.createdAt).toLocaleString()}
                     </td>
-                    <td className="max-w-[200px] truncate px-3 py-2 font-mono text-xs text-muted-foreground">
-                      {b.id}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-right">
+                    <td className="max-w-[200px] truncate px-4 py-3 font-mono text-xs text-muted-foreground">{b.id}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
                       <Button variant="ghost" size="sm" type="button" onClick={() => void copyId(b.id)}>
                         Copy ID
                       </Button>
@@ -259,7 +401,7 @@ export default function SuperAdminBusinessesPage() {
                         <Link
                           href={`/super-admin/businesses/${encodeURIComponent(b.id)}?name=${encodeURIComponent(b.name)}&tier=${encodeURIComponent(b.subscriptionTier)}&active=${b.active ? "1" : "0"}`}
                         >
-                          Domains
+                          Manage
                         </Link>
                       </Button>
                       <Button

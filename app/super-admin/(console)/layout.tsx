@@ -1,14 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { KioskLogo } from "@/components/brand/kiosk-logo";
-import { DashboardToaster } from "@/components/dashboard-sonner";
-import { Button } from "@/components/ui/button";
+import { SuperAdminShell } from "@/components/super-admin/super-admin-shell";
 import { APP_ROUTES } from "@/lib/config";
-import { logoutSuperAdmin } from "@/lib/super-admin-api";
 import { getSuperAdminAccessToken } from "@/lib/super-admin-session";
 
 export default function SuperAdminConsoleLayout({
@@ -17,7 +13,6 @@ export default function SuperAdminConsoleLayout({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
-  const pathname = usePathname();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -28,61 +23,14 @@ export default function SuperAdminConsoleLayout({
     setReady(true);
   }, [router]);
 
-  const onSignOut = () => {
-    logoutSuperAdmin();
-    router.replace(APP_ROUTES.superAdminLogin);
-  };
-
   if (!ready) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
-        Checking session…
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-4">
+        <div className="size-8 animate-pulse rounded-full bg-primary/20" aria-hidden />
+        <p className="text-sm text-muted-foreground">Checking session…</p>
       </div>
     );
   }
 
-  return (
-    <>
-      <header className="border-b border-border/80 bg-background/90 shadow-sm backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <div className="flex items-center gap-8">
-            <KioskLogo
-              href={APP_ROUTES.superAdminBusinesses}
-              size="sm"
-              wordmark="Kiosk"
-              tagline="Super admin"
-              showTagline
-            />
-            <nav className="flex gap-5 text-sm">
-              <Link
-                href={APP_ROUTES.superAdminBusinesses}
-                className={
-                  pathname === APP_ROUTES.superAdminBusinesses
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }
-              >
-                Businesses
-              </Link>
-              <Link
-                href={APP_ROUTES.superAdminSettings}
-                className={
-                  pathname === APP_ROUTES.superAdminSettings
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }
-              >
-                Settings
-              </Link>
-            </nav>
-          </div>
-          <Button variant="outline" size="sm" type="button" onClick={onSignOut}>
-            Sign out
-          </Button>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-      <DashboardToaster centered />
-    </>
-  );
+  return <SuperAdminShell>{children}</SuperAdminShell>;
 }

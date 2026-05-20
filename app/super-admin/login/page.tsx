@@ -22,7 +22,7 @@ export default function SuperAdminLoginPage() {
 
   useEffect(() => {
     if (getSuperAdminAccessToken()) {
-      router.replace(APP_ROUTES.superAdminBusinesses);
+      router.replace(APP_ROUTES.superAdminDashboard);
     }
   }, [router]);
 
@@ -32,7 +32,7 @@ export default function SuperAdminLoginPage() {
     setBusy(true);
     try {
       await loginSuperAdmin(email, password);
-      router.push(APP_ROUTES.superAdminBusinesses);
+      router.push(APP_ROUTES.superAdminDashboard);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {

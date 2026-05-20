@@ -43,6 +43,9 @@ export const Permission = {
   CreditsClaimsIssue: "credits.claims.issue",
   CreditsClaimsReview: "credits.claims.review",
   PaymentsStkInitiate: "payments.stk.initiate",
+  PaymentsGatewaysRead: "payments.gateways.read",
+  PaymentsGatewaysWrite: "payments.gateways.write",
+  PaymentsPlatformManage: "payments.platform.manage",
   ReportsNotificationsRead: "reports.notifications.read",
   ReportsNotificationsWrite: "reports.notifications.write",
 } as const;

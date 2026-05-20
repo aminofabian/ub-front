@@ -4,7 +4,7 @@ export default function SuperAdminRootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-background to-muted/30 dark:from-slate-950 dark:via-background dark:to-slate-900/50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-background to-slate-100/80 text-foreground antialiased dark:from-[oklch(0.14_0.02_264)] dark:via-background dark:to-[oklch(0.12_0.02_264)]">
       {children}
     </div>
   );

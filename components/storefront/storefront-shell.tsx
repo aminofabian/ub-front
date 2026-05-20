@@ -1,10 +1,7 @@
 import { Suspense } from "react";
 
-import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
-import { ShopFooterMart } from "@/components/storefront/shop-footer-mart";
-import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
+import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-chrome";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
-import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
 import {
   fetchPublicCategories,
   fetchPublicStorefront,
@@ -13,10 +10,6 @@ import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-sl
 
 function isHexColor(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value.trim());
-}
-
-function RailFallback() {
-  return <div className="h-11 animate-pulse bg-primary/40" aria-hidden />;
 }
 
 /**
@@ -67,35 +60,23 @@ export async function StorefrontShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:13.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background">
-      <ShopUtilityBar primaryHex={primary} locationHint={locationHint} />
+    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background">
       {slug ? (
-        <ShopHeaderBar
+        <ShopStorefrontChrome
           slug={slug}
           headerTitle={headerTitle}
           logoUrl={logoUrl}
           primaryHex={primary}
-        />
-      ) : null}
-      <Suspense fallback={<RailFallback />}>
-        {slug ? (
-          <ShopCategoryRail
-            categories={categories}
-            primaryHex={primary}
-            accentHex={accent}
-          />
-        ) : (
-          <RailFallback />
-        )}
-      </Suspense>
-      <div className="flex-1 pb-[var(--shop-footer-offset,9.5rem)]">
-        {children}
-      </div>
-      <ShopFooterMart
-        primaryHex={primary}
-        storeName={headerTitle}
-        logoUrl={logoUrl}
-      />
+          accentHex={accent}
+          locationHint={locationHint}
+          categories={categories}
+          storeName={headerTitle}
+        >
+          {children}
+        </ShopStorefrontChrome>
+      ) : (
+        <div className="flex-1">{children}</div>
+      )}
       <ShopStorefrontRealtime currency={currency} branding={branding} />
     </div>
   );

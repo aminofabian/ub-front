@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { KeyRound, User } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   type SuperAdminMe,
   changeSuperAdminPassword,
@@ -68,105 +72,117 @@ export default function SuperAdminSettingsPage() {
     confirmPassword.length > 0;
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your super admin account.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <SuperAdminPageHeader
+        title="Profile & security"
+        description="Manage your super admin identity and credentials. This account is separate from tenant shop staff."
+      />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
 
-      {/* Profile card */}
-      {me ? (
-        <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-medium">Profile</h2>
-          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs uppercase text-muted-foreground">Name</dt>
-              <dd className="mt-1 text-sm font-medium">{me.name}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase text-muted-foreground">Email</dt>
-              <dd className="mt-1 text-sm font-medium">{me.email}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs uppercase text-muted-foreground">
-                Super Admin ID
-              </dt>
-              <dd className="mt-1 font-mono text-xs text-muted-foreground">
-                {me.superAdminId}
-              </dd>
-            </div>
-          </dl>
-        </section>
-      ) : loadError ? null : (
-        <div className="rounded-xl border border-border/80 bg-card p-6 shadow-sm text-sm text-muted-foreground">
-          Loading…
-        </div>
-      )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {me ? (
+          <Card className="border-border/70 shadow-sm lg:col-span-1">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <User className="size-4" aria-hidden />
+                </span>
+                <div>
+                  <CardTitle className="font-heading text-lg">Profile</CardTitle>
+                  <CardDescription>Operator identity on the platform.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Name</dt>
+                  <dd className="text-sm font-medium">{me.name}</dd>
+                </div>
+                <div className="space-y-1">
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Email</dt>
+                  <dd className="text-sm font-medium">{me.email}</dd>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Super Admin ID
+                  </dt>
+                  <dd className="break-all font-mono text-xs text-muted-foreground">{me.superAdminId}</dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
+        ) : loadError ? null : (
+          <Card className="border-border/70 shadow-sm">
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">Loading profile…</CardContent>
+          </Card>
+        )}
 
-      {/* Change password */}
-      <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-medium">Change password</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Use a strong password that you don&apos;t use elsewhere.
-        </p>
+        <Card className="border-border/70 shadow-sm lg:col-span-1">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-foreground">
+                <KeyRound className="size-4" aria-hidden />
+              </span>
+              <div>
+                <CardTitle className="font-heading text-lg">Change password</CardTitle>
+                <CardDescription>Use a strong password that you don&apos;t reuse elsewhere.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {success ? <AuthAlert variant="success">{success}</AuthAlert> : null}
+            {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
 
-        {success ? (
-          <div className="mt-4">
-            <AuthAlert variant="success">{success}</AuthAlert>
-          </div>
-        ) : null}
-        {error ? (
-          <div className="mt-4">
-            <AuthAlert variant="error">{error}</AuthAlert>
-          </div>
-        ) : null}
-
-        <form className="mt-4 grid gap-3 sm:max-w-md" onSubmit={onChangePassword}>
-          <label>
-            <span className="text-sm font-medium">Current password</span>
-            <input
-              type="password"
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={currentPassword}
-              onChange={(ev) => setCurrentPassword(ev.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </label>
-          <label>
-            <span className="text-sm font-medium">New password</span>
-            <input
-              type="password"
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={newPassword}
-              onChange={(ev) => setNewPassword(ev.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
-          </label>
-          <label>
-            <span className="text-sm font-medium">Confirm new password</span>
-            <input
-              type="password"
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={confirmPassword}
-              onChange={(ev) => setConfirmPassword(ev.target.value)}
-              required
-              autoComplete="new-password"
-            />
-          </label>
-          <div>
-            <Button type="submit" disabled={busy || !isPasswordFormValid}>
-              {busy ? "Changing…" : "Change password"}
-            </Button>
-          </div>
-        </form>
-      </section>
+            <form className="space-y-4" onSubmit={onChangePassword}>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="sa-cur-pw">
+                  Current password
+                </label>
+                <Input
+                  id="sa-cur-pw"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(ev) => setCurrentPassword(ev.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="sa-new-pw">
+                  New password
+                </label>
+                <Input
+                  id="sa-new-pw"
+                  type="password"
+                  value={newPassword}
+                  onChange={(ev) => setNewPassword(ev.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="sa-confirm-pw">
+                  Confirm new password
+                </label>
+                <Input
+                  id="sa-confirm-pw"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(ev) => setConfirmPassword(ev.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+              <Button type="submit" disabled={busy || !isPasswordFormValid}>
+                {busy ? "Changing…" : "Change password"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

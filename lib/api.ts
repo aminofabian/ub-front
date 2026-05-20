@@ -4934,3 +4934,137 @@ export async function resolveSyncConflictLocalWins(
     { method: "POST", body: { resolvedSnapshot } },
   );
 }
+
+// ─── Payment Gateway Integration ──────────────────────────────────────
+
+export type AvailableGatewayRecord = {
+  gatewayType: string;
+  displayName: string;
+  description: string | null;
+  logoUrl: string | null;
+  sortOrder: number;
+  configured: boolean;
+  configId: string | null;
+  status: string | null;
+};
+
+export type GatewayConfigRecord = {
+  id: string;
+  businessId: string;
+  gatewayType: string;
+  label: string;
+  status: string;
+  isDefault: boolean;
+  lastTestedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TestConnectionResult = {
+  success: boolean;
+  newStatus: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+};
+
+export type DisplayInstructionRecord = {
+  configId: string;
+  type: string | null;
+  label: string | null;
+  instructions: string | null;
+  tillNumber: string | null;
+  businessNumber: string | null;
+  accountNumber: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  accountName: string | null;
+  swiftCode: string | null;
+};
+
+export type CreateGatewayConfigPayload = {
+  gatewayType: string;
+  label: string;
+  isDefault: boolean;
+  credentialsJson?: string;
+  displayInstructionsJson?: string;
+};
+
+// ── Tenant ──
+
+export async function fetchAvailableGateways(): Promise<
+  AvailableGatewayRecord[]
+> {
+  return request<AvailableGatewayRecord[]>(API_ROUTES.paymentGatewaysAvailable);
+}
+
+export async function fetchGatewayConfigs(): Promise<GatewayConfigRecord[]> {
+  return request<GatewayConfigRecord[]>(API_ROUTES.paymentGateways);
+}
+
+export async function fetchGatewayConfig(
+  id: string,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function createGatewayConfig(
+  body: CreateGatewayConfigPayload,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(API_ROUTES.paymentGateways, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function updateGatewayConfig(
+  id: string,
+  body: CreateGatewayConfigPayload,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function deleteGatewayConfig(id: string): Promise<void> {
+  await request(`${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function testGatewayConnection(
+  id: string,
+): Promise<TestConnectionResult> {
+  return request<TestConnectionResult>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/test`,
+    { method: "POST" },
+  );
+}
+
+export async function activateGateway(
+  id: string,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/activate`,
+    { method: "POST" },
+  );
+}
+
+export async function deactivateGateway(
+  id: string,
+): Promise<GatewayConfigRecord> {
+  return request<GatewayConfigRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/deactivate`,
+    { method: "POST" },
+  );
+}
+
+export async function fetchDisplayInstructions(): Promise<
+  DisplayInstructionRecord[]
+> {
+  return request<DisplayInstructionRecord[]>(
+    API_ROUTES.paymentDisplayInstructions,
+  );
+}

@@ -1,134 +1,57 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { ArrowRight, ShoppingBag, Tag, Truck } from "lucide-react";
+import { useState } from "react";
 
-import { APP_ROUTES, shopItemPath } from "@/lib/config";
+import { ShopCartLines } from "@/components/storefront/shop-cart-lines";
 import { Button } from "@/components/ui/button";
-import {
-  WEB_CART_CHANGED_EVENT,
-  clearWebCartHandle,
-  deleteWebCartLine,
-  fetchWebCart,
-  notifyWebCartChanged,
-  readWebCartHandle,
-  type PublicWebCart,
-  upsertWebCartLine,
-} from "@/lib/web-cart";
+import { useShopCart } from "@/hooks/use-shop-cart";
+import { APP_ROUTES } from "@/lib/config";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 
 export default function ShopCartView({ slug }: { slug: string }) {
-  const [cart, setCart] = useState<PublicWebCart | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { cart, loading, error, changeQty, removeLine } = useShopCart();
+  const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  const [promo, setPromo] = useState("");
 
-  const load = useCallback(async () => {
-    await Promise.resolve();
-    setLoading(true);
-    setError(null);
-    const s = slug.trim();
-    if (!s) {
-      setCart(null);
-      setLoading(false);
-      return;
-    }
-    const h = readWebCartHandle();
-    if (!h || h.slug !== s) {
-      setCart(null);
-      setLoading(false);
-      return;
-    }
-    const data = await fetchWebCart(s, h.cartId);
-    if (!data) {
-      clearWebCartHandle();
-      setCart(null);
-      setLoading(false);
-      return;
-    }
-    setCart(data);
-    setLoading(false);
-  }, [slug]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    const onChange = () => void load();
-    window.addEventListener(WEB_CART_CHANGED_EVENT, onChange);
-    return () => window.removeEventListener(WEB_CART_CHANGED_EVENT, onChange);
-  }, [load]);
-
-  async function changeQty(itemId: string, nextQty: number) {
-    const h = readWebCartHandle();
-    const s = slug.trim();
-    if (!h || h.slug !== s || !cart) {
-      return;
-    }
-    setError(null);
-    if (nextQty <= 0) {
-      const next = await deleteWebCartLine(s, h.cartId, itemId);
-      if (!next) {
-        clearWebCartHandle();
-        setCart(null);
-        setError("Your cart expired or was reset.");
-        notifyWebCartChanged();
-        return;
-      }
-      setCart(next);
-      notifyWebCartChanged();
-      return;
-    }
+  async function handleChangeQty(itemId: string, nextQty: number) {
+    setBusyItemId(itemId);
     try {
-      const next = await upsertWebCartLine(s, h.cartId, itemId, nextQty);
-      if (!next) {
-        clearWebCartHandle();
-        setCart(null);
-        setError("Your cart expired or was reset.");
-        notifyWebCartChanged();
-        return;
-      }
-      setCart(next);
-      notifyWebCartChanged();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update quantity.");
+      await changeQty(itemId, nextQty);
+    } finally {
+      setBusyItemId(null);
     }
   }
 
-  async function remove(itemId: string) {
-    const h = readWebCartHandle();
-    const s = slug.trim();
-    if (!h || h.slug !== s || !cart) {
-      return;
-    }
-    setError(null);
-    const next = await deleteWebCartLine(s, h.cartId, itemId);
-    if (!next) {
-      clearWebCartHandle();
-      setCart(null);
-      setError("Your cart expired or was reset.");
-      notifyWebCartChanged();
-      return;
-    }
-    setCart(next);
-    notifyWebCartChanged();
+  if (slug.trim() === "") {
+    return null;
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading cart…</p>;
+    return (
+      <div className="space-y-4" aria-busy="true" aria-label="Loading cart">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted/50" />
+        ))}
+      </div>
+    );
   }
 
   if (!cart || cart.lines.length === 0) {
     return (
-      <div className="space-y-4">
-        <p className="text-muted-foreground">Your cart is empty.</p>
-        <Link
-          href={APP_ROUTES.shop}
-          className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Browse products
-        </Link>
+      <div className="rounded-3xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+        <div className="mx-auto flex size-20 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+          <ShoppingBag className="size-9" strokeWidth={1.5} aria-hidden />
+        </div>
+        <h2 className="mt-6 text-xl font-semibold tracking-tight">Your cart is empty</h2>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          Discover fresh picks in the shop and add items with one tap — no product page
+          required.
+        </p>
+        <Button asChild className="mt-8 h-11 rounded-xl px-8">
+          <Link href={APP_ROUTES.shop}>Browse the shop</Link>
+        </Button>
       </div>
     );
   }
@@ -136,100 +59,87 @@ export default function ShopCartView({ slug }: { slug: string }) {
   const subtotalLabel = formatDisplayPrice(cart.currency, cart.subtotal);
 
   return (
-    <div className="space-y-6">
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <ul className="space-y-4">
-        {cart.lines.map((line) => {
-          const title = line.variantName ? `${line.name} · ${line.variantName}` : line.name;
-          const unit = formatDisplayPrice(cart.currency, line.unitPrice);
-          const lineTotal = formatDisplayPrice(cart.currency, line.lineTotal);
-          return (
-            <li
-              key={line.itemId}
-              className="flex gap-4 rounded-xl border border-border/70 bg-card/50 p-3 sm:p-4"
-            >
-              <Link
-                href={shopItemPath(line.sku)}
-                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-24"
-              >
-                {line.imageUrl ? (
-                  <Image src={line.imageUrl} alt={title} fill className="object-cover" sizes="96px" />
-                ) : (
-                  <span className="flex h-full items-center justify-center text-lg text-muted-foreground">
-                    {line.name.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </Link>
-              <div className="min-w-0 flex-1 space-y-2">
-                <Link href={shopItemPath(line.sku)} className="font-medium hover:underline">
-                  {title}
-                </Link>
-                <p className="text-sm text-muted-foreground">{unit} each</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center rounded-lg border border-border">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-2"
-                      aria-label="Decrease quantity"
-                      onClick={() =>
-                        void changeQty(line.itemId, line.quantity > 1 ? line.quantity - 1 : 0)
-                      }
-                    >
-                      −
-                    </Button>
-                    <span className="min-w-8 px-2 text-center text-sm tabular-nums">{line.quantity}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-2"
-                      aria-label="Increase quantity"
-                      onClick={() => void changeQty(line.itemId, line.quantity + 1)}
-                    >
-                      +
-                    </Button>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 text-destructive hover:text-destructive"
-                    onClick={() => void remove(line.itemId)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-                <p className="text-sm font-semibold tabular-nums text-primary sm:hidden">{lineTotal}</p>
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="space-y-4">
+        {error ? (
+          <p className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <ShopCartLines
+          cart={cart}
+          busyItemId={busyItemId}
+          onChangeQty={handleChangeQty}
+          onRemove={removeLine}
+        />
+      </div>
+
+      <aside className="lg:sticky lg:top-6">
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm ring-1 ring-black/[0.02]">
+          <h2 className="text-base font-semibold">Order summary</h2>
+
+          <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-xs text-muted-foreground">
+            <Truck className="size-3.5 shrink-0 text-foreground/70" aria-hidden />
+            Pickup branch:{" "}
+            <span className="font-semibold text-foreground">{cart.catalogBranchName}</span>
+          </div>
+
+          <div className="space-y-2 border-t border-border pt-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-semibold tabular-nums">{subtotalLabel}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Delivery</span>
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                Free
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-3">
+            <label className="flex flex-col gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Tag className="size-3.5" aria-hidden />
+                Promo code
+              </span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promo}
+                  onChange={(e) => setPromo(e.target.value)}
+                  placeholder="Coming soon"
+                  disabled
+                  className="h-10 flex-1 rounded-lg border border-border bg-background/60 px-3 text-sm opacity-70"
+                />
+                <Button type="button" variant="outline" size="sm" className="h-10 shrink-0" disabled>
+                  Apply
+                </Button>
               </div>
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold tabular-nums text-primary">{lineTotal}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <p className="text-lg font-semibold tabular-nums">
-          Subtotal <span className="text-primary">{subtotalLabel}</span>
-        </p>
-        <div className="flex flex-col gap-3 sm:items-end">
+            </label>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Discount codes will be available in a future update.
+            </p>
+          </div>
+
           {cart.subtotal != null ? (
-            <Button asChild className="w-full sm:w-auto">
-              <Link href={APP_ROUTES.shopCheckout}>Proceed to checkout</Link>
+            <Button asChild className="h-11 w-full rounded-xl text-sm font-semibold">
+              <Link href={APP_ROUTES.shopCheckout} className="gap-2">
+                Proceed to checkout
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">
               Subtotal unavailable until every item has a storefront price at this branch.
             </p>
           )}
-          <p className="text-sm text-muted-foreground">
-            Online payment is coming next — checkout submits a pickup request for{" "}
-            <span className="text-foreground">{cart.catalogBranchName}</span>.
+
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
+            Checkout submits a pickup request. Pay using the instructions shown at checkout.
           </p>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

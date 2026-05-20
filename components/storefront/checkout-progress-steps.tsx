@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: 1, label: "Shipping" },
+  { id: 1, label: "Details" },
   { id: 2, label: "Review" },
   { id: 3, label: "Confirm" },
 ] as const;
@@ -21,7 +21,7 @@ export function CheckoutProgressSteps({
 }: Props) {
   return (
     <ol
-      className="flex w-full max-w-lg items-center"
+      className="flex w-full max-w-xl items-center"
       aria-label="Checkout progress"
     >
       {STEPS.map((step, i) => {
@@ -59,7 +59,9 @@ export function CheckoutProgressSteps({
               <span
                 className={cn(
                   "whitespace-nowrap text-center text-xs font-semibold sm:text-sm",
-                  complete && isDone && "text-emerald-700 dark:text-emerald-400",
+                  complete &&
+                    isDone &&
+                    "text-emerald-700 dark:text-emerald-400",
                   !complete && isCurrent && "text-foreground",
                   !complete &&
                     isDone &&
@@ -73,7 +75,7 @@ export function CheckoutProgressSteps({
             {i < STEPS.length - 1 && (
               <div
                 className={cn(
-                  "mx-2 min-h-px min-w-[0.75rem] flex-1 rounded-full sm:mx-3",
+                  "mx-1 min-h-px min-w-[0.75rem] flex-1 rounded-full sm:mx-2",
                   complete && connectorAfterDone
                     ? "h-0.5 bg-emerald-500"
                     : connectorAfterDone

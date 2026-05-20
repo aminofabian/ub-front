@@ -136,17 +136,6 @@ export default function ShopProductGrid({
                   </span>
                 ) : null}
 
-                {/* Hover quick-add */}
-                {slug && !isOutOfStock ? (
-                  <div className="absolute bottom-2 right-2 translate-y-1 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-                    <ShopQuickAddButton
-                      slug={slug}
-                      itemId={item.id}
-                      ariaLabel={`Add ${title} to basket`}
-                      accentHex={accentHex}
-                    />
-                  </div>
-                ) : null}
               </Link>
 
               {/* Content */}
@@ -158,8 +147,8 @@ export default function ShopProductGrid({
                   {title}
                 </Link>
 
-                <div className="mt-auto flex items-end justify-between gap-2">
-                  <div className="flex flex-col gap-0.5">
+                <div className="mt-auto space-y-2.5">
+                  <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[15px] font-bold tabular-nums tracking-tight text-foreground">
                       {priceLabel}
                     </span>
@@ -170,16 +159,17 @@ export default function ShopProductGrid({
                     ) : null}
                   </div>
 
-                  {/* Mobile quick-add */}
                   {slug && !isOutOfStock ? (
-                    <div className="sm:hidden">
-                      <ShopQuickAddButton
-                        slug={slug}
-                        itemId={item.id}
-                        ariaLabel={`Add ${title} to basket`}
-                        accentHex={accentHex}
-                      />
-                    </div>
+                    <ShopQuickAddButton
+                      slug={slug}
+                      itemId={item.id}
+                      ariaLabel={`Add ${title} to basket`}
+                      accentHex={accentHex}
+                      size="sm"
+                      variant="stepper"
+                      maxQty={item.qtyOnHand}
+                      className="w-full"
+                    />
                   ) : null}
                 </div>
               </div>

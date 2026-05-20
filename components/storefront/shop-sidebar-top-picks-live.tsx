@@ -89,6 +89,7 @@ export function ShopSidebarTopPicksLive({
                 ariaLabel={`Add ${title} to basket`}
                 accentHex={accent}
                 size="sm"
+                variant="icon"
               />
             </li>
           );

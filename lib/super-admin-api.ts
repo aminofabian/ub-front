@@ -200,6 +200,45 @@ export async function deleteSaBusiness(businessId: string): Promise<void> {
   });
 }
 
+// ─── Platform Payment Gateways ──────────────────────────────────────
+
+export type PlatformGatewayRecord = {
+  gatewayType: string;
+  isEnabled: boolean;
+  displayName: string;
+  description: string | null;
+  logoUrl: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PatchPlatformGatewayPayload = {
+  isEnabled: boolean;
+  displayName: string;
+  description?: string;
+  logoUrl?: string;
+  sortOrder: number;
+};
+
+export async function fetchPlatformGateways(): Promise<
+  PlatformGatewayRecord[]
+> {
+  return saRequest<PlatformGatewayRecord[]>(
+    API_ROUTES.superAdminPlatformPaymentGateways,
+  );
+}
+
+export async function patchPlatformGateway(
+  gatewayType: string,
+  body: PatchPlatformGatewayPayload,
+): Promise<PlatformGatewayRecord> {
+  return saRequest<PlatformGatewayRecord>(
+    `${API_ROUTES.superAdminPlatformPaymentGateways}/${encodeURIComponent(gatewayType)}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
 export async function fetchSaDomains(
   businessId: string,
 ): Promise<SaDomainRow[]> {

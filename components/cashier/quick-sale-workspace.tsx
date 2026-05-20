@@ -198,7 +198,9 @@ export function QuickSaleWorkspace({
   const mpesaSplitStr = activeCart.mpesaSplitStr;
   const splitMpesaRef = activeCart.splitMpesaRef;
   const cashTenderStr = activeCart.cashTenderStr;
-  // customerSearchBusy stays local (not per-cart)
+  const stkPushStatus = activeCart.stkPushStatus;
+  const stkPushError = activeCart.stkPushError;
+
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
 
   const setPayMethod = useCallback(
@@ -644,6 +646,37 @@ export function QuickSaleWorkspace({
     [updateActiveCart],
   );
 
+  const onStkPush = useCallback(async () => {
+    if (!selectedCustomer || selectedCustomer.phones.length === 0) {
+      updateActiveCart({ stkPushStatus: "failed", stkPushError: "No customer phone" });
+      return;
+    }
+    if (!online) {
+      updateActiveCart({ stkPushStatus: "failed", stkPushError: "Offline — cannot send STK Push" });
+      return;
+    }
+    updateActiveCart({ stkPushStatus: "sending", stkPushError: "" });
+    try {
+      const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
+      const { initiateMpesaStkIntent } = await import("@/lib/api");
+      const result = await initiateMpesaStkIntent(
+        { customerId: selectedCustomer.id, amount: grandTotal },
+        nextIdempotencyKey(),
+      );
+      updateActiveCart({
+        stkPushStatus: "sent",
+        stkPushCheckoutId: result.checkoutRequestId,
+        mpesaRef: result.checkoutRequestId,
+        stkPushError: "",
+      });
+    } catch (e) {
+      updateActiveCart({
+        stkPushStatus: "failed",
+        stkPushError: e instanceof Error ? e.message : "STK Push failed",
+      });
+    }
+  }, [selectedCustomer, online, grandTotal, updateActiveCart]);
+
   const onRetryOutbox = useCallback(async () => {
     if (!online) {
       setError("Go online to sync queued sales.");
@@ -883,7 +916,8 @@ export function QuickSaleWorkspace({
               business?.primaryDomain,
             ),
             branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
-            servedByName: me?.name?.trim() || result.sale.soldByName?.trim() || null,
+            servedByName:
+              me?.name?.trim() || result.sale.soldByName?.trim() || null,
             currency: receiptCurrency,
             cartLines: receiptCartLines,
             sale: result.sale,
@@ -1156,135 +1190,140 @@ export function QuickSaleWorkspace({
         businessId={business?.id ?? null}
         onStalePosItem={handleStalePosItem}
         dialogBrandTheme={dialogBrandTheme}
-          search={search}
-          setSearch={setSearch}
-          hits={hits}
-          searchBanner={searchBanner}
-          topProducts={topProducts}
-          addLine={addLine}
-          canBrowseCategories={canBrowseCategories}
-          categoryRoots={categoryRoots}
-          visibleCategoryTiles={visibleCategoryTiles}
-          categoryBrowseStack={categoryBrowseStack}
-          setCategoryBrowseStack={setCategoryBrowseStack}
-          applySubtreeFilter={applySubtreeFilter}
-          clearCategoryFilter={clearCategoryFilter}
-          categoryFilterId={categoryFilterId}
-          categoryFilterLabel={categoryFilterLabel}
-          categoryTreeBusy={categoryTreeBusy}
-          categoryBrowseParentId={categoryBrowseParentId}
-          typeFilterId={posItemTypeId}
-          typeFilterLabel={typeFilterLabel}
-          clearTypeFilter={clearPosTypeFilter}
-          posShiftLinks={
-            showPosShiftLinks
-              ? {
-                  branchId: branchId ?? "",
-                  branchSelected,
-                  hasOpenShift: branchOpenShift != null,
-                  shiftLoading: branchShiftLoading,
-                  canOpenShift,
-                  canCloseShift,
-                  onShortcut: onPosShiftShortcut,
-                }
-              : null
-          }
-          cartTabs={carts.map((c) => ({
-            grandTotal: cartSessionGrandTotal(c),
-            id: c.id,
-            label: cartSessionLabel(c),
-            itemCount: cartSessionItemCount(c),
-          }))}
-          activeCartId={activeCartId}
-          canCreateCart={carts.length < MAX_CARTS}
-          onCreateCart={createCart}
-          onSwitchCart={switchCart}
-          onRemoveCart={removeCart}
-          cart={{
-            lines,
-            grandTotal,
-            removeLine,
-            updateLine,
-            payMethod,
-            setPayMethod,
-            mpesaRef,
-            setMpesaRef,
-            splitPay,
-            setSplitPay,
-            cashSplitStr,
-            setCashSplitStr,
-            mpesaSplitStr,
-            setMpesaSplitStr,
-            splitMpesaRef,
-            setSplitMpesaRef,
-            cashTenderStr,
-            setCashTenderStr,
-            canLookupCustomers,
-            customerPhoneQuery,
-            setCustomerPhoneQuery,
-            customerHits,
-            customerSearchBusy,
-            onSearchCustomers: () => void onSearchCustomers(),
-            selectedCustomer,
-            setSelectedCustomer,
-            onComplete: () => void onComplete().catch(() => undefined),
-            canCompleteSale,
-            loading,
-            outboxCount,
-            outboxBusy,
-            onRetryOutbox: () => void onRetryOutbox().catch(() => undefined),
-            error,
-            notice,
-            canVoid,
-            lastSale,
-            lastReceipt,
-            lastSaleCustomerName,
-            voidNotes,
-            setVoidNotes,
-            onVoidLastSale: () => void onVoidLastSale().catch(() => undefined),
-            voidLoading,
-            onDownloadReceiptPdf: () =>
-              void onDownloadReceiptPdf().catch(() => undefined),
-            receiptLoading,
-            onStartNewSale,
-          }}
+        search={search}
+        setSearch={setSearch}
+        hits={hits}
+        searchBanner={searchBanner}
+        topProducts={topProducts}
+        addLine={addLine}
+        canBrowseCategories={canBrowseCategories}
+        categoryRoots={categoryRoots}
+        visibleCategoryTiles={visibleCategoryTiles}
+        categoryBrowseStack={categoryBrowseStack}
+        setCategoryBrowseStack={setCategoryBrowseStack}
+        applySubtreeFilter={applySubtreeFilter}
+        clearCategoryFilter={clearCategoryFilter}
+        categoryFilterId={categoryFilterId}
+        categoryFilterLabel={categoryFilterLabel}
+        categoryTreeBusy={categoryTreeBusy}
+        categoryBrowseParentId={categoryBrowseParentId}
+        typeFilterId={posItemTypeId}
+        typeFilterLabel={typeFilterLabel}
+        clearTypeFilter={clearPosTypeFilter}
+        posShiftLinks={
+          showPosShiftLinks
+            ? {
+                branchId: branchId ?? "",
+                branchSelected,
+                hasOpenShift: branchOpenShift != null,
+                shiftLoading: branchShiftLoading,
+                canOpenShift,
+                canCloseShift,
+                onShortcut: onPosShiftShortcut,
+              }
+            : null
+        }
+        cartTabs={carts.map((c) => ({
+          grandTotal: cartSessionGrandTotal(c),
+          id: c.id,
+          label: cartSessionLabel(c),
+          itemCount: cartSessionItemCount(c),
+        }))}
+        activeCartId={activeCartId}
+        canCreateCart={carts.length < MAX_CARTS}
+        onCreateCart={createCart}
+        onSwitchCart={switchCart}
+        onRemoveCart={removeCart}
+        cart={{
+          lines,
+          grandTotal,
+          removeLine,
+          updateLine,
+          payMethod,
+          setPayMethod,
+          mpesaRef,
+          setMpesaRef,
+          splitPay,
+          setSplitPay,
+          cashSplitStr,
+          setCashSplitStr,
+          mpesaSplitStr,
+          setMpesaSplitStr,
+          splitMpesaRef,
+          setSplitMpesaRef,
+          cashTenderStr,
+          setCashTenderStr,
+            stkPushStatus,
+            stkPushError,
+            onStkPush: () => void onStkPush(),
+          canLookupCustomers,
+          customerPhoneQuery,
+          setCustomerPhoneQuery,
+          customerHits,
+          customerSearchBusy,
+          onSearchCustomers: () => void onSearchCustomers(),
+          selectedCustomer,
+          setSelectedCustomer,
+          onComplete: () => void onComplete().catch(() => undefined),
+          canCompleteSale,
+          loading,
+          outboxCount,
+          outboxBusy,
+          onRetryOutbox: () => void onRetryOutbox().catch(() => undefined),
+          error,
+          notice,
+          canVoid,
+          lastSale,
+          lastReceipt,
+          lastSaleCustomerName,
+          voidNotes,
+          setVoidNotes,
+          onVoidLastSale: () => void onVoidLastSale().catch(() => undefined),
+          voidLoading,
+          onDownloadReceiptPdf: () =>
+            void onDownloadReceiptPdf().catch(() => undefined),
+          receiptLoading,
+          onStartNewSale,
+        }}
       />
       {isCashier ? (
         <>
-        <OpenShiftModal
-          open={openShiftModal}
-          onClose={() => setOpenShiftModal(false)}
-          branches={branches.filter((b) => b.active)}
-          preferredBranchId={branchId?.trim() || null}
-          lockBranchSelectionTo={branchLockedRole ? me?.branchId ?? null : null}
-          onOpened={() => {
-            setOpenShiftModal(false);
-            setNotice("Shift opened successfully.");
-            refetchBranchOpenShift();
-          }}
-        />
-        <CloseShiftModal
-          open={closeShiftModal}
-          onClose={() => setCloseShiftModal(false)}
-          shift={branchOpenShift}
-          onClosed={() => {
-            setCloseShiftModal(false);
-            setNotice("Shift closed successfully.");
-            refetchBranchOpenShift();
-          }}
-        />
-        {branchOpenShift ? (
-          <DrawoutModal
-            open={drawoutModal}
-            onClose={() => setDrawoutModal(false)}
-            shiftId={branchOpenShift.id}
-            onCreated={() => {
-              setDrawoutModal(false);
-              setNotice("Drawout submitted.");
+          <OpenShiftModal
+            open={openShiftModal}
+            onClose={() => setOpenShiftModal(false)}
+            branches={branches.filter((b) => b.active)}
+            preferredBranchId={branchId?.trim() || null}
+            lockBranchSelectionTo={
+              branchLockedRole ? (me?.branchId ?? null) : null
+            }
+            onOpened={() => {
+              setOpenShiftModal(false);
+              setNotice("Shift opened successfully.");
               refetchBranchOpenShift();
             }}
           />
-        ) : null}
+          <CloseShiftModal
+            open={closeShiftModal}
+            onClose={() => setCloseShiftModal(false)}
+            shift={branchOpenShift}
+            onClosed={() => {
+              setCloseShiftModal(false);
+              setNotice("Shift closed successfully.");
+              refetchBranchOpenShift();
+            }}
+          />
+          {branchOpenShift ? (
+            <DrawoutModal
+              open={drawoutModal}
+              onClose={() => setDrawoutModal(false)}
+              shiftId={branchOpenShift.id}
+              onCreated={() => {
+                setDrawoutModal(false);
+                setNotice("Drawout submitted.");
+                refetchBranchOpenShift();
+              }}
+            />
+          ) : null}
         </>
       ) : null}
     </>

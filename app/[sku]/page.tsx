@@ -80,8 +80,8 @@ export default async function ShopItemPage({ params }: PageProps) {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#f6f6f6] py-4 sm:py-6">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <div className="min-h-screen bg-background pb-28 sm:pb-8">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
         <Link
           href={APP_ROUTES.shop}
           className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -214,6 +214,12 @@ export default async function ShopItemPage({ params }: PageProps) {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/95 p-3 shadow-[0_-12px_40px_rgba(15,23,42,0.08)] backdrop-blur-md sm:hidden">
+        <div className="mx-auto max-w-7xl">
+          <ShopAddToCart slug={slug} itemId={item.id} compact className="!mt-0 !border-0 !bg-transparent !p-0" />
         </div>
       </div>
     </div>

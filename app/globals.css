@@ -1360,6 +1360,40 @@ button:hover .tenant-monogram-shell {
     animation: number-pop 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes shop-qty-pop {
+    0% {
+        transform: scale(0.75);
+        opacity: 0.4;
+    }
+    55% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes shop-cart-added-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 45%, transparent);
+    }
+    70% {
+        box-shadow: 0 0 0 10px transparent;
+    }
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.animate-shop-qty-pop {
+    animation: shop-qty-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-shop-cart-added {
+    animation: shop-cart-added-pulse 0.65s ease-out both;
+}
+
 /* POS receipt print — 50mm thermal roll (50×80 mm), bold readable type */
 @media print {
     @page {

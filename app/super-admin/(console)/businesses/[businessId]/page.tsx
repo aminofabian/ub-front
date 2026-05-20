@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { BookOpen } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import {
@@ -9,6 +10,9 @@ import {
   showThemedErrorToast,
   showThemedSuccessToast,
 } from "@/components/super-admin/themed-confirm-toast";
+import { SuperAdminDrawer } from "@/components/super-admin/super-admin-drawer";
+import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_ROUTES } from "@/lib/config";
@@ -72,6 +76,7 @@ function BusinessDetailInner() {
   // Shared
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [roleGuideOpen, setRoleGuideOpen] = useState(false);
 
   // ── Derived: admins vs staff ─────────────────────────────────────────
   const admins = useMemo(
@@ -243,61 +248,93 @@ function BusinessDetailInner() {
 
   // ── Tab helpers ──────────────────────────────────────────────────────
   const tabClass = (tab: Tab) =>
-    `px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+    `rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,box-shadow] ${
       activeTab === tab
-        ? "border-primary text-primary"
-        : "border-transparent text-muted-foreground hover:text-foreground"
+        ? "bg-foreground text-background shadow-sm"
+        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
     }`;
 
   return (
     <div className="space-y-8">
-      {/* ── Header ──────────────────────────────────────────────────── */}
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-2 -ml-2"
-          type="button"
-          asChild
-        >
-          <Link href={APP_ROUTES.superAdminBusinesses}>
-            &larr; All businesses
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {bizName || "Business"}{" "}
-          <span className="text-base font-normal text-muted-foreground">
-            &middot; super-admin
-          </span>
-        </h1>
-        <p className="mt-1 font-mono text-xs text-muted-foreground break-all">
-          {businessId}
-        </p>
-      </div>
+      <SuperAdminPageHeader
+        title={bizName || "Tenant"}
+        description={
+          <>
+            <span className="font-mono text-xs text-muted-foreground break-all">{businessId}</span>
+            <span className="mt-2 block text-muted-foreground">
+              Super-admin view — manage lifecycle, domains, and team access for this tenant.
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setRoleGuideOpen(true)}>
+              <BookOpen className="size-3.5" />
+              Role guide
+            </Button>
+            <Button variant="outline" size="sm" type="button" asChild>
+              <Link href={APP_ROUTES.superAdminBusinesses}>All tenants</Link>
+            </Button>
+          </>
+        }
+      />
+
+      <SuperAdminDrawer
+        open={roleGuideOpen}
+        onOpenChange={setRoleGuideOpen}
+        title="Roles & access"
+        description="How shop users are grouped in this console. Tenant roles are managed inside each business; super-admin can observe but not impersonate staff sessions from here."
+        width="wide"
+      >
+        <div className="space-y-5 text-sm leading-relaxed text-muted-foreground">
+          <section className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="mb-2 font-heading text-sm font-semibold text-foreground">Owners &amp; admins</h3>
+            <p>
+              <Badge variant="default" className="mr-2 align-middle">
+                owner / admin
+              </Badge>
+              Full configuration access for the tenant: branches, catalog, payouts, and staff invites. Use this list to
+              confirm who can operate the business if you need to coordinate with the merchant.
+            </p>
+          </section>
+          <section className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="mb-2 font-heading text-sm font-semibold text-foreground">Staff</h3>
+            <p>
+              <Badge variant="secondary" className="mr-2 align-middle">
+                staff roles
+              </Badge>
+              Day-to-day operators (cashiers, stock, etc.) with scoped permissions. Role names come from the tenant&apos;s
+              role catalog; the <span className="font-medium text-foreground">role key</span> is the stable identifier
+              you&apos;ll see in exports and logs.
+            </p>
+          </section>
+          <section className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="mb-2 font-heading text-sm font-semibold text-foreground">Status</h3>
+            <p>
+              <Badge variant="success" className="mr-2 align-middle">
+                active
+              </Badge>
+              Users who can sign in. Inactive or invited users remain in the roster for auditability but should not
+              appear on active shift rosters.
+            </p>
+          </section>
+        </div>
+      </SuperAdminDrawer>
 
       {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
 
-      {/* ── Tab bar ─────────────────────────────────────────────────── */}
-      <div className="flex gap-0 border-b border-border/60">
-        <button
-          type="button"
-          className={tabClass("overview")}
-          onClick={() => setActiveTab("overview")}
-        >
+      <div
+        className="flex flex-wrap gap-1 rounded-2xl border border-border/60 bg-muted/25 p-1 shadow-inner"
+        role="tablist"
+        aria-label="Tenant sections"
+      >
+        <button type="button" role="tab" aria-selected={activeTab === "overview"} className={tabClass("overview")} onClick={() => setActiveTab("overview")}>
           Overview
         </button>
-        <button
-          type="button"
-          className={tabClass("users")}
-          onClick={() => setActiveTab("users")}
-        >
+        <button type="button" role="tab" aria-selected={activeTab === "users"} className={tabClass("users")} onClick={() => setActiveTab("users")}>
           Users ({users.length})
         </button>
-        <button
-          type="button"
-          className={tabClass("domains")}
-          onClick={() => setActiveTab("domains")}
-        >
+        <button type="button" role="tab" aria-selected={activeTab === "domains"} className={tabClass("domains")} onClick={() => setActiveTab("domains")}>
           Domains ({domains.length})
         </button>
       </div>

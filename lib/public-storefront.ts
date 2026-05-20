@@ -588,3 +588,36 @@ export async function fetchPublicItemDetail(
     return null;
   }
 }
+
+// ─── Payment Display Instructions (public) ────────────────────────────
+
+export type PublicPaymentInstruction = {
+  configId: string;
+  type: string | null;
+  label: string | null;
+  instructions: string | null;
+  tillNumber: string | null;
+  businessNumber: string | null;
+  accountNumber: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  accountName: string | null;
+  swiftCode: string | null;
+};
+
+/** Server-side fetch. Client components must use {@link fetchPublicPaymentInstructionsBrowser}. */
+export async function fetchPublicPaymentInstructions(
+  slug: string,
+): Promise<PublicPaymentInstruction[]> {
+  const base = backendOrigin();
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s) return [];
+  const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/payments/display-instructions`;
+  try {
+    const res = await fetch(url, STORE_PRICE_FETCH_INIT);
+    if (!res.ok) return [];
+    return (await res.json()) as PublicPaymentInstruction[];
+  } catch {
+    return [];
+  }
+}

@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
+import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
   fetchShopperAccountOverview,
@@ -26,7 +27,12 @@ import {
 } from "@/lib/api";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
-import { formatDisplayPrice } from "@/lib/public-storefront";
+import {
+  formatDisplayPrice,
+  type PublicPaymentInstruction,
+} from "@/lib/public-storefront";
+import { fetchPublicPaymentInstructionsBrowser } from "@/lib/public-storefront-client";
+import { cn } from "@/lib/utils";
 import {
   WEB_CART_CHANGED_EVENT,
   clearWebCartHandle,
@@ -87,6 +93,18 @@ function saveCheckoutPrefill(data: CheckoutPrefill): void {
   } catch {
     // storage full or unavailable
   }
+}
+
+function isPrefillComplete(p: CheckoutPrefill): boolean {
+  return Boolean(
+    p.customerEmail.trim() &&
+      p.firstName.trim() &&
+      p.lastName.trim() &&
+      p.customerPhone.trim() &&
+      p.subCounty &&
+      p.ward &&
+      p.streetAddress.trim(),
+  );
 }
 
 function loadCheckoutPrefill(): CheckoutPrefill | null {
@@ -246,6 +264,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [orderReceipt, setOrderReceipt] = useState<CheckoutOrderReceipt | null>(
     null,
   );
+  const [paymentInstructions, setPaymentInstructions] = useState<
+    PublicPaymentInstruction[]
+  >([]);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -260,6 +281,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [shippingLocked, setShippingLocked] = useState(false);
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
 
   const prefilled = useRef(false);
   const termsManuallyChanged = useRef(false);
@@ -393,15 +416,51 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     }
   }, [loading, cart, tryPrefill]);
 
+  // Fetch payment instructions when cart loads and when order is placed
+  useEffect(() => {
+    if (slug && cart) {
+      fetchPublicPaymentInstructionsBrowser(slug)
+        .then(setPaymentInstructions)
+        .catch(() => setPaymentInstructions([]));
+    }
+  }, [slug, cart, done]);
+
   const requiredCheckoutFieldsComplete = Boolean(
     customerEmail.trim() &&
-      firstName.trim() &&
-      lastName.trim() &&
-      customerPhone.trim() &&
-      subCounty &&
-      ward &&
-      streetAddress.trim(),
+    firstName.trim() &&
+    lastName.trim() &&
+    customerPhone.trim() &&
+    subCounty &&
+    ward &&
+    streetAddress.trim(),
   );
+
+  // Use saved delivery/contact from last order — skip the extra "save" step
+  useEffect(() => {
+    if (loading || !cart || !prefilled.current || isEditingShipping) return;
+    if (shippingLocked || !requiredCheckoutFieldsComplete) return;
+    const saved = loadCheckoutPrefill();
+    const canUseSaved =
+      (saved != null && isPrefillComplete(saved)) ||
+      (isDefaultAddress && requiredCheckoutFieldsComplete);
+    if (canUseSaved) {
+      setShippingLocked(true);
+    }
+  }, [
+    loading,
+    cart,
+    isEditingShipping,
+    shippingLocked,
+    requiredCheckoutFieldsComplete,
+    customerEmail,
+    firstName,
+    lastName,
+    customerPhone,
+    subCounty,
+    ward,
+    streetAddress,
+    isDefaultAddress,
+  ]);
 
   const termsAccepted =
     agreedToTerms ||
@@ -802,6 +861,54 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   {total}
                 </span>
               </div>
+              {paymentInstructions.length > 0 && (
+                <div className="mt-4 space-y-3 rounded-xl border border-border bg-background p-4">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Pay with M-Pesa
+                  </h3>
+                  {paymentInstructions.map((pi) => (
+                    <div
+                      key={pi.configId}
+                      className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900 dark:bg-emerald-950/20"
+                    >
+                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                        {pi.label}
+                      </p>
+                      {pi.type === "till" && pi.tillNumber && (
+                        <p className="mt-1 font-mono text-lg font-bold tracking-wide text-foreground">
+                          Till: {pi.tillNumber}
+                        </p>
+                      )}
+                      {pi.type === "paybill" && pi.businessNumber && (
+                        <p className="mt-1 font-mono text-sm font-bold text-foreground">
+                          Paybill: {pi.businessNumber}
+                          {pi.accountNumber
+                            ? ` · Acct: ${pi.accountNumber}`
+                            : ""}
+                        </p>
+                      )}
+                      {pi.type === "bank_account" && (
+                        <div className="mt-1 space-y-0.5 text-sm">
+                          <p className="font-semibold text-foreground">
+                            {pi.bankName}
+                          </p>
+                          <p className="font-mono text-muted-foreground">
+                            Acct: {pi.accountNumber}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {pi.accountName}
+                          </p>
+                        </div>
+                      )}
+                      {pi.instructions && (
+                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                          {pi.instructions}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                 Payment will be completed with the store when supported. Your
                 request is held as pending payment.
@@ -833,10 +940,10 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           Add items to your cart before checking out.
         </p>
         <Link
-          href={APP_ROUTES.shopCart}
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+          href={APP_ROUTES.shop}
+          className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
         >
-          Go to Cart
+          Continue shopping
         </Link>
       </div>
     );
@@ -880,11 +987,62 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
   const shippingComplete = requiredCheckoutFieldsComplete;
 
-  const activeCheckoutStep: 1 | 2 | 3 = !shippingComplete
+  const activeCheckoutStep: 1 | 2 | 3 = !shippingLocked
     ? 1
     : !termsAccepted
       ? 2
       : 3;
+
+  const shippingSummary = {
+    customerName: `${firstName} ${lastName}`.trim(),
+    customerEmail: customerEmail.trim(),
+    customerPhone: `${areaCode} ${customerPhone}`.trim(),
+    streetAddress: streetAddress.trim(),
+    county: county.trim(),
+    subCounty: subCounty.trim(),
+    ward: ward.trim(),
+    whatsAppNumber: whatsAppNumber.trim(),
+    deliveryNotes: deliveryNotes.trim(),
+  };
+
+  function persistShippingIfRequested() {
+    if (isDefaultAddress) {
+      saveCheckoutPrefill({
+        firstName,
+        lastName,
+        customerPhone,
+        areaCode,
+        streetAddress,
+        county,
+        subCounty,
+        ward,
+        whatsAppNumber,
+        customerEmail,
+        deliveryNotes,
+        isDefaultAddress: true,
+      });
+    }
+  }
+
+  function lockShippingAndContinue() {
+    if (!shippingComplete) {
+      setError("Please complete all required delivery fields.");
+      return;
+    }
+    setError(null);
+    persistShippingIfRequested();
+    setIsEditingShipping(false);
+    setShippingLocked(true);
+  }
+
+  function startEditingShipping() {
+    setIsEditingShipping(true);
+    setShippingLocked(false);
+    setError(null);
+  }
+
+  const showShippingForm = !shippingLocked || isEditingShipping;
+  const showReviewOnMobile = shippingLocked && !isEditingShipping;
 
   return (
     <div className="pb-24 lg:pb-0">
@@ -978,7 +1136,12 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"
         onSubmit={(ev) => void onSubmit(ev)}
       >
-        <section className="space-y-4">
+        <section
+          className={cn(
+            "space-y-4",
+            showReviewOnMobile && "max-lg:hidden",
+          )}
+        >
           {error ? (
             <div className="flex items-start gap-3 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -986,13 +1149,27 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary sm:hidden">
+          <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary lg:hidden">
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
-              1
+              {activeCheckoutStep}
             </span>
-            Shipping details
+            {activeCheckoutStep === 1
+              ? "Delivery details"
+              : activeCheckoutStep === 2
+                ? "Review order"
+                : "Confirm & pay"}
           </div>
 
+          {shippingLocked && !isEditingShipping ? (
+            <ShopShippingSummaryCard
+              contact={shippingSummary}
+              onEdit={startEditingShipping}
+              className="hidden lg:block"
+            />
+          ) : null}
+
+          {showShippingForm ? (
+            <>
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
             <SectionHeader
               icon={<User className="size-4" aria-hidden />}
@@ -1135,12 +1312,38 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               </span>
             </label>
           </div>
+
+          <Button
+            type="button"
+            size="lg"
+            className="h-11 w-full rounded-xl text-sm font-semibold max-lg:mb-20"
+            onClick={lockShippingAndContinue}
+            disabled={!shippingComplete}
+          >
+            {isEditingShipping ? "Use these details" : "Continue to review"}
+          </Button>
+            </>
+          ) : null}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6">
+        <section
+          className={cn(
+            "rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6",
+            !showReviewOnMobile && "max-lg:hidden",
+          )}
+        >
+          {showReviewOnMobile ? (
+            <ShopShippingSummaryCard
+              contact={shippingSummary}
+              onEdit={startEditingShipping}
+              compact
+              className="mb-4 lg:hidden"
+            />
+          ) : null}
+
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary sm:hidden">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
                 <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
                   2
                 </span>
@@ -1150,8 +1353,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 Review your order
               </h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {cart.lines.length}{" "}
-                {cart.lines.length === 1 ? "item" : "items"} in your cart
+                {cart.lines.length} {cart.lines.length === 1 ? "item" : "items"}{" "}
+                in your cart
               </p>
             </div>
             <Link
@@ -1162,13 +1365,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </Link>
           </div>
 
-          <div className="mt-4 space-y-2 lg:max-h-[360px] lg:overflow-y-auto lg:pr-1">
+          <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:block lg:space-y-2 lg:overflow-visible lg:px-0 lg:pb-0 lg:max-h-[360px] lg:overflow-y-auto lg:pr-1">
             {cart.lines.map((line) => (
               <div
                 key={line.itemId}
-                className="flex gap-3 rounded-xl border border-border bg-background p-2.5"
+                className="flex w-[min(100%,280px)] shrink-0 gap-3 rounded-xl border border-border bg-background p-3 lg:w-auto lg:shrink lg:p-2.5"
               >
-                <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40">
+                <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40 lg:size-12">
                   {line.imageUrl ? (
                     <Image
                       src={line.imageUrl}
@@ -1206,6 +1409,23 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             ))}
           </div>
 
+          <div className="mt-4 rounded-xl border border-dashed border-border/80 bg-muted/15 p-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Promo code
+            </p>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="text"
+                disabled
+                placeholder="Coming soon"
+                className="h-9 flex-1 rounded-lg border border-border bg-background/50 px-3 text-sm opacity-60"
+              />
+              <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" disabled>
+                Apply
+              </Button>
+            </div>
+          </div>
+
           <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Subtotal</span>
@@ -1233,8 +1453,57 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <div className="mt-5 space-y-3 rounded-2xl border border-border bg-background p-3">
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary sm:hidden">
+          {paymentInstructions.length > 0 && (
+            <div className="mt-4 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
+              <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                💳 How to pay
+              </h4>
+              {paymentInstructions.map((pi) => (
+                <div
+                  key={pi.configId}
+                  className="rounded-lg border border-emerald-200 bg-white p-3 dark:border-emerald-800 dark:bg-emerald-950/40"
+                >
+                  <p className="text-sm font-semibold text-foreground">
+                    {pi.label}
+                  </p>
+                  {pi.type === "till" && pi.tillNumber && (
+                    <p className="mt-1 font-mono text-lg font-bold tracking-wide text-foreground">
+                      Till: {pi.tillNumber}
+                    </p>
+                  )}
+                  {pi.type === "paybill" && pi.businessNumber && (
+                    <p className="mt-1 font-mono text-sm font-bold text-foreground">
+                      Paybill: {pi.businessNumber}
+                      {pi.accountNumber
+                        ? ` · Acct: ${pi.accountNumber}`
+                        : ""}
+                    </p>
+                  )}
+                  {pi.type === "bank_account" && (
+                    <div className="mt-1 space-y-0.5 text-sm">
+                      <p className="font-semibold text-foreground">
+                        {pi.bankName}
+                      </p>
+                      <p className="font-mono text-muted-foreground">
+                        Acct: {pi.accountNumber}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {pi.accountName}
+                      </p>
+                    </div>
+                  )}
+                  {pi.instructions && (
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      {pi.instructions}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:mb-24">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
               <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
                 3
               </span>
@@ -1256,9 +1525,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 type="checkbox"
                 className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
                 checked={termsAccepted}
-                onChange={(ev) =>
-                  handleTermsAgreementChange(ev.target.checked)
-                }
+                onChange={(ev) => handleTermsAgreementChange(ev.target.checked)}
               />
               <span>
                 I agree to the store{" "}
@@ -1276,7 +1543,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             <Button
               type="submit"
               size="lg"
-              disabled={busy || !termsAccepted}
+              disabled={busy || !termsAccepted || !shippingLocked}
               className="h-11 w-full rounded-xl text-sm font-semibold tracking-wide transition-all disabled:opacity-50"
             >
               {busy ? (
@@ -1310,18 +1577,30 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           <div className="mx-auto flex max-w-7xl items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Total
+                {showShippingForm ? "Cart total" : "Total due"}
               </p>
               <p className="text-base font-bold tabular-nums">{totalLabel}</p>
             </div>
-            <Button
-              type="submit"
-              size="lg"
-              disabled={busy || !termsAccepted}
-              className="h-11 min-w-36 rounded-xl text-sm font-semibold"
-            >
-              {busy ? "Placing..." : "Confirm order"}
-            </Button>
+            {showShippingForm ? (
+              <Button
+                type="button"
+                size="lg"
+                disabled={!shippingComplete}
+                className="h-11 min-w-36 rounded-xl text-sm font-semibold"
+                onClick={lockShippingAndContinue}
+              >
+                {isEditingShipping ? "Done" : "Continue"}
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="lg"
+                disabled={busy || !termsAccepted || !shippingLocked}
+                className="h-11 min-w-36 rounded-xl text-sm font-semibold"
+              >
+                {busy ? "Placing..." : "Place order"}
+              </Button>
+            )}
           </div>
         </div>
       </form>

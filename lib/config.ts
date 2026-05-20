@@ -8,8 +8,10 @@ export const APP_ROUTES = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   superAdminLogin: "/super-admin/login",
+  superAdminDashboard: "/super-admin",
   superAdminBusinesses: "/super-admin/businesses",
   superAdminSettings: "/super-admin/settings",
+  superAdminPlatformPayments: "/super-admin/payments/platform",
   business: "/business",
   businessBranding: "/business/branding",
   businessDomains: "/business/domains",
@@ -46,6 +48,7 @@ export const APP_ROUTES = {
   shopCart: "/shop/cart",
   shopCheckout: "/shop/checkout",
   barcode: "/barcode",
+  paymentsSettings: "/payments/settings",
   tenantSuspended: "/_status/suspended",
   tenantInactive: "/_status/inactive",
 } as const;
@@ -88,6 +91,11 @@ export const API_ROUTES = {
   categories: "/api/v1/categories",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
   superAdminBusinesses: "/api/v1/super-admin/businesses",
+  superAdminPlatformPaymentGateways:
+    "/api/v1/super-admin/payments/platform-gateways",
+  paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
+  paymentGateways: "/api/v1/payments/gateways",
+  paymentDisplayInstructions: "/api/v1/payments/display-instructions",
 } as const;
 
 /** Spring Data page query (flat params). */

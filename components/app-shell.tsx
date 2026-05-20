@@ -7,6 +7,7 @@ import {
   Banknote,
   Building2,
   ChevronDown,
+  CreditCard,
   LayoutDashboard,
   Lock,
   LogOut,
@@ -124,6 +125,13 @@ const NAV_SECTIONS: readonly NavSection[] = [
     ],
   },
   {
+    id: "payments",
+    title: "Payments",
+    blurb: "Gateways and methods",
+    icon: CreditCard,
+    items: [{ href: APP_ROUTES.paymentsSettings, label: "Gateway settings" }],
+  },
+  {
     id: "sales",
     title: "Sales & POS",
     blurb: "Channels, reports, checkout",
@@ -167,6 +175,7 @@ type NavGate = {
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
   canManageImports: boolean;
+  canViewPaymentGateways: boolean;
   roleKey: string | undefined;
 };
 
@@ -229,6 +238,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
   if (item.href === APP_ROUTES.sales) return gate.canViewSalesIntelligence;
+  if (item.href === APP_ROUTES.paymentsSettings)
+    return gate.canViewPaymentGateways;
   if (item.href === APP_ROUTES.salesTransactions)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesReports)
@@ -298,7 +309,12 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     href: APP_ROUTES.analytics,
     matchSectionIds: ["sales"],
   },
-  { id: "more", label: "More", icon: Tags, matchSectionIds: ["org"] },
+  {
+    id: "more",
+    label: "More",
+    icon: Tags,
+    matchSectionIds: ["org", "payments"],
+  },
 ];
 
 type AppShellProps = { children: React.ReactNode };
@@ -358,6 +374,10 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.ReportsNotificationsRead,
   );
+  const canViewPaymentGateways = hasPermission(
+    me?.permissions,
+    Permission.PaymentsGatewaysRead,
+  );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
 
@@ -384,6 +404,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewStorefrontOrders,
       canQuickSale,
       canManageImports,
+      canViewPaymentGateways,
       roleKey: me?.role?.key?.trim().toLowerCase(),
     };
     return NAV_SECTIONS.map((section) => ({
@@ -412,6 +433,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewStorefrontOrders,
     canQuickSale,
     canManageImports,
+    canViewPaymentGateways,
     me?.role?.key,
   ]);
 
@@ -446,8 +468,7 @@ export function AppShell({ children }: AppShellProps) {
     router.push(APP_ROUTES.login);
   };
 
-  const userDisplayName =
-    me?.name?.trim() || me?.email?.trim() || tenantTitle;
+  const userDisplayName = me?.name?.trim() || me?.email?.trim() || tenantTitle;
 
   const headerSubtitle = loading
     ? "Loading session…"
@@ -478,7 +499,7 @@ export function AppShell({ children }: AppShellProps) {
         if (tab.id === "sales") return { ...tab, href: APP_ROUTES.sales };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
-      }      ).filter(
+      }).filter(
         (tab) =>
           tab.id !== "overview" &&
           (!tab.href ||
@@ -754,7 +775,9 @@ export function AppShell({ children }: AppShellProps) {
                 </option>
               ) : (
                 <>
-                  {!itemTypeId ? <option value="">Select department…</option> : null}
+                  {!itemTypeId ? (
+                    <option value="">Select department…</option>
+                  ) : null}
                   {itemTypes.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label}

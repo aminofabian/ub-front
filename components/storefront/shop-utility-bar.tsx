@@ -16,9 +16,11 @@ function readSignedIn(): boolean {
 export function ShopUtilityBar({
   primaryHex,
   locationHint,
+  className,
 }: {
   primaryHex: string | null;
   locationHint?: string | null;
+  className?: string;
 }) {
   const [signedIn, setSignedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -59,6 +61,7 @@ export function ShopUtilityBar({
       className={cn(
         "text-[12px] font-medium text-white/85 sm:text-xs",
         !resolvedPrimary && "bg-primary",
+        className,
       )}
       style={
         resolvedPrimary

@@ -5,16 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
-  clearWebCartHandle,
-  ensureWebCartId,
-  fetchWebCart,
-  notifyWebCartChanged,
-  readWebCartHandle,
-  upsertWebCartLine,
-  WEB_CART_CHANGED_EVENT,
-} from "@/lib/web-cart";
+  cartLineQuantity,
+  findCartLine,
+  useShopCartOptional,
+} from "@/hooks/use-shop-cart";
+import { cn } from "@/lib/utils";
 
 type Props = {
   slug: string;
@@ -30,77 +26,56 @@ export default function ShopAddToCart({
   compact,
   className,
 }: Props) {
-  const [qty, setQty] = useState(1);
+  const [pickQty, setPickQty] = useState(1);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [inCart, setInCart] = useState(false);
+  const cartCtx = useShopCartOptional();
 
-  const refreshInCart = useCallback(async () => {
-    const s = slug.trim();
-    const id = itemId.trim();
-    if (!s || !id) {
-      setInCart(false);
-      return;
-    }
-    const handle = readWebCartHandle();
-    if (!handle || handle.slug !== s) {
-      setInCart(false);
-      return;
-    }
-    const cart = await fetchWebCart(s, handle.cartId);
-    if (!cart) {
-      setInCart(false);
-      return;
-    }
-    setInCart(cart.lines.some((l) => l.itemId === id));
-  }, [slug, itemId]);
+  const cartLine = findCartLine(cartCtx?.cart ?? null, itemId);
+  const inCartQty = cartLine ? cartLineQuantity(cartLine.quantity) : 0;
+  const inCart = inCartQty > 0;
+  const displayQty = inCart ? inCartQty : pickQty;
 
   useEffect(() => {
-    void refreshInCart();
-  }, [refreshInCart]);
-
-  useEffect(() => {
-    const onChange = () => void refreshInCart();
-    window.addEventListener(WEB_CART_CHANGED_EVENT, onChange);
-    return () => window.removeEventListener(WEB_CART_CHANGED_EVENT, onChange);
-  }, [refreshInCart]);
+    if (!inCart) {
+      setPickQty(1);
+    }
+  }, [inCart]);
 
   async function add() {
-    const s = slug.trim();
     const id = itemId.trim();
-    if (!s || !id) return;
+    if (!id) return;
+    if (!cartCtx) {
+      setError("Cart unavailable.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setMessage(null);
     try {
-      let cartId = (await ensureWebCartId(s)) ?? null;
-      if (!cartId) {
-        setError("Could not start a cart. Try again.");
-        return;
-      }
-      try {
-        let updated = await upsertWebCartLine(s, cartId, id, qty);
-        if (!updated) {
-          clearWebCartHandle();
-          cartId = (await ensureWebCartId(s)) ?? null;
-          if (!cartId) {
-            setError("Could not start a cart. Try again.");
-            return;
-          }
-          updated = await upsertWebCartLine(s, cartId, id, qty);
-        }
-        if (!updated) {
-          setError("Could not update cart. Try again.");
-          return;
-        }
-        notifyWebCartChanged();
-        setInCart(true);
-        setMessage(compact ? "Added to cart" : `Added ${qty} to your cart.`);
-        setQty(1);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not update cart.");
-      }
+      const q = inCart ? inCartQty + pickQty : pickQty;
+      await cartCtx.setLineQty(id, q);
+      cartCtx.notifyAdded(id);
+      setMessage(
+        compact ? "Added to cart" : `Added ${inCart ? pickQty : q} to your cart.`,
+      );
+      setPickQty(1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update cart.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function adjustCart(delta: number) {
+    if (!cartCtx || !inCart) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await cartCtx.setLineQty(itemId, inCartQty + delta);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update cart.");
     } finally {
       setBusy(false);
     }
@@ -112,18 +87,22 @@ export default function ShopAddToCart({
         <div className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-background px-2">
           <button
             type="button"
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            onClick={() =>
+              inCart ? void adjustCart(-1) : setPickQty((q) => Math.max(1, q - 1))
+            }
             className="flex size-7 items-center justify-center rounded-lg text-sm hover:bg-muted"
-            disabled={busy}
+            disabled={busy || (!inCart && pickQty <= 1)}
           >
             −
           </button>
           <span className="w-8 text-center text-sm font-semibold tabular-nums">
-            {qty}
+            {displayQty}
           </span>
           <button
             type="button"
-            onClick={() => setQty((q) => q + 1)}
+            onClick={() =>
+              inCart ? void adjustCart(1) : setPickQty((q) => q + 1)
+            }
             className="flex size-7 items-center justify-center rounded-lg text-sm hover:bg-muted"
             disabled={busy}
           >
@@ -136,14 +115,24 @@ export default function ShopAddToCart({
           disabled={busy}
           className="h-11 flex-1 rounded-xl text-sm font-semibold"
         >
-          {busy ? "Adding…" : `Add to cart`}
+          {busy ? "Adding…" : inCart ? "Add more" : "Add to cart"}
         </Button>
-        <Link
-          href={APP_ROUTES.shopCart}
-          className="shrink-0 text-sm font-medium text-primary hover:underline"
-        >
-          Cart
-        </Link>
+        {cartCtx ? (
+          <button
+            type="button"
+            onClick={cartCtx.openDrawer}
+            className="shrink-0 text-sm font-medium text-primary hover:underline"
+          >
+            View cart
+          </button>
+        ) : (
+          <Link
+            href={APP_ROUTES.shopCart}
+            className="shrink-0 text-sm font-medium text-primary hover:underline"
+          >
+            Cart
+          </Link>
+        )}
         {error && (
           <p className="absolute -top-8 left-0 text-xs text-destructive">
             {error}
@@ -170,19 +159,23 @@ export default function ShopAddToCart({
         <div className="flex h-11 items-center rounded-md border border-border bg-background">
           <button
             type="button"
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            onClick={() =>
+              inCart ? void adjustCart(-1) : setPickQty((q) => Math.max(1, q - 1))
+            }
             className="flex h-full w-10 items-center justify-center text-lg font-semibold leading-none hover:bg-muted disabled:opacity-60"
-            disabled={busy}
+            disabled={busy || (!inCart && pickQty <= 1)}
             aria-label="Decrease quantity"
           >
             −
           </button>
           <span className="w-10 text-center text-base font-medium tabular-nums">
-            {qty}
+            {displayQty}
           </span>
           <button
             type="button"
-            onClick={() => setQty((q) => q + 1)}
+            onClick={() =>
+              inCart ? void adjustCart(1) : setPickQty((q) => q + 1)
+            }
             className="flex h-full w-10 items-center justify-center text-lg font-semibold leading-none hover:bg-muted disabled:opacity-60"
             disabled={busy}
             aria-label="Increase quantity"
