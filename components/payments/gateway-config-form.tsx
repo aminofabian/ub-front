@@ -187,11 +187,13 @@ export function GatewayConfigForm({
           <FormDrawerFields
             legend={`Client ID${isEdit ? "" : " *"}`}
             hint={
-              isEdit && credentialSettings?.hasClientId && !credentialsUnreadable
-                ? "Already saved. Leave blank unless replacing."
-                : credentialsUnreadable
-                  ? "Re-enter to replace unreadable stored credentials."
-                  : undefined
+              credentialsUnreadable
+                ? "Re-enter from your KopoKopo Applications page (not the API Key)."
+                : isEdit && credentialSettings?.hasClientId
+                  ? "Already saved. Leave blank unless replacing."
+                  : environment === "production"
+                    ? "Application key from https://app.kopokopo.com/applications"
+                    : "Application key from https://sandbox.kopokopo.com/applications"
             }
           >
             <input
@@ -206,11 +208,11 @@ export function GatewayConfigForm({
           <FormDrawerFields
             legend={`Client Secret${isEdit ? "" : " *"}`}
             hint={
-              isEdit && credentialSettings?.hasClientSecret && !credentialsUnreadable
-                ? "Already saved. Leave blank unless replacing."
-                : credentialsUnreadable
-                  ? "Re-enter to replace unreadable stored credentials."
-                  : undefined
+              credentialsUnreadable
+                ? "Application secret from the same Applications page as Client ID."
+                : isEdit && credentialSettings?.hasClientSecret
+                  ? "Already saved. Leave blank unless replacing."
+                  : "Must match the selected environment (Sandbox vs Production)."
             }
           >
             <input
@@ -225,11 +227,11 @@ export function GatewayConfigForm({
           <FormDrawerFields
             legend={`API Key${isEdit ? "" : " *"}`}
             hint={
-              isEdit && credentialSettings?.hasApiKey && !credentialsUnreadable
-                ? "Already saved. Leave blank unless replacing."
-                : credentialsUnreadable
-                  ? "Re-enter to replace unreadable stored credentials."
-                  : undefined
+              credentialsUnreadable
+                ? "Separate from Client ID — used for webhooks, not OAuth."
+                : isEdit && credentialSettings?.hasApiKey
+                  ? "Already saved. Leave blank unless replacing."
+                  : "Separate from Client ID — used for webhooks, not OAuth."
             }
           >
             <input
