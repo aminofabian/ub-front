@@ -30,6 +30,7 @@ import {
 } from "./cashier-currency-inline";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone } from "@/lib/customer-phone";
+import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { cn } from "@/lib/utils";
 
@@ -139,9 +140,13 @@ export type CashierCartDrawerProps = {
   lastReceipt: PosReceiptSnapshot | null;
   lastSaleCustomerName: string | null;
 
+  stkAreaCode: string;
+  setStkAreaCode: (s: string) => void;
+  stkPhone: string;
+  setStkPhone: (s: string) => void;
   stkPushStatus: string;
   stkPushError: string;
-  onStkPush: () => void;
+  onStkPush: (phoneNumber: string) => void;
   voidNotes: string;
   setVoidNotes: (s: string) => void;
   onVoidLastSale: () => void;
@@ -235,6 +240,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     lastSale,
     lastReceipt,
     lastSaleCustomerName,
+    stkAreaCode,
+    setStkAreaCode,
+    stkPhone,
+    setStkPhone,
     stkPushStatus,
     stkPushError,
     onStkPush,
@@ -577,46 +586,75 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
                   {!splitPay && payMethod === "mpesa_manual" ? (
                     <div className="space-y-2">
-                      {stkPushStatus === "idle" &&
-                      selectedCustomer &&
-                      selectedCustomer.phones.length > 0 ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="h-9 w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                          onClick={onStkPush}
-                        >
-                          📱 Send M-Pesa STK Push to{" "}
-                          {selectedCustomer.phones[0]?.phone ?? "customer"}
-                        </Button>
-                      ) : stkPushStatus === "idle" && !selectedCustomer ? (
-                        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                          Attach a customer with a phone number to send STK
-                          Push.
-                        </p>
+                      {stkPushStatus === "idle" || stkPushStatus === "failed" ? (
+                        <>
+                          {stkPushStatus === "failed" ? (
+                            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                              ❌ {stkPushError || "STK Push failed"}
+                            </p>
+                          ) : null}
+                          <p className="text-[11px] leading-relaxed text-muted-foreground">
+                            Enter the number that should receive the M-Pesa prompt, then send.
+                          </p>
+                          <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
+                            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Code
+                              <input
+                                type="text"
+                                inputMode="tel"
+                                autoComplete="tel-country-code"
+                                className={drawerFieldClass("h-9 w-full tabular-nums")}
+                                value={stkAreaCode}
+                                onChange={(e) => setStkAreaCode(e.target.value)}
+                                placeholder="+254"
+                                disabled={stkPushStatus === "sending" || stkPushStatus === "sent"}
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              M-Pesa phone
+                              <input
+                                type="tel"
+                                inputMode="tel"
+                                autoComplete="tel"
+                                className={drawerFieldClass("h-9 w-full tabular-nums")}
+                                value={stkPhone}
+                                onChange={(e) => setStkPhone(e.target.value)}
+                                placeholder="712 345 678"
+                                disabled={stkPushStatus === "sending" || stkPushStatus === "sent"}
+                              />
+                            </label>
+                          </div>
+                          {stkPhone.trim() && !isStkPhoneValid(stkAreaCode, stkPhone) ? (
+                            <p className="text-[11px] text-destructive">
+                              Enter a valid Kenyan mobile number.
+                            </p>
+                          ) : null}
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-9 w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                            disabled={
+                              !online ||
+                              !isStkPhoneValid(stkAreaCode, stkPhone)
+                            }
+                            onClick={() =>
+                              onStkPush(buildStkPhoneNumber(stkAreaCode, stkPhone))
+                            }
+                          >
+                            {stkPushStatus === "failed" ? "Retry M-Pesa prompt" : "📱 Send M-Pesa prompt"}
+                          </Button>
+                        </>
                       ) : stkPushStatus === "sending" ? (
                         <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
                           Sending STK Push…
                         </p>
                       ) : stkPushStatus === "sent" ? (
                         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-                          ✅ STK Push sent — customer should enter PIN
+                          ✅ STK Push sent — customer should enter PIN on{" "}
+                          <span className="font-mono font-semibold">
+                            {buildStkPhoneNumber(stkAreaCode, stkPhone)}
+                          </span>
                         </p>
-                      ) : stkPushStatus === "failed" ? (
-                        <div className="space-y-1.5">
-                          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
-                            ❌ {stkPushError || "STK Push failed"}
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-full text-xs"
-                            onClick={onStkPush}
-                          >
-                            Retry
-                          </Button>
-                        </div>
                       ) : null}
                     </div>
                   ) : null}

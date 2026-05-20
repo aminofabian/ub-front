@@ -8,6 +8,7 @@ import type {
   PublicOnlinePaymentMethod,
   PublicPaymentInstruction,
 } from "@/lib/public-storefront";
+import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 
 function ManualInstructionCard({ pi }: { pi: PublicPaymentInstruction }) {
   return (
@@ -36,19 +37,6 @@ function ManualInstructionCard({ pi }: { pi: PublicPaymentInstruction }) {
       ) : null}
     </div>
   );
-}
-
-/** Build E.164-style digits for STK (Kenya 254…). */
-function buildStkPhoneNumber(areaCode: string, local: string): string {
-  const digits = `${areaCode}${local}`.replace(/\D/g, "");
-  if (digits.startsWith("254")) return digits;
-  if (digits.startsWith("0")) return `254${digits.slice(1)}`;
-  return `254${digits}`;
-}
-
-function isStkPhoneValid(areaCode: string, local: string): boolean {
-  const digits = buildStkPhoneNumber(areaCode, local);
-  return digits.length >= 12 && digits.length <= 13;
 }
 
 type OnlineStkProps = {

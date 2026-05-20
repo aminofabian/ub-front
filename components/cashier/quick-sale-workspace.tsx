@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DashboardAccessDenied,
@@ -33,6 +33,7 @@ import {
   writeCachedItemsSearch,
 } from "@/lib/catalog-search-cache";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
+import { parseStkPhoneParts } from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   countPendingSales,
@@ -200,6 +201,8 @@ export function QuickSaleWorkspace({
   const cashTenderStr = activeCart.cashTenderStr;
   const stkPushStatus = activeCart.stkPushStatus;
   const stkPushError = activeCart.stkPushError;
+  const stkAreaCode = activeCart.stkAreaCode;
+  const stkPhone = activeCart.stkPhone;
 
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
 
@@ -241,6 +244,14 @@ export function QuickSaleWorkspace({
   );
   const setCashTenderStr = useCallback(
     (s: string) => updateActiveCart({ cashTenderStr: s }),
+    [updateActiveCart],
+  );
+  const setStkAreaCode = useCallback(
+    (s: string) => updateActiveCart({ stkAreaCode: s }),
+    [updateActiveCart],
+  );
+  const setStkPhone = useCallback(
+    (s: string) => updateActiveCart({ stkPhone: s }),
     [updateActiveCart],
   );
 
@@ -646,36 +657,58 @@ export function QuickSaleWorkspace({
     [updateActiveCart],
   );
 
-  const onStkPush = useCallback(async () => {
-    if (!selectedCustomer || selectedCustomer.phones.length === 0) {
-      updateActiveCart({ stkPushStatus: "failed", stkPushError: "No customer phone" });
+  const lastStkPrefillCustomerId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedCustomer) {
+      lastStkPrefillCustomerId.current = null;
       return;
     }
-    if (!online) {
-      updateActiveCart({ stkPushStatus: "failed", stkPushError: "Offline — cannot send STK Push" });
+    if (lastStkPrefillCustomerId.current === selectedCustomer.id) {
       return;
     }
-    updateActiveCart({ stkPushStatus: "sending", stkPushError: "" });
-    try {
-      const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
-      const { initiateMpesaStkIntent } = await import("@/lib/api");
-      const result = await initiateMpesaStkIntent(
-        { customerId: selectedCustomer.id, amount: grandTotal },
-        nextIdempotencyKey(),
-      );
-      updateActiveCart({
-        stkPushStatus: "sent",
-        stkPushCheckoutId: result.checkoutRequestId,
-        mpesaRef: result.checkoutRequestId,
-        stkPushError: "",
-      });
-    } catch (e) {
-      updateActiveCart({
-        stkPushStatus: "failed",
-        stkPushError: e instanceof Error ? e.message : "STK Push failed",
-      });
+    lastStkPrefillCustomerId.current = selectedCustomer.id;
+    const raw = selectedCustomer.phones[0]?.phone?.trim();
+    if (raw) {
+      const { areaCode, local } = parseStkPhoneParts(raw);
+      updateActiveCart({ stkAreaCode: areaCode, stkPhone: local });
     }
-  }, [selectedCustomer, online, grandTotal, updateActiveCart]);
+  }, [selectedCustomer, updateActiveCart]);
+
+  const onStkPush = useCallback(
+    async (phoneNumber: string) => {
+      if (!online) {
+        updateActiveCart({
+          stkPushStatus: "failed",
+          stkPushError: "Offline — cannot send STK Push",
+        });
+        return;
+      }
+      updateActiveCart({ stkPushStatus: "sending", stkPushError: "" });
+      try {
+        const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
+        const { initiatePosStkPush } = await import("@/lib/api");
+        const result = await initiatePosStkPush(
+          { phoneNumber, amount: grandTotal, description: "POS sale" },
+          nextIdempotencyKey(),
+        );
+        if (!result.accepted || !result.checkoutRequestId) {
+          throw new Error(result.message || "STK Push declined");
+        }
+        updateActiveCart({
+          stkPushStatus: "sent",
+          stkPushCheckoutId: result.checkoutRequestId,
+          mpesaRef: result.checkoutRequestId,
+          stkPushError: "",
+        });
+      } catch (e) {
+        updateActiveCart({
+          stkPushStatus: "failed",
+          stkPushError: e instanceof Error ? e.message : "STK Push failed",
+        });
+      }
+    },
+    [online, grandTotal, updateActiveCart],
+  );
 
   const onRetryOutbox = useCallback(async () => {
     if (!online) {
@@ -1253,9 +1286,13 @@ export function QuickSaleWorkspace({
           setSplitMpesaRef,
           cashTenderStr,
           setCashTenderStr,
-            stkPushStatus,
-            stkPushError,
-            onStkPush: () => void onStkPush(),
+          stkAreaCode,
+          setStkAreaCode,
+          stkPhone,
+          setStkPhone,
+          stkPushStatus,
+          stkPushError,
+          onStkPush,
           canLookupCustomers,
           customerPhoneQuery,
           setCustomerPhoneQuery,

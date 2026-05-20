@@ -4846,6 +4846,25 @@ export async function initiateMpesaStkIntent(
   );
 }
 
+export type PosStkPushResponseRecord = {
+  accepted: boolean;
+  checkoutRequestId: string | null;
+  message: string;
+  responseCode: string | null;
+};
+
+/** Cashier/POS: STK push to an explicit phone (no wallet intent). */
+export async function initiatePosStkPush(
+  body: { phoneNumber: string; amount: number | string; description?: string },
+  idempotencyKey: string,
+): Promise<PosStkPushResponseRecord> {
+  return request<PosStkPushResponseRecord>("/api/v1/payments/mpesa/stk/push", {
+    method: "POST",
+    body,
+    idempotencyKey,
+  });
+}
+
 export async function simulateMpesaStkComplete(body: {
   businessId: string;
   intentId: string;

@@ -27,6 +27,9 @@ export type CartSession = {
   stkPushCheckoutId: string;
   /** Last STK push error message */
   stkPushError: string;
+  /** M-Pesa prompt phone (cashier STK). */
+  stkAreaCode: string;
+  stkPhone: string;
 };
 
 /** Mirror of CartLine from quick-sale-workspace — keep in sync. */
@@ -63,6 +66,8 @@ export function createEmptyCartSession(): CartSession {
     stkPushStatus: "idle",
     stkPushCheckoutId: "",
     stkPushError: "",
+    stkAreaCode: "+254",
+    stkPhone: "",
   };
 }
 
