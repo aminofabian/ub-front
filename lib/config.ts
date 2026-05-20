@@ -209,15 +209,19 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
     return "";
   }
 
-  const candidates = [
-    RAW_REALTIME_WS_ORIGIN,
-    getApiBaseUrl(),
-    RAW_API_BASE_URL,
-  ].filter((value) => value.length > 0);
+  const pageIsHttps = window.location.protocol === "https:";
+
+  // On production tenant hosts, prefer same-origin WSS (BFF/nginx proxy) so HTTPS pages
+  // never open ws:// to a bare http API env var (NEXT_PUBLIC_API_BASE_URL).
+  if (pageIsHttps && isPlatformProductionHost(window.location.hostname)) {
+    return `wss://${window.location.host}/api/v1/realtime`;
+  }
+
+  const candidates = [RAW_REALTIME_WS_ORIGIN].filter((value) => value.length > 0);
 
   for (const candidate of candidates) {
     const url = new URL(candidate);
-    if (url.protocol === "https:" || url.protocol === "wss:") {
+    if (pageIsHttps || url.protocol === "https:" || url.protocol === "wss:") {
       url.protocol = "wss:";
     } else {
       url.protocol = "ws:";
@@ -231,7 +235,7 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
     return `${remote.origin}/api/v1/realtime`;
   }
 
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const protocol = pageIsHttps ? "wss:" : "ws:";
   return `${protocol}//${window.location.host}/api/v1/realtime`;
 }
 

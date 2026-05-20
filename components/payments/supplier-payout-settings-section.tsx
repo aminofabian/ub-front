@@ -34,9 +34,23 @@ export function SupplierPayoutSettingsSection({
       setEnabled(s.enabled);
       setConfigId(s.paymentGatewayConfigId ?? "");
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Could not load supplier payout settings.",
-      );
+      const msg =
+        e instanceof Error ? e.message : "Could not load supplier payout settings.";
+      setSettings({
+        enabled: false,
+        paymentGatewayConfigId: null,
+        gatewayType: null,
+        gatewayLabel: null,
+        gatewayReady: false,
+        selectableGateways: [],
+      });
+      toast.error(msg, {
+        description:
+          msg.includes("migration") || msg.includes("Database")
+            ? "Redeploy the API so database migrations V92/V93 can run."
+            : undefined,
+        duration: 12_000,
+      });
     } finally {
       setLoading(false);
     }
