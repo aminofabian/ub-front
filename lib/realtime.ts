@@ -100,17 +100,35 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
 
 // ── WS URL Resolution ──
 
+function pageUsesHttps(): boolean {
+  return typeof window !== "undefined" && window.location.protocol === "https:";
+}
+
+/** Normalize any WS base/path to wss on HTTPS pages (avoids mixed-content blocks). */
+function coerceWebSocketOrigin(url: URL): string {
+  if (pageUsesHttps()) {
+    url.protocol = "wss:";
+  } else if (url.protocol === "https:" || url.protocol === "wss:") {
+    url.protocol = "wss:";
+  } else {
+    url.protocol = "ws:";
+  }
+  return `${url.origin}${url.pathname}`;
+}
+
 function resolveWebSocketUrl(ticket?: TicketResponse | null): string {
   const ticketPath = ticket?.wsUrl?.trim();
   if (ticketPath?.startsWith("ws://") || ticketPath?.startsWith("wss://")) {
-    return ticketPath.split("?")[0] ?? ticketPath;
+    const raw = ticketPath.split("?")[0] ?? ticketPath;
+    if (pageUsesHttps() && raw.startsWith("ws://")) {
+      return raw.replace(/^ws:\/\//, "wss://");
+    }
+    return raw;
   }
 
   const base = resolveRealtimeWebSocketBaseUrl();
   if (ticketPath?.startsWith("/")) {
-    const url = new URL(ticketPath, base);
-    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    return `${url.origin}${url.pathname}`;
+    return coerceWebSocketOrigin(new URL(ticketPath, base));
   }
 
   return base;

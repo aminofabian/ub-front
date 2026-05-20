@@ -57,9 +57,12 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setWhatsappToken("");
       setSmsApiKey("");
     } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not load reminder settings.";
       setMessage({
         text:
-          e instanceof Error ? e.message : "Could not load reminder settings.",
+          msg.includes("500") || /internal server error/i.test(msg)
+            ? `${msg} The API database may need migration V95/V96 (credit tab reminder columns). Redeploy the backend or run Flyway, then reload.`
+            : msg,
         kind: "error",
       });
     } finally {
