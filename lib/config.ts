@@ -197,13 +197,30 @@ export function apiUrl(path: string): string {
 }
 
 /**
- * Browser WebSocket origin for `/api/v1/realtime`.
+ * Java API origin used for browser WebSocket connections.
  *
- * REST may stay same-origin via the Next BFF while realtime connects directly to
- * the Java API. Set `NEXT_PUBLIC_REALTIME_WS_ORIGIN` to that API origin (for
- * example `https://kiosk.zelisline.com`). When unset, falls back to
- * {@link API_BASE_URL}, then `NEXT_PUBLIC_API_BASE_URL`, then the current page.
+ * <p>Set via {@code NEXT_PUBLIC_REALTIME_WS_ORIGIN} (injected from {@code BACKEND_ORIGIN}
+ * at build time in {@code next.config.ts}). Never use the Next.js page host — rewrites
+ * do not upgrade WebSockets.
  */
+function resolveJavaApiOriginForWebSocket(): string {
+  if (RAW_REALTIME_WS_ORIGIN.length > 0) {
+    return RAW_REALTIME_WS_ORIGIN;
+  }
+  const apiBase = normalizeOrigin(RAW_API_BASE_URL);
+  if (apiBase.length > 0 && typeof window !== "undefined") {
+    try {
+      if (new URL(apiBase).host === window.location.host) {
+        return REMOTE_API_ORIGIN;
+      }
+    } catch {
+      /* use apiBase */
+    }
+    return apiBase;
+  }
+  return REMOTE_API_ORIGIN;
+}
+
 export function resolveRealtimeWebSocketBaseUrl(): string {
   if (typeof window === "undefined") {
     return "";
@@ -211,32 +228,9 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
 
   const pageIsHttps = window.location.protocol === "https:";
 
-  // On production tenant hosts, prefer same-origin WSS (BFF/nginx proxy) so HTTPS pages
-  // never open ws:// to a bare http API env var (NEXT_PUBLIC_API_BASE_URL).
-  if (pageIsHttps && isPlatformProductionHost(window.location.hostname)) {
-    return `wss://${window.location.host}/api/v1/realtime`;
-  }
-
-  const candidates = [RAW_REALTIME_WS_ORIGIN].filter((value) => value.length > 0);
-
-  for (const candidate of candidates) {
-    const url = new URL(candidate);
-    if (pageIsHttps || url.protocol === "https:" || url.protocol === "wss:") {
-      url.protocol = "wss:";
-    } else {
-      url.protocol = "ws:";
-    }
-    return `${url.origin}/api/v1/realtime`;
-  }
-
-  if (isPlatformProductionHost(window.location.hostname)) {
-    const remote = new URL(REMOTE_API_ORIGIN);
-    remote.protocol = "wss:";
-    return `${remote.origin}/api/v1/realtime`;
-  }
-
-  const protocol = pageIsHttps ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/api/v1/realtime`;
+  const api = new URL(resolveJavaApiOriginForWebSocket());
+  api.protocol = pageIsHttps || api.protocol === "https:" ? "wss:" : "ws:";
+  return `${api.origin}/api/v1/realtime`;
 }
 
 /** This app in the browser (no trailing slash). Align with APP_PUBLIC_FRONTEND_BASE_URL on the API. */

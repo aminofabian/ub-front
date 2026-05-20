@@ -14,9 +14,10 @@ const securityHeaders = [
  * in the browser as a CORS error (because no preflight is performed), and
  * CORS allow-list misconfiguration cannot break the storefront.
  *
- * WebSockets are NOT proxied here — they continue to connect directly to the
- * API origin (see `resolveRealtimeWebSocketBaseUrl` in `lib/config.ts`). The
- * backend WebSocket handler allows all origins, so this is safe.
+ * WebSockets are NOT proxied here — the browser opens them directly on the Java
+ * API origin (`NEXT_PUBLIC_API_BASE_URL` / `NEXT_PUBLIC_REALTIME_WS_ORIGIN`;
+ * see `resolveRealtimeWebSocketBaseUrl` in `lib/config.ts`). The backend
+ * WebSocket handler allows all origins, so this is safe.
  */
 const BACKEND_ORIGIN = (
   process.env.BACKEND_ORIGIN?.trim() ||
@@ -24,7 +25,15 @@ const BACKEND_ORIGIN = (
   "https://kiosk.zelisline.com"
 ).replace(/\/+$/, "");
 
+/** Baked into the client bundle so WebSockets hit the Java API, not the Next host. */
+const REALTIME_WS_ORIGIN = (
+  process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() || BACKEND_ORIGIN
+).replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_REALTIME_WS_ORIGIN: REALTIME_WS_ORIGIN,
+  },
   images: {
     qualities: [75, 95],
     remotePatterns: [

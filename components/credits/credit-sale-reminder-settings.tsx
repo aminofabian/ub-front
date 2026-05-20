@@ -61,7 +61,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setMessage({
         text:
           msg.includes("500") || /internal server error/i.test(msg)
-            ? `${msg} The API database may need migration V95/V96 (credit tab reminder columns). Redeploy the backend or run Flyway, then reload.`
+            ? `${msg} Redeploy the backend (Flyway V95–V97) if settings never loaded. If save fails with 500, redeploy the latest API build (API key encryption fix).`
             : msg,
         kind: "error",
       });

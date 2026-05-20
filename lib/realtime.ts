@@ -128,7 +128,10 @@ function resolveWebSocketUrl(ticket?: TicketResponse | null): string {
 
   const base = resolveRealtimeWebSocketBaseUrl();
   if (ticketPath?.startsWith("/")) {
-    return coerceWebSocketOrigin(new URL(ticketPath, base));
+    const parsed = new URL(base);
+    return coerceWebSocketOrigin(
+      new URL(`${parsed.origin}${ticketPath}`),
+    );
   }
 
   return base;
