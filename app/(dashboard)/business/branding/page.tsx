@@ -41,6 +41,7 @@ import {
 } from "@/lib/branding-color-presets";
 import { APP_ROUTES } from "@/lib/config";
 import { setDocumentFavicon } from "@/lib/document-favicon";
+import { resolveBusinessFaviconHref } from "@/lib/tenant-favicon-path";
 import { cn } from "@/lib/utils";
 import {
   clearMyBrandingFavicon,
@@ -863,7 +864,7 @@ export default function BrandingPage() {
       skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setDocumentFavicon(next.branding?.faviconUrl ?? null);
+      setDocumentFavicon(resolveBusinessFaviconHref(next));
       setBrandingDrawerOpen(false);
       setFeedback({ kind: "success", text: "Branding saved." });
     } catch (error) {
@@ -929,7 +930,7 @@ export default function BrandingPage() {
       const next = await uploadMyBrandingFavicon(file, snapshot.id);
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setDocumentFavicon(next.branding?.faviconUrl ?? null);
+      setDocumentFavicon(resolveBusinessFaviconHref(next));
       setFeedback({ kind: "success", text: "Favicon updated." });
     } catch (error) {
       setFeedback({
@@ -998,7 +999,7 @@ export default function BrandingPage() {
       const next = await clearMyBrandingFavicon();
       setSnapshot(next);
       setForm(formFromBranding(next.branding));
-      setDocumentFavicon(next.branding?.faviconUrl ?? null);
+      setDocumentFavicon(resolveBusinessFaviconHref(next));
       setFeedback({ kind: "success", text: "Favicon removed." });
     } catch (error) {
       setFeedback({

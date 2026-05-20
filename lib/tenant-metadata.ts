@@ -3,6 +3,7 @@ import "server-only";
 import type { Metadata } from "next";
 
 import type { TenantContext } from "@/lib/public-storefront";
+import { resolveTenantFaviconHref } from "@/lib/tenant-favicon-path";
 
 const PLATFORM_TITLE = "Kiosk — Point of Sale, Storefront & Cashier";
 const PLATFORM_DESCRIPTION =
@@ -138,16 +139,23 @@ export function metadataFromTenantAndHost(
   const description =
     metaDescription ||
     `${displayName} — a Kiosk-powered store. Browse products, scan barcodes, and check out at the cashier counter — your digital storefront and POS, all in one place.`;
-  const favicon = tenant.branding.faviconUrl?.trim();
   const logo = tenant.branding.logoUrl?.trim();
 
-  const icons = favicon
-    ? {
-        icon: [{ url: favicon }],
-        shortcut: [{ url: favicon }],
-        apple: [{ url: favicon }],
-      }
-    : undefined;
+  const faviconHref = resolveTenantFaviconHref({
+    slug: tenant.slug,
+    branding: tenant.branding,
+    resolvedAt: tenant.resolvedAt,
+  });
+  const faviconUrl =
+    metadataBase != null
+      ? new URL(faviconHref, metadataBase).href
+      : faviconHref;
+
+  const icons = {
+    icon: [{ url: faviconUrl }],
+    shortcut: [{ url: faviconUrl }],
+    apple: [{ url: faviconUrl }],
+  };
 
   // OG image: prefer dedicated ogImage, fall back to business logo
   const ogImageUrl = ogImage || logo;

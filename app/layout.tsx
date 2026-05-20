@@ -4,6 +4,7 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { TenantProvider } from "@/components/providers/tenant-provider";
+import { TenantFaviconSync } from "@/components/tenant-favicon-sync";
 import { TenantHostSync } from "@/components/tenant-host-sync";
 import { TenantStatusPage } from "@/components/storefront/tenant-status-page";
 import type { TenantContext } from "@/lib/public-storefront";
@@ -72,7 +73,12 @@ function withTenantProvider(
   if (!tenant) {
     return children;
   }
-  return <TenantProvider value={tenant}>{children}</TenantProvider>;
+  return (
+    <TenantProvider value={tenant}>
+      <TenantFaviconSync />
+      {children}
+    </TenantProvider>
+  );
 }
 
 export default async function RootLayout({
