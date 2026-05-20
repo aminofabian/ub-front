@@ -14,7 +14,16 @@ import {
   type CSSProperties,
 } from "react";
 import { Cormorant_Garamond } from "next/font/google";
-import { ArrowRight, Check } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CreditCard,
+  Package,
+  Shield,
+  Sparkles,
+  Truck,
+  Zap,
+} from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
 import { StorefrontSetupModal } from "@/components/storefront/storefront-setup-modal";
@@ -38,32 +47,73 @@ const PROMISES = [
     num: "01",
     title: "Fast Delivery",
     desc: "Same-day dispatch across Nairobi. Order before 2pm, receive before evening.",
+    Icon: Truck,
   },
   {
     num: "02",
     title: "Quality Guaranteed",
     desc: "Every product hand-selected. Not satisfied? We make it right, no questions.",
+    Icon: Shield,
   },
   {
     num: "03",
     title: "M-Pesa Ready",
     desc: "Pay via M-Pesa, card, or cash on delivery. Checkout in under 60 seconds.",
+    Icon: CreditCard,
   },
   {
     num: "04",
     title: "Best Prices",
     desc: "Everyday low prices on 1,000+ products. No hidden fees, ever.",
+    Icon: Zap,
   },
 ] as const;
 
 const CATEGORY_TEASERS = [
-  { icon: "Fr", name: "Fresh Food", count: "200+ items" },
-  { icon: "Bv", name: "Beverages", count: "150+ items" },
-  { icon: "Cl", name: "Cleaning", count: "80+ items" },
-  { icon: "Sk", name: "Snacks", count: "120+ items" },
-  { icon: "Bb", name: "Baby & Kids", count: "60+ items" },
-  { icon: "Pc", name: "Personal Care", count: "90+ items" },
-  { icon: "Hm", name: "Home Goods", count: "70+ items" },
+  {
+    name: "Fresh Food",
+    count: "200+ items",
+    image: "/hello/fudowakira0-paprika-638654_1920.jpg",
+  },
+  {
+    name: "Daily Essentials",
+    count: "180+ items",
+    image: "/hello/contaminazionivisive-bag-8319466.jpg",
+  },
+  {
+    name: "Snacks & Aisles",
+    count: "120+ items",
+    image: "/hello/27707-supermarket-949912.jpg",
+  },
+  {
+    name: "Nuts & Pantry",
+    count: "90+ items",
+    image: "/hello/publicdomainpictures-almonds-21502.jpg",
+  },
+  {
+    name: "Fresh Produce",
+    count: "150+ items",
+    image: "/hello/fudowakira0-paprika-638654_1920.jpg",
+  },
+  {
+    name: "Household",
+    count: "80+ items",
+    image: "/hello/contaminazionivisive-bag-8319466.jpg",
+  },
+  {
+    name: "Pantry Staples",
+    count: "70+ items",
+    image: "/hello/publicdomainpictures-almonds-21502.jpg",
+  },
+] as const;
+
+const MARQUEE_PERKS = [
+  "Same-day delivery",
+  "M-Pesa checkout",
+  "Curated essentials",
+  "No hidden fees",
+  "Owner-built storefront",
+  "Launching soon",
 ] as const;
 
 const HERO_CELLS = [
@@ -302,11 +352,11 @@ function ComingSoonPageBody({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add(styles.promiseItemVisible);
+            entry.target.classList.add(styles.promiseCardVisible);
           }
         });
       },
-      { threshold: 0.15 },
+      { threshold: 0.12 },
     );
     promiseRefs.current.forEach((el) => {
       if (el) {
@@ -372,6 +422,8 @@ function ComingSoonPageBody({
         </span>
       </nav>
 
+      <MarqueeRibbon storeName={displayName} theme={theme} />
+
       <section className="relative grid min-h-screen grid-cols-1 overflow-hidden lg:grid-cols-2">
         <div
           className={cn(
@@ -413,23 +465,29 @@ function ComingSoonPageBody({
             className={cn(
               styles.serif,
               styles.heroSubtitle,
-              "mb-10 text-[clamp(36px,4vw,58px)] font-light leading-none tracking-[-0.01em] text-[var(--cs-charcoal)] opacity-80",
+              "mb-6 text-[clamp(28px,3.2vw,48px)] font-light leading-[1.05] tracking-[-0.01em] text-[var(--cs-charcoal)]",
             )}
           >
-            Launching soon.
+            <span className="opacity-75">{displayName}</span>
+            <span className="mx-2 opacity-30">·</span>
+            <em className="not-italic" style={{ color: theme.primary }}>
+              launching soon
+            </em>
           </p>
 
           <p
             className={cn(
               styles.heroDesc,
-              "mb-12 max-w-[400px] text-[15px] font-light leading-[1.7] text-[var(--cs-warm-gray)]",
+              "mb-8 max-w-[420px] text-[15px] font-light leading-[1.75] text-[var(--cs-warm-gray)]",
             )}
           >
-            Quality essentials. Everyday groceries. Premium home goods. All
-            curated, all delivered — right to your door across Nairobi.
+            Your neighbourhood mini-mart, online — fresh groceries, pantry
+            staples, and everyday essentials delivered with care.
           </p>
 
-          <div className={cn(styles.heroActions, "flex flex-wrap items-center gap-4")}>
+          <HeroChips theme={theme} />
+
+          <div className={cn(styles.heroActions, "mt-10 flex flex-wrap items-center gap-4")}>
             {ownerState === "owner" ? (
               <button
                 type="button"
@@ -489,44 +547,75 @@ function ComingSoonPageBody({
             <p className="mb-4 text-[10px] font-normal uppercase tracking-[0.2em] text-[var(--cs-warm-gray)]">
               Days until launch
             </p>
-            <LaunchCountdown countdown={countdown} />
+            <LaunchCountdown countdown={countdown} theme={theme} />
           </div>
         </div>
 
         <HeroVisualPanel theme={theme} />
       </section>
 
-      <div className="mx-12 h-px bg-[var(--cs-border-subtle)]" />
+      <div className={cn(styles.sectionRule, "mx-6 sm:mx-12")} aria-hidden />
 
       <section id="discover" className="mx-auto max-w-[1200px] px-6 py-20 sm:px-12">
-        <p
-          className="mb-12 text-center text-[10px] font-medium uppercase tracking-[0.2em]"
-          style={{ color: theme.primary }}
+        <div className="mb-14 text-center">
+          <p
+            className="mb-3 inline-flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em]"
+            style={{ color: theme.primary }}
+          >
+            <Sparkles className="size-3" aria-hidden />
+            The {firstWord} promise
+          </p>
+          <h2
+            className={cn(
+              styles.serif,
+              "text-[clamp(32px,4vw,44px)] font-light leading-tight text-[var(--cs-charcoal)]",
+            )}
+          >
+            Built for how you{" "}
+            <em className="italic" style={{ color: theme.primary }}>
+              actually shop
+            </em>
+          </h2>
+        </div>
+        <div
+          className={cn(
+            styles.promiseGrid,
+            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+          )}
         >
-          Why {firstWord}
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {PROMISES.map((p, i) => (
             <div
               key={p.num}
               ref={(el) => {
                 promiseRefs.current[i] = el;
               }}
-              className={cn(
-                styles.promiseItem,
-                "border-b border-[var(--cs-border-subtle)] px-6 py-10 sm:border-b-0 sm:border-r sm:py-10 last:sm:border-r-0",
-              )}
-              style={{ transitionDelay: `${i * 0.12}s` }}
+              className={cn(styles.promiseCard, "p-7 sm:p-8")}
+              style={{ transitionDelay: `${i * 0.1}s` }}
             >
-              <p
-                className={cn(
-                  styles.serif,
-                  "mb-5 text-[13px] font-light tracking-[0.1em]",
-                )}
-                style={{ color: theme.primary }}
-              >
-                {p.num}
-              </p>
+              {(() => {
+                const Icon = PROMISES[i].Icon;
+                return (
+                  <div className="mb-5 flex items-start justify-between gap-3">
+                    <span
+                      className={cn(
+                        styles.promiseIcon,
+                        "inline-flex size-10 items-center justify-center rounded-xl",
+                      )}
+                    >
+                      <Icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
+                    </span>
+                    <span
+                      className={cn(
+                        styles.serif,
+                        "text-[12px] font-light tracking-[0.12em]",
+                      )}
+                      style={{ color: theme.primary }}
+                    >
+                      {p.num}
+                    </span>
+                  </div>
+                );
+              })()}
               <h3
                 className={cn(
                   styles.serif,
@@ -543,14 +632,15 @@ function ComingSoonPageBody({
         </div>
       </section>
 
-      <div className="mx-12 h-px bg-[var(--cs-border-subtle)]" />
+      <div className={cn(styles.sectionRule, "mx-6 sm:mx-12")} aria-hidden />
 
-      <CategoriesTeaser />
+      <CategoriesTeaser theme={theme} />
 
       <section
         id="notify"
         className={cn(styles.notifySection, "relative overflow-hidden px-6 py-20 sm:px-12")}
       >
+        <div className={cn(styles.notifyGlow, "pointer-events-none absolute inset-0")} aria-hidden />
         <p
           className={cn(
             styles.serif,
@@ -736,18 +826,27 @@ function HeroVisualPanel({ theme }: { theme: ComingSoonTheme }) {
           "absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-black/25",
         )}
       >
-        {HERO_CELLS.map((cell) => (
+        {HERO_CELLS.map((cell, index) => (
           <div
             key={cell.name}
-            className="relative overflow-hidden"
+            className={cn(styles.heroCell, "group relative overflow-hidden")}
             style={{ background: theme.darkBgMid }}
           >
+            <span
+              className={cn(
+                styles.heroCellIndex,
+                styles.serif,
+                "pointer-events-none absolute left-4 top-4 z-[3] text-[11px] font-light tracking-[0.14em]",
+              )}
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
             <Image
               src={cell.image}
               alt={cell.imageAlt}
               fill
               sizes="(max-width: 1024px) 50vw, 25vw"
-              className="object-cover transition-transform duration-700 ease-out hover:scale-105"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               priority
             />
             <div
@@ -766,9 +865,14 @@ function HeroVisualPanel({ theme }: { theme: ComingSoonTheme }) {
           )}
         >
           <span
-            className={cn(styles.tagDot, "size-2 shrink-0 rounded-full")}
-            style={{ backgroundColor: theme.primary }}
-          />
+            className="flex size-9 shrink-0 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: `color-mix(in srgb, ${theme.primary} 14%, white)`,
+              color: theme.primaryDeep,
+            }}
+          >
+            <Truck className="size-4" strokeWidth={1.75} aria-hidden />
+          </span>
           <span className="text-xs tracking-[0.02em] text-[var(--cs-charcoal)]">
             <strong className="mb-0.5 block text-[13px] font-medium">
               Same-day delivery
@@ -830,10 +934,81 @@ function HeroCellLabel({
   );
 }
 
+function MarqueeRibbon({
+  storeName,
+  theme,
+}: {
+  storeName: string;
+  theme: ComingSoonTheme;
+}) {
+  const loop = [
+    ...MARQUEE_PERKS,
+    storeName,
+    ...MARQUEE_PERKS,
+    ...MARQUEE_PERKS,
+    storeName,
+    ...MARQUEE_PERKS,
+  ];
+  return (
+    <div
+      className="overflow-hidden border-b py-2.5"
+      style={{
+        borderColor: `color-mix(in srgb, ${theme.primary} 18%, transparent)`,
+        backgroundColor: `color-mix(in srgb, ${theme.primary} 6%, var(--cs-warm-white))`,
+      }}
+    >
+      <div className={cn(styles.marqueeTrack, "flex")}>
+        {loop.map((item, i) => (
+          <span
+            key={`${item}-${i}`}
+            className={cn(
+              styles.marqueeItem,
+              "shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--cs-warm-gray)]",
+            )}
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HeroChips({ theme }: { theme: ComingSoonTheme }) {
+  const chips = [
+    { label: "Same-day delivery", Icon: Truck },
+    { label: "M-Pesa ready", Icon: CreditCard },
+    { label: "1,000+ SKUs", Icon: Package },
+  ] as const;
+  return (
+    <div className={cn(styles.heroChips, "flex flex-wrap gap-2")}>
+      {chips.map(({ label, Icon }) => (
+        <span
+          key={label}
+          className={cn(
+            styles.heroChip,
+            "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[11px] font-medium tracking-[0.04em] text-[var(--cs-charcoal)]",
+          )}
+        >
+          <Icon
+            className="size-3.5 shrink-0"
+            style={{ color: theme.primary }}
+            strokeWidth={1.75}
+            aria-hidden
+          />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function LaunchCountdown({
   countdown,
+  theme,
 }: {
   countdown: { days: string; hours: string; mins: string; secs: string };
+  theme: ComingSoonTheme;
 }) {
   const units = [
     { value: countdown.days, label: "Days" },
@@ -842,21 +1017,27 @@ function LaunchCountdown({
     { value: countdown.secs, label: "Sec" },
   ];
   return (
-    <div className="flex">
+    <div className="flex flex-wrap gap-3">
       {units.map((u, i) => (
         <div
           key={u.label}
           className={cn(
-            "pr-7 text-center",
-            i < units.length - 1 &&
-              "mr-7 border-r border-[var(--cs-border-subtle)]",
+            styles.countdownUnit,
+            "min-w-[4.5rem] rounded-xl px-4 py-3 text-center",
           )}
+          style={
+            i === 3
+              ? {
+                  boxShadow: `0 0 0 1px color-mix(in srgb, ${theme.primary} 35%, transparent)`,
+                }
+              : undefined
+          }
         >
           <span
             className={cn(
               styles.serif,
               styles.countdownValue,
-              "block min-w-[52px] text-[42px] font-light leading-none",
+              "block text-[36px] font-light leading-none sm:text-[42px]",
             )}
           >
             {u.value}
@@ -870,23 +1051,20 @@ function LaunchCountdown({
   );
 }
 
-function CategoriesTeaser() {
+function CategoriesTeaser({ theme }: { theme: ComingSoonTheme }) {
   const strip = [...CATEGORY_TEASERS, ...CATEGORY_TEASERS];
   return (
-    <section className="overflow-hidden pb-20 pt-20">
-      <div className="mx-auto mb-10 flex max-w-[1200px] flex-wrap items-baseline justify-between gap-4 px-6 sm:px-12">
-        <h2
-          className={cn(
-            styles.serif,
-            "text-[36px] font-light text-[var(--cs-charcoal)]",
-          )}
-        >
-          Browse what&apos;s{" "}
-          <em className="italic text-[var(--cs-primary)]">coming</em>
-        </h2>
-        <span className="text-xs tracking-[0.05em] text-[var(--cs-warm-gray)]">
-          Hover to pause ↔
-        </span>
+    <section className="overflow-hidden pb-20 pt-16">
+      <div className="mx-auto mb-10 max-w-[1200px] px-6 sm:px-12">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.primary }}>
+          A taste of the aisles
+        </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <h2 className={cn(styles.serif, "text-[clamp(28px,3.5vw,40px)] font-light text-[var(--cs-charcoal)]")}>
+            Browse what&apos;s <em className="italic" style={{ color: theme.primary }}>coming</em>
+          </h2>
+          <span className="text-xs tracking-[0.05em] text-[var(--cs-warm-gray)]">Hover to pause</span>
+        </div>
       </div>
       <div className="overflow-hidden px-6 sm:px-12">
         <div className={cn(styles.categoriesStrip, "flex gap-4")}>
@@ -895,34 +1073,29 @@ function CategoriesTeaser() {
               key={`${cat.name}-${i}`}
               className={cn(
                 styles.catCard,
-                "relative flex h-[220px] w-[200px] shrink-0 cursor-default flex-col justify-end overflow-hidden border border-[var(--cs-border-subtle)] bg-[var(--cs-cream)] p-5",
+                "relative h-[240px] w-[210px] shrink-0 cursor-default overflow-hidden rounded-2xl border border-[var(--cs-border-subtle)]",
               )}
             >
-              <span
-                className={cn(
-                  styles.serif,
-                  styles.catIcon,
-                  "relative z-[1] mb-2 text-[40px] font-light italic leading-none text-[var(--cs-primary)] transition-colors",
-                )}
-              >
-                {cat.icon}
-              </span>
-              <span
-                className={cn(
-                  styles.catName,
-                  "relative z-[1] text-[13px] font-normal uppercase tracking-[0.06em] text-[var(--cs-charcoal)] transition-colors",
-                )}
-              >
-                {cat.name}
-              </span>
-              <span
-                className={cn(
-                  styles.catCount,
-                  "relative z-[1] mt-0.5 text-[11px] text-[var(--cs-warm-gray)] transition-colors",
-                )}
-              >
-                {cat.count}
-              </span>
+              <Image
+                src={cat.image}
+                alt={cat.name}
+                fill
+                sizes="210px"
+                className={cn(styles.catCardImage, "object-cover")}
+                unoptimized
+              />
+              <div
+                className={cn(styles.catCardOverlay, "absolute inset-0")}
+                aria-hidden
+              />
+              <div className="absolute inset-x-0 bottom-0 z-[2] p-5">
+                <span className="block text-[13px] font-semibold uppercase tracking-[0.06em] text-white">
+                  {cat.name}
+                </span>
+                <span className="mt-1 block text-[11px] text-white/75">
+                  {cat.count}
+                </span>
+              </div>
             </div>
           ))}
         </div>
