@@ -20,6 +20,7 @@ import {
   type ItemTypeRecord,
   type MeResponse,
 } from "@/lib/api";
+import { persistTenantHostFromSlug } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 const SELECTED_BRANCH_PREFIX = "palmart:selectedBranch:v1:";
@@ -146,6 +147,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const [meData, biz] = await Promise.all([fetchMe(), fetchBusiness()]);
     setMe(meData);
     setBusiness(biz);
+    if (biz?.slug?.trim()) {
+      persistTenantHostFromSlug(biz.slug);
+    }
   }, []);
 
   const refreshBranches = useCallback(async () => {

@@ -1,6 +1,11 @@
 "use client";
 
-import { APP_BASE_URL, APP_ROUTES, STORAGE_KEYS } from "@/lib/config";
+import {
+  APP_BASE_URL,
+  APP_ROUTES,
+  isPlatformApexHost,
+  STORAGE_KEYS,
+} from "@/lib/config";
 
 export type SessionTokens = {
   accessToken: string;
@@ -141,7 +146,11 @@ export function persistTenantHostFromSlug(
   window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, `${s}.${parent}`);
 }
 
-/** When the app runs on e.g. pal.localhost, persist hostname so API calls send X-Tenant-Host. Skips bare localhost and super-admin routes. */
+/**
+ * When the app runs on a mapped tenant host (e.g. {@code slug.palmart.co.ke}),
+ * persist it as {@code X-Tenant-Host}. Skips bare localhost, super-admin routes,
+ * and the platform apex ({@code palmart.co.ke}) so login slug hosts are not overwritten.
+ */
 export function syncTenantHostFromBrowserHostname(): void {
   if (typeof window === "undefined") {
     return;
@@ -152,6 +161,9 @@ export function syncTenantHostFromBrowserHostname(): void {
   const bareLocal = new Set(["localhost", "127.0.0.1", "::1"]);
   const h = window.location.hostname.toLowerCase();
   if (bareLocal.has(h)) {
+    return;
+  }
+  if (isPlatformApexHost(h)) {
     return;
   }
   window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, h);

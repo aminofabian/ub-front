@@ -238,6 +238,25 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
 export const APP_BASE_URL =
   process.env.NEXT_PUBLIC_APP_BASE_URL ?? "http://localhost:3000";
 
+/** Platform apex hostname from {@link APP_BASE_URL} (e.g. {@code palmart.co.ke}). */
+export function platformApexHostname(): string {
+  try {
+    return new URL(APP_BASE_URL).hostname.trim().toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/** True when {@code host} is the platform apex or {@code www.} apex (not a tenant subdomain). */
+export function isPlatformApexHost(host: string): boolean {
+  const h = host.trim().toLowerCase();
+  const apex = platformApexHostname();
+  if (!h || !apex) {
+    return false;
+  }
+  return h === apex || h === `www.${apex}`;
+}
+
 /** Business UUID for local dev when Host is not a mapped tenant domain. */
 export const PUBLIC_TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID?.trim() ?? "";
 
