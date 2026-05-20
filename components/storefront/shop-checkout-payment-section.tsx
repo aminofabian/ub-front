@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Smartphone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,32 +38,89 @@ function ManualInstructionCard({ pi }: { pi: PublicPaymentInstruction }) {
   );
 }
 
+/** Build E.164-style digits for STK (Kenya 254…). */
+function buildStkPhoneNumber(areaCode: string, local: string): string {
+  const digits = `${areaCode}${local}`.replace(/\D/g, "");
+  if (digits.startsWith("254")) return digits;
+  if (digits.startsWith("0")) return `254${digits.slice(1)}`;
+  return `254${digits}`;
+}
+
+function isStkPhoneValid(areaCode: string, local: string): boolean {
+  const digits = buildStkPhoneNumber(areaCode, local);
+  return digits.length >= 12 && digits.length <= 13;
+}
+
 type OnlineStkProps = {
   methods: PublicOnlinePaymentMethod[];
-  phoneHint: string;
+  defaultAreaCode: string;
+  defaultPhone: string;
   busy: boolean;
   stkMessage: string | null;
   stkSent: boolean;
-  onPay: (configId: string) => void;
+  onPay: (configId: string, phoneNumber: string) => void;
 };
 
 function OnlineStkSection({
   methods,
-  phoneHint,
+  defaultAreaCode,
+  defaultPhone,
   busy,
   stkMessage,
   stkSent,
   onPay,
 }: OnlineStkProps) {
+  const [areaCode, setAreaCode] = useState(defaultAreaCode);
+  const [phone, setPhone] = useState(defaultPhone);
+
+  useEffect(() => {
+    setAreaCode(defaultAreaCode);
+    setPhone(defaultPhone);
+  }, [defaultAreaCode, defaultPhone]);
+
   if (methods.length === 0) return null;
+
+  const phoneValid = isStkPhoneValid(areaCode, phone);
+  const fullPhone = buildStkPhoneNumber(areaCode, phone);
 
   return (
     <div className="space-y-3 rounded-xl border border-primary/25 bg-primary/5 p-4">
       <h3 className="text-sm font-semibold text-foreground">Pay with M-Pesa on your phone</h3>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        We&apos;ll send a payment prompt to <span className="font-medium text-foreground">{phoneHint}</span>.
-        Approve it in the M-Pesa menu to complete payment.
+        Enter the number that should receive the M-Pesa prompt, then tap send. Approve the
+        request on that phone to complete payment.
       </p>
+      <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-2 sm:grid-cols-[112px_minmax(0,1fr)]">
+        <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
+          Code
+          <input
+            type="text"
+            inputMode="tel"
+            autoComplete="tel-country-code"
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm shadow-sm"
+            value={areaCode}
+            onChange={(e) => setAreaCode(e.target.value)}
+            placeholder="+254"
+            disabled={busy || stkSent}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
+          M-Pesa phone number
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm shadow-sm"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="712 345 678"
+            disabled={busy || stkSent}
+          />
+        </label>
+      </div>
+      {!phoneValid && phone.trim() ? (
+        <p className="text-xs text-destructive">Enter a valid Kenyan mobile number.</p>
+      ) : null}
       {methods.map((m) => (
         <div
           key={m.configId}
@@ -83,8 +141,8 @@ function OnlineStkSection({
             type="button"
             size="sm"
             className="h-10 shrink-0 rounded-xl px-4 text-sm font-semibold"
-            disabled={busy || stkSent}
-            onClick={() => onPay(m.configId)}
+            disabled={busy || stkSent || !phoneValid}
+            onClick={() => onPay(m.configId, fullPhone)}
           >
             {busy ? "Sending…" : stkSent ? "Prompt sent" : "Send M-Pesa prompt"}
           </Button>
@@ -108,7 +166,8 @@ function OnlineStkSection({
 export function ShopCheckoutPaymentSection({
   manual,
   online,
-  phoneHint,
+  defaultAreaCode = "+254",
+  defaultPhone = "",
   stkBusy,
   stkMessage,
   stkSent,
@@ -117,11 +176,13 @@ export function ShopCheckoutPaymentSection({
 }: {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
-  phoneHint: string;
+  /** Prefill for M-Pesa prompt (usually checkout contact phone). */
+  defaultAreaCode?: string;
+  defaultPhone?: string;
   stkBusy?: boolean;
   stkMessage?: string | null;
   stkSent?: boolean;
-  onStkPay?: (configId: string) => void;
+  onStkPay?: (configId: string, phoneNumber: string) => void;
   /** When true, explains online pay is available after placing the order */
   showOnlineBeforeOrder?: boolean;
 }) {
@@ -142,7 +203,8 @@ export function ShopCheckoutPaymentSection({
       {hasOnline && !showOnlineBeforeOrder && onStkPay ? (
         <OnlineStkSection
           methods={online}
-          phoneHint={phoneHint}
+          defaultAreaCode={defaultAreaCode}
+          defaultPhone={defaultPhone}
           busy={stkBusy ?? false}
           stkMessage={stkMessage ?? null}
           stkSent={stkSent ?? false}

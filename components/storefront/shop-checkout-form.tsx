@@ -433,16 +433,14 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     }
   }, [slug, cart]);
 
-  const paymentPhoneHint = `${areaCode} ${customerPhone}`.trim() || "your phone";
-
-  async function handleStkPay(configId: string) {
+  async function handleStkPay(configId: string, phoneNumber: string) {
     if (!done?.orderId) return;
     setStkBusy(true);
     setStkMessage(null);
     try {
       const result = await initiatePublicWebOrderStkPush(slug, done.orderId, {
         configId,
-        phoneNumber: `${areaCode}${customerPhone}`.replace(/\s+/g, ""),
+        phoneNumber,
       });
       if (result.accepted) {
         setStkSent(true);
@@ -897,7 +895,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 <ShopCheckoutPaymentSection
                   manual={paymentOptions.manual}
                   online={paymentOptions.online}
-                  phoneHint={paymentPhoneHint}
+                  defaultAreaCode={areaCode}
+                  defaultPhone={customerPhone}
                   stkBusy={stkBusy}
                   stkMessage={stkMessage}
                   stkSent={stkSent}
@@ -1452,7 +1451,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             <ShopCheckoutPaymentSection
               manual={paymentOptions.manual}
               online={paymentOptions.online}
-              phoneHint={paymentPhoneHint}
               showOnlineBeforeOrder={paymentOptions.online.length > 0}
             />
           </div>
