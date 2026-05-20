@@ -107,8 +107,8 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col",
-        compactHeader ? "max-h-full" : "h-full min-h-0 overflow-y-auto",
+        "flex min-h-0 flex-col overflow-hidden",
+        compactHeader ? "h-full max-h-full" : "h-full",
       )}
     >
       <div
@@ -158,9 +158,9 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
         </button>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {loading && !cart ? (
-          <div className="flex flex-col gap-2.5 px-3.5 py-4">
+          <div className="flex flex-1 flex-col gap-2.5 px-3.5 py-4">
             {[1, 2].map((i) => (
               <div
                 key={i}
@@ -173,42 +173,44 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
           <CartEmptyState onShop={onClose} />
         ) : (
           <>
-            {error ? (
-              <p className="mx-3.5 mt-3 rounded-lg border border-destructive/25 bg-destructive/5 px-2.5 py-1.5 text-xs text-destructive">
-                {error}
-              </p>
-            ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {error ? (
+                <p className="mx-3.5 mt-3 rounded-lg border border-destructive/25 bg-destructive/5 px-2.5 py-1.5 text-xs text-destructive">
+                  {error}
+                </p>
+              ) : null}
 
-            {focusMode && otherLineCount > 0 ? (
-              <button
-                type="button"
-                onClick={showAllCartItems}
-                className="mx-3.5 mt-3 flex w-[calc(100%-1.75rem)] items-center justify-between gap-2 rounded-xl border border-dashed border-primary/35 bg-primary/5 px-3 py-2 text-left transition-colors hover:bg-primary/10"
-              >
-                <span className="text-xs font-medium text-foreground">
-                  +{otherLineCount} more in your cart
-                </span>
-                <span className="flex items-center gap-0.5 text-[11px] font-semibold text-primary">
-                  View all
-                  <ChevronRight className="size-3.5" aria-hidden />
-                </span>
-              </button>
-            ) : null}
+              {focusMode && otherLineCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={showAllCartItems}
+                  className="mx-3.5 mt-3 flex w-[calc(100%-1.75rem)] items-center justify-between gap-2 rounded-xl border border-dashed border-primary/35 bg-primary/5 px-3 py-2 text-left transition-colors hover:bg-primary/10"
+                >
+                  <span className="text-xs font-medium text-foreground">
+                    +{otherLineCount} more in your cart
+                  </span>
+                  <span className="flex items-center gap-0.5 text-[11px] font-semibold text-primary">
+                    View all
+                    <ChevronRight className="size-3.5" aria-hidden />
+                  </span>
+                </button>
+              ) : null}
 
-            {!focusMode && lineCount > 1 && compactHeader ? (
-              <p className="mx-3.5 mt-2 text-center text-[10px] font-medium text-muted-foreground">
-                Scroll the list below to review every item
-              </p>
-            ) : null}
+              {!focusMode && lineCount > 1 && compactHeader ? (
+                <p className="mx-3.5 mt-2 text-center text-[10px] font-medium text-muted-foreground">
+                  Scroll the list below to review every item
+                </p>
+              ) : null}
 
-            <div className={cn("px-3.5", focusMode ? "pt-2 pb-1" : "py-3")}>
-              <ShopCartLinesScroll
-                cart={displayCart}
-                compact={compactHeader}
-                busyItemId={busyItemId}
-                onChangeQty={handleChangeQty}
-                onRemove={removeLine}
-              />
+              <div className={cn("px-3.5", focusMode ? "pt-2 pb-1" : "py-3")}>
+                <ShopCartLinesScroll
+                  cart={displayCart}
+                  compact={compactHeader}
+                  busyItemId={busyItemId}
+                  onChangeQty={handleChangeQty}
+                  onRemove={removeLine}
+                />
+              </div>
             </div>
 
             <div
