@@ -341,10 +341,10 @@ function ComingSoonPageBody({
           )}
         </a>
         <span
-          className="rounded-full border px-3.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]"
+          className="rounded-full border px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
           style={{
-            borderColor: `color-mix(in srgb, ${theme.primary} 35%, transparent)`,
-            backgroundColor: `color-mix(in srgb, ${theme.primary} 12%, var(--cs-warm-white))`,
+            borderColor: `color-mix(in srgb, ${theme.primary} 28%, transparent)`,
+            backgroundColor: theme.accentPale,
             color: theme.primaryDeep,
           }}
         >
@@ -355,6 +355,7 @@ function ComingSoonPageBody({
       <section className="relative grid min-h-screen grid-cols-1 overflow-hidden lg:grid-cols-2">
         <div
           className={cn(
+            styles.heroPanel,
             styles.heroGlow,
             "relative flex flex-col justify-center px-6 pb-16 pt-28 sm:px-12 lg:px-12 lg:pb-20 lg:pl-12 lg:pt-32 xl:pl-12",
           )}
@@ -364,10 +365,7 @@ function ComingSoonPageBody({
               className="h-px w-8 shrink-0"
               style={{ backgroundColor: theme.primary }}
             />
-            <span
-              className="text-[11px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: theme.primaryDeep }}
-            >
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--cs-warm-gray)]">
               {displayName} · opening soon
             </span>
           </div>
@@ -395,7 +393,7 @@ function ComingSoonPageBody({
             className={cn(
               styles.serif,
               styles.heroSubtitle,
-              "mb-10 text-[clamp(36px,4vw,58px)] font-light leading-none tracking-[-0.01em] text-[var(--cs-warm-gray)]",
+              "mb-10 text-[clamp(36px,4vw,58px)] font-light leading-none tracking-[-0.01em] text-[var(--cs-charcoal)] opacity-80",
             )}
           >
             Launching soon.
@@ -546,8 +544,7 @@ function ComingSoonPageBody({
         <div className="relative z-[1] mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div>
             <p
-              className="mb-4 text-[10px] font-medium uppercase tracking-[0.2em]"
-              style={{ color: theme.accentLight }}
+              className="mb-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--cs-accent-light)]"
             >
               {ownerState === "owner" ? "Ready to launch" : "Be first in line"}
             </p>
@@ -581,7 +578,7 @@ function ComingSoonPageBody({
                 </>
               )}
             </h2>
-            <p className="text-sm font-light leading-[1.7] text-[color-mix(in_srgb,var(--cs-on-dark)_55%,transparent)]">
+            <p className="text-sm font-light leading-[1.7] text-[var(--cs-on-dark-muted)]">
               {ownerState === "owner"
                 ? "Choose your branch location and enable your public catalog. Shoppers will see stock and prices from that branch."
                 : "Join our waitlist and be the first to shop when we launch. Early subscribers get 15% off their first order."}
@@ -634,7 +631,7 @@ function ComingSoonPageBody({
                     value={email}
                     onChange={(e) => onEmailChange(e.target.value)}
                     placeholder="Your email address"
-                    className="min-w-0 flex-1 border-0 bg-transparent px-5 py-4 text-sm font-light tracking-[0.02em] text-[var(--cs-on-dark)] outline-none placeholder:text-[color-mix(in_srgb,var(--cs-on-dark)_35%,transparent)]"
+                    className="min-w-0 flex-1 border-0 bg-transparent px-5 py-4 text-sm font-light tracking-[0.02em] text-[var(--cs-on-dark)] outline-none placeholder:text-[var(--cs-on-dark-muted)]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         onNotify();
@@ -653,7 +650,7 @@ function ComingSoonPageBody({
                     Notify Me
                   </button>
                 </div>
-                <p className="text-[11px] tracking-[0.02em] text-[color-mix(in_srgb,var(--cs-on-dark)_32%,transparent)]">
+                <p className="text-[11px] tracking-[0.02em] text-[var(--cs-on-dark-muted)]">
                   No spam. Unsubscribe anytime. We respect your inbox.
                 </p>
               </>
@@ -703,21 +700,20 @@ function ComingSoonPageBody({
 function HeroVisualPanel({ theme }: { theme: ComingSoonTheme }) {
   return (
     <div
-      className="relative min-h-[min(420px,50vh)] lg:min-h-full"
-      style={{ backgroundColor: theme.darkBg }}
+      className={cn(styles.heroVisual, "relative min-h-[min(420px,50vh)] lg:min-h-full")}
     >
       <HeroDecoCircles />
       <div
-        className="pointer-events-none absolute -left-16 top-1/4 size-64 rounded-full blur-3xl opacity-50"
+        className="pointer-events-none absolute inset-0 opacity-90"
         style={{
-          background: `radial-gradient(circle, var(--cs-hero-glow), transparent 70%)`,
+          background: `radial-gradient(ellipse 90% 70% at 80% 20%, color-mix(in srgb, ${theme.primary} 28%, transparent), transparent 55%)`,
         }}
         aria-hidden
       />
       <div
         className={cn(
           styles.visualGrid,
-          "absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5",
+          "absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-black/25",
         )}
       >
         {HERO_CELLS.map((cell, i) => (
@@ -727,10 +723,7 @@ function HeroVisualPanel({ theme }: { theme: ComingSoonTheme }) {
             style={{ background: theme.heroCellBgs[i] }}
           >
             <span
-              className={cn(
-                styles.serif,
-                "text-5xl italic text-[var(--cs-accent-light)] opacity-15",
-              )}
+              className={cn(styles.serif, styles.heroCellIcon, "text-5xl italic")}
             >
               {cell.icon}
             </span>
@@ -789,13 +782,19 @@ function HeroCellLabel({
 }) {
   return (
     <div className="absolute inset-x-5 bottom-5">
-      <p className="text-[11px] font-light uppercase tracking-[0.1em] text-white/40">
+      <p
+        className={cn(
+          styles.heroCellLabelMuted,
+          "text-[11px] font-medium uppercase tracking-[0.1em]",
+        )}
+      >
         {cell.name}
       </p>
       <p
         className={cn(
           styles.serif,
-          "mt-0.5 text-xl font-light text-[var(--cs-accent-light)]",
+          styles.heroCellPrice,
+          "mt-0.5 text-xl font-light",
         )}
       >
         {cell.price}

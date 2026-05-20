@@ -62,11 +62,12 @@
 }
 
 .page {
-  --cs-cream: var(--cs-brand-surface-elevated, #f5f0e8);
-  --cs-warm-white: var(--cs-brand-surface, #faf7f2);
+  --cs-cream: var(--cs-brand-surface-elevated, #f3efe8);
+  --cs-warm-white: var(--cs-brand-surface, #faf8f6);
   --cs-charcoal: var(--cs-brand-ink, #1a1814);
-  --cs-charcoal-mid: var(--cs-brand-dark-mid, #2c2820);
-  --cs-warm-gray: var(--cs-brand-ink-muted, #8a8278);
+  --cs-charcoal-mid: var(--cs-brand-dark-mid, #1c1a17);
+  --cs-warm-gray: var(--cs-brand-ink-muted, #5c574f);
+  --cs-on-dark-muted: var(--cs-brand-on-dark-muted, #c8c2b8);
   --cs-accent: var(--cs-brand-accent, #0d9488);
   --cs-accent-light: var(--cs-brand-accent-light, #5eead4);
   --cs-accent-pale: var(--cs-brand-accent-pale, #ccfbf1);
@@ -85,12 +86,35 @@
   overflow-x: hidden;
 }
 
+.heroPanel {
+  background: var(--cs-warm-white);
+  border-right: 1px solid var(--cs-border-subtle);
+}
+
 .heroGlow {
-  background: radial-gradient(
-    ellipse 80% 60% at 0% 20%,
-    color-mix(in srgb, var(--cs-primary) 14%, transparent),
-    transparent 70%
-  );
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 0% 15%,
+      color-mix(in srgb, var(--cs-primary) 7%, transparent),
+      transparent 68%
+    ),
+    var(--cs-warm-white);
+}
+
+.heroVisual {
+  background: var(--cs-brand-dark, #121110);
+}
+
+.heroCellIcon {
+  color: color-mix(in srgb, var(--cs-on-dark) 18%, transparent);
+}
+
+.heroCellLabelMuted {
+  color: color-mix(in srgb, var(--cs-on-dark) 52%, transparent);
+}
+
+.heroCellPrice {
+  color: color-mix(in srgb, var(--cs-on-dark) 92%, transparent);
 }
 
 .serif {
@@ -239,13 +263,17 @@
 }
 
 .notifySection {
-  background: var(--cs-dark);
+  background: linear-gradient(
+    165deg,
+    var(--cs-dark) 0%,
+    color-mix(in srgb, var(--cs-dark) 88%, var(--cs-primary)) 100%
+  );
 }
 
 .notifyWatermark {
-  color: color-mix(in srgb, var(--cs-primary) 12%, transparent);
+  color: color-mix(in srgb, var(--cs-on-dark) 6%, transparent);
 }
 
 .decoRing {
-  border-color: color-mix(in srgb, var(--cs-primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--cs-on-dark) 14%, transparent);
 }

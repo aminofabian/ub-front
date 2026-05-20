@@ -5,6 +5,14 @@ import { pickReadableTextColor } from "@/lib/branding-color-presets";
 const DEFAULT_PRIMARY = "#0D9488";
 const DEFAULT_ACCENT = "#14B8A6";
 
+/** Fixed neutrals — body copy and surfaces stay readable on any brand primary. */
+const NEUTRAL_INK = "#1a1814";
+const NEUTRAL_INK_MUTED = "#5c574f";
+const NEUTRAL_SURFACE = "#faf8f6";
+const NEUTRAL_SURFACE_ELEVATED = "#f3efe8";
+const NEUTRAL_DARK = "#121110";
+const NEUTRAL_DARK_MID = "#1c1a17";
+
 export type ComingSoonTheme = {
   primary: string;
   accent: string;
@@ -17,6 +25,7 @@ export type ComingSoonTheme = {
   surfaceElevated: string;
   onPrimary: string;
   onDark: string;
+  onDarkMuted: string;
   darkBg: string;
   darkBgMid: string;
   heroCellBgs: readonly [string, string, string, string];
@@ -55,48 +64,51 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${c(r).toString(16).padStart(2, "0")}${c(g).toString(16).padStart(2, "0")}${c(b).toString(16).padStart(2, "0")}`;
 }
 
-function mixHex(a: string, b: string, t: number): string {
-  const A = hexToRgb(a);
-  const B = hexToRgb(b);
+/** Blend `amount` of `tint` into `base` (0 = base only, 1 = full tint). */
+function tintHex(base: string, tint: string, amount: number): string {
+  const A = hexToRgb(base);
+  const B = hexToRgb(tint);
   return rgbToHex(
-    A.r + (B.r - A.r) * t,
-    A.g + (B.g - A.g) * t,
-    A.b + (B.b - A.b) * t,
+    A.r + (B.r - A.r) * amount,
+    A.g + (B.g - A.g) * amount,
+    A.b + (B.b - A.b) * amount,
   );
 }
 
 function lightenHex(hex: string, amount: number): string {
-  return mixHex(hex, "#ffffff", amount);
+  return tintHex(hex, "#ffffff", amount);
 }
 
 function darkenHex(hex: string, amount: number): string {
-  return mixHex(hex, "#000000", amount);
+  return tintHex(hex, "#000000", amount);
 }
 
-/** Brand-driven palette for the storefront “coming soon” landing page. */
+/** Brand accents on a neutral editorial layout (primary never floods surfaces). */
 export function buildComingSoonTheme(
   primaryHex?: string | null,
   accentHex?: string | null,
 ): ComingSoonTheme {
   const primary = parseHex(primaryHex) ?? DEFAULT_PRIMARY;
   const accent = parseHex(accentHex) ?? parseHex(DEFAULT_ACCENT) ?? lightenHex(primary, 0.2);
-  const accentLight = lightenHex(accent, 0.28);
-  const accentPale = lightenHex(accent, 0.48);
-  const primaryDeep = darkenHex(primary, 0.18);
-  const ink = mixHex(primary, "#141210", 0.82);
-  const inkMuted = mixHex(primary, "#6b6560", 0.55);
-  const surface = mixHex(primary, "#faf8f5", 0.06);
-  const surfaceElevated = mixHex(primary, "#f5f2ed", 0.1);
-  const darkBg = mixHex(primary, "#0c0b0a", 0.88);
-  const darkBgMid = mixHex(primary, "#121110", 0.82);
+  const accentLight = lightenHex(accent, 0.32);
+  const accentPale = lightenHex(accent, 0.5);
+  const primaryDeep = darkenHex(primary, 0.2);
+
+  const ink = NEUTRAL_INK;
+  const inkMuted = tintHex(NEUTRAL_INK_MUTED, primary, 0.08);
+  const surface = tintHex(NEUTRAL_SURFACE, primary, 0.04);
+  const surfaceElevated = tintHex(NEUTRAL_SURFACE_ELEVATED, primary, 0.06);
+  const darkBg = tintHex(NEUTRAL_DARK, primary, 0.2);
+  const darkBgMid = tintHex(NEUTRAL_DARK_MID, primary, 0.16);
   const onPrimary = pickReadableTextColor(primary);
-  const onDark = "#f5f2ed";
+  const onDark = "#f7f4ef";
+  const onDarkMuted = tintHex("#c8c2b8", primary, 0.1);
 
   const heroCellBgs = [
-    mixHex(primary, "#080807", 0.9),
-    mixHex(primary, "#0a0908", 0.84),
-    mixHex(primary, "#0c0b0a", 0.88),
-    mixHex(primary, "#060605", 0.92),
+    tintHex("#1a1917", primary, 0.12),
+    tintHex("#1e1d1a", primary, 0.08),
+    tintHex("#171614", primary, 0.14),
+    tintHex("#141312", primary, 0.1),
   ] as const;
 
   const cssVars: CSSProperties = {
@@ -113,7 +125,8 @@ export function buildComingSoonTheme(
     ["--cs-brand-dark-mid" as string]: darkBgMid,
     ["--cs-brand-on-primary" as string]: onPrimary,
     ["--cs-brand-on-dark" as string]: onDark,
-    ["--cs-hero-glow" as string]: `${primary}40`,
+    ["--cs-brand-on-dark-muted" as string]: onDarkMuted,
+    ["--cs-hero-glow" as string]: `${primary}22`,
   };
 
   return {
@@ -128,6 +141,7 @@ export function buildComingSoonTheme(
     surfaceElevated,
     onPrimary,
     onDark,
+    onDarkMuted,
     darkBg,
     darkBgMid,
     heroCellBgs,
