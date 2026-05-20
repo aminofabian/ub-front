@@ -62,22 +62,35 @@
 }
 
 .page {
-  --cs-cream: #f5f0e8;
-  --cs-warm-white: #faf7f2;
-  --cs-charcoal: #1a1814;
-  --cs-charcoal-mid: #2c2820;
-  --cs-warm-gray: #8a8278;
-  --cs-accent: var(--cs-brand-accent, #c8963e);
-  --cs-accent-light: var(--cs-brand-accent-light, #e8b86d);
-  --cs-accent-pale: var(--cs-brand-accent-pale, #f5e6c8);
-  --cs-border: color-mix(in srgb, var(--cs-accent) 20%, transparent);
-  --cs-border-subtle: rgba(26, 24, 20, 0.08);
+  --cs-cream: var(--cs-brand-surface-elevated, #f5f0e8);
+  --cs-warm-white: var(--cs-brand-surface, #faf7f2);
+  --cs-charcoal: var(--cs-brand-ink, #1a1814);
+  --cs-charcoal-mid: var(--cs-brand-dark-mid, #2c2820);
+  --cs-warm-gray: var(--cs-brand-ink-muted, #8a8278);
+  --cs-accent: var(--cs-brand-accent, #0d9488);
+  --cs-accent-light: var(--cs-brand-accent-light, #5eead4);
+  --cs-accent-pale: var(--cs-brand-accent-pale, #ccfbf1);
+  --cs-primary: var(--cs-brand-primary, #0d9488);
+  --cs-primary-deep: var(--cs-brand-primary-deep, #0f766e);
+  --cs-on-primary: var(--cs-brand-on-primary, #ffffff);
+  --cs-on-dark: var(--cs-brand-on-dark, #f5f2ed);
+  --cs-dark: var(--cs-brand-dark, #1a1814);
+  --cs-border: color-mix(in srgb, var(--cs-primary) 22%, transparent);
+  --cs-border-subtle: color-mix(in srgb, var(--cs-charcoal) 8%, transparent);
 
   font-family: var(--font-dm-sans, "DM Sans"), sans-serif;
   background: var(--cs-warm-white);
   color: var(--cs-charcoal);
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+.heroGlow {
+  background: radial-gradient(
+    ellipse 80% 60% at 0% 20%,
+    color-mix(in srgb, var(--cs-primary) 14%, transparent),
+    transparent 70%
+  );
 }
 
 .serif {
@@ -132,6 +145,11 @@
   animation: csPulseDot 2s ease infinite;
 }
 
+.btnPrimary {
+  background: var(--cs-primary);
+  color: var(--cs-on-primary);
+}
+
 .btnPrimary::before {
   content: "";
   position: absolute;
@@ -143,6 +161,22 @@
 
 .btnPrimary:hover::before {
   transform: translateX(0);
+}
+
+.btnPrimary:hover {
+  color: var(--cs-on-primary);
+}
+
+.btnGhost {
+  color: var(--cs-charcoal);
+}
+
+.btnGhost:hover {
+  color: var(--cs-primary);
+}
+
+.countdownValue {
+  color: var(--cs-primary);
 }
 
 .categoriesStrip {
@@ -158,7 +192,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--cs-charcoal);
+  background: var(--cs-primary-deep);
   transform: translateY(100%);
   transition: transform 0.4s ease;
 }
@@ -179,11 +213,11 @@
 }
 
 .catCard:hover .catName {
-  color: var(--cs-cream);
+  color: var(--cs-on-dark);
 }
 
 .catCard:hover .catCount {
-  color: rgba(245, 240, 232, 0.5);
+  color: color-mix(in srgb, var(--cs-on-dark) 55%, transparent);
 }
 
 .promiseItem {
@@ -198,4 +232,20 @@
 .promiseItemVisible {
   opacity: 1;
   transform: translateY(0);
+}
+
+.promiseItem:hover {
+  background: color-mix(in srgb, var(--cs-primary) 6%, var(--cs-cream));
+}
+
+.notifySection {
+  background: var(--cs-dark);
+}
+
+.notifyWatermark {
+  color: color-mix(in srgb, var(--cs-primary) 12%, transparent);
+}
+
+.decoRing {
+  border-color: color-mix(in srgb, var(--cs-primary) 22%, transparent);
 }

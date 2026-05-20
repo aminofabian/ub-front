@@ -19,6 +19,7 @@ import { useSearchParams } from "next/navigation";
 
 import { StorefrontSetupModal } from "@/components/storefront/storefront-setup-modal";
 import styles from "@/components/storefront/shop-storefront-coming-soon.module.css";
+import { buildComingSoonTheme, type ComingSoonTheme } from "@/lib/coming-soon-theme";
 import { APP_ROUTES } from "@/lib/config";
 import { getSessionTokens } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
@@ -71,8 +72,6 @@ const HERO_CELLS = [
   { icon: "Bv", name: "Beverages", price: "KSh 80–" },
   { icon: "Sk", name: "Snacks & More", price: "KSh 50–" },
 ] as const;
-
-const CELL_BG = ["#251f17", "#1e1a13", "#211d16", "#1a1610"] as const;
 
 export type ShopStorefrontComingSoonProps = {
   storeName: string;
@@ -164,14 +163,9 @@ function ComingSoonPage({
   onSetupOpen: (open: boolean) => void;
   loginHref: string;
 }) {
-  const accent = useMemo(() => parseHex(accentHex) ?? "#c8963e", [accentHex]);
-  const pageStyle = useMemo(
-    (): CSSProperties => ({
-      ["--cs-brand-accent" as string]: accent,
-      ["--cs-brand-accent-light" as string]: lightenHex(accent, 0.22),
-      ["--cs-brand-accent-pale" as string]: lightenHex(accent, 0.42),
-    }),
-    [accent],
+  const theme = useMemo(
+    () => buildComingSoonTheme(primaryHex, accentHex),
+    [primaryHex, accentHex],
   );
 
   const [email, setEmail] = useState("");
@@ -234,8 +228,7 @@ function ComingSoonPage({
     <ComingSoonPageBody
       storeName={storeName}
       logoUrl={logoUrl}
-      accent={accent}
-      pageStyle={pageStyle}
+      theme={theme}
       ownerState={ownerState}
       setupOpen={setupOpen}
       onSetupOpen={onSetupOpen}
@@ -254,8 +247,7 @@ function ComingSoonPage({
 function ComingSoonPageBody({
   storeName,
   logoUrl,
-  accent,
-  pageStyle,
+  theme,
   ownerState,
   setupOpen,
   onSetupOpen,
@@ -270,8 +262,7 @@ function ComingSoonPageBody({
 }: {
   storeName: string;
   logoUrl?: string | null;
-  accent: string;
-  pageStyle: CSSProperties;
+  theme: ComingSoonTheme;
   ownerState: "unknown" | "guest" | "owner" | "other";
   setupOpen: boolean;
   onSetupOpen: (open: boolean) => void;
@@ -315,12 +306,12 @@ function ComingSoonPageBody({
   return (
     <div
       className={cn(cormorant.variable, styles.page)}
-      style={pageStyle}
+      style={theme.cssVars as CSSProperties}
     >
       <nav
         className={cn(
           styles.nav,
-          "fixed inset-x-0 top-0 z-[100] flex items-center justify-between border-b border-[var(--cs-border-subtle)] bg-[rgba(250,247,242,0.85)] px-6 py-6 backdrop-blur-[20px] sm:px-12",
+          "fixed inset-x-0 top-0 z-[100] flex items-center justify-between border-b border-[var(--cs-border)] bg-[color-mix(in_srgb,var(--cs-warm-white)_88%,transparent)] px-6 py-5 backdrop-blur-[20px] sm:px-12",
         )}
       >
         <a
@@ -343,23 +334,41 @@ function ComingSoonPageBody({
           ) : (
             <TenantMonogramLockup
               brand={displayName}
-              primaryColor={accent}
+              primaryColor={theme.primary}
               size="sm"
               showTagline={false}
             />
           )}
         </a>
-        <span className="rounded-full border border-[var(--cs-accent)] bg-[var(--cs-accent-pale)] px-3.5 py-1 text-[11px] font-normal uppercase tracking-[0.14em] text-[var(--cs-accent)]">
+        <span
+          className="rounded-full border px-3.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]"
+          style={{
+            borderColor: `color-mix(in srgb, ${theme.primary} 35%, transparent)`,
+            backgroundColor: `color-mix(in srgb, ${theme.primary} 12%, var(--cs-warm-white))`,
+            color: theme.primaryDeep,
+          }}
+        >
           Opening Soon
         </span>
       </nav>
 
       <section className="relative grid min-h-screen grid-cols-1 overflow-hidden lg:grid-cols-2">
-        <div className="flex flex-col justify-center px-6 pb-16 pt-32 sm:px-12 lg:px-12 lg:pb-20 lg:pl-12 lg:pt-36 xl:pl-12">
+        <div
+          className={cn(
+            styles.heroGlow,
+            "relative flex flex-col justify-center px-6 pb-16 pt-28 sm:px-12 lg:px-12 lg:pb-20 lg:pl-12 lg:pt-32 xl:pl-12",
+          )}
+        >
           <div className={cn(styles.heroEyebrow, "mb-8 flex items-center gap-3")}>
-            <div className="h-px w-8 bg-[var(--cs-accent)]" />
-            <span className="text-[11px] font-normal uppercase tracking-[0.18em] text-[var(--cs-accent)]">
-              Nairobi&apos;s finest online mini-mart
+            <div
+              className="h-px w-8 shrink-0"
+              style={{ backgroundColor: theme.primary }}
+            />
+            <span
+              className="text-[11px] font-medium uppercase tracking-[0.18em]"
+              style={{ color: theme.primaryDeep }}
+            >
+              {displayName} · opening soon
             </span>
           </div>
 
@@ -372,7 +381,12 @@ function ComingSoonPageBody({
           >
             Something
             <br />
-            <em className="font-light not-italic text-[var(--cs-accent)]">worth</em>
+            <em
+              className="font-light not-italic"
+              style={{ color: theme.primary }}
+            >
+              worth
+            </em>
             <br />
             waiting for.
           </h1>
@@ -403,7 +417,7 @@ function ComingSoonPageBody({
                 type="button"
                 className={cn(
                   styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 bg-[var(--cs-charcoal)] px-8 py-4 text-[13px] font-normal uppercase tracking-[0.08em] text-[var(--cs-cream)] transition-colors",
+                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] transition-colors",
                 )}
                 onClick={() => onSetupOpen(true)}
               >
@@ -415,7 +429,7 @@ function ComingSoonPageBody({
                 href={loginHref}
                 className={cn(
                   styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 bg-[var(--cs-charcoal)] px-8 py-4 text-[13px] font-normal uppercase tracking-[0.08em] text-[var(--cs-cream)] no-underline transition-colors",
+                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em] no-underline transition-colors",
                 )}
               >
                 <span className="relative z-[1]">Owner sign in</span>
@@ -426,7 +440,7 @@ function ComingSoonPageBody({
                 type="button"
                 className={cn(
                   styles.btnPrimary,
-                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 bg-[var(--cs-charcoal)] px-8 py-4 text-[13px] font-normal uppercase tracking-[0.08em] text-[var(--cs-cream)]",
+                  "relative inline-flex items-center gap-2.5 overflow-hidden border-0 px-8 py-4 text-[13px] font-medium uppercase tracking-[0.08em]",
                 )}
                 onClick={() => scrollTo("notify")}
               >
@@ -436,7 +450,10 @@ function ComingSoonPageBody({
             )}
             <button
               type="button"
-              className="inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[13px] font-normal tracking-[0.06em] text-[var(--cs-charcoal)] transition-colors hover:text-[var(--cs-accent)]"
+              className={cn(
+                styles.btnGhost,
+                "inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[13px] font-normal tracking-[0.06em] transition-colors",
+              )}
               onClick={() => scrollTo("discover")}
             >
               What to expect
@@ -458,13 +475,16 @@ function ComingSoonPageBody({
           </div>
         </div>
 
-        <HeroVisualPanel />
+        <HeroVisualPanel theme={theme} />
       </section>
 
       <div className="mx-12 h-px bg-[var(--cs-border-subtle)]" />
 
       <section id="discover" className="mx-auto max-w-[1200px] px-6 py-20 sm:px-12">
-        <p className="mb-12 text-center text-[10px] uppercase tracking-[0.2em] text-[var(--cs-accent)]">
+        <p
+          className="mb-12 text-center text-[10px] font-medium uppercase tracking-[0.2em]"
+          style={{ color: theme.primary }}
+        >
           Why {firstWord}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -476,15 +496,16 @@ function ComingSoonPageBody({
               }}
               className={cn(
                 styles.promiseItem,
-                "border-b border-[var(--cs-border-subtle)] px-6 py-10 transition-colors hover:bg-[var(--cs-cream)] sm:border-b-0 sm:border-r sm:py-10 last:sm:border-r-0",
+                "border-b border-[var(--cs-border-subtle)] px-6 py-10 sm:border-b-0 sm:border-r sm:py-10 last:sm:border-r-0",
               )}
               style={{ transitionDelay: `${i * 0.12}s` }}
             >
               <p
                 className={cn(
                   styles.serif,
-                  "mb-5 text-[13px] font-light tracking-[0.1em] text-[var(--cs-accent)]",
+                  "mb-5 text-[13px] font-light tracking-[0.1em]",
                 )}
+                style={{ color: theme.primary }}
               >
                 {p.num}
               </p>
@@ -510,12 +531,13 @@ function ComingSoonPageBody({
 
       <section
         id="notify"
-        className="relative overflow-hidden bg-[var(--cs-charcoal)] px-6 py-20 sm:px-12"
+        className={cn(styles.notifySection, "relative overflow-hidden px-6 py-20 sm:px-12")}
       >
         <p
           className={cn(
             styles.serif,
-            "pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-[clamp(80px,14vw,180px)] font-light tracking-[-0.04em] text-[rgba(200,150,62,0.04)]",
+            styles.notifyWatermark,
+            "pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-[clamp(80px,14vw,180px)] font-light tracking-[-0.04em]",
           )}
           aria-hidden
         >
@@ -523,20 +545,26 @@ function ComingSoonPageBody({
         </p>
         <div className="relative z-[1] mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div>
-            <p className="mb-4 text-[10px] uppercase tracking-[0.2em] text-[var(--cs-accent)]">
+            <p
+              className="mb-4 text-[10px] font-medium uppercase tracking-[0.2em]"
+              style={{ color: theme.accentLight }}
+            >
               {ownerState === "owner" ? "Ready to launch" : "Be first in line"}
             </p>
             <h2
               className={cn(
                 styles.serif,
-                "mb-4 text-[42px] font-light leading-[1.1] text-[var(--cs-cream)]",
+                "mb-4 text-[42px] font-light leading-[1.1] text-[var(--cs-on-dark)]",
               )}
             >
               {ownerState === "owner" ? (
                 <>
                   Go live
                   <br />
-                  <em className="font-normal italic text-[var(--cs-accent-light)]">
+                  <em
+                    className="font-normal italic"
+                    style={{ color: theme.accentLight }}
+                  >
                     today.
                   </em>
                 </>
@@ -544,13 +572,16 @@ function ComingSoonPageBody({
                 <>
                   Early access.
                   <br />
-                  <em className="font-normal italic text-[var(--cs-accent-light)]">
+                  <em
+                    className="font-normal italic"
+                    style={{ color: theme.accentLight }}
+                  >
                     Exclusive offers.
                   </em>
                 </>
               )}
             </h2>
-            <p className="text-sm font-light leading-[1.7] text-[rgba(245,240,232,0.5)]">
+            <p className="text-sm font-light leading-[1.7] text-[color-mix(in_srgb,var(--cs-on-dark)_55%,transparent)]">
               {ownerState === "owner"
                 ? "Choose your branch location and enable your public catalog. Shoppers will see stock and prices from that branch."
                 : "Join our waitlist and be the first to shop when we launch. Early subscribers get 15% off their first order."}
@@ -561,7 +592,11 @@ function ComingSoonPageBody({
             {ownerState === "owner" ? (
               <button
                 type="button"
-                className="w-full border-0 bg-[var(--cs-accent)] px-7 py-4 text-xs font-medium uppercase tracking-[0.1em] text-[var(--cs-charcoal)] transition-colors hover:bg-[var(--cs-accent-light)]"
+                className="w-full border-0 px-7 py-4 text-xs font-semibold uppercase tracking-[0.1em] transition-colors hover:brightness-110"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.onPrimary,
+                }}
                 onClick={() => onSetupOpen(true)}
               >
                 Set up storefront
@@ -569,24 +604,37 @@ function ComingSoonPageBody({
             ) : ownerState === "guest" ? (
               <Link
                 href={loginHref}
-                className="block w-full bg-[var(--cs-accent)] px-7 py-4 text-center text-xs font-medium uppercase tracking-[0.1em] text-[var(--cs-charcoal)] no-underline transition-colors hover:bg-[var(--cs-accent-light)]"
+                className="block w-full px-7 py-4 text-center text-xs font-semibold uppercase tracking-[0.1em] no-underline transition-colors hover:brightness-110"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.onPrimary,
+                }}
               >
                 Owner sign in to set up
               </Link>
             ) : emailDone ? (
-              <div className="flex items-center gap-2.5 border border-[var(--cs-accent)] bg-[rgba(200,150,62,0.1)] px-5 py-4 text-[13px] font-light tracking-[0.04em] text-[var(--cs-accent-light)]">
+              <div
+                className="flex items-center gap-2.5 border px-5 py-4 text-[13px] font-light tracking-[0.04em]"
+                style={{
+                  borderColor: `color-mix(in srgb, ${theme.primary} 45%, transparent)`,
+                  backgroundColor: `color-mix(in srgb, ${theme.primary} 14%, transparent)`,
+                  color: theme.accentLight,
+                }}
+              >
                 <Check className="size-4 shrink-0" aria-hidden />
                 You&apos;re on the list! We&apos;ll notify you before launch.
               </div>
             ) : (
               <>
-                <div className="flex border border-[rgba(245,240,232,0.2)] transition-colors focus-within:border-[var(--cs-accent)]">
+                <div
+                  className="flex border border-[color-mix(in_srgb,var(--cs-on-dark)_22%,transparent)] transition-colors focus-within:border-[var(--cs-primary)]"
+                >
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => onEmailChange(e.target.value)}
                     placeholder="Your email address"
-                    className="min-w-0 flex-1 border-0 bg-transparent px-5 py-4 text-sm font-light tracking-[0.02em] text-[var(--cs-cream)] outline-none placeholder:text-[rgba(245,240,232,0.3)]"
+                    className="min-w-0 flex-1 border-0 bg-transparent px-5 py-4 text-sm font-light tracking-[0.02em] text-[var(--cs-on-dark)] outline-none placeholder:text-[color-mix(in_srgb,var(--cs-on-dark)_35%,transparent)]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         onNotify();
@@ -595,13 +643,17 @@ function ComingSoonPageBody({
                   />
                   <button
                     type="button"
-                    className="shrink-0 border-0 bg-[var(--cs-accent)] px-7 py-4 text-xs font-medium uppercase tracking-[0.1em] text-[var(--cs-charcoal)] transition-colors hover:bg-[var(--cs-accent-light)]"
+                    className="shrink-0 border-0 px-7 py-4 text-xs font-semibold uppercase tracking-[0.1em] transition-colors hover:brightness-110"
+                    style={{
+                      backgroundColor: theme.primary,
+                      color: theme.onPrimary,
+                    }}
                     onClick={onNotify}
                   >
                     Notify Me
                   </button>
                 </div>
-                <p className="text-[11px] tracking-[0.02em] text-[rgba(245,240,232,0.3)]">
+                <p className="text-[11px] tracking-[0.02em] text-[color-mix(in_srgb,var(--cs-on-dark)_32%,transparent)]">
                   No spam. Unsubscribe anytime. We respect your inbox.
                 </p>
               </>
@@ -610,11 +662,16 @@ function ComingSoonPageBody({
         </div>
       </section>
 
-      <footer className="flex flex-col items-center justify-between gap-6 border-t border-[rgba(245,240,232,0.06)] bg-[var(--cs-charcoal)] px-6 py-12 sm:flex-row sm:px-12">
+      <footer
+        className={cn(
+          styles.notifySection,
+          "flex flex-col items-center justify-between gap-6 border-t border-[color-mix(in_srgb,var(--cs-on-dark)_8%,transparent)] px-6 py-12 sm:flex-row sm:px-12",
+        )}
+      >
         <div
           className={cn(
             styles.serif,
-            "text-2xl font-light tracking-[0.04em] text-[var(--cs-cream)]",
+            "text-2xl font-light tracking-[0.04em] text-[var(--cs-on-dark)]",
           )}
         >
           {displayName}
@@ -623,13 +680,13 @@ function ComingSoonPageBody({
           {["About", "Contact", "Privacy"].map((label) => (
             <span
               key={label}
-              className="cursor-default text-xs uppercase tracking-[0.08em] text-[rgba(245,240,232,0.35)]"
+              className="cursor-default text-xs uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--cs-on-dark)_38%,transparent)]"
             >
               {label}
             </span>
           ))}
         </div>
-        <p className="text-[11px] tracking-[0.04em] text-[rgba(245,240,232,0.2)]">
+        <p className="text-[11px] tracking-[0.04em] text-[color-mix(in_srgb,var(--cs-on-dark)_22%,transparent)]">
           © {new Date().getFullYear()} {displayName}. Nairobi, Kenya.
         </p>
       </footer>
@@ -637,16 +694,26 @@ function ComingSoonPageBody({
       <StorefrontSetupModal
         open={setupOpen}
         onOpenChange={onSetupOpen}
-        primaryHex={accent}
+        primaryHex={theme.primary}
       />
     </div>
   );
 }
 
-function HeroVisualPanel() {
+function HeroVisualPanel({ theme }: { theme: ComingSoonTheme }) {
   return (
-    <div className="relative min-h-[min(420px,50vh)] bg-[var(--cs-charcoal)] lg:min-h-full">
+    <div
+      className="relative min-h-[min(420px,50vh)] lg:min-h-full"
+      style={{ backgroundColor: theme.darkBg }}
+    >
       <HeroDecoCircles />
+      <div
+        className="pointer-events-none absolute -left-16 top-1/4 size-64 rounded-full blur-3xl opacity-50"
+        style={{
+          background: `radial-gradient(circle, var(--cs-hero-glow), transparent 70%)`,
+        }}
+        aria-hidden
+      />
       <div
         className={cn(
           styles.visualGrid,
@@ -657,7 +724,7 @@ function HeroVisualPanel() {
           <div
             key={cell.name}
             className="relative flex items-center justify-center overflow-hidden"
-            style={{ background: CELL_BG[i] }}
+            style={{ background: theme.heroCellBgs[i] }}
           >
             <span
               className={cn(
@@ -679,10 +746,8 @@ function HeroVisualPanel() {
           )}
         >
           <span
-            className={cn(
-              styles.tagDot,
-              "size-2 shrink-0 rounded-full bg-[#4CAF50]",
-            )}
+            className={cn(styles.tagDot, "size-2 shrink-0 rounded-full")}
+            style={{ backgroundColor: theme.primary }}
           />
           <span className="text-xs tracking-[0.02em] text-[var(--cs-charcoal)]">
             <strong className="mb-0.5 block text-[13px] font-medium">
@@ -700,11 +765,17 @@ function HeroDecoCircles() {
   return (
     <>
       <div
-        className="pointer-events-none absolute -right-24 -top-24 size-[400px] rounded-full border border-[rgba(200,150,62,0.15)]"
+        className={cn(
+          styles.decoRing,
+          "pointer-events-none absolute -right-24 -top-24 size-[400px] rounded-full border",
+        )}
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute bottom-20 left-8 size-[220px] rounded-full border border-[rgba(200,150,62,0.15)]"
+        className={cn(
+          styles.decoRing,
+          "pointer-events-none absolute bottom-20 left-8 size-[220px] rounded-full border",
+        )}
         aria-hidden
       />
     </>
@@ -758,7 +829,8 @@ function LaunchCountdown({
           <span
             className={cn(
               styles.serif,
-              "block min-w-[52px] text-[42px] font-light leading-none text-[var(--cs-charcoal)]",
+              styles.countdownValue,
+              "block min-w-[52px] text-[42px] font-light leading-none",
             )}
           >
             {u.value}
@@ -783,7 +855,8 @@ function CategoriesTeaser() {
             "text-[36px] font-light text-[var(--cs-charcoal)]",
           )}
         >
-          Browse what&apos;s <em className="italic text-[var(--cs-accent)]">coming</em>
+          Browse what&apos;s{" "}
+          <em className="italic text-[var(--cs-primary)]">coming</em>
         </h2>
         <span className="text-xs tracking-[0.05em] text-[var(--cs-warm-gray)]">
           Hover to pause ↔
@@ -803,7 +876,7 @@ function CategoriesTeaser() {
                 className={cn(
                   styles.serif,
                   styles.catIcon,
-                  "relative z-[1] mb-2 text-[40px] font-light italic leading-none text-[var(--cs-accent)] transition-colors",
+                  "relative z-[1] mb-2 text-[40px] font-light italic leading-none text-[var(--cs-primary)] transition-colors",
                 )}
               >
                 {cat.icon}
@@ -832,19 +905,3 @@ function CategoriesTeaser() {
   );
 }
 
-function parseHex(value?: string | null): string | null {
-  const raw = value?.trim() ?? "";
-  return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : null;
-}
-
-function lightenHex(hex: string, amount: number): string {
-  const h = hex.replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  const mix = (c: number) =>
-    Math.min(255, Math.round(c + (255 - c) * amount));
-  return `#${[mix(r), mix(g), mix(b)]
-    .map((n) => n.toString(16).padStart(2, "0"))
-    .join("")}`;
-}
