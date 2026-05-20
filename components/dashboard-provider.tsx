@@ -113,6 +113,7 @@ type DashboardContextValue = {
   canViewApAging: boolean;
   canViewCustomers: boolean;
   canManageCustomers: boolean;
+  canManageCreditSettings: boolean;
   canViewSuppliers: boolean;
   canRecordSupplierPayment: boolean;
   canViewInventoryValuation: boolean;
@@ -332,6 +333,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       canManageCustomers: hasPermission(
         me?.permissions,
         Permission.CreditsCustomersWrite,
+      ),
+      canManageCreditSettings: hasPermission(
+        me?.permissions,
+        Permission.CreditsSettingsWrite,
       ),
       canRecordSupplierPayment: hasPermission(
         me?.permissions,

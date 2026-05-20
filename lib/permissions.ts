@@ -39,6 +39,7 @@ export const Permission = {
   StorefrontOrdersRead: "storefront.orders.read",
   CreditsCustomersRead: "credits.customers.read",
   CreditsCustomersWrite: "credits.customers.write",
+  CreditsSettingsWrite: "credits.settings.write",
   CreditsWalletWrite: "credits.wallet.write",
   CreditsClaimsIssue: "credits.claims.issue",
   CreditsClaimsReview: "credits.claims.review",

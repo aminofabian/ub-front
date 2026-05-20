@@ -18,10 +18,12 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
 
 export default function CustomersPage() {
-  const { loading, canViewCustomers, canManageCustomers } = useDashboard();
+  const { loading, canViewCustomers, canManageCustomers, canManageCreditSettings } =
+    useDashboard();
   const [rows, setRows] = useState<CustomerRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [phoneFilter, setPhoneFilter] = useState("");
@@ -131,6 +133,10 @@ export default function CustomersPage() {
       </header>
 
       {message ? <DashboardFeedback kind={message.kind} text={message.text} /> : null}
+
+      {canViewCustomers ? (
+        <CreditSaleReminderSettings canEdit={canManageCreditSettings} />
+      ) : null}
 
       <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold tracking-tight">Find customers</h2>

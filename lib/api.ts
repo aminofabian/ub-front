@@ -5011,6 +5011,48 @@ export async function createCustomer(
   });
 }
 
+export type CreditSaleReminderSettingsRecord = {
+  enabled: boolean;
+  paymentAccountUrl: string;
+  suggestedPaymentAccountUrl: string;
+  whatsappMetaPhoneNumberId: string | null;
+  whatsappMetaGraphVersion: string;
+  smsProvider: string;
+  smsAfricasTalkingUsername: string | null;
+  hasRapidApiKey: boolean;
+  hasWhatsappMetaAccessToken: boolean;
+  hasSmsAfricasTalkingApiKey: boolean;
+  secretsReadable: boolean;
+  secretsReadError: string | null;
+};
+
+export type UpdateCreditSaleReminderSettingsPayload = {
+  enabled: boolean;
+  paymentAccountUrl: string;
+  rapidApiKey?: string | null;
+  whatsappMetaPhoneNumberId?: string | null;
+  whatsappMetaAccessToken?: string | null;
+  whatsappMetaGraphVersion?: string | null;
+  smsProvider?: string;
+  smsAfricasTalkingUsername?: string | null;
+  smsAfricasTalkingApiKey?: string | null;
+};
+
+export async function fetchCreditSaleReminderSettings(): Promise<CreditSaleReminderSettingsRecord> {
+  return request<CreditSaleReminderSettingsRecord>(
+    "/api/v1/credits/sale-reminder-settings",
+  );
+}
+
+export async function updateCreditSaleReminderSettings(
+  body: UpdateCreditSaleReminderSettingsPayload,
+): Promise<CreditSaleReminderSettingsRecord> {
+  return request<CreditSaleReminderSettingsRecord>(
+    "/api/v1/credits/sale-reminder-settings",
+    { method: "PUT", body },
+  );
+}
+
 // ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
 
 export type SyncConflictRecord = {
