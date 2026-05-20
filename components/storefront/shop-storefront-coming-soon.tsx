@@ -70,8 +70,8 @@ const HERO_CELLS = [
   {
     name: "Fresh Groceries",
     price: "KSh 240–",
-    image: "/hello/27707-supermarket-949912.jpg",
-    imageAlt: "Supermarket shelves with fresh groceries",
+    image: "/hello/fudowakira0-paprika-638654_1920.jpg",
+    imageAlt: "Fresh paprika and produce",
   },
   {
     name: "Daily Essentials",
@@ -80,16 +80,16 @@ const HERO_CELLS = [
     imageAlt: "Shopping bag with everyday essentials",
   },
   {
-    name: "Fresh Produce",
+    name: "Snacks & More",
     price: "KSh 80–",
-    image: "/hello/fudowakira0-paprika-638654_1920.jpg",
-    imageAlt: "Fresh paprika and produce",
+    image: "/hello/27707-supermarket-949912.jpg",
+    imageAlt: "Supermarket aisles with snacks and packaged goods",
   },
   {
-    name: "Snacks & More",
+    name: "Nuts & Pantry",
     price: "KSh 50–",
     image: "/hello/publicdomainpictures-almonds-21502.jpg",
-    imageAlt: "Almonds and pantry snacks",
+    imageAlt: "Almonds and dry pantry goods",
   },
 ] as const;
 
