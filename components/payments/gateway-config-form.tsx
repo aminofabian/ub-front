@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
-import type { CreateGatewayConfigPayload } from "@/lib/api";
+import type {
+  CreateGatewayConfigPayload,
+  GatewayCredentialSettingsRecord,
+} from "@/lib/api";
 
 type Props = {
   gatewayType: string;
@@ -11,15 +14,15 @@ type Props = {
   onSave: (payload: CreateGatewayConfigPayload) => Promise<void>;
   onCancel: () => void;
   saving: boolean;
+  mode?: "create" | "edit";
   initial?: Partial<{
     label: string;
-    credentialsJson: string;
   }>;
+  credentialSettings?: GatewayCredentialSettingsRecord | null;
 };
 
 /**
  * Generic configuration form for API-based gateways (KopoKopo, Paystack, etc.).
- * Renders the appropriate credential fields based on gatewayType.
  */
 export function GatewayConfigForm({
   gatewayType,
@@ -27,54 +30,63 @@ export function GatewayConfigForm({
   onSave,
   onCancel,
   saving,
+  mode = "create",
   initial,
+  credentialSettings,
 }: Props) {
+  const isEdit = mode === "edit";
+
   const [label, setLabel] = useState(initial?.label ?? "");
-
-  // Parse initial credentials if editing
-  const initialCreds = parseCredentials(initial?.credentialsJson);
-
   const [environment, setEnvironment] = useState(
-    initialCreds?.environment ?? "sandbox",
+    credentialSettings?.environment ?? "sandbox",
   );
-  const [clientId, setClientId] = useState(initialCreds?.clientId ?? "");
-  const [clientSecret, setClientSecret] = useState(
-    initialCreds?.clientSecret ?? "",
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [tillNumber, setTillNumber] = useState(
+    credentialSettings?.tillNumber ?? "",
   );
-  const [apiKey, setApiKey] = useState(initialCreds?.apiKey ?? "");
-  const [secretKey, setSecretKey] = useState(initialCreds?.secretKey ?? "");
-  const [publicKey, setPublicKey] = useState(initialCreds?.publicKey ?? "");
-  const [consumerKey, setConsumerKey] = useState(
-    initialCreds?.consumerKey ?? "",
-  );
-  const [consumerSecret, setConsumerSecret] = useState(
-    initialCreds?.consumerSecret ?? "",
-  );
-  const [passkey, setPasskey] = useState(initialCreds?.passkey ?? "");
-  const [shortcode, setShortcode] = useState(initialCreds?.shortcode ?? "");
+  const [secretKey, setSecretKey] = useState("");
+  const [publicKey, setPublicKey] = useState("");
+  const [consumerKey, setConsumerKey] = useState("");
+  const [consumerSecret, setConsumerSecret] = useState("");
+  const [passkey, setPasskey] = useState("");
+  const [shortcode, setShortcode] = useState(credentialSettings?.shortcode ?? "");
   const [shortcodeType, setShortcodeType] = useState(
-    initialCreds?.shortcodeType ?? "paybill",
+    credentialSettings?.shortcodeType ?? "paybill",
   );
+  const [formError, setFormError] = useState("");
+
+  const secretPlaceholder = isEdit ? "Leave blank to keep current" : undefined;
 
   const buildPayload = (): CreateGatewayConfigPayload => {
     const creds: Record<string, string> = { environment };
+    const put = (key: string, value: string) => {
+      const v = value.trim();
+      if (v || !isEdit) {
+        creds[key] = v;
+      }
+    };
+
     if (gatewayType === "KOPOKOPO") {
-      creds.clientId = clientId;
-      creds.clientSecret = clientSecret;
-      creds.apiKey = apiKey;
+      put("clientId", clientId);
+      put("clientSecret", clientSecret);
+      put("apiKey", apiKey);
+      put("tillNumber", tillNumber);
     } else if (gatewayType === "PAYSTACK") {
-      creds.secretKey = secretKey;
-      creds.publicKey = publicKey;
+      put("secretKey", secretKey);
+      put("publicKey", publicKey);
     } else if (gatewayType === "DARAJA") {
-      creds.consumerKey = consumerKey;
-      creds.consumerSecret = consumerSecret;
-      creds.passkey = passkey;
-      creds.shortcode = shortcode;
+      put("consumerKey", consumerKey);
+      put("consumerSecret", consumerSecret);
+      put("passkey", passkey);
+      put("shortcode", shortcode);
       creds.shortcodeType = shortcodeType;
     } else if (gatewayType === "PESAPAL") {
-      creds.consumerKey = consumerKey;
-      creds.consumerSecret = consumerSecret;
+      put("consumerKey", consumerKey);
+      put("consumerSecret", consumerSecret);
     }
+
     return {
       gatewayType,
       label: label || displayName,
@@ -83,13 +95,50 @@ export function GatewayConfigForm({
     };
   };
 
+  const validate = (): string | null => {
+    if (gatewayType === "KOPOKOPO") {
+      const hasTill =
+        tillNumber.trim() !== "" ||
+        Boolean(credentialSettings?.tillNumber?.trim());
+      if (!hasTill) {
+        return "Till number is required for M-Pesa STK Push.";
+      }
+      if (!isEdit) {
+        if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim()) {
+          return "Client ID, Client Secret, and API Key are required.";
+        }
+      } else if (
+        !credentialSettings?.hasClientId ||
+        !credentialSettings?.hasClientSecret ||
+        !credentialSettings?.hasApiKey
+      ) {
+        if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim()) {
+          return "Re-enter Client ID, Client Secret, and API Key (one or more are missing on file).";
+        }
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const err = validate();
+    if (err) {
+      setFormError(err);
+      return;
+    }
+    setFormError("");
     await onSave(buildPayload());
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {formError ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {formError}
+        </p>
+      ) : null}
+
       <FormDrawerFields legend="Label" hint="A friendly name for this gateway.">
         <input
           type="text"
@@ -125,110 +174,148 @@ export function GatewayConfigForm({
         </div>
       </FormDrawerFields>
 
-      {/* KopoKopo fields */}
       {gatewayType === "KOPOKOPO" && (
         <>
-          <FormDrawerFields legend="Client ID *">
+          <FormDrawerFields
+            legend={`Client ID${isEdit ? "" : " *"}`}
+            hint={
+              isEdit && credentialSettings?.hasClientId
+                ? "Already saved. Leave blank unless replacing."
+                : undefined
+            }
+          >
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Client Secret *">
+          <FormDrawerFields
+            legend={`Client Secret${isEdit ? "" : " *"}`}
+            hint={
+              isEdit && credentialSettings?.hasClientSecret
+                ? "Already saved. Leave blank unless replacing."
+                : undefined
+            }
+          >
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="API Key *">
+          <FormDrawerFields
+            legend={`API Key${isEdit ? "" : " *"}`}
+            hint={
+              isEdit && credentialSettings?.hasApiKey
+                ? "Already saved. Leave blank unless replacing."
+                : undefined
+            }
+          >
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
+              required={!isEdit}
+            />
+          </FormDrawerFields>
+          <FormDrawerFields
+            legend="Till number *"
+            hint="M-Pesa till for STK Push (from your KopoKopo dashboard). Required for storefront checkout."
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder="e.g. 123456"
+              value={tillNumber}
+              onChange={(e) => setTillNumber(e.target.value)}
               required
             />
           </FormDrawerFields>
         </>
       )}
 
-      {/* Paystack fields */}
       {gatewayType === "PAYSTACK" && (
         <>
-          <FormDrawerFields legend="Secret Key *" hint="Starts with sk_live_ or sk_test_.">
+          <FormDrawerFields legend={`Secret Key${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={secretKey}
               onChange={(e) => setSecretKey(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Public Key *" hint="Starts with pk_live_ or pk_test_.">
+          <FormDrawerFields legend={`Public Key${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={publicKey}
               onChange={(e) => setPublicKey(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
         </>
       )}
 
-      {/* Daraja fields */}
       {gatewayType === "DARAJA" && (
         <>
-          <FormDrawerFields legend="Consumer Key *">
+          <FormDrawerFields legend={`Consumer Key${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={consumerKey}
               onChange={(e) => setConsumerKey(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Consumer Secret *">
+          <FormDrawerFields legend={`Consumer Secret${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={consumerSecret}
               onChange={(e) => setConsumerSecret(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Passkey *">
+          <FormDrawerFields legend={`Passkey${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Shortcode Type">
+          <FormDrawerFields legend="Shortcode type">
             <div className="flex gap-2">
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm">
                 <input
                   type="radio"
                   name="shortcodeType"
-                  className="size-4"
                   checked={shortcodeType === "paybill"}
                   onChange={() => setShortcodeType("paybill")}
                 />
                 Paybill
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent/50">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm font-medium shadow-sm">
                 <input
                   type="radio"
                   name="shortcodeType"
-                  className="size-4"
                   checked={shortcodeType === "till"}
                   onChange={() => setShortcodeType("till")}
                 />
@@ -236,38 +323,39 @@ export function GatewayConfigForm({
               </label>
             </div>
           </FormDrawerFields>
-          <FormDrawerFields legend="Shortcode *">
+          <FormDrawerFields legend={`Shortcode${isEdit ? "" : " *"}`}>
             <input
               type="text"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
               placeholder="174379"
               value={shortcode}
               onChange={(e) => setShortcode(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
         </>
       )}
 
-      {/* PesaPal fields */}
       {gatewayType === "PESAPAL" && (
         <>
-          <FormDrawerFields legend="Consumer Key *">
+          <FormDrawerFields legend={`Consumer Key${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={consumerKey}
               onChange={(e) => setConsumerKey(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
-          <FormDrawerFields legend="Consumer Secret *">
+          <FormDrawerFields legend={`Consumer Secret${isEdit ? "" : " *"}`}>
             <input
               type="password"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+              placeholder={secretPlaceholder}
               value={consumerSecret}
               onChange={(e) => setConsumerSecret(e.target.value)}
-              required
+              required={!isEdit}
             />
           </FormDrawerFields>
         </>
@@ -278,20 +366,9 @@ export function GatewayConfigForm({
           Cancel
         </Button>
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Save as Draft"}
+          {saving ? "Saving…" : isEdit ? "Save changes" : "Save as Draft"}
         </Button>
       </div>
     </form>
   );
-}
-
-function parseCredentials(
-  json: string | undefined,
-): Record<string, string> | null {
-  if (!json) return null;
-  try {
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
 }

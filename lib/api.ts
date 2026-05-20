@@ -4989,6 +4989,22 @@ export type CreateGatewayConfigPayload = {
   displayInstructionsJson?: string;
 };
 
+/** Non-secret credential fields returned for gateway edit forms. */
+export type GatewayCredentialSettingsRecord = {
+  environment: string;
+  tillNumber: string | null;
+  shortcode: string | null;
+  shortcodeType: string | null;
+  hasClientId: boolean;
+  hasClientSecret: boolean;
+  hasApiKey: boolean;
+  hasSecretKey: boolean;
+  hasPublicKey: boolean;
+  hasConsumerKey: boolean;
+  hasConsumerSecret: boolean;
+  hasPasskey: boolean;
+};
+
 // ── Tenant ──
 
 export async function fetchAvailableGateways(): Promise<
@@ -5006,6 +5022,14 @@ export async function fetchGatewayConfig(
 ): Promise<GatewayConfigRecord> {
   return request<GatewayConfigRecord>(
     `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}`,
+  );
+}
+
+export async function fetchGatewayCredentialSettings(
+  id: string,
+): Promise<GatewayCredentialSettingsRecord> {
+  return request<GatewayCredentialSettingsRecord>(
+    `${API_ROUTES.paymentGateways}/${encodeURIComponent(id)}/credential-settings`,
   );
 }
 

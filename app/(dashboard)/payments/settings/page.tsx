@@ -7,8 +7,10 @@ import {
   type AvailableGatewayRecord,
   type GatewayConfigRecord,
   type CreateGatewayConfigPayload,
+  type GatewayCredentialSettingsRecord,
   fetchAvailableGateways,
   fetchGatewayConfigs,
+  fetchGatewayCredentialSettings,
   createGatewayConfig,
   updateGatewayConfig,
   deleteGatewayConfig,
@@ -27,7 +29,11 @@ import { useDashboard } from "@/components/dashboard-provider";
 type DrawerMode =
   | { kind: "closed" }
   | { kind: "setup"; gatewayType: string; displayName: string }
-  | { kind: "edit"; config: GatewayConfigRecord }
+  | {
+      kind: "edit";
+      config: GatewayConfigRecord;
+      credentialSettings: GatewayCredentialSettingsRecord;
+    }
   | { kind: "manual_new" }
   | { kind: "manual_edit"; config: GatewayConfigRecord };
 
@@ -100,13 +106,22 @@ export default function PaymentSettingsPage() {
     setDrawerError("");
   };
 
-  const openEdit = (config: GatewayConfigRecord) => {
+  const openEdit = async (config: GatewayConfigRecord) => {
     if (config.gatewayType === "MANUAL") {
       setDrawer({ kind: "manual_edit", config });
-    } else {
-      setDrawer({ kind: "edit", config });
+      setDrawerError("");
+      return;
     }
     setDrawerError("");
+    try {
+      const credentialSettings = await fetchGatewayCredentialSettings(config.id);
+      setDrawer({ kind: "edit", config, credentialSettings });
+    } catch (e) {
+      setDrawerError(
+        e instanceof Error ? e.message : "Could not load gateway settings.",
+      );
+      setDrawer({ kind: "closed" });
+    }
   };
 
   const closeDrawer = () => {
@@ -460,11 +475,13 @@ export default function PaymentSettingsPage() {
         )}
         {drawer.kind === "edit" && (
           <GatewayConfigForm
+            mode="edit"
             gatewayType={drawer.config.gatewayType}
             displayName={drawer.config.gatewayType}
             onSave={handleSave}
             onCancel={closeDrawer}
             saving={saving}
+            credentialSettings={drawer.credentialSettings}
             initial={{
               label: drawer.config.label,
             }}
