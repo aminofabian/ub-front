@@ -105,7 +105,12 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
     : null;
 
   return (
-    <>
+    <div
+      className={cn(
+        "flex min-h-0 flex-col",
+        compactHeader ? "max-h-full" : "h-full min-h-0 overflow-y-auto",
+      )}
+    >
       <div
         className={cn(
           "flex shrink-0 items-center justify-between gap-2 border-b border-border/60",
@@ -153,9 +158,9 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-col">
         {loading && !cart ? (
-          <div className="flex flex-1 flex-col gap-2.5 px-3.5 py-4">
+          <div className="flex flex-col gap-2.5 px-3.5 py-4">
             {[1, 2].map((i) => (
               <div
                 key={i}
@@ -196,7 +201,7 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
               </p>
             ) : null}
 
-            <div className={cn("flex min-h-0 flex-1 flex-col px-3.5", focusMode ? "pt-2 pb-1" : "py-3")}>
+            <div className={cn("px-3.5", focusMode ? "pt-2 pb-1" : "py-3")}>
               <ShopCartLinesScroll
                 cart={displayCart}
                 compact={compactHeader}
@@ -264,6 +269,6 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

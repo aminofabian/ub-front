@@ -45,8 +45,8 @@ export function ShopCartLinesScroll({
   }, [cart.lines, measure]);
 
   return (
-    <div className="relative min-h-0 flex-1">
-      {canScroll && !atBottom ? (
+    <div className={cn("relative", compact && "min-h-0")}>
+      {compact && canScroll && !atBottom ? (
         <div
           className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-linear-to-b from-background via-background/80 to-transparent"
           aria-hidden
@@ -57,9 +57,8 @@ export function ShopCartLinesScroll({
         ref={scrollRef}
         onScroll={measure}
         className={cn(
-          "h-full overflow-y-auto overscroll-contain scroll-smooth",
-          compact ? "max-h-[min(36dvh,14rem)]" : "max-h-[min(50dvh,20rem)]",
-
+          "overflow-y-auto overscroll-contain scroll-smooth",
+          compact && "max-h-[min(36dvh,14rem)]",
         )}
         style={{
           WebkitOverflowScrolling: "touch",
@@ -74,7 +73,7 @@ export function ShopCartLinesScroll({
         />
       </div>
 
-      {canScroll && !atBottom ? (
+      {compact && canScroll && !atBottom ? (
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center pb-1 pt-8 bg-linear-to-t from-background via-background/95 to-transparent"
           aria-hidden

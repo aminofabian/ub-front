@@ -16,7 +16,7 @@ function ShopCartDesktopDrawer() {
     <Dialog open={drawerOpen} onOpenChange={(open) => !open && closeDrawer()}>
       <DialogContent
         side="right"
-        className="flex h-[100dvh] max-h-[100dvh] gap-0 overflow-hidden p-0 sm:max-w-md"
+        className="flex h-[100dvh] max-h-[100dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
         overlayClassName="bg-black/40"
       >
         <ShopCartPanelBody onClose={closeDrawer} />
