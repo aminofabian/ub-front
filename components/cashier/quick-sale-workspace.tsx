@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   DashboardAccessDenied,
@@ -207,6 +208,19 @@ export function QuickSaleWorkspace({
   const stkPhone = activeCart.stkPhone;
 
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
+  const stkConfirmedToastKey = useRef<string | null>(null);
+
+  const notifyStkPaymentConfirmed = useCallback((checkoutId: string) => {
+    const key = checkoutId.trim();
+    if (!key || stkConfirmedToastKey.current === key) {
+      return;
+    }
+    stkConfirmedToastKey.current = key;
+    toast.success("M-Pesa payment received", {
+      description: "Payment confirmed — you can complete the sale.",
+      duration: 10_000,
+    });
+  }, []);
 
   const setPayMethod = useCallback(
     (m: SalePaymentMethod) => updateActiveCart({ payMethod: m }),
@@ -685,6 +699,7 @@ export function QuickSaleWorkspace({
         });
         return;
       }
+      stkConfirmedToastKey.current = null;
       updateActiveCart({
         stkPushStatus: "sending",
         stkPushError: "",
@@ -728,6 +743,7 @@ export function QuickSaleWorkspace({
           return;
         }
         if (status.success) {
+          notifyStkPaymentConfirmed(stkPushCheckoutId);
           updateActiveCart({
             stkPushStatus: "confirmed",
             stkPushError: "",
@@ -751,7 +767,13 @@ export function QuickSaleWorkspace({
       clearInterval(interval);
       clearTimeout(stop);
     };
-  }, [stkPushStatus, stkPushCheckoutId, online, updateActiveCart]);
+  }, [
+    stkPushStatus,
+    stkPushCheckoutId,
+    online,
+    updateActiveCart,
+    notifyStkPaymentConfirmed,
+  ]);
 
   const onRetryOutbox = useCallback(async () => {
     if (!online) {

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Check, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -654,9 +654,40 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           </span>
                         </p>
                       ) : stkPushStatus === "confirmed" ? (
-                        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-                          ✅ M-Pesa payment received — you can complete the sale.
-                        </p>
+                        <div
+                          className="space-y-2"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-3 shadow-sm ring-1 ring-emerald-200/80 dark:border-emerald-800 dark:bg-emerald-950/50 dark:ring-emerald-900">
+                            <div className="flex gap-2.5">
+                              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                                <Check
+                                  className="size-4"
+                                  strokeWidth={3}
+                                  aria-hidden
+                                />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-emerald-950 dark:text-emerald-50">
+                                  M-Pesa payment confirmed
+                                </p>
+                                <p className="mt-0.5 text-[11px] leading-relaxed text-emerald-900/90 dark:text-emerald-100/90">
+                                  {currency} {grandTotal.toFixed(2)} received —
+                                  complete the sale below.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          {mpesaRef.trim() ? (
+                            <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center text-[10px] text-muted-foreground">
+                              Ref:{" "}
+                              <span className="font-mono font-semibold text-foreground">
+                                {mpesaRef.trim()}
+                              </span>
+                            </p>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   ) : null}

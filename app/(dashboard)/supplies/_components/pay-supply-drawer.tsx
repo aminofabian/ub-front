@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  CreditCard,
+  ExternalLink,
+  Loader2,
+  Smartphone,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import {
   dashboardHintClass,
@@ -13,10 +23,13 @@ import {
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchSupplierById,
   fetchSupplyPaymentHistory,
   postSupplierPayment,
   type PathBSupplyListRowRecord,
+  type SupplierRecord,
   type SupplyPaymentHistoryRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -48,6 +61,31 @@ function formatMoney(v: number): string {
   return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function resolvePaymentMethod(preferred: string | null | undefined): string {
+  const p = (preferred ?? "").trim().toLowerCase();
+  if (p === "cash" || p === "bank" || p === "mpesa") {
+    return p;
+  }
+  if (p.includes("mpesa") || p.includes("m-pesa")) {
+    return "mpesa";
+  }
+  if (p.includes("bank") || p.includes("transfer") || p.includes("rtgs")) {
+    return "bank";
+  }
+  return "cash";
+}
+
+function paymentMethodLabel(method: string): string {
+  switch (method) {
+    case "mpesa":
+      return "M-Pesa";
+    case "bank":
+      return "Bank transfer";
+    default:
+      return "Cash";
+  }
+}
+
 type PaySupplyDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,9 +97,14 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const { me } = useDashboard();
   const canPay = hasPermission(me?.permissions, Permission.PurchasingPaymentWrite);
   const canHistory = hasPermission(me?.permissions, Permission.PurchasingPaymentRead);
+  const canReadSupplier = hasPermission(me?.permissions, Permission.SuppliersRead);
 
+  const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
+  const [supplierLoading, setSupplierLoading] = useState(false);
+  const [supplierError, setSupplierError] = useState<string | null>(null);
   const [history, setHistory] = useState<SupplyPaymentHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [allocation, setAllocation] = useState("");
   const [paidAtLocal, setPaidAtLocal] = useState(defaultLocalDateTime);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -73,9 +116,33 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const [error, setError] = useState<string | null>(null);
 
   const balanceOpen = row ? n(row.balanceOpen) : 0;
+  const paidFull = row ? row.paymentStatus === "PAID" : false;
+  const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
+  const preferredMethod = resolvePaymentMethod(supplier?.paymentMethodPreferred);
 
   useEffect(() => {
-     
+    if (!open || !row || !canReadSupplier) {
+      setSupplier(null);
+      setSupplierError(null);
+      return;
+    }
+    setSupplierLoading(true);
+    setSupplierError(null);
+    void fetchSupplierById(row.supplierId)
+      .then((s) => {
+        setSupplier(s);
+        setPaymentMethod(resolvePaymentMethod(s.paymentMethodPreferred));
+      })
+      .catch((e) => {
+        setSupplier(null);
+        setSupplierError(
+          e instanceof Error ? e.message : "Could not load supplier payment details.",
+        );
+      })
+      .finally(() => setSupplierLoading(false));
+  }, [open, row, canReadSupplier]);
+
+  useEffect(() => {
     if (!open || !row || !canHistory) {
       setHistory([]);
       return;
@@ -85,14 +152,12 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       .then(setHistory)
       .catch(() => setHistory([]))
       .finally(() => setHistoryLoading(false));
-     
   }, [open, row, canHistory]);
 
   useEffect(() => {
     if (!open || !row) {
       return;
     }
-     
     const b = n(row.balanceOpen);
     const init = b > 0 ? b.toFixed(2) : "";
     setAllocation(init);
@@ -102,10 +167,20 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     setNotes("");
     setPaidAtLocal(defaultLocalDateTime());
     setError(null);
-     
+    setShowAdvanced(false);
   }, [open, row]);
 
-  const onSubmit = async () => {
+  useEffect(() => {
+    if (!showAdvanced || !row) {
+      return;
+    }
+    const allocN = Number(allocation.trim());
+    if (Number.isFinite(allocN) && allocN > 0) {
+      setPaymentAmount(allocN.toFixed(2));
+    }
+  }, [allocation, showAdvanced, row]);
+
+  const submitPayment = async () => {
     if (!row || !canPay) {
       return;
     }
@@ -116,7 +191,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       return;
     }
     if (allocN > balanceOpen + 0.001) {
-      setError(`Allocation cannot exceed open balance (${formatMoney(balanceOpen)}).`);
+      setError(`Amount cannot exceed open balance (${formatMoney(balanceOpen)}).`);
       return;
     }
     const cash = Number(paymentAmount);
@@ -133,7 +208,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       return;
     }
     if (cash + credit < allocN - 0.001) {
-      setError("Cash payment plus supplier credit must cover the allocation to this invoice.");
+      setError("Cash payment plus supplier credit must cover the amount applied.");
       return;
     }
     setBusy(true);
@@ -148,6 +223,10 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
         notes: notes.trim() || undefined,
         allocations: [{ supplierInvoiceId: row.supplierInvoiceId, amount: allocN }],
       });
+      toast.success("Supplier paid", {
+        description: `${formatMoney(allocN)} recorded for ${row.supplierName || "supplier"}.`,
+        duration: 8000,
+      });
       onPaid();
       onOpenChange(false);
     } catch (e) {
@@ -157,132 +236,283 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     }
   };
 
-  const paidFull = row ? row.paymentStatus === "PAID" : false;
+  const onConfirmPay = () => {
+    if (!row) {
+      return;
+    }
+    const b = n(row.balanceOpen);
+    setAllocation(b > 0 ? b.toFixed(2) : "");
+    setPaymentAmount(b > 0 ? b.toFixed(2) : "");
+    setCreditApplied("0");
+    setPaymentMethod(preferredMethod);
+    setPaidAtLocal(defaultLocalDateTime());
+    void submitPayment();
+  };
 
   return (
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={row ? `Pay · ${row.invoiceNumber}` : "Pay supply"}
-      description="Record cash or bank/M-Pesa against this receipt. Repeat for installments; balances update from allocations."
+      title={row ? `Pay ${row.supplierName}` : "Pay supply"}
+      description={
+        row
+          ? `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
+          : undefined
+      }
       width="wide"
       icon={<CreditCard className="size-5 text-primary" aria-hidden />}
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
-        <div className="flex w-full justify-end gap-2">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Close
+            Cancel
           </Button>
-          <Button
-            type="button"
-            onClick={() => void onSubmit()}
-            disabled={busy || !row || !canPay || paidFull || balanceOpen <= 0}
-          >
-            {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            Record payment
-          </Button>
+          {!paidFull && balanceOpen > 0 && canPay ? (
+            <Button
+              type="button"
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => void onConfirmPay()}
+              disabled={busy || supplierLoading}
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Check className="size-4" strokeWidth={3} aria-hidden />
+              )}
+              Confirm payment · {formatMoney(balanceOpen)}
+            </Button>
+          ) : null}
         </div>
       }
     >
       {!row ? null : (
         <div className="space-y-5 px-1 pb-4">
-
-          <div className="grid gap-3 rounded-xl border bg-muted/15 p-4 sm:grid-cols-3">
+          <div className="grid gap-3 rounded-xl border border-border bg-muted/15 p-4 sm:grid-cols-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Supplier</p>
-              <p className="text-sm font-semibold">{row.supplierName}</p>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Invoice</p>
+              <p className="font-mono text-sm font-semibold">{row.invoiceNumber}</p>
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase text-muted-foreground">Invoice total</p>
               <p className="font-mono text-sm tabular-nums">{formatMoney(n(row.grandTotal))}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Open balance</p>
-              <p className="font-mono text-lg font-semibold tabular-nums text-foreground">{formatMoney(balanceOpen)}</p>
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Balance due</p>
+              <p className="font-mono text-lg font-bold tabular-nums text-foreground">
+                {formatMoney(balanceOpen)}
+              </p>
             </div>
           </div>
 
           {paidFull ? (
             <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-900 dark:text-emerald-100">
-              This supply is fully paid. Payment history is below.
+              This supply is fully paid.
             </p>
           ) : !canPay ? (
             <p className="text-sm text-muted-foreground">
-              You need <code className="text-xs">{Permission.PurchasingPaymentWrite}</code> to post payments.
+              You need <code className="text-xs">{Permission.PurchasingPaymentWrite}</code> to post
+              payments.
             </p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 sm:col-span-2">
-                <span className={dashboardLabelClass()}>Apply to this supply (allocation)</span>
-                <input
-                  className={dashboardInputClass(busy)}
-                  value={allocation}
-                  onChange={(e) => setAllocation(e.target.value)}
-                  disabled={busy}
-                  inputMode="decimal"
-                />
-                <span className={dashboardHintClass()}>
-                  Use the full balance for one-shot payment, or less for a partial. You can pay the remainder later.
-                </span>
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className={dashboardLabelClass()}>Paid at</span>
-                <input
-                  type="datetime-local"
-                  className={dashboardInputClass(busy)}
-                  value={paidAtLocal}
-                  onChange={(e) => setPaidAtLocal(e.target.value)}
-                  disabled={busy}
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className={dashboardLabelClass()}>Method</span>
-                <select
-                  className={dashboardSelectClass(busy)}
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  disabled={busy}
+            <>
+              <section
+                className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm ring-1 ring-primary/10"
+                aria-labelledby="supplier-payment-heading"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      {preferredMethod === "mpesa" ? (
+                        <Smartphone className="size-5" aria-hidden />
+                      ) : (
+                        <CreditCard className="size-5" aria-hidden />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <h3
+                        id="supplier-payment-heading"
+                        className="text-sm font-bold text-foreground"
+                      >
+                        How to pay this supplier
+                      </h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Preferred:{" "}
+                        <span className="font-semibold text-foreground">
+                          {paymentMethodLabel(preferredMethod)}
+                        </span>
+                        {supplier?.paymentMethodPreferred?.trim() &&
+                        supplier.paymentMethodPreferred.trim().toLowerCase() !==
+                          preferredMethod ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            ({supplier.paymentMethodPreferred})
+                          </span>
+                        ) : null}
+                      </p>
+                    </div>
+                  </div>
+                  {row.supplierId ? (
+                    <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 gap-1" asChild>
+                      <Link href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}>
+                        Edit
+                        <ExternalLink className="size-3" aria-hidden />
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
+
+                {supplierLoading ? (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Loading payment details…
+                  </div>
+                ) : supplierError ? (
+                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                    {supplierError}
+                  </p>
+                ) : paymentDetails ? (
+                  <div className="mt-3 rounded-xl border border-border/80 bg-background px-3.5 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Payment &amp; remittance
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
+                      {paymentDetails}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-amber-300/80 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                    No payment details on file for this supplier. Add paybill, till, or bank info under{" "}
+                    <Link href={APP_ROUTES.suppliers} className="font-semibold underline">
+                      Suppliers
+                    </Link>{" "}
+                    before sending money.
+                  </p>
+                )}
+              </section>
+
+              <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                Send <span className="font-semibold text-foreground">{formatMoney(balanceOpen)}</span>{" "}
+                using the details above, then tap{" "}
+                <span className="font-semibold text-foreground">Confirm payment</span> to record it in
+                PalMart.
+              </p>
+
+              <div className="rounded-xl border border-border/60">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/30"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  aria-expanded={showAdvanced}
                 >
-                  <option value="cash">cash</option>
-                  <option value="bank">bank</option>
-                  <option value="mpesa">mpesa</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className={dashboardLabelClass()}>Cash / transfer amount</span>
-                <input
-                  className={dashboardInputClass(busy)}
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  disabled={busy}
-                  inputMode="decimal"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className={dashboardLabelClass()}>Supplier credit applied</span>
-                <input
-                  className={dashboardInputClass(busy)}
-                  value={creditApplied}
-                  onChange={(e) => setCreditApplied(e.target.value)}
-                  disabled={busy}
-                  inputMode="decimal"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5 sm:col-span-2">
-                <span className={dashboardLabelClass()}>Reference # (optional)</span>
-                <input className={dashboardInputClass(busy)} value={reference} onChange={(e) => setReference(e.target.value)} disabled={busy} />
-              </label>
-              <label className="flex flex-col gap-1.5 sm:col-span-2">
-                <span className={dashboardLabelClass()}>Notes (optional)</span>
-                <textarea className={dashboardTextareaClass(busy)} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={busy} />
-              </label>
-            </div>
+                  Adjust payment (partial, credit, reference)
+                  <ChevronDown
+                    className={cn(
+                      "size-4 shrink-0 text-muted-foreground transition-transform",
+                      showAdvanced && "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {showAdvanced ? (
+                  <div className="grid gap-4 border-t border-border/60 p-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={dashboardLabelClass()}>Apply to this supply</span>
+                      <input
+                        className={dashboardInputClass(busy)}
+                        value={allocation}
+                        onChange={(e) => setAllocation(e.target.value)}
+                        disabled={busy}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={dashboardLabelClass()}>Paid at</span>
+                      <input
+                        type="datetime-local"
+                        className={dashboardInputClass(busy)}
+                        value={paidAtLocal}
+                        onChange={(e) => setPaidAtLocal(e.target.value)}
+                        disabled={busy}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={dashboardLabelClass()}>Method</span>
+                      <select
+                        className={dashboardSelectClass(busy)}
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        disabled={busy}
+                      >
+                        <option value="cash">cash</option>
+                        <option value="bank">bank</option>
+                        <option value="mpesa">mpesa</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={dashboardLabelClass()}>Cash / transfer amount</span>
+                      <input
+                        className={dashboardInputClass(busy)}
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        disabled={busy}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={dashboardLabelClass()}>Supplier credit applied</span>
+                      <input
+                        className={dashboardInputClass(busy)}
+                        value={creditApplied}
+                        onChange={(e) => setCreditApplied(e.target.value)}
+                        disabled={busy}
+                        inputMode="decimal"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={dashboardLabelClass()}>Reference # (optional)</span>
+                      <input
+                        className={dashboardInputClass(busy)}
+                        value={reference}
+                        onChange={(e) => setReference(e.target.value)}
+                        disabled={busy}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={dashboardLabelClass()}>Notes (optional)</span>
+                      <textarea
+                        className={dashboardTextareaClass(busy)}
+                        rows={2}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        disabled={busy}
+                      />
+                    </label>
+                    <div className="sm:col-span-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full sm:w-auto"
+                        disabled={busy}
+                        onClick={() => void submitPayment()}
+                      >
+                        {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                        Record with options above
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
           )}
 
           <div>
             <h4 className="text-sm font-semibold text-foreground">Payment history</h4>
             {!canHistory ? (
-              <p className={cn(dashboardHintClass(), "mt-1")}>Requires {Permission.PurchasingPaymentRead}.</p>
+              <p className={cn(dashboardHintClass(), "mt-1")}>
+                Requires {Permission.PurchasingPaymentRead}.
+              </p>
             ) : historyLoading ? (
               <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
@@ -304,9 +534,13 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                   <tbody>
                     {history.map((h) => (
                       <tr key={h.allocationId} className="border-t">
-                        <td className="px-2 py-1.5 text-muted-foreground">{new Date(h.paidAt).toLocaleString()}</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {new Date(h.paidAt).toLocaleString()}
+                        </td>
                         <td className="px-2 py-1.5 font-mono">{h.paymentMethod}</td>
-                        <td className="px-2 py-1.5 text-right font-mono tabular-nums">{formatMoney(n(h.amountAppliedToInvoice))}</td>
+                        <td className="px-2 py-1.5 text-right font-mono tabular-nums">
+                          {formatMoney(n(h.amountAppliedToInvoice))}
+                        </td>
                         <td className="max-w-[220px] truncate px-2 py-1.5">{h.reference ?? "—"}</td>
                       </tr>
                     ))}
