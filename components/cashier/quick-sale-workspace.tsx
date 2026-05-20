@@ -685,7 +685,11 @@ export function QuickSaleWorkspace({
         });
         return;
       }
-      updateActiveCart({ stkPushStatus: "sending", stkPushError: "" });
+      updateActiveCart({
+        stkPushStatus: "sending",
+        stkPushError: "",
+        stkPushCheckoutId: "",
+      });
       try {
         const { nextIdempotencyKey } = await import("@/lib/idempotency-key");
         const { initiatePosStkPush } = await import("@/lib/api");
