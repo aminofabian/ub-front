@@ -4865,6 +4865,28 @@ export async function initiatePosStkPush(
   });
 }
 
+export type StkPushStatusRecord = {
+  status: string;
+  checkoutRequestId: string;
+  merchantReference: string;
+  contextType: string;
+  contextId: string | null;
+  gatewayTransactionId: string | null;
+  failureReason: string | null;
+  success: boolean;
+  failed: boolean;
+  pending: boolean;
+};
+
+export async function fetchPosStkPushStatus(
+  checkoutRequestId: string,
+): Promise<StkPushStatusRecord> {
+  const q = new URLSearchParams({ checkoutRequestId });
+  return request<StkPushStatusRecord>(
+    `/api/v1/payments/mpesa/stk/push/status?${q.toString()}`,
+  );
+}
+
 export async function simulateMpesaStkComplete(body: {
   businessId: string;
   intentId: string;

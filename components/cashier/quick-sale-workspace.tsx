@@ -16,6 +16,7 @@ import {
   fetchCustomerById,
   fetchCustomers,
   fetchItems,
+  fetchPosStkPushStatus,
   fetchSaleReceiptPdf,
   postVoidSale,
   tryPostSaleWithRetries,
@@ -201,6 +202,7 @@ export function QuickSaleWorkspace({
   const cashTenderStr = activeCart.cashTenderStr;
   const stkPushStatus = activeCart.stkPushStatus;
   const stkPushError = activeCart.stkPushError;
+  const stkPushCheckoutId = activeCart.stkPushCheckoutId;
   const stkAreaCode = activeCart.stkAreaCode;
   const stkPhone = activeCart.stkPhone;
 
@@ -709,6 +711,43 @@ export function QuickSaleWorkspace({
     },
     [online, grandTotal, updateActiveCart],
   );
+
+  useEffect(() => {
+    if (stkPushStatus !== "sent" || !stkPushCheckoutId?.trim() || !online) {
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const status = await fetchPosStkPushStatus(stkPushCheckoutId);
+        if (cancelled) {
+          return;
+        }
+        if (status.success) {
+          updateActiveCart({
+            stkPushStatus: "confirmed",
+            stkPushError: "",
+            mpesaRef: status.gatewayTransactionId ?? stkPushCheckoutId,
+          });
+        } else if (status.failed) {
+          updateActiveCart({
+            stkPushStatus: "failed",
+            stkPushError: status.failureReason ?? "M-Pesa payment failed",
+          });
+        }
+      } catch {
+        /* keep polling */
+      }
+    };
+    const interval = setInterval(() => void poll(), 4000);
+    void poll();
+    const stop = setTimeout(() => clearInterval(interval), 180_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [stkPushStatus, stkPushCheckoutId, online, updateActiveCart]);
 
   const onRetryOutbox = useCallback(async () => {
     if (!online) {

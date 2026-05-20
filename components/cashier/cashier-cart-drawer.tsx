@@ -647,11 +647,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           Sending STK Push…
                         </p>
                       ) : stkPushStatus === "sent" ? (
-                        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-                          ✅ STK Push sent — customer should enter PIN on{" "}
+                        <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                          STK sent — waiting for customer to approve on{" "}
                           <span className="font-mono font-semibold">
                             {buildStkPhoneNumber(stkAreaCode, stkPhone)}
                           </span>
+                        </p>
+                      ) : stkPushStatus === "confirmed" ? (
+                        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+                          ✅ M-Pesa payment received — you can complete the sale.
                         </p>
                       ) : null}
                     </div>

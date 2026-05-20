@@ -34,6 +34,7 @@ import {
 } from "@/lib/public-storefront";
 import {
   fetchPublicCheckoutPaymentOptionsBrowser,
+  fetchPublicWebOrderPaymentStatus,
   initiatePublicWebOrderStkPush,
 } from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
@@ -275,6 +276,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [stkBusy, setStkBusy] = useState(false);
   const [stkSent, setStkSent] = useState(false);
   const [stkMessage, setStkMessage] = useState<string | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -454,6 +456,40 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       setStkBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!stkSent || !done?.orderId || paymentConfirmed) {
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const status = await fetchPublicWebOrderPaymentStatus(slug, done.orderId);
+        if (cancelled) {
+          return;
+        }
+        if (status.paid) {
+          setPaymentConfirmed(true);
+          setStkMessage("Payment received — your order is confirmed.");
+        } else if (status.paymentFailed) {
+          setStkSent(false);
+          setStkMessage(
+            status.failureReason ?? "Payment was not completed. You can try again.",
+          );
+        }
+      } catch {
+        /* keep polling */
+      }
+    };
+    const interval = setInterval(() => void poll(), 4000);
+    void poll();
+    const stop = setTimeout(() => clearInterval(interval), 180_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [stkSent, done?.orderId, slug, paymentConfirmed]);
 
   const requiredCheckoutFieldsComplete = Boolean(
     customerEmail.trim() &&

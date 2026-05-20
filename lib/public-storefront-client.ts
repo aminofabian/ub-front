@@ -229,6 +229,41 @@ export async function initiatePublicWebOrderStkPush(
   return data;
 }
 
+export type PublicWebOrderPaymentStatus = {
+  orderStatus: string;
+  paid: boolean;
+  paymentFailed: boolean;
+  checkoutRequestId: string | null;
+  failureReason: string | null;
+};
+
+export async function fetchPublicWebOrderPaymentStatus(
+  slug: string,
+  orderId: string,
+): Promise<PublicWebOrderPaymentStatus> {
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s || !orderId.trim()) {
+    throw new Error("Missing store or order");
+  }
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/businesses/${encodeURIComponent(s)}/orders/${encodeURIComponent(orderId)}/payment-status`,
+    ),
+    { headers: { Accept: "application/json" }, cache: "no-store" },
+  );
+  const data = (await res.json().catch(() => ({}))) as PublicWebOrderPaymentStatus & {
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof data.message === "string" && data.message
+        ? data.message
+        : "Could not check payment status",
+    );
+  }
+  return data;
+}
+
 export async function fetchPublicItemByBarcodeBrowser(
   slug: string,
   barcode: string,
