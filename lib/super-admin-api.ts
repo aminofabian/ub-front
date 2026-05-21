@@ -1,4 +1,4 @@
-import { API_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
+import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
 import { extractPageContent } from "@/lib/page-content";
 import { getProblemTitle } from "@/lib/problem";
 import {
@@ -128,6 +128,9 @@ async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (response.status === 401) {
     clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
     throw new Error("Session expired. Sign in again.");
   }
   if (!response.ok) {

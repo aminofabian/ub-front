@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
-import { isItemNotFoundProblem, isUnmappedTenantHostProblem } from "@/lib/problem";
+import {
+  isItemNotFoundProblem,
+  isSessionRelatedProblem,
+  isUnmappedTenantHostProblem,
+} from "@/lib/problem";
 
 describe("isItemNotFoundProblem", () => {
   it("matches pricing/catalog item missing detail", () => {
@@ -20,6 +24,66 @@ describe("isItemNotFoundProblem", () => {
         title: "Bad Request",
         status: 400,
         detail: "Branch not found",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("isSessionRelatedProblem", () => {
+  it("treats authenticated 401 as session failure", () => {
+    expect(
+      isSessionRelatedProblem(401, {
+        title: "Session is no longer active",
+        status: 401,
+        type: "urn:problem:unauthorized",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores 401 on public login calls", () => {
+    expect(
+      isSessionRelatedProblem(
+        401,
+        { title: "Incorrect email or password.", status: 401 },
+        { requiresAuth: false },
+      ),
+    ).toBe(false);
+  });
+
+  it("matches token_expired and invalid access token signals", () => {
+    expect(
+      isSessionRelatedProblem(403, {
+        code: "token_expired",
+        title: "Invalid or expired access token",
+      }),
+    ).toBe(true);
+  });
+
+  it("matches revoked-session and refresh-token titles", () => {
+    expect(
+      isSessionRelatedProblem(401, {
+        title: "Invalid or expired token",
+        status: 401,
+      }),
+    ).toBe(true);
+  });
+
+  it("matches tenant token mismatch forbidden", () => {
+    expect(
+      isSessionRelatedProblem(403, {
+        title: "Token tenant does not match resolved host tenant",
+        status: 403,
+        type: "urn:problem:forbidden",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores permission denied", () => {
+    expect(
+      isSessionRelatedProblem(403, {
+        title: "Forbidden",
+        status: 403,
+        type: "urn:problem:permission-denied",
       }),
     ).toBe(false);
   });

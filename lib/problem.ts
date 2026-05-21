@@ -1,3 +1,5 @@
+import { ERROR_CODES, PROBLEM_TITLES } from "@/lib/config";
+
 export type ProblemResponse = {
   type: string;
   title: string;
@@ -5,6 +7,22 @@ export type ProblemResponse = {
   detail?: string;
   code?: string;
 };
+
+const UNAUTHORIZED_PROBLEM_TYPE = "urn:problem:unauthorized";
+
+/** JWT filter / refresh / session revocation titles — sign out instead of surfacing a toast. */
+const SESSION_AUTH_TITLES = new Set([
+  "Session is no longer active",
+  "User not found",
+  "Account is not active",
+  "Account is temporarily locked",
+  "Invalid token claims",
+  "Invalid or expired token",
+  PROBLEM_TITLES.invalidOrExpiredAccessToken,
+]);
+
+const TENANT_TOKEN_MISMATCH_TITLE =
+  "Token tenant does not match resolved host tenant";
 
 export type ProblemValidationFieldError = {
   field: string;
@@ -115,6 +133,51 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
   }
   const detail = problem.detail?.trim().toLowerCase() ?? "";
   return detail === "item not found";
+}
+
+/**
+ * Whether an API failure means the stored session is unusable and the client should
+ * clear auth data and redirect to login. Skips public/unauthenticated calls (e.g. login).
+ */
+export function isSessionRelatedProblem(
+  status: number,
+  payload: unknown,
+  options?: { requiresAuth?: boolean },
+): boolean {
+  if (options?.requiresAuth === false) {
+    return false;
+  }
+
+  if (status === 404 && isUnmappedTenantHostProblem(payload)) {
+    return true;
+  }
+
+  if (status === 401) {
+    return true;
+  }
+
+  const problem = parseProblem(payload);
+  if (!problem) {
+    return false;
+  }
+
+  if (problem.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
+    return true;
+  }
+  if (problem.code === ERROR_CODES.tokenExpired) {
+    return true;
+  }
+  if (problem.type === UNAUTHORIZED_PROBLEM_TYPE) {
+    return true;
+  }
+  if (SESSION_AUTH_TITLES.has(problem.title)) {
+    return true;
+  }
+  if (status === 403 && problem.title === TENANT_TOKEN_MISMATCH_TITLE) {
+    return true;
+  }
+
+  return false;
 }
 
 export function isUnmappedTenantHostProblem(payload: unknown): boolean {

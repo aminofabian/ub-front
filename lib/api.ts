@@ -12,7 +12,6 @@ import {
 } from "@/lib/config";
 import {
   clearAllSessionData,
-  clearSessionTokens,
   getSessionTokens,
   setSessionTokens,
   signOutClientAndRedirectToLogin,
@@ -22,7 +21,7 @@ import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
 import {
   parseProblem,
   formatApiProblemMessage,
-  isUnmappedTenantHostProblem,
+  isSessionRelatedProblem,
 } from "@/lib/problem";
 import { toast } from "sonner";
 import type { BranchReceiptSettings } from "@/lib/branch-receipt";
@@ -81,31 +80,48 @@ function failRequest(
   throw new ApiRequestError(message, status, payload);
 }
 
-function shouldSignOutClientForProblem(
-  status: number,
-  payload: unknown,
-  options?: { requiresAuth?: boolean },
-): boolean {
-  const problem = parseProblem(payload);
-  if (problem?.title === PROBLEM_TITLES.invalidOrExpiredAccessToken) {
-    return true;
-  }
-  if (options?.requiresAuth === false || !getSessionTokens()) {
-    return false;
-  }
-  return status === 404 && isUnmappedTenantHostProblem(payload);
-}
-
 function signOutClientForProblem(
   status: number,
   payload: unknown,
   options?: { requiresAuth?: boolean },
 ): boolean {
-  if (!shouldSignOutClientForProblem(status, payload, options)) {
+  if (!isSessionRelatedProblem(status, payload, options)) {
     return false;
   }
   signOutClientAndRedirectToLogin();
   return true;
+}
+
+/** On 401: refresh when the access token expired; otherwise sign out and stop the request. */
+async function resolveUnauthorizedResponse(
+  response: Response,
+  execute: () => Promise<Response>,
+  options?: { requiresAuth?: boolean; toast?: boolean },
+): Promise<Response> {
+  const payload = await response.clone().json().catch(() => ({}));
+  const problem = parseProblem(payload);
+  if (!shouldAttemptRefresh(problem)) {
+    if (signOutClientForProblem(response.status, payload, options)) {
+      throw new ApiRequestError(
+        formatApiProblemMessage(payload),
+        response.status,
+        payload,
+      );
+    }
+    failRequest(response.status, payload, options);
+  }
+  if (await tryRefreshToken()) {
+    return execute();
+  }
+  if (options?.requiresAuth !== false) {
+    signOutClientAndRedirectToLogin();
+    throw new ApiRequestError(
+      formatApiProblemMessage(payload),
+      response.status,
+      payload,
+    );
+  }
+  failRequest(response.status, payload, options);
 }
 
 type LoginResponse = {
@@ -831,13 +847,13 @@ export async function tryRefreshToken(): Promise<boolean> {
   }
 
   if (!response.ok) {
-    clearSessionTokens();
+    signOutClientAndRedirectToLogin();
     return false;
   }
 
   const payload = (await response.json()) as LoginResponse;
   if (!payload.accessToken || !payload.refreshToken) {
-    clearSessionTokens();
+    signOutClientAndRedirectToLogin();
     return false;
   }
 
@@ -891,23 +907,10 @@ async function request<T>(
 
   let response = await execute();
   if (requiresAuth && response.status === 401) {
-    const payload = await response
-      .clone()
-      .json()
-      .catch(() => ({}));
-    const problem = parseProblem(payload);
-    const shouldRefresh = shouldAttemptRefresh(problem);
-    if (!shouldRefresh) {
-      const message = formatApiProblemMessage(payload);
-      if (signOutClientForProblem(response.status, payload, { requiresAuth })) {
-        throw new ApiRequestError(message, response.status, payload);
-      }
-      failRequest(response.status, payload, { toast: suppressToast });
-    }
-    const refreshed = await tryRefreshToken();
-    if (refreshed) {
-      response = await execute();
-    }
+    response = await resolveUnauthorizedResponse(response, execute, {
+      requiresAuth,
+      toast: suppressToast,
+    });
   }
 
   if (!response.ok) {
@@ -947,20 +950,7 @@ async function requestMultipartJson<T>(
 
   let response = await execute();
   if (response.status === 401) {
-    const payload = await response
-      .clone()
-      .json()
-      .catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
-      response = await execute();
-    } else {
-      const message = formatApiProblemMessage(payload);
-      if (signOutClientForProblem(response.status, payload)) {
-        throw new ApiRequestError(message, response.status, payload);
-      }
-      failRequest(response.status, payload);
-    }
+    response = await resolveUnauthorizedResponse(response, execute);
   }
 
   if (!response.ok) {
@@ -1029,20 +1019,7 @@ async function postIntegrationsJsonImport(
 
   let response = await execute();
   if (response.status === 401) {
-    const payload = await response
-      .clone()
-      .json()
-      .catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
-      response = await execute();
-    } else {
-      const message = formatApiProblemMessage(payload);
-      if (signOutClientForProblem(response.status, payload)) {
-        throw new ApiRequestError(message, response.status, payload);
-      }
-      failRequest(response.status, payload);
-    }
+    response = await resolveUnauthorizedResponse(response, execute);
   }
 
   const payload: unknown = await response.json().catch(() => null);
@@ -1119,20 +1096,7 @@ async function requestBinary(path: string): Promise<Blob> {
 
   let response = await execute();
   if (response.status === 401) {
-    const payload = await response
-      .clone()
-      .json()
-      .catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
-      response = await execute();
-    } else {
-      const message = formatApiProblemMessage(payload);
-      if (signOutClientForProblem(response.status, payload)) {
-        throw new ApiRequestError(message, response.status, payload);
-      }
-      failRequest(response.status, payload);
-    }
+    response = await resolveUnauthorizedResponse(response, execute);
   }
 
   if (!response.ok) {
@@ -4111,21 +4075,23 @@ export async function tryPostSale(
   let response = outcome.response;
 
   if (response.status === 401) {
-    const payload = await response
-      .clone()
-      .json()
-      .catch(() => ({}));
-    const problem = parseProblem(payload);
-    if (shouldAttemptRefresh(problem) && (await tryRefreshToken())) {
-      outcome = await execute();
-      if (outcome.kind === "network") {
-        return { ok: false, status: 0, message: outcome.message };
-      }
-      response = outcome.response;
-    } else {
-      const message = formatApiProblemMessage(payload);
-      signOutClientForProblem(response.status, payload);
-      return { ok: false, status: 401, message };
+    try {
+      response = await resolveUnauthorizedResponse(response, async () => {
+        const retry = await execute();
+        if (retry.kind === "network") {
+          throw new Error(retry.message);
+        }
+        return retry.response;
+      });
+    } catch (err) {
+      const message =
+        err instanceof ApiRequestError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Session expired. Sign in again.";
+      const status = err instanceof ApiRequestError ? err.status : 401;
+      return { ok: false, status, message };
     }
   }
 

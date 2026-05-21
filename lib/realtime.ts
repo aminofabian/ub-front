@@ -14,6 +14,7 @@
 
 import {
   getSessionTokens,
+  signOutClientAndRedirectToLogin,
   registerRealtimeDisconnect,
   setSessionTokens,
 } from "./auth";
@@ -489,7 +490,7 @@ export class RealtimeClient {
     try {
       const tokens = getSessionTokens();
       if (!tokens) {
-        this.startRestPolling();
+        signOutClientAndRedirectToLogin();
         return;
       }
       const refreshUrl = apiUrl(API_ROUTES.refresh);
@@ -504,11 +505,13 @@ export class RealtimeClient {
           accessToken: body.accessToken,
           refreshToken: body.refreshToken ?? tokens.refreshToken,
         });
+        this.attemptReconnect();
+        return;
       }
+      signOutClientAndRedirectToLogin();
     } catch {
-      // Token refresh failed — will fall through to REST polling
+      signOutClientAndRedirectToLogin();
     }
-    this.attemptReconnect();
   }
 
   // ── Ticket refresh ──
