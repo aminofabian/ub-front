@@ -83,7 +83,7 @@ function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
  * Storefront chrome rendered inside ShopCartProvider so header cart and drawers
  * share context (server-passed `children` alone does not receive client context).
  */
-const COMPACT_CHROME_PATHS = new Set([
+const COMPACT_CHROME_PATHS: ReadonlySet<string> = new Set([
   APP_ROUTES.shopCart,
   APP_ROUTES.shopCheckout,
 ]);

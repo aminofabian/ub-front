@@ -159,7 +159,7 @@ function OnlineStkSection({
         title={compact ? "M-Pesa prompt" : "Pay with M-Pesa on your phone"}
         amountDue={amountDue}
         compact={compact}
-        variant="primary"
+        tone="primary"
       />
       {!compact ? (
         <p className="text-xs leading-relaxed text-muted-foreground">

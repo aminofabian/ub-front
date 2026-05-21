@@ -690,9 +690,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           .join(" | "),
       });
 
+      const receiptSubtotal =
+        cart.subtotal ??
+        cart.lines.reduce((sum, line) => sum + (line.lineTotal ?? 0), 0);
+
       setOrderReceipt({
         currency: cart.currency,
-        subtotal: cart.subtotal,
+        subtotal: receiptSubtotal,
         lines: cart.lines.map((line) => ({ ...line })),
         shipping: {
           customerName: `${firstName} ${lastName}`.trim(),
