@@ -1073,7 +1073,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         </p>
         <Link
           href={APP_ROUTES.shop}
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+          className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-all hover:bg-[var(--primary-hover)]"
         >
           Continue shopping
         </Link>
@@ -1114,7 +1114,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link
             href={APP_ROUTES.shopCart}
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-white transition-all hover:bg-[var(--primary-hover)]"
           >
             Edit cart
           </Link>
@@ -1648,7 +1648,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               <span className="text-muted-foreground">Delivery</span>
               <span className="tabular-nums">
                 {shippingLabel === formatDisplayPrice(cart.currency, 0) ? (
-                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                  <span className="inline-flex items-center rounded-full bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2 py-0.5 text-xs font-semibold text-primary">
                     Free
                   </span>
                 ) : (

@@ -55,19 +55,15 @@ export function CheckoutProgressSteps({
                 className={cn(
                   "flex shrink-0 items-center justify-center rounded-full font-semibold transition-colors",
                   dense ? "size-5 text-[9px]" : tight ? "size-5 text-[10px]" : "size-9 text-sm",
-                  complete &&
-                    isDone &&
+                  isDone &&
                     (tight
-                      ? "bg-emerald-600 text-white dark:bg-emerald-500"
-                      : "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/25 dark:bg-emerald-500 dark:ring-emerald-400/30"),
-                  !complete &&
-                    isDone &&
-                    "bg-emerald-600 text-white shadow-sm dark:bg-emerald-500",
+                      ? "bg-primary text-white ring-1 ring-primary/25"
+                      : "bg-primary text-white shadow-sm ring-2 ring-primary/20"),
                   isCurrent &&
                     !isDone &&
                     (tight
-                      ? "bg-primary text-primary-foreground ring-1 ring-primary/25"
-                      : "bg-primary text-primary-foreground shadow-md ring-4 ring-primary/15"),
+                      ? "bg-primary text-white ring-1 ring-primary/25"
+                      : "bg-primary text-white shadow-md ring-4 ring-primary/15"),
                   !isDone &&
                     !isCurrent &&
                     (tight
@@ -94,13 +90,8 @@ export function CheckoutProgressSteps({
                     : "text-center text-xs sm:text-sm",
                   dense && !isCurrent && !isDone && "max-sm:hidden",
                   dense && isDone && "max-sm:hidden",
-                  complete &&
-                    isDone &&
-                    "text-emerald-700 dark:text-emerald-400",
-                  !complete && isCurrent && "text-foreground",
-                  !complete &&
-                    isDone &&
-                    "text-emerald-700 dark:text-emerald-400",
+                  isDone && "text-primary",
+                  !isDone && isCurrent && "text-foreground",
                   !isDone && !isCurrent && "text-muted-foreground",
                 )}
               >
@@ -112,13 +103,11 @@ export function CheckoutProgressSteps({
                 className={cn(
                   "min-h-px flex-1 rounded-full",
                   tight ? "mx-0.5 min-w-1.5" : "mx-1 min-w-[0.75rem] sm:mx-2",
-                  complete && connectorAfterDone
+                  connectorAfterDone
                     ? tight
-                      ? "h-px bg-emerald-500/90"
-                      : "h-0.5 bg-emerald-500"
-                    : connectorAfterDone
-                      ? "h-0.5 bg-emerald-500/60"
-                      : "h-0.5 bg-border/80",
+                      ? "h-px bg-primary/80"
+                      : "h-0.5 bg-primary"
+                    : "h-0.5 bg-border/80",
                 )}
                 aria-hidden
               />

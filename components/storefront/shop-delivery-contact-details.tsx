@@ -11,6 +11,12 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import {
+  CHECKOUT_SECTION_DIVIDER,
+  CHECKOUT_SECTION_HEAD,
+  CHECKOUT_SECTION_ICON_WRAP,
+  CHECKOUT_SECTION_INSET,
+} from "@/components/storefront/shop-checkout-design";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +48,7 @@ function IconValue({
 
   return (
     <div className={cn("flex min-w-0 items-center gap-1.5", className)}>
-      <Icon className="size-3.5 shrink-0 text-muted-foreground/80" aria-hidden />
+      <Icon className="size-3.5 shrink-0 text-primary/75" aria-hidden />
       <span
         className={cn(
           "min-w-0 truncate text-[12px] leading-snug text-foreground",
@@ -116,10 +122,10 @@ export function DeliveryContactDetails({
     <div className="flex min-w-0 flex-col gap-0.5">
       <IconValue icon={MapPin} value={zone} />
       {showEta ? (
-        <span className="inline-flex items-center gap-1 pl-5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-          <Clock3 className="size-3 shrink-0" aria-hidden />
-          ~30 min
-        </span>
+                <span className="inline-flex items-center gap-1 pl-5 text-[11px] font-medium text-[color-mix(in_srgb,var(--storefront-accent,var(--primary))_75%,var(--foreground))]">
+                  <Clock3 className="size-3 shrink-0" aria-hidden />
+                  ~30 min
+                </span>
       ) : null}
     </div>
   ) : null;
@@ -143,13 +149,18 @@ export function DeliveryContactDetails({
       ) : null}
 
       {hasAddress ? (
-        <div className={cn(hasContact && "border-t border-border/40 pt-2.5")}>
+        <div
+          className={cn(
+            hasContact && "border-t pt-2.5",
+            hasContact && CHECKOUT_SECTION_DIVIDER,
+          )}
+        >
           <DetailPairRow left={streetNode} right={zoneNode} />
         </div>
       ) : null}
 
       {hasNotes ? (
-        <div className="rounded-lg bg-muted/25 px-2.5 py-2">
+        <div className={cn("px-2.5 py-2", CHECKOUT_SECTION_INSET)}>
           <p className="text-[11px] font-medium text-muted-foreground">Note</p>
           <p className="mt-0.5 text-[12px] leading-relaxed text-foreground/90">
             {notes}
@@ -166,14 +177,24 @@ export function DeliveryContactCardHeader({
   onEdit?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-border/40 bg-muted/15 px-3 py-2">
-      <p className="text-xs font-semibold text-foreground">Delivery & contact</p>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-2 px-3 py-2",
+        CHECKOUT_SECTION_HEAD,
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className={cn("size-7", CHECKOUT_SECTION_ICON_WRAP)}>
+          <MapPin className="size-3.5" aria-hidden />
+        </span>
+        <p className="text-xs font-semibold text-foreground">Delivery & contact</p>
+      </div>
       {onEdit ? (
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 shrink-0 gap-1 px-2 text-[11px] font-medium"
+          className="h-7 shrink-0 gap-1 px-2 text-[11px] font-medium text-primary hover:bg-primary/10"
           onClick={onEdit}
         >
           <Pencil className="size-3" aria-hidden />

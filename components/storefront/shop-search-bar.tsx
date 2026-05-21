@@ -57,7 +57,7 @@ export default function ShopSearchBar({
             "flex h-full w-12 shrink-0 items-center justify-center text-white transition hover:brightness-110 active:brightness-95 sm:w-14",
             !validAccent && "bg-primary",
           )}
-          style={validAccent ? { backgroundColor: validAccent } : undefined}
+          style={validAccent ? { backgroundColor: validAccent, color: "#fff" } : undefined}
         >
           <Search className="h-4 w-4" aria-hidden />
         </button>
@@ -95,7 +95,7 @@ export default function ShopSearchBar({
         <button
           type="submit"
           className={cn(
-            "flex h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 active:scale-[0.99] sm:h-auto sm:w-auto sm:rounded-full sm:px-6",
+            "flex h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.99] sm:h-auto sm:w-auto sm:rounded-full sm:px-6",
             !validAccent && "bg-primary",
           )}
           style={validAccent ? { backgroundColor: validAccent, color: "#fff" } : undefined}

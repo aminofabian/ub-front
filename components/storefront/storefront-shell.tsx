@@ -2,15 +2,15 @@ import { Suspense } from "react";
 
 import { ShopStorefrontChrome } from "@/components/storefront/shop-storefront-chrome";
 import { ShopStorefrontRealtime } from "@/components/storefront/shop-storefront-realtime";
+import { StorefrontThemeScope } from "@/components/storefront/storefront-theme-scope";
 import {
   fetchPublicCategories,
   fetchPublicStorefront,
+  fetchTenantContext,
 } from "@/lib/public-storefront";
+import { parseStorefrontHex } from "@/lib/storefront-theme";
 import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-slug";
-
-function isHexColor(value: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(value.trim());
-}
+import { cn } from "@/lib/utils";
 
 /**
  * Storefront chrome (utility bar, header, category rail, footer) shared by
@@ -22,8 +22,15 @@ export async function StorefrontShell({
   children: React.ReactNode;
 }) {
   const slug = await resolveStorefrontSlug();
-  const [tenant, storefront, categoriesPayload] = await Promise.all([
-    resolveTenantContext(),
+  let tenant = await resolveTenantContext();
+  // Dev: plain localhost + env slug — resolve branding via `<slug>.localhost`
+  if (slug && !parseStorefrontHex(tenant?.branding?.primaryColor)) {
+    const byDevHost = await fetchTenantContext(`${slug}.localhost`);
+    if (byDevHost) {
+      tenant = byDevHost;
+    }
+  }
+  const [storefront, categoriesPayload] = await Promise.all([
     slug ? fetchPublicStorefront(slug) : Promise.resolve(null),
     slug ? fetchPublicCategories(slug) : Promise.resolve(null),
   ]);
@@ -32,10 +39,8 @@ export async function StorefrontShell({
     storefront?.label?.trim() || storefront?.businessName || tenant?.tenantName || "Shop";
   const headerTitle = tenant?.branding?.displayName ?? title;
   const logoUrl = tenant?.branding?.logoUrl?.trim() || null;
-  const primaryRaw = tenant?.branding?.primaryColor?.trim() ?? "";
-  const accentRaw = tenant?.branding?.accentColor?.trim() ?? "";
-  const primary = isHexColor(primaryRaw) ? primaryRaw : null;
-  const accent = isHexColor(accentRaw) ? accentRaw : null;
+  const primary = parseStorefrontHex(tenant?.branding?.primaryColor);
+  const accent = parseStorefrontHex(tenant?.branding?.accentColor);
   const currency = storefront?.currency?.trim() || "KES";
   const categories = categoriesPayload?.categories ?? [];
   const branding = tenant?.branding
@@ -60,7 +65,13 @@ export async function StorefrontShell({
   }
 
   return (
-    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background">
+    <StorefrontThemeScope
+      primaryHex={primary}
+      accentHex={accent}
+      className={cn(
+        "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background",
+      )}
+    >
       {slug ? (
         <ShopStorefrontChrome
           slug={slug}
@@ -75,9 +86,9 @@ export async function StorefrontShell({
           {children}
         </ShopStorefrontChrome>
       ) : (
-        <div className="flex-1">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       )}
       <ShopStorefrontRealtime currency={currency} branding={branding} />
-    </div>
+    </StorefrontThemeScope>
   );
 }

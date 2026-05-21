@@ -13,7 +13,11 @@ import type {
   PublicOnlinePaymentMethod,
   PublicPaymentInstruction,
 } from "@/lib/public-storefront";
-import { CHECKOUT_INPUT, CHECKOUT_LABEL } from "@/components/storefront/shop-checkout-design";
+import {
+  CHECKOUT_INPUT,
+  CHECKOUT_LABEL,
+  CHECKOUT_PAYMENT_PANEL,
+} from "@/components/storefront/shop-checkout-design";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +25,12 @@ function PaymentSectionHeading({
   title,
   amountDue,
   compact,
-  tone = "emerald",
+  tone = "primary",
 }: {
   title: string;
   amountDue?: string | null;
   compact?: boolean;
-  tone?: "emerald" | "primary";
+  tone?: "primary";
 }) {
   const showAmount = amountDue && !compact;
 
@@ -35,13 +39,9 @@ function PaymentSectionHeading({
       <h3
         className={cn(
           "min-w-0 font-bold tracking-tight",
-          tone === "primary"
-            ? compact
-              ? "text-[10px] uppercase tracking-[0.14em] text-primary/90"
-              : "text-sm text-foreground"
-            : compact
-              ? "text-[10px] uppercase tracking-[0.14em] text-emerald-950 dark:text-emerald-100"
-              : "text-sm text-emerald-950 dark:text-emerald-100",
+          compact
+            ? "text-[10px] uppercase tracking-[0.14em] text-primary/90"
+            : "text-sm text-foreground",
         )}
       >
         {title}
@@ -69,8 +69,13 @@ function ManualInstructionCard({
 }) {
   if (compact && pi.type === "till" && pi.tillNumber) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-2.5 py-1 font-mono text-sm font-bold tabular-nums text-foreground">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+      <span
+        className={cn(
+          "inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 font-mono text-sm font-bold tabular-nums text-foreground",
+          "border-[color-mix(in_srgb,var(--primary)_20%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_8%,var(--muted))]",
+        )}
+      >
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
           Till
         </span>
         {pi.tillNumber}
@@ -81,7 +86,7 @@ function ManualInstructionCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-emerald-500/15 bg-background/90 shadow-sm ring-1 ring-emerald-500/10 dark:bg-emerald-950/30",
+        "rounded-xl border border-[color-mix(in_srgb,var(--primary)_15%,var(--border))] bg-background/90 shadow-sm ring-1 ring-[color-mix(in_srgb,var(--primary)_10%,transparent)]",
         compact ? "p-2" : "p-3",
       )}
     >
@@ -191,7 +196,7 @@ function OnlineStkSection({
   return (
     <div
       className={cn(
-        "min-w-0 max-w-full rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
+        "min-w-0 max-w-full rounded-xl border border-[color-mix(in_srgb,var(--primary)_18%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_5%,var(--card))] ring-1 ring-[color-mix(in_srgb,var(--primary)_8%,transparent)]",
         compact ? "space-y-1.5 p-1.5" : "space-y-3 p-4",
       )}
     >
@@ -288,7 +293,7 @@ function OnlineStkSection({
         <p
           className={
             stkSent
-              ? "text-xs font-medium text-emerald-700 dark:text-emerald-400"
+              ? "text-xs font-medium text-primary"
               : "text-xs text-destructive"
           }
         >
@@ -346,8 +351,8 @@ export function ShopCheckoutPaymentSection({
     <div
       className={cn(
         floating
-          ? "rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-2 py-1.5"
-          : "space-y-2.5 rounded-xl border border-emerald-500/20 bg-linear-to-br from-emerald-50/90 to-emerald-50/30 p-4 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-950/10",
+          ? cn("px-2 py-1.5", CHECKOUT_PAYMENT_PANEL)
+          : cn("space-y-2.5 p-4", CHECKOUT_PAYMENT_PANEL),
       )}
     >
       {!floating ? (

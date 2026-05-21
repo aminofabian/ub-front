@@ -23,6 +23,8 @@ import {
   DeliveryContactDetails,
 } from "@/components/storefront/shop-delivery-contact-details";
 import {
+  CHECKOUT_SECTION_DIVIDER,
+  CHECKOUT_SECTION_HEAD,
   CHECKOUT_VARIANT_PILL,
   formatDeliveryZone,
 } from "@/components/storefront/shop-checkout-design";
@@ -38,7 +40,12 @@ export function ConfirmationTopProgress({
   complete?: boolean;
 }) {
   return (
-    <div className="shrink-0 border-b border-border/35 bg-background/90 px-2.5 py-1.5 backdrop-blur-md">
+    <div
+      className={cn(
+        "shrink-0 px-2.5 py-1.5 backdrop-blur-md",
+        CHECKOUT_SECTION_HEAD,
+      )}
+    >
       <CheckoutProgressSteps complete={complete} compact dense />
     </div>
   );
@@ -99,7 +106,7 @@ export function ConfirmationPanel({
   return (
     <section
         className={cn(
-          "rounded-xl border border-border/45 bg-card/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.03]",
+          "rounded-xl border border-[color-mix(in_srgb,var(--primary)_12%,var(--border))] bg-card/95 shadow-[0_1px_2px_color-mix(in_srgb,var(--primary)_8%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--primary)_6%,transparent)]",
           className,
         )}
     >
@@ -118,7 +125,12 @@ export function ConfirmationPanelHeader({
   trailing?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-2 border-b border-border/50 px-3 py-2 sm:px-3.5">
+    <div
+      className={cn(
+        "flex items-start justify-between gap-2 px-3 py-2 sm:px-3.5",
+        CHECKOUT_SECTION_HEAD,
+      )}
+    >
       <div className="min-w-0">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           {title}
@@ -148,7 +160,7 @@ export function OrderPaymentStatusBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 font-bold text-emerald-800 dark:text-emerald-300",
+          "inline-flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--primary)_30%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] font-bold text-primary",
           compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
         )}
       >
@@ -205,20 +217,20 @@ export function OrderPaymentStatusBanner({
   if (paymentConfirmed) {
     return (
       <div
-        className="relative overflow-hidden rounded-xl border border-emerald-500/20 bg-linear-to-r from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent px-3 py-2.5 dark:from-emerald-500/15"
+        className="relative overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--primary)_22%,var(--border))] bg-linear-to-r from-[color-mix(in_srgb,var(--primary)_10%,transparent)] via-[color-mix(in_srgb,var(--primary)_4%,transparent)] to-transparent px-3 py-2.5"
         role="status"
         aria-live="polite"
       >
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-sm">
               <Check className="size-3.5" strokeWidth={3} aria-hidden />
             </span>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800/90 dark:text-emerald-300/90">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90">
                 Paid
               </p>
-              <p className="font-serif text-lg font-semibold tabular-nums text-emerald-950 dark:text-emerald-50">
+              <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
                 {total}
               </p>
             </div>
@@ -275,16 +287,16 @@ export function OrderPaymentStatusBanner({
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl border border-amber-500/15 bg-linear-to-r from-amber-500/[0.07] via-amber-500/[0.03] to-transparent px-3 py-2.5 dark:from-amber-500/12"
+      className="relative overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--primary)_22%,var(--border))] bg-linear-to-r from-[color-mix(in_srgb,var(--primary)_10%,transparent)] via-[color-mix(in_srgb,var(--primary)_4%,transparent)] to-transparent px-3 py-2.5"
       role="status"
     >
       <div className="relative flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/90 text-white shadow-sm">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-sm">
             <Clock3 className="size-3.5" aria-hidden />
           </span>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-900/80 dark:text-amber-200/80">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90">
               Total due
             </p>
             <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
@@ -326,7 +338,7 @@ export function OrderConfirmationHero({
             className={cn(
               "flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm sm:size-10",
               paymentConfirmed
-                ? "bg-emerald-600 text-white"
+                ? "bg-primary text-white"
                 : paymentFailed
                   ? "bg-destructive/90 text-white"
                   : "bg-foreground text-background",
@@ -367,9 +379,9 @@ export function OrderMetaStrip({
         <div
           key={item.label}
           className={cn(
-            "inline-flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-border/40 bg-muted/20 px-2.5 py-1.5 sm:flex-col sm:items-start sm:gap-0.5",
+            "inline-flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-[color-mix(in_srgb,var(--primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_6%,var(--muted))] px-2.5 py-1.5 sm:flex-col sm:items-start sm:gap-0.5",
             item.highlight &&
-              "border-emerald-500/25 bg-emerald-500/[0.06]",
+              "border-[color-mix(in_srgb,var(--primary)_25%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]",
           )}
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -379,7 +391,7 @@ export function OrderMetaStrip({
             className={cn(
               "mt-1 text-sm font-semibold tabular-nums leading-tight",
               item.highlight
-                ? "font-serif text-lg text-emerald-700 dark:text-emerald-400"
+                ? "font-serif text-lg text-primary"
                 : "text-foreground",
             )}
           >
@@ -424,7 +436,7 @@ export function OrderLinesList({
   return (
     <ul
       className={cn(
-        "divide-y divide-border/40",
+        "divide-y divide-[color-mix(in_srgb,var(--primary)_10%,var(--border))]",
         constrainHeight &&
           "max-h-[min(26vh,11.5rem)] overflow-y-auto overscroll-contain sm:max-h-[min(30vh,13rem)]",
       )}
@@ -550,11 +562,16 @@ export function OrderPaymentSummaryCard({
         </div>
         <div className="flex justify-between text-muted-foreground">
           <span className="text-xs">Delivery</span>
-          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-primary">
             Free
           </span>
         </div>
-        <div className="flex items-end justify-between border-t border-border/50 pt-2.5">
+        <div
+          className={cn(
+            "flex items-end justify-between border-t pt-2.5",
+            CHECKOUT_SECTION_DIVIDER,
+          )}
+        >
           <span className="text-xs font-semibold text-foreground">
             {paymentConfirmed ? "Paid" : "Total due"}
           </span>
