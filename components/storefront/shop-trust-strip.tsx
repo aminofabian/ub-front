@@ -14,33 +14,33 @@ export function ShopTrustStrip({ primaryHex }: { primaryHex: string | null }) {
       : null;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/30 bg-card/70 p-3 backdrop-blur-sm sm:grid-cols-4 sm:gap-3 sm:p-4">
+    <div className="grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-card p-2.5 shadow-[0_1px_0_rgba(0,0,0,0.03),0_2px_10px_-4px_rgba(0,0,0,0.06)] sm:grid-cols-4 sm:gap-2.5 sm:p-3">
       {ITEMS.map(({ icon: Icon, label, sub }) => (
         <div
           key={label}
-          className="group flex items-center gap-3 rounded-lg p-2 transition-colors duration-200 hover:bg-muted/40 sm:p-2.5"
+          className="flex min-w-0 items-center gap-2.5 rounded-md px-1 py-1.5 sm:gap-3 sm:px-1.5"
         >
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors sm:h-10 sm:w-10"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md sm:size-9"
             style={{
               backgroundColor: primary
-                ? `${primary}12`
-                : "color-mix(in srgb, var(--color-primary) 8%, transparent)",
+                ? `color-mix(in srgb, ${primary} 10%, transparent)`
+                : "color-mix(in srgb, var(--primary) 10%, transparent)",
             }}
           >
             <Icon
-              className="h-4 w-4 sm:h-[18px] sm:w-[18px]"
+              className="size-4 sm:size-[18px]"
               aria-hidden
               style={
-                primary ? { color: primary } : { color: "var(--color-primary)" }
+                primary ? { color: primary } : { color: "var(--primary)" }
               }
             />
           </span>
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold leading-tight text-foreground sm:text-[13px]">
+            <p className="text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
               {label}
             </p>
-            <p className="text-[11px] text-muted-foreground/55 sm:text-xs">
+            <p className="text-[10px] leading-snug text-muted-foreground/70 sm:text-[11px]">
               {sub}
             </p>
           </div>

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,28 @@ function whatsAppOrderHref(): string | null {
   if (!raw) return null;
   const text = encodeURIComponent("Hi! I'd like to place an order.");
   return `https://wa.me/${raw}?text=${text}`;
+}
+
+function heroCtaStyle(
+  primary: string | null,
+  accent: string | null,
+): CSSProperties | undefined {
+  if (accent) {
+    return { backgroundColor: accent, color: "#fff" };
+  }
+  if (primary) {
+    return {
+      backgroundColor: `color-mix(in srgb, ${primary} 42%, white)`,
+      color: "#fff",
+    };
+  }
+  return undefined;
+}
+
+function accentLineColor(primary: string | null, accent: string | null): string {
+  if (accent) return accent;
+  if (primary) return `color-mix(in srgb, ${primary} 48%, white)`;
+  return "#7dd3fc";
 }
 
 export function ShopHeroMart({
@@ -50,20 +72,14 @@ export function ShopHeroMart({
       ? accentHex.trim()
       : null;
 
-  const heroSurfaces = primary
-    ? ({
-        "--hero-bg": `color-mix(in srgb, ${primary} 78%, #020617)`,
-        "--hero-panel-from": `color-mix(in srgb, ${primary} 52%, #020617)`,
-        "--hero-panel-to": `color-mix(in srgb, ${primary} 16%, #020617)`,
-        "--hero-fade-edge": `color-mix(in srgb, ${primary} 82%, #020617)`,
-        "--hero-glow": `${primary}30`,
-      } as Record<string, string>)
-    : undefined;
+  const heroBg = primary
+    ? `color-mix(in srgb, ${primary} 82%, #020617)`
+    : "#0f172a";
 
   const headline = tagline?.trim() || "Quality essentials, delivered.";
   const subhead = "Right to your door.";
+  const accentLine = accentLineColor(primary, accent);
 
-  // --- Carousel state ---
   const banners = heroBannerUrls?.length ? heroBannerUrls : null;
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -90,119 +106,66 @@ export function ShopHeroMart({
 
   return (
     <section
-      className={cn(
-        "relative overflow-hidden rounded-2xl text-white shadow-lg shadow-black/10",
-        !primary && "bg-[#0a1020]",
-      )}
-      style={
-        primary
-          ? { ...heroSurfaces, backgroundColor: "var(--hero-bg)" }
-          : undefined
-      }
+      className="overflow-hidden rounded-lg text-white shadow-[0_2px_16px_-4px_rgba(0,0,0,0.18)] ring-1 ring-black/5"
+      style={{ backgroundColor: heroBg }}
     >
-      {/* ── Atmosphere glow ── */}
-      <div
-        className="pointer-events-none absolute -right-[15%] -top-[20%] h-[280px] w-[280px] rounded-full blur-3xl opacity-30"
-        style={{
-          background: primary
-            ? `radial-gradient(circle, var(--hero-glow), transparent 70%)`
-            : "radial-gradient(circle, rgba(245,158,11,0.18), transparent 70%)",
-        }}
-        aria-hidden
-      />
-
-      <div className="grid min-h-[220px] gap-0 sm:min-h-[260px] sm:grid-cols-[1fr_1.15fr]">
-        {/* ── Left — copy ── */}
-        <div className="relative z-10 flex flex-col justify-center gap-4 px-6 py-7 sm:px-8 sm:py-9">
-          {/* Brand badge */}
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3 py-1 backdrop-blur-sm">
+      <div className="flex flex-col sm:grid sm:min-h-[248px] sm:grid-cols-[minmax(0,1fr)_1.05fr]">
+        {/* Copy */}
+        <div className="relative z-10 flex flex-col justify-center gap-3 px-4 py-5 sm:gap-3.5 sm:px-6 sm:py-6 lg:px-7 lg:py-7">
+          <div className="inline-flex w-fit items-center gap-2 rounded-md border border-white/15 bg-white/[0.07] px-2.5 py-1">
             <span
-              className="h-1.5 w-1.5 rounded-full"
-              style={
-                accent
-                  ? { backgroundColor: accent }
-                  : primary
-                    ? {
-                        backgroundColor: `color-mix(in srgb, ${primary} 60%, white)`,
-                      }
-                    : { backgroundColor: "#f59e0b" }
-              }
+              className="size-1.5 shrink-0 rounded-full"
+              style={{
+                backgroundColor: accent ?? primary ?? "#38bdf8",
+              }}
               aria-hidden
             />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
               {title}
             </span>
           </div>
 
-          <h1 className="text-2xl font-bold leading-[1.08] tracking-[-0.03em] sm:text-3xl lg:text-[2.2rem]">
-            <span className="block">{headline}</span>
-            <span
-              className="block"
-              style={
-                accent
-                  ? { color: accent }
-                  : primary
-                    ? { color: `color-mix(in srgb, ${primary} 50%, white)` }
-                    : { color: "#f59e0b" }
-              }
-            >
+          <h1 className="font-heading text-[1.65rem] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-[1.85rem] lg:text-[2.15rem]">
+            <span className="block text-white">{headline}</span>
+            <span className="block" style={{ color: accentLine }}>
               {subhead}
             </span>
           </h1>
 
-          <p className="max-w-sm text-[13px] leading-relaxed text-white/55 sm:text-sm">
+          <p className="max-w-md text-[12px] leading-relaxed text-white/60 sm:text-[13px]">
             Fresh products, fair prices, and fast delivery — all from your
             neighborhood store, now online.
           </p>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
             <Link
               href="#shop-catalog"
               className={cn(
-                "inline-flex h-10 items-center gap-2 rounded-xl px-5 text-[13px] font-semibold shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
-                !accent && !primary && "bg-amber-500 text-white",
+                "inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-[12px] font-semibold shadow-sm transition-[filter,transform] duration-200 hover:brightness-105 active:scale-[0.98] sm:h-10 sm:px-5 sm:text-[13px]",
+                !accent && !primary && "bg-sky-400 text-white",
               )}
-              style={
-                accent
-                  ? { backgroundColor: accent, color: "#fff" }
-                  : primary
-                    ? {
-                        backgroundColor: `color-mix(in srgb, ${primary} 75%, white)`,
-                        color: `color-mix(in srgb, ${primary} 5%, #020617)`,
-                      }
-                    : undefined
-              }
+              style={heroCtaStyle(primary, accent)}
             >
               Shop now
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              <ArrowRight className="size-3.5" aria-hidden />
             </Link>
             {wa ? (
               <a
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/18 bg-white/5 px-5 text-[13px] font-semibold text-white transition-all duration-300 hover:bg-white/10 hover:border-white/25 hover:-translate-y-0.5"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-white/20 bg-white/[0.06] px-4 text-[12px] font-semibold text-white transition-colors hover:border-white/30 hover:bg-white/10 sm:h-10 sm:px-5 sm:text-[13px]"
               >
-                <MessageCircle className="h-3.5 w-3.5" />
+                <MessageCircle className="size-3.5" aria-hidden />
                 WhatsApp
               </a>
             ) : null}
           </div>
         </div>
 
-        {/* ── Right — showcase / carousel ── */}
+        {/* Media */}
         <div
-          className={cn(
-            "group relative min-h-[180px] overflow-hidden sm:min-h-0",
-            !primary && "bg-gradient-to-br from-[#142238] to-[#0a1020]",
-          )}
-          style={
-            primary
-              ? {
-                  background: `linear-gradient(to bottom right, var(--hero-panel-from), var(--hero-panel-to))`,
-                }
-              : undefined
-          }
+          className="group relative aspect-[16/10] min-h-[168px] w-full overflow-hidden sm:aspect-auto sm:min-h-0"
           onTouchStart={(e) => setTouchStart(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchStart === null || !banners) return;
@@ -216,15 +179,14 @@ export function ShopHeroMart({
         >
           {banners ? (
             <>
-              {/* Banner slides */}
               {banners.map((url, i) => (
                 <div
                   key={`${url}-${i}`}
                   className={cn(
-                    "absolute inset-0 transition-opacity duration-700",
+                    "absolute inset-0 transition-opacity duration-500 ease-out",
                     i === activeIndex
                       ? "opacity-100"
-                      : "opacity-0 pointer-events-none",
+                      : "pointer-events-none opacity-0",
                   )}
                   aria-hidden={i !== activeIndex}
                 >
@@ -240,47 +202,42 @@ export function ShopHeroMart({
                 </div>
               ))}
 
-              {/* Navigation arrows */}
-              {banners.length > 1 && (
+              {banners.length > 1 ? (
                 <>
                   <button
                     type="button"
-                    className="absolute left-3 top-1/2 z-20 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/35 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100 hover:bg-black/50 hover:scale-105"
+                    className="absolute left-2 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-md bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/55 sm:left-3 sm:size-9"
                     onClick={goPrev}
                     aria-label="Previous banner"
                   >
-                    <ChevronLeft className="size-4" />
+                    <ChevronLeft className="size-4" aria-hidden />
                   </button>
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 z-20 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/35 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100 hover:bg-black/50 hover:scale-105"
+                    className="absolute right-2 top-1/2 z-20 flex size-8 -translate-y-1/2 items-center justify-center rounded-md bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/55 sm:right-3 sm:size-9"
                     onClick={goNext}
                     aria-label="Next banner"
                   >
-                    <ChevronRight className="size-4" />
+                    <ChevronRight className="size-4" aria-hidden />
                   </button>
+                  <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+                    {banners.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={cn(
+                          "rounded-full transition-all duration-300",
+                          i === activeIndex
+                            ? "h-1.5 w-4 bg-white"
+                            : "size-1.5 bg-white/45 hover:bg-white/65",
+                        )}
+                        onClick={() => setActiveIndex(i)}
+                        aria-label={`Go to banner ${i + 1}`}
+                      />
+                    ))}
+                  </div>
                 </>
-              )}
-
-              {/* Dot indicators */}
-              {banners.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-                  {banners.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={cn(
-                        "h-2 rounded-full transition-all duration-300",
-                        i === activeIndex
-                          ? "w-5 bg-white"
-                          : "w-2 bg-white/40 hover:bg-white/60",
-                      )}
-                      onClick={() => setActiveIndex(i)}
-                      aria-label={`Go to banner ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
+              ) : null}
             </>
           ) : showcaseImage ? (
             <Image
@@ -301,16 +258,16 @@ export function ShopHeroMart({
             />
           )}
 
-          {/* Edge fade */}
           <div
-            className={cn(
-              "pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r to-transparent",
-              !primary && "from-[#0a1020]",
-            )}
+            className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/25 to-transparent sm:hidden"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-12 bg-gradient-to-r from-[var(--hero-fade,#0f172a)] to-transparent sm:block"
             style={
               primary
                 ? {
-                    background: `linear-gradient(to right, var(--hero-fade-edge), transparent)`,
+                    ["--hero-fade" as string]: `color-mix(in srgb, ${primary} 88%, #020617)`,
                   }
                 : undefined
             }
@@ -334,33 +291,31 @@ function ShopWindowIllustration({
   branchHint: string | null | undefined;
 }) {
   return (
-    <div className="relative flex h-full items-center justify-center">
+    <div className="relative flex h-full min-h-[168px] items-center justify-center bg-black/15">
       <div
-        className="absolute inset-0 opacity-25"
+        className="pointer-events-none absolute inset-0 opacity-30"
         style={
           primary
             ? {
-                background: `radial-gradient(circle at 70% 50%, ${primary} 0%, transparent 65%)`,
+                background: `radial-gradient(circle at 50% 40%, ${primary}, transparent 68%)`,
               }
             : undefined
         }
         aria-hidden
       />
-      <div className="relative z-10 flex flex-col items-center gap-3 px-4 text-center">
+      <div className="relative z-10 flex flex-col items-center gap-2 px-4 py-6 text-center">
         <TenantLogo
           brand={title}
           logoUrl={logoUrl}
           primaryColor={primary}
           variant="storefront-hero"
         />
-        <p className="text-base font-bold tracking-tight text-white">{title}</p>
-        {branchHint ? (
-          <p className="text-[12px] text-white/50">From {branchHint}</p>
-        ) : (
-          <p className="text-[12px] text-white/50">
-            Local prices · Same-day pickup
-          </p>
-        )}
+        <p className="font-heading text-lg font-semibold tracking-tight text-white">
+          {title}
+        </p>
+        <p className="text-[11px] text-white/55">
+          {branchHint ? `From ${branchHint}` : "Local prices · Same-day pickup"}
+        </p>
       </div>
     </div>
   );

@@ -100,7 +100,7 @@ export async function StorefrontCatalogHome({
       <div className="mx-auto max-w-7xl px-4 pb-20 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
         <div className="grid gap-6 lg:grid-cols-12 lg:gap-7 lg:items-start">
           {/* Main content */}
-          <main className="min-w-0 space-y-6 lg:col-span-9">
+          <main className="min-w-0 space-y-3 sm:space-y-4 lg:col-span-9">
             <ShopHeroMart
               title={heroTitle}
               tagline={announcement}
