@@ -13,6 +13,7 @@ import type {
   PublicOnlinePaymentMethod,
   PublicPaymentInstruction,
 } from "@/lib/public-storefront";
+import { CHECKOUT_INPUT, CHECKOUT_LABEL } from "@/components/storefront/shop-checkout-design";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { cn } from "@/lib/utils";
 
@@ -68,9 +69,12 @@ function ManualInstructionCard({
 }) {
   if (compact && pi.type === "till" && pi.tillNumber) {
     return (
-      <p className="font-mono text-sm font-bold tabular-nums tracking-wide text-foreground">
-        Till {pi.tillNumber}
-      </p>
+      <span className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-2.5 py-1 font-mono text-sm font-bold tabular-nums text-foreground">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          Till
+        </span>
+        {pi.tillNumber}
+      </span>
     );
   }
 
@@ -219,35 +223,29 @@ function OnlineStkSection({
       >
         <label
           className={cn(
-            "flex min-w-0 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground",
+            "flex min-w-0 flex-col gap-1",
             compact ? "w-[3.25rem] shrink-0" : "",
           )}
         >
-          Code
+          <span className={CHECKOUT_LABEL}>Code</span>
           <input
             type="text"
             inputMode="tel"
             autoComplete="tel-country-code"
-            className={cn(
-              "rounded-lg border border-input bg-background px-2 text-sm shadow-sm",
-              compact ? "h-9" : "h-10 px-3",
-            )}
+            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "")}
             value={areaCode}
             onChange={(e) => setAreaCode(e.target.value)}
             placeholder="+254"
             disabled={busy || stkSent}
           />
         </label>
-        <label className="flex min-w-0 flex-1 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
-          Phone
+        <label className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className={CHECKOUT_LABEL}>Phone</span>
           <input
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            className={cn(
-              "rounded-lg border border-input bg-background px-2 text-sm shadow-sm",
-              compact ? "h-9" : "h-10 px-3",
-            )}
+            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "")}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="712 345 678"
@@ -260,7 +258,7 @@ function OnlineStkSection({
                 key={m.configId}
                 type="button"
                 size="sm"
-                className="h-9 shrink-0 rounded-lg px-3 text-xs font-semibold"
+                className="h-9 shrink-0 rounded-xl px-3 text-xs font-semibold shadow-sm"
                 disabled={busy || stkSent || !phoneValid || promptDisabled}
                 onClick={() => onPay(m.configId, fullPhone)}
               >

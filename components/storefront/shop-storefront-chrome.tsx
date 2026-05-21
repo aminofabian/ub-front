@@ -124,14 +124,17 @@ export function ShopStorefrontChrome({
         headerTitle={headerTitle}
         logoUrl={logoUrl}
         primaryHex={primaryHex}
+        hideSearch={compactChrome}
       />
-      <Suspense fallback={<RailFallback />}>
-        <ShopCategoryRail
-          categories={categories}
-          primaryHex={primaryHex}
-          accentHex={accentHex}
-        />
-      </Suspense>
+      {!compactChrome ? (
+        <Suspense fallback={<RailFallback />}>
+          <ShopCategoryRail
+            categories={categories}
+            primaryHex={primaryHex}
+            accentHex={accentHex}
+          />
+        </Suspense>
+      ) : null}
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col",

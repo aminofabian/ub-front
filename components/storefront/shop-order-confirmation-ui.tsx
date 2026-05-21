@@ -30,7 +30,7 @@ export function ConfirmationTopProgress({
   complete?: boolean;
 }) {
   return (
-    <div className="shrink-0 border-b border-border/50 bg-background px-3 py-2 max-lg:py-1.5">
+    <div className="shrink-0 border-b border-border/40 bg-muted/25 px-3 py-2.5 backdrop-blur-sm max-lg:py-2">
       <CheckoutProgressSteps complete={complete} compact />
     </div>
   );
@@ -58,12 +58,12 @@ export function ConfirmationFloatingDock({
         id={SHOP_CHECKOUT_DOCK_ID}
         className={cn(
           "pointer-events-auto w-full max-w-lg",
-          "rounded-t-[1.5rem] border border-b-0 border-border/45",
-          "bg-linear-to-t from-background via-background/95 to-background/90",
-          "shadow-[0_-24px_64px_-16px_rgba(15,23,42,0.22)]",
-          "ring-1 ring-black/[0.05] backdrop-blur-2xl backdrop-saturate-150",
-          "supports-[backdrop-filter]:bg-background/86",
-          "sm:mb-5 sm:max-w-[23rem] sm:rounded-2xl sm:border sm:border-border/60 sm:shadow-2xl",
+          "rounded-t-[1.75rem] border border-b-0 border-border/40",
+          "bg-linear-to-t from-background/98 via-background/94 to-background/88",
+          "shadow-[0_-20px_50px_-12px_rgba(15,23,42,0.18)]",
+          "ring-1 ring-black/[0.04] backdrop-blur-xl backdrop-saturate-150",
+          "supports-[backdrop-filter]:bg-background/82",
+          "sm:mb-6 sm:max-w-[24rem] sm:rounded-2xl sm:border sm:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.2)]",
         )}
       >
         <div
@@ -90,10 +90,10 @@ export function ConfirmationPanel({
 }) {
   return (
     <section
-      className={cn(
-        "rounded-2xl border border-border/55 bg-card/98 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.03]",
-        className,
-      )}
+        className={cn(
+          "rounded-2xl border border-border/45 bg-card/95 shadow-[0_1px_3px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.035]",
+          className,
+        )}
     >
       {children}
     </section>
@@ -197,36 +197,29 @@ export function OrderPaymentStatusBanner({
   if (paymentConfirmed) {
     return (
       <div
-        className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-linear-to-br from-emerald-50 via-emerald-50/80 to-background px-3.5 py-3.5 dark:from-emerald-950/50 dark:via-emerald-950/30 sm:px-4 sm:py-4"
+        className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-linear-to-r from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent px-3.5 py-3 dark:from-emerald-500/15 sm:px-4"
         role="status"
         aria-live="polite"
       >
-        <div
-          className="pointer-events-none absolute -right-6 -top-6 size-24 rounded-full bg-emerald-400/15 blur-2xl"
-          aria-hidden
-        />
-        <div className="relative flex gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/25">
-            <Check className="size-5" strokeWidth={3} aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-800/80 dark:text-emerald-300/90">
-                Payment received
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+              <Check className="size-4" strokeWidth={3} aria-hidden />
+            </span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-800/90 dark:text-emerald-300/90">
+                Paid
               </p>
-              <OrderPaymentStatusBadge
-                paymentConfirmed
-                paymentFailed={false}
-                size="sm"
-              />
+              <p className="font-serif text-xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-50">
+                {total}
+              </p>
             </div>
-            <p className="mt-1 font-serif text-2xl font-semibold tracking-tight text-emerald-950 dark:text-emerald-50">
-              {total}
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-emerald-900/75 sm:text-[13px] dark:text-emerald-100/80">
-              Your order is confirmed. The store will prepare it for pickup.
-            </p>
           </div>
+          <OrderPaymentStatusBadge
+            paymentConfirmed
+            paymentFailed={false}
+            size="sm"
+          />
         </div>
       </div>
     );
@@ -274,38 +267,34 @@ export function OrderPaymentStatusBanner({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-50/90 via-amber-50/40 to-background px-3.5 py-3.5 dark:from-amber-950/35 dark:via-amber-950/15 sm:px-4"
+      className="relative overflow-hidden rounded-2xl border border-amber-500/15 bg-linear-to-r from-amber-500/[0.07] via-amber-500/[0.03] to-transparent px-3.5 py-3 dark:from-amber-500/12 sm:px-4"
       role="status"
     >
-      <div
-        className="pointer-events-none absolute -right-4 -top-4 size-20 rounded-full bg-amber-400/20 blur-2xl"
-        aria-hidden
-      />
-      <div className="relative flex gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
-          <Clock3 className="size-5" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-900/70 dark:text-amber-200/80">
-              Awaiting payment
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/90 text-white shadow-sm">
+            <Clock3 className="size-4" aria-hidden />
+          </span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-900/80 dark:text-amber-200/80">
+              Total due
             </p>
-            <OrderPaymentStatusBadge
-              paymentConfirmed={false}
-              paymentFailed={false}
-              size="sm"
-            />
+            <p className="font-serif text-xl font-semibold tabular-nums text-foreground">
+              {total}
+            </p>
           </div>
-          <p className="mt-1 font-serif text-2xl font-semibold tracking-tight text-foreground">
-            {total}
-          </p>
-          {payHint ? (
-            <p className="mt-1.5 text-xs leading-relaxed text-amber-950/80 sm:text-[13px] dark:text-amber-100/75">
-              {payHint}
-            </p>
-          ) : null}
         </div>
+        <OrderPaymentStatusBadge
+          paymentConfirmed={false}
+          paymentFailed={false}
+          size="sm"
+        />
       </div>
+      {payHint ? (
+        <p className="relative mt-2 text-[11px] leading-snug text-muted-foreground">
+          {payHint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -365,14 +354,14 @@ export function OrderMetaStrip({
   items: { label: string; value: React.ReactNode; highlight?: boolean }[];
 }) {
   return (
-    <div className="-mx-0.5 flex gap-2 overflow-x-auto overscroll-x-contain px-0.5 pb-0.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-3 sm:gap-2 sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+    <div className="flex flex-wrap gap-2">
       {items.map((item) => (
         <div
           key={item.label}
           className={cn(
-            "min-w-[8.75rem] shrink-0 snap-start rounded-xl border border-border/50 bg-muted/25 px-3 py-2 sm:min-w-0",
+            "inline-flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-xl border border-border/40 bg-muted/20 px-3 py-2 sm:flex-col sm:items-start sm:gap-0.5",
             item.highlight &&
-              "border-emerald-500/30 bg-linear-to-br from-emerald-500/[0.07] to-transparent",
+              "border-emerald-500/25 bg-emerald-500/[0.06]",
           )}
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -544,13 +533,11 @@ export function OrderPaymentSummaryCard({
   totalLabel,
   paymentConfirmed,
   paymentFailed,
-  manualPayNote,
 }: {
   subtotalLabel: string;
   totalLabel: string;
   paymentConfirmed: boolean;
   paymentFailed: boolean;
-  manualPayNote?: boolean;
 }) {
   return (
     <ConfirmationPanel>
@@ -592,11 +579,6 @@ export function OrderPaymentSummaryCard({
             {totalLabel}
           </span>
         </div>
-        {manualPayNote && !paymentConfirmed ? (
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Till payments are verified by the store.
-          </p>
-        ) : null}
       </div>
     </ConfirmationPanel>
   );
@@ -638,7 +620,7 @@ export function ConfirmationDockActions({
               size="lg"
               disabled={checkingPayment}
               onClick={onConfirmPayment}
-              className="h-10 min-w-0 flex-1 gap-1 rounded-xl text-sm font-semibold shadow-md ring-2 ring-primary/25"
+              className="h-11 min-w-0 flex-1 gap-1.5 rounded-xl text-sm font-semibold shadow-md ring-2 ring-primary/20 transition-transform active:scale-[0.99]"
             >
               {checkingPayment ? (
                 <>
@@ -659,7 +641,7 @@ export function ConfirmationDockActions({
               variant="outline"
               size="lg"
               onClick={onReturnToShop}
-              className="h-10 shrink-0 rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm"
+              className="h-11 shrink-0 rounded-xl border-border/60 px-3.5 text-xs font-semibold sm:px-4 sm:text-sm"
             >
               Return to shop
             </Button>

@@ -21,6 +21,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
+import {
+  CHECKOUT_CARD,
+  CHECKOUT_CARD_INSET,
+  CHECKOUT_INPUT,
+  CHECKOUT_LABEL,
+  CHECKOUT_PRIMARY_BTN,
+  CHECKOUT_SELECT,
+  CHECKOUT_SERIF_AMOUNT,
+} from "@/components/storefront/shop-checkout-design";
 import { CheckoutScrollEndSpacer } from "@/components/storefront/shop-checkout-dock-height";
 import {
   CONFIRMATION_SCROLL,
@@ -203,8 +212,8 @@ function CheckoutFloatingCta({
     return (
       <div
         className={cn(
-          "rounded-xl border border-border/45 bg-card/95 p-2.5 ring-1 ring-black/[0.03]",
-          pulse && "ring-2 ring-primary/25",
+          "rounded-xl border border-border/40 bg-card/90 p-2.5 shadow-sm ring-1 ring-black/[0.03]",
+          pulse && "ring-2 ring-primary/30 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
         )}
       >
         {children}
@@ -215,9 +224,9 @@ function CheckoutFloatingCta({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/45 bg-card/95 p-3.5 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.03] sm:p-4",
+        "rounded-xl border border-border/40 bg-card/90 p-3.5 shadow-sm ring-1 ring-black/[0.03] sm:p-4",
         pulse &&
-          "ring-2 ring-primary/25 shadow-[0_12px_40px_-8px_rgba(15,23,42,0.18)]",
+          "ring-2 ring-primary/30 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
       )}
     >
       {children}
@@ -236,15 +245,15 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
         {icon}
       </div>
       <div className="min-w-0">
-        <h2 className="text-base font-semibold tracking-tight text-foreground">
+        <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
           {title}
         </h2>
         {subtitle ? (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
             {subtitle}
           </p>
         ) : null}
@@ -264,7 +273,7 @@ function InputField({
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-foreground/70">
+      <span className={CHECKOUT_LABEL}>
         {label}
         {required !== false && (
           <span className="ml-0.5 text-destructive">*</span>
@@ -273,7 +282,7 @@ function InputField({
       <input
         {...props}
         required={required !== false}
-        className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground shadow-xs transition-all placeholder:text-muted-foreground/55 hover:border-foreground/25 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/15"
+        className={CHECKOUT_INPUT}
       />
       {hint ? (
         <span className="text-xs leading-relaxed text-muted-foreground">
@@ -297,7 +306,7 @@ function SelectField({
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-foreground/70">
+      <span className={CHECKOUT_LABEL}>
         {label}
         {required !== false && (
           <span className="ml-0.5 text-destructive">*</span>
@@ -306,7 +315,7 @@ function SelectField({
       <select
         {...props}
         required={required !== false}
-        className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground shadow-xs transition-all hover:border-foreground/25 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(CHECKOUT_SELECT, "disabled:cursor-not-allowed disabled:opacity-50")}
       >
         {children}
       </select>
@@ -762,50 +771,29 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   // ── Loading ──
   if (loading) {
     return (
-      <div>
-        <header className="mb-8 space-y-6 border-b border-border/50 pb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Checkout
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              Place your pickup request, then pay with M-Pesa on your phone or
-              using the store&apos;s payment details.
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-full max-w-48 animate-pulse rounded bg-muted" />
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className={CONFIRMATION_VIEWPORT}>
+        <div className="shrink-0 border-b border-border/40 bg-muted/25 px-3 py-2.5">
           <CheckoutProgressSteps activeStep={1} compact />
-        </header>
-        <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-          <div className="space-y-5 rounded-2xl border border-border/60 bg-card p-6 sm:p-8">
-            <div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />
-            <div className="space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => (
+        </div>
+        <div className="h-0 min-h-0 flex-1 overflow-y-auto">
+          <div className="grid gap-3 p-1 lg:grid-cols-[minmax(0,1fr)_380px]">
+            <div className={cn(CHECKOUT_CARD, "space-y-4 p-4 sm:p-5")}>
+              <div className="h-6 w-40 animate-pulse rounded-lg bg-muted/80" />
+              {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="space-y-2">
-                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-                  <div className="h-11 animate-pulse rounded-lg bg-muted" />
+                  <div className="h-2.5 w-16 animate-pulse rounded bg-muted/70" />
+                  <div className="h-11 animate-pulse rounded-xl bg-muted/60" />
                 </div>
               ))}
             </div>
-          </div>
-          <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-6 sm:p-8">
-            <div className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
-            <div className="space-y-3">
+            <div className={cn(CHECKOUT_CARD, "space-y-3 p-4 sm:p-5")}>
+              <div className="h-6 w-28 animate-pulse rounded-lg bg-muted/80" />
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="size-14 animate-pulse rounded-lg bg-muted" />
+                <div key={i} className="flex gap-3 py-2">
+                  <div className="size-12 animate-pulse rounded-lg bg-muted/60" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                    <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                    <div className="h-3.5 w-full animate-pulse rounded bg-muted/70" />
+                    <div className="h-2.5 w-14 animate-pulse rounded bg-muted/50" />
                   </div>
                 </div>
               ))}
@@ -881,11 +869,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   ),
                 },
                 {
-                  label: paymentConfirmed ? "Paid" : "Total due",
-                  value: total,
-                  highlight: paymentConfirmed,
-                },
-                {
                   label: "Pickup",
                   value: (
                     <span className="truncate text-[13px] font-medium normal-case tracking-normal">
@@ -928,7 +911,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 totalLabel={total}
                 paymentConfirmed={paymentConfirmed}
                 paymentFailed={paymentFailed}
-                manualPayNote={hasManualPay}
               />
             </aside>
 
@@ -948,7 +930,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   totalLabel={total}
                   paymentConfirmed={paymentConfirmed}
                   paymentFailed={paymentFailed}
-                  manualPayNote={hasManualPay}
                 />
               </div>
             ) : null}
@@ -1025,11 +1006,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   ),
                 },
                 {
-                  label: "Total due",
-                  value: placedTotal,
-                  highlight: false,
-                },
-                {
                   label: "Pickup",
                   value: (
                     <span className="truncate text-[13px] font-medium normal-case tracking-normal">
@@ -1049,9 +1025,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             <OrderLinesList lines={placedLines} />
             <div className="flex items-end justify-between border-t border-border/50 px-3.5 py-3 sm:px-4">
               <span className="text-xs font-semibold text-foreground">Total due</span>
-              <span className="font-serif text-xl font-semibold tabular-nums">
-                {placedTotal}
-              </span>
+              <span className={CHECKOUT_SERIF_AMOUNT}>{placedTotal}</span>
             </div>
           </ConfirmationPanel>
           <CheckoutScrollEndSpacer />
@@ -1308,8 +1282,10 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       >
         <div className={CONFIRMATION_SCROLL}>
       <header className="mb-2 shrink-0 space-y-2 max-lg:mb-1.5 max-lg:space-y-1.5">
-        <CheckoutProgressSteps activeStep={activeCheckoutStep} compact />
-        <div className="hidden min-w-0 overflow-hidden rounded-2xl border border-border bg-card/95 p-3 shadow-sm ring-1 ring-black/[0.02] lg:block">
+        <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5">
+          <CheckoutProgressSteps activeStep={activeCheckoutStep} compact />
+        </div>
+        <div className={cn("hidden min-w-0 overflow-hidden p-3 lg:block", CHECKOUT_CARD)}>
           <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
               <ShoppingBag
@@ -1387,8 +1363,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary lg:hidden">
-            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
+          <div className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/[0.06] px-3 py-2 text-xs font-semibold text-primary lg:hidden">
+            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground shadow-sm">
               {activeCheckoutStep}
             </span>
             {activeCheckoutStep === 1
@@ -1408,7 +1384,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
           {showShippingForm ? (
             <>
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+          <div className={cn(CHECKOUT_CARD, "p-4 sm:p-5")}>
             <SectionHeader
               icon={<User className="size-4" aria-hidden />}
               title="Contact information"
@@ -1503,7 +1479,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+          <div className={cn(CHECKOUT_CARD, "p-4 sm:p-5")}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <SectionHeader
                 icon={<MapPin className="size-4" aria-hidden />}
@@ -1601,7 +1577,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
         <section
           className={cn(
-            "min-w-0 max-w-full rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6 lg:overflow-hidden",
+            "min-w-0 max-w-full p-4 sm:p-5 lg:sticky lg:top-6 lg:overflow-hidden",
+            CHECKOUT_CARD,
             !showReviewOnMobile && "max-lg:hidden",
           )}
         >
@@ -1638,11 +1615,16 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </Link>
           </div>
 
-          <div className="mt-3 space-y-2 max-lg:overflow-visible lg:max-h-[360px] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+          <div
+            className={cn(
+              CHECKOUT_CARD_INSET,
+              "mt-3 divide-y divide-border/50 max-lg:overflow-visible lg:max-h-[360px] lg:overflow-y-auto lg:overscroll-contain lg:pr-1",
+            )}
+          >
             {cart.lines.map((line) => (
               <div
                 key={line.itemId}
-                className="flex w-full min-w-0 gap-3 rounded-xl border border-border bg-background p-3 lg:p-2.5"
+                className="flex w-full min-w-0 gap-3 p-3 lg:p-2.5"
               >
                 <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40 lg:size-12">
                   {line.imageUrl ? (
@@ -1682,7 +1664,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             ))}
           </div>
 
-          <div className="mt-4 rounded-xl border border-dashed border-border/80 bg-muted/15 p-3">
+          <div className={cn(CHECKOUT_CARD_INSET, "mt-4 border-dashed p-3")}>
             <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               Promo code
             </p>
@@ -1718,17 +1700,18 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 )}
               </span>
             </div>
-            <div className="flex items-end justify-between border-t border-border pt-3">
-              <span className="font-semibold text-foreground">Total due</span>
-              <span className="text-2xl font-bold tabular-nums tracking-tight">
-                {totalLabel}
-              </span>
+            <div className="flex items-end justify-between border-t border-border/60 pt-3">
+              <span className="text-sm font-semibold text-foreground">Total due</span>
+              <span className={CHECKOUT_SERIF_AMOUNT}>{totalLabel}</span>
             </div>
           </div>
 
           <div
             id="checkout-terms"
-            className="mt-5 scroll-mt-[calc(var(--shop-checkout-dock-height,12rem)+1.5rem)] space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:pb-2"
+            className={cn(
+              CHECKOUT_CARD_INSET,
+              "mt-5 scroll-mt-[calc(var(--shop-checkout-dock-height,12rem)+1.5rem)] space-y-3 p-3 max-lg:pb-2",
+            )}
           >
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
               <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
@@ -1747,7 +1730,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 </p>
               </div>
             </div>
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/50 bg-background/80 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
               <input
                 type="checkbox"
                 className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
@@ -1832,7 +1815,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                     <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                       Total due
                     </p>
-                    <p className="text-lg font-bold tabular-nums leading-tight text-foreground">
+                    <p className={cn(CHECKOUT_SERIF_AMOUNT, "text-lg leading-tight")}>
                       {totalLabel}
                     </p>
                   </div>
@@ -1841,7 +1824,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                       type="button"
                       size="lg"
                       disabled={floatingCheckout.actionDisabled}
-                      className="h-10 shrink-0 gap-1 rounded-xl px-4 text-sm font-semibold"
+                      className={cn(CHECKOUT_PRIMARY_BTN, "h-10 shrink-0 gap-1 px-4 text-sm")}
                       onClick={floatingCheckout.onAction}
                     >
                       {floatingCheckout.actionLabel}
@@ -1857,7 +1840,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                         !termsAccepted ||
                         !shippingLocked
                       }
-                      className="h-10 shrink-0 gap-1 rounded-xl px-4 text-sm font-semibold"
+                      className={cn(CHECKOUT_PRIMARY_BTN, "h-10 shrink-0 gap-1 px-4 text-sm")}
                     >
                       {busy ? (
                         <>
@@ -1895,15 +1878,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                         Cart total
                       </p>
-                      <p className="font-serif text-xl font-semibold tabular-nums tracking-tight text-foreground">
-                        {totalLabel}
-                      </p>
+                      <p className={CHECKOUT_SERIF_AMOUNT}>{totalLabel}</p>
                     </div>
                     <Button
                       type="button"
                       size="lg"
                       disabled={floatingCheckout.actionDisabled}
-                      className="h-11 shrink-0 gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-md"
+                      className={cn(CHECKOUT_PRIMARY_BTN, "shrink-0 gap-1.5 px-5 text-sm")}
                       onClick={floatingCheckout.onAction}
                     >
                       {floatingCheckout.actionLabel}

@@ -67,7 +67,7 @@ export function CheckoutProgressSteps({
                   !isDone &&
                     !isCurrent &&
                     (compact
-                      ? "border border-border bg-muted/50 text-muted-foreground"
+                      ? "border border-border/60 bg-background text-muted-foreground"
                       : "border-2 border-border bg-muted/50 text-muted-foreground"),
                 )}
               >
@@ -106,11 +106,11 @@ export function CheckoutProgressSteps({
                   compact ? "mx-0.5 min-w-2" : "mx-1 min-w-[0.75rem] sm:mx-2",
                   complete && connectorAfterDone
                     ? compact
-                      ? "h-px bg-emerald-500"
+                      ? "h-0.5 bg-emerald-500/90"
                       : "h-0.5 bg-emerald-500"
                     : connectorAfterDone
-                      ? "h-px bg-emerald-500/70"
-                      : "h-px bg-border",
+                      ? "h-0.5 bg-emerald-500/60"
+                      : "h-0.5 bg-border/80",
                 )}
                 aria-hidden
               />

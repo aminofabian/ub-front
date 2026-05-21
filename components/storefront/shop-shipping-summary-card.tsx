@@ -2,6 +2,7 @@
 
 import { Mail, MapPin, Pencil, Phone, User } from "lucide-react";
 
+import { CHECKOUT_CARD } from "@/components/storefront/shop-checkout-design";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,9 @@ export function ShopShippingSummaryCard({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-border bg-linear-to-br from-card via-card to-muted/30 shadow-sm ring-1 ring-black/[0.02]",
-        compact && "rounded-xl shadow-none",
+        CHECKOUT_CARD,
+        "overflow-hidden bg-linear-to-br from-card via-card to-muted/25",
+        compact && "rounded-xl",
         className,
       )}
     >

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
+import { CHECKOUT_PAGE_SHELL } from "@/components/storefront/shop-checkout-design";
+import { cn } from "@/lib/utils";
 import { fetchPublicStorefront } from "@/lib/public-storefront";
 import {
   resolveStorefrontSlug,
@@ -32,7 +34,12 @@ export default async function ShopCheckoutPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-linear-to-b from-background via-background to-muted/30 px-3 py-2 sm:px-4 sm:py-3">
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4 sm:py-3",
+        CHECKOUT_PAGE_SHELL,
+      )}
+    >
       <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col overflow-hidden">
         <ShopCheckoutForm slug={slug} />
       </div>

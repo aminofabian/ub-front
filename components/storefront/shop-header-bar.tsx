@@ -10,6 +10,7 @@ import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopCartTrigger } from "@/components/storefront/shop-cart-trigger";
 import { APP_ROUTES } from "@/lib/config";
 import { activeStorefrontCategorySlugFromPathname } from "@/lib/shop-url";
+import { cn } from "@/lib/utils";
 
 function SearchFields({ primaryHex }: { primaryHex: string | null }) {
   const pathname = usePathname();
@@ -35,17 +36,31 @@ export function ShopHeaderBar({
   headerTitle,
   logoUrl,
   primaryHex,
+  /** Checkout/cart: logo + actions only — no product search */
+  hideSearch = false,
 }: {
   slug: string;
   headerTitle: string;
   logoUrl: string | null;
   primaryHex: string | null;
+  hideSearch?: boolean;
 }) {
   return (
     <div className="border-b border-border/40 bg-card/90 backdrop-blur-sm">
-      <div className="mx-auto max-w-7xl px-3 py-2 sm:px-6 sm:py-4 lg:py-5">
-        {/* Mobile: logo + actions on one row, search full width below */}
-        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-8">
+      <div
+        className={cn(
+          "mx-auto max-w-7xl px-3 sm:px-6",
+          hideSearch ? "py-2 sm:py-2.5" : "py-2 sm:py-4 lg:py-5",
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            !hideSearch &&
+              "flex-col gap-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-8",
+            hideSearch && "justify-between",
+          )}
+        >
           <div className="flex items-center gap-2 lg:contents">
             <TenantLogo
               brand={headerTitle}
@@ -80,18 +95,20 @@ export function ShopHeaderBar({
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 lg:max-w-2xl lg:justify-self-stretch">
-            <Suspense
-              fallback={
-                <div
-                  className="h-10 animate-pulse rounded-xl bg-muted/50 lg:h-12"
-                  aria-hidden
-                />
-              }
-            >
-              <SearchFields primaryHex={primaryHex} />
-            </Suspense>
-          </div>
+          {!hideSearch ? (
+            <div className="min-w-0 flex-1 lg:max-w-2xl lg:justify-self-stretch">
+              <Suspense
+                fallback={
+                  <div
+                    className="h-10 animate-pulse rounded-xl bg-muted/50 lg:h-12"
+                    aria-hidden
+                  />
+                }
+              >
+                <SearchFields primaryHex={primaryHex} />
+              </Suspense>
+            </div>
+          ) : null}
 
           <div className="hidden shrink-0 items-center justify-end gap-2 sm:gap-3 lg:flex">
             <Link
