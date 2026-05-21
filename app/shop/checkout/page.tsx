@@ -36,7 +36,7 @@ export default async function ShopCheckoutPage() {
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4 sm:pb-3 sm:pt-3",
+        "flex min-h-0 flex-1 flex-col overflow-hidden px-2.5 pb-1 pt-[max(0.25rem,env(safe-area-inset-top))] sm:px-3 sm:pb-2",
         CHECKOUT_PAGE_SHELL,
       )}
     >

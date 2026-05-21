@@ -2,7 +2,7 @@
 
 import { Mail, MapPin, Pencil, Phone, User } from "lucide-react";
 
-import { CHECKOUT_CARD } from "@/components/storefront/shop-checkout-design";
+import { CHECKOUT_CARD, CHECKOUT_LABEL } from "@/components/storefront/shop-checkout-design";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -53,20 +53,18 @@ export function ShopShippingSummaryCard({
         )}
       >
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
-            Delivery &amp; contact
-          </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {compact
-              ? "Tap edit if anything changed."
-              : "Using your saved details — edit only if something changed."}
-          </p>
+          <p className={CHECKOUT_LABEL}>Delivery &amp; contact</p>
+          {compact ? null : (
+            <p className="mt-0.5 hidden text-[11px] text-muted-foreground sm:block">
+              Edit if anything changed.
+            </p>
+          )}
         </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 shrink-0 gap-1.5 rounded-full px-3 text-xs font-semibold"
+          className="h-8 shrink-0 gap-1 rounded-full px-2.5 text-[11px] font-semibold"
           onClick={onEdit}
         >
           <Pencil className="size-3.5" aria-hidden />

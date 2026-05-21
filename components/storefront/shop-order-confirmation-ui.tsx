@@ -91,7 +91,7 @@ export function ConfirmationPanel({
   return (
     <section
         className={cn(
-          "rounded-2xl border border-border/45 bg-card/95 shadow-[0_1px_3px_rgba(15,23,42,0.05)] ring-1 ring-black/[0.035]",
+          "rounded-xl border border-border/45 bg-card/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.03]",
           className,
         )}
     >
@@ -110,9 +110,9 @@ export function ConfirmationPanelHeader({
   trailing?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-border/50 px-3.5 py-3 sm:px-4">
+    <div className="flex items-start justify-between gap-2 border-b border-border/50 px-3 py-2 sm:px-3.5">
       <div className="min-w-0">
-        <h2 className="font-serif text-base font-semibold tracking-tight text-foreground sm:text-[1.05rem]">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </h2>
         {subtitle ? (
@@ -197,20 +197,20 @@ export function OrderPaymentStatusBanner({
   if (paymentConfirmed) {
     return (
       <div
-        className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-linear-to-r from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent px-3.5 py-3 dark:from-emerald-500/15 sm:px-4"
+        className="relative overflow-hidden rounded-xl border border-emerald-500/20 bg-linear-to-r from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent px-3 py-2.5 dark:from-emerald-500/15"
         role="status"
         aria-live="polite"
       >
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
-              <Check className="size-4" strokeWidth={3} aria-hidden />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+              <Check className="size-3.5" strokeWidth={3} aria-hidden />
             </span>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-800/90 dark:text-emerald-300/90">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800/90 dark:text-emerald-300/90">
                 Paid
               </p>
-              <p className="font-serif text-xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-50">
+              <p className="font-serif text-lg font-semibold tabular-nums text-emerald-950 dark:text-emerald-50">
                 {total}
               </p>
             </div>
@@ -267,19 +267,19 @@ export function OrderPaymentStatusBanner({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-amber-500/15 bg-linear-to-r from-amber-500/[0.07] via-amber-500/[0.03] to-transparent px-3.5 py-3 dark:from-amber-500/12 sm:px-4"
+      className="relative overflow-hidden rounded-xl border border-amber-500/15 bg-linear-to-r from-amber-500/[0.07] via-amber-500/[0.03] to-transparent px-3 py-2.5 dark:from-amber-500/12"
       role="status"
     >
       <div className="relative flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/90 text-white shadow-sm">
-            <Clock3 className="size-4" aria-hidden />
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/90 text-white shadow-sm">
+            <Clock3 className="size-3.5" aria-hidden />
           </span>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-900/80 dark:text-amber-200/80">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-900/80 dark:text-amber-200/80">
               Total due
             </p>
-            <p className="font-serif text-xl font-semibold tabular-nums text-foreground">
+            <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
               {total}
             </p>
           </div>
@@ -291,7 +291,7 @@ export function OrderPaymentStatusBanner({
         />
       </div>
       {payHint ? (
-        <p className="relative mt-2 text-[11px] leading-snug text-muted-foreground">
+        <p className="relative mt-1.5 text-[10px] leading-snug text-muted-foreground">
           {payHint}
         </p>
       ) : null}
@@ -359,7 +359,7 @@ export function OrderMetaStrip({
         <div
           key={item.label}
           className={cn(
-            "inline-flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-xl border border-border/40 bg-muted/20 px-3 py-2 sm:flex-col sm:items-start sm:gap-0.5",
+            "inline-flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-border/40 bg-muted/20 px-2.5 py-1.5 sm:flex-col sm:items-start sm:gap-0.5",
             item.highlight &&
               "border-emerald-500/25 bg-emerald-500/[0.06]",
           )}
@@ -424,9 +424,9 @@ export function OrderLinesList({
       {lines.map((line) => (
         <li
           key={line.itemId}
-          className="flex gap-3 px-3.5 py-2.5 transition-colors hover:bg-muted/20 sm:px-4"
+          className="flex gap-2.5 px-3 py-2 transition-colors hover:bg-muted/20 sm:px-3.5"
         >
-          <div className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-muted/80 ring-1 ring-border/40 sm:size-12">
+          <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-muted/80 ring-1 ring-border/40">
             {line.imageUrl ? (
               <Image
                 src={line.imageUrl}
@@ -490,7 +490,7 @@ export function OrderDeliveryCard({
         subtitle="Fulfilment details"
         trailing={<MapPin className="size-4 text-primary/80" aria-hidden />}
       />
-      <div className="space-y-3 px-3.5 py-3 text-sm sm:px-4">
+      <div className="space-y-2 px-3 py-2.5 text-[13px] sm:px-3.5">
         <div>
           <p className="font-semibold text-foreground">{customerName || "Customer"}</p>
           {customerEmail ? (
@@ -551,7 +551,7 @@ export function OrderPaymentSummaryCard({
           />
         }
       />
-      <div className="space-y-2 px-3.5 py-3 text-sm sm:px-4">
+      <div className="space-y-1.5 px-3 py-2.5 text-[13px] sm:px-3.5">
         <div className="flex justify-between text-muted-foreground">
           <span className="text-xs">Subtotal</span>
           <span className="text-xs font-medium tabular-nums text-foreground">
@@ -599,7 +599,7 @@ export function ConfirmationDockActions({
 }) {
   return (
     <ConfirmationFloatingDock ariaLabel="Order actions">
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {paymentSlot ? (
           <div className="min-w-0 max-w-full overflow-hidden">{paymentSlot}</div>
         ) : null}
@@ -608,7 +608,7 @@ export function ConfirmationDockActions({
             type="button"
             size="lg"
             onClick={onReturnToShop}
-            className="h-10 w-full gap-1.5 rounded-xl text-sm font-semibold"
+            className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
           >
             Return to shop
             <ArrowRight className="size-4" aria-hidden />
@@ -620,7 +620,7 @@ export function ConfirmationDockActions({
               size="lg"
               disabled={checkingPayment}
               onClick={onConfirmPayment}
-              className="h-11 min-w-0 flex-1 gap-1.5 rounded-xl text-sm font-semibold shadow-md ring-2 ring-primary/20 transition-transform active:scale-[0.99]"
+              className="h-10 min-w-0 flex-1 gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20"
             >
               {checkingPayment ? (
                 <>
@@ -641,7 +641,7 @@ export function ConfirmationDockActions({
               variant="outline"
               size="lg"
               onClick={onReturnToShop}
-              className="h-11 shrink-0 rounded-xl border-border/60 px-3.5 text-xs font-semibold sm:px-4 sm:text-sm"
+              className="h-10 shrink-0 rounded-lg border-border/60 px-3 text-[11px] font-semibold sm:text-xs"
             >
               Return to shop
             </Button>

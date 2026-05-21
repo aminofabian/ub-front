@@ -192,7 +192,7 @@ function OnlineStkSection({
     <div
       className={cn(
         "min-w-0 max-w-full rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
-        compact ? "space-y-2 p-2" : "space-y-3 p-4",
+        compact ? "space-y-1.5 p-1.5" : "space-y-3 p-4",
       )}
     >
       {!compact ? (

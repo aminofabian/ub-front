@@ -776,11 +776,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   if (loading) {
     return (
       <div className={CONFIRMATION_VIEWPORT}>
-        <div className="shrink-0 border-b border-border/40 bg-muted/25 px-3 py-2.5">
-          <CheckoutProgressSteps activeStep={1} compact />
+        <div className={CHECKOUT_STICKY_HEAD}>
+          <div className="py-1.5">
+            <CheckoutProgressSteps activeStep={1} compact dense />
+          </div>
         </div>
         <div className="h-0 min-h-0 flex-1 overflow-y-auto">
-          <div className="grid gap-3 p-1 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="grid gap-2.5 p-0.5 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD, "space-y-3")}>
               <div className="h-6 w-40 animate-pulse rounded-lg bg-muted/80" />
               {Array.from({ length: 5 }).map((_, i) => (
@@ -854,7 +856,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       >
         <ConfirmationTopProgress />
         <div className={CONFIRMATION_SCROLL}>
-          <header className="space-y-2 pb-2 max-lg:space-y-1.5">
+          <header className="space-y-1.5 pb-1.5">
             <OrderPaymentStatusBanner
               paymentConfirmed={paymentConfirmed}
               paymentFailed={paymentFailed}
@@ -884,7 +886,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             />
           </header>
 
-          <div className="space-y-2.5 pb-2 lg:grid lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start lg:gap-3">
+          <div className="space-y-2 pb-1.5 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-2.5">
             <ConfirmationPanel className="overflow-hidden p-0">
               <ConfirmationPanelHeader
                 title="Items ordered"
@@ -991,7 +993,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
         <ConfirmationTopProgress />
         <div className={CONFIRMATION_SCROLL}>
-          <header className="space-y-2 pb-2 max-lg:space-y-1.5">
+          <header className="space-y-1.5 pb-1.5">
             <OrderPaymentStatusBanner
               paymentConfirmed={paymentConfirmed}
               paymentFailed={paymentFailed}
