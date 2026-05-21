@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { CashierOrderAlerts } from "@/components/cashier/cashier-order-alerts";
 import { CashierShell } from "@/components/cashier-shell";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
@@ -48,6 +49,7 @@ export default function CashierLayout({ children }: CashierLayoutProps) {
   return (
     <DashboardProvider>
       <RealtimeProvider>
+        <CashierOrderAlerts />
         <CashierShell>{children}</CashierShell>
         <DashboardToaster />
       </RealtimeProvider>

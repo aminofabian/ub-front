@@ -130,7 +130,14 @@ export default function StorefrontWebOrdersPage() {
                     <div className="text-xs text-muted-foreground">{row.customerPhone}</div>
                   </td>
                   <td className="px-3 py-2">{row.catalogBranchName}</td>
-                  <td className="px-3 py-2">{row.status.replace(/_/g, " ")}</td>
+                  <td className="px-3 py-2">
+                    <div>{row.status.replace(/_/g, " ")}</div>
+                    {row.status === "paid" && row.fulfillmentStatus ? (
+                      <div className="text-xs text-muted-foreground">
+                        {row.fulfillmentStatus.replace(/_/g, " ")}
+                      </div>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {money(row.currency, row.grandTotal)}
                   </td>

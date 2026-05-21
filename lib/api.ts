@@ -1368,6 +1368,111 @@ export async function fetchShopperPickupOrderDetail(
   );
 }
 
+export type ShopperNotificationRow = {
+  id: string;
+  type: string;
+  payloadJson: string;
+  readAt?: string | null;
+  createdAt?: string;
+};
+
+export async function fetchShopperNotifications(
+  limit = 40,
+): Promise<ShopperNotificationRow[]> {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  return request<ShopperNotificationRow[]>(
+    `${API_ROUTES.shopperNotifications}?${qs.toString()}`,
+    { requiresAuth: true },
+  );
+}
+
+export async function fetchShopperUnreadNotificationCount(): Promise<number> {
+  const res = await request<{ unreadCount: number }>(
+    `${API_ROUTES.shopperNotifications}/unread-count`,
+    { requiresAuth: true },
+  );
+  return typeof res.unreadCount === "number" ? res.unreadCount : 0;
+}
+
+export async function markShopperNotificationRead(id: string): Promise<void> {
+  await request(`${API_ROUTES.shopperNotifications}/${encodeURIComponent(id)}/read`, {
+    method: "POST",
+    requiresAuth: true,
+  });
+}
+
+export async function markAllShopperNotificationsRead(): Promise<void> {
+  await request(`${API_ROUTES.shopperNotifications}/read-all`, {
+    method: "POST",
+    requiresAuth: true,
+  });
+}
+
+export type NotificationPreferencesProfile = {
+  quietHoursEnabled?: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  timezone?: string;
+  allowHighPriorityDuringQuietHours?: boolean;
+  promotionalEnabled?: boolean;
+  maxPromotionalPerDay?: number;
+  categories?: Record<string, Record<string, boolean>>;
+};
+
+export async function fetchNotificationPreferences(): Promise<NotificationPreferencesProfile> {
+  return request<NotificationPreferencesProfile>(API_ROUTES.notificationPreferences, {
+    requiresAuth: true,
+  });
+}
+
+export async function updateNotificationPreferences(
+  body: NotificationPreferencesProfile,
+): Promise<NotificationPreferencesProfile> {
+  return request<NotificationPreferencesProfile>(API_ROUTES.notificationPreferences, {
+    method: "PUT",
+    body,
+    requiresAuth: true,
+  });
+}
+
+export type ShopperNotificationSubscription = {
+  id: string;
+  itemId: string;
+  kind: string;
+  active: boolean;
+  createdAt?: string;
+};
+
+export async function fetchShopperNotificationSubscriptions(): Promise<
+  ShopperNotificationSubscription[]
+> {
+  return request<ShopperNotificationSubscription[]>(
+    API_ROUTES.shopperNotificationSubscriptions,
+    { requiresAuth: true },
+  );
+}
+
+export async function subscribeShopperNotification(
+  itemId: string,
+  kind: "BACK_IN_STOCK" | "PRICE_DROP",
+): Promise<ShopperNotificationSubscription> {
+  return request<ShopperNotificationSubscription>(API_ROUTES.shopperNotificationSubscriptions, {
+    method: "POST",
+    body: { itemId, kind },
+    requiresAuth: true,
+  });
+}
+
+export async function unsubscribeShopperNotification(
+  itemId: string,
+  kind: "BACK_IN_STOCK" | "PRICE_DROP",
+): Promise<void> {
+  await request(
+    `${API_ROUTES.shopperNotificationSubscriptions}/${encodeURIComponent(itemId)}/${encodeURIComponent(kind)}`,
+    { method: "DELETE", requiresAuth: true },
+  );
+}
+
 export async function fetchBusiness(): Promise<BusinessRecord> {
   return request<BusinessRecord>(API_ROUTES.businessMe);
 }
@@ -2699,6 +2804,7 @@ export async function fetchInventoryExpiryPipeline(
 export type WebOrderSummary = {
   id: string;
   status: string;
+  fulfillmentStatus?: string | null;
   grandTotal: number | string;
   currency: string;
   customerName: string;
@@ -2722,6 +2828,7 @@ export type WebOrderDetail = {
   id: string;
   cartId: string;
   status: string;
+  fulfillmentStatus?: string | null;
   grandTotal: number | string;
   currency: string;
   catalogBranchId: string;
@@ -2749,6 +2856,79 @@ export async function fetchWebOrderDetail(
 ): Promise<WebOrderDetail> {
   return request<WebOrderDetail>(
     `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}`,
+  );
+}
+
+export type NotificationCampaignRecipientScope =
+  | "ALL_BUYERS"
+  | "ACTIVE_BUYERS_90D"
+  | "INACTIVE_BUYERS_30D"
+  | "BRANCH_ACTIVE_BUYERS_90D";
+
+export type NotificationCampaign = {
+  id: string;
+  name: string;
+  campaignType: string;
+  status: string;
+  title: string;
+  body: string;
+  actionUrl?: string | null;
+  recipientScope: NotificationCampaignRecipientScope | string;
+  catalogBranchId?: string | null;
+  scheduledAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  recipientsTargeted: number;
+  recipientsSent: number;
+  createdAt?: string;
+};
+
+export async function fetchNotificationCampaigns(): Promise<NotificationCampaign[]> {
+  return request<NotificationCampaign[]>("/api/v1/notification-campaigns");
+}
+
+export async function createNotificationCampaign(body: {
+  name: string;
+  campaignType: "FLASH_SALE" | "WEEKLY_DEALS";
+  title: string;
+  body: string;
+  actionUrl?: string;
+  recipientScope?: NotificationCampaignRecipientScope;
+  catalogBranchId?: string;
+  scheduledAt?: string;
+}): Promise<NotificationCampaign> {
+  return request<NotificationCampaign>("/api/v1/notification-campaigns", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function runNotificationCampaign(campaignId: string): Promise<NotificationCampaign> {
+  return request<NotificationCampaign>(
+    `/api/v1/notification-campaigns/${encodeURIComponent(campaignId)}/run`,
+    { method: "POST" },
+  );
+}
+
+export async function cancelNotificationCampaign(
+  campaignId: string,
+): Promise<NotificationCampaign> {
+  return request<NotificationCampaign>(
+    `/api/v1/notification-campaigns/${encodeURIComponent(campaignId)}/cancel`,
+    { method: "POST" },
+  );
+}
+
+export async function updateWebOrderFulfillment(
+  orderId: string,
+  fulfillmentStatus: "confirmed" | "dispatched" | "completed",
+): Promise<WebOrderDetail> {
+  return request<WebOrderDetail>(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/fulfillment`,
+    {
+      method: "PATCH",
+      body: { fulfillmentStatus },
+    },
   );
 }
 

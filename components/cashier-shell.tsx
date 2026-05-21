@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Lock } from "lucide-react";
 
+import { PushNotificationsEnable } from "@/components/push-notifications-enable";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { logoutRemote } from "@/lib/api";
@@ -167,6 +168,10 @@ export function CashierShell({ children }: CashierShellProps) {
               >
                 <Link href={APP_ROUTES.business}>Full app</Link>
               </Button>
+              <PushNotificationsEnable
+                label="Push alerts"
+                className="hidden sm:block"
+              />
               <Button
                 type="button"
                 variant="secondary"

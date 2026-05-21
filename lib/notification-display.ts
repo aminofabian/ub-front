@@ -7,9 +7,25 @@ const TYPE_LABELS: Record<string, string> = {
   "stock.low": "Low stock alert",
   "batch.expiring": "Expiring stock alert",
   "storefront.order.placed": "New web order",
+  "storefront.order.paid": "Web order paid",
+  "order.received": "Order received",
+  "order.payment_received": "Payment received",
+  "order.confirmed": "Order confirmed",
+  "order.dispatched": "Ready for pickup",
+  "order.delivered": "Order complete",
+  "credit_sale.reminder": "Credit purchase",
   "approval.requested": "Approval requested",
   "approval.resolved": "Approval resolved",
   "export.completed": "Export ready",
+  "sales.daily_digest": "Daily sales summary",
+  "catalog.back_in_stock": "Back in stock",
+  "promo.price_drop": "Price drop",
+  "promo.flash_sale": "Flash sale",
+  "promo.weekly_deals": "Weekly deals",
+  "engagement.win_back": "We miss you",
+  "insights.abandoned_cart": "Abandoned carts",
+  "insights.peak_hours": "Peak sales window",
+  "insights.top_products": "Top products",
 };
 
 function readString(value: unknown): string {
@@ -97,6 +113,28 @@ function formatPayloadBody(
       }
       return parts.join(" · ");
     }
+    case "order.received":
+    case "order.payment_received":
+    case "storefront.order.placed":
+    case "storefront.order.paid": {
+      const customerName = readString(payload.customerName);
+      const total = readString(payload.total);
+      const orderId = readString(payload.orderId);
+      const currency = readString(payload.currency);
+      const parts: string[] = [];
+      if (customerName) {
+        parts.push(customerName);
+      }
+      if (total) {
+        parts.push(
+          currency ? `${formatMoney(total, currency)}` : total,
+        );
+      }
+      if (orderId) {
+        parts.push(`Order ${orderId}`);
+      }
+      return parts.join(" · ");
+    }
     case "export.completed": {
       const exportId = readString(payload.exportId);
       const format = readString(payload.format);
@@ -109,7 +147,26 @@ function formatPayloadBody(
       }
       return parts.join(" · ");
     }
-    case "stock.low":
+    case "stock.low": {
+      const itemCount = readString(payload.itemCount);
+      const itemNames = readString(payload.itemNames);
+      const parts: string[] = [];
+      if (itemCount) {
+        parts.push(`${itemCount} item(s)`);
+      }
+      if (itemNames) {
+        parts.push(itemNames);
+      }
+      const itemName = readString(payload.itemName);
+      const qty = readString(payload.qtyOnHand ?? payload.quantity ?? payload.currentStock);
+      if (parts.length === 0 && itemName) {
+        parts.push(itemName);
+      }
+      if (parts.length === 0 && qty) {
+        parts.push(`${qty} on hand`);
+      }
+      return parts.join(" · ");
+    }
     case "batch.expiring": {
       const itemName = readString(payload.itemName);
       const qty = readString(payload.qtyOnHand ?? payload.quantity);
@@ -119,6 +176,19 @@ function formatPayloadBody(
       }
       if (qty) {
         parts.push(`${qty} on hand`);
+      }
+      return parts.join(" · ");
+    }
+    case "sales.daily_digest": {
+      const day = readString(payload.businessDay);
+      const revenue = readString(payload.revenue);
+      const currency = readString(payload.currency);
+      const parts: string[] = [];
+      if (day) {
+        parts.push(day);
+      }
+      if (revenue) {
+        parts.push(currency ? formatMoney(revenue, currency) : revenue);
       }
       return parts.join(" · ");
     }

@@ -1,5 +1,3 @@
-/// <reference lib="webworker" />
-
 // Phase 9 Slice 5: PWA service worker — caches the app shell and serves
 // stale-while-revalidate for API calls when offline.
 
@@ -13,8 +11,6 @@ const STATIC_ASSETS = [
   "/manifest.json",
   "/cashier-icon.svg",
 ];
-
-declare const self: ServiceWorkerGlobalScope;
 
 // ── Install: pre-cache the app shell ────────────────────────────────
 self.addEventListener("install", (event) => {
@@ -44,7 +40,7 @@ self.addEventListener("activate", (event) => {
 
 // ── Fetch: network-first for API, cache-first for static ────────────
 self.addEventListener("fetch", (event) => {
-  const { request } = event;
+  const request = event.request;
   const url = new URL(request.url);
 
   // API requests: network-first with cache fallback
@@ -70,7 +66,7 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
-async function networkFirst(request: Request): Promise<Response> {
+async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
@@ -87,7 +83,47 @@ async function networkFirst(request: Request): Promise<Response> {
   }
 }
 
-async function cacheFirst(request: Request): Promise<Response> {
+// ── Web Push (Phase C) ─────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = { title: "Palmart", body: "", url: "/" };
+  try {
+    if (event.data) {
+      data = Object.assign(data, event.data.json());
+    }
+  } catch {
+    // ignore malformed payload
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Palmart", {
+      body: data.body || "",
+      icon: "/cashier-icon.svg",
+      badge: "/cashier-icon.svg",
+      data: { url: data.url || "/" },
+      tag: "palmart-notification",
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) {
     // Update cache in background
@@ -110,4 +146,3 @@ async function cacheFirst(request: Request): Promise<Response> {
   }
 }
 
-export {};

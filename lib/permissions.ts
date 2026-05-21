@@ -37,6 +37,7 @@ export const Permission = {
   SalesRefundCreate: "sales.refund.create",
   SalesIntelligenceRead: "sales.intelligence.read",
   StorefrontOrdersRead: "storefront.orders.read",
+  NotificationsPromotionsManage: "notifications.promotions.manage",
   CreditsCustomersRead: "credits.customers.read",
   CreditsCustomersWrite: "credits.customers.write",
   CreditsSettingsWrite: "credits.settings.write",

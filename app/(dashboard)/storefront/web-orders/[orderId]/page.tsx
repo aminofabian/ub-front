@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { WebOrderFulfillmentActions } from "@/components/storefront/web-order-fulfillment-actions";
 import { fetchWebOrderDetail, type WebOrderDetail } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
@@ -81,11 +82,23 @@ export default function StorefrontWebOrderDetailPage() {
           <header className="space-y-1">
             <h2 className="text-xl font-semibold tabular-nums">Order {order.id}</h2>
             <p className="text-sm text-muted-foreground">
-              Status <span className="text-foreground">{order.status.replace(/_/g, " ")}</span> · Branch{" "}
+              Payment <span className="text-foreground">{order.status.replace(/_/g, " ")}</span>
+              {order.fulfillmentStatus ? (
+                <>
+                  {" "}
+                  · Fulfillment{" "}
+                  <span className="text-foreground">
+                    {order.fulfillmentStatus.replace(/_/g, " ")}
+                  </span>
+                </>
+              ) : null}{" "}
+              · Branch{" "}
               {order.catalogBranchName} · Total{" "}
               <span className="font-semibold text-primary">{money(order.currency, order.grandTotal)}</span>
             </p>
           </header>
+
+          <WebOrderFulfillmentActions order={order} onUpdated={setOrder} />
 
           <div className="rounded-lg border bg-muted/15 px-4 py-3 text-sm">
             <p className="font-medium">Customer</p>

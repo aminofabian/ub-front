@@ -67,6 +67,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       BRANCHES_LINK,
       { href: APP_ROUTES.users, label: "Users" },
       { href: APP_ROUTES.businessImport, label: "Data import" },
+      { href: APP_ROUTES.promoCampaigns, label: "Promotions" },
     ],
   },
   {

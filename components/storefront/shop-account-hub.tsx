@@ -21,6 +21,8 @@ import {
   Zap,
 } from "lucide-react";
 
+import { ShopNotificationPreferences } from "@/components/storefront/shop-notification-preferences";
+import { ShopNotificationsPanel } from "@/components/storefront/shop-notifications-panel";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -286,6 +288,13 @@ export function ShopAccountHub({ me }: HubProps) {
         <div className="relative z-[1] mt-8 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {hubError}
         </div>
+      ) : null}
+
+      {shopper ? (
+        <>
+          <ShopNotificationsPanel />
+          <ShopNotificationPreferences />
+        </>
       ) : null}
 
       {loading || !data ? (

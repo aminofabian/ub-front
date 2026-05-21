@@ -15,6 +15,7 @@ import {
   formatStoreQty,
 } from "@/lib/public-storefront";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
+import { ShopItemNotifyButton } from "@/components/storefront/shop-item-notify-button";
 import { ShopItemLivePrice } from "@/components/storefront/shop-item-live-price";
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
@@ -167,6 +168,10 @@ export default async function ShopItemPage({ params }: PageProps) {
               )}
 
               <ShopAddToCart slug={slug} itemId={item.id} className="mt-6" />
+              <ShopItemNotifyButton
+                itemId={item.id}
+                outOfStock={item.qtyOnHand != null && item.qtyOnHand <= 0}
+              />
 
               <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-xl border border-border/70 text-center">
                 <div className="px-2 py-3 text-xs text-muted-foreground">

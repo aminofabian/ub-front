@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { showPriceChangedToast } from "@/components/price-changed-toast";
 import type { BrandingRecord } from "@/lib/api";
+import { getNotificationPresentation } from "@/lib/notification-display";
 import { APP_ROUTES } from "@/lib/config";
 import { getSessionTokens } from "@/lib/auth";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
@@ -33,7 +34,7 @@ export function ShopStorefrontRealtime({
       channels: ["pos", "notifications"],
       onNotification: (frame) => {
         if (frame.type === "notification.created") {
-          showCreditReminderToast(frame);
+          showShopperNotificationToast(frame);
         }
       },
       onPriceChanged: (frame) => {
@@ -61,30 +62,42 @@ export function ShopStorefrontRealtime({
   return <DashboardToaster />;
 }
 
-function showCreditReminderToast(frame: RealtimeFrame) {
+const SHOPPER_TOAST_TYPES = new Set([
+  "credit_sale.reminder",
+  "order.received",
+  "order.payment_received",
+]);
+
+function showShopperNotificationToast(frame: RealtimeFrame) {
   const data = frame.data;
   const notificationType =
     typeof data.notificationType === "string" ? data.notificationType : "";
-  if (notificationType !== "credit_sale.reminder") {
+  if (!SHOPPER_TOAST_TYPES.has(notificationType)) {
     return;
   }
   const payload =
     data.payload && typeof data.payload === "object" && !Array.isArray(data.payload)
       ? (data.payload as Record<string, unknown>)
       : null;
+  const presentation = getNotificationPresentation(
+    data as Record<string, unknown>,
+  );
   const body =
-    (typeof data.body === "string" && data.body.trim()) ||
-    (payload && typeof payload.body === "string" ? payload.body : "") ||
-    "You have a new credit purchase on your tab.";
+    presentation.body ||
+    (notificationType === "credit_sale.reminder"
+      ? "You have a new credit purchase on your tab."
+      : "You have a new update.");
   const actionUrl =
-    (typeof data.actionUrl === "string" && data.actionUrl.trim()) ||
+    presentation.actionUrl ||
     (payload && typeof payload.paymentUrl === "string" ? payload.paymentUrl : "") ||
     APP_ROUTES.shopAccount;
-  toast.info(typeof data.title === "string" ? data.title : "Credit purchase", {
+  const actionLabel =
+    notificationType === "credit_sale.reminder" ? "Pay tab" : "View account";
+  toast.info(presentation.title || "Notification", {
     description: body,
     duration: 12_000,
     action: {
-      label: "Pay tab",
+      label: actionLabel,
       onClick: () => {
         window.location.href = actionUrl;
       },
