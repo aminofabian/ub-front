@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
-import { APP_ROUTES } from "@/lib/config";
 import { fetchPublicStorefront } from "@/lib/public-storefront";
 import {
   resolveStorefrontSlug,
@@ -34,32 +32,9 @@ export default async function ShopCheckoutPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-linear-to-b from-background via-background to-muted/30 px-3 py-3 sm:px-4 sm:py-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-linear-to-b from-background via-background to-muted/30 px-3 py-2 sm:px-4 sm:py-3">
       <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col overflow-hidden">
-        <nav
-          className="mb-2 flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
-          aria-label="Breadcrumb"
-        >
-          <Link
-            href={APP_ROUTES.shop}
-            className="transition-colors hover:text-foreground"
-          >
-            Shop
-          </Link>
-          <span aria-hidden>/</span>
-          <Link
-            href={APP_ROUTES.shopCart}
-            className="transition-colors hover:text-foreground"
-          >
-            Cart
-          </Link>
-          <span aria-hidden>/</span>
-          <span className="font-medium text-foreground">Checkout</span>
-        </nav>
-
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ShopCheckoutForm slug={slug} />
-        </div>
+        <ShopCheckoutForm slug={slug} />
       </div>
     </div>
   );

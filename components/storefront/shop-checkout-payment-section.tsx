@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+
+/** STK send control surfaced in the confirmation dock action row (mobile). */
+export type StkDockSendAction = {
+  label: string;
+  disabled: boolean;
+  onSend: () => void;
+};
 import type {
   PublicOnlinePaymentMethod,
   PublicPaymentInstruction,
@@ -118,6 +125,9 @@ type OnlineStkProps = {
   compact?: boolean;
   promptDisabled?: boolean;
   promptDisabledHint?: string;
+  /** Hide send button; parent renders it in the dock action row */
+  actionsInDock?: boolean;
+  onStkSendActionChange?: (action: StkDockSendAction | null) => void;
 };
 
 function OnlineStkSection({
@@ -132,6 +142,8 @@ function OnlineStkSection({
   promptDisabled,
   promptDisabledHint,
   amountDue,
+  actionsInDock,
+  onStkSendActionChange,
 }: OnlineStkProps & { amountDue?: string | null }) {
   const [areaCode, setAreaCode] = useState(defaultAreaCode);
   const [phone, setPhone] = useState(defaultPhone);
@@ -148,6 +160,29 @@ function OnlineStkSection({
 
   const phoneValid = isStkPhoneValid(areaCode, phone);
   const fullPhone = buildStkPhoneNumber(areaCode, phone);
+  const primaryMethod = methods[0];
+
+  useEffect(() => {
+    if (!actionsInDock || !onStkSendActionChange || !primaryMethod) {
+      onStkSendActionChange?.(null);
+      return;
+    }
+    onStkSendActionChange({
+      label: busy ? "Sending…" : stkSent ? "Sent" : "Send prompt",
+      disabled: busy || stkSent || !phoneValid || Boolean(promptDisabled),
+      onSend: () => onPay(primaryMethod.configId, fullPhone),
+    });
+  }, [
+    actionsInDock,
+    onStkSendActionChange,
+    primaryMethod,
+    busy,
+    stkSent,
+    phoneValid,
+    promptDisabled,
+    fullPhone,
+    onPay,
+  ]);
 
   return (
     <div
@@ -218,21 +253,23 @@ function OnlineStkSection({
       {!phoneValid && phone.trim() ? (
         <p className="text-[11px] text-destructive">Invalid number</p>
       ) : null}
-      {methods.map((m) => (
-        <Button
-          key={m.configId}
-          type="button"
-          size="sm"
-          className={cn(
-            "h-9 w-full rounded-lg text-xs font-semibold",
-            !compact && "sm:w-auto sm:self-end",
-          )}
-          disabled={busy || stkSent || !phoneValid || promptDisabled}
-          onClick={() => onPay(m.configId, fullPhone)}
-        >
-          {busy ? "Sending…" : stkSent ? "Prompt sent" : "Send prompt"}
-        </Button>
-      ))}
+      {!actionsInDock
+        ? methods.map((m) => (
+            <Button
+              key={m.configId}
+              type="button"
+              size="sm"
+              className={cn(
+                "h-9 w-full rounded-lg text-xs font-semibold",
+                !compact && "sm:w-auto sm:self-end",
+              )}
+              disabled={busy || stkSent || !phoneValid || promptDisabled}
+              onClick={() => onPay(m.configId, fullPhone)}
+            >
+              {busy ? "Sending…" : stkSent ? "Prompt sent" : "Send prompt"}
+            </Button>
+          ))
+        : null}
       {stkMessage ? (
         <p
           className={
@@ -260,6 +297,8 @@ export function ShopCheckoutPaymentSection({
   orderPlaced = false,
   variant = "default",
   amountDue,
+  actionsInDock,
+  onStkSendActionChange,
 }: {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
@@ -276,6 +315,9 @@ export function ShopCheckoutPaymentSection({
   variant?: "default" | "floating";
   /** Shown beside payment headings (e.g. "How to pay") */
   amountDue?: string | null;
+  /** Move M-Pesa send button into the dock action row (confirmation mobile) */
+  actionsInDock?: boolean;
+  onStkSendActionChange?: (action: StkDockSendAction | null) => void;
 }) {
   const hasManual = manual.length > 0;
   const hasOnline = online.length > 0;
@@ -284,6 +326,7 @@ export function ShopCheckoutPaymentSection({
 
   const stkPromptDisabled = hasOnline && !orderPlaced;
   const showManualFirst = floating && orderPlaced && hasManual;
+  const dockActions = Boolean(actionsInDock && orderPlaced && floating);
 
   const manualBlock = hasManual ? (
     <div
@@ -326,6 +369,8 @@ export function ShopCheckoutPaymentSection({
         amountDue={amountDue}
         promptDisabled={stkPromptDisabled}
         promptDisabledHint={undefined}
+        actionsInDock={dockActions}
+        onStkSendActionChange={onStkSendActionChange}
       />
     ) : null;
 

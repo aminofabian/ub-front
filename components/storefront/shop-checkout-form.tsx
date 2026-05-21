@@ -41,7 +41,10 @@ import {
   isCheckoutSignupDismissed,
   ShopCheckoutSignupModal,
 } from "@/components/storefront/shop-checkout-signup-modal";
-import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
+import {
+  ShopCheckoutPaymentSection,
+  type StkDockSendAction,
+} from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -338,6 +341,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [stkMessage, setStkMessage] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
+  const [stkDockSend, setStkDockSend] = useState<StkDockSendAction | null>(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
   const [firstName, setFirstName] = useState("");
@@ -783,7 +787,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               ))}
             </div>
           </div>
-          <CheckoutProgressSteps activeStep={1} />
+          <CheckoutProgressSteps activeStep={1} compact />
         </header>
         <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
           <div className="space-y-5 rounded-2xl border border-border/60 bg-card p-6 sm:p-8">
@@ -966,6 +970,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           checkingPayment={checkingPayment}
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
+          sendPrompt={
+            !paymentConfirmed && hasOnlinePay ? stkDockSend : null
+          }
           paymentSlot={
             !paymentConfirmed && (hasManualPay || hasOnlinePay) ? (
               <ShopCheckoutPaymentSection
@@ -979,6 +986,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 stkSent={stkSent}
                 onStkPay={handleStkPay}
                 orderPlaced
+                actionsInDock
+                onStkSendActionChange={setStkDockSend}
               />
             ) : undefined
           }
@@ -1072,6 +1081,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           checkingPayment={checkingPayment}
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
+          sendPrompt={hasOnlinePay ? stkDockSend : null}
           paymentSlot={
             <ShopCheckoutPaymentSection
               variant="floating"
@@ -1084,6 +1094,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               stkSent={stkSent}
               onStkPay={handleStkPay}
               orderPlaced
+              actionsInDock
+              onStkSendActionChange={setStkDockSend}
             />
           }
         />
@@ -1317,57 +1329,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         onSubmit={(ev) => void onSubmit(ev)}
       >
         <div className={CONFIRMATION_SCROLL}>
-      <header
-        className={cn(
-          "mb-3 space-y-3 pb-1",
-          showReviewOnMobile && "max-lg:mb-2 max-lg:space-y-2",
-        )}
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 max-w-2xl">
-            <p
-              className={cn(
-                "text-xs font-bold uppercase tracking-[0.18em] text-primary",
-                showReviewOnMobile && "max-lg:text-[10px]",
-              )}
-            >
-              Secure checkout
-            </p>
-            <h1
-              className={cn(
-                "mt-1 text-xl font-bold tracking-tight text-foreground sm:mt-2 sm:text-2xl",
-                showReviewOnMobile && "max-lg:text-lg",
-              )}
-            >
-              Complete your order
-            </h1>
-            <p
-              className={cn(
-                "mt-1 max-w-xl text-sm leading-snug text-muted-foreground",
-                showReviewOnMobile && "max-lg:hidden",
-              )}
-            >
-              Review your contact details, delivery location, and cart total
-              before placing the order.
-            </p>
-          </div>
-          <div
-            className={cn(
-              "inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm",
-              showReviewOnMobile && "max-lg:hidden",
-            )}
-          >
-            <Clock3 className="size-3.5" aria-hidden />
-            Delivery within 30 minutes
-          </div>
-        </div>
-
-        <div
-          className={cn(
-            "min-w-0 overflow-hidden rounded-2xl border border-border bg-card/95 p-2.5 shadow-sm ring-1 ring-black/[0.02] sm:p-3",
-            showReviewOnMobile && "max-lg:hidden",
-          )}
-        >
+      <header className="mb-2 shrink-0 space-y-2 max-lg:mb-1.5 max-lg:space-y-1.5">
+        <CheckoutProgressSteps activeStep={activeCheckoutStep} compact />
+        <div className="hidden min-w-0 overflow-hidden rounded-2xl border border-border bg-card/95 p-3 shadow-sm ring-1 ring-black/[0.02] lg:block">
           <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
               <ShoppingBag
@@ -1429,11 +1393,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           </dl>
         </div>
-
-        <CheckoutProgressSteps
-          activeStep={activeCheckoutStep}
-          className={showReviewOnMobile ? "max-lg:py-1" : undefined}
-        />
       </header>
 
         <div className="grid w-full min-w-0 max-w-full gap-3 pb-2 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-4">

@@ -18,6 +18,7 @@ import {
   SHOP_CHECKOUT_DOCK_ID,
   ShopCheckoutDockHeightSync,
 } from "@/components/storefront/shop-checkout-dock-height";
+import type { StkDockSendAction } from "@/components/storefront/shop-checkout-payment-section";
 import { cn } from "@/lib/utils";
 
 /* ── Layout tokens ── */
@@ -341,7 +342,7 @@ export function OrderConfirmationHero({
         />
       </div>
       <div className="border-t border-border/50 px-2 py-2.5 sm:px-3">
-        <CheckoutProgressSteps complete />
+        <CheckoutProgressSteps complete compact />
       </div>
     </ConfirmationPanel>
   );
@@ -596,12 +597,15 @@ export function ConfirmationDockActions({
   onConfirmPayment,
   onReturnToShop,
   paymentSlot,
+  sendPrompt,
 }: {
   paymentConfirmed: boolean;
   checkingPayment: boolean;
   onConfirmPayment: () => void;
   onReturnToShop: () => void;
   paymentSlot?: React.ReactNode;
+  /** M-Pesa send — shown beside confirm on mobile */
+  sendPrompt?: StkDockSendAction | null;
 }) {
   return (
     <ConfirmationFloatingDock ariaLabel="Order actions">
@@ -621,25 +625,53 @@ export function ConfirmationDockActions({
           </Button>
         ) : (
           <div className="space-y-1.5">
-            <Button
-              type="button"
-              size="lg"
-              disabled={checkingPayment}
-              onClick={onConfirmPayment}
-              className="h-10 w-full gap-1.5 rounded-xl text-sm font-semibold"
-            >
-              {checkingPayment ? (
-                <>
-                  <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Checking…
-                </>
-              ) : (
-                <>
-                  I&apos;ve completed payment
-                  <RefreshCw className="size-4" aria-hidden />
-                </>
+            <div
+              className={cn(
+                "flex gap-2",
+                sendPrompt
+                  ? "flex-col max-lg:flex-row max-lg:items-stretch"
+                  : "flex-col",
               )}
-            </Button>
+            >
+              {sendPrompt ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={sendPrompt.disabled}
+                  onClick={sendPrompt.onSend}
+                  className="h-10 min-w-0 flex-1 rounded-xl border-border/80 bg-background px-2 text-xs font-semibold text-foreground shadow-none max-lg:shrink"
+                >
+                  {sendPrompt.label}
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="lg"
+                disabled={checkingPayment}
+                onClick={onConfirmPayment}
+                className={cn(
+                  "h-10 gap-1 rounded-xl text-sm font-semibold shadow-md",
+                  sendPrompt
+                    ? "min-w-0 flex-[1.2] ring-2 ring-primary/25 max-lg:flex-[1.35]"
+                    : "w-full gap-1.5",
+                )}
+              >
+                {checkingPayment ? (
+                  <>
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Checking…
+                  </>
+                ) : (
+                  <>
+                    <span className="truncate text-xs font-semibold leading-tight sm:text-sm">
+                      I&apos;ve completed payment
+                    </span>
+                    <RefreshCw className="size-3.5 shrink-0 sm:size-4" aria-hidden />
+                  </>
+                )}
+              </Button>
+            </div>
             <button
               type="button"
               onClick={onReturnToShop}
