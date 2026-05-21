@@ -69,7 +69,7 @@ export async function StorefrontShell({
       primaryHex={primary}
       accentHex={accent}
       className={cn(
-        "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background",
+        "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:6.5rem] sm:[--shop-footer-offset:11.5rem] dark:bg-background",
       )}
     >
       {slug ? (
