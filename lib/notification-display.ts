@@ -72,7 +72,7 @@ function resolvePayload(data: NotificationPayload): NotificationPayload | null {
   return parseJsonObject(data.payloadJson);
 }
 
-function formatMoney(value: string): string {
+function formatMoney(value: string, currency = "KES"): string {
   const amount = Number(value);
   if (!Number.isFinite(amount)) {
     return value;
@@ -80,7 +80,7 @@ function formatMoney(value: string): string {
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
-      currency: "KES",
+      currency,
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
