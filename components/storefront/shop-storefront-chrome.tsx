@@ -1,7 +1,10 @@
 "use client";
 
 import { ChevronDown, ShoppingBag } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
+
+import { APP_ROUTES } from "@/lib/config";
 
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
@@ -18,7 +21,12 @@ function RailFallback() {
 }
 
 function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
+  const pathname = usePathname();
   const { itemCount, cart, drawerOpen, toggleDrawer, loading } = useShopCart();
+
+  if (pathname === APP_ROUTES.shopCheckout) {
+    return null;
+  }
   const accent =
     accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
 
@@ -75,6 +83,11 @@ function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
  * Storefront chrome rendered inside ShopCartProvider so header cart and drawers
  * share context (server-passed `children` alone does not receive client context).
  */
+const COMPACT_CHROME_PATHS = new Set([
+  APP_ROUTES.shopCart,
+  APP_ROUTES.shopCheckout,
+]);
+
 export function ShopStorefrontChrome({
   slug,
   headerTitle,
@@ -96,6 +109,9 @@ export function ShopStorefrontChrome({
   storeName: string;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const compactChrome = COMPACT_CHROME_PATHS.has(pathname ?? "");
+
   return (
     <ShopCartProvider slug={slug}>
       <ShopUtilityBar
@@ -116,12 +132,21 @@ export function ShopStorefrontChrome({
           accentHex={accentHex}
         />
       </Suspense>
-      <div className="flex-1 pb-[var(--shop-footer-offset,9.5rem)]">{children}</div>
-      <ShopFooterMart
-        primaryHex={primaryHex}
-        storeName={storeName}
-        logoUrl={logoUrl}
-      />
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col",
+          !compactChrome && "pb-[var(--shop-footer-offset,9.5rem)]",
+        )}
+      >
+        {children}
+      </div>
+      {!compactChrome ? (
+        <ShopFooterMart
+          primaryHex={primaryHex}
+          storeName={storeName}
+          logoUrl={logoUrl}
+        />
+      ) : null}
       <ShopCartDrawer />
       <FloatingCartButton accentHex={accentHex} />
     </ShopCartProvider>

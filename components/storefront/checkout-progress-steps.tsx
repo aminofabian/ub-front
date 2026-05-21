@@ -21,7 +21,7 @@ export function CheckoutProgressSteps({
 }: Props) {
   return (
     <ol
-      className="flex w-full max-w-xl items-center"
+      className="flex w-full min-w-0 max-w-xl items-center"
       aria-label="Checkout progress"
     >
       {STEPS.map((step, i) => {

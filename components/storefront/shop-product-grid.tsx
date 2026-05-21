@@ -159,7 +159,7 @@ export default function ShopProductGrid({
                     ) : null}
                   </div>
 
-                  {slug && !isOutOfStock ? (
+                  {slug && !isOutOfStock && item.price != null ? (
                     <ShopQuickAddButton
                       slug={slug}
                       itemId={item.id}

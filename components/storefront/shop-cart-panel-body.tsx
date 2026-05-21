@@ -10,7 +10,7 @@ import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
-import type { PublicWebCart } from "@/lib/web-cart";
+import { cartIsCheckoutReady, type PublicWebCart } from "@/lib/web-cart";
 
 function CartEmptyState({ onShop }: { onShop: () => void }) {
   return (
@@ -95,7 +95,7 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
     displayCart?.subtotal != null
       ? formatDisplayPrice(displayCart.currency, displayCart.subtotal)
       : null;
-  const canCheckout = cart != null && cart.subtotal != null && cart.lines.length > 0;
+  const canCheckout = cart != null && cartIsCheckoutReady(cart);
 
   const focusedLine = focusMode && cart ? cart.lines.find((l) => l.itemId === focusItemId) : null;
   const focusedTitle = focusedLine

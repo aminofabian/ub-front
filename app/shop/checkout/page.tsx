@@ -34,10 +34,10 @@ export default async function ShopCheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background via-background to-muted/30 px-4 py-8 sm:py-12">
-      <div className="mx-auto max-w-7xl">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-linear-to-b from-background via-background to-muted/30 px-3 py-3 sm:px-4 sm:py-4">
+      <div className="mx-auto flex h-full min-h-0 w-full min-w-0 max-w-7xl flex-col">
         <nav
-          className="flex items-center gap-2 text-sm text-muted-foreground"
+          className="mb-2 flex shrink-0 items-center gap-2 text-sm text-muted-foreground"
           aria-label="Breadcrumb"
         >
           <Link
@@ -57,7 +57,7 @@ export default async function ShopCheckoutPage() {
           <span className="font-medium text-foreground">Checkout</span>
         </nav>
 
-        <div className="mt-6">
+        <div className="min-h-0 flex-1">
           <ShopCheckoutForm slug={slug} />
         </div>
       </div>

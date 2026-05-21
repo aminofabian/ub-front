@@ -60,7 +60,7 @@ export async function StorefrontShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:9.5rem] sm:[--shop-footer-offset:12.5rem] dark:bg-background">
       {slug ? (
         <ShopStorefrontChrome
           slug={slug}

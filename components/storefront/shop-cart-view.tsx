@@ -8,6 +8,7 @@ import { ShopCartLines } from "@/components/storefront/shop-cart-lines";
 import { Button } from "@/components/ui/button";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
+import { cartIsCheckoutReady } from "@/lib/web-cart";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 
 export default function ShopCartView({ slug }: { slug: string }) {
@@ -122,7 +123,7 @@ export default function ShopCartView({ slug }: { slug: string }) {
             </p>
           </div>
 
-          {cart.subtotal != null ? (
+          {cartIsCheckoutReady(cart) ? (
             <Button asChild className="h-11 w-full rounded-xl text-sm font-semibold">
               <Link href={APP_ROUTES.shopCheckout} className="gap-2">
                 Proceed to checkout
@@ -131,7 +132,9 @@ export default function ShopCartView({ slug }: { slug: string }) {
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Subtotal unavailable until every item has a storefront price at this branch.
+              Checkout is available once every item in your cart has a price at this
+              store. Remove items shown as &quot;See in store&quot; or ask the branch to set
+              a shelf price.
             </p>
           )}
 

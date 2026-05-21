@@ -28,6 +28,18 @@ export type PublicWebCart = {
   lines: PublicWebCartLine[];
 };
 
+/** Lines that cannot be checked out (no branch sell price or shelf price). */
+export function cartLinesMissingPrice(cart: PublicWebCart): PublicWebCartLine[] {
+  return cart.lines.filter((line) => line.unitPrice == null);
+}
+
+export function cartIsCheckoutReady(cart: PublicWebCart | null | undefined): boolean {
+  if (!cart || cart.lines.length === 0) {
+    return false;
+  }
+  return cartLinesMissingPrice(cart).length === 0 && cart.subtotal != null;
+}
+
 type StoredHandle = { slug: string; cartId: string };
 
 function clientStorage(): Storage | null {

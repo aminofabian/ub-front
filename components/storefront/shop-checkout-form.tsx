@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowRight,
   Check,
   Clock3,
   Lock,
@@ -50,6 +51,8 @@ import {
   fetchWebCart,
   notifyWebCartChanged,
   readWebCartHandle,
+  cartIsCheckoutReady,
+  cartLinesMissingPrice,
   submitWebCheckout,
   type PublicCheckoutResult,
   type PublicWebCart,
@@ -169,6 +172,69 @@ function parseNotesToPrefill(notes: string): Partial<CheckoutPrefill> {
     else if (seg === "Set as default address") result.isDefaultAddress = true;
   }
   return result;
+}
+
+const CHECKOUT_VIEWPORT =
+  "flex h-full min-h-0 max-h-full flex-col overflow-hidden";
+const CHECKOUT_SCROLL =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]";
+
+function CheckoutFloatingDock({
+  children,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  ariaLabel: string;
+}) {
+  return (
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:items-end lg:px-10"
+      role="region"
+      aria-label={ariaLabel}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CheckoutDockCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "pointer-events-auto w-full max-w-[21rem] rounded-2xl border border-border/80 bg-background/95 shadow-[0_8px_32px_rgba(15,23,42,0.14)] ring-1 ring-black/[0.04] backdrop-blur-md supports-[backdrop-filter]:bg-background/90 sm:max-w-sm",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ContinueShoppingButton({
+  onClick,
+  variant = "primary",
+}: {
+  onClick: () => void;
+  variant?: "primary" | "outline";
+}) {
+  return (
+    <Button
+      type="button"
+      size="lg"
+      variant={variant === "outline" ? "outline" : "default"}
+      onClick={onClick}
+      className="h-12 w-full gap-1.5 rounded-xl text-sm font-semibold shadow-sm"
+    >
+      Continue shopping
+      <ArrowRight className="size-4" aria-hidden />
+    </Button>
+  );
 }
 
 function SectionHeader({
@@ -448,7 +514,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
   // Trigger prefill once cart is loaded and form is ready
   useEffect(() => {
-    if (!loading && cart && cart.subtotal != null) {
+    if (!loading && cart && cartIsCheckoutReady(cart)) {
       queueMicrotask(() => void tryPrefill());
     }
   }, [loading, cart, tryPrefill]);
@@ -463,7 +529,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   }, [slug, cart]);
 
   async function handleStkPay(configId: string, phoneNumber: string) {
-    if (!done?.orderId) return;
+    if (!done?.orderId) {
+      toast.message("Complete your purchase first", {
+        description:
+          "Place your order below, then send the M-Pesa prompt to your phone from here.",
+      });
+      return;
+    }
     setStkBusy(true);
     setStkMessage(null);
     try {
@@ -575,7 +647,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     e.preventDefault();
     const s = slug.trim();
     const h = readWebCartHandle();
-    if (!h || h.slug !== s || !cart || cart.subtotal == null) {
+    if (!h || h.slug !== s || !cart || !cartIsCheckoutReady(cart)) {
       setError("Your cart is missing prices or expired. Return to the shop.");
       return;
     }
@@ -700,8 +772,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     );
   }
 
-  // ── Success ──
-  if (done) {
+  const awaitingOnlinePayment =
+    Boolean(done) &&
+    !paymentConfirmed &&
+    paymentOptions.online.length > 0;
+
+  // ── Success (manual-only or already paid) ──
+  if (done && !awaitingOnlinePayment) {
     const total = formatDisplayPrice(done.currency, done.grandTotal);
     const statusLabel = paymentConfirmed
       ? "Payment confirmed"
@@ -719,8 +796,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         : null;
 
     return (
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-6 space-y-5">
+      <div className={cn(CHECKOUT_VIEWPORT, "mx-auto w-full max-w-5xl")}>
+        <header className="mb-3 shrink-0 space-y-3 sm:space-y-4">
           {paymentConfirmed ? (
             <div
               className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-4 shadow-sm ring-1 ring-emerald-200/80 dark:border-emerald-800 dark:bg-emerald-950/50 dark:ring-emerald-900"
@@ -838,11 +915,12 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           <CheckoutProgressSteps complete />
         </header>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
-            <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+        <div className={CHECKOUT_SCROLL}>
+        <div className="grid gap-4 pb-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+          <section className="rounded-2xl border border-border bg-card p-3 shadow-sm ring-1 ring-black/[0.02] sm:p-4">
+            <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
               <div>
-                <h2 className="text-base font-semibold tracking-tight text-foreground">
+                <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
                   Items ordered
                 </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -856,11 +934,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
 
             {receipt && receipt.lines.length > 0 ? (
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-2 max-h-[min(28vh,14rem)] space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-[min(32vh,16rem)]">
                 {receipt.lines.map((line) => (
                   <li
                     key={line.itemId}
-                    className="flex gap-3 rounded-xl border border-border bg-background p-2.5"
+                    className="flex gap-2.5 rounded-lg border border-border bg-background p-2"
                   >
                     <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40">
                       {line.imageUrl ? (
@@ -919,9 +997,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             )}
           </section>
 
-          <aside className="space-y-4 lg:sticky lg:top-6">
+          <aside className="space-y-3">
             {receipt ? (
-              <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
+              <section className="rounded-2xl border border-border bg-card p-3 shadow-sm ring-1 ring-black/[0.02] sm:p-4">
                 <div className="flex items-start gap-3 border-b border-border pb-3">
                   <MapPin
                     className="mt-0.5 size-4 shrink-0 text-primary"
@@ -991,13 +1069,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               </section>
             ) : null}
 
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
-              <h2 className="text-base font-semibold tracking-tight text-foreground">
-                Payment review
+            <section className="rounded-2xl border border-border bg-card p-3 shadow-sm ring-1 ring-black/[0.02] sm:p-4">
+              <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
+                Totals
               </h2>
-              <div className="mt-3 space-y-2 border-b border-border pb-3 text-sm">
+              <div className="mt-2 space-y-1.5 border-b border-border pb-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Cart subtotal</span>
+                  <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-semibold tabular-nums text-foreground">
                     {receiptSubtotalLabel}
                   </span>
@@ -1009,60 +1087,133 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   </span>
                 </div>
               </div>
-              <div className="mt-3 flex items-end justify-between">
+              <div className="mt-2 flex items-end justify-between">
                 <span className="font-semibold text-foreground">Total due</span>
-                <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+                <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
                   {total}
                 </span>
               </div>
-              <div className="mt-4">
-                {paymentConfirmed ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
-                    <div className="flex items-start gap-3">
-                      <PackageCheck
-                        className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-400"
-                        aria-hidden
-                      />
-                      <div>
-                        <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-100">
-                          Online payment complete
-                        </p>
-                        <p className="mt-1 text-xs leading-relaxed text-emerald-900/90 dark:text-emerald-200/90">
-                          No further action needed for M-Pesa. The store will
-                          use your reference and contact details for pickup.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <ShopCheckoutPaymentSection
-                    manual={paymentOptions.manual}
-                    online={paymentOptions.online}
-                    defaultAreaCode={areaCode}
-                    defaultPhone={customerPhone}
-                    stkBusy={stkBusy}
-                    stkMessage={stkMessage}
-                    stkSent={stkSent}
-                    onStkPay={handleStkPay}
-                  />
-                )}
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                {paymentConfirmed
-                  ? "Payment is recorded on your order. Contact the store if you need to change pickup details."
-                  : "Your order is held as pending payment until you pay (M-Pesa prompt or manual transfer) and the store confirms receipt."}
-              </p>
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => router.push(APP_ROUTES.shop)}
-                className="mt-4 h-11 w-full rounded-xl text-sm font-semibold"
-              >
-                Continue shopping
-              </Button>
+              {paymentConfirmed ? (
+                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                  Payment recorded. Pay and pickup actions are in the bar below.
+                </p>
+              ) : null}
             </section>
           </aside>
         </div>
+        </div>
+
+        <CheckoutFloatingDock ariaLabel="Order actions">
+          {!paymentConfirmed &&
+          (paymentOptions.manual.length > 0 || paymentOptions.online.length > 0) ? (
+            <CheckoutDockCard className="p-3">
+              <ShopCheckoutPaymentSection
+                variant="floating"
+                manual={paymentOptions.manual}
+                online={paymentOptions.online}
+                defaultAreaCode={areaCode}
+                defaultPhone={customerPhone}
+                stkBusy={stkBusy}
+                stkMessage={stkMessage}
+                stkSent={stkSent}
+                onStkPay={handleStkPay}
+                orderPlaced
+              />
+            </CheckoutDockCard>
+          ) : paymentConfirmed ? (
+            <CheckoutDockCard className="p-3.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                All set
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                Payment confirmed — {total}
+              </p>
+            </CheckoutDockCard>
+          ) : null}
+          <CheckoutDockCard className="p-3.5">
+            <ContinueShoppingButton onClick={() => router.push(APP_ROUTES.shop)} />
+          </CheckoutDockCard>
+        </CheckoutFloatingDock>
+      </div>
+    );
+  }
+
+  // ── Order placed — pay with M-Pesa on the same checkout screen ──
+  if (done && awaitingOnlinePayment && orderReceipt) {
+    const placedTotal = formatDisplayPrice(done.currency, done.grandTotal);
+
+    return (
+      <div className={cn(CHECKOUT_VIEWPORT, "min-w-0 max-w-full")}>
+        <header className="mb-3 shrink-0">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 px-3 py-3 shadow-sm ring-1 ring-emerald-200/60 dark:border-emerald-900 dark:bg-emerald-950/40 sm:px-4">
+            <div className="flex gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white sm:size-10">
+                <Check className="size-5" strokeWidth={3} aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-emerald-950 dark:text-emerald-50">
+                  Order placed — pay to confirm
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-emerald-900/90 sm:text-sm dark:text-emerald-100/90">
+                  Order{" "}
+                  <span className="font-mono font-semibold">{done.orderNumber}</span> ·
+                  pay using the bar below.
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className={CHECKOUT_SCROLL}>
+          <section className="rounded-2xl border border-border bg-card p-3 shadow-sm sm:p-4">
+            <h3 className="text-sm font-semibold text-foreground sm:text-base">
+              Order summary
+            </h3>
+            <ul className="mt-2 max-h-[min(24vh,12rem)] space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-[min(28vh,14rem)]">
+              {orderReceipt.lines.map((line) => (
+                <li
+                  key={line.itemId}
+                  className="flex items-start justify-between gap-2 text-sm"
+                >
+                  <span className="min-w-0">
+                    <span className="font-medium text-foreground">{line.name}</span>
+                    <span className="text-muted-foreground"> · Qty {line.quantity}</span>
+                  </span>
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    {formatDisplayPrice(orderReceipt.currency, line.lineTotal ?? 0)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex items-end justify-between border-t border-border pt-2">
+              <span className="font-semibold text-foreground">Total due</span>
+              <span className="text-lg font-bold tabular-nums sm:text-xl">{placedTotal}</span>
+            </div>
+          </section>
+        </div>
+
+        <CheckoutFloatingDock ariaLabel="Payment actions">
+          <CheckoutDockCard className="p-3">
+            <ShopCheckoutPaymentSection
+              variant="floating"
+              manual={paymentOptions.manual}
+              online={paymentOptions.online}
+              defaultAreaCode={areaCode}
+              defaultPhone={customerPhone}
+              stkBusy={stkBusy}
+              stkMessage={stkMessage}
+              stkSent={stkSent}
+              onStkPay={handleStkPay}
+              orderPlaced
+            />
+          </CheckoutDockCard>
+          <CheckoutDockCard className="p-3.5">
+            <ContinueShoppingButton
+              onClick={() => router.push(APP_ROUTES.shop)}
+              variant="outline"
+            />
+          </CheckoutDockCard>
+        </CheckoutFloatingDock>
       </div>
     );
   }
@@ -1088,24 +1239,50 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     );
   }
 
-  // ── Missing prices ──
-  if (cart.subtotal == null) {
+  const unpricedLines = cartLinesMissingPrice(cart);
+  if (!cartIsCheckoutReady(cart)) {
     return (
-      <div className="mx-auto max-w-md text-center py-16">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl">
-          ⚠️
+      <div className="mx-auto max-w-md py-16">
+        <div className="text-center">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl">
+            ⚠️
+          </div>
+          <h2 className="mt-6 text-xl font-semibold">Pricing unavailable for checkout</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {unpricedLines.length > 0
+              ? "These items need a shelf price in Products before you can check out. Remove them or ask the store to set a price."
+              : "Your cart has no priced items. Add products with a visible price from the shop."}
+          </p>
         </div>
-        <h2 className="mt-6 text-xl font-semibold">Pricing Issue</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Some items are missing storefront prices. Please remove those items or
-          contact the branch.
-        </p>
-        <Link
-          href={APP_ROUTES.shopCart}
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
-        >
-          Edit Cart
-        </Link>
+        {unpricedLines.length > 0 ? (
+          <ul className="mt-6 space-y-2 rounded-xl border border-border bg-card p-3 text-sm">
+            {unpricedLines.map((line) => (
+              <li
+                key={line.itemId}
+                className="flex items-start justify-between gap-3 border-b border-border/60 py-2 last:border-0"
+              >
+                <span className="min-w-0 font-medium text-foreground">
+                  {line.variantName ? `${line.name} · ${line.variantName}` : line.name}
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">Qty {line.quantity}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Link
+            href={APP_ROUTES.shopCart}
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+          >
+            Edit cart
+          </Link>
+          <Link
+            href={APP_ROUTES.shop}
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-border px-6 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Back to shop
+          </Link>
+        </div>
       </div>
     );
   }
@@ -1201,30 +1378,101 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
   const showShippingForm = !shippingLocked || isEditingShipping;
   const showReviewOnMobile = shippingLocked && !isEditingShipping;
+  const showFloatingPayment =
+    shippingLocked &&
+    !isEditingShipping &&
+    (paymentOptions.manual.length > 0 || paymentOptions.online.length > 0);
+
+  const scrollToCheckoutTerms = () => {
+    document
+      .getElementById("checkout-terms")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const floatingCheckout = showShippingForm
+    ? {
+        eyebrow: shippingComplete ? "Ready for the next step" : "Delivery details",
+        headline: shippingComplete
+          ? "Tap below to review your order"
+          : "Fill in your delivery info to continue",
+        hint: shippingComplete
+          ? "We'll show your cart and payment options next."
+          : "Name, phone, and delivery location are required.",
+        actionLabel: isEditingShipping ? "Save & review" : "Continue to review",
+        actionDisabled: !shippingComplete,
+        onAction: lockShippingAndContinue,
+        actionType: "button" as const,
+        pulse: shippingComplete,
+      }
+    : busy
+      ? {
+          eyebrow: "Please wait",
+          headline: "Completing your purchase…",
+          hint: "Keep this page open while we place your order.",
+          actionLabel: "Placing order…",
+          actionDisabled: true,
+          actionType: "submit" as const,
+          pulse: false,
+        }
+      : !termsAccepted
+        ? {
+            eyebrow: "One more step",
+            headline: "Accept the store terms to finish",
+            hint: "Tap the button below to jump to the terms checkbox.",
+            actionLabel: "Go to terms",
+            actionDisabled: false,
+            onAction: scrollToCheckoutTerms,
+            actionType: "button" as const,
+            pulse: false,
+          }
+        : {
+            eyebrow: "You're all set",
+            headline: "Tap here to complete your purchase",
+            hint:
+              showFloatingPayment && paymentOptions.online.length > 0
+                ? "Send the M-Pesa prompt above, or use the till — then tap Complete purchase."
+                : showFloatingPayment
+                  ? "Use the till above, then tap Complete purchase."
+                  : `${totalLabel} will be submitted to the store for pickup.`,
+            actionLabel: "Complete purchase",
+            actionDisabled: false,
+            actionType: "submit" as const,
+            pulse: true,
+          };
 
   return (
-    <div className="pb-24 lg:pb-0">
-      <header className="mb-6 space-y-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
+    <div className={cn(CHECKOUT_VIEWPORT, "min-w-0 max-w-full")}>
+      <header className="mb-3 shrink-0 space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
               Secure checkout
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="mt-1 text-xl font-bold tracking-tight text-foreground sm:mt-2 sm:text-2xl">
               Complete your order
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+            <p
+              className={cn(
+                "mt-1 max-w-xl text-sm leading-snug text-muted-foreground",
+                showReviewOnMobile && "max-lg:hidden",
+              )}
+            >
               Review your contact details, delivery location, and cart total
               before placing the order.
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground shadow-sm">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
             <Clock3 className="size-3.5" aria-hidden />
             Delivery within 30 minutes
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/95 p-3 shadow-sm ring-1 ring-black/[0.02]">
+        <div
+          className={cn(
+            "min-w-0 overflow-hidden rounded-2xl border border-border bg-card/95 p-2.5 shadow-sm ring-1 ring-black/[0.02] sm:p-3",
+            showReviewOnMobile && "max-lg:hidden",
+          )}
+        >
           <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
               <ShoppingBag
@@ -1291,9 +1539,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       </header>
 
       <form
-        className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"
+        className="flex min-h-0 flex-1 flex-col"
         onSubmit={(ev) => void onSubmit(ev)}
       >
+        <div className={CHECKOUT_SCROLL}>
+        <div className="grid w-full min-w-0 max-w-full gap-4 pb-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <section
           className={cn(
             "space-y-4",
@@ -1509,7 +1759,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           <Button
             type="button"
             size="lg"
-            className="h-11 w-full rounded-xl text-sm font-semibold max-lg:mb-20"
+            className="hidden h-11 w-full rounded-xl text-sm font-semibold"
             onClick={lockShippingAndContinue}
             disabled={!shippingComplete}
           >
@@ -1521,7 +1771,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
         <section
           className={cn(
-            "rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6",
+            "min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6",
             !showReviewOnMobile && "max-lg:hidden",
           )}
         >
@@ -1558,11 +1808,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </Link>
           </div>
 
-          <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:block lg:space-y-2 lg:overflow-visible lg:px-0 lg:pb-0 lg:max-h-[360px] lg:overflow-y-auto lg:pr-1">
+          <div className="mt-3 max-h-[min(22vh,11rem)] space-y-2 overflow-y-auto overscroll-contain sm:max-h-[min(28vh,14rem)] lg:max-h-[360px] lg:pr-1">
             {cart.lines.map((line) => (
               <div
                 key={line.itemId}
-                className="flex w-[min(100%,280px)] shrink-0 gap-3 rounded-xl border border-border bg-background p-3 lg:w-auto lg:shrink lg:p-2.5"
+                className="flex w-full min-w-0 gap-3 rounded-xl border border-border bg-background p-3 lg:p-2.5"
               >
                 <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40 lg:size-12">
                   {line.imageUrl ? (
@@ -1646,15 +1896,10 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <div className="mt-4">
-            <ShopCheckoutPaymentSection
-              manual={paymentOptions.manual}
-              online={paymentOptions.online}
-              showOnlineBeforeOrder={paymentOptions.online.length > 0}
-            />
-          </div>
-
-          <div className="mt-5 space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:mb-24">
+          <div
+            id="checkout-terms"
+            className="mt-5 scroll-mt-24 space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:pb-2"
+          >
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
               <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
                 3
@@ -1696,7 +1941,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               type="submit"
               size="lg"
               disabled={busy || !termsAccepted || !shippingLocked}
-              className="h-11 w-full rounded-xl text-sm font-semibold tracking-wide transition-all disabled:opacity-50"
+              className="hidden h-11 w-full rounded-xl text-sm font-semibold tracking-wide transition-all disabled:opacity-50"
             >
               {busy ? (
                 <span className="flex items-center gap-2">
@@ -1709,7 +1954,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </Button>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/40 pt-4 text-[11px] font-medium text-muted-foreground">
+          <div className="mt-3 hidden gap-2 border-t border-border/40 pt-3 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-3">
             <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
               <Lock className="size-3.5" aria-hidden />
               Secure
@@ -1724,37 +1969,94 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </span>
           </div>
         </section>
-
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/70 bg-background/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-7xl items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {showShippingForm ? "Cart total" : "Total due"}
-              </p>
-              <p className="text-base font-bold tabular-nums">{totalLabel}</p>
-            </div>
-            {showShippingForm ? (
-              <Button
-                type="button"
-                size="lg"
-                disabled={!shippingComplete}
-                className="h-11 min-w-36 rounded-xl text-sm font-semibold"
-                onClick={lockShippingAndContinue}
-              >
-                {isEditingShipping ? "Done" : "Continue"}
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                size="lg"
-                disabled={busy || !termsAccepted || !shippingLocked}
-                className="h-11 min-w-36 rounded-xl text-sm font-semibold"
-              >
-                {busy ? "Placing..." : "Place order"}
-              </Button>
-            )}
-          </div>
         </div>
+        </div>
+
+        <CheckoutFloatingDock ariaLabel="Checkout actions">
+          {showFloatingPayment ? (
+            <CheckoutDockCard className="p-3">
+              <ShopCheckoutPaymentSection
+                variant="floating"
+                manual={paymentOptions.manual}
+                online={paymentOptions.online}
+                defaultAreaCode={areaCode}
+                defaultPhone={customerPhone}
+                stkBusy={stkBusy}
+                stkMessage={stkMessage}
+                stkSent={stkSent}
+                onStkPay={
+                  paymentOptions.online.length > 0 ? handleStkPay : undefined
+                }
+                orderPlaced={Boolean(done)}
+              />
+            </CheckoutDockCard>
+          ) : null}
+
+          <CheckoutDockCard
+            className={cn(
+              "p-3.5 sm:p-4",
+              floatingCheckout.pulse &&
+                "ring-2 ring-primary/25 shadow-[0_12px_48px_rgba(15,23,42,0.22)]",
+            )}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+              {floatingCheckout.eyebrow}
+            </p>
+            <p className="mt-1 text-sm font-semibold leading-snug text-foreground sm:text-[0.95rem]">
+              {floatingCheckout.headline}
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              {floatingCheckout.hint}
+            </p>
+
+            <div className="mt-3 flex items-end gap-3 border-t border-border/60 pt-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {showShippingForm ? "Cart total" : "Total due"}
+                </p>
+                <p className="truncate text-lg font-bold tabular-nums tracking-tight text-foreground">
+                  {totalLabel}
+                </p>
+              </div>
+              {floatingCheckout.actionType === "button" ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={floatingCheckout.actionDisabled}
+                  className="h-11 shrink-0 gap-1.5 rounded-xl px-4 text-sm font-semibold shadow-sm"
+                  onClick={floatingCheckout.onAction}
+                >
+                  {floatingCheckout.actionLabel}
+                  <ArrowRight className="size-4" aria-hidden />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={
+                    floatingCheckout.actionDisabled ||
+                    busy ||
+                    !termsAccepted ||
+                    !shippingLocked
+                  }
+                  className="h-11 shrink-0 gap-1.5 rounded-xl px-4 text-sm font-semibold shadow-sm"
+                >
+                  {busy ? (
+                    <>
+                      <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Placing…
+                    </>
+                  ) : (
+                    <>
+                      {floatingCheckout.actionLabel}
+                      <ArrowRight className="size-4" aria-hidden />
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </CheckoutDockCard>
+        </CheckoutFloatingDock>
       </form>
 
       <ShopCheckoutSignupModal
