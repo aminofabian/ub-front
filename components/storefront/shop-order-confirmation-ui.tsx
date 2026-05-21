@@ -18,6 +18,14 @@ import {
   SHOP_CHECKOUT_DOCK_ID,
   ShopCheckoutDockHeightSync,
 } from "@/components/storefront/shop-checkout-dock-height";
+import {
+  DeliveryContactCardHeader,
+  DeliveryContactDetails,
+} from "@/components/storefront/shop-delivery-contact-details";
+import {
+  CHECKOUT_VARIANT_PILL,
+  formatDeliveryZone,
+} from "@/components/storefront/shop-checkout-design";
 import { cn } from "@/lib/utils";
 
 /* ── Layout tokens ── */
@@ -451,7 +459,7 @@ export function OrderLinesList({
             <p className="mt-1 text-[11px] text-muted-foreground">
               Qty {line.quantity}
               {line.variantName ? (
-                <span className="ml-1.5 rounded-md bg-muted px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
+                <span className={cn("ml-1.5", CHECKOUT_VARIANT_PILL)}>
                   {line.variantName}
                 </span>
               ) : null}
@@ -472,6 +480,9 @@ export function OrderDeliveryCard({
   customerPhone,
   whatsAppNumber,
   streetAddress,
+  ward,
+  subCounty,
+  county,
   deliveryAreaLine,
   deliveryNotes,
 }: {
@@ -480,50 +491,29 @@ export function OrderDeliveryCard({
   customerPhone: string;
   whatsAppNumber: string;
   streetAddress: string;
-  deliveryAreaLine: string | null;
+  ward?: string;
+  subCounty?: string;
+  county?: string;
+  /** @deprecated Prefer ward / subCounty / county for deduped zone label */
+  deliveryAreaLine?: string | null;
   deliveryNotes: string;
 }) {
+  const zoneLabel =
+    formatDeliveryZone(ward, subCounty, county) ?? deliveryAreaLine?.trim() ?? null;
+
   return (
-    <ConfirmationPanel>
-      <ConfirmationPanelHeader
-        title="Delivery & contact"
-        subtitle="Fulfilment details"
-        trailing={<MapPin className="size-4 text-primary/80" aria-hidden />}
+    <ConfirmationPanel className="overflow-hidden">
+      <DeliveryContactCardHeader />
+      <DeliveryContactDetails
+        customerName={customerName}
+        customerPhone={customerPhone}
+        customerEmail={customerEmail}
+        whatsAppNumber={whatsAppNumber}
+        streetAddress={streetAddress}
+        zoneLabel={zoneLabel}
+        deliveryNotes={deliveryNotes}
+        showEta={Boolean(zoneLabel)}
       />
-      <div className="space-y-2 px-3 py-2.5 text-[13px] sm:px-3.5">
-        <div>
-          <p className="font-semibold text-foreground">{customerName || "Customer"}</p>
-          {customerEmail ? (
-            <p className="mt-1 text-xs text-muted-foreground">{customerEmail}</p>
-          ) : null}
-          <p className="mt-1 text-xs text-muted-foreground">{customerPhone}</p>
-          {whatsAppNumber ? (
-            <p className="text-xs text-muted-foreground">WhatsApp: {whatsAppNumber}</p>
-          ) : null}
-        </div>
-        {(streetAddress || deliveryAreaLine) && (
-          <div className="rounded-xl border border-border/50 bg-muted/25 px-3 py-2.5">
-            {streetAddress ? (
-              <p className="text-[13px] font-medium text-foreground">{streetAddress}</p>
-            ) : null}
-            {deliveryAreaLine ? (
-              <p className="mt-1 text-xs text-muted-foreground">{deliveryAreaLine}</p>
-            ) : null}
-          </div>
-        )}
-        {deliveryAreaLine ? (
-          <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
-            <Clock3 className="size-3.5" aria-hidden />
-            Est. 30 min delivery
-          </p>
-        ) : null}
-        {deliveryNotes ? (
-          <p className="border-t border-border/50 pt-2.5 text-xs leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Note: </span>
-            {deliveryNotes}
-          </p>
-        ) : null}
-      </div>
     </ConfirmationPanel>
   );
 }

@@ -16,6 +16,10 @@ export const CHECKOUT_CARD_INSET =
 export const CHECKOUT_LABEL =
   "text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground";
 
+/** Matches variant chips on checkout line items */
+export const CHECKOUT_VARIANT_PILL =
+  "inline-flex max-w-full truncate rounded-md bg-muted px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/70";
+
 export const CHECKOUT_INPUT =
   "h-10 w-full rounded-lg border border-input/70 bg-background/90 px-3 text-[13px] shadow-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/12";
 
@@ -32,3 +36,20 @@ export const CHECKOUT_OUTLINE_BTN =
 
 export const CHECKOUT_STICKY_HEAD =
   "sticky top-0 z-10 -mx-0.5 shrink-0 border-b border-border/35 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75";
+
+/** Ward · subcounty · county without repeating the same segment */
+export function formatDeliveryZone(
+  ward?: string,
+  subCounty?: string,
+  county?: string,
+): string | null {
+  const parts: string[] = [];
+  for (const raw of [ward, subCounty, county]) {
+    const t = raw?.trim();
+    if (!t) continue;
+    if (!parts.some((p) => p.toLowerCase() === t.toLowerCase())) {
+      parts.push(t);
+    }
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
+}

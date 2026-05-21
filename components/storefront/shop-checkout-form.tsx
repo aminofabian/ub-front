@@ -27,6 +27,7 @@ import {
   CHECKOUT_CARD_INSET,
   CHECKOUT_CARD_PAD,
   CHECKOUT_INPUT,
+  CHECKOUT_VARIANT_PILL,
   CHECKOUT_LABEL,
   CHECKOUT_PRIMARY_BTN,
   CHECKOUT_SECTION_GAP,
@@ -827,12 +828,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       receipt != null
         ? formatDisplayPrice(receipt.currency, receipt.subtotal)
         : total;
-    const deliveryAreaLine =
-      receipt?.shipping.ward &&
-      receipt?.shipping.subCounty &&
-      receipt?.shipping.county
-        ? `${receipt.shipping.ward} · ${receipt.shipping.subCounty} · ${receipt.shipping.county}`
-        : null;
 
     const receiptLines =
       receipt?.lines.map((line) => ({
@@ -908,7 +903,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   customerPhone={receipt.shipping.customerPhone}
                   whatsAppNumber={receipt.shipping.whatsAppNumber}
                   streetAddress={receipt.shipping.streetAddress}
-                  deliveryAreaLine={deliveryAreaLine}
+                  ward={receipt.shipping.ward}
+                  subCounty={receipt.shipping.subCounty}
+                  county={receipt.shipping.county}
                   deliveryNotes={receipt.shipping.deliveryNotes}
                 />
               ) : null}
@@ -928,7 +925,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   customerPhone={receipt.shipping.customerPhone}
                   whatsAppNumber={receipt.shipping.whatsAppNumber}
                   streetAddress={receipt.shipping.streetAddress}
-                  deliveryAreaLine={deliveryAreaLine}
+                  ward={receipt.shipping.ward}
+                  subCounty={receipt.shipping.subCounty}
+                  county={receipt.shipping.county}
                   deliveryNotes={receipt.shipping.deliveryNotes}
                 />
                 <OrderPaymentSummaryCard
@@ -1612,9 +1611,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Qty {line.quantity}</span>
                     {line.variantName ? (
-                      <span className="rounded-full bg-muted px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
-                        {line.variantName}
-                      </span>
+                      <span className={CHECKOUT_VARIANT_PILL}>{line.variantName}</span>
                     ) : null}
                   </div>
                 </div>
