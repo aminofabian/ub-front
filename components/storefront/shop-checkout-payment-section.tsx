@@ -211,13 +211,18 @@ function OnlineStkSection({
       )}
       <div
         className={cn(
-          "grid gap-1.5",
+          "gap-1.5",
           compact
-            ? "grid-cols-[4.5rem_minmax(0,1fr)]"
-            : "grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
+            ? "flex min-w-0 items-end"
+            : "grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
         )}
       >
-        <label className="flex min-w-0 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+        <label
+          className={cn(
+            "flex min-w-0 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground",
+            compact ? "w-[3.25rem] shrink-0" : "",
+          )}
+        >
           Code
           <input
             type="text"
@@ -233,7 +238,7 @@ function OnlineStkSection({
             disabled={busy || stkSent}
           />
         </label>
-        <label className="flex min-w-0 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+        <label className="flex min-w-0 flex-1 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
           Phone
           <input
             type="tel"
@@ -249,20 +254,31 @@ function OnlineStkSection({
             disabled={busy || stkSent}
           />
         </label>
+        {compact && !actionsInDock
+          ? methods.map((m) => (
+              <Button
+                key={m.configId}
+                type="button"
+                size="sm"
+                className="h-9 shrink-0 rounded-lg px-3 text-xs font-semibold"
+                disabled={busy || stkSent || !phoneValid || promptDisabled}
+                onClick={() => onPay(m.configId, fullPhone)}
+              >
+                {busy ? "Sending…" : stkSent ? "Sent" : "Send prompt"}
+              </Button>
+            ))
+          : null}
       </div>
       {!phoneValid && phone.trim() ? (
         <p className="text-[11px] text-destructive">Invalid number</p>
       ) : null}
-      {!actionsInDock
+      {!compact && !actionsInDock
         ? methods.map((m) => (
             <Button
               key={m.configId}
               type="button"
               size="sm"
-              className={cn(
-                "h-9 w-full rounded-lg text-xs font-semibold",
-                !compact && "sm:w-auto sm:self-end",
-              )}
+              className="h-9 w-full rounded-lg text-xs font-semibold sm:w-auto sm:self-end"
               disabled={busy || stkSent || !phoneValid || promptDisabled}
               onClick={() => onPay(m.configId, fullPhone)}
             >
@@ -332,7 +348,7 @@ export function ShopCheckoutPaymentSection({
     <div
       className={cn(
         floating
-          ? "space-y-1 rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-2 py-1.5"
+          ? "rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-2 py-1.5"
           : "space-y-2.5 rounded-xl border border-emerald-500/20 bg-linear-to-br from-emerald-50/90 to-emerald-50/30 p-4 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-950/10",
       )}
     >
@@ -344,11 +360,7 @@ export function ShopCheckoutPaymentSection({
           amountDue={amountDue}
           compact={false}
         />
-      ) : (
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800/80 dark:text-emerald-300/90">
-          {hasOnline && onStkPay && orderPlaced ? "Or till" : "Till"}
-        </p>
-      )}
+      ) : null}
       {manual.map((pi) => (
         <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
       ))}

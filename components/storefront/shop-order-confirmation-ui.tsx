@@ -18,12 +18,23 @@ import {
   SHOP_CHECKOUT_DOCK_ID,
   ShopCheckoutDockHeightSync,
 } from "@/components/storefront/shop-checkout-dock-height";
-import type { StkDockSendAction } from "@/components/storefront/shop-checkout-payment-section";
 import { cn } from "@/lib/utils";
 
 /* ── Layout tokens ── */
 export const CONFIRMATION_VIEWPORT =
   "flex h-full min-h-0 flex-1 flex-col overflow-hidden";
+
+export function ConfirmationTopProgress({
+  complete = true,
+}: {
+  complete?: boolean;
+}) {
+  return (
+    <div className="shrink-0 border-b border-border/50 bg-background px-3 py-2 max-lg:py-1.5">
+      <CheckoutProgressSteps complete={complete} compact />
+    </div>
+  );
+}
 /** Single scroll surface; bottom pad tracks the fixed dock via --shop-checkout-dock-height */
 export const CONFIRMATION_SCROLL =
   "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-[calc(var(--shop-checkout-dock-height,11rem)+env(safe-area-inset-bottom,0px)+0.5rem)] [-webkit-overflow-scrolling:touch] lg:pb-[calc(var(--shop-checkout-dock-height,10rem)+0.5rem)]";
@@ -254,14 +265,12 @@ export function OrderPaymentStatusBanner({
 
   const payHint =
     hasOnlinePay && hasManualPay
-      ? "Pay with M-Pesa or the till below, then confirm when done."
+      ? "Pay with M-Pesa or till, then confirm when done."
       : hasOnlinePay
         ? stkSent
           ? "Approve the prompt on your phone, then confirm below."
           : "Send the M-Pesa prompt below, then confirm when approved."
-        : hasManualPay
-          ? "Pay to the till below. The store confirms once they receive it."
-          : "Complete payment using the instructions below.";
+        : null;
 
   return (
     <div
@@ -290,9 +299,11 @@ export function OrderPaymentStatusBanner({
           <p className="mt-1 font-serif text-2xl font-semibold tracking-tight text-foreground">
             {total}
           </p>
-          <p className="mt-1.5 text-xs leading-relaxed text-amber-950/80 sm:text-[13px] dark:text-amber-100/75">
-            {payHint}
-          </p>
+          {payHint ? (
+            <p className="mt-1.5 text-xs leading-relaxed text-amber-950/80 sm:text-[13px] dark:text-amber-100/75">
+              {payHint}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -597,15 +608,12 @@ export function ConfirmationDockActions({
   onConfirmPayment,
   onReturnToShop,
   paymentSlot,
-  sendPrompt,
 }: {
   paymentConfirmed: boolean;
   checkingPayment: boolean;
   onConfirmPayment: () => void;
   onReturnToShop: () => void;
   paymentSlot?: React.ReactNode;
-  /** M-Pesa send — shown beside confirm on mobile */
-  sendPrompt?: StkDockSendAction | null;
 }) {
   return (
     <ConfirmationFloatingDock ariaLabel="Order actions">
@@ -624,61 +632,37 @@ export function ConfirmationDockActions({
             <ArrowRight className="size-4" aria-hidden />
           </Button>
         ) : (
-          <div className="space-y-1.5">
-            <div
-              className={cn(
-                "flex gap-2",
-                sendPrompt
-                  ? "flex-col max-lg:flex-row max-lg:items-stretch"
-                  : "flex-col",
-              )}
-            >
-              {sendPrompt ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  disabled={sendPrompt.disabled}
-                  onClick={sendPrompt.onSend}
-                  className="h-10 min-w-0 flex-1 rounded-xl border-border/80 bg-background px-2 text-xs font-semibold text-foreground shadow-none max-lg:shrink"
-                >
-                  {sendPrompt.label}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="lg"
-                disabled={checkingPayment}
-                onClick={onConfirmPayment}
-                className={cn(
-                  "h-10 gap-1 rounded-xl text-sm font-semibold shadow-md",
-                  sendPrompt
-                    ? "min-w-0 flex-[1.2] ring-2 ring-primary/25 max-lg:flex-[1.35]"
-                    : "w-full gap-1.5",
-                )}
-              >
-                {checkingPayment ? (
-                  <>
-                    <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Checking…
-                  </>
-                ) : (
-                  <>
-                    <span className="truncate text-xs font-semibold leading-tight sm:text-sm">
-                      I&apos;ve completed payment
-                    </span>
-                    <RefreshCw className="size-3.5 shrink-0 sm:size-4" aria-hidden />
-                  </>
-                )}
-              </Button>
-            </div>
-            <button
+          <div className="flex items-stretch gap-2">
+            <Button
               type="button"
+              size="lg"
+              disabled={checkingPayment}
+              onClick={onConfirmPayment}
+              className="h-10 min-w-0 flex-1 gap-1 rounded-xl text-sm font-semibold shadow-md ring-2 ring-primary/25"
+            >
+              {checkingPayment ? (
+                <>
+                  <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Checking…
+                </>
+              ) : (
+                <>
+                  <span className="truncate text-xs font-semibold sm:text-sm">
+                    I&apos;ve completed payment
+                  </span>
+                  <RefreshCw className="size-3.5 shrink-0 sm:size-4" aria-hidden />
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
               onClick={onReturnToShop}
-              className="w-full py-1 text-center text-xs font-medium text-muted-foreground hover:text-foreground"
+              className="h-10 shrink-0 rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm"
             >
               Return to shop
-            </button>
+            </Button>
           </div>
         )}
       </div>

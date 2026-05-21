@@ -29,7 +29,7 @@ import {
   ConfirmationFloatingDock,
   ConfirmationPanel,
   ConfirmationPanelHeader,
-  OrderConfirmationHero,
+  ConfirmationTopProgress,
   OrderDeliveryCard,
   OrderLinesList,
   OrderMetaStrip,
@@ -41,10 +41,7 @@ import {
   isCheckoutSignupDismissed,
   ShopCheckoutSignupModal,
 } from "@/components/storefront/shop-checkout-signup-modal";
-import {
-  ShopCheckoutPaymentSection,
-  type StkDockSendAction,
-} from "@/components/storefront/shop-checkout-payment-section";
+import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -341,7 +338,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [stkMessage, setStkMessage] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
-  const [stkDockSend, setStkDockSend] = useState<StkDockSendAction | null>(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
   const [firstName, setFirstName] = useState("");
@@ -864,8 +860,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           "mx-auto h-full w-full max-w-5xl",
         )}
       >
+        <ConfirmationTopProgress />
         <div className={CONFIRMATION_SCROLL}>
-          <header className="space-y-2.5 pb-2.5">
+          <header className="space-y-2 pb-2 max-lg:space-y-1.5">
             <OrderPaymentStatusBanner
               paymentConfirmed={paymentConfirmed}
               paymentFailed={paymentFailed}
@@ -874,12 +871,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               hasOnlinePay={hasOnlinePay}
               hasManualPay={hasManualPay}
               stkSent={stkSent}
-            />
-            <OrderConfirmationHero
-              orderRef={orderRef}
-              branchName={done.catalogBranchName}
-              paymentConfirmed={paymentConfirmed}
-              paymentFailed={paymentFailed}
             />
             <OrderMetaStrip
               items={[
@@ -970,9 +961,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           checkingPayment={checkingPayment}
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
-          sendPrompt={
-            !paymentConfirmed && hasOnlinePay ? stkDockSend : null
-          }
           paymentSlot={
             !paymentConfirmed && (hasManualPay || hasOnlinePay) ? (
               <ShopCheckoutPaymentSection
@@ -986,8 +974,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 stkSent={stkSent}
                 onStkPay={handleStkPay}
                 orderPlaced
-                actionsInDock
-                onStkSendActionChange={setStkDockSend}
               />
             ) : undefined
           }
@@ -1018,8 +1004,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
     return (
       <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
+        <ConfirmationTopProgress />
         <div className={CONFIRMATION_SCROLL}>
-          <header className="space-y-2.5 pb-2.5">
+          <header className="space-y-2 pb-2 max-lg:space-y-1.5">
             <OrderPaymentStatusBanner
               paymentConfirmed={paymentConfirmed}
               paymentFailed={paymentFailed}
@@ -1028,12 +1015,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               hasOnlinePay={hasOnlinePay}
               hasManualPay={hasManualPay}
               stkSent={stkSent}
-            />
-            <OrderConfirmationHero
-              orderRef={orderRef}
-              branchName={done.catalogBranchName}
-              paymentConfirmed={paymentConfirmed}
-              paymentFailed={paymentFailed}
             />
             <OrderMetaStrip
               items={[
@@ -1081,7 +1062,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           checkingPayment={checkingPayment}
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
-          sendPrompt={hasOnlinePay ? stkDockSend : null}
           paymentSlot={
             <ShopCheckoutPaymentSection
               variant="floating"
@@ -1094,8 +1074,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               stkSent={stkSent}
               onStkPay={handleStkPay}
               orderPlaced
-              actionsInDock
-              onStkSendActionChange={setStkDockSend}
             />
           }
         />
