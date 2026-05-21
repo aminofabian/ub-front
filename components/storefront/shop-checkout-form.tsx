@@ -20,6 +20,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
+import {
+  dismissCheckoutSignupPrompt,
+  isCheckoutSignupDismissed,
+  ShopCheckoutSignupModal,
+} from "@/components/storefront/shop-checkout-signup-modal";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
@@ -298,6 +303,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const prefilled = useRef(false);
   const termsManuallyChanged = useRef(false);
   const paymentToastShown = useRef(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const pendingShippingLock = useRef(false);
 
   const notifyPaymentConfirmed = useCallback(() => {
     setPaymentConfirmed(true);
@@ -429,6 +437,10 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   }, [load]);
 
   useEffect(() => {
+    setSignedIn(getSessionTokens() != null);
+  }, []);
+
+  useEffect(() => {
     const onChange = () => void load();
     window.addEventListener(WEB_CART_CHANGED_EVENT, onChange);
     return () => window.removeEventListener(WEB_CART_CHANGED_EVENT, onChange);
@@ -505,14 +517,15 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     };
   }, [done?.orderId, slug, paymentConfirmed, notifyPaymentConfirmed]);
 
-  const requiredCheckoutFieldsComplete = Boolean(
+  const contactFieldsComplete = Boolean(
     customerEmail.trim() &&
     firstName.trim() &&
     lastName.trim() &&
-    customerPhone.trim() &&
-    subCounty &&
-    ward &&
-    streetAddress.trim(),
+    customerPhone.trim(),
+  );
+
+  const requiredCheckoutFieldsComplete = Boolean(
+    contactFieldsComplete && subCounty && ward && streetAddress.trim(),
   );
 
   // Use saved delivery/contact from last order — skip the extra "save" step
@@ -1150,15 +1163,34 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
     }
   }
 
+  function applyShippingLock() {
+    setError(null);
+    persistShippingIfRequested();
+    setIsEditingShipping(false);
+    setShippingLocked(true);
+    pendingShippingLock.current = false;
+  }
+
   function lockShippingAndContinue() {
     if (!shippingComplete) {
       setError("Please complete all required delivery fields.");
       return;
     }
-    setError(null);
-    persistShippingIfRequested();
-    setIsEditingShipping(false);
-    setShippingLocked(true);
+    if (
+      !signedIn &&
+      contactFieldsComplete &&
+      !isCheckoutSignupDismissed()
+    ) {
+      pendingShippingLock.current = true;
+      setSignupModalOpen(true);
+      return;
+    }
+    applyShippingLock();
+  }
+
+  function openCheckoutSignupModal() {
+    pendingShippingLock.current = false;
+    setSignupModalOpen(true);
   }
 
   function startEditingShipping() {
@@ -1355,6 +1387,41 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               />
             </div>
           </div>
+
+          {contactFieldsComplete && !signedIn ? (
+            <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">
+                  Track this order next time
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Create a free account with {customerEmail.trim()} — we&apos;ll
+                  use the name and phone you entered. Only choose a password.
+                </p>
+              </div>
+              <div className="mt-3 flex shrink-0 flex-wrap gap-2 sm:mt-0">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 rounded-xl px-4 text-xs font-semibold"
+                  onClick={openCheckoutSignupModal}
+                >
+                  Create account
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 rounded-xl px-3 text-xs text-muted-foreground"
+                  onClick={() => {
+                    dismissCheckoutSignupPrompt();
+                  }}
+                >
+                  Not now
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1689,6 +1756,26 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           </div>
         </div>
       </form>
+
+      <ShopCheckoutSignupModal
+        open={signupModalOpen}
+        onOpenChange={setSignupModalOpen}
+        email={customerEmail}
+        firstName={firstName}
+        lastName={lastName}
+        phoneDisplay={`${areaCode} ${customerPhone}`.trim()}
+        onSignedIn={() => {
+          setSignedIn(true);
+          if (pendingShippingLock.current) {
+            applyShippingLock();
+          }
+        }}
+        onContinueAsGuest={() => {
+          if (pendingShippingLock.current) {
+            applyShippingLock();
+          }
+        }}
+      />
     </div>
   );
 }
