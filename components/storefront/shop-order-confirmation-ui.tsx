@@ -60,7 +60,7 @@ export function ConfirmationFloatingDock({
         >
           <span className="h-1 w-10 rounded-full bg-foreground/12" />
         </div>
-        <div className="space-y-2.5 px-3.5 pt-0.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-4">
+        <div className="min-w-0 space-y-2.5 px-3.5 pt-0.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-4">
           {children}
         </div>
       </div>
@@ -607,7 +607,7 @@ export function ConfirmationDockActions({
     <ConfirmationFloatingDock ariaLabel="Order actions">
       <div className="space-y-2.5">
         {paymentSlot ? (
-          <div className="rounded-xl border border-border/45 bg-muted/30 p-2.5 shadow-inner shadow-black/[0.02]">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border/45 bg-muted/30 p-2.5 shadow-inner shadow-black/[0.02]">
             {paymentSlot}
           </div>
         ) : null}

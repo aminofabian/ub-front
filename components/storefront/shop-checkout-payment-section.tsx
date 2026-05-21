@@ -151,7 +151,7 @@ function OnlineStkSection({
   return (
     <div
       className={cn(
-        "space-y-2.5 rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
+        "min-w-0 max-w-full space-y-2.5 rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
         compact ? "p-2.5" : "space-y-3 p-4",
       )}
     >
@@ -217,27 +217,45 @@ function OnlineStkSection({
       {methods.map((m) => (
         <div
           key={m.configId}
-          className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
+          className={cn(
+            "min-w-0 rounded-lg border border-border bg-background p-3",
+            compact
+              ? "flex flex-col gap-2.5"
+              : "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+          )}
         >
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
-              <Smartphone className="size-4" aria-hidden />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                {m.label ?? m.displayName}
-              </p>
-              <p className="text-[11px] text-muted-foreground">{m.displayName}</p>
+          {!compact ? (
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                <Smartphone className="size-4" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">
+                  {m.label ?? m.displayName}
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {m.displayName}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : null}
           <Button
             type="button"
-            size="sm"
-            className="h-10 shrink-0 rounded-xl px-4 text-sm font-semibold"
+            size={compact ? "default" : "sm"}
+            className={cn(
+              "h-10 rounded-xl text-sm font-semibold",
+              compact ? "w-full max-w-full px-4" : "shrink-0 px-4",
+            )}
             disabled={busy || stkSent || !phoneValid || promptDisabled}
             onClick={() => onPay(m.configId, fullPhone)}
           >
-            {busy ? "Sending…" : stkSent ? "Prompt sent" : "Send M-Pesa prompt"}
+            {busy
+              ? "Sending…"
+              : stkSent
+                ? "Prompt sent"
+                : promptDisabled && compact
+                  ? "Send after placing order"
+                  : "Send M-Pesa prompt"}
           </Button>
         </div>
       ))}
@@ -339,7 +357,7 @@ export function ShopCheckoutPaymentSection({
     ) : null;
 
   return (
-    <div className={cn("space-y-3", floating && "space-y-2")}>
+    <div className={cn("min-w-0 max-w-full space-y-3", floating && "space-y-2")}>
       {showManualFirst ? (
         <>
           {manualBlock}

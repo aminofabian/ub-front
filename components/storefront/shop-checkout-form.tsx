@@ -1858,7 +1858,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         <ConfirmationFloatingDock ariaLabel="Checkout actions">
           <div className="space-y-2.5">
             {showFloatingPayment ? (
-              <div className="rounded-xl border border-border/50 bg-muted/20 p-2.5">
+              <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border/50 bg-muted/20 p-2.5">
                 <ShopCheckoutPaymentSection
                   variant="floating"
                   manual={paymentOptions.manual}
