@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
   isItemNotFoundProblem,
   isSessionRelatedProblem,
+  isTenantContextMissingProblem,
   isUnmappedTenantHostProblem,
 } from "@/lib/problem";
 
@@ -84,6 +85,55 @@ describe("isSessionRelatedProblem", () => {
         title: "Forbidden",
         status: 403,
         type: "urn:problem:permission-denied",
+      }),
+    ).toBe(false);
+  });
+
+  it("matches missing tenant context on authenticated calls", () => {
+    expect(
+      isSessionRelatedProblem(400, {
+        title: "Bad Request",
+        status: 400,
+        detail:
+          "Tenant context missing. Provide mapped Host header or X-Tenant-Id.",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores missing tenant context on public calls", () => {
+    expect(
+      isSessionRelatedProblem(
+        400,
+        {
+          title: "Bad Request",
+          status: 400,
+          detail:
+            "Tenant context missing. Provide mapped Host header or X-Tenant-Id.",
+        },
+        { requiresAuth: false },
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("isTenantContextMissingProblem", () => {
+  it("matches TenantRequestIds 400 detail", () => {
+    expect(
+      isTenantContextMissingProblem({
+        title: "Bad Request",
+        status: 400,
+        detail:
+          "Tenant context missing. Provide mapped Host header or X-Tenant-Id.",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores unrelated 400 problems", () => {
+    expect(
+      isTenantContextMissingProblem({
+        title: "Bad Request",
+        status: 400,
+        detail: "Branch not found",
       }),
     ).toBe(false);
   });

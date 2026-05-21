@@ -35,6 +35,8 @@ const TENANT_NOT_FOUND_PROBLEM_TYPE = "urn:problem:tenant-not-found";
 const UNMAPPED_TENANT_HOST_DETAIL_PREFIX =
   "No active tenant mapping found for host:";
 
+const TENANT_CONTEXT_MISSING_PREFIX = "Tenant context missing";
+
 const GENERIC_PROBLEM_TITLES = new Set([
   "",
   "Bad Request",
@@ -152,6 +154,10 @@ export function isSessionRelatedProblem(
     return true;
   }
 
+  if (status === 400 && isTenantContextMissingProblem(payload)) {
+    return true;
+  }
+
   if (status === 401) {
     return true;
   }
@@ -178,6 +184,19 @@ export function isSessionRelatedProblem(
   }
 
   return false;
+}
+
+/** {@code TenantRequestIds} when neither domain resolver nor {@code X-Tenant-Id} is present (400). */
+export function isTenantContextMissingProblem(payload: unknown): boolean {
+  const problem = parseProblem(payload);
+  if (!problem) {
+    return false;
+  }
+  const detail = problem.detail?.trim() ?? "";
+  if (detail.startsWith(TENANT_CONTEXT_MISSING_PREFIX)) {
+    return true;
+  }
+  return problem.title.startsWith(TENANT_CONTEXT_MISSING_PREFIX);
 }
 
 export function isUnmappedTenantHostProblem(payload: unknown): boolean {
