@@ -11,6 +11,57 @@ import type {
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { cn } from "@/lib/utils";
 
+function PaymentSectionHeading({
+  title,
+  amountDue,
+  compact,
+  tone = "emerald",
+}: {
+  title: string;
+  amountDue?: string | null;
+  compact?: boolean;
+  tone?: "emerald" | "primary";
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <h3
+        className={cn(
+          "min-w-0 font-bold tracking-tight",
+          tone === "primary"
+            ? compact
+              ? "text-[10px] uppercase tracking-[0.14em] text-primary/90"
+              : "text-sm text-foreground"
+            : compact
+              ? "text-[10px] uppercase tracking-[0.14em] text-emerald-950 dark:text-emerald-100"
+              : "text-sm text-emerald-950 dark:text-emerald-100",
+        )}
+      >
+        {title}
+      </h3>
+      {amountDue ? (
+        <div className="shrink-0 text-right">
+          <p
+            className={cn(
+              "font-bold uppercase tracking-[0.12em] text-muted-foreground",
+              compact ? "text-[9px]" : "text-[10px]",
+            )}
+          >
+            Amount due
+          </p>
+          <p
+            className={cn(
+              "font-serif font-semibold tabular-nums text-foreground",
+              compact ? "text-sm leading-tight" : "text-base",
+            )}
+          >
+            {amountDue}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ManualInstructionCard({
   pi,
   compact,
@@ -21,7 +72,7 @@ function ManualInstructionCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-emerald-200 bg-white dark:border-emerald-800 dark:bg-emerald-950/40",
+        "rounded-xl border border-emerald-500/15 bg-background/90 shadow-sm ring-1 ring-emerald-500/10 dark:bg-emerald-950/30",
         compact ? "p-2.5" : "p-3",
       )}
     >
@@ -82,7 +133,8 @@ function OnlineStkSection({
   compact,
   promptDisabled,
   promptDisabledHint,
-}: OnlineStkProps) {
+  amountDue,
+}: OnlineStkProps & { amountDue?: string | null }) {
   const [areaCode, setAreaCode] = useState(defaultAreaCode);
   const [phone, setPhone] = useState(defaultPhone);
 
@@ -99,27 +151,26 @@ function OnlineStkSection({
   return (
     <div
       className={cn(
-        "space-y-3 rounded-xl border border-primary/25 bg-primary/5",
-        compact ? "p-3" : "p-4",
+        "space-y-2.5 rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
+        compact ? "p-2.5" : "space-y-3 p-4",
       )}
     >
-      <h3
-        className={cn(
-          "font-semibold text-foreground",
-          compact ? "text-xs" : "text-sm",
-        )}
-      >
-        Pay with M-Pesa on your phone
-      </h3>
-      <p
-        className={cn(
-          "leading-relaxed text-muted-foreground",
-          compact ? "text-[11px]" : "text-xs",
-        )}
-      >
-        Enter the number that should receive the M-Pesa prompt, then tap send. Approve the
-        request on that phone to complete payment.
-      </p>
+      <PaymentSectionHeading
+        title={compact ? "M-Pesa prompt" : "Pay with M-Pesa on your phone"}
+        amountDue={amountDue}
+        compact={compact}
+        variant="primary"
+      />
+      {!compact ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Enter the number that should receive the M-Pesa prompt, then tap send. Approve the
+          request on that phone to complete payment.
+        </p>
+      ) : (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          We&apos;ll send a prompt to this number — approve it on your phone.
+        </p>
+      )}
       {promptDisabled && promptDisabledHint ? (
         <p className="rounded-lg border border-primary/20 bg-background/80 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
           {promptDisabledHint}
@@ -216,6 +267,7 @@ export function ShopCheckoutPaymentSection({
   onStkPay,
   orderPlaced = false,
   variant = "default",
+  amountDue,
 }: {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
@@ -230,6 +282,8 @@ export function ShopCheckoutPaymentSection({
   orderPlaced?: boolean;
   /** Compact layout for the floating checkout stack */
   variant?: "default" | "floating";
+  /** Shown beside payment headings (e.g. "How to pay") */
+  amountDue?: string | null;
 }) {
   const hasManual = manual.length > 0;
   const hasOnline = online.length > 0;
@@ -237,48 +291,66 @@ export function ShopCheckoutPaymentSection({
   if (!hasManual && !hasOnline) return null;
 
   const stkPromptDisabled = hasOnline && !orderPlaced;
+  const showManualFirst = floating && orderPlaced && hasManual;
+
+  const manualBlock = hasManual ? (
+    <div
+      className={cn(
+        "space-y-2.5 rounded-xl border border-emerald-500/20 bg-linear-to-br from-emerald-50/90 to-emerald-50/30 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-950/10",
+        floating ? "p-2.5" : "space-y-3 p-4",
+      )}
+    >
+      <PaymentSectionHeading
+        title={
+          floating && orderPlaced
+            ? "Pay to till"
+            : hasOnline && onStkPay
+              ? "Or pay manually"
+              : "How to pay"
+        }
+        amountDue={amountDue}
+        compact={floating}
+      />
+      {manual.map((pi) => (
+        <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
+      ))}
+    </div>
+  ) : null;
+
+  const onlineBlock =
+    hasOnline && onStkPay ? (
+      <OnlineStkSection
+        methods={online}
+        defaultAreaCode={defaultAreaCode}
+        defaultPhone={defaultPhone}
+        busy={stkBusy ?? false}
+        stkMessage={stkMessage ?? null}
+        stkSent={stkSent ?? false}
+        onPay={onStkPay}
+        compact={floating}
+        amountDue={amountDue}
+        promptDisabled={stkPromptDisabled}
+        promptDisabledHint={
+          stkPromptDisabled
+            ? "Tap Complete purchase below — we'll send the M-Pesa prompt to this number right after your order is placed."
+            : undefined
+        }
+      />
+    ) : null;
 
   return (
     <div className={cn("space-y-3", floating && "space-y-2")}>
-      {hasOnline && onStkPay ? (
-        <OnlineStkSection
-          methods={online}
-          defaultAreaCode={defaultAreaCode}
-          defaultPhone={defaultPhone}
-          busy={stkBusy ?? false}
-          stkMessage={stkMessage ?? null}
-          stkSent={stkSent ?? false}
-          onPay={onStkPay}
-          compact={floating}
-          promptDisabled={stkPromptDisabled}
-          promptDisabledHint={
-            stkPromptDisabled
-              ? "Tap Complete purchase below — we'll send the M-Pesa prompt to this number right after your order is placed."
-              : undefined
-          }
-        />
-      ) : null}
-
-      {hasManual ? (
-        <div
-          className={cn(
-            "space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/20",
-            floating ? "space-y-2 p-3" : "p-4",
-          )}
-        >
-          <h3
-            className={cn(
-              "font-semibold text-emerald-900 dark:text-emerald-200",
-              floating ? "text-xs" : "text-sm",
-            )}
-          >
-            {hasOnline && onStkPay ? "Or pay manually" : "How to pay"}
-          </h3>
-          {manual.map((pi) => (
-            <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
-          ))}
-        </div>
-      ) : null}
+      {showManualFirst ? (
+        <>
+          {manualBlock}
+          {onlineBlock}
+        </>
+      ) : (
+        <>
+          {onlineBlock}
+          {manualBlock}
+        </>
+      )}
     </div>
   );
 }

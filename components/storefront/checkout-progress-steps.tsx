@@ -13,15 +13,20 @@ type Props = {
   activeStep?: 1 | 2 | 3;
   /** When true, all steps show as completed (order placed). */
   complete?: boolean;
+  className?: string;
 };
 
 export function CheckoutProgressSteps({
   activeStep = 1,
   complete = false,
+  className,
 }: Props) {
   return (
     <ol
-      className="flex w-full min-w-0 max-w-xl items-center"
+      className={cn(
+        "flex w-full min-w-0 max-w-xl items-center",
+        className,
+      )}
       aria-label="Checkout progress"
     >
       {STEPS.map((step, i) => {

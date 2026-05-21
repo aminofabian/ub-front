@@ -21,6 +21,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
+import { CheckoutScrollEndSpacer } from "@/components/storefront/shop-checkout-dock-height";
+import {
+  CONFIRMATION_SCROLL,
+  CONFIRMATION_VIEWPORT,
+  ConfirmationDockActions,
+  ConfirmationFloatingDock,
+  ConfirmationPanel,
+  ConfirmationPanelHeader,
+  OrderConfirmationHero,
+  OrderDeliveryCard,
+  OrderLinesList,
+  OrderMetaStrip,
+  OrderPaymentStatusBanner,
+  OrderPaymentSummaryCard,
+} from "@/components/storefront/shop-order-confirmation-ui";
 import {
   dismissCheckoutSignupPrompt,
   isCheckoutSignupDismissed,
@@ -174,66 +189,23 @@ function parseNotesToPrefill(notes: string): Partial<CheckoutPrefill> {
   return result;
 }
 
-const CHECKOUT_VIEWPORT =
-  "flex h-full min-h-0 max-h-full flex-col overflow-hidden";
-const CHECKOUT_SCROLL =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]";
-
-function CheckoutFloatingDock({
+function CheckoutFloatingCta({
   children,
-  ariaLabel,
+  pulse,
 }: {
   children: React.ReactNode;
-  ariaLabel: string;
-}) {
-  return (
-    <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:items-end lg:px-10"
-      role="region"
-      aria-label={ariaLabel}
-    >
-      {children}
-    </div>
-  );
-}
-
-function CheckoutDockCard({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
+  pulse?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "pointer-events-auto w-full max-w-[21rem] rounded-2xl border border-border/80 bg-background/95 shadow-[0_8px_32px_rgba(15,23,42,0.14)] ring-1 ring-black/[0.04] backdrop-blur-md supports-[backdrop-filter]:bg-background/90 sm:max-w-sm",
-        className,
+        "rounded-xl border border-border/45 bg-card/95 p-3.5 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.03] sm:p-4",
+        pulse &&
+          "ring-2 ring-primary/25 shadow-[0_12px_40px_-8px_rgba(15,23,42,0.18)]",
       )}
     >
       {children}
     </div>
-  );
-}
-
-function ContinueShoppingButton({
-  onClick,
-  variant = "primary",
-}: {
-  onClick: () => void;
-  variant?: "primary" | "outline";
-}) {
-  return (
-    <Button
-      type="button"
-      size="lg"
-      variant={variant === "outline" ? "outline" : "default"}
-      onClick={onClick}
-      className="h-12 w-full gap-1.5 rounded-xl text-sm font-semibold shadow-sm"
-    >
-      Continue shopping
-      <ArrowRight className="size-4" aria-hidden />
-    </Button>
   );
 }
 
@@ -349,6 +321,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   const [stkSent, setStkSent] = useState(false);
   const [stkMessage, setStkMessage] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -375,6 +349,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
   const notifyPaymentConfirmed = useCallback(() => {
     setPaymentConfirmed(true);
+    setPaymentFailed(false);
     setStkSent(false);
     setStkMessage(null);
     if (!paymentToastShown.current) {
@@ -570,6 +545,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         if (status.paid) {
           notifyPaymentConfirmed();
         } else if (status.paymentFailed) {
+          setPaymentFailed(true);
           setStkSent(false);
           setStkMessage(
             status.failureReason ?? "Payment was not completed. You can try again.",
@@ -588,6 +564,49 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
       clearTimeout(stop);
     };
   }, [done?.orderId, slug, paymentConfirmed, notifyPaymentConfirmed]);
+
+  const hasOnlinePay = paymentOptions.online.length > 0;
+  const hasManualPay = paymentOptions.manual.length > 0;
+
+  async function handleConfirmPaymentSent() {
+    if (!done?.orderId) {
+      return;
+    }
+    setCheckingPayment(true);
+    setError(null);
+    try {
+      const status = await fetchPublicWebOrderPaymentStatus(slug, done.orderId);
+      if (status.paid) {
+        notifyPaymentConfirmed();
+        return;
+      }
+      if (status.paymentFailed) {
+        setPaymentFailed(true);
+        setStkSent(false);
+        setStkMessage(
+          status.failureReason ?? "Payment was not completed. You can try again.",
+        );
+        toast.error("Payment not completed", {
+          description:
+            status.failureReason ??
+            "Try the M-Pesa prompt again or pay using the till details.",
+        });
+        return;
+      }
+      toast.message("Payment not confirmed yet", {
+        description: hasManualPay
+          ? "The store will mark your order paid once they verify your till or transfer."
+          : "Approve the M-Pesa prompt on your phone, or send the prompt again below.",
+        duration: 8000,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not check payment status",
+      );
+    } finally {
+      setCheckingPayment(false);
+    }
+  }
 
   const contactFieldsComplete = Boolean(
     customerEmail.trim() &&
@@ -707,6 +726,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         isDefaultAddress,
       });
 
+      setPaymentConfirmed(false);
+      setPaymentFailed(false);
+      setStkSent(false);
+      setStkMessage(null);
+      paymentToastShown.current = false;
       setDone(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed.");
@@ -780,9 +804,10 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   // ── Success (manual-only or already paid) ──
   if (done && !awaitingOnlinePayment) {
     const total = formatDisplayPrice(done.currency, done.grandTotal);
-    const statusLabel = paymentConfirmed
-      ? "Payment confirmed"
-      : done.status.replace(/_/g, " ");
+    const orderRef =
+      done.orderId.length > 8
+        ? done.orderId.slice(0, 8).toUpperCase()
+        : done.orderId;
     const receipt = orderReceipt;
     const receiptSubtotalLabel =
       receipt != null
@@ -795,318 +820,134 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         ? `${receipt.shipping.ward} · ${receipt.shipping.subCounty} · ${receipt.shipping.county}`
         : null;
 
+    const receiptLines =
+      receipt?.lines.map((line) => ({
+        itemId: line.itemId,
+        name: line.name,
+        variantName: line.variantName,
+        imageUrl: line.imageUrl,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        lineTotal: line.lineTotal,
+        currency: receipt.currency,
+        formatPrice: formatDisplayPrice,
+      })) ?? [];
+
     return (
-      <div className={cn(CHECKOUT_VIEWPORT, "mx-auto w-full max-w-5xl")}>
-        <header className="mb-3 shrink-0 space-y-3 sm:space-y-4">
-          {paymentConfirmed ? (
-            <div
-              className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-4 shadow-sm ring-1 ring-emerald-200/80 dark:border-emerald-800 dark:bg-emerald-950/50 dark:ring-emerald-900"
-              role="status"
-              aria-live="polite"
-            >
-              <div className="flex gap-3 sm:items-center">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-                  <Check className="size-6" strokeWidth={3} aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-emerald-950 dark:text-emerald-50">
-                    M-Pesa payment confirmed
-                  </p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-emerald-900/90 dark:text-emerald-100/90">
-                    {total} received — your order is confirmed and the store can
-                    prepare it.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : null}
+      <div
+        className={cn(
+          CONFIRMATION_VIEWPORT,
+          "mx-auto h-full w-full max-w-5xl",
+        )}
+      >
+        <div className={CONFIRMATION_SCROLL}>
+          <header className="space-y-2.5 pb-2.5">
+            <OrderPaymentStatusBanner
+              paymentConfirmed={paymentConfirmed}
+              paymentFailed={paymentFailed}
+              failureMessage={stkMessage}
+              total={total}
+              hasOnlinePay={hasOnlinePay}
+              hasManualPay={hasManualPay}
+              stkSent={stkSent}
+            />
+            <OrderConfirmationHero
+              orderRef={orderRef}
+              branchName={done.catalogBranchName}
+              paymentConfirmed={paymentConfirmed}
+              paymentFailed={paymentFailed}
+            />
+            <OrderMetaStrip
+              items={[
+                {
+                  label: "Reference",
+                  value: (
+                    <span className="font-mono text-[13px]">{orderRef}</span>
+                  ),
+                },
+                {
+                  label: paymentConfirmed ? "Paid" : "Total due",
+                  value: total,
+                  highlight: paymentConfirmed,
+                },
+                {
+                  label: "Pickup",
+                  value: (
+                    <span className="truncate text-[13px] font-medium normal-case tracking-normal">
+                      {done.catalogBranchName}
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          </header>
 
-          <div
-            className={cn(
-              "rounded-3xl border bg-card p-5 shadow-sm ring-1 ring-black/[0.02] sm:p-6",
-              paymentConfirmed
-                ? "border-emerald-200 dark:border-emerald-900"
-                : "border-border",
-            )}
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex min-w-0 gap-4">
-                <div
-                  className={cn(
-                    "flex size-12 shrink-0 items-center justify-center rounded-2xl ring-1",
-                    paymentConfirmed
-                      ? "bg-emerald-600 text-white ring-emerald-700 dark:ring-emerald-500"
-                      : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900",
-                  )}
-                  aria-hidden
-                >
-                  <Check className="size-5" strokeWidth={3} />
-                </div>
-                <div className="min-w-0">
-                  <p
-                    className={cn(
-                      "text-xs font-bold uppercase tracking-[0.18em]",
-                      paymentConfirmed
-                        ? "text-emerald-700 dark:text-emerald-400"
-                        : "text-emerald-700 dark:text-emerald-400",
-                    )}
-                  >
-                    {paymentConfirmed ? "Paid" : "Order received"}
-                  </p>
-                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    {paymentConfirmed
-                      ? "Payment confirmed"
-                      : "Review your order"}
-                  </h1>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    {paymentConfirmed
-                      ? "Thank you — your M-Pesa payment was successful. Keep this page for your reference number and pickup details."
-                      : "Your request has been sent to the store. Complete M-Pesa payment below, or pay using the store's details."}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-xs font-semibold",
-                  paymentConfirmed
-                    ? "border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-100"
-                    : "border-amber-200 bg-amber-50 capitalize text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100",
-                )}
-              >
-                {statusLabel}
-              </span>
-            </div>
-
-            <dl className="mt-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Reference
-                </dt>
-                <dd className="mt-1 font-mono text-sm font-bold text-foreground">
-                  {done.orderId}
-                </dd>
-              </div>
-              <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  {paymentConfirmed ? "Amount paid" : "Total due"}
-                </dt>
-                <dd
-                  className={cn(
-                    "mt-1 text-lg font-bold tabular-nums",
-                    paymentConfirmed
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-foreground",
-                  )}
-                >
-                  {total}
-                </dd>
-              </div>
-              <div className="rounded-2xl border border-border bg-background px-3.5 py-3">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Pickup branch
-                </dt>
-                <dd className="mt-1 truncate text-sm font-semibold text-foreground">
-                  {done.catalogBranchName}
-                </dd>
-              </div>
-            </dl>
-          </div>
-
-          <CheckoutProgressSteps complete />
-        </header>
-
-        <div className={CHECKOUT_SCROLL}>
-        <div className="grid gap-4 pb-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-          <section className="rounded-2xl border border-border bg-card p-3 shadow-sm ring-1 ring-black/[0.02] sm:p-4">
-            <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
-              <div>
-                <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
-                  Items ordered
-                </h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {receipt?.lines.length ?? 0}{" "}
-                  {receipt?.lines.length === 1 ? "item" : "items"} included
-                </p>
-              </div>
-              <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground">
-                {receiptSubtotalLabel}
-              </span>
-            </div>
-
-            {receipt && receipt.lines.length > 0 ? (
-              <ul className="mt-2 max-h-[min(28vh,14rem)] space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-[min(32vh,16rem)]">
-                {receipt.lines.map((line) => (
-                  <li
-                    key={line.itemId}
-                    className="flex gap-2.5 rounded-lg border border-border bg-background p-2"
-                  >
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40">
-                      {line.imageUrl ? (
-                        <Image
-                          src={line.imageUrl}
-                          alt={line.name}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center">
-                          <ShoppingBag
-                            className="size-4 text-muted-foreground"
-                            aria-hidden
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-                        {line.name}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>Qty {line.quantity}</span>
-                        {line.variantName ? (
-                          <span className="rounded-full border border-border bg-muted px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-foreground/75">
-                            {line.variantName}
-                          </span>
-                        ) : null}
-                        {line.unitPrice != null ? (
-                          <span className="tabular-nums">
-                            @{" "}
-                            {formatDisplayPrice(
-                              receipt.currency,
-                              line.unitPrice,
-                            )}{" "}
-                            each
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p className="shrink-0 text-right text-sm font-bold tabular-nums text-foreground">
-                      {formatDisplayPrice(
-                        receipt.currency,
-                        line.lineTotal ?? 0,
-                      )}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 rounded-xl border border-border bg-background p-3 text-sm text-muted-foreground">
-                Item details are unavailable for this receipt.
-              </p>
-            )}
-          </section>
-
-          <aside className="space-y-3">
-            {receipt ? (
-              <section className="rounded-2xl border border-border bg-card p-3 shadow-sm ring-1 ring-black/[0.02] sm:p-4">
-                <div className="flex items-start gap-3 border-b border-border pb-3">
-                  <MapPin
-                    className="mt-0.5 size-4 shrink-0 text-primary"
-                    aria-hidden
-                  />
-                  <div>
-                    <h2 className="text-base font-semibold tracking-tight text-foreground">
-                      Delivery & contact
-                    </h2>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Details the store will use for fulfilment.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {receipt.shipping.customerName || "Customer"}
-                    </p>
-                    {receipt.shipping.customerEmail ? (
-                      <p className="mt-1 text-muted-foreground">
-                        {receipt.shipping.customerEmail}
-                      </p>
-                    ) : null}
-                    <p className="mt-1 text-muted-foreground">
-                      {receipt.shipping.customerPhone}
-                    </p>
-                    {receipt.shipping.whatsAppNumber ? (
-                      <p className="mt-1 text-muted-foreground">
-                        WhatsApp: {receipt.shipping.whatsAppNumber}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  {(receipt.shipping.streetAddress || deliveryAreaLine) && (
-                    <div className="rounded-xl border border-border bg-background p-3">
-                      {receipt.shipping.streetAddress ? (
-                        <p className="font-medium text-foreground">
-                          {receipt.shipping.streetAddress}
-                        </p>
-                      ) : null}
-                      {deliveryAreaLine ? (
-                        <p className="mt-1 text-muted-foreground">
-                          {deliveryAreaLine}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {deliveryAreaLine ? (
-                    <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-                      <Clock3 className="size-3.5" aria-hidden />
-                      Est. delivery within 30 minutes
-                    </p>
-                  ) : null}
-
-                  {receipt.shipping.deliveryNotes ? (
-                    <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-                      <span className="font-semibold text-foreground">
-                        Note:{" "}
-                      </span>
-                      {receipt.shipping.deliveryNotes}
-                    </p>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
-
-            <section className="rounded-2xl border border-border bg-card p-3 shadow-sm ring-1 ring-black/[0.02] sm:p-4">
-              <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
-                Totals
-              </h2>
-              <div className="mt-2 space-y-1.5 border-b border-border pb-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-semibold tabular-nums text-foreground">
+          <div className="space-y-2.5 pb-2 lg:grid lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start lg:gap-3">
+            <ConfirmationPanel className="overflow-hidden p-0">
+              <ConfirmationPanelHeader
+                title="Items ordered"
+                subtitle={`${receipt?.lines.length ?? 0} ${receipt?.lines.length === 1 ? "item" : "items"}`}
+                trailing={
+                  <span className="rounded-full bg-muted/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-foreground">
                     {receiptSubtotalLabel}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Delivery</span>
-                  <span className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                    Free
-                  </span>
-                </div>
-              </div>
-              <div className="mt-2 flex items-end justify-between">
-                <span className="font-semibold text-foreground">Total due</span>
-                <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
-                  {total}
-                </span>
-              </div>
-              {paymentConfirmed ? (
-                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                  Payment recorded. Pay and pickup actions are in the bar below.
-                </p>
+                }
+              />
+              <OrderLinesList lines={receiptLines} />
+            </ConfirmationPanel>
+
+            <aside className="space-y-2.5 max-lg:hidden">
+              {receipt ? (
+                <OrderDeliveryCard
+                  customerName={receipt.shipping.customerName}
+                  customerEmail={receipt.shipping.customerEmail}
+                  customerPhone={receipt.shipping.customerPhone}
+                  whatsAppNumber={receipt.shipping.whatsAppNumber}
+                  streetAddress={receipt.shipping.streetAddress}
+                  deliveryAreaLine={deliveryAreaLine}
+                  deliveryNotes={receipt.shipping.deliveryNotes}
+                />
               ) : null}
-            </section>
-          </aside>
-        </div>
+              <OrderPaymentSummaryCard
+                subtotalLabel={receiptSubtotalLabel}
+                totalLabel={total}
+                paymentConfirmed={paymentConfirmed}
+                paymentFailed={paymentFailed}
+                manualPayNote={hasManualPay}
+              />
+            </aside>
+
+            {receipt ? (
+              <div className="space-y-2.5 lg:hidden">
+                <OrderDeliveryCard
+                  customerName={receipt.shipping.customerName}
+                  customerEmail={receipt.shipping.customerEmail}
+                  customerPhone={receipt.shipping.customerPhone}
+                  whatsAppNumber={receipt.shipping.whatsAppNumber}
+                  streetAddress={receipt.shipping.streetAddress}
+                  deliveryAreaLine={deliveryAreaLine}
+                  deliveryNotes={receipt.shipping.deliveryNotes}
+                />
+                <OrderPaymentSummaryCard
+                  subtotalLabel={receiptSubtotalLabel}
+                  totalLabel={total}
+                  paymentConfirmed={paymentConfirmed}
+                  paymentFailed={paymentFailed}
+                  manualPayNote={hasManualPay}
+                />
+              </div>
+            ) : null}
+          </div>
+          <CheckoutScrollEndSpacer />
         </div>
 
-        <CheckoutFloatingDock ariaLabel="Order actions">
-          {!paymentConfirmed &&
-          (paymentOptions.manual.length > 0 || paymentOptions.online.length > 0) ? (
-            <CheckoutDockCard className="p-3">
+        <ConfirmationDockActions
+          paymentConfirmed={paymentConfirmed}
+          checkingPayment={checkingPayment}
+          onConfirmPayment={() => void handleConfirmPaymentSent()}
+          onReturnToShop={() => router.push(APP_ROUTES.shop)}
+          paymentSlot={
+            !paymentConfirmed && (hasManualPay || hasOnlinePay) ? (
               <ShopCheckoutPaymentSection
                 variant="floating"
                 manual={paymentOptions.manual}
@@ -1118,22 +959,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 stkSent={stkSent}
                 onStkPay={handleStkPay}
                 orderPlaced
+                amountDue={total}
               />
-            </CheckoutDockCard>
-          ) : paymentConfirmed ? (
-            <CheckoutDockCard className="p-3.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                All set
-              </p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                Payment confirmed — {total}
-              </p>
-            </CheckoutDockCard>
-          ) : null}
-          <CheckoutDockCard className="p-3.5">
-            <ContinueShoppingButton onClick={() => router.push(APP_ROUTES.shop)} />
-          </CheckoutDockCard>
-        </CheckoutFloatingDock>
+            ) : undefined
+          }
+        />
       </div>
     );
   }
@@ -1141,59 +971,89 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
   // ── Order placed — pay with M-Pesa on the same checkout screen ──
   if (done && awaitingOnlinePayment && orderReceipt) {
     const placedTotal = formatDisplayPrice(done.currency, done.grandTotal);
+    const orderRef =
+      done.orderId.length > 8
+        ? done.orderId.slice(0, 8).toUpperCase()
+        : done.orderId;
+
+    const placedLines = orderReceipt.lines.map((line) => ({
+      itemId: line.itemId,
+      name: line.name,
+      variantName: line.variantName,
+      imageUrl: line.imageUrl,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      lineTotal: line.lineTotal,
+      currency: orderReceipt.currency,
+      formatPrice: formatDisplayPrice,
+    }));
 
     return (
-      <div className={cn(CHECKOUT_VIEWPORT, "min-w-0 max-w-full")}>
-        <header className="mb-3 shrink-0">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 px-3 py-3 shadow-sm ring-1 ring-emerald-200/60 dark:border-emerald-900 dark:bg-emerald-950/40 sm:px-4">
-            <div className="flex gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white sm:size-10">
-                <Check className="size-5" strokeWidth={3} aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-emerald-950 dark:text-emerald-50">
-                  Order placed — pay to confirm
-                </p>
-                <p className="mt-0.5 text-xs leading-relaxed text-emerald-900/90 sm:text-sm dark:text-emerald-100/90">
-                  Order{" "}
-                  <span className="font-mono font-semibold">{done.orderNumber}</span> ·
-                  pay using the bar below.
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
+      <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
+        <div className={CONFIRMATION_SCROLL}>
+          <header className="space-y-2.5 pb-2.5">
+            <OrderPaymentStatusBanner
+              paymentConfirmed={paymentConfirmed}
+              paymentFailed={paymentFailed}
+              failureMessage={stkMessage}
+              total={placedTotal}
+              hasOnlinePay={hasOnlinePay}
+              hasManualPay={hasManualPay}
+              stkSent={stkSent}
+            />
+            <OrderConfirmationHero
+              orderRef={orderRef}
+              branchName={done.catalogBranchName}
+              paymentConfirmed={paymentConfirmed}
+              paymentFailed={paymentFailed}
+            />
+            <OrderMetaStrip
+              items={[
+                {
+                  label: "Reference",
+                  value: (
+                    <span className="font-mono text-[13px]">{orderRef}</span>
+                  ),
+                },
+                {
+                  label: "Total due",
+                  value: placedTotal,
+                  highlight: false,
+                },
+                {
+                  label: "Pickup",
+                  value: (
+                    <span className="truncate text-[13px] font-medium normal-case tracking-normal">
+                      {done.catalogBranchName}
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          </header>
 
-        <div className={CHECKOUT_SCROLL}>
-          <section className="rounded-2xl border border-border bg-card p-3 shadow-sm sm:p-4">
-            <h3 className="text-sm font-semibold text-foreground sm:text-base">
-              Order summary
-            </h3>
-            <ul className="mt-2 max-h-[min(24vh,12rem)] space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-[min(28vh,14rem)]">
-              {orderReceipt.lines.map((line) => (
-                <li
-                  key={line.itemId}
-                  className="flex items-start justify-between gap-2 text-sm"
-                >
-                  <span className="min-w-0">
-                    <span className="font-medium text-foreground">{line.name}</span>
-                    <span className="text-muted-foreground"> · Qty {line.quantity}</span>
-                  </span>
-                  <span className="shrink-0 font-semibold tabular-nums">
-                    {formatDisplayPrice(orderReceipt.currency, line.lineTotal ?? 0)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-3 flex items-end justify-between border-t border-border pt-2">
-              <span className="font-semibold text-foreground">Total due</span>
-              <span className="text-lg font-bold tabular-nums sm:text-xl">{placedTotal}</span>
+          <ConfirmationPanel className="overflow-hidden p-0">
+            <ConfirmationPanelHeader
+              title="Order summary"
+              subtitle={`${placedLines.length} ${placedLines.length === 1 ? "item" : "items"}`}
+            />
+            <OrderLinesList lines={placedLines} />
+            <div className="flex items-end justify-between border-t border-border/50 px-3.5 py-3 sm:px-4">
+              <span className="text-xs font-semibold text-foreground">Total due</span>
+              <span className="font-serif text-xl font-semibold tabular-nums">
+                {placedTotal}
+              </span>
             </div>
-          </section>
+          </ConfirmationPanel>
+          <CheckoutScrollEndSpacer />
         </div>
 
-        <CheckoutFloatingDock ariaLabel="Payment actions">
-          <CheckoutDockCard className="p-3">
+        <ConfirmationDockActions
+          paymentConfirmed={paymentConfirmed}
+          checkingPayment={checkingPayment}
+          onConfirmPayment={() => void handleConfirmPaymentSent()}
+          onReturnToShop={() => router.push(APP_ROUTES.shop)}
+          paymentSlot={
             <ShopCheckoutPaymentSection
               variant="floating"
               manual={paymentOptions.manual}
@@ -1205,15 +1065,10 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               stkSent={stkSent}
               onStkPay={handleStkPay}
               orderPlaced
+              amountDue={placedTotal}
             />
-          </CheckoutDockCard>
-          <CheckoutDockCard className="p-3.5">
-            <ContinueShoppingButton
-              onClick={() => router.push(APP_ROUTES.shop)}
-              variant="outline"
-            />
-          </CheckoutDockCard>
-        </CheckoutFloatingDock>
+          }
+        />
       </div>
     );
   }
@@ -1441,14 +1296,34 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           };
 
   return (
-    <div className={cn(CHECKOUT_VIEWPORT, "min-w-0 max-w-full")}>
-      <header className="mb-3 shrink-0 space-y-3">
+    <div className={cn(CONFIRMATION_VIEWPORT, "min-w-0 max-w-full")}>
+      <form
+        className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+        onSubmit={(ev) => void onSubmit(ev)}
+      >
+        <div className={CONFIRMATION_SCROLL}>
+      <header
+        className={cn(
+          "mb-3 space-y-3 pb-1",
+          showReviewOnMobile && "max-lg:mb-2 max-lg:space-y-2",
+        )}
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+            <p
+              className={cn(
+                "text-xs font-bold uppercase tracking-[0.18em] text-primary",
+                showReviewOnMobile && "max-lg:text-[10px]",
+              )}
+            >
               Secure checkout
             </p>
-            <h1 className="mt-1 text-xl font-bold tracking-tight text-foreground sm:mt-2 sm:text-2xl">
+            <h1
+              className={cn(
+                "mt-1 text-xl font-bold tracking-tight text-foreground sm:mt-2 sm:text-2xl",
+                showReviewOnMobile && "max-lg:text-lg",
+              )}
+            >
               Complete your order
             </h1>
             <p
@@ -1461,7 +1336,12 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               before placing the order.
             </p>
           </div>
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+          <div
+            className={cn(
+              "inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm",
+              showReviewOnMobile && "max-lg:hidden",
+            )}
+          >
             <Clock3 className="size-3.5" aria-hidden />
             Delivery within 30 minutes
           </div>
@@ -1535,15 +1415,13 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           </dl>
         </div>
 
-        <CheckoutProgressSteps activeStep={activeCheckoutStep} />
+        <CheckoutProgressSteps
+          activeStep={activeCheckoutStep}
+          className={showReviewOnMobile ? "max-lg:py-1" : undefined}
+        />
       </header>
 
-      <form
-        className="flex min-h-0 flex-1 flex-col"
-        onSubmit={(ev) => void onSubmit(ev)}
-      >
-        <div className={CHECKOUT_SCROLL}>
-        <div className="grid w-full min-w-0 max-w-full gap-4 pb-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        <div className="grid w-full min-w-0 max-w-full gap-3 pb-2 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-4">
         <section
           className={cn(
             "space-y-4",
@@ -1771,7 +1649,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
         <section
           className={cn(
-            "min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6",
+            "min-w-0 max-w-full rounded-2xl border border-border bg-card p-4 shadow-sm ring-1 ring-black/[0.02] sm:p-5 lg:sticky lg:top-6 lg:overflow-hidden",
             !showReviewOnMobile && "max-lg:hidden",
           )}
         >
@@ -1808,7 +1686,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </Link>
           </div>
 
-          <div className="mt-3 max-h-[min(22vh,11rem)] space-y-2 overflow-y-auto overscroll-contain sm:max-h-[min(28vh,14rem)] lg:max-h-[360px] lg:pr-1">
+          <div className="mt-3 space-y-2 max-lg:overflow-visible lg:max-h-[360px] lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
             {cart.lines.map((line) => (
               <div
                 key={line.itemId}
@@ -1898,7 +1776,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
           <div
             id="checkout-terms"
-            className="mt-5 scroll-mt-24 space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:pb-2"
+            className="mt-5 scroll-mt-[calc(var(--shop-checkout-dock-height,12rem)+1.5rem)] space-y-3 rounded-2xl border border-border bg-background p-3 max-lg:pb-2"
           >
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
               <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
@@ -1970,93 +1848,91 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           </div>
         </section>
         </div>
+        <CheckoutScrollEndSpacer />
         </div>
 
-        <CheckoutFloatingDock ariaLabel="Checkout actions">
-          {showFloatingPayment ? (
-            <CheckoutDockCard className="p-3">
-              <ShopCheckoutPaymentSection
-                variant="floating"
-                manual={paymentOptions.manual}
-                online={paymentOptions.online}
-                defaultAreaCode={areaCode}
-                defaultPhone={customerPhone}
-                stkBusy={stkBusy}
-                stkMessage={stkMessage}
-                stkSent={stkSent}
-                onStkPay={
-                  paymentOptions.online.length > 0 ? handleStkPay : undefined
-                }
-                orderPlaced={Boolean(done)}
-              />
-            </CheckoutDockCard>
-          ) : null}
-
-          <CheckoutDockCard
-            className={cn(
-              "p-3.5 sm:p-4",
-              floatingCheckout.pulse &&
-                "ring-2 ring-primary/25 shadow-[0_12px_48px_rgba(15,23,42,0.22)]",
-            )}
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-              {floatingCheckout.eyebrow}
-            </p>
-            <p className="mt-1 text-sm font-semibold leading-snug text-foreground sm:text-[0.95rem]">
-              {floatingCheckout.headline}
-            </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-              {floatingCheckout.hint}
-            </p>
-
-            <div className="mt-3 flex items-end gap-3 border-t border-border/60 pt-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {showShippingForm ? "Cart total" : "Total due"}
-                </p>
-                <p className="truncate text-lg font-bold tabular-nums tracking-tight text-foreground">
-                  {totalLabel}
-                </p>
-              </div>
-              {floatingCheckout.actionType === "button" ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={floatingCheckout.actionDisabled}
-                  className="h-11 shrink-0 gap-1.5 rounded-xl px-4 text-sm font-semibold shadow-sm"
-                  onClick={floatingCheckout.onAction}
-                >
-                  {floatingCheckout.actionLabel}
-                  <ArrowRight className="size-4" aria-hidden />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={
-                    floatingCheckout.actionDisabled ||
-                    busy ||
-                    !termsAccepted ||
-                    !shippingLocked
+        <ConfirmationFloatingDock ariaLabel="Checkout actions">
+          <div className="space-y-2.5">
+            {showFloatingPayment ? (
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-2.5">
+                <ShopCheckoutPaymentSection
+                  variant="floating"
+                  manual={paymentOptions.manual}
+                  online={paymentOptions.online}
+                  defaultAreaCode={areaCode}
+                  defaultPhone={customerPhone}
+                  stkBusy={stkBusy}
+                  stkMessage={stkMessage}
+                  stkSent={stkSent}
+                  onStkPay={
+                    paymentOptions.online.length > 0 ? handleStkPay : undefined
                   }
-                  className="h-11 shrink-0 gap-1.5 rounded-xl px-4 text-sm font-semibold shadow-sm"
-                >
-                  {busy ? (
-                    <>
-                      <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Placing…
-                    </>
-                  ) : (
-                    <>
-                      {floatingCheckout.actionLabel}
-                      <ArrowRight className="size-4" aria-hidden />
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </CheckoutDockCard>
-        </CheckoutFloatingDock>
+                  orderPlaced={Boolean(done)}
+                  amountDue={totalLabel}
+                />
+              </div>
+            ) : null}
+
+            <CheckoutFloatingCta pulse={floatingCheckout.pulse}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
+                {floatingCheckout.eyebrow}
+              </p>
+              <p className="mt-1 text-[15px] font-semibold leading-snug text-foreground">
+                {floatingCheckout.headline}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {floatingCheckout.hint}
+              </p>
+
+              <div className="mt-3 flex items-end gap-3 border-t border-border/50 pt-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    {showShippingForm ? "Cart total" : "Total due"}
+                  </p>
+                  <p className="font-serif text-xl font-semibold tabular-nums tracking-tight text-foreground">
+                    {totalLabel}
+                  </p>
+                </div>
+                {floatingCheckout.actionType === "button" ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    disabled={floatingCheckout.actionDisabled}
+                    className="h-11 shrink-0 gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-md"
+                    onClick={floatingCheckout.onAction}
+                  >
+                    {floatingCheckout.actionLabel}
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={
+                      floatingCheckout.actionDisabled ||
+                      busy ||
+                      !termsAccepted ||
+                      !shippingLocked
+                    }
+                    className="h-11 shrink-0 gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-md"
+                  >
+                    {busy ? (
+                      <>
+                        <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Placing…
+                      </>
+                    ) : (
+                      <>
+                        {floatingCheckout.actionLabel}
+                        <ArrowRight className="size-4" aria-hidden />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CheckoutFloatingCta>
+          </div>
+        </ConfirmationFloatingDock>
       </form>
 
       <ShopCheckoutSignupModal

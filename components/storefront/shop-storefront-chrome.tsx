@@ -135,7 +135,9 @@ export function ShopStorefrontChrome({
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col",
-          !compactChrome && "pb-[var(--shop-footer-offset,9.5rem)]",
+          compactChrome
+            ? "overflow-hidden"
+            : "overflow-y-auto overscroll-y-contain pb-[var(--shop-footer-offset,9.5rem)]",
         )}
       >
         {children}
