@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Check,
+  ChevronLeft,
   Clock3,
   Lock,
   MapPin,
@@ -24,11 +25,14 @@ import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress
 import {
   CHECKOUT_CARD,
   CHECKOUT_CARD_INSET,
+  CHECKOUT_CARD_PAD,
   CHECKOUT_INPUT,
   CHECKOUT_LABEL,
   CHECKOUT_PRIMARY_BTN,
+  CHECKOUT_SECTION_GAP,
   CHECKOUT_SELECT,
   CHECKOUT_SERIF_AMOUNT,
+  CHECKOUT_STICKY_HEAD,
 } from "@/components/storefront/shop-checkout-design";
 import { CheckoutScrollEndSpacer } from "@/components/storefront/shop-checkout-dock-height";
 import {
@@ -212,7 +216,7 @@ function CheckoutFloatingCta({
     return (
       <div
         className={cn(
-          "rounded-xl border border-border/40 bg-card/90 p-2.5 shadow-sm ring-1 ring-black/[0.03]",
+          "rounded-lg border border-border/40 bg-card/90 p-2 shadow-sm ring-1 ring-black/[0.03]",
           pulse && "ring-2 ring-primary/30 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
         )}
       >
@@ -245,15 +249,15 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-primary">
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/[0.08] text-primary">
         {icon}
       </div>
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </h2>
         {subtitle ? (
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-0.5 hidden text-[11px] leading-snug text-muted-foreground sm:block">
             {subtitle}
           </p>
         ) : null}
@@ -272,7 +276,7 @@ function InputField({
   hint?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm">
+    <label className="flex flex-col gap-1 text-sm">
       <span className={CHECKOUT_LABEL}>
         {label}
         {required !== false && (
@@ -305,7 +309,7 @@ function SelectField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm">
+    <label className="flex flex-col gap-1 text-sm">
       <span className={CHECKOUT_LABEL}>
         {label}
         {required !== false && (
@@ -777,7 +781,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         </div>
         <div className="h-0 min-h-0 flex-1 overflow-y-auto">
           <div className="grid gap-3 p-1 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className={cn(CHECKOUT_CARD, "space-y-4 p-4 sm:p-5")}>
+            <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD, "space-y-3")}>
               <div className="h-6 w-40 animate-pulse rounded-lg bg-muted/80" />
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="space-y-2">
@@ -786,7 +790,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 </div>
               ))}
             </div>
-            <div className={cn(CHECKOUT_CARD, "space-y-3 p-4 sm:p-5")}>
+            <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD, "space-y-2.5")}>
               <div className="h-6 w-28 animate-pulse rounded-lg bg-muted/80" />
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex gap-3 py-2">
@@ -1281,78 +1285,49 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         onSubmit={(ev) => void onSubmit(ev)}
       >
         <div className={CONFIRMATION_SCROLL}>
-      <header className="mb-2 shrink-0 space-y-2 max-lg:mb-1.5 max-lg:space-y-1.5">
-        <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5">
-          <CheckoutProgressSteps activeStep={activeCheckoutStep} compact />
+      <header className={CHECKOUT_STICKY_HEAD}>
+        <div className="flex items-center gap-1 py-1.5">
+          <Link
+            href={APP_ROUTES.shopCart}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            aria-label="Back to cart"
+          >
+            <ChevronLeft className="size-5" aria-hidden />
+          </Link>
+          <div className="min-w-0 flex-1 pr-1">
+            <CheckoutProgressSteps
+              activeStep={activeCheckoutStep}
+              compact
+              dense
+            />
+          </div>
         </div>
-        <div className={cn("hidden min-w-0 overflow-hidden p-3 lg:block", CHECKOUT_CARD)}>
-          <dl className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
-              <ShoppingBag
-                className="size-4 shrink-0 text-foreground/65"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Items
-                </dt>
-                <dd className="truncate text-sm font-semibold text-foreground">
-                  {cart.lines.length}{" "}
-                  {cart.lines.length === 1 ? "product" : "products"} /{" "}
-                  {totalQty} {totalQty === 1 ? "unit" : "units"}
-                </dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
-              <PackageCheck
-                className="size-4 shrink-0 text-foreground/65"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Cart total
-                </dt>
-                <dd className="truncate text-sm font-semibold tabular-nums text-foreground">
-                  {subtotalLabel}
-                </dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
-              <MapPin
-                className="size-4 shrink-0 text-foreground/65"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Pickup
-                </dt>
-                <dd className="truncate text-sm font-semibold text-foreground">
-                  {cart.catalogBranchName}
-                </dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
-              <Truck
-                className="size-4 shrink-0 text-foreground/65"
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <dt className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  Delivery area
-                </dt>
-                <dd className="truncate text-sm font-semibold text-foreground">
-                  {deliveryZoneSummary}
-                </dd>
-              </div>
-            </div>
-          </dl>
-        </div>
+        <dl className="hidden flex-wrap gap-1.5 border-t border-border/30 px-1 py-1.5 lg:flex">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/35 px-2 py-1 text-[11px] text-foreground">
+            <ShoppingBag className="size-3.5 shrink-0 opacity-60" aria-hidden />
+            <span className="font-semibold tabular-nums">
+              {cart.lines.length} · {totalQty} qty
+            </span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/35 px-2 py-1 text-[11px] font-semibold tabular-nums text-foreground">
+            <PackageCheck className="size-3.5 shrink-0 opacity-60" aria-hidden />
+            {subtotalLabel}
+          </div>
+          <div className="inline-flex max-w-[12rem] items-center gap-1.5 truncate rounded-md bg-muted/35 px-2 py-1 text-[11px] font-medium text-foreground">
+            <MapPin className="size-3.5 shrink-0 opacity-60" aria-hidden />
+            <span className="truncate">{cart.catalogBranchName}</span>
+          </div>
+          <div className="inline-flex max-w-[10rem] items-center gap-1.5 truncate rounded-md bg-muted/35 px-2 py-1 text-[11px] font-medium text-foreground">
+            <Truck className="size-3.5 shrink-0 opacity-60" aria-hidden />
+            <span className="truncate">{deliveryZoneSummary}</span>
+          </div>
+        </dl>
       </header>
 
-        <div className="grid w-full min-w-0 max-w-full gap-3 pb-2 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-4">
+        <div className="grid w-full min-w-0 max-w-full gap-2.5 pb-1.5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-3">
         <section
           className={cn(
-            "space-y-4",
+            CHECKOUT_SECTION_GAP,
             showReviewOnMobile && "max-lg:hidden",
           )}
         >
@@ -1362,17 +1337,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               <p>{error}</p>
             </div>
           ) : null}
-
-          <div className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/[0.06] px-3 py-2 text-xs font-semibold text-primary lg:hidden">
-            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground shadow-sm">
-              {activeCheckoutStep}
-            </span>
-            {activeCheckoutStep === 1
-              ? "Delivery details"
-              : activeCheckoutStep === 2
-                ? "Review order"
-                : "Confirm & pay"}
-          </div>
 
           {shippingLocked && !isEditingShipping ? (
             <ShopShippingSummaryCard
@@ -1384,14 +1348,14 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
           {showShippingForm ? (
             <>
-          <div className={cn(CHECKOUT_CARD, "p-4 sm:p-5")}>
+          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
             <SectionHeader
-              icon={<User className="size-4" aria-hidden />}
+              icon={<User className="size-3.5" aria-hidden />}
               title="Contact information"
               subtitle="Enter the details the store can use to confirm and update your order."
             />
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <InputField
                   label="Email address"
@@ -1445,7 +1409,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
           </div>
 
           {contactFieldsComplete && !signedIn ? (
-            <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-3 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">
                   Track this order next time
@@ -1479,20 +1443,20 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </div>
           ) : null}
 
-          <div className={cn(CHECKOUT_CARD, "p-4 sm:p-5")}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <SectionHeader
-                icon={<MapPin className="size-4" aria-hidden />}
+                icon={<MapPin className="size-3.5" aria-hidden />}
                 title="Delivery location"
                 subtitle="Select your area and add a precise address so the rider can find you quickly."
               />
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-950">
+              <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-950">
                 <Truck className="size-3.5" aria-hidden />
                 Supported area only
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
               <SelectField
                 label="County"
                 value={county}
@@ -1577,7 +1541,8 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
         <section
           className={cn(
-            "min-w-0 max-w-full p-4 sm:p-5 lg:sticky lg:top-6 lg:overflow-hidden",
+            "min-w-0 max-w-full lg:sticky lg:top-14 lg:overflow-hidden",
+            CHECKOUT_CARD_PAD,
             CHECKOUT_CARD,
             !showReviewOnMobile && "max-lg:hidden",
           )}
@@ -1587,29 +1552,23 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               contact={shippingSummary}
               onEdit={startEditingShipping}
               compact
-              className="mb-4 lg:hidden"
+              className="mb-2.5 lg:hidden"
             />
           ) : null}
 
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
-                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
-                  2
-                </span>
-                Review
-              </div>
-              <h3 className="text-base font-semibold tracking-tight text-foreground">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">
                 Review your order
               </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 {cart.lines.length} {cart.lines.length === 1 ? "item" : "items"}{" "}
                 in your cart
               </p>
             </div>
             <Link
               href={APP_ROUTES.shopCart}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
             >
               Edit cart
             </Link>
@@ -1624,9 +1583,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             {cart.lines.map((line) => (
               <div
                 key={line.itemId}
-                className="flex w-full min-w-0 gap-3 p-3 lg:p-2.5"
+                className="flex w-full min-w-0 gap-2.5 p-2.5"
               >
-                <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/40 lg:size-12">
+                <div className="relative size-11 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/40">
                   {line.imageUrl ? (
                     <Image
                       src={line.imageUrl}
@@ -1645,7 +1604,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-medium leading-snug">
+                  <p className="line-clamp-2 text-[13px] font-medium leading-snug">
                     {line.name}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -1657,31 +1616,29 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                     ) : null}
                   </div>
                 </div>
-                <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                <p className="shrink-0 text-right text-[13px] font-semibold tabular-nums text-foreground">
                   {formatDisplayPrice(cart.currency, line.lineTotal ?? 0)}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className={cn(CHECKOUT_CARD_INSET, "mt-4 border-dashed p-3")}>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              Promo code
-            </p>
-            <div className="mt-2 flex gap-2">
+          <div className={cn(CHECKOUT_CARD_INSET, "mt-3 border-dashed p-2.5")}>
+            <p className={CHECKOUT_LABEL}>Promo code</p>
+            <div className="mt-1.5 flex gap-1.5">
               <input
                 type="text"
                 disabled
                 placeholder="Coming soon"
-                className="h-9 flex-1 rounded-lg border border-border bg-background/50 px-3 text-sm opacity-60"
+                className="h-9 flex-1 rounded-lg border border-border bg-background/50 px-2.5 text-[13px] opacity-60"
               />
-              <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" disabled>
+              <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 px-2.5 text-xs" disabled>
                 Apply
               </Button>
             </div>
           </div>
 
-          <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+          <div className="mt-3 space-y-1.5 border-t border-border/60 pt-3 text-[13px]">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-semibold tabular-nums text-foreground">
@@ -1710,27 +1667,14 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             id="checkout-terms"
             className={cn(
               CHECKOUT_CARD_INSET,
-              "mt-5 scroll-mt-[calc(var(--shop-checkout-dock-height,12rem)+1.5rem)] space-y-3 p-3 max-lg:pb-2",
+              "mt-3 scroll-mt-[calc(var(--shop-checkout-dock-height,10rem)+1rem)] space-y-2.5 p-2.5 max-lg:pb-1",
             )}
           >
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-primary lg:hidden">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">
-                3
-              </span>
-              Confirm order
+            <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+              <ShieldCheck className="size-3.5 text-primary" aria-hidden />
+              <h4 className="text-xs font-semibold text-foreground">Confirm order</h4>
             </div>
-            <div className="hidden items-center gap-2 border-b border-border pb-3 sm:flex">
-              <ShieldCheck className="size-4 text-primary" aria-hidden />
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">
-                  Confirm order
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Accept the store terms before placing your request.
-                </p>
-              </div>
-            </div>
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/50 bg-background/80 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/50 bg-background/80 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
               <input
                 type="checkbox"
                 className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
@@ -1767,27 +1711,24 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             </Button>
           </div>
 
-          <div className="mt-3 hidden gap-2 border-t border-border/40 pt-3 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-3">
-            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
-              <Lock className="size-3.5" aria-hidden />
+          <p className="mt-2 hidden items-center justify-center gap-3 text-[10px] font-medium text-muted-foreground sm:flex">
+            <span className="inline-flex items-center gap-1">
+              <Lock className="size-3" aria-hidden />
               Secure
             </span>
-            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
-              <Zap className="size-3.5" aria-hidden />
-              Fast
+            <span className="text-border">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Zap className="size-3" aria-hidden />
+              Fast checkout
             </span>
-            <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2">
-              <ShieldCheck className="size-3.5" aria-hidden />
-              Protected
-            </span>
-          </div>
+          </p>
         </section>
         </div>
         <CheckoutScrollEndSpacer />
         </div>
 
         <ConfirmationFloatingDock ariaLabel="Checkout actions">
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {showFloatingPayment ? (
               <ShopCheckoutPaymentSection
                 variant="floating"
@@ -1815,7 +1756,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                     <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                       Total due
                     </p>
-                    <p className={cn(CHECKOUT_SERIF_AMOUNT, "text-lg leading-tight")}>
+                    <p className={cn(CHECKOUT_SERIF_AMOUNT, "leading-tight")}>
                       {totalLabel}
                     </p>
                   </div>
@@ -1864,16 +1805,16 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                     </p>
                   ) : null}
                   {floatingCheckout.headline ? (
-                    <p className="mt-1 text-[15px] font-semibold leading-snug text-foreground">
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
                       {floatingCheckout.headline}
                     </p>
                   ) : null}
                   {floatingCheckout.hint ? (
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                       {floatingCheckout.hint}
                     </p>
                   ) : null}
-                  <div className="mt-3 flex items-end gap-3 border-t border-border/50 pt-3">
+                  <div className="mt-2 flex items-end gap-2 border-t border-border/50 pt-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                         Cart total

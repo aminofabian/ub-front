@@ -114,18 +114,21 @@ export function ShopStorefrontChrome({
 
   return (
     <ShopCartProvider slug={slug}>
-      <ShopUtilityBar
-        primaryHex={primaryHex}
-        locationHint={locationHint}
-        className="hidden sm:block"
-      />
-      <ShopHeaderBar
-        slug={slug}
-        headerTitle={headerTitle}
-        logoUrl={logoUrl}
-        primaryHex={primaryHex}
-        hideSearch={compactChrome}
-      />
+      {!compactChrome ? (
+        <>
+          <ShopUtilityBar
+            primaryHex={primaryHex}
+            locationHint={locationHint}
+            className="hidden sm:block"
+          />
+          <ShopHeaderBar
+            slug={slug}
+            headerTitle={headerTitle}
+            logoUrl={logoUrl}
+            primaryHex={primaryHex}
+          />
+        </>
+      ) : null}
       {!compactChrome ? (
         <Suspense fallback={<RailFallback />}>
           <ShopCategoryRail

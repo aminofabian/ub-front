@@ -16,6 +16,8 @@ type Props = {
   className?: string;
   /** Tighter stepper for mobile checkout */
   compact?: boolean;
+  /** Checkout header: smaller circles; hide inactive labels on narrow screens */
+  dense?: boolean;
 };
 
 export function CheckoutProgressSteps({
@@ -23,12 +25,14 @@ export function CheckoutProgressSteps({
   complete = false,
   className,
   compact = false,
+  dense = false,
 }: Props) {
+  const tight = compact || dense;
   return (
     <ol
       className={cn(
         "flex w-full min-w-0 items-center",
-        compact ? "max-w-full gap-0" : "max-w-xl",
+        tight ? "max-w-full gap-0" : "max-w-xl",
         className,
       )}
       aria-label="Checkout progress"
@@ -44,16 +48,16 @@ export function CheckoutProgressSteps({
             <div
               className={cn(
                 "flex items-center",
-                compact ? "gap-1" : "flex-col gap-2 sm:flex-row sm:gap-2.5",
+                tight ? (dense ? "gap-0.5" : "gap-1") : "flex-col gap-2 sm:flex-row sm:gap-2.5",
               )}
             >
               <div
                 className={cn(
                   "flex shrink-0 items-center justify-center rounded-full font-semibold transition-colors",
-                  compact ? "size-6 text-[10px]" : "size-9 text-sm",
+                  dense ? "size-5 text-[9px]" : tight ? "size-5 text-[10px]" : "size-9 text-sm",
                   complete &&
                     isDone &&
-                    (compact
+                    (tight
                       ? "bg-emerald-600 text-white dark:bg-emerald-500"
                       : "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/25 dark:bg-emerald-500 dark:ring-emerald-400/30"),
                   !complete &&
@@ -61,19 +65,21 @@ export function CheckoutProgressSteps({
                     "bg-emerald-600 text-white shadow-sm dark:bg-emerald-500",
                   isCurrent &&
                     !isDone &&
-                    (compact
-                      ? "bg-primary text-primary-foreground ring-2 ring-primary/20"
+                    (tight
+                      ? "bg-primary text-primary-foreground ring-1 ring-primary/25"
                       : "bg-primary text-primary-foreground shadow-md ring-4 ring-primary/15"),
                   !isDone &&
                     !isCurrent &&
-                    (compact
+                    (tight
                       ? "border border-border/60 bg-background text-muted-foreground"
                       : "border-2 border-border bg-muted/50 text-muted-foreground"),
                 )}
               >
                 {isDone ? (
                   <Check
-                    className={compact ? "size-3 stroke-[3]" : "size-4 stroke-[3]"}
+                    className={
+                      dense ? "size-2.5 stroke-[3]" : tight ? "size-3 stroke-[3]" : "size-4 stroke-[3]"
+                    }
                     aria-hidden
                   />
                 ) : (
@@ -83,9 +89,11 @@ export function CheckoutProgressSteps({
               <span
                 className={cn(
                   "whitespace-nowrap font-semibold",
-                  compact
+                  tight
                     ? "text-[10px] leading-none"
                     : "text-center text-xs sm:text-sm",
+                  dense && !isCurrent && !isDone && "max-sm:hidden",
+                  dense && isDone && "max-sm:hidden",
                   complete &&
                     isDone &&
                     "text-emerald-700 dark:text-emerald-400",
@@ -103,10 +111,10 @@ export function CheckoutProgressSteps({
               <div
                 className={cn(
                   "min-h-px flex-1 rounded-full",
-                  compact ? "mx-0.5 min-w-2" : "mx-1 min-w-[0.75rem] sm:mx-2",
+                  tight ? "mx-0.5 min-w-1.5" : "mx-1 min-w-[0.75rem] sm:mx-2",
                   complete && connectorAfterDone
-                    ? compact
-                      ? "h-0.5 bg-emerald-500/90"
+                    ? tight
+                      ? "h-px bg-emerald-500/90"
                       : "h-0.5 bg-emerald-500"
                     : connectorAfterDone
                       ? "h-0.5 bg-emerald-500/60"

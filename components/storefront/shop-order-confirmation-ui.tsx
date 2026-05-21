@@ -30,14 +30,14 @@ export function ConfirmationTopProgress({
   complete?: boolean;
 }) {
   return (
-    <div className="shrink-0 border-b border-border/40 bg-muted/25 px-3 py-2.5 backdrop-blur-sm max-lg:py-2">
-      <CheckoutProgressSteps complete={complete} compact />
+    <div className="shrink-0 border-b border-border/35 bg-background/90 px-2.5 py-1.5 backdrop-blur-md">
+      <CheckoutProgressSteps complete={complete} compact dense />
     </div>
   );
 }
 /** Single scroll surface; bottom pad tracks the fixed dock via --shop-checkout-dock-height */
 export const CONFIRMATION_SCROLL =
-  "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-[calc(var(--shop-checkout-dock-height,11rem)+env(safe-area-inset-bottom,0px)+0.5rem)] [-webkit-overflow-scrolling:touch] lg:pb-[calc(var(--shop-checkout-dock-height,10rem)+0.5rem)]";
+  "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-[calc(var(--shop-checkout-dock-height,9.5rem)+env(safe-area-inset-bottom,0px)+0.35rem)] [-webkit-overflow-scrolling:touch] lg:pb-[calc(var(--shop-checkout-dock-height,9rem)+0.35rem)]";
 
 export function ConfirmationFloatingDock({
   children,
@@ -58,21 +58,21 @@ export function ConfirmationFloatingDock({
         id={SHOP_CHECKOUT_DOCK_ID}
         className={cn(
           "pointer-events-auto w-full max-w-lg",
-          "rounded-t-[1.75rem] border border-b-0 border-border/40",
-          "bg-linear-to-t from-background/98 via-background/94 to-background/88",
-          "shadow-[0_-20px_50px_-12px_rgba(15,23,42,0.18)]",
-          "ring-1 ring-black/[0.04] backdrop-blur-xl backdrop-saturate-150",
-          "supports-[backdrop-filter]:bg-background/82",
-          "sm:mb-6 sm:max-w-[24rem] sm:rounded-2xl sm:border sm:shadow-[0_24px_48px_-12px_rgba(15,23,42,0.2)]",
+          "rounded-t-2xl border border-b-0 border-border/35",
+          "bg-linear-to-t from-background/98 via-background/95 to-background/90",
+          "shadow-[0_-12px_36px_-10px_rgba(15,23,42,0.14)]",
+          "ring-1 ring-black/[0.03] backdrop-blur-lg backdrop-saturate-150",
+          "supports-[backdrop-filter]:bg-background/88",
+          "sm:mb-4 sm:max-w-[22rem] sm:rounded-xl sm:border sm:shadow-lg",
         )}
       >
         <div
-          className="flex justify-center pt-2 pb-0.5 sm:hidden"
+          className="flex justify-center pt-1.5 pb-0 sm:hidden"
           aria-hidden
         >
           <span className="h-1 w-9 rounded-full bg-foreground/12" />
         </div>
-        <div className="min-w-0 space-y-1.5 px-3 pt-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:space-y-2 sm:p-3">
+        <div className="min-w-0 space-y-1 px-2.5 pt-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:space-y-1.5 sm:p-2.5">
           {children}
         </div>
       </div>
