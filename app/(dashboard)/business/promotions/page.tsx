@@ -255,6 +255,7 @@ export default function PromoCampaignsPage() {
       <div className="space-y-8">
         <DashboardPageHero
           icon={Megaphone}
+          eyebrow="Business"
           title="Promotions"
           description="Reach registered shoppers with flash sales and weekly deals. Quiet hours and daily limits still apply."
         />
