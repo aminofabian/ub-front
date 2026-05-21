@@ -25,7 +25,7 @@ export const CONFIRMATION_VIEWPORT =
   "flex h-full min-h-0 flex-1 flex-col overflow-hidden";
 /** Single scroll surface; bottom pad tracks the fixed dock via --shop-checkout-dock-height */
 export const CONFIRMATION_SCROLL =
-  "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-[calc(var(--shop-checkout-dock-height,22rem)+env(safe-area-inset-bottom,0px)+1rem)] [-webkit-overflow-scrolling:touch] lg:pb-[calc(var(--shop-checkout-dock-height,12rem)+1rem)]";
+  "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-[calc(var(--shop-checkout-dock-height,11rem)+env(safe-area-inset-bottom,0px)+0.5rem)] [-webkit-overflow-scrolling:touch] lg:pb-[calc(var(--shop-checkout-dock-height,10rem)+0.5rem)]";
 
 export function ConfirmationFloatingDock({
   children,
@@ -55,12 +55,12 @@ export function ConfirmationFloatingDock({
         )}
       >
         <div
-          className="flex justify-center pt-2.5 pb-1 sm:hidden"
+          className="flex justify-center pt-2 pb-0.5 sm:hidden"
           aria-hidden
         >
-          <span className="h-1 w-10 rounded-full bg-foreground/12" />
+          <span className="h-1 w-9 rounded-full bg-foreground/12" />
         </div>
-        <div className="min-w-0 space-y-2.5 px-3.5 pt-0.5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-4">
+        <div className="min-w-0 space-y-1.5 px-3 pt-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:space-y-2 sm:p-3">
           {children}
         </div>
       </div>
@@ -605,42 +605,32 @@ export function ConfirmationDockActions({
 }) {
   return (
     <ConfirmationFloatingDock ariaLabel="Order actions">
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         {paymentSlot ? (
-          <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border/45 bg-muted/30 p-2.5 shadow-inner shadow-black/[0.02]">
-            {paymentSlot}
-          </div>
+          <div className="min-w-0 max-w-full overflow-hidden">{paymentSlot}</div>
         ) : null}
         {paymentConfirmed ? (
-          <div className="space-y-2.5 text-center">
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              You&apos;re all set — order paid and confirmed.
-            </p>
-            <Button
-              type="button"
-              size="lg"
-              onClick={onReturnToShop}
-              className="h-12 w-full gap-2 rounded-xl text-sm font-semibold shadow-md"
-            >
-              Return to shop
-              <ArrowRight className="size-4" aria-hidden />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            size="lg"
+            onClick={onReturnToShop}
+            className="h-10 w-full gap-1.5 rounded-xl text-sm font-semibold"
+          >
+            Return to shop
+            <ArrowRight className="size-4" aria-hidden />
+          </Button>
         ) : (
-          <div className="space-y-2">
-            <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-              After paying, tap below to refresh your payment status.
-            </p>
+          <div className="space-y-1.5">
             <Button
               type="button"
               size="lg"
               disabled={checkingPayment}
               onClick={onConfirmPayment}
-              className="h-12 w-full gap-2 rounded-xl text-sm font-semibold shadow-md"
+              className="h-10 w-full gap-1.5 rounded-xl text-sm font-semibold"
             >
               {checkingPayment ? (
                 <>
-                  <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Checking…
                 </>
               ) : (
@@ -653,7 +643,7 @@ export function ConfirmationDockActions({
             <button
               type="button"
               onClick={onReturnToShop}
-              className="w-full py-1.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="w-full py-1 text-center text-xs font-medium text-muted-foreground hover:text-foreground"
             >
               Return to shop
             </button>

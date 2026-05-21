@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Smartphone } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import type {
   PublicOnlinePaymentMethod,
@@ -22,6 +20,8 @@ function PaymentSectionHeading({
   compact?: boolean;
   tone?: "emerald" | "primary";
 }) {
+  const showAmount = amountDue && !compact;
+
   return (
     <div className="flex items-start justify-between gap-3">
       <h3
@@ -38,22 +38,12 @@ function PaymentSectionHeading({
       >
         {title}
       </h3>
-      {amountDue ? (
+      {showAmount ? (
         <div className="shrink-0 text-right">
-          <p
-            className={cn(
-              "font-bold uppercase tracking-[0.12em] text-muted-foreground",
-              compact ? "text-[9px]" : "text-[10px]",
-            )}
-          >
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             Amount due
           </p>
-          <p
-            className={cn(
-              "font-serif font-semibold tabular-nums text-foreground",
-              compact ? "text-sm leading-tight" : "text-base",
-            )}
-          >
+          <p className="font-serif text-base font-semibold tabular-nums text-foreground">
             {amountDue}
           </p>
         </div>
@@ -69,11 +59,19 @@ function ManualInstructionCard({
   pi: PublicPaymentInstruction;
   compact?: boolean;
 }) {
+  if (compact && pi.type === "till" && pi.tillNumber) {
+    return (
+      <p className="font-mono text-sm font-bold tabular-nums tracking-wide text-foreground">
+        Till {pi.tillNumber}
+      </p>
+    );
+  }
+
   return (
     <div
       className={cn(
         "rounded-xl border border-emerald-500/15 bg-background/90 shadow-sm ring-1 ring-emerald-500/10 dark:bg-emerald-950/30",
-        compact ? "p-2.5" : "p-3",
+        compact ? "p-2" : "p-3",
       )}
     >
       <p className={cn("font-semibold text-foreground", compact ? "text-xs" : "text-sm")}>
@@ -102,7 +100,7 @@ function ManualInstructionCard({
           <p className="text-muted-foreground">{pi.accountName}</p>
         </div>
       ) : null}
-      {pi.instructions ? (
+      {pi.instructions && !compact ? (
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{pi.instructions}</p>
       ) : null}
     </div>
@@ -145,65 +143,71 @@ function OnlineStkSection({
 
   if (methods.length === 0) return null;
 
+  // Floating dock: no STK UI until the order exists (saves ~half the dock height)
+  if (compact && promptDisabled) return null;
+
   const phoneValid = isStkPhoneValid(areaCode, phone);
   const fullPhone = buildStkPhoneNumber(areaCode, phone);
 
   return (
     <div
       className={cn(
-        "min-w-0 max-w-full space-y-2.5 rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
-        compact ? "p-2.5" : "space-y-3 p-4",
+        "min-w-0 max-w-full rounded-xl border border-primary/20 bg-primary/[0.04] ring-1 ring-primary/10",
+        compact ? "space-y-2 p-2" : "space-y-3 p-4",
       )}
     >
-      <PaymentSectionHeading
-        title={compact ? "M-Pesa prompt" : "Pay with M-Pesa on your phone"}
-        amountDue={amountDue}
-        compact={compact}
-        tone="primary"
-      />
       {!compact ? (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Enter the number that should receive the M-Pesa prompt, then tap send. Approve the
-          request on that phone to complete payment.
-        </p>
+        <>
+          <PaymentSectionHeading
+            title="Pay with M-Pesa on your phone"
+            amountDue={amountDue}
+            compact={false}
+            tone="primary"
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Enter the number that should receive the M-Pesa prompt, then tap send. Approve the
+            request on that phone to complete payment.
+          </p>
+        </>
       ) : (
-        <p className="text-[11px] leading-snug text-muted-foreground">
-          We&apos;ll send a prompt to this number — approve it on your phone.
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90">
+          M-Pesa
         </p>
       )}
-      {promptDisabled && promptDisabledHint ? (
-        <p className="rounded-lg border border-primary/20 bg-background/80 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
-          {promptDisabledHint}
-        </p>
-      ) : null}
       <div
         className={cn(
-          "grid gap-2",
+          "grid gap-1.5",
           compact
-            ? "grid-cols-[88px_minmax(0,1fr)]"
+            ? "grid-cols-[4.5rem_minmax(0,1fr)]"
             : "grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
         )}
       >
-        <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
+        <label className="flex min-w-0 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
           Code
           <input
             type="text"
             inputMode="tel"
             autoComplete="tel-country-code"
-            className="h-10 rounded-lg border border-input bg-background px-3 text-sm shadow-sm"
+            className={cn(
+              "rounded-lg border border-input bg-background px-2 text-sm shadow-sm",
+              compact ? "h-9" : "h-10 px-3",
+            )}
             value={areaCode}
             onChange={(e) => setAreaCode(e.target.value)}
             placeholder="+254"
             disabled={busy || stkSent}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
-          M-Pesa phone number
+        <label className="flex min-w-0 flex-col gap-0.5 text-[10px] font-medium text-muted-foreground">
+          Phone
           <input
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            className="h-10 rounded-lg border border-input bg-background px-3 text-sm shadow-sm"
+            className={cn(
+              "rounded-lg border border-input bg-background px-2 text-sm shadow-sm",
+              compact ? "h-9" : "h-10 px-3",
+            )}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="712 345 678"
@@ -212,52 +216,22 @@ function OnlineStkSection({
         </label>
       </div>
       {!phoneValid && phone.trim() ? (
-        <p className="text-xs text-destructive">Enter a valid Kenyan mobile number.</p>
+        <p className="text-[11px] text-destructive">Invalid number</p>
       ) : null}
       {methods.map((m) => (
-        <div
+        <Button
           key={m.configId}
+          type="button"
+          size="sm"
           className={cn(
-            "min-w-0 rounded-lg border border-border bg-background p-3",
-            compact
-              ? "flex flex-col gap-2.5"
-              : "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+            "h-9 w-full rounded-lg text-xs font-semibold",
+            !compact && "sm:w-auto sm:self-end",
           )}
+          disabled={busy || stkSent || !phoneValid || promptDisabled}
+          onClick={() => onPay(m.configId, fullPhone)}
         >
-          {!compact ? (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
-                <Smartphone className="size-4" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  {m.label ?? m.displayName}
-                </p>
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {m.displayName}
-                </p>
-              </div>
-            </div>
-          ) : null}
-          <Button
-            type="button"
-            size={compact ? "default" : "sm"}
-            className={cn(
-              "h-10 rounded-xl text-sm font-semibold",
-              compact ? "w-full max-w-full px-4" : "shrink-0 px-4",
-            )}
-            disabled={busy || stkSent || !phoneValid || promptDisabled}
-            onClick={() => onPay(m.configId, fullPhone)}
-          >
-            {busy
-              ? "Sending…"
-              : stkSent
-                ? "Prompt sent"
-                : promptDisabled && compact
-                  ? "Send after placing order"
-                  : "Send M-Pesa prompt"}
-          </Button>
-        </div>
+          {busy ? "Sending…" : stkSent ? "Prompt sent" : "Send prompt"}
+        </Button>
       ))}
       {stkMessage ? (
         <p
@@ -314,21 +288,24 @@ export function ShopCheckoutPaymentSection({
   const manualBlock = hasManual ? (
     <div
       className={cn(
-        "space-y-2.5 rounded-xl border border-emerald-500/20 bg-linear-to-br from-emerald-50/90 to-emerald-50/30 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-950/10",
-        floating ? "p-2.5" : "space-y-3 p-4",
+        floating
+          ? "space-y-1 rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-2 py-1.5"
+          : "space-y-2.5 rounded-xl border border-emerald-500/20 bg-linear-to-br from-emerald-50/90 to-emerald-50/30 p-4 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-950/10",
       )}
     >
-      <PaymentSectionHeading
-        title={
-          floating && orderPlaced
-            ? "Pay to till"
-            : hasOnline && onStkPay
-              ? "Or pay manually"
-              : "How to pay"
-        }
-        amountDue={amountDue}
-        compact={floating}
-      />
+      {!floating ? (
+        <PaymentSectionHeading
+          title={
+            hasOnline && onStkPay ? "Or pay manually" : "How to pay"
+          }
+          amountDue={amountDue}
+          compact={false}
+        />
+      ) : (
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800/80 dark:text-emerald-300/90">
+          {hasOnline && onStkPay && orderPlaced ? "Or till" : "Till"}
+        </p>
+      )}
       {manual.map((pi) => (
         <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
       ))}
@@ -348,16 +325,12 @@ export function ShopCheckoutPaymentSection({
         compact={floating}
         amountDue={amountDue}
         promptDisabled={stkPromptDisabled}
-        promptDisabledHint={
-          stkPromptDisabled
-            ? "Tap Complete purchase below — we'll send the M-Pesa prompt to this number right after your order is placed."
-            : undefined
-        }
+        promptDisabledHint={undefined}
       />
     ) : null;
 
   return (
-    <div className={cn("min-w-0 max-w-full space-y-3", floating && "space-y-2")}>
+    <div className={cn("min-w-0 max-w-full", floating ? "space-y-1.5" : "space-y-3")}>
       {showManualFirst ? (
         <>
           {manualBlock}

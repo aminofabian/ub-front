@@ -43,7 +43,7 @@ export function CheckoutScrollEndSpacer() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none h-8 shrink-0 max-lg:block lg:hidden"
+      className="pointer-events-none h-4 shrink-0 max-lg:block lg:hidden"
     />
   );
 }

@@ -192,10 +192,26 @@ function parseNotesToPrefill(notes: string): Partial<CheckoutPrefill> {
 function CheckoutFloatingCta({
   children,
   pulse,
+  minimal,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   pulse?: boolean;
+  /** Compact bar: total + action only (floating dock) */
+  minimal?: boolean;
 }) {
+  if (minimal) {
+    return (
+      <div
+        className={cn(
+          "rounded-xl border border-border/45 bg-card/95 p-2.5 ring-1 ring-black/[0.03]",
+          pulse && "ring-2 ring-primary/25",
+        )}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -963,7 +979,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
                 stkSent={stkSent}
                 onStkPay={handleStkPay}
                 orderPlaced
-                amountDue={total}
               />
             ) : undefined
           }
@@ -1069,7 +1084,6 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
               stkSent={stkSent}
               onStkPay={handleStkPay}
               orderPlaced
-              amountDue={placedTotal}
             />
           }
         />
@@ -1287,14 +1301,9 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             pulse: false,
           }
         : {
-            eyebrow: "You're all set",
-            headline: "Tap here to complete your purchase",
-            hint:
-              showFloatingPayment && paymentOptions.online.length > 0
-                ? "Send the M-Pesa prompt above, or use the till — then tap Complete purchase."
-                : showFloatingPayment
-                  ? "Use the till above, then tap Complete purchase."
-                  : `${totalLabel} will be submitted to the store for pickup.`,
+            eyebrow: "",
+            headline: "",
+            hint: "",
             actionLabel: "Complete purchase",
             actionDisabled: false,
             actionType: "submit" as const,
@@ -1858,84 +1867,114 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         </div>
 
         <ConfirmationFloatingDock ariaLabel="Checkout actions">
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             {showFloatingPayment ? (
-              <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border/50 bg-muted/20 p-2.5">
-                <ShopCheckoutPaymentSection
-                  variant="floating"
-                  manual={paymentOptions.manual}
-                  online={paymentOptions.online}
-                  defaultAreaCode={areaCode}
-                  defaultPhone={customerPhone}
-                  stkBusy={stkBusy}
-                  stkMessage={stkMessage}
-                  stkSent={stkSent}
-                  onStkPay={
-                    paymentOptions.online.length > 0 ? handleStkPay : undefined
-                  }
-                  orderPlaced={Boolean(done)}
-                  amountDue={totalLabel}
-                />
-              </div>
+              <ShopCheckoutPaymentSection
+                variant="floating"
+                manual={paymentOptions.manual}
+                online={paymentOptions.online}
+                defaultAreaCode={areaCode}
+                defaultPhone={customerPhone}
+                stkBusy={stkBusy}
+                stkMessage={stkMessage}
+                stkSent={stkSent}
+                onStkPay={
+                  paymentOptions.online.length > 0 ? handleStkPay : undefined
+                }
+                orderPlaced={Boolean(done)}
+              />
             ) : null}
 
-            <CheckoutFloatingCta pulse={floatingCheckout.pulse}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
-                {floatingCheckout.eyebrow}
-              </p>
-              <p className="mt-1 text-[15px] font-semibold leading-snug text-foreground">
-                {floatingCheckout.headline}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {floatingCheckout.hint}
-              </p>
-
-              <div className="mt-3 flex items-end gap-3 border-t border-border/50 pt-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    {showShippingForm ? "Cart total" : "Total due"}
-                  </p>
-                  <p className="font-serif text-xl font-semibold tabular-nums tracking-tight text-foreground">
-                    {totalLabel}
-                  </p>
+            <CheckoutFloatingCta
+              pulse={floatingCheckout.pulse}
+              minimal={!showShippingForm}
+            >
+              {!showShippingForm ? (
+                <div className="flex items-center gap-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Total due
+                    </p>
+                    <p className="text-lg font-bold tabular-nums leading-tight text-foreground">
+                      {totalLabel}
+                    </p>
+                  </div>
+                  {floatingCheckout.actionType === "button" ? (
+                    <Button
+                      type="button"
+                      size="lg"
+                      disabled={floatingCheckout.actionDisabled}
+                      className="h-10 shrink-0 gap-1 rounded-xl px-4 text-sm font-semibold"
+                      onClick={floatingCheckout.onAction}
+                    >
+                      {floatingCheckout.actionLabel}
+                      <ArrowRight className="size-4" aria-hidden />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={
+                        floatingCheckout.actionDisabled ||
+                        busy ||
+                        !termsAccepted ||
+                        !shippingLocked
+                      }
+                      className="h-10 shrink-0 gap-1 rounded-xl px-4 text-sm font-semibold"
+                    >
+                      {busy ? (
+                        <>
+                          <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          Placing…
+                        </>
+                      ) : (
+                        <>
+                          {floatingCheckout.actionLabel}
+                          <ArrowRight className="size-4" aria-hidden />
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
-                {floatingCheckout.actionType === "button" ? (
-                  <Button
-                    type="button"
-                    size="lg"
-                    disabled={floatingCheckout.actionDisabled}
-                    className="h-11 shrink-0 gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-md"
-                    onClick={floatingCheckout.onAction}
-                  >
-                    {floatingCheckout.actionLabel}
-                    <ArrowRight className="size-4" aria-hidden />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={
-                      floatingCheckout.actionDisabled ||
-                      busy ||
-                      !termsAccepted ||
-                      !shippingLocked
-                    }
-                    className="h-11 shrink-0 gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-md"
-                  >
-                    {busy ? (
-                      <>
-                        <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Placing…
-                      </>
-                    ) : (
-                      <>
-                        {floatingCheckout.actionLabel}
-                        <ArrowRight className="size-4" aria-hidden />
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
+              ) : (
+                <>
+                  {floatingCheckout.eyebrow ? (
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
+                      {floatingCheckout.eyebrow}
+                    </p>
+                  ) : null}
+                  {floatingCheckout.headline ? (
+                    <p className="mt-1 text-[15px] font-semibold leading-snug text-foreground">
+                      {floatingCheckout.headline}
+                    </p>
+                  ) : null}
+                  {floatingCheckout.hint ? (
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {floatingCheckout.hint}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex items-end gap-3 border-t border-border/50 pt-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                        Cart total
+                      </p>
+                      <p className="font-serif text-xl font-semibold tabular-nums tracking-tight text-foreground">
+                        {totalLabel}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="lg"
+                      disabled={floatingCheckout.actionDisabled}
+                      className="h-11 shrink-0 gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-md"
+                      onClick={floatingCheckout.onAction}
+                    >
+                      {floatingCheckout.actionLabel}
+                      <ArrowRight className="size-4" aria-hidden />
+                    </Button>
+                  </div>
+                </>
+              )}
             </CheckoutFloatingCta>
           </div>
         </ConfirmationFloatingDock>
