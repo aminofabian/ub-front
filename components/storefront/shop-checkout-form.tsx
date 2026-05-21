@@ -1237,9 +1237,11 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
 
   const showShippingForm = !shippingLocked || isEditingShipping;
   const showReviewOnMobile = shippingLocked && !isEditingShipping;
+  /** Payment in the dock only on confirm (step 3), not while reviewing cart/terms */
   const showFloatingPayment =
     shippingLocked &&
     !isEditingShipping &&
+    termsAccepted &&
     (paymentOptions.manual.length > 0 || paymentOptions.online.length > 0);
 
   const scrollToCheckoutTerms = () => {
