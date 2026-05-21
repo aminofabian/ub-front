@@ -160,7 +160,22 @@ export default function PromoCampaignsPage() {
       .catch(() => setBranches([]));
   }, [allowed, load]);
 
-  const buildPayload = (schedule: boolean) => {
+  type CampaignCreatePayload = {
+    name: string;
+    campaignType: "FLASH_SALE" | "WEEKLY_DEALS";
+    title: string;
+    body: string;
+    actionUrl: string;
+    recipientScope: NotificationCampaignRecipientScope;
+    catalogBranchId?: string;
+    scheduledAt?: string;
+  };
+
+  type BuildPayloadResult =
+    | { error: string }
+    | { payload: CampaignCreatePayload };
+
+  const buildPayload = (schedule: boolean): BuildPayloadResult => {
     if (!name.trim() || !title.trim() || !body.trim()) {
       return { error: "Give your campaign a name, a headline, and a short message." };
     }
