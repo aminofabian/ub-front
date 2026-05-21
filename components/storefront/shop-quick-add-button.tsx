@@ -196,10 +196,10 @@ export function ShopQuickAddButton({
   }
 
   const stepBtn = cn(
-    "inline-flex items-center justify-center rounded-full transition-all duration-200",
-    "text-foreground/70 hover:bg-background hover:text-foreground hover:shadow-sm",
-    "active:scale-90 disabled:pointer-events-none disabled:opacity-35",
-    compact ? "size-7" : "size-8",
+    "inline-flex items-center justify-center transition-colors duration-150",
+    "text-foreground/65 hover:bg-muted/80 hover:text-foreground",
+    "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35",
+    compact ? "size-6 rounded-md" : "size-8 rounded-full hover:shadow-sm",
   );
 
   return (
@@ -212,18 +212,43 @@ export function ShopQuickAddButton({
       {inCart ? (
         <div
           className={cn(
-            "flex w-full items-center justify-between gap-2 rounded-2xl border border-emerald-500/25 bg-linear-to-r from-emerald-500/12 via-emerald-400/8 to-transparent p-1.5 pl-2.5 shadow-sm transition-all duration-500",
-            justAdded && "animate-shop-cart-added ring-2 ring-emerald-400/35",
+            "flex w-full items-center justify-between gap-1.5 border border-primary/20 bg-primary/[0.06] transition-all duration-300",
+            compact ? "rounded-md p-1 pl-1.5" : "gap-2 rounded-2xl p-1.5 pl-2.5 shadow-sm",
+            !compact &&
+              "border-emerald-500/25 bg-linear-to-r from-emerald-500/12 via-emerald-400/8 to-transparent",
+            justAdded &&
+              (compact
+                ? "animate-shop-cart-added ring-1 ring-primary/30"
+                : "animate-shop-cart-added ring-2 ring-emerald-400/35"),
           )}
         >
-          <span className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300">
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
-              <Check className="size-3 stroke-[3]" aria-hidden />
+          <span
+            className={cn(
+              "flex min-w-0 items-center gap-1 font-semibold",
+              compact
+                ? "text-[10px] text-primary"
+                : "gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300",
+            )}
+          >
+            <span
+              className={cn(
+                "flex shrink-0 items-center justify-center text-white",
+                compact
+                  ? "size-4 rounded-md bg-primary"
+                  : "size-5 rounded-full bg-emerald-600 shadow-sm",
+              )}
+            >
+              <Check className={compact ? "size-2.5 stroke-[3]" : "size-3 stroke-[3]"} aria-hidden />
             </span>
-            <span className="truncate">In bag</span>
+            <span className="truncate">{compact ? "In cart" : "In bag"}</span>
           </span>
 
-          <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border/60 bg-background/95 p-0.5 shadow-sm backdrop-blur-sm">
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-0.5 border border-border/50 bg-background p-0.5",
+              compact ? "rounded-md" : "gap-0.5 rounded-full shadow-sm backdrop-blur-sm",
+            )}
+          >
             <button
               type="button"
               className={stepBtn}
@@ -239,7 +264,8 @@ export function ShopQuickAddButton({
             <span
               key={`cart-${qtyBump}`}
               className={cn(
-                "min-w-7 px-1 text-center text-sm font-bold tabular-nums text-foreground animate-shop-qty-pop",
+                "px-1 text-center font-bold tabular-nums text-foreground animate-shop-qty-pop",
+                compact ? "min-w-6 text-xs" : "min-w-7 text-sm",
               )}
               aria-live="polite"
             >
@@ -262,12 +288,19 @@ export function ShopQuickAddButton({
       ) : (
         <div
           className={cn(
-            "flex w-full items-stretch gap-1 rounded-2xl border border-border/50 bg-muted/30 p-1 shadow-sm backdrop-blur-sm transition-all duration-300",
-            "hover:border-border hover:bg-muted/45 hover:shadow-md",
-            justAdded && "animate-shop-cart-added border-primary/30",
+            "flex w-full items-stretch gap-1 border border-border/55 bg-muted/25 transition-all duration-200",
+            compact
+              ? "rounded-md p-0.5 hover:border-border/80 hover:bg-muted/35"
+              : "gap-1 rounded-2xl p-1 shadow-sm backdrop-blur-sm hover:border-border hover:bg-muted/45 hover:shadow-md",
+            justAdded && "animate-shop-cart-added border-primary/35",
           )}
         >
-          <div className="flex flex-1 items-center justify-between gap-0.5 rounded-xl bg-background/90 px-0.5 py-0.5 shadow-inner ring-1 ring-black/[0.03]">
+          <div
+            className={cn(
+              "flex flex-1 items-center justify-between gap-0.5 bg-background",
+              compact ? "rounded-[5px] px-0.5" : "rounded-xl px-0.5 py-0.5 shadow-inner ring-1 ring-black/[0.03]",
+            )}
+          >
             <button
               type="button"
               className={stepBtn}
@@ -281,24 +314,34 @@ export function ShopQuickAddButton({
               <Minus className="size-3.5" aria-hidden />
             </button>
 
-            <div className="relative flex flex-col items-center px-0.5">
+            <div
+              className={cn(
+                "relative flex items-center justify-center px-0.5",
+                compact ? "min-w-6" : "min-w-8 flex-col",
+              )}
+            >
               <span
                 key={`pick-${qtyBump}`}
-                className="text-sm font-bold tabular-nums leading-none text-foreground animate-shop-qty-pop"
+                className={cn(
+                  "font-bold tabular-nums leading-none text-foreground animate-shop-qty-pop",
+                  compact ? "text-xs" : "text-sm",
+                )}
                 aria-live="polite"
               >
                 {pickQty}
               </span>
-              {pickQty > 1 ? (
-                <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-primary/80">
-                  <Sparkles className="size-2.5" aria-hidden />
-                  pack
-                </span>
-              ) : (
-                <span className="mt-0.5 text-[9px] font-medium text-muted-foreground/70">
-                  qty
-                </span>
-              )}
+              {!compact ? (
+                pickQty > 1 ? (
+                  <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-primary/80">
+                    <Sparkles className="size-2.5" aria-hidden />
+                    pack
+                  </span>
+                ) : (
+                  <span className="mt-0.5 text-[9px] font-medium text-muted-foreground/70">
+                    qty
+                  </span>
+                )
+              ) : null}
             </div>
 
             <button
@@ -324,9 +367,11 @@ export function ShopQuickAddButton({
               void addPickQty();
             }}
             className={cn(
-              "group relative flex shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-xl px-3 font-bold text-white shadow-md transition-all duration-300",
-              "hover:shadow-lg hover:brightness-105 active:scale-[0.97] disabled:opacity-60",
-              compact ? "min-h-8 text-[11px]" : "min-h-9 text-xs",
+              "group relative flex shrink-0 items-center justify-center overflow-hidden font-semibold text-white transition-all duration-200",
+              "hover:brightness-105 active:scale-[0.98] disabled:opacity-60",
+              compact
+                ? "min-h-7 gap-1 rounded-md px-2 text-[10px] shadow-sm"
+                : "min-h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-md hover:shadow-lg",
               !accent && "bg-primary",
             )}
             style={accentStyle(accent)}
@@ -336,9 +381,14 @@ export function ShopQuickAddButton({
               aria-hidden
             />
             {busy ? (
-              <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              <span
+                className={cn(
+                  "animate-spin rounded-full border-2 border-white/40 border-t-white",
+                  compact ? "size-3" : "size-3.5",
+                )}
+              />
             ) : (
-              <ShoppingBag className="relative size-3.5" aria-hidden />
+              <ShoppingBag className={cn("relative", compact ? "size-3" : "size-3.5")} aria-hidden />
             )}
             <span className="relative">Add</span>
           </button>
