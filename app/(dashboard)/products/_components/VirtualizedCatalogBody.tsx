@@ -9,6 +9,7 @@ import { kioskCategoryPillClass } from "@/components/cashier/kiosk-listing-style
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { formatStockLabel } from "../_utils";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import {
   buildCatalogRowMeta,
@@ -180,7 +181,16 @@ export function VirtualizedCatalogBody({
               const listThumb = itemListThumbnailUrl(row);
               const active = isRowActive(row);
               const optionLabel = row.variantName?.trim();
-              const stock = catalogStockTone(row.stockQty);
+              const stockTone = catalogStockTone(row.stockQty);
+              const stock =
+                row.packageVariant ||
+                (row.packageUnitsPerSale != null &&
+                  Number(row.packageUnitsPerSale) > 1)
+                  ? {
+                      ...stockTone,
+                      label: formatStockLabel(row),
+                    }
+                  : stockTone;
               const isGroup = meta.kind === "group";
               const isVariant = meta.kind === "variant";
               const isParentRow = !isVariant;

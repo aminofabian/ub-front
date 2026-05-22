@@ -131,7 +131,11 @@ export function useCatalogList(catalogBranchId?: string | null) {
           imageKey: row.imageKey,
           active: row.active,
           webPublished: row.webPublished,
-          stockQty: row.currentStock ?? existing.stockQty,
+          stockQty: row.stockQty ?? row.currentStock ?? existing.stockQty,
+          packageVariant: row.packageVariant ?? existing.packageVariant,
+          packageUnitsPerSale:
+            row.packageUnitsPerSale ?? existing.packageUnitsPerSale,
+          baseStockQty: row.baseStockQty ?? existing.baseStockQty,
         };
         return next;
       });

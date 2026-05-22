@@ -13,9 +13,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { itemListThumbnailUrl, type ItemSummaryRecord } from "@/lib/api";
+import {
+  fetchItemById,
+  itemListThumbnailUrl,
+  type ItemSummaryRecord,
+} from "@/lib/api";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
-import { cashierItemPrimaryLabel, posSearchItemDetailLine } from "@/lib/cashier-item-display";
+import {
+  cashierItemPrimaryLabel,
+  isPosPackageSellRow,
+  mergePosItemStockFromDetail,
+  posAvailablePackages,
+  posPackageMaxQuantityHint,
+  posPackageQuantityHint,
+  posSearchItemDetailLine,
+} from "@/lib/cashier-item-display";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
   formatShelfPriceLabel,
@@ -96,49 +108,73 @@ export function CashierProductModal({
   const [unitPrice, setUnitPrice] = useState("");
   /** Caption under product image: loading (…), offline hint, or formatted shelf price. */
   const [shelfCaption, setShelfCaption] = useState("");
+  /** List row enriched with branch detail so package stock (trays vs eggs) is correct. */
+  const [stockItem, setStockItem] = useState<ItemSummaryRecord | null>(null);
 
   useEffect(() => {
     if (!open) {
-       
       setShelfCaption("");
+      setStockItem(null);
       return;
     }
-     
     setQuantity(1);
     setUnitPrice("");
     setShelfCaption("");
+    setStockItem(item);
     if (!item?.id) {
       return;
     }
-    if (!online) {
-      setShelfCaption(uiCopy.modalOfflineShelfHint);
-      return;
-    }
-    setShelfCaption(uiCopy.modalShelfLoading);
     const itemId = item.id;
     const bid = branchId?.trim() || undefined;
     let cancelled = false;
-    void fetchPosShelfPrice(itemId, bid, { businessId, onStaleItem }).then(
-      (rec) => {
+
+    if (online) {
+      void fetchItemById(itemId, { branchId: bid }).then((detail) => {
         if (cancelled) return;
-        if (!rec) {
-          setShelfCaption(uiCopy.modalShelfUnavailable);
-          return;
-        }
-        const label = formatShelfPriceLabel(rec.price, currency);
-        setShelfCaption(label ?? uiCopy.modalShelfNone);
-        const next = shelfPriceToInputString(rec.price);
-        if (next) setUnitPrice(next);
-      },
-    );
+        setStockItem(mergePosItemStockFromDetail(item, detail));
+      });
+      setShelfCaption(uiCopy.modalShelfLoading);
+      void fetchPosShelfPrice(itemId, bid, { businessId, onStaleItem }).then(
+        (rec) => {
+          if (cancelled) return;
+          if (!rec) {
+            setShelfCaption(uiCopy.modalShelfUnavailable);
+            return;
+          }
+          const label = formatShelfPriceLabel(rec.price, currency);
+          setShelfCaption(label ?? uiCopy.modalShelfNone);
+          const next = shelfPriceToInputString(rec.price);
+          if (next) setUnitPrice(next);
+        },
+      );
+    } else {
+      setShelfCaption(uiCopy.modalOfflineShelfHint);
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [open, item?.id, branchId, businessId, onStaleItem, online, currency, uiCopy]);
+  }, [open, item, branchId, businessId, onStaleItem, online, currency, uiCopy]);
 
+  const rowForStock = stockItem ?? item;
   const thumb = useMemo(() => (item ? itemListThumbnailUrl(item) : null), [item]);
   const headerTitle = useMemo(() => (item ? cashierItemPrimaryLabel(item) : ""), [item]);
-  const headerDetail = useMemo(() => (item ? posSearchItemDetailLine(item) : ""), [item]);
+  const headerDetail = useMemo(
+    () => (rowForStock ? posSearchItemDetailLine(rowForStock) : ""),
+    [rowForStock],
+  );
+  const maxPackages = useMemo(
+    () => (rowForStock ? posAvailablePackages(rowForStock) : null),
+    [rowForStock],
+  );
+  const packageQtyHint = useMemo(
+    () => (rowForStock ? posPackageQuantityHint(rowForStock) : null),
+    [rowForStock],
+  );
+  const packageMaxHint = useMemo(
+    () => (rowForStock ? posPackageMaxQuantityHint(rowForStock) : null),
+    [rowForStock],
+  );
   const subtotalNum = useMemo(() => {
     const u = Number(unitPrice);
     if (!Number.isFinite(u) || u < 0) return null;
@@ -146,7 +182,10 @@ export function CashierProductModal({
     return Math.round(total * 100) / 100;
   }, [quantity, unitPrice]);
 
-  const canSubmit = item != null && quantity > 0;
+  const canSubmit =
+    item != null &&
+    quantity > 0 &&
+    (maxPackages == null || quantity <= maxPackages);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,8 +240,17 @@ export function CashierProductModal({
             <DialogTitle className="mt-1 max-w-[20rem] px-1 text-balance line-clamp-3 text-[16px] font-semibold leading-snug tracking-tight text-foreground sm:text-lg">
               {item ? headerTitle : "Item"}
             </DialogTitle>
-            <DialogDescription className="mt-1 max-w-[20rem] px-1 text-balance break-words text-[11px] font-medium leading-snug text-muted-foreground">
-              {item ? headerDetail : "—"}
+            <DialogDescription
+              className={cn(
+                "mt-1 max-w-[20rem] px-1 text-balance leading-snug",
+                rowForStock && isPosPackageSellRow(rowForStock)
+                  ? headerDetail === "Sold out"
+                    ? "text-[11px] font-medium text-destructive"
+                    : "text-[13px] font-semibold tabular-nums tracking-tight text-[var(--pos-primary)]"
+                  : "text-[11px] font-medium text-muted-foreground",
+              )}
+            >
+              {rowForStock ? headerDetail : "—"}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -210,6 +258,16 @@ export function CashierProductModal({
         <div className="space-y-3.5 px-4 pb-4 pt-3.5">
           <div className="space-y-2">
             <p className={MODAL_SECTION_LABEL}>Quantity</p>
+            {packageQtyHint ? (
+              <p className="text-center text-[11px] font-medium leading-snug text-muted-foreground">
+                {packageQtyHint}
+              </p>
+            ) : null}
+            {packageMaxHint ? (
+              <p className="text-center text-[11px] leading-snug text-muted-foreground/90">
+                {packageMaxHint}
+              </p>
+            ) : null}
             <div className="flex items-center justify-center gap-2">
               <Button
                 type="button"
@@ -233,7 +291,9 @@ export function CashierProductModal({
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   if (Number.isFinite(v) && v >= 0) {
-                    setQuantity(v);
+                    const capped =
+                      maxPackages != null ? Math.min(maxPackages, v) : v;
+                    setQuantity(capped);
                   } else if (e.target.value === "") {
                     setQuantity(0);
                   }
@@ -245,19 +305,28 @@ export function CashierProductModal({
                 size="icon"
                 className="h-10 w-10 shrink-0 rounded-xl border-border/55"
                 aria-label="Increase quantity"
-                onClick={() => setQuantity((q) => q + 1)}
+                disabled={maxPackages != null && quantity >= maxPackages}
+                onClick={() =>
+                  setQuantity((q) =>
+                    maxPackages != null ? Math.min(maxPackages, q + 1) : q + 1,
+                  )
+                }
               >
                 <Plus className="size-4" />
               </Button>
             </div>
             <div className="flex flex-wrap justify-center gap-1.5 pt-0.5">
-              {QUICK_QTYS.map((q) => (
+              {QUICK_QTYS.map((q) => {
+                const overMax = maxPackages != null && q > maxPackages;
+                return (
                 <button
                   key={q}
                   type="button"
+                  disabled={overMax}
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color]",
                     "active:scale-[0.97]",
+                    overMax && "cursor-not-allowed opacity-40",
                     quantity === q
                       ? "border-transparent text-[var(--pos-primary-ink)] shadow-md ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] ring-offset-2 ring-offset-background"
                       : "border-border/55 bg-background/90 hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:bg-muted/35",
@@ -267,11 +336,12 @@ export function CashierProductModal({
                       ? { backgroundColor: "var(--pos-primary)", borderColor: "transparent" }
                       : undefined
                   }
-                  onClick={() => setQuantity(q)}
+                  onClick={() => setQuantity(overMax ? quantity : q)}
                 >
                   ×{formatNum(q)}
                 </button>
-              ))}
+              );
+              })}
             </div>
           </div>
 

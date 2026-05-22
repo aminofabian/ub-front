@@ -29,13 +29,16 @@ import {
   type ParentDraft,
   type ProductDrawerId,
   type ProductEditDraft,
+  type PackageDraft,
   type VariantDraft,
   EMPTY_PARENT,
 } from "../_types";
 import {
+  buildCreatePackageVariantBody,
   buildCreateVariantBody,
   bundlePatchFromVariantDraft,
   formatMutationError,
+  resolveCatalogParentId,
 } from "../_utils";
 import { emptyVariantDraft } from "../_types";
 
@@ -131,6 +134,7 @@ export function useProductMutations(d: Dependencies) {
   const [nextAutoSkuHint, setNextAutoSkuHint] = useState<string | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [quickSavingVariant, setQuickSavingVariant] = useState(false);
+  const [packageCreateBusy, setPackageCreateBusy] = useState(false);
 
   const addVariantDraftRow = useCallback(() => {
     setVariantDraftRows((rows) => {
@@ -458,6 +462,28 @@ export function useProductMutations(d: Dependencies) {
             }
           }
         }
+        if (
+          !isCreatingGroup &&
+          parentDraft.sellAsPackages &&
+          canCatalogWrite
+        ) {
+          const pkgRows = parentDraft.packageRows.filter(
+            (r) => r.name.trim() && r.unitsPerPackage.trim(),
+          );
+          for (const pkg of pkgRows) {
+            try {
+              const body = buildCreatePackageVariantBody(pkg);
+              await createItemVariant(created.id, body);
+            } catch (pkgErr) {
+              setMessage(
+                formatMutationError(
+                  pkgErr,
+                  `Product created but package “${pkg.name.trim()}” failed.`,
+                ),
+              );
+            }
+          }
+        }
         setPendingCreateImage(null);
         setParentDraft({ ...EMPTY_PARENT, itemTypeId: savedType });
         await refreshFullCatalog();
@@ -525,6 +551,25 @@ export function useProductMutations(d: Dependencies) {
           return;
         }
         body.variantName = vn;
+        const useSharedStock =
+          patchDraft.packageVariant ?? detail.packageVariant ?? false;
+        const unitsRaw = patchDraft.packagingUnitQtyStr.trim();
+        if (useSharedStock || unitsRaw) {
+          if (!unitsRaw) {
+            setMessage("Enter base units deducted per sale (e.g. 1 or 30).");
+            return;
+          }
+          const units = Number(unitsRaw);
+          if (!Number.isFinite(units) || units <= 0 || !Number.isInteger(units)) {
+            setMessage("Units per sale must be a positive whole number.");
+            return;
+          }
+          body.packageVariant = true;
+          body.packagingUnitQty = units;
+          body.packagingUnitName =
+            patchDraft.packagingUnitName.trim() || vn;
+          body.isStocked = false;
+        }
       }
       const setNum = (
         raw: string,
@@ -725,12 +770,14 @@ export function useProductMutations(d: Dependencies) {
             setMessage(err instanceof Error ? err.message : "Invalid variant.");
             return;
           }
-          let bp;
-          try {
-            bp = bundlePatchFromVariantDraft(variantDraft);
-          } catch (err) {
-            setMessage(err instanceof Error ? err.message : "Invalid bundle.");
-            return;
+          let bp = null;
+          if (!variantDraft.isPackageVariant) {
+            try {
+              bp = bundlePatchFromVariantDraft(variantDraft);
+            } catch (err) {
+              setMessage(err instanceof Error ? err.message : "Invalid bundle.");
+              return;
+            }
           }
           let created;
           try {
@@ -789,6 +836,7 @@ export function useProductMutations(d: Dependencies) {
             }
           }
           if (
+            !variantDraft.isPackageVariant &&
             canInventoryWrite &&
             variantDraft.openingQty.trim() &&
             variantDraft.openingBranchId.trim()
@@ -1005,6 +1053,73 @@ export function useProductMutations(d: Dependencies) {
     setMessage,
   ]);
 
+  const onCreatePackages = useCallback(
+    async (parentId: string, rows: PackageDraft[]): Promise<boolean> => {
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return false;
+      }
+      const baseParentId = resolveCatalogParentId(detail, parentId);
+      if (!baseParentId) {
+        setMessage("Select the base product first.");
+        return false;
+      }
+      const pkgRows = rows.filter(
+        (r) => r.name.trim() && r.unitsPerPackage.trim(),
+      );
+      if (pkgRows.length === 0) {
+        setMessage("Add at least one package with a name and unit count.");
+        return false;
+      }
+      setPackageCreateBusy(true);
+      setMessage("");
+      const errors: string[] = [];
+      let lastId: string | null = null;
+      try {
+        for (const pkg of pkgRows) {
+          try {
+            const body = buildCreatePackageVariantBody(pkg);
+            const created = await createItemVariant(baseParentId, body);
+            lastId = created.id;
+          } catch (err) {
+            errors.push(
+              `${pkg.name.trim()}: ${formatMutationError(err, "Create failed.")}`,
+            );
+          }
+        }
+        await refreshSelectedDetail(baseParentId);
+        await refreshFullCatalog();
+        selectProduct(baseParentId);
+        if (errors.length > 0) {
+          setMessage(
+            errors.length === pkgRows.length
+              ? errors[0]!
+              : `${pkgRows.length - errors.length} package(s) added. ${errors[0]}`,
+          );
+          return errors.length < pkgRows.length;
+        }
+        setMessage(
+          pkgRows.length > 1 ? "Packages added." : "Package added.",
+        );
+        if (lastId) selectProduct(lastId);
+        return true;
+      } catch (err) {
+        setMessage(formatMutationError(err, "Failed to add packages."));
+        return false;
+      } finally {
+        setPackageCreateBusy(false);
+      }
+    },
+    [
+      canCatalogWrite,
+      detail,
+      refreshSelectedDetail,
+      refreshFullCatalog,
+      selectProduct,
+      setMessage,
+    ],
+  );
+
   return {
     suppliersForLink,
     suppliersLoading,
@@ -1045,6 +1160,8 @@ export function useProductMutations(d: Dependencies) {
     startVariantRowEdit,
     cancelVariantInlineEdit,
     saveVariantInline,
+    packageCreateBusy,
+    onCreatePackages,
   };
 }
 

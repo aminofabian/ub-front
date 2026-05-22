@@ -34,6 +34,7 @@ import {
 } from "./product-form-styles";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
+import { PackageVariantsSection } from "./PackageVariantsSection";
 import { toNumber } from "../_utils";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -716,6 +717,21 @@ export function ProductCreateDrawer({
             syncCostsFromBuyingPrice={syncCostsFromBuyingPrice}
             currencyCode={currencyCode}
             marginInfo={marginInfo}
+          />
+        ) : null}
+
+        {!isGroup ? (
+          <PackageVariantsSection
+            enabled={m.parentDraft.sellAsPackages}
+            onEnabledChange={(sellAsPackages) =>
+              m.setParentDraft((p) => ({ ...p, sellAsPackages }))
+            }
+            rows={m.parentDraft.packageRows}
+            onRowsChange={(packageRows) =>
+              m.setParentDraft((p) => ({ ...p, packageRows }))
+            }
+            baseUnitHint={m.parentDraft.name.trim() || "base unit"}
+            currencyCode={currencyCode}
           />
         ) : null}
 

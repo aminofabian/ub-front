@@ -47,6 +47,12 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       webPublished: row.webPublished ?? true,
       bundlePriceStr: numStr(row.bundlePrice),
       bundleQtyStr: numStr(row.bundleQty),
+      packageVariant: row.packageVariant ?? false,
+      packagingUnitName: row.packagingUnitName ?? "",
+      packagingUnitQtyStr:
+        row.packageVariant || row.packagingUnitQty != null
+          ? numStr(row.packagingUnitQty)
+          : "",
       buyingPriceStr: numStr(row.buyingPrice),
       minStockLevelStr: numStr(row.minStockLevel),
       reorderLevelStr: numStr(row.reorderLevel),

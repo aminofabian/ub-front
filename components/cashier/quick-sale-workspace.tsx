@@ -51,6 +51,7 @@ import {
 } from "@/lib/top-products";
 import {
   cashierItemPrimaryLabel,
+  posAvailablePackages,
   posCartLineSuffix,
 } from "@/lib/cashier-item-display";
 import {
@@ -710,9 +711,22 @@ export function QuickSaleWorkspace({
     customerPhoneQuery,
   ]);
 
+  const capCartQuantity = useCallback(
+    (item: ItemSummaryRecord, qty: number) => {
+      const max = posAvailablePackages(item);
+      if (max == null) return qty;
+      return Math.min(max, qty);
+    },
+    [],
+  );
+
   const addLine = useCallback(
     (item: ItemSummaryRecord, qty: number = 1, unitPrice: string = "") => {
-      const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+      const safeQty = capCartQuantity(
+        item,
+        Number.isFinite(qty) && qty > 0 ? qty : 1,
+      );
+      if (safeQty <= 0) return;
       updateActiveCart((cart) => ({
         ...cart,
         lines: [
@@ -731,7 +745,7 @@ export function QuickSaleWorkspace({
       setSearch("");
       setHits([]);
     },
-    [updateActiveCart],
+    [capCartQuantity, updateActiveCart],
   );
 
   const removeLine = useCallback(
@@ -748,12 +762,21 @@ export function QuickSaleWorkspace({
     (key: string, field: "quantity" | "unitPrice", value: string) => {
       updateActiveCart((cart) => ({
         ...cart,
-        lines: cart.lines.map((l) =>
-          l.key === key ? { ...l, [field]: value } : l,
-        ),
+        lines: cart.lines.map((l) => {
+          if (l.key !== key) return l;
+          if (field !== "quantity" || !l.item) {
+            return { ...l, [field]: value };
+          }
+          const n = Number(value);
+          if (!Number.isFinite(n) || n < 0) {
+            return { ...l, quantity: value };
+          }
+          const capped = capCartQuantity(l.item, n);
+          return { ...l, quantity: String(capped) };
+        }),
       }));
     },
-    [updateActiveCart],
+    [capCartQuantity, updateActiveCart],
   );
 
   const lastStkPrefillCustomerId = useRef<string | null>(null);

@@ -27,6 +27,9 @@ export type ProductEditDraft = {
   categoryId: string;
   /** Option / variant label (PATCH only for variant SKUs). */
   variantName: string;
+  packageVariant: boolean;
+  packagingUnitName: string;
+  packagingUnitQtyStr: string;
 };
 
 export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
@@ -42,6 +45,9 @@ export const EMPTY_EDIT_DRAFT: ProductEditDraft = {
   webPublished: true,
   categoryId: "",
   variantName: "",
+  packageVariant: false,
+  packagingUnitName: "",
+  packagingUnitQtyStr: "",
 };
 
 // ─── create-parent draft ──────────────────────────────────────────────────────
@@ -74,7 +80,23 @@ export type ParentDraft = {
   openingBranchId: string;
   openingQty: string;
   openingUnitCost: string;
+  sellAsPackages: boolean;
+  packageRows: PackageDraft[];
 };
+
+// ─── package / bundle sell variants ───────────────────────────────────────────
+
+export type PackageDraft = {
+  name: string;
+  unitsPerPackage: string;
+  price: string;
+  sku: string;
+  barcode: string;
+};
+
+export function emptyPackageDraft(): PackageDraft {
+  return { name: "", unitsPerPackage: "", price: "", sku: "", barcode: "" };
+}
 
 export const EMPTY_PARENT: ParentDraft = {
   productStructure: "standalone",
@@ -104,6 +126,8 @@ export const EMPTY_PARENT: ParentDraft = {
   openingBranchId: "",
   openingQty: "",
   openingUnitCost: "",
+  sellAsPackages: false,
+  packageRows: [emptyPackageDraft()],
 };
 
 // ─── add-variant draft ────────────────────────────────────────────────────────
@@ -135,6 +159,9 @@ export type VariantDraft = {
   openingQty: string;
   openingBranchId: string;
   openingUnitCost: string;
+  /** Package variant: deducts stock from parent using unitsPerPackage. */
+  isPackageVariant: boolean;
+  unitsPerPackage: string;
 };
 
 const VARIANT_DRAFT_FIELDS: Omit<VariantDraft, "sellEffectiveFrom"> = {
@@ -163,6 +190,8 @@ const VARIANT_DRAFT_FIELDS: Omit<VariantDraft, "sellEffectiveFrom"> = {
   openingQty: "",
   openingBranchId: "",
   openingUnitCost: "",
+  isPackageVariant: false,
+  unitsPerPackage: "",
 };
 
 export function emptyVariantDraft(): VariantDraft {

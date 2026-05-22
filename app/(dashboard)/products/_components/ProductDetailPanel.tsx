@@ -5,6 +5,7 @@ import { Fragment, useState } from "react";
 import {
   Building2,
   Camera,
+  ChevronRight,
   CircleDollarSign,
   Layers,
   Loader2,
@@ -30,6 +31,7 @@ import {
   effectiveSupplierUnitCost,
   effectiveOnHand,
   formatAmount,
+  formatStockLabel,
   toNumber,
 } from "../_utils";
 import { quickInputClass } from "../_types";
@@ -123,6 +125,7 @@ type Props = {
   // drawer toggles
   setActiveDrawer: (d: string | null) => void;
   selectProduct: (id: string | null) => void;
+  onOpenPackageSales?: () => void;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -185,11 +188,14 @@ export function ProductDetailPanel(props: Props) {
     saveVariantInline,
     setActiveDrawer,
     selectProduct,
+    onOpenPackageSales,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const panelKind = detailPanelKind(detail, variantRows.length);
+  const canAddPackageSales =
+    canCatalogWrite && panelKind !== "group" && !!onOpenPackageSales;
   const panelTone = detailPanelTone(panelKind);
   const isParentish = panelKind === "group" || panelKind === "parent";
 
@@ -281,9 +287,15 @@ export function ProductDetailPanel(props: Props) {
   );
 
   const stockLevel = effectiveOnHand(detail);
+  const stockLabel = formatStockLabel(detail);
   const minStock = toNumber(detail.minStockLevel);
   const stockLow =
-    stockLevel != null && minStock != null && stockLevel <= minStock;
+    !detail.packageVariant &&
+    stockLevel != null &&
+    minStock != null &&
+    stockLevel <= minStock;
+  const packageVariants = variantRows.filter((v) => v.packageVariant);
+  const optionVariants = variantRows.filter((v) => !v.packageVariant);
 
   const thumbUrl = coverImageUrl(detail);
   const titleInitial = (detail.name?.trim() || "?").charAt(0).toUpperCase();
@@ -458,12 +470,24 @@ export function ProductDetailPanel(props: Props) {
 
       {/* ── 1. Pricing ────────────────────────────────────────────────── */}
       <section className={detailSectionClass}>
-        <header className={detailSectionHeadClass}>
-          <CircleDollarSign
-            className="size-3 text-muted-foreground/70"
-            aria-hidden
-          />
-          <span className={detailSectionLabelClass}>Pricing</span>
+        <header className={cn(detailSectionHeadClass, "justify-between gap-2")}>
+          <div className="flex items-center gap-1.5">
+            <CircleDollarSign
+              className="size-3 text-muted-foreground/70"
+              aria-hidden
+            />
+            <span className={detailSectionLabelClass}>Pricing</span>
+          </div>
+          {canAddPackageSales ? (
+            <button
+              type="button"
+              onClick={onOpenPackageSales}
+              className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              Package sales
+              <ChevronRight className="size-3" aria-hidden />
+            </button>
+          ) : null}
         </header>
         <div className="grid grid-cols-4 divide-x divide-border/40 bg-background/50">
           {(
@@ -479,8 +503,8 @@ export function ProductDetailPanel(props: Props) {
                 marginPct != null && marginPct > 0 ? "success" : "default",
               ] as const,
               [
-                "Stock",
-                formatAmount(stockLevel),
+                detail.packageVariant ? "Available" : "Stock",
+                stockLabel,
                 stockLow ? "text-destructive font-semibold" : "font-semibold",
                 stockLow ? "danger" : "default",
               ] as const,
@@ -859,14 +883,28 @@ export function ProductDetailPanel(props: Props) {
         </section>
       )}
 
-      {/* ── 4. Variants (child SKUs of parent) ─────────────────────────── */}
+      {detail.packageVariant && variantParentDisplayName ? (
+        <p className="rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
+          Stock is tracked on{" "}
+          <span className="font-medium text-foreground">{variantParentDisplayName}</span>
+          . Each sale deducts{" "}
+          <span className="font-semibold tabular-nums text-foreground">
+            {toNumber(detail.packageUnitsPerSale) ?? "—"}
+          </span>{" "}
+          base units per package.
+        </p>
+      ) : null}
+
+      {/* ── 4. Packages & variants ───────────────────────────────────── */}
       <section className={detailSectionClass}>
         <header className={cn(detailSectionHeadClass, "justify-between")}>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex items-center gap-1.5">
               <Layers className="size-3 shrink-0 text-muted-foreground/70" aria-hidden />
               <span className={detailSectionLabelClass}>
-                Variants{variantRows.length > 0 ? ` · ${variantRows.length}` : ""}
+                {packageVariants.length > 0 && optionVariants.length === 0
+                  ? `Packages${packageVariants.length > 0 ? ` · ${packageVariants.length}` : ""}`
+                  : `Variants & packages${variantRows.length > 0 ? ` · ${variantRows.length}` : ""}`}
               </span>
             </div>
             {detail.variantOfItemId && variantParentDisplayName ? (
@@ -876,17 +914,19 @@ export function ProductDetailPanel(props: Props) {
               </p>
             ) : !detail.variantOfItemId && variantRows.length > 0 ? (
               <p className="pl-5 text-[10px] leading-snug text-muted-foreground">
-                Child SKUs for this parent. Add several at once from the drawer.
+                Option variants and package sizes share this product&apos;s stock.
               </p>
             ) : null}
           </div>
-          <button
-            type="button"
-            className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
-            onClick={() => setActiveDrawer("add-variant")}
-          >
-            <PackagePlus className="size-3" aria-hidden /> Add variants
-          </button>
+          {!detail.variantOfItemId ? (
+            <button
+              type="button"
+              className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
+              onClick={() => setActiveDrawer("add-variant")}
+            >
+              <PackagePlus className="size-3" aria-hidden /> Add
+            </button>
+          ) : null}
         </header>
         {variantRows.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 px-2.5 py-4 text-center">
@@ -951,11 +991,16 @@ export function ProductDetailPanel(props: Props) {
                       <p className="truncate text-xs font-medium text-foreground">
                         {v.name}
                       </p>
-                      {v.variantName && (
+                      {v.packageVariant ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          Package · {toNumber(v.packageUnitsPerSale) ?? "?"}{" "}
+                          base units · {formatStockLabel(v)}
+                        </p>
+                      ) : v.variantName ? (
                         <p className="text-[11px] text-muted-foreground">
                           {v.variantName}
                         </p>
-                      )}
+                      ) : null}
                     </div>
                     {canCatalogWrite && (
                       <button

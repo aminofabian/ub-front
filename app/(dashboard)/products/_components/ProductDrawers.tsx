@@ -212,18 +212,60 @@ export function ProductEditDrawer({
             />
           </ProductFormField>
           {d.variantOfItemId ? (
-            <ProductFormField label="Variant label" required>
-              <input
-                className={productFormInputClass}
-                value={dr.variantName ?? ""}
-                onChange={(e) =>
-                  detail.setPatchDraft((p) => ({
-                    ...p,
-                    variantName: e.target.value,
-                  }))
-                }
-              />
-            </ProductFormField>
+            <>
+              <ProductFormField
+                label={d.packageVariant ? "Package name" : "Variant label"}
+                required
+              >
+                <input
+                  className={productFormInputClass}
+                  value={dr.variantName ?? ""}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      variantName: e.target.value,
+                    }))
+                  }
+                />
+              </ProductFormField>
+              <ProductFormField
+                label="Base units deducted per sale"
+                required={d.packageVariant}
+              >
+                <input
+                  className={productFormInputClass}
+                  inputMode="numeric"
+                  placeholder={d.packageVariant ? "30" : "1"}
+                  value={dr.packagingUnitQtyStr}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      packagingUnitQtyStr: e.target.value,
+                    }))
+                  }
+                />
+              </ProductFormField>
+              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/45 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 rounded border-input"
+                  checked={dr.packageVariant ?? d.packageVariant}
+                  onChange={(e) =>
+                    detail.setPatchDraft((p) => ({
+                      ...p,
+                      packageVariant: e.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  <span className="font-medium text-foreground">
+                    Package / shared base stock
+                  </span>
+                  — stock lives on the parent product; each sale multiplies by the
+                  units above (e.g. 1 for single, 30 for tray).
+                </span>
+              </label>
+            </>
           ) : null}
           <div className={productFormGrid2Class}>
             <ProductFormField label="SKU" required>
@@ -421,38 +463,47 @@ export function ProductEditDrawer({
             </div>
           </div>
 
-          <StockIncreaseFields
-            branches={m.branches}
-            branchId={stockBranchId}
-            onBranchIdChange={setStockBranchId}
-            quantity={stockQty}
-            onQuantityChange={setStockQty}
-            unitCost={stockUnitCost}
-            onUnitCostChange={setStockUnitCost}
-            itemId={d.id}
-            currentUnitCost={
-              toNumber(d.buyingPrice) ?? toNumber(dr.buyingPriceStr)
-            }
-            hint={
-              d.isStocked === false
-                ? "This SKU is not stocked — enable stock tracking before adding quantity."
-                : "Click Add stock, or fill qty and use Save changes."
-            }
-          />
-          <Button
-            type="button"
-            size="sm"
-            className="h-7 gap-1 text-xs"
-            disabled={stockSaving}
-            onClick={() => void handleStockIncrease()}
-          >
-            {stockSaving ? (
-              <Loader2 className="size-3 animate-spin" aria-hidden />
-            ) : (
-              <Plus className="size-3" aria-hidden />
-            )}
-            {stockSaving ? "Adding…" : "Add stock"}
-          </Button>
+          {d.packageVariant ? (
+            <p className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              Stock is managed on the base product. Adjust quantity there; each sale of this
+              package deducts {dr.packagingUnitQtyStr || "—"} base units.
+            </p>
+          ) : (
+            <>
+              <StockIncreaseFields
+                branches={m.branches}
+                branchId={stockBranchId}
+                onBranchIdChange={setStockBranchId}
+                quantity={stockQty}
+                onQuantityChange={setStockQty}
+                unitCost={stockUnitCost}
+                onUnitCostChange={setStockUnitCost}
+                itemId={d.id}
+                currentUnitCost={
+                  toNumber(d.buyingPrice) ?? toNumber(dr.buyingPriceStr)
+                }
+                hint={
+                  d.isStocked === false
+                    ? "This SKU is not stocked — enable stock tracking before adding quantity."
+                    : "Click Add stock, or fill qty and use Save changes."
+                }
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                disabled={stockSaving}
+                onClick={() => void handleStockIncrease()}
+              >
+                {stockSaving ? (
+                  <Loader2 className="size-3 animate-spin" aria-hidden />
+                ) : (
+                  <Plus className="size-3" aria-hidden />
+                )}
+                {stockSaving ? "Adding…" : "Add stock"}
+              </Button>
+            </>
+          )}
 
           <label className="flex items-center gap-2 text-sm">
             <input

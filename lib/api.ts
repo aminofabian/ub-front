@@ -299,8 +299,15 @@ export type ItemSummaryRecord = {
   webPublished?: boolean;
   /**
    * On-hand at the branch when `branchId` was sent with the list request; otherwise omitted.
+   * For package variants this is available whole packages.
    */
   stockQty?: number | string | null;
+  /** When true, sells as a package and stock is held on the parent/base product. */
+  packageVariant?: boolean;
+  /** Base units per package sold (e.g. 30 eggs per tray). */
+  packageUnitsPerSale?: number | string | null;
+  /** Parent on-hand in base units when branch stock was requested. */
+  baseStockQty?: number | string | null;
   brand?: string | null;
   size?: string | null;
 };
@@ -345,6 +352,9 @@ export type ItemDetailRecord = ItemSummaryRecord & {
   isWeighed?: boolean;
   isSellable?: boolean;
   isStocked?: boolean;
+  packageVariant?: boolean;
+  packagingUnitName?: string | null;
+  packagingUnitQty?: number | string | null;
   /** On-hand quantity when returned by item detail API (Phase 1+). */
   currentStock?: number | string | null;
   bundleQty?: number | null;
@@ -684,6 +694,9 @@ export type PatchItemPayload = {
   brand?: string;
   size?: string;
   variantName?: string;
+  packageVariant?: boolean;
+  packagingUnitName?: string | null;
+  packagingUnitQty?: number | string | null;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */
@@ -732,6 +745,13 @@ export type CreateVariantPayload = {
   isWeighed?: boolean;
   isSellable?: boolean;
   isStocked?: boolean;
+  packageVariant?: boolean;
+  packagingUnitName?: string;
+  packagingUnitQty?: number;
+  bundleQty?: number;
+  bundlePrice?: number;
+  buyingPrice?: number;
+  bundleName?: string;
   minStockLevel?: number;
   reorderLevel?: number;
   reorderQty?: number;

@@ -34,6 +34,8 @@ import { ProductHeroHeader } from "./_components/ProductHeroHeader";
 import { ProductMobileFilterBar } from "./_components/ProductMobileFilterBar";
 import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
+import { AddPackageModal } from "./_components/AddPackageModal";
+import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import {
   ProductEditDrawer,
@@ -90,6 +92,7 @@ export default function ProductsPage() {
   const [activeDrawer, setActiveDrawer] = useState<ProductDrawerId | null>(
     null,
   );
+  const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [isLg, setIsLg] = useState(false);
   useEffect(() => {
@@ -247,6 +250,9 @@ export default function ProductsPage() {
     selectProduct: (id: string | null) => {
       detail.selectProduct(id);
     },
+    onOpenPackageSales: canCatalogWrite
+      ? () => setPackageModalOpen(true)
+      : undefined,
   };
 
   return (
@@ -482,6 +488,27 @@ export default function ProductsPage() {
           canSetSellPrice={canSetSellPrice}
           canInventoryWrite={canInventoryWrite}
           currencyCode={business?.currency?.trim() || ""}
+        />
+      ) : null}
+
+      {D ? (
+        <AddPackageModal
+          open={packageModalOpen}
+          onOpenChange={setPackageModalOpen}
+          parentId={resolveCatalogParentId(D, detail.selectedId)}
+          parentName={
+            D.variantOfItemId
+              ? detail.variantParentDisplayName?.trim() || D.name?.trim() || "Product"
+              : D.name?.trim() || "Product"
+          }
+          baseUnitHint={
+            D.variantOfItemId
+              ? detail.variantParentDisplayName?.trim() || "base unit"
+              : D.name?.trim() || "base unit"
+          }
+          currencyCode={business?.currency?.trim() || ""}
+          busy={m.packageCreateBusy}
+          onCreatePackages={m.onCreatePackages}
         />
       ) : null}
 

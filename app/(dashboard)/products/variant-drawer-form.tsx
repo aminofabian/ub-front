@@ -262,6 +262,7 @@ function VariantRowCard({
   canListSuppliers,
   canSetSellPrice,
   canInventoryWrite,
+  parentIsProductGroup,
 }: {
   row: VariantDraft;
   index: number;
@@ -278,6 +279,7 @@ function VariantRowCard({
   canListSuppliers: boolean;
   canSetSellPrice: boolean;
   canInventoryWrite: boolean;
+  parentIsProductGroup: boolean;
 }) {
   const [expanded, setExpanded] = useState<Record<RowSectionKey, boolean>>({
     stock: index === 0,
@@ -320,16 +322,62 @@ function VariantRowCard({
         ) : null}
       </div>
 
-      <Label title="Variant name" required>
+      {!parentIsProductGroup ? (
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/45 bg-muted/20 px-3 py-2">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 rounded border-input"
+            checked={row.isPackageVariant}
+            onChange={(e) =>
+              onPatch({
+                isPackageVariant: e.target.checked,
+                openingQty: e.target.checked ? "" : row.openingQty,
+              })
+            }
+          />
+          <span className="text-xs leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">Package / bundle SKU</span> — sells in
+            packs and deducts stock from the parent product (no separate inventory).
+          </span>
+        </label>
+      ) : null}
+
+      <Label
+        title={row.isPackageVariant ? "Package name" : "Variant name"}
+        required
+      >
         <input
           className={cn(productFormInputClass, "text-sm font-medium")}
-          placeholder="Red · 500 ml"
+          placeholder={row.isPackageVariant ? "Tray of 30" : "Red · 500 ml"}
           value={row.variantName}
           onChange={(e) => onPatch({ variantName: e.target.value })}
           required={index === 0}
           autoComplete="off"
         />
       </Label>
+
+      {row.isPackageVariant ? (
+        <>
+          <Label title="Contains (base units per package)" required>
+            <NumberInput
+              value={row.unitsPerPackage}
+              onChange={(v) => onPatch({ unitsPerPackage: v })}
+              placeholder="30"
+              min="1"
+              step="1"
+            />
+          </Label>
+          {row.unitsPerPackage.trim() && Number(row.unitsPerPackage) > 0 ? (
+            <p className="text-[11px] text-muted-foreground">
+              Selling 1 package deducts{" "}
+              <span className="font-semibold tabular-nums text-foreground">
+                {row.unitsPerPackage}
+              </span>{" "}
+              units from parent stock.
+            </p>
+          ) : null}
+        </>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Label
@@ -403,9 +451,19 @@ function VariantRowCard({
         />
       </Label>
 
-      <VariantRowPricing draft={row} onPatch={onPatch} currencyCode={currencyCode} />
+      {row.isPackageVariant ? (
+        <Label title={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}>
+          <NumberInput
+            value={row.bundlePrice}
+            onChange={(v) => onPatch({ bundlePrice: v })}
+            placeholder="0.00"
+          />
+        </Label>
+      ) : (
+        <VariantRowPricing draft={row} onPatch={onPatch} currencyCode={currencyCode} />
+      )}
 
-      {canInventoryWrite ? (
+      {canInventoryWrite && !row.isPackageVariant ? (
         <div className="space-y-3">
           <SectionToggle
             icon={Boxes}
@@ -629,6 +687,7 @@ export function VariantDrawerForm({
             canListSuppliers={canListSuppliers}
             canSetSellPrice={canSetSellPrice}
             canInventoryWrite={canInventoryWrite}
+            parentIsProductGroup={parentIsProductGroup}
           />
         ))}
       </div>
