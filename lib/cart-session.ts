@@ -50,6 +50,16 @@ export const MAX_CARTS = 8;
 
 let cartCounter = 0;
 
+/** New session with the same tab id/label (for resetting after a completed sale). */
+export function resetCartSessionKeepingTab(cart: CartSession): CartSession {
+  return {
+    ...createEmptyCartSession(),
+    id: cart.id,
+    label: cart.label,
+    createdAt: cart.createdAt,
+  };
+}
+
 export function createEmptyCartSession(): CartSession {
   cartCounter += 1;
   return {

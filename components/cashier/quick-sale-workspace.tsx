@@ -56,6 +56,7 @@ import {
 } from "@/lib/cashier-item-display";
 import {
   createEmptyCartSession,
+  resetCartSessionKeepingTab,
   cartSessionLabel,
   cartSessionItemCount,
   cartSessionGrandTotal,
@@ -336,6 +337,22 @@ export function QuickSaleWorkspace({
     },
     [activeCartId],
   );
+
+  /** Remove the cart used for a completed sale and focus the next empty tab. */
+  const clearCartAfterSale = useCallback((cartIdToClear: string) => {
+    setCarts((prev) => {
+      const rest = prev.filter((c) => c.id !== cartIdToClear);
+      const next = rest.length === 0 ? [createEmptyCartSession()] : rest;
+      setActiveCartId(next[0].id);
+      return next;
+    });
+  }, []);
+
+  const dismissCompletedSaleUi = useCallback(() => {
+    setLastSale(null);
+    setLastReceipt(null);
+    setVoidNotes("");
+  }, []);
 
   const refreshOutbox = useCallback(async () => {
     if (!isSaleOutboxSupported()) {
@@ -727,25 +744,37 @@ export function QuickSaleWorkspace({
         Number.isFinite(qty) && qty > 0 ? qty : 1,
       );
       if (safeQty <= 0) return;
-      updateActiveCart((cart) => ({
-        ...cart,
-        lines: [
-          ...cart.lines,
-          {
-            key: crypto.randomUUID(),
-            itemId: item.id,
-            label:
-              `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
-            quantity: String(safeQty),
-            unitPrice: unitPrice ?? "",
-            item,
-          },
-        ],
-      }));
+      const startingNewSale = lastSale != null;
+      if (startingNewSale) {
+        dismissCompletedSaleUi();
+        setNotice("");
+        setError("");
+      }
+      const newLine = {
+        key: crypto.randomUUID(),
+        itemId: item.id,
+        label:
+          `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
+        quantity: String(safeQty),
+        unitPrice: unitPrice ?? "",
+        item,
+      };
+      updateActiveCart((cart) => {
+        if (startingNewSale) {
+          return {
+            ...resetCartSessionKeepingTab(cart),
+            lines: [newLine],
+          };
+        }
+        return {
+          ...cart,
+          lines: [...cart.lines, newLine],
+        };
+      });
       setSearch("");
       setHits([]);
     },
-    [capCartQuantity, updateActiveCart],
+    [capCartQuantity, updateActiveCart, lastSale, dismissCompletedSaleUi],
   );
 
   const removeLine = useCallback(
@@ -1040,19 +1069,7 @@ export function QuickSaleWorkspace({
       refreshTopProducts();
     };
 
-    const clearCartUi = () => {
-      setCarts((prev) => {
-        const rest = prev.filter((c) => c.id !== activeCartId);
-        if (rest.length === 0) {
-          // Last cart — replace with a fresh empty one
-          const fresh = createEmptyCartSession();
-          setActiveCartId(fresh.id);
-          return [fresh];
-        }
-        setActiveCartId(rest[0].id);
-        return rest;
-      });
-    };
+    const soldCartId = activeCartId;
 
     setError("");
     setNotice("");
@@ -1075,7 +1092,7 @@ export function QuickSaleWorkspace({
       try {
         await enqueuePendingSale(idem, salePayload);
         recordTopSellers();
-        clearCartUi();
+        clearCartAfterSale(soldCartId);
         setVoidNotes("");
         await refreshOutbox();
         setNotice(
@@ -1132,7 +1149,7 @@ export function QuickSaleWorkspace({
         );
         setVoidNotes("");
         recordTopSellers();
-        clearCartUi();
+        clearCartAfterSale(soldCartId);
         setNotice(
           `Sale ${result.sale.id} recorded. Grand total ${grandTotal.toFixed(2)}${business?.currency?.trim() ? ` ${business.currency.trim()}` : ""}.`,
         );
@@ -1171,7 +1188,7 @@ export function QuickSaleWorkspace({
         try {
           await enqueuePendingSale(idem, salePayload);
           recordTopSellers();
-          clearCartUi();
+          clearCartAfterSale(soldCartId);
           setVoidNotes("");
           await refreshOutbox();
           setNotice(
@@ -1204,7 +1221,7 @@ export function QuickSaleWorkspace({
     me,
     refreshOutbox,
     refreshTopProducts,
-    activeCartId,
+    clearCartAfterSale,
   ]);
 
   const onVoidLastSale = useCallback(async () => {
@@ -1235,12 +1252,24 @@ export function QuickSaleWorkspace({
   }, [lastSale, canVoid, voidNotes]);
 
   const onStartNewSale = useCallback(() => {
-    setLastSale(null);
-    setLastReceipt(null);
-    setVoidNotes("");
+    dismissCompletedSaleUi();
     setNotice("");
     setError("");
-  }, []);
+    setCarts((prev) => {
+      const active = prev.find((c) => c.id === activeCartId) ?? prev[0];
+      if (!active?.lines.length) {
+        return prev;
+      }
+      if (prev.length === 1) {
+        const fresh = createEmptyCartSession();
+        setActiveCartId(fresh.id);
+        return [fresh];
+      }
+      return prev.map((c) =>
+        c.id === activeCartId ? resetCartSessionKeepingTab(c) : c,
+      );
+    });
+  }, [activeCartId, dismissCompletedSaleUi]);
 
   const onDownloadReceiptPdf = useCallback(async () => {
     if (!lastSale) {

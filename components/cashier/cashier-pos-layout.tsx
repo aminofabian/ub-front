@@ -1128,7 +1128,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
 
       <CashierCartDrawer
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (
+            !open &&
+            cart.lastSale != null &&
+            cart.lastReceipt != null
+          ) {
+            cart.onStartNewSale();
+          }
+        }}
         online={online}
         currency={currency}
         branchSelected={branchSelected}
