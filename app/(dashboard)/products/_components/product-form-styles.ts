@@ -45,7 +45,31 @@ export const productFormInlineEditClass = cn(
   "ring-1 ring-inset ring-primary/12",
 );
 
-export const productFormStackClass = "flex flex-col gap-2.5";
+export const productFormStackClass = "flex flex-col gap-3";
+
+export const productFormDrawerStackClass = "flex flex-col gap-3";
+
+export const productFormSectionBodyClass = cn(
+  "space-y-3 rounded-xl border border-border/55 bg-background/60 p-3.5",
+  "ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]",
+);
+
+export const productFormSectionToggleClass = cn(
+  "group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+);
+
+export const productFormDrawerHeroClass = cn(
+  "flex items-start gap-3 rounded-xl border border-border/55 p-3",
+  "bg-gradient-to-br from-muted/40 via-background to-background shadow-sm",
+  "ring-1 ring-inset ring-black/[0.02] dark:from-muted/25 dark:ring-white/[0.04]",
+);
+
+export const productFormToggleCardClass = cn(
+  "flex cursor-pointer items-start gap-3 rounded-xl border border-border/55 px-3.5 py-3 transition-colors",
+  "has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.05] has-[:checked]:ring-1 has-[:checked]:ring-primary/15",
+  "hover:bg-muted/25",
+);
 
 /** Live preview line under stock / cost inputs */
 export const productFormPreviewClass =

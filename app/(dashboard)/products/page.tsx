@@ -27,8 +27,8 @@ import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { AddPackageModal } from "./_components/AddPackageModal";
 import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
+import { ProductEditDrawer } from "./_components/ProductEditDrawer";
 import {
-  ProductEditDrawer,
   ProductPhotosDrawer,
   ProductQuickEditAllDrawer,
   ProductMobileDetailDrawer,
@@ -374,6 +374,7 @@ export default function ProductsPage() {
         syncListRowFromDetail={catalog.syncListRowFromDetail}
         refreshSelectedDetail={detail.refreshSelectedDetail}
         setMessage={catalog.setMessage}
+        onOpenPhotos={() => setActiveDrawer("photos")}
       />
 
       <ProductPhotosDrawer
