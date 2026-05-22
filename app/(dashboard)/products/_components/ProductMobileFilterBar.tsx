@@ -7,17 +7,30 @@ import { cn } from "@/lib/utils";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 
 type Props = {
-  catalog: Pick<CatalogListApi,
-    "search" | "setSearch" | "filterCategoryId" | "setFilterCategoryId" |
-    "catalogScope" | "setCatalogScope" | "sortedCategories" |
-    "filterNoBarcode" | "setFilterNoBarcode" |
-    "filterIncludeInactive" | "setFilterIncludeInactive" |
-    "includeCategoryDescendants" | "setIncludeCategoryDescendants" |
-    "resetFilters"
+  catalog: Pick<
+    CatalogListApi,
+    | "search"
+    | "setSearch"
+    | "debouncedSearch"
+    | "filterCategoryId"
+    | "setFilterCategoryId"
+    | "catalogScope"
+    | "setCatalogScope"
+    | "sortedCategories"
+    | "filterNoBarcode"
+    | "setFilterNoBarcode"
+    | "filterIncludeInactive"
+    | "setFilterIncludeInactive"
+    | "includeCategoryDescendants"
+    | "setIncludeCategoryDescendants"
+    | "resetFilters"
   >;
 };
 
 export function ProductMobileFilterBar({ catalog }: Props) {
+  const searchPending =
+    catalog.search.trim() !== catalog.debouncedSearch.trim();
+
   return (
     <div className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] lg:hidden">
       <div className="relative">
@@ -41,6 +54,9 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           </button>
         ) : null}
       </div>
+      {searchPending ? (
+        <p className="-mt-1 text-[10px] text-muted-foreground">Updating results…</p>
+      ) : null}
       <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
         <select
           className={cn(dashboardSelectClass(), "h-10 min-w-0 w-full truncate")}
