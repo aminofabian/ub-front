@@ -2329,6 +2329,48 @@ export async function createItemVariant(
   );
 }
 
+export type BatchAllocationLineRecord = {
+  batchId: string;
+  quantity: number | string;
+  unitCost: number | string;
+};
+
+export async function fetchAllocationPreview(params: {
+  itemId: string;
+  branchId: string;
+  quantity: number | string;
+}): Promise<BatchAllocationLineRecord[]> {
+  const q = new URLSearchParams({
+    itemId: params.itemId.trim(),
+    branchId: params.branchId.trim(),
+    quantity: String(params.quantity),
+  });
+  return request<BatchAllocationLineRecord[]>(
+    `/api/v1/inventory/allocation-preview?${q}`,
+  );
+}
+
+export async function postBatchDecrease(body: {
+  batchId: string;
+  quantity: number | string;
+  reason?: string | null;
+}): Promise<InventoryMutationResponseRecord> {
+  const payload: Record<string, unknown> = {
+    batchId: body.batchId.trim(),
+    quantity: body.quantity,
+  };
+  if (body.reason?.trim()) {
+    payload.reason = body.reason.trim();
+  }
+  return request<InventoryMutationResponseRecord>(
+    "/api/v1/inventory/batch-decrease",
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
 export async function postStockIncrease(body: {
   branchId: string;
   itemId: string;

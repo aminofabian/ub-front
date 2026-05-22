@@ -43,8 +43,8 @@ import {
   productFormInputClass,
   productFormInputMonoClass,
   productFormLabelClass,
+  productFormSelectClass,
 } from "./product-form-styles";
-import { StockIncreaseFields } from "./StockIncreaseFields";
 import {
   detailFieldRowClass,
   detailInlineEditClass,
@@ -106,6 +106,8 @@ type Props = {
   setQuickStockBranchId: (v: string) => void;
   quickStockUnitCost: string;
   setQuickStockUnitCost: (v: string) => void;
+  quickStockBaseline: number | null;
+  quickStockBaselineLoading: boolean;
   quickSaving: boolean;
   openQuickEdit: (k: Exclude<QuickEditKey, null>) => void;
   cancelQuickEdit: () => void;
@@ -175,6 +177,8 @@ export function ProductDetailPanel(props: Props) {
     setQuickStockBranchId,
     quickStockUnitCost,
     setQuickStockUnitCost,
+    quickStockBaseline,
+    quickStockBaselineLoading,
     quickSaving,
     openQuickEdit,
     cancelQuickEdit,
@@ -719,20 +723,87 @@ export function ProductDetailPanel(props: Props) {
             className="border-t border-border/40 bg-muted/20 px-2.5 py-2.5"
             onKeyDown={onInlineEnter(() => void saveQuickStock())}
           >
-            <p className={cn(productFormLabelClass, "mb-2")}>Add stock</p>
-            <StockIncreaseFields
-              branches={branches}
-              branchId={quickStockBranchId}
-              onBranchIdChange={setQuickStockBranchId}
-              quantity={quickStock}
-              onQuantityChange={setQuickStock}
-              unitCost={quickStockUnitCost}
-              onUnitCostChange={setQuickStockUnitCost}
-              itemId={selectedId}
-              currentUnitCost={primaryCost}
-              className="border-0 p-0 shadow-none ring-0"
-              hint="Adds to on-hand at the selected branch."
-            />
+            <p className={cn(productFormLabelClass, "mb-2")}>Set on-hand stock</p>
+            <div className="space-y-2">
+              <label className={productFormFieldClass}>
+                <span className={productFormLabelClass}>Branch</span>
+                <select
+                  className={productFormSelectClass}
+                  value={quickStockBranchId}
+                  onChange={(e) => setQuickStockBranchId(e.target.value)}
+                >
+                  <option value="">— Select branch —</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={productFormFieldClass}>
+                <span className={productFormLabelClass}>On hand</span>
+                <input
+                  autoFocus
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quickStock}
+                  onChange={(e) => setQuickStock(e.target.value)}
+                  placeholder="e.g. 12"
+                  aria-label="On-hand quantity"
+                />
+              </label>
+              {quickStockBaselineLoading ? (
+                <p className="text-[10px] text-muted-foreground">
+                  Loading current stock…
+                </p>
+              ) : quickStockBaseline != null ? (
+                <p className="text-[10px] tabular-nums text-muted-foreground">
+                  Current at branch:{" "}
+                  <span className="font-medium text-foreground">
+                    {formatAmount(quickStockBaseline)}
+                  </span>
+                  {(() => {
+                    const next = Number(quickStock.trim());
+                    if (!Number.isFinite(next) || quickStock.trim() === "") {
+                      return null;
+                    }
+                    const d = Math.round((next - quickStockBaseline) * 10000) / 10000;
+                    if (Math.abs(d) < 0.0001) return null;
+                    return (
+                      <span>
+                        {" "}
+                        → after save:{" "}
+                        <span className="font-medium text-foreground">
+                          {formatAmount(next)}
+                        </span>
+                        {d > 0 ? ` (+${formatAmount(d)})` : ` (${formatAmount(d)})`}
+                      </span>
+                    );
+                  })()}
+                </p>
+              ) : null}
+              {(() => {
+                const next = Number(quickStock.trim());
+                const base = quickStockBaseline ?? 0;
+                const needsCost =
+                  Number.isFinite(next) && next > base + 0.0001;
+                if (!needsCost) return null;
+                return (
+                  <label className={productFormFieldClass}>
+                    <span className={productFormLabelClass}>
+                      Unit cost (increase only)
+                    </span>
+                    <input
+                      className={productFormInputClass}
+                      inputMode="decimal"
+                      value={quickStockUnitCost}
+                      onChange={(e) => setQuickStockUnitCost(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </label>
+                );
+              })()}
+            </div>
             <div className="mt-2 flex justify-end">
               {saveCancelBtns(() => void saveQuickStock())}
             </div>
@@ -1045,8 +1116,8 @@ export function ProductDetailPanel(props: Props) {
                   </p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
                     {quickEdit === "stock"
-                      ? "Add stock in the Pricing section above"
-                      : "Tap to add stock (qty + unit cost)"}
+                      ? "Set stock in the Pricing section above"
+                      : "Tap to set on-hand quantity"}
                   </p>
                 </div>
                 <PackagePlus

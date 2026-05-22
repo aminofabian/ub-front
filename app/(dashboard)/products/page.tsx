@@ -252,6 +252,8 @@ export default function ProductsPage() {
     setQuickStockBranchId: quick.setQuickStockBranchId,
     quickStockUnitCost: quick.quickStockUnitCost,
     setQuickStockUnitCost: quick.setQuickStockUnitCost,
+    quickStockBaseline: quick.quickStockBaseline,
+    quickStockBaselineLoading: quick.quickStockBaselineLoading,
     saveQuickStock: quick.saveQuickStock,
     openQuickEditAll: quick.openQuickEditAll,
     variantInlineEditId: m.variantInlineEditId,

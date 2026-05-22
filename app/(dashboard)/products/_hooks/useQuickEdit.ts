@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ApiRequestError,
+  fetchAllocationPreview,
+  fetchItemById,
   patchItem,
+  postBatchDecrease,
   postStockIncrease,
   type ItemDetailRecord,
   type ItemSummaryRecord,
@@ -11,6 +14,7 @@ import {
 } from "@/lib/api";
 import { type QuickEditKey } from "../_types";
 import {
+  effectiveOnHand,
   formatMutationError,
   stockCatalogItemId,
   usesSharedPackageStock,
@@ -60,6 +64,11 @@ export function useQuickEdit({
   const [quickStock, setQuickStock] = useState("");
   const [quickStockBranchId, setQuickStockBranchId] = useState("");
   const [quickStockUnitCost, setQuickStockUnitCost] = useState("");
+  const [quickStockBaseline, setQuickStockBaseline] = useState<number | null>(
+    null,
+  );
+  const [quickStockBaselineLoading, setQuickStockBaselineLoading] =
+    useState(false);
   const [quickSaving, setQuickSaving] = useState(false);
 
   // QEA drawer state
@@ -138,9 +147,11 @@ export function useQuickEdit({
         setQuickReorderQty(v(toNumber(detail.reorderQty)));
       }
       if (key === "stock") {
-        setQuickStock("");
-        setQuickStockBranchId(defaultBranchId || branches[0]?.id || "");
+        const bid = defaultBranchId || branches[0]?.id || "";
+        setQuickStockBranchId(bid);
         setQuickStockUnitCost(v(primaryCost));
+        const oh = detail ? effectiveOnHand(detail) : null;
+        setQuickStock(oh != null ? String(oh) : "");
       }
     },
     [
@@ -153,7 +164,42 @@ export function useQuickEdit({
     ],
   );
 
-  const cancelQuickEdit = useCallback(() => setQuickEdit(null), []);
+  const cancelQuickEdit = useCallback(() => {
+    setQuickEdit(null);
+    setQuickStockBaseline(null);
+    setQuickStockBaselineLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (quickEdit !== "stock" || !detail) {
+      setQuickStockBaseline(null);
+      setQuickStockBaselineLoading(false);
+      return;
+    }
+    const stockItemId = stockCatalogItemId(detail);
+    const branchId = quickStockBranchId.trim();
+    if (!stockItemId || !branchId) {
+      setQuickStockBaseline(null);
+      return;
+    }
+    let cancelled = false;
+    setQuickStockBaselineLoading(true);
+    void fetchItemById(stockItemId, { branchId })
+      .then((row) => {
+        if (cancelled) return;
+        const oh = effectiveOnHand(row);
+        setQuickStockBaseline(oh);
+      })
+      .catch(() => {
+        if (!cancelled) setQuickStockBaseline(null);
+      })
+      .finally(() => {
+        if (!cancelled) setQuickStockBaselineLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [quickEdit, detail, quickStockBranchId]);
 
   const saveQuickProductName = useCallback(() => {
     const n = quickProductName.trim();
@@ -288,26 +334,26 @@ export function useQuickEdit({
 
   // ── Stock adjustment via inventory API ──────────────────────────────
   const saveQuickStock = useCallback(async () => {
-    if (!selectedId) return;
+    if (!selectedId || !detail) return;
     if (!canInventoryWrite) {
       setMessage("You do not have permission to adjust stock.");
       return;
     }
-    const shared = detail ? usesSharedPackageStock(detail) : false;
-    if (detail?.isStocked === false && !shared) {
+    const shared = usesSharedPackageStock(detail);
+    if (detail.isStocked === false && !shared) {
       setMessage(
         "This SKU is not stocked. Enable stock tracking or add stock on a variant instead.",
       );
       return;
     }
-    const qtyRaw = quickStock.trim();
-    if (!qtyRaw) {
-      setMessage("Enter a quantity to add.");
+    const targetRaw = quickStock.trim();
+    if (!targetRaw) {
+      setMessage("Enter the on-hand quantity you want.");
       return;
     }
-    const qty = Number(qtyRaw);
-    if (!Number.isFinite(qty) || qty <= 0) {
-      setMessage("Quantity must be a positive number.");
+    const target = Number(targetRaw);
+    if (!Number.isFinite(target) || target < 0) {
+      setMessage("On-hand quantity must be zero or a positive number.");
       return;
     }
     const branchId = quickStockBranchId.trim();
@@ -315,24 +361,79 @@ export function useQuickEdit({
       setMessage("Select a branch.");
       return;
     }
-    const costRaw = quickStockUnitCost.trim();
-    const unitCost = costRaw === "" ? 0 : Number(costRaw);
-    if (!Number.isFinite(unitCost) || unitCost < 0) {
-      setMessage("Unit cost must be a valid non-negative number.");
+
+    const stockItemId = stockCatalogItemId(detail);
+    let current = quickStockBaseline;
+    if (current == null) {
+      try {
+        const row = await fetchItemById(stockItemId, { branchId });
+        current = effectiveOnHand(row) ?? 0;
+      } catch (e) {
+        setMessage(formatMutationError(e, "Could not load current stock."));
+        return;
+      }
+    }
+    const delta = Math.round((target - current) * 10000) / 10000;
+
+    if (Math.abs(delta) < 0.0001) {
+      setQuickEdit(null);
+      setQuickStockBaseline(null);
+      setMessage("Stock unchanged.");
       return;
     }
+
+    let unitCost = 0;
+    if (delta > 0) {
+      const costRaw = quickStockUnitCost.trim();
+      unitCost = costRaw === "" ? 0 : Number(costRaw);
+      if (!Number.isFinite(unitCost) || unitCost < 0) {
+        setMessage("Unit cost must be a valid non-negative number.");
+        return;
+      }
+    }
+
     setQuickSaving(true);
     setMessage("");
     try {
-      const stockItemId =
-        detail != null ? stockCatalogItemId(detail) : selectedId;
-      await postStockIncrease({
-        branchId,
-        itemId: stockItemId,
-        quantity: qty,
-        unitCost,
-      });
-      if (shared && detail?.variantOfItemId?.trim()) {
+      if (delta > 0) {
+        await postStockIncrease({
+          branchId,
+          itemId: stockItemId,
+          quantity: delta,
+          unitCost,
+          notes: "Stock set from products",
+        });
+      } else {
+        const decreaseQty = Math.abs(delta);
+        const allocations = await fetchAllocationPreview({
+          itemId: stockItemId,
+          branchId,
+          quantity: decreaseQty,
+        });
+        if (!allocations.length) {
+          setMessage("Could not allocate stock to remove for this branch.");
+          return;
+        }
+        let allocated = 0;
+        for (const line of allocations) {
+          const q = Number(line.quantity);
+          if (!Number.isFinite(q) || q <= 0) continue;
+          allocated += q;
+          await postBatchDecrease({
+            batchId: line.batchId,
+            quantity: q,
+            reason: "Stock set from products",
+          });
+        }
+        if (allocated < decreaseQty - 0.0001) {
+          setMessage(
+            `Only ${allocated} could be removed; check batch availability.`,
+          );
+          return;
+        }
+      }
+
+      if (shared && detail.variantOfItemId?.trim()) {
         await refreshSelectedDetail(detail.variantOfItemId.trim());
         const pkgUpdated = await refreshSelectedDetail(selectedId);
         if (pkgUpdated) syncListRowFromDetail(pkgUpdated);
@@ -341,10 +442,11 @@ export function useQuickEdit({
         if (updated) syncListRowFromDetail(updated);
       }
       setQuickEdit(null);
+      setQuickStockBaseline(null);
       setMessage(
         shared
-          ? "Stock added on the base product (shared by all package lines)."
-          : "Stock increased.",
+          ? `Stock on base product set to ${target}.`
+          : `Stock set to ${target}.`,
       );
     } catch (e) {
       setMessage(formatMutationError(e, "Stock adjustment failed."));
@@ -502,6 +604,8 @@ export function useQuickEdit({
     setQuickStockBranchId,
     quickStockUnitCost,
     setQuickStockUnitCost,
+    quickStockBaseline,
+    quickStockBaselineLoading,
     quickSaving,
     openQuickEdit,
     cancelQuickEdit,
