@@ -83,7 +83,7 @@ export default function ProductsPage() {
     canInventoryWrite,
     branches: branches,
     defaultBranchId: branchId,
-    refreshFullCatalog: catalog.refreshFullCatalog,
+    syncListRowFromDetail: catalog.syncListRowFromDetail,
     refreshSelectedDetail: detail.refreshSelectedDetail,
     setMessage: catalog.setMessage,
   });
@@ -124,6 +124,7 @@ export default function ProductsPage() {
     canInventoryWrite,
     currencyCode: business?.currency?.trim() || "",
     refreshFullCatalog: catalog.refreshFullCatalog,
+    syncListRowFromDetail: catalog.syncListRowFromDetail,
     refreshSelectedDetail: detail.refreshSelectedDetail,
     setMessage: catalog.setMessage,
     selectProduct: (id) => {
@@ -444,7 +445,7 @@ export default function ProductsPage() {
         cats={catalog.sortedCategories}
         m={m}
         headerBranchId={branchId}
-        refreshFullCatalog={catalog.refreshFullCatalog}
+        syncListRowFromDetail={catalog.syncListRowFromDetail}
         refreshSelectedDetail={detail.refreshSelectedDetail}
         setMessage={catalog.setMessage}
       />

@@ -106,6 +106,39 @@ export function useCatalogList(catalogBranchId?: string | null) {
     }
   }, [debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive, branchIdForStock]);
 
+  /** Patch one loaded list row in place — keeps scroll position and loaded pages. */
+  const syncListRowFromDetail = useCallback(
+    (row: ItemSummaryRecord & { currentStock?: number | string | null }) => {
+      const categoryName =
+        row.categoryName?.trim() ||
+        (row.categoryId
+          ? categories.find((c) => c.id === row.categoryId)?.name
+          : undefined);
+      setListRows((prev) => {
+        const i = prev.findIndex((r) => r.id === row.id);
+        if (i < 0) return prev;
+        const existing = prev[i];
+        const next = [...prev];
+        next[i] = {
+          ...existing,
+          name: row.name,
+          sku: row.sku,
+          barcode: row.barcode,
+          variantName: row.variantName,
+          variantOfItemId: row.variantOfItemId,
+          categoryId: row.categoryId ?? null,
+          categoryName: categoryName ?? existing.categoryName,
+          imageKey: row.imageKey,
+          active: row.active,
+          webPublished: row.webPublished,
+          stockQty: row.currentStock ?? existing.stockQty,
+        };
+        return next;
+      });
+    },
+    [categories],
+  );
+
   const loadMoreCatalog = useCallback(async () => {
     if (listLast || listLoadingMore || listLoadingInitial || nextPageRef.current <= 0) return;
     setListLoadingMore(true);
@@ -252,7 +285,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     listDensity, setListDensity,
     message, setMessage,
-    loadCategoriesAndTypes, refreshFullCatalog, loadMoreCatalog, resetFilters,
+    loadCategoriesAndTypes, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, resetFilters,
   };
 }
 

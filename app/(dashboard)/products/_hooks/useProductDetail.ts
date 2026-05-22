@@ -60,9 +60,9 @@ export function useProductDetail(branchIdForPricing?: string | null) {
 
   /** Pass `itemIdOverride` after `selectProduct(id)` so detail loads before the next paint (same-tick stale `selectedId`). */
   const refreshSelectedDetail = useCallback(
-    async (itemIdOverride?: string | null) => {
+    async (itemIdOverride?: string | null): Promise<ItemDetailRecord | null> => {
       const id = (itemIdOverride?.trim() || selectedId?.trim()) ?? "";
-      if (!id) return;
+      if (!id) return null;
       try {
         const row = await fetchItemById(id, { branchId: pricingBranchId });
         setDetail(row);
@@ -96,10 +96,12 @@ export function useProductDetail(branchIdForPricing?: string | null) {
         } catch {
           setCurrentSellPrice(toNumber(row.bundlePrice));
         }
+        return row;
       } catch (error) {
         if (!(error instanceof ApiRequestError)) {
           // silently ignore — downstream can show state
         }
+        return null;
       }
     },
     [selectedId, buildDraft, pricingBranchId],

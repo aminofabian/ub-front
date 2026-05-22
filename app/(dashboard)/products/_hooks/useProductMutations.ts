@@ -58,7 +58,10 @@ type Dependencies = {
   canInventoryWrite: boolean;
   currencyCode: string;
   refreshFullCatalog: () => Promise<void>;
-  refreshSelectedDetail: (itemIdOverride?: string | null) => Promise<void>;
+  syncListRowFromDetail: (row: ItemSummaryRecord) => void;
+  refreshSelectedDetail: (
+    itemIdOverride?: string | null,
+  ) => Promise<ItemDetailRecord | null>;
   setMessage: (msg: string) => void;
   selectProduct: (id: string | null) => void;
   activeDrawer: ProductDrawerId | null;
@@ -85,6 +88,7 @@ export function useProductMutations(d: Dependencies) {
     canSetSellPrice,
     canInventoryWrite,
     refreshFullCatalog,
+    syncListRowFromDetail,
     refreshSelectedDetail,
     setMessage,
     selectProduct,
@@ -571,8 +575,8 @@ export function useProductMutations(d: Dependencies) {
             }
           }
         }
-        await refreshFullCatalog();
-        await refreshSelectedDetail();
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
         setActiveDrawer(null);
         setMessage("Product updated.");
       } catch (err) {
@@ -584,7 +588,7 @@ export function useProductMutations(d: Dependencies) {
       canCatalogWrite,
       patchDraft,
       detail,
-      refreshFullCatalog,
+      syncListRowFromDetail,
       refreshSelectedDetail,
       setActiveDrawer,
       setMessage,
@@ -891,8 +895,8 @@ export function useProductMutations(d: Dependencies) {
         });
         setPendingCatalogImage(null);
         setCatalogImageAlt("");
-        await refreshSelectedDetail();
-        await refreshFullCatalog();
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
         setMessage("Photo uploaded.");
       } catch (err) {
         if (!(err instanceof ApiRequestError))
@@ -907,7 +911,7 @@ export function useProductMutations(d: Dependencies) {
       catalogImageAlt,
       catalogImagePrimary,
       refreshSelectedDetail,
-      refreshFullCatalog,
+      syncListRowFromDetail,
       setMessage,
     ],
   );
@@ -918,8 +922,8 @@ export function useProductMutations(d: Dependencies) {
       setMessage("");
       try {
         await deleteItemImage(selectedId, imageId);
-        await refreshSelectedDetail();
-        await refreshFullCatalog();
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
         setMessage("Image removed.");
       } catch (err) {
         if (!(err instanceof ApiRequestError))
@@ -928,7 +932,7 @@ export function useProductMutations(d: Dependencies) {
           );
       }
     },
-    [selectedId, refreshSelectedDetail, refreshFullCatalog, setMessage],
+    [selectedId, refreshSelectedDetail, syncListRowFromDetail, setMessage],
   );
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -960,7 +964,6 @@ export function useProductMutations(d: Dependencies) {
     setMessage("");
     try {
       await patchItem(variantInlineEditId, { name });
-      await refreshFullCatalog();
       const parentId = detail.variantOfItemId?.trim() || detail.id;
       const p = await fetchItemById(parentId);
       if (detail.variantOfItemId) {
@@ -971,11 +974,15 @@ export function useProductMutations(d: Dependencies) {
       if (selectedId === variantInlineEditId) {
         const next = await fetchItemById(variantInlineEditId);
         setDetail(next);
+        syncListRowFromDetail(next);
         try {
           setSupplierLinks(await fetchItemSupplierLinks(variantInlineEditId));
         } catch {
           setSupplierLinks([]);
         }
+      } else {
+        const variantRow = p.variants?.find((v) => v.id === variantInlineEditId);
+        if (variantRow) syncListRowFromDetail(variantRow);
       }
       setVariantInlineEditId(null);
       setMessage("Variant updated.");
@@ -991,7 +998,7 @@ export function useProductMutations(d: Dependencies) {
     canCatalogWrite,
     variantEditName,
     selectedId,
-    refreshFullCatalog,
+    syncListRowFromDetail,
     setParentVariants,
     setDetail,
     setSupplierLinks,

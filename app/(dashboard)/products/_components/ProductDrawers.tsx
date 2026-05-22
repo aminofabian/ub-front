@@ -40,7 +40,7 @@ import {
   galleryImageUrl,
   toNumber,
 } from "../_utils";
-import { postStockIncrease } from "@/lib/api";
+import { postStockIncrease, type ItemSummaryRecord } from "@/lib/api";
 import { useEffect, useState, type ComponentProps } from "react";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 type Cat = { id: string; name: string; active: boolean };
@@ -55,7 +55,7 @@ export function ProductEditDrawer({
   cats,
   m,
   headerBranchId,
-  refreshFullCatalog,
+  syncListRowFromDetail,
   refreshSelectedDetail,
   setMessage,
 }: {
@@ -79,8 +79,8 @@ export function ProductEditDrawer({
     | "branches"
   >;
   headerBranchId?: string;
-  refreshFullCatalog: () => Promise<void>;
-  refreshSelectedDetail: (itemIdOverride?: string | null) => Promise<void>;
+  syncListRowFromDetail: (row: ItemSummaryRecord) => void;
+  refreshSelectedDetail: ProductDetailApi["refreshSelectedDetail"];
   setMessage: (msg: string) => void;
 }) {
   const d = detail.detail;
@@ -145,8 +145,8 @@ export function ProductEditDrawer({
         quantity: qty,
         unitCost,
       });
-      await refreshFullCatalog();
-      await refreshSelectedDetail();
+      const updated = await refreshSelectedDetail();
+      if (updated) syncListRowFromDetail(updated);
       setStockQty("");
       setMessage("Stock increased.");
       return true;

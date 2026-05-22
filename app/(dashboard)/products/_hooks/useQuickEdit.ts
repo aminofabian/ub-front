@@ -6,6 +6,7 @@ import {
   patchItem,
   postStockIncrease,
   type ItemDetailRecord,
+  type ItemSummaryRecord,
   type PatchItemPayload,
 } from "@/lib/api";
 import { type QuickEditKey } from "../_types";
@@ -20,8 +21,10 @@ type Params = {
   canInventoryWrite: boolean;
   branches: { id: string; name: string }[];
   defaultBranchId?: string;
-  refreshFullCatalog: () => Promise<void>;
-  refreshSelectedDetail: (itemIdOverride?: string | null) => Promise<void>;
+  syncListRowFromDetail: (row: ItemSummaryRecord) => void;
+  refreshSelectedDetail: (
+    itemIdOverride?: string | null,
+  ) => Promise<ItemDetailRecord | null>;
   setMessage: (msg: string) => void;
 };
 
@@ -33,7 +36,7 @@ export function useQuickEdit({
   canInventoryWrite,
   branches,
   defaultBranchId,
-  refreshFullCatalog,
+  syncListRowFromDetail,
   refreshSelectedDetail,
   setMessage,
 }: Params) {
@@ -79,8 +82,8 @@ export function useQuickEdit({
       setMessage("");
       try {
         await patchItem(selectedId, body);
-        await refreshFullCatalog();
-        await refreshSelectedDetail();
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
         setQuickEdit(null);
         setMessage(successMsg);
       } catch (e) {
@@ -92,7 +95,7 @@ export function useQuickEdit({
     [
       selectedId,
       canCatalogWrite,
-      refreshFullCatalog,
+      syncListRowFromDetail,
       refreshSelectedDetail,
       setMessage,
     ],
@@ -288,8 +291,8 @@ export function useQuickEdit({
         quantity: qty,
         unitCost,
       });
-      await refreshFullCatalog();
-      await refreshSelectedDetail();
+      const updated = await refreshSelectedDetail();
+      if (updated) syncListRowFromDetail(updated);
       setQuickEdit(null);
       setMessage("Stock increased.");
     } catch (e) {
@@ -303,7 +306,7 @@ export function useQuickEdit({
     quickStock,
     quickStockBranchId,
     quickStockUnitCost,
-    refreshFullCatalog,
+    syncListRowFromDetail,
     refreshSelectedDetail,
     setMessage,
   ]);
@@ -387,8 +390,8 @@ export function useQuickEdit({
     setQeaError("");
     try {
       await patchItem(selectedId, body);
-      await refreshFullCatalog();
-      await refreshSelectedDetail();
+      const updated = await refreshSelectedDetail();
+      if (updated) syncListRowFromDetail(updated);
       setQuickEditAllOpen(false);
       setMessage("Product updated.");
     } catch (e) {
@@ -409,7 +412,7 @@ export function useQuickEdit({
     qeaReorderLevel,
     qeaReorderQty,
     qeaDescription,
-    refreshFullCatalog,
+    syncListRowFromDetail,
     refreshSelectedDetail,
     setMessage,
   ]);
