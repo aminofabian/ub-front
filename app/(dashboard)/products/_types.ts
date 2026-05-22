@@ -210,6 +210,7 @@ export type QuickEditKey =
   | "bundleQty"
   | "bundlePrice"
   | "buyingPrice"
+  | "margin"
   | "minStock"
   | "reorder"
   | "stock"

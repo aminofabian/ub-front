@@ -52,6 +52,7 @@ export function useQuickEdit({
   const [quickBundleQty, setQuickBundleQty] = useState("");
   const [quickBundlePrice, setQuickBundlePrice] = useState("");
   const [quickBuyingPrice, setQuickBuyingPrice] = useState("");
+  const [quickMargin, setQuickMargin] = useState("");
   const [quickMinStock, setQuickMinStock] = useState("");
   const [quickReorderLevel, setQuickReorderLevel] = useState("");
   const [quickReorderQty, setQuickReorderQty] = useState("");
@@ -121,6 +122,15 @@ export function useQuickEdit({
       if (key === "bundlePrice")
         setQuickBundlePrice(v(toNumber(detail.bundlePrice)));
       if (key === "buyingPrice") setQuickBuyingPrice(v(primaryCost));
+      if (key === "margin") {
+        const sell = toNumber(detail.bundlePrice);
+        const cost = primaryCost;
+        const pct =
+          sell != null && sell > 0 && cost != null
+            ? ((sell - cost) / sell) * 100
+            : null;
+        setQuickMargin(pct != null ? String(Math.round(pct * 10) / 10) : "");
+      }
       if (key === "minStock")
         setQuickMinStock(v(toNumber(detail.minStockLevel)));
       if (key === "reorder") {
@@ -213,6 +223,29 @@ export function useQuickEdit({
     }
     void runQuickPatch({ buyingPrice: n }, "Buying price updated.");
   }, [quickBuyingPrice, runQuickPatch, setMessage]);
+
+  const saveQuickMargin = useCallback(() => {
+    const r = quickMargin.trim();
+    if (!r) {
+      setMessage("Enter a margin % or cancel.");
+      return;
+    }
+    const pct = Number(r);
+    if (!Number.isFinite(pct) || pct < 0 || pct >= 100) {
+      setMessage("Margin must be at least 0% and below 100%.");
+      return;
+    }
+    const cost = primaryCost;
+    if (cost == null || cost < 0) {
+      setMessage("Set a cost price first, then set margin to update shelf price.");
+      return;
+    }
+    const shelf = Math.round((cost / (1 - pct / 100)) * 100) / 100;
+    void runQuickPatch(
+      { bundlePrice: shelf },
+      `Shelf price set to ${shelf} from ${pct}% margin.`,
+    );
+  }, [quickMargin, primaryCost, runQuickPatch, setMessage]);
 
   const saveQuickMinStock = useCallback(() => {
     const r = quickMinStock.trim();
@@ -455,6 +488,8 @@ export function useQuickEdit({
     setQuickBundlePrice,
     quickBuyingPrice,
     setQuickBuyingPrice,
+    quickMargin,
+    setQuickMargin,
     quickMinStock,
     setQuickMinStock,
     quickReorderLevel,
@@ -476,6 +511,7 @@ export function useQuickEdit({
     saveQuickBundleQty,
     saveQuickBundlePrice,
     saveQuickBuyingPrice,
+    saveQuickMargin,
     saveQuickMinStock,
     saveQuickReorder,
     saveQuickStock,

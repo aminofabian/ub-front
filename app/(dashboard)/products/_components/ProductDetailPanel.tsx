@@ -90,6 +90,8 @@ type Props = {
   setQuickBundlePrice: (v: string) => void;
   quickBuyingPrice: string;
   setQuickBuyingPrice: (v: string) => void;
+  quickMargin: string;
+  setQuickMargin: (v: string) => void;
   quickMinStock: string;
   setQuickMinStock: (v: string) => void;
   quickReorderLevel: string;
@@ -113,6 +115,7 @@ type Props = {
   saveQuickBundleQty: () => void;
   saveQuickBundlePrice: () => void;
   saveQuickBuyingPrice: () => void;
+  saveQuickMargin: () => void;
   saveQuickMinStock: () => void;
   saveQuickReorder: () => void;
   openQuickEditAll: () => void;
@@ -157,6 +160,8 @@ export function ProductDetailPanel(props: Props) {
     setQuickBundlePrice,
     quickBuyingPrice,
     setQuickBuyingPrice,
+    quickMargin,
+    setQuickMargin,
     quickMinStock,
     setQuickMinStock,
     quickReorderLevel,
@@ -179,6 +184,7 @@ export function ProductDetailPanel(props: Props) {
     saveQuickBundleQty,
     saveQuickBundlePrice,
     saveQuickBuyingPrice,
+    saveQuickMargin,
     saveQuickMinStock,
     saveQuickReorder,
     openQuickEditAll,
@@ -312,6 +318,106 @@ export function ProductDetailPanel(props: Props) {
     sharedStock &&
     (toNumber(detail.baseStockQty) ?? stockLevel ?? 0) <= 0 &&
     siblingWithOwnStock.length > 0;
+
+  const statInputClass = cn(
+    productFormInputClass,
+    "h-8 w-full px-2 text-xs font-bold tabular-nums",
+  );
+
+  const statMiniActions = (onSave: () => void) => (
+    <div className="mt-1.5 flex gap-1">
+      <Button
+        type="button"
+        size="sm"
+        className="h-6 flex-1 rounded px-1.5 text-[9px]"
+        disabled={quickSaving}
+        onClick={onSave}
+      >
+        Save
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="h-6 flex-1 rounded px-1.5 text-[9px]"
+        disabled={quickSaving}
+        onClick={cancelQuickEdit}
+      >
+        Cancel
+      </Button>
+    </div>
+  );
+
+  const renderPricingStatCell = (
+    label: string,
+    display: string,
+    editKey: Exclude<QuickEditKey, null>,
+    onSave: () => void,
+    opts: {
+      canEdit: boolean;
+      highlight?: "success" | "danger" | "default";
+      valueClass?: string;
+      onActivate?: () => void;
+      editContent?: React.ReactNode;
+    },
+  ) => {
+    const isEditing = quickEdit === editKey;
+    const highlight = opts.highlight ?? "default";
+    return (
+      <div
+        key={label}
+        className={cn(
+          detailStatCellClass(highlight),
+          isEditing && "bg-muted/50 ring-1 ring-inset ring-primary/25",
+        )}
+      >
+        <p className={detailFieldLabelClass}>{label}</p>
+        {isEditing && opts.editContent ? (
+          <div className="mt-1" onKeyDown={onInlineEnter(onSave)}>
+            {opts.editContent}
+          </div>
+        ) : isEditing ? (
+          <p className={cn(detailStatValueClass, "text-sm font-medium text-primary")}>
+            Editing…
+          </p>
+        ) : (
+          <button
+            type="button"
+            disabled={!opts.canEdit}
+            onClick={() => {
+              if (opts.onActivate) {
+                opts.onActivate();
+              } else {
+                openQuickEdit(editKey);
+              }
+            }}
+            className={cn(
+              "group/stat mt-0.5 w-full text-left",
+              opts.canEdit &&
+                "cursor-pointer rounded-sm transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+              !opts.canEdit && "cursor-default",
+            )}
+          >
+            <p
+              className={cn(
+                detailStatValueClass,
+                "text-sm font-semibold",
+                opts.valueClass,
+              )}
+            >
+              {display}
+            </p>
+            {opts.canEdit ? (
+              <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-medium text-primary/80 opacity-0 transition-opacity group-hover/stat:opacity-100 group-focus-visible/stat:opacity-100">
+                <Pencil className="size-2.5" aria-hidden />
+                Tap to edit
+              </span>
+            ) : null}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const thumbUrl = coverImageUrl(detail);
   const titleInitial = (detail.name?.trim() || "?").charAt(0).toUpperCase();
@@ -506,43 +612,132 @@ export function ProductDetailPanel(props: Props) {
           ) : null}
         </header>
         <div className="grid grid-cols-4 divide-x divide-border/40 bg-background/50">
-          {(
-            [
-              ["Shelf", formatAmount(sellPrice), "font-bold", "default"] as const,
-              ["Cost", formatAmount(primaryCost), "font-semibold", "default"] as const,
-              [
-                "Margin",
-                marginPct != null ? `${marginPct.toFixed(1)}%` : "—",
+          {renderPricingStatCell(
+            "Shelf",
+            formatAmount(sellPrice),
+            "bundlePrice",
+            saveQuickBundlePrice,
+            {
+              canEdit: canCatalogWrite,
+              valueClass: "font-bold",
+              editContent: (
+                <>
+                  <input
+                    autoFocus
+                    className={statInputClass}
+                    inputMode="decimal"
+                    value={quickBundlePrice}
+                    onChange={(e) => setQuickBundlePrice(e.target.value)}
+                    placeholder="0.00"
+                    aria-label="Shelf price"
+                  />
+                  {statMiniActions(saveQuickBundlePrice)}
+                </>
+              ),
+            },
+          )}
+          {renderPricingStatCell(
+            "Cost",
+            formatAmount(primaryCost),
+            "buyingPrice",
+            saveQuickBuyingPrice,
+            {
+              canEdit: canCatalogWrite,
+              editContent: (
+                <>
+                  <input
+                    autoFocus
+                    className={statInputClass}
+                    inputMode="decimal"
+                    value={quickBuyingPrice}
+                    onChange={(e) => setQuickBuyingPrice(e.target.value)}
+                    placeholder="0.00"
+                    aria-label="Cost price"
+                  />
+                  {statMiniActions(saveQuickBuyingPrice)}
+                </>
+              ),
+            },
+          )}
+          {renderPricingStatCell(
+            "Margin",
+            marginPct != null ? `${marginPct.toFixed(1)}%` : "—",
+            "margin",
+            saveQuickMargin,
+            {
+              canEdit: canCatalogWrite,
+              highlight:
+                marginPct != null && marginPct > 0
+                  ? "success"
+                  : "default",
+              valueClass:
                 marginPct != null && marginPct > 0
                   ? "text-emerald-600 dark:text-emerald-400"
-                  : "",
-                marginPct != null && marginPct > 0 ? "success" : "default",
-              ] as const,
-              [
-                sharedStock ? "Available" : "Stock",
-                stockLabel,
-                stockLow ? "text-destructive font-semibold" : "font-semibold",
-                stockLow ? "danger" : "default",
-              ] as const,
-            ]
-          ).map(([label, value, cls, highlight]) => (
-            <div
-              key={label}
-              className={detailStatCellClass(
-                highlight === "success"
-                  ? "success"
-                  : highlight === "danger"
-                    ? "danger"
-                    : "default",
-              )}
-            >
-              <p className={detailFieldLabelClass}>{label}</p>
-              <p className={cn(detailStatValueClass, cls)}>
-                {value}
-              </p>
-            </div>
-          ))}
+                  : undefined,
+              editContent: (
+                <>
+                  <input
+                    autoFocus
+                    className={statInputClass}
+                    inputMode="decimal"
+                    value={quickMargin}
+                    onChange={(e) => setQuickMargin(e.target.value)}
+                    placeholder="%"
+                    aria-label="Margin percent"
+                  />
+                  <p className="mt-1 text-[9px] leading-snug text-muted-foreground">
+                    Updates shelf from cost
+                  </p>
+                  {statMiniActions(saveQuickMargin)}
+                </>
+              ),
+            },
+          )}
+          {renderPricingStatCell(
+            sharedStock ? "Available" : "Stock",
+            stockLabel,
+            "stock",
+            () => void saveQuickStock(),
+            {
+              canEdit:
+                sharedStock && canInventoryWrite && !!onOpenBaseStock
+                  ? true
+                  : canInventoryWrite && !sharedStock,
+              highlight: stockLow ? "danger" : "default",
+              valueClass: stockLow
+                ? "text-destructive font-semibold"
+                : "font-semibold",
+              onActivate:
+                sharedStock && onOpenBaseStock
+                  ? onOpenBaseStock
+                  : undefined,
+            },
+          )}
         </div>
+        {quickEdit === "stock" && !sharedStock && canInventoryWrite ? (
+          <div
+            className="border-t border-border/40 bg-muted/20 px-2.5 py-2.5"
+            onKeyDown={onInlineEnter(() => void saveQuickStock())}
+          >
+            <p className={cn(productFormLabelClass, "mb-2")}>Add stock</p>
+            <StockIncreaseFields
+              branches={branches}
+              branchId={quickStockBranchId}
+              onBranchIdChange={setQuickStockBranchId}
+              quantity={quickStock}
+              onQuantityChange={setQuickStock}
+              unitCost={quickStockUnitCost}
+              onUnitCostChange={setQuickStockUnitCost}
+              itemId={selectedId}
+              currentUnitCost={primaryCost}
+              className="border-0 p-0 shadow-none ring-0"
+              hint="Adds to on-hand at the selected branch."
+            />
+            <div className="mt-2 flex justify-end">
+              {saveCancelBtns(() => void saveQuickStock())}
+            </div>
+          </div>
+        ) : null}
         {supplierLinks.length === 0 && (
           <p className="border-t border-border/40 px-2.5 py-1.5 text-[10px] text-muted-foreground">
             Link a supplier to see cost &amp; margin.
@@ -657,19 +852,6 @@ export function ProductDetailPanel(props: Props) {
                   placeholder="e.g. 6"
                 />,
               )
-            ) : quickEdit === "bundlePrice" ? (
-              inlineEdit(
-                "Shelf price",
-                saveQuickBundlePrice,
-                <input
-                  autoFocus
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quickBundlePrice}
-                  onChange={(e) => setQuickBundlePrice(e.target.value)}
-                  placeholder="0.00"
-                />,
-              )
             ) : sharedStock ? (
               <div className="grid grid-cols-2 divide-x divide-border/40">
                 <div className={detailFieldRowClass}>
@@ -705,20 +887,7 @@ export function ProductDetailPanel(props: Props) {
             )}
 
             {/* Cost (+ min stock when not shared) */}
-            {quickEdit === "buyingPrice" ? (
-              inlineEdit(
-                "Cost price",
-                saveQuickBuyingPrice,
-                <input
-                  autoFocus
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quickBuyingPrice}
-                  onChange={(e) => setQuickBuyingPrice(e.target.value)}
-                  placeholder="0.00"
-                />,
-              )
-            ) : sharedStock ? (
+            {sharedStock ? (
               fieldBtn("Cost price", formatAmount(primaryCost), "buyingPrice")
             ) : quickEdit === "minStock" ? (
               inlineEdit(
@@ -864,49 +1033,27 @@ export function ProductDetailPanel(props: Props) {
                 ) : null}
               </div>
             ) : canInventoryWrite ? (
-              quickEdit === "stock" ? (
-                <div
-                  className={detailInlineEditClass}
-                  onKeyDown={onInlineEnter(saveQuickStock)}
-                >
-                  <StockIncreaseFields
-                    branches={branches}
-                    branchId={quickStockBranchId}
-                    onBranchIdChange={setQuickStockBranchId}
-                    quantity={quickStock}
-                    onQuantityChange={setQuickStock}
-                    unitCost={quickStockUnitCost}
-                    onUnitCostChange={setQuickStockUnitCost}
-                    itemId={selectedId}
-                    currentUnitCost={primaryCost}
-                    className="border-0 p-0 shadow-none ring-0"
-                    hint="Adds to on-hand at the selected branch."
-                  />
-                  <div className="mt-2 flex justify-end">
-                    {saveCancelBtns(saveQuickStock)}
-                  </div>
+              <button
+                type="button"
+                className={detailFieldRowClass}
+                onClick={() => openQuickEdit("stock")}
+              >
+                <div className="min-w-0">
+                  <p className={detailFieldLabelClass}>On-hand stock</p>
+                  <p className={detailFieldValueClass}>
+                    {formatAmount(stockLevel)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {quickEdit === "stock"
+                      ? "Add stock in the Pricing section above"
+                      : "Tap to add stock (qty + unit cost)"}
+                  </p>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className={detailFieldRowClass}
-                  onClick={() => openQuickEdit("stock")}
-                >
-                  <div className="min-w-0">
-                    <p className={detailFieldLabelClass}>On-hand stock</p>
-                    <p className={detailFieldValueClass}>
-                      {formatAmount(stockLevel)}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      Tap to add stock (qty + unit cost)
-                    </p>
-                  </div>
-                  <PackagePlus
-                    className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
-                    aria-hidden
-                  />
-                </button>
-              )
+                <PackagePlus
+                  className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
+                  aria-hidden
+                />
+              </button>
             ) : (
               <div className={detailFieldRowClass}>
                 <div className="min-w-0">
