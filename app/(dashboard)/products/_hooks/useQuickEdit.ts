@@ -10,7 +10,12 @@ import {
   type PatchItemPayload,
 } from "@/lib/api";
 import { type QuickEditKey } from "../_types";
-import { formatMutationError, toNumber } from "../_utils";
+import {
+  formatMutationError,
+  stockCatalogItemId,
+  usesSharedPackageStock,
+  toNumber,
+} from "../_utils";
 
 type Params = {
   selectedId: string | null;
@@ -255,7 +260,8 @@ export function useQuickEdit({
       setMessage("You do not have permission to adjust stock.");
       return;
     }
-    if (detail?.isStocked === false) {
+    const shared = detail ? usesSharedPackageStock(detail) : false;
+    if (detail?.isStocked === false && !shared) {
       setMessage(
         "This SKU is not stocked. Enable stock tracking or add stock on a variant instead.",
       );
@@ -285,16 +291,28 @@ export function useQuickEdit({
     setQuickSaving(true);
     setMessage("");
     try {
+      const stockItemId =
+        detail != null ? stockCatalogItemId(detail) : selectedId;
       await postStockIncrease({
         branchId,
-        itemId: selectedId,
+        itemId: stockItemId,
         quantity: qty,
         unitCost,
       });
-      const updated = await refreshSelectedDetail();
-      if (updated) syncListRowFromDetail(updated);
+      if (shared && detail?.variantOfItemId?.trim()) {
+        await refreshSelectedDetail(detail.variantOfItemId.trim());
+        const pkgUpdated = await refreshSelectedDetail(selectedId);
+        if (pkgUpdated) syncListRowFromDetail(pkgUpdated);
+      } else {
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
+      }
       setQuickEdit(null);
-      setMessage("Stock increased.");
+      setMessage(
+        shared
+          ? "Stock added on the base product (shared by all package lines)."
+          : "Stock increased.",
+      );
     } catch (e) {
       setMessage(formatMutationError(e, "Stock adjustment failed."));
     } finally {
@@ -302,6 +320,7 @@ export function useQuickEdit({
     }
   }, [
     selectedId,
+    detail,
     canInventoryWrite,
     quickStock,
     quickStockBranchId,
@@ -337,6 +356,7 @@ export function useQuickEdit({
 
   const saveQuickEditAll = useCallback(async () => {
     if (!selectedId || !canCatalogWrite) return;
+    const shared = detail ? usesSharedPackageStock(detail) : false;
     const name = qeaName.trim();
     if (!name) {
       setQeaError("Display name is required.");
@@ -378,13 +398,16 @@ export function useQuickEdit({
       (body as Record<string, unknown>)[key] = int ? Math.round(n) : n;
       return true;
     };
-    if (setIf("bundleQty", qeaBundleQty, "Pack qty", true) === false) return;
+    if (!shared && setIf("bundleQty", qeaBundleQty, "Pack qty", true) === false)
+      return;
     if (setIf("bundlePrice", qeaBundlePrice, "Shelf price") === false) return;
     if (setIf("buyingPrice", qeaBuyingPrice, "Buying price") === false) return;
-    if (setIf("minStockLevel", qeaMinStock, "Min stock") === false) return;
-    if (setIf("reorderLevel", qeaReorderLevel, "Reorder level") === false)
-      return;
-    if (setIf("reorderQty", qeaReorderQty, "Reorder qty") === false) return;
+    if (!shared) {
+      if (setIf("minStockLevel", qeaMinStock, "Min stock") === false) return;
+      if (setIf("reorderLevel", qeaReorderLevel, "Reorder level") === false)
+        return;
+      if (setIf("reorderQty", qeaReorderQty, "Reorder qty") === false) return;
+    }
     if (qeaDescription.trim()) body.description = qeaDescription.trim();
     setQeaSaving(true);
     setQeaError("");
@@ -412,6 +435,7 @@ export function useQuickEdit({
     qeaReorderLevel,
     qeaReorderQty,
     qeaDescription,
+    detail,
     syncListRowFromDetail,
     refreshSelectedDetail,
     setMessage,

@@ -11,7 +11,7 @@ import {
   type ItemSupplierLinkRecord,
 } from "@/lib/api";
 import { type ProductEditDraft, EMPTY_EDIT_DRAFT } from "../_types";
-import { effectiveSupplierUnitCost, toNumber } from "../_utils";
+import { effectiveSupplierUnitCost, normalizeItemDetail, toNumber } from "../_utils";
 
 /** Safe number-to-string helper for draft fields. */
 function numStr(v: number | string | null | undefined): string {
@@ -70,7 +70,9 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       const id = (itemIdOverride?.trim() || selectedId?.trim()) ?? "";
       if (!id) return null;
       try {
-        const row = await fetchItemById(id, { branchId: pricingBranchId });
+        const row = normalizeItemDetail(
+          await fetchItemById(id, { branchId: pricingBranchId }),
+        );
         setDetail(row);
         setPatchDraft(buildDraft(row));
         const parentOfVariant = row.variantOfItemId?.trim();

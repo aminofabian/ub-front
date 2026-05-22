@@ -63,24 +63,82 @@ export function resolveCatalogParentId(
   return selectedId?.trim() || null;
 }
 
+/** Package sale or shared-stock variant — inventory lives on the parent product. */
+export function usesSharedPackageStock(
+  row: {
+    packageVariant?: boolean;
+    variantOfItemId?: string | null;
+    isStocked?: boolean;
+    packageUnitsPerSale?: number | string | null;
+    packagingUnitQty?: number | string | null;
+  } | null | undefined,
+): boolean {
+  if (!row) return false;
+  if (row.packageVariant) return true;
+  const parentId = row.variantOfItemId?.trim();
+  if (!parentId) return false;
+  const units = packageUnitsPerSaleFromRow(row);
+  return units != null && row.isStocked === false;
+}
+
+/** Parent catalog id when stock is shared; otherwise the row itself. */
+export function stockCatalogItemId(
+  row: { id: string; variantOfItemId?: string | null; packageVariant?: boolean; isStocked?: boolean } & {
+    packageUnitsPerSale?: number | string | null;
+    packagingUnitQty?: number | string | null;
+  },
+): string {
+  if (usesSharedPackageStock(row)) {
+    const parent = row.variantOfItemId?.trim();
+    if (parent) return parent;
+  }
+  return row.id;
+}
+
+/** Conversion factor for package / shared-stock SKUs (API list field or detail packagingUnitQty). */
+export function packageUnitsPerSaleFromRow(
+  row: {
+    packageUnitsPerSale?: number | string | null;
+    packagingUnitQty?: number | string | null;
+  } | null | undefined,
+): number | null {
+  if (!row) return null;
+  return toNumber(row.packageUnitsPerSale) ?? toNumber(row.packagingUnitQty);
+}
+
+/** Normalize item detail so package fields work in list + detail UIs. */
+export function normalizeItemDetail<T extends ItemDetailRecord>(row: T): T {
+  const units = packageUnitsPerSaleFromRow(row);
+  return {
+    ...row,
+    packageUnitsPerSale: row.packageUnitsPerSale ?? units ?? undefined,
+  };
+}
+
 export function formatStockLabel(
   row: {
     packageVariant?: boolean;
     stockQty?: number | string | null;
     baseStockQty?: number | string | null;
     packageUnitsPerSale?: number | string | null;
+    packagingUnitQty?: number | string | null;
     currentStock?: number | string | null;
   } | null | undefined,
 ): string {
   if (!row) return "—";
   if (row.packageVariant) {
     const pkgs = toNumber(row.stockQty);
-    const base = toNumber(row.baseStockQty) ?? toNumber(row.currentStock);
-    const units = toNumber(row.packageUnitsPerSale);
+    const base =
+      toNumber(row.baseStockQty) ??
+      (pkgs != null && packageUnitsPerSaleFromRow(row) != null
+        ? pkgs * packageUnitsPerSaleFromRow(row)!
+        : null) ??
+      toNumber(row.currentStock);
+    const units = packageUnitsPerSaleFromRow(row);
     if (pkgs == null && base == null) return "—";
     const pkgPart = pkgs != null ? `${pkgs} pkg` : "—";
     if (base != null && units != null && units > 0) {
-      return `${pkgPart} · ${base} base`;
+      return `${pkgPart} · ${base.toLocaleString()} base`;
     }
     return pkgPart;
   }
@@ -88,14 +146,26 @@ export function formatStockLabel(
   return onHand != null ? onHand.toLocaleString() : "—";
 }
 
-/** Branch batch on-hand when available; otherwise item-level currentStock. */
+/** Branch on-hand in base units (packages → base for package variants). */
 export function effectiveOnHand(
   detail: {
+    packageVariant?: boolean;
     stockQty?: number | string | null;
+    baseStockQty?: number | string | null;
+    packageUnitsPerSale?: number | string | null;
+    packagingUnitQty?: number | string | null;
     currentStock?: number | string | null;
   } | null | undefined,
 ): number | null {
   if (!detail) return null;
+  if (detail.packageVariant) {
+    const base = toNumber(detail.baseStockQty);
+    if (base != null) return base;
+    const pkgs = toNumber(detail.stockQty);
+    const units = packageUnitsPerSaleFromRow(detail);
+    if (pkgs != null && units != null) return pkgs * units;
+    return toNumber(detail.currentStock);
+  }
   return toNumber(detail.stockQty) ?? toNumber(detail.currentStock);
 }
 

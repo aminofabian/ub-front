@@ -32,7 +32,9 @@ import {
   effectiveOnHand,
   formatAmount,
   formatStockLabel,
+  packageUnitsPerSaleFromRow,
   toNumber,
+  usesSharedPackageStock,
 } from "../_utils";
 import { quickInputClass } from "../_types";
 import {
@@ -126,6 +128,7 @@ type Props = {
   setActiveDrawer: (d: string | null) => void;
   selectProduct: (id: string | null) => void;
   onOpenPackageSales?: () => void;
+  onOpenBaseStock?: () => void;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -189,6 +192,7 @@ export function ProductDetailPanel(props: Props) {
     setActiveDrawer,
     selectProduct,
     onOpenPackageSales,
+    onOpenBaseStock,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -286,16 +290,28 @@ export function ProductDetailPanel(props: Props) {
     </button>
   );
 
+  const sharedStock = usesSharedPackageStock(detail);
   const stockLevel = effectiveOnHand(detail);
   const stockLabel = formatStockLabel(detail);
   const minStock = toNumber(detail.minStockLevel);
   const stockLow =
-    !detail.packageVariant &&
+    !sharedStock &&
     stockLevel != null &&
     minStock != null &&
     stockLevel <= minStock;
   const packageVariants = variantRows.filter((v) => v.packageVariant);
   const optionVariants = variantRows.filter((v) => !v.packageVariant);
+  const unitsPerPackage = packageUnitsPerSaleFromRow(detail);
+  const siblingWithOwnStock = variantRows.filter(
+    (v: ItemSummaryRecord) =>
+      v.id !== detail.id &&
+      !v.packageVariant &&
+      (toNumber(v.stockQty) ?? 0) > 0,
+  );
+  const packagePoolEmpty =
+    sharedStock &&
+    (toNumber(detail.baseStockQty) ?? stockLevel ?? 0) <= 0 &&
+    siblingWithOwnStock.length > 0;
 
   const thumbUrl = coverImageUrl(detail);
   const titleInitial = (detail.name?.trim() || "?").charAt(0).toUpperCase();
@@ -503,7 +519,7 @@ export function ProductDetailPanel(props: Props) {
                 marginPct != null && marginPct > 0 ? "success" : "default",
               ] as const,
               [
-                detail.packageVariant ? "Available" : "Stock",
+                sharedStock ? "Available" : "Stock",
                 stockLabel,
                 stockLow ? "text-destructive font-semibold" : "font-semibold",
                 stockLow ? "danger" : "default",
@@ -553,10 +569,14 @@ export function ProductDetailPanel(props: Props) {
               )}
               <button
                 type="button"
-                onClick={openQuickEditAll}
+                onClick={() =>
+                  sharedStock
+                    ? setActiveDrawer("edit-product")
+                    : openQuickEditAll()
+                }
                 className="text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
               >
-                Edit all
+                {sharedStock ? "Edit package" : "Edit all"}
               </button>
             </div>
           </header>
@@ -650,6 +670,25 @@ export function ProductDetailPanel(props: Props) {
                   placeholder="0.00"
                 />,
               )
+            ) : sharedStock ? (
+              <div className="grid grid-cols-2 divide-x divide-border/40">
+                <div className={detailFieldRowClass}>
+                  <div className="min-w-0">
+                    <p className={detailFieldLabelClass}>Units per package</p>
+                    <p className={cn(detailFieldValueClass, "tabular-nums")}>
+                      {unitsPerPackage != null ? String(unitsPerPackage) : "—"}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      Edit under Package in full edit
+                    </p>
+                  </div>
+                </div>
+                {fieldBtn(
+                  "Shelf price",
+                  formatAmount(sellPrice),
+                  "bundlePrice",
+                )}
+              </div>
             ) : (
               <div className="grid grid-cols-2 divide-x divide-border/40">
                 {fieldBtn(
@@ -665,7 +704,7 @@ export function ProductDetailPanel(props: Props) {
               </div>
             )}
 
-            {/* Cost + Min stock side by side */}
+            {/* Cost (+ min stock when not shared) */}
             {quickEdit === "buyingPrice" ? (
               inlineEdit(
                 "Cost price",
@@ -679,6 +718,8 @@ export function ProductDetailPanel(props: Props) {
                   placeholder="0.00"
                 />,
               )
+            ) : sharedStock ? (
+              fieldBtn("Cost price", formatAmount(primaryCost), "buyingPrice")
             ) : quickEdit === "minStock" ? (
               inlineEdit(
                 "Min stock",
@@ -707,69 +748,122 @@ export function ProductDetailPanel(props: Props) {
               </div>
             )}
 
-            {/* Reorder */}
-            {quickEdit === "reorder" ? (
-              <div
-                className={detailInlineEditClass}
-                onKeyDown={onInlineEnter(saveQuickReorder)}
-              >
-                <span className={cn(productFormLabelClass, "mb-2 block")}>
-                  Reorder
-                </span>
-                <div className={productFormGrid2Class}>
-                  <label className={productFormFieldClass}>
-                    <span className={productFormLabelClass}>At level</span>
-                    <input
-                      autoFocus
-                      className={productFormInputClass}
-                      inputMode="decimal"
-                      value={quickReorderLevel}
-                      onChange={(e) => setQuickReorderLevel(e.target.value)}
-                      placeholder="e.g. 10"
-                    />
-                  </label>
-                  <label className={productFormFieldClass}>
-                    <span className={productFormLabelClass}>Order qty</span>
-                    <input
-                      className={productFormInputClass}
-                      inputMode="decimal"
-                      value={quickReorderQty}
-                      onChange={(e) => setQuickReorderQty(e.target.value)}
-                      placeholder="e.g. 50"
-                    />
-                  </label>
-                </div>
-                <div className="mt-2 flex justify-end">
-                  {saveCancelBtns(saveQuickReorder)}
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className={detailFieldRowClass}
-                onClick={() => openQuickEdit("reorder")}
-              >
-                <div className="min-w-0">
-                  <p className={detailFieldLabelClass}>Reorder</p>
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    At{" "}
-                    <strong className="text-foreground">
-                      {formatAmount(toNumber(detail.reorderLevel))}
-                    </strong>
-                    {" · "}Order{" "}
-                    <strong className="text-foreground">
-                      {formatAmount(toNumber(detail.reorderQty))}
-                    </strong>
+            {sharedStock ? (
+              <div className={detailFieldRowClass}>
+                <div className="min-w-0 flex-1">
+                  <p className={detailFieldLabelClass}>Stock &amp; alerts</p>
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    Min stock and reorder are set on{" "}
+                    <span className="font-medium text-foreground">
+                      {variantParentDisplayName ?? "the base product"}
+                    </span>
+                    , not on this package line.
                   </p>
                 </div>
-                <Pencil
-                  className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
-                  aria-hidden
-                />
-              </button>
+                {onOpenBaseStock ? (
+                  <button
+                    type="button"
+                    onClick={onOpenBaseStock}
+                    className="shrink-0 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
+                  >
+                    Open base
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <>
+                {/* Reorder */}
+                {quickEdit === "reorder" ? (
+                  <div
+                    className={detailInlineEditClass}
+                    onKeyDown={onInlineEnter(saveQuickReorder)}
+                  >
+                    <span className={cn(productFormLabelClass, "mb-2 block")}>
+                      Reorder
+                    </span>
+                    <div className={productFormGrid2Class}>
+                      <label className={productFormFieldClass}>
+                        <span className={productFormLabelClass}>At level</span>
+                        <input
+                          autoFocus
+                          className={productFormInputClass}
+                          inputMode="decimal"
+                          value={quickReorderLevel}
+                          onChange={(e) =>
+                            setQuickReorderLevel(e.target.value)
+                          }
+                          placeholder="e.g. 10"
+                        />
+                      </label>
+                      <label className={productFormFieldClass}>
+                        <span className={productFormLabelClass}>Order qty</span>
+                        <input
+                          className={productFormInputClass}
+                          inputMode="decimal"
+                          value={quickReorderQty}
+                          onChange={(e) => setQuickReorderQty(e.target.value)}
+                          placeholder="e.g. 50"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-2 flex justify-end">
+                      {saveCancelBtns(saveQuickReorder)}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className={detailFieldRowClass}
+                    onClick={() => openQuickEdit("reorder")}
+                  >
+                    <div className="min-w-0">
+                      <p className={detailFieldLabelClass}>Reorder</p>
+                      <p className="text-xs tabular-nums text-muted-foreground">
+                        At{" "}
+                        <strong className="text-foreground">
+                          {formatAmount(toNumber(detail.reorderLevel))}
+                        </strong>
+                        {" · "}Order{" "}
+                        <strong className="text-foreground">
+                          {formatAmount(toNumber(detail.reorderQty))}
+                        </strong>
+                      </p>
+                    </div>
+                    <Pencil
+                      className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
+                      aria-hidden
+                    />
+                  </button>
+                )}
+              </>
             )}
 
-            {canInventoryWrite ? (
+            {sharedStock ? (
+              <div className={detailFieldRowClass}>
+                <div className="min-w-0 flex-1">
+                  <p className={detailFieldLabelClass}>Available</p>
+                  <p className={cn(detailFieldValueClass, "tabular-nums")}>
+                    {stockLabel}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    From shared stock on{" "}
+                    <span className="font-medium text-foreground">
+                      {variantParentDisplayName ?? "base product"}
+                    </span>
+                  </p>
+                </div>
+                {canInventoryWrite && onOpenBaseStock ? (
+                  <button
+                    type="button"
+                    onClick={onOpenBaseStock}
+                    className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    <PackagePlus className="size-3" aria-hidden />
+                    Add on base
+                  </button>
+                ) : null}
+              </div>
+            ) : canInventoryWrite ? (
               quickEdit === "stock" ? (
                 <div
                   className={detailInlineEditClass}
@@ -883,15 +977,37 @@ export function ProductDetailPanel(props: Props) {
         </section>
       )}
 
-      {detail.packageVariant && variantParentDisplayName ? (
+      {sharedStock && variantParentDisplayName ? (
         <p className="rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
           Stock is tracked on{" "}
           <span className="font-medium text-foreground">{variantParentDisplayName}</span>
           . Each sale deducts{" "}
           <span className="font-semibold tabular-nums text-foreground">
-            {toNumber(detail.packageUnitsPerSale) ?? "—"}
+            {unitsPerPackage ?? "—"}
           </span>{" "}
-          base units per package.
+          {unitsPerPackage != null
+            ? "base units per package"
+            : "base units per package (set under Package / shared base stock in edit)"}
+          .
+        </p>
+      ) : null}
+
+      {packagePoolEmpty ? (
+        <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+          This package shares stock with{" "}
+          <span className="font-medium text-foreground">{variantParentDisplayName}</span>
+          , not with other variants like{" "}
+          <span className="font-medium text-foreground">
+            {siblingWithOwnStock
+              .map((v: ItemSummaryRecord) => v.variantName?.trim() || v.name)
+              .join(", ")}
+          </span>{" "}
+          (
+          {siblingWithOwnStock
+            .map((v: ItemSummaryRecord) => formatStockLabel(v))
+            .join(" · ")}{" "}
+          on their own SKUs).
+          Move stock onto the parent product, or convert those lines to package / shared base stock.
         </p>
       ) : null}
 

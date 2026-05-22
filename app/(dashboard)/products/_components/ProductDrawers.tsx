@@ -38,7 +38,9 @@ import {
   coverImageUrl,
   formatMutationError,
   galleryImageUrl,
+  packageUnitsPerSaleFromRow,
   toNumber,
+  usesSharedPackageStock,
 } from "../_utils";
 import { postStockIncrease, type ItemSummaryRecord } from "@/lib/api";
 import { useEffect, useState, type ComponentProps } from "react";
@@ -720,6 +722,9 @@ export function ProductQuickEditAllDrawer({
     | "saveQuickEditAll"
   >;
 }) {
+  const sharedStock = usesSharedPackageStock(detail.detail);
+  const unitsPerPackage = packageUnitsPerSaleFromRow(detail.detail);
+
   return (
     <FormDrawer
       open={open}
@@ -729,9 +734,11 @@ export function ProductQuickEditAllDrawer({
       banner={banner}
       title={detail.detail?.name ?? "Edit product"}
       description={
-        detail.detail?.variantName
-          ? `Variant · ${detail.detail.variantName}`
-          : "Edit all fields"
+        sharedStock
+          ? "Package line · pricing only (stock is on the base product)"
+          : detail.detail?.variantName
+            ? `Variant · ${detail.detail.variantName}`
+            : "Edit all fields"
       }
       contextLabel="Quick edit"
       icon={<PencilLine className="size-5 text-primary" />}
@@ -796,62 +803,102 @@ export function ProductQuickEditAllDrawer({
             </F>
           </div>
         </FormDrawerFields>
+        {sharedStock ? (
+          <p className="rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
+            Stock, min level, and reorder live on the base product. Change{" "}
+            <span className="font-medium text-foreground">units per package</span>{" "}
+            in the full product editor (Package section).
+          </p>
+        ) : null}
         <FormDrawerFields legend="Pricing">
-          <div className={productFormGrid3Class}>
-            <F label="Shelf price">
-              <input
-                className={productFormInputClass}
-                inputMode="decimal"
-                value={quick.qeaBundlePrice}
-                onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
-              />
-            </F>
-            <F label="Cost">
-              <input
-                className={productFormInputClass}
-                inputMode="decimal"
-                value={quick.qeaBuyingPrice}
-                onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
-              />
-            </F>
-            <F label="Pack qty">
-              <input
-                className={productFormInputClass}
-                inputMode="numeric"
-                value={quick.qeaBundleQty}
-                onChange={(e) => quick.setQeaBundleQty(e.target.value)}
-              />
-            </F>
-          </div>
+          {sharedStock ? (
+            <div className={productFormGrid3Class}>
+              <F label="Units per package">
+                <input
+                  className={productFormInputClass}
+                  readOnly
+                  disabled
+                  value={
+                    unitsPerPackage != null ? String(unitsPerPackage) : "—"
+                  }
+                />
+              </F>
+              <F label="Shelf price">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaBundlePrice}
+                  onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
+                />
+              </F>
+              <F label="Cost">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaBuyingPrice}
+                  onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
+                />
+              </F>
+            </div>
+          ) : (
+            <div className={productFormGrid3Class}>
+              <F label="Shelf price">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaBundlePrice}
+                  onChange={(e) => quick.setQeaBundlePrice(e.target.value)}
+                />
+              </F>
+              <F label="Cost">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaBuyingPrice}
+                  onChange={(e) => quick.setQeaBuyingPrice(e.target.value)}
+                />
+              </F>
+              <F label="Pack qty">
+                <input
+                  className={productFormInputClass}
+                  inputMode="numeric"
+                  value={quick.qeaBundleQty}
+                  onChange={(e) => quick.setQeaBundleQty(e.target.value)}
+                />
+              </F>
+            </div>
+          )}
         </FormDrawerFields>
-        <FormDrawerFields legend="Stock">
-          <div className={productFormGrid3Class}>
-            <F label="Min stock">
-              <input
-                className={productFormInputClass}
-                inputMode="decimal"
-                value={quick.qeaMinStock}
-                onChange={(e) => quick.setQeaMinStock(e.target.value)}
-              />
-            </F>
-            <F label="Reorder at">
-              <input
-                className={productFormInputClass}
-                inputMode="decimal"
-                value={quick.qeaReorderLevel}
-                onChange={(e) => quick.setQeaReorderLevel(e.target.value)}
-              />
-            </F>
-            <F label="Order qty">
-              <input
-                className={productFormInputClass}
-                inputMode="decimal"
-                value={quick.qeaReorderQty}
-                onChange={(e) => quick.setQeaReorderQty(e.target.value)}
-              />
-            </F>
-          </div>
-        </FormDrawerFields>
+        {!sharedStock ? (
+          <FormDrawerFields legend="Stock">
+            <div className={productFormGrid3Class}>
+              <F label="Min stock">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaMinStock}
+                  onChange={(e) => quick.setQeaMinStock(e.target.value)}
+                />
+              </F>
+              <F label="Reorder at">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaReorderLevel}
+                  onChange={(e) => quick.setQeaReorderLevel(e.target.value)}
+                />
+              </F>
+              <F label="Order qty">
+                <input
+                  className={productFormInputClass}
+                  inputMode="decimal"
+                  value={quick.qeaReorderQty}
+                  onChange={(e) => quick.setQeaReorderQty(e.target.value)}
+                />
+              </F>
+            </div>
+          </FormDrawerFields>
+        ) : null}
         <FormDrawerFields legend="Description">
           <F label="Notes">
             <textarea

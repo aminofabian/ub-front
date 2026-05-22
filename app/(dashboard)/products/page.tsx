@@ -94,6 +94,19 @@ export default function ProductsPage() {
   );
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+  const openBaseStock = useCallback(async () => {
+    const pid = detail.detail?.variantOfItemId?.trim();
+    if (!pid) return;
+    detail.selectProduct(pid);
+    await detail.refreshSelectedDetail(pid);
+    quick.openQuickEdit("stock");
+  }, [
+    detail.detail?.variantOfItemId,
+    detail.selectProduct,
+    detail.refreshSelectedDetail,
+    quick.openQuickEdit,
+  ]);
   const [isLg, setIsLg] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -252,6 +265,9 @@ export default function ProductsPage() {
     },
     onOpenPackageSales: canCatalogWrite
       ? () => setPackageModalOpen(true)
+      : undefined,
+    onOpenBaseStock: canInventoryWrite
+      ? () => void openBaseStock()
       : undefined,
   };
 
