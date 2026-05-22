@@ -3,9 +3,11 @@
 import Image from "next/image";
 import { Fragment, useState } from "react";
 import {
+  Boxes,
   Building2,
   Camera,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   CircleDollarSign,
   Layers,
   Loader2,
@@ -46,18 +48,24 @@ import {
   productFormSelectClass,
 } from "./product-form-styles";
 import {
+  detailCollapsibleTriggerClass,
   detailFieldRowClass,
+  detailHeroClass,
   detailInlineEditClass,
+  detailMetricCellWrapClass,
+  detailMetricGridClass,
+  detailPackageCardClass,
   detailPanelKind,
   detailPanelTone,
+  detailQuickActionGridClass,
   detailSectionClass,
   detailSectionHeadClass,
   detailSectionLabelClass,
+  detailShellClass,
   detailStatCellClass,
   detailFieldLabelClass,
   detailFieldValueClass,
-  detailActionBtnClass,
-  detailActionBtnPrimaryClass,
+  detailStickyBarClass,
   detailStatValueClass,
 } from "./product-detail-styles";
 
@@ -206,6 +214,11 @@ export function ProductDetailPanel(props: Props) {
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [suppliersOpen, setSuppliersOpen] = useState(
+    supplierLinks.length > 0 && supplierLinks.length <= 3,
+  );
+  const [variantsOpen, setVariantsOpen] = useState(true);
 
   const panelKind = detailPanelKind(detail, variantRows.length);
   const canAddPackageSales =
@@ -372,6 +385,7 @@ export function ProductDetailPanel(props: Props) {
         key={label}
         className={cn(
           detailStatCellClass(highlight),
+          detailMetricCellWrapClass,
           isEditing && "bg-muted/50 ring-1 ring-inset ring-primary/25",
         )}
       >
@@ -440,182 +454,262 @@ export function ProductDetailPanel(props: Props) {
           ? `Parent · ${variantRows.length} variant${variantRows.length === 1 ? "" : "s"}`
           : "Standalone";
 
+  const variantCountLabel =
+    variantRows.length > 0
+      ? `${variantRows.length} SKU${variantRows.length === 1 ? "" : "s"}`
+      : null;
+
   return (
-    <div className="space-y-2.5">
+    <div className={detailShellClass}>
+      {/* Hero */}
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/55 p-2.5 shadow-sm ring-1 ring-inset",
+          detailHeroClass,
           panelTone.heroGradient,
           panelTone.heroRing,
         )}
       >
         <span
           className={cn(
-            "pointer-events-none absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full",
+            "pointer-events-none absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full",
             panelTone.accent,
           )}
           aria-hidden
         />
-        <div className="flex items-start gap-2 pl-1.5">
+        <div className="flex items-start gap-3 pl-2">
           {isParentish && !thumbUrl ? (
             <span
               className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-lg border border-dashed text-sm font-bold tracking-tight shadow-sm ring-1 ring-black/[0.04]",
+                "flex size-12 shrink-0 items-center justify-center rounded-xl border border-dashed text-base font-bold tracking-tight shadow-sm ring-1 ring-black/[0.04] sm:size-14",
                 panelTone.accentLight,
               )}
             >
               {titleInitial}
             </span>
           ) : (
-            <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.04]">
+            <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.04] sm:size-14">
               {thumbUrl ? (
                 <Image
                   src={thumbUrl}
                   alt=""
                   fill
                   className="object-cover"
-                  sizes="44px"
+                  sizes="56px"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Package
-                    className="size-5 text-muted-foreground/40"
+                    className="size-6 text-muted-foreground/40"
                     aria-hidden
                   />
                 </div>
               )}
             </div>
           )}
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap gap-1">
-            <span
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex flex-wrap gap-1">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                  panelTone.badge,
+                )}
+              >
+                <KindIcon className="size-2.5" aria-hidden />
+                {kindLabel}
+              </span>
+              {detail.active === false && (
+                <span className="inline-flex items-center rounded-full border border-destructive/25 bg-destructive/5 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                  Inactive
+                </span>
+              )}
+              {detail.webPublished && (
+                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Online
+                </span>
+              )}
+              {sharedStock && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  <Boxes className="size-2.5" aria-hidden />
+                  Package SKU
+                </span>
+              )}
+            </div>
+            <h3
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                panelTone.badge,
+                "text-base font-semibold leading-snug tracking-tight text-foreground sm:text-[15px]",
+                isParentish && "capitalize",
               )}
             >
-              <KindIcon className="size-2.5" aria-hidden />
-              {kindLabel}
-            </span>
-            {detail.active === false && (
-              <span className="inline-flex items-center rounded-full border border-destructive/25 bg-destructive/5 px-2 py-0.5 text-[10px] font-medium text-destructive">
-                Inactive
-              </span>
-            )}
-            {detail.webPublished && (
-              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary">
-                Online
-              </span>
-            )}
+              {heroTitle}
+            </h3>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+              {detail.sku && (
+                <span className="font-mono font-medium text-foreground/90">
+                  {detail.sku}
+                </span>
+              )}
+              {detail.barcode && (
+                <span className="font-mono opacity-75">{detail.barcode}</span>
+              )}
+              {detail.brand && (
+                <span className="rounded-md border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
+                  {detail.brand}
+                </span>
+              )}
+              {detail.size && (
+                <span className="rounded-md border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
+                  {detail.size}
+                </span>
+              )}
+              {detail.variantName && (
+                <span className="font-medium text-violet-700 dark:text-violet-300">
+                  {detail.variantName}
+                </span>
+              )}
+            </div>
+            {detail.variantOfItemId && variantParentDisplayName ? (
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Variant of{" "}
+                <span className="font-medium text-foreground">
+                  {variantParentDisplayName}
+                </span>
+              </p>
+            ) : null}
           </div>
-          <h3
-            className={cn(
-              "text-sm font-semibold leading-snug tracking-tight text-foreground",
-              isParentish && "capitalize",
-            )}
-          >
-            {heroTitle}
-          </h3>
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
-            {detail.sku && (
-              <span className="font-mono font-medium">{detail.sku}</span>
-            )}
-            {detail.barcode && (
-              <span className="font-mono opacity-70">{detail.barcode}</span>
-            )}
-            {detail.brand && (
-              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px] font-medium text-foreground/80">
-                {detail.brand}
-              </span>
-            )}
-            {detail.size && (
-              <span className="rounded-full border border-border/40 bg-muted/40 px-1.5 py-0 text-[10px] font-medium text-foreground/80">
-                {detail.size}
-              </span>
-            )}
-            {detail.variantName && (
-              <span className="font-medium text-violet-700 dark:text-violet-300">
-                {detail.variantName}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveDrawer("edit-product")}
-            className={detailActionBtnPrimaryClass}
-          >
-            <PencilLine className="size-3" aria-hidden /> Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveDrawer("photos")}
-            className={cn(detailActionBtnClass, "size-6")}
-            aria-label="Photos"
-          >
-            <Camera className="size-3.5" aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveDrawer("add-variant")}
-            className={cn(detailActionBtnClass, "size-6")}
-            aria-label="Add variant under parent"
-          >
-            <Layers className="size-3.5" aria-hidden />
-          </button>
-        </div>
         </div>
       </div>
 
-      {/* Variant context notice */}
-      {detail.variantOfItemId && (
-        <div
-          className={cn(
-            "flex items-start gap-1.5 rounded-lg border px-2.5 py-2 text-[10px] leading-snug",
-            panelTone.notice,
-          )}
+      {/* Quick actions */}
+      <div className={detailQuickActionGridClass}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+          onClick={() => setActiveDrawer("edit-product")}
         >
-          <Layers
-            className="mt-0.5 size-3 shrink-0 text-violet-500"
+          <PencilLine className="size-3.5" aria-hidden />
+          Edit product
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+          onClick={() => setActiveDrawer("photos")}
+        >
+          <Camera className="size-3.5" aria-hidden />
+          Photos
+        </Button>
+        {!detail.variantOfItemId && canCatalogWrite ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="col-span-2 h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm sm:col-span-1"
+            onClick={() => setActiveDrawer("add-variant")}
+          >
+            <Layers className="size-3.5" aria-hidden />
+            Add variant
+          </Button>
+        ) : null}
+      </div>
+
+      {/* Package workflow — primary CTA or active package context */}
+      {sharedStock ? (
+        <div className={cn(detailPackageCardClass, "border-violet-500/25 ring-violet-500/15")}>
+          <div className="flex gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-300">
+              <Boxes className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold tracking-tight">
+                Selling as package
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                {unitsPerPackage != null ? (
+                  <>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {unitsPerPackage}
+                    </span>{" "}
+                    base units per sale from{" "}
+                    <span className="font-medium text-foreground">
+                      {variantParentDisplayName ?? "parent stock"}
+                    </span>
+                    .
+                  </>
+                ) : (
+                  "Set units per package in full edit."
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 flex-1 rounded-lg text-xs"
+              onClick={() => setActiveDrawer("edit-product")}
+            >
+              Edit package
+            </Button>
+            {onOpenBaseStock ? (
+              <Button
+                type="button"
+                className="h-9 flex-1 rounded-lg text-xs"
+                onClick={onOpenBaseStock}
+              >
+                <PackagePlus className="size-3.5" aria-hidden />
+                Base stock
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : canAddPackageSales ? (
+        <div className={detailPackageCardClass}>
+          <div className="flex gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Boxes className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold tracking-tight">
+                Packages &amp; bundles
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                Sell trays, packs, or custom sizes from this product without
+                duplicating stock.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            className="mt-3 h-10 w-full gap-2 rounded-xl text-sm font-medium shadow-sm"
+            onClick={onOpenPackageSales}
+          >
+            <PackagePlus className="size-4" aria-hidden />
+            Add package size
+          </Button>
+          {packageVariants.length > 0 ? (
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              {packageVariants.length} package size
+              {packageVariants.length === 1 ? "" : "s"} already configured
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Commerce metrics */}
+      <section className={detailSectionClass}>
+        <header className={detailSectionHeadClass}>
+          <CircleDollarSign
+            className="size-3.5 text-muted-foreground/70"
             aria-hidden
           />
-          <span>
-            This SKU is a variant of{" "}
-            {variantParentDisplayName ? (
-              <strong className="font-semibold">
-                {variantParentDisplayName}
-              </strong>
-            ) : (
-              "its parent product"
-            )}
-            . Tap a variant in the list below to switch SKUs.
-          </span>
-        </div>
-      )}
-
-      {/* ── 1. Pricing ────────────────────────────────────────────────── */}
-      <section className={detailSectionClass}>
-        <header className={cn(detailSectionHeadClass, "justify-between gap-2")}>
-          <div className="flex items-center gap-1.5">
-            <CircleDollarSign
-              className="size-3 text-muted-foreground/70"
-              aria-hidden
-            />
-            <span className={detailSectionLabelClass}>Pricing</span>
-          </div>
-          {canAddPackageSales ? (
-            <button
-              type="button"
-              onClick={onOpenPackageSales}
-              className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
-            >
-              Package sales
-              <ChevronRight className="size-3" aria-hidden />
-            </button>
+          <span className={detailSectionLabelClass}>Commerce</span>
+          {stockLow ? (
+            <span className="ml-auto rounded-full border border-destructive/30 bg-destructive/8 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+              Low stock
+            </span>
           ) : null}
         </header>
-        <div className="grid grid-cols-4 divide-x divide-border/40 bg-background/50">
+        <div className={detailMetricGridClass}>
           {renderPricingStatCell(
             "Shelf",
             formatAmount(sellPrice),
@@ -809,490 +903,460 @@ export function ProductDetailPanel(props: Props) {
             </div>
           </div>
         ) : null}
-        {supplierLinks.length === 0 && (
-          <p className="border-t border-border/40 px-2.5 py-1.5 text-[10px] text-muted-foreground">
-            Link a supplier to see cost &amp; margin.
-          </p>
-        )}
-      </section>
-
-      {/* ── 2. Fields ─────────────────────────────────────────────────── */}
-      {canCatalogWrite && (
-        <section className={detailSectionClass}>
-          <header className={cn(detailSectionHeadClass, "justify-between")}>
-            <div className="flex items-center gap-2">
-              <Pencil
-                className="size-3 text-muted-foreground/70"
-                aria-hidden
-              />
-              <span className={detailSectionLabelClass}>Fields</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {quickSaving && (
-                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" aria-hidden /> Saving
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() =>
-                  sharedStock
-                    ? setActiveDrawer("edit-product")
-                    : openQuickEditAll()
-                }
-                className="text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
-              >
-                {sharedStock ? "Edit package" : "Edit all"}
-              </button>
-            </div>
-          </header>
-          <div className="divide-y divide-border/40 bg-background/50">
-            {/* Name */}
-            {quickEdit === "productName" ? (
-              inlineEdit(
-                "Display name",
-                saveQuickProductName,
-                <input
-                  autoFocus
-                  className={productFormInputClass}
-                  value={quickProductName}
-                  onChange={(e) => setQuickProductName(e.target.value)}
-                  placeholder="Customer-facing title"
-                />,
-              )
-            ) : (
-              fieldBtn("Name", detail.name, "productName")
-            )}
-            {/* SKU */}
-            {quickEdit === "sku" ? (
-              inlineEdit(
-                "SKU",
-                saveQuickSku,
-                <input
-                  autoFocus
-                  className={productFormInputMonoClass}
-                  value={quickSku}
-                  onChange={(e) => setQuickSku(e.target.value)}
-                  placeholder="SKU-001"
-                />,
-              )
-            ) : (
-              fieldBtn("SKU", detail.sku, "sku", true)
-            )}
-            {/* Barcode */}
-            {quickEdit === "barcode" ? (
-              inlineEdit(
-                "Barcode",
-                () => void saveQuickBarcode(),
-                <input
-                  autoFocus
-                  className={productFormInputMonoClass}
-                  value={quickBarcode}
-                  onChange={(e) => setQuickBarcode(e.target.value)}
-                  placeholder="Scan or type…"
-                />,
-                <button
-                  type="button"
-                  onClick={() => setScannerOpen(true)}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
-                  aria-label="Scan barcode with camera"
-                >
-                  <Camera className="size-3.5" />
-                </button>,
-              )
-            ) : (
-              fieldBtn(
-                "Barcode",
-                detail.barcode?.trim() || "—",
-                "barcode",
-                true,
-              )
-            )}
-
-            {/* Pack qty + Shelf price side by side */}
-            {quickEdit === "bundleQty" ? (
-              inlineEdit(
-                "Pack qty",
-                saveQuickBundleQty,
-                <input
-                  autoFocus
-                  className={productFormInputClass}
-                  inputMode="numeric"
-                  value={quickBundleQty}
-                  onChange={(e) => setQuickBundleQty(e.target.value)}
-                  placeholder="e.g. 6"
-                />,
-              )
-            ) : sharedStock ? (
-              <div className="grid grid-cols-2 divide-x divide-border/40">
-                <div className={detailFieldRowClass}>
-                  <div className="min-w-0">
-                    <p className={detailFieldLabelClass}>Units per package</p>
-                    <p className={cn(detailFieldValueClass, "tabular-nums")}>
-                      {unitsPerPackage != null ? String(unitsPerPackage) : "—"}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      Edit under Package in full edit
-                    </p>
-                  </div>
-                </div>
-                {fieldBtn(
-                  "Shelf price",
-                  formatAmount(sellPrice),
-                  "bundlePrice",
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 divide-x divide-border/40">
-                {fieldBtn(
-                  "Pack qty",
-                  detail.bundleQty != null ? String(detail.bundleQty) : "—",
-                  "bundleQty",
-                )}
-                {fieldBtn(
-                  "Shelf price",
-                  formatAmount(sellPrice),
-                  "bundlePrice",
-                )}
-              </div>
-            )}
-
-            {/* Cost (+ min stock when not shared) */}
-            {sharedStock ? (
-              fieldBtn("Cost price", formatAmount(primaryCost), "buyingPrice")
-            ) : quickEdit === "minStock" ? (
-              inlineEdit(
-                "Min stock",
-                saveQuickMinStock,
-                <input
-                  autoFocus
-                  className={productFormInputClass}
-                  inputMode="decimal"
-                  value={quickMinStock}
-                  onChange={(e) => setQuickMinStock(e.target.value)}
-                  placeholder="e.g. 5"
-                />,
-              )
-            ) : (
-              <div className="grid grid-cols-2 divide-x divide-border/40">
-                {fieldBtn(
-                  "Cost price",
-                  formatAmount(primaryCost),
-                  "buyingPrice",
-                )}
-                {fieldBtn(
-                  "Min stock",
-                  formatAmount(toNumber(detail.minStockLevel)),
-                  "minStock",
-                )}
-              </div>
-            )}
-
-            {sharedStock ? (
-              <div className={detailFieldRowClass}>
-                <div className="min-w-0 flex-1">
-                  <p className={detailFieldLabelClass}>Stock &amp; alerts</p>
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    Min stock and reorder are set on{" "}
-                    <span className="font-medium text-foreground">
-                      {variantParentDisplayName ?? "the base product"}
-                    </span>
-                    , not on this package line.
-                  </p>
-                </div>
-                {onOpenBaseStock ? (
-                  <button
-                    type="button"
-                    onClick={onOpenBaseStock}
-                    className="shrink-0 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
-                  >
-                    Open base
-                  </button>
-                ) : null}
-              </div>
-            ) : (
-              <>
-                {/* Reorder */}
-                {quickEdit === "reorder" ? (
-                  <div
-                    className={detailInlineEditClass}
-                    onKeyDown={onInlineEnter(saveQuickReorder)}
-                  >
-                    <span className={cn(productFormLabelClass, "mb-2 block")}>
-                      Reorder
-                    </span>
-                    <div className={productFormGrid2Class}>
-                      <label className={productFormFieldClass}>
-                        <span className={productFormLabelClass}>At level</span>
-                        <input
-                          autoFocus
-                          className={productFormInputClass}
-                          inputMode="decimal"
-                          value={quickReorderLevel}
-                          onChange={(e) =>
-                            setQuickReorderLevel(e.target.value)
-                          }
-                          placeholder="e.g. 10"
-                        />
-                      </label>
-                      <label className={productFormFieldClass}>
-                        <span className={productFormLabelClass}>Order qty</span>
-                        <input
-                          className={productFormInputClass}
-                          inputMode="decimal"
-                          value={quickReorderQty}
-                          onChange={(e) => setQuickReorderQty(e.target.value)}
-                          placeholder="e.g. 50"
-                        />
-                      </label>
-                    </div>
-                    <div className="mt-2 flex justify-end">
-                      {saveCancelBtns(saveQuickReorder)}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className={detailFieldRowClass}
-                    onClick={() => openQuickEdit("reorder")}
-                  >
-                    <div className="min-w-0">
-                      <p className={detailFieldLabelClass}>Reorder</p>
-                      <p className="text-xs tabular-nums text-muted-foreground">
-                        At{" "}
-                        <strong className="text-foreground">
-                          {formatAmount(toNumber(detail.reorderLevel))}
-                        </strong>
-                        {" · "}Order{" "}
-                        <strong className="text-foreground">
-                          {formatAmount(toNumber(detail.reorderQty))}
-                        </strong>
-                      </p>
-                    </div>
-                    <Pencil
-                      className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
-                      aria-hidden
-                    />
-                  </button>
-                )}
-              </>
-            )}
-
-            {sharedStock ? (
-              <div className={detailFieldRowClass}>
-                <div className="min-w-0 flex-1">
-                  <p className={detailFieldLabelClass}>Available</p>
-                  <p className={cn(detailFieldValueClass, "tabular-nums")}>
-                    {stockLabel}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    From shared stock on{" "}
-                    <span className="font-medium text-foreground">
-                      {variantParentDisplayName ?? "base product"}
-                    </span>
-                  </p>
-                </div>
-                {canInventoryWrite && onOpenBaseStock ? (
-                  <button
-                    type="button"
-                    onClick={onOpenBaseStock}
-                    className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    <PackagePlus className="size-3" aria-hidden />
-                    Add on base
-                  </button>
-                ) : null}
-              </div>
-            ) : canInventoryWrite ? (
-              <button
-                type="button"
-                className={detailFieldRowClass}
-                onClick={() => openQuickEdit("stock")}
-              >
-                <div className="min-w-0">
-                  <p className={detailFieldLabelClass}>On-hand stock</p>
-                  <p className={detailFieldValueClass}>
-                    {formatAmount(stockLevel)}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    {quickEdit === "stock"
-                      ? "Set stock in the Pricing section above"
-                      : "Tap to set on-hand quantity"}
-                  </p>
-                </div>
-                <PackagePlus
-                  className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
-                  aria-hidden
-                />
-              </button>
-            ) : (
-              <div className={detailFieldRowClass}>
-                <div className="min-w-0">
-                  <p className={detailFieldLabelClass}>On-hand stock</p>
-                  <p className={detailFieldValueClass}>
-                    {formatAmount(stockLevel)}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── 3. Suppliers ──────────────────────────────────────────────── */}
-      {supplierLinks.length > 0 && (
-        <section className={detailSectionClass}>
-          <header className={cn(detailSectionHeadClass, "justify-between")}>
-            <div className="flex items-center gap-2">
-              <Building2
-                className="size-3 text-muted-foreground/70"
-                aria-hidden
-              />
-              <span className={detailSectionLabelClass}>Suppliers</span>
-            </div>
+        {supplierLinks.length === 0 && canCatalogWrite ? (
+          <p className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
             <button
               type="button"
-              className="text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
+              className="font-medium text-primary transition-colors hover:text-primary/80"
+              onClick={() => setActiveDrawer("edit-product")}
+            >
+              Link a supplier
+            </button>{" "}
+            for cost tracking and margin accuracy.
+          </p>
+        ) : null}
+      </section>
+
+      {/* Compact alerts */}
+      {packagePoolEmpty ? (
+        <div
+          className={cn(
+            "rounded-xl border px-3 py-2.5 text-xs leading-relaxed",
+            "border-amber-500/25 bg-amber-500/[0.06] text-muted-foreground",
+          )}
+          role="status"
+        >
+          <span className="font-medium text-foreground">Stock mismatch:</span>{" "}
+          base pool is empty while{" "}
+          {siblingWithOwnStock
+            .map((v: ItemSummaryRecord) => v.variantName?.trim() || v.name)
+            .join(", ")}{" "}
+          hold separate stock. Move quantity to{" "}
+          <span className="font-medium text-foreground">
+            {variantParentDisplayName ?? "the parent"}
+          </span>{" "}
+          or convert those SKUs to packages.
+        </div>
+      ) : null}
+
+      {/* Product details — identity & inventory alerts (no duplicate pricing) */}
+      {canCatalogWrite ? (
+        <section className={detailSectionClass}>
+          <button
+            type="button"
+            className={detailCollapsibleTriggerClass}
+            onClick={() => setDetailsOpen((o) => !o)}
+            aria-expanded={detailsOpen}
+          >
+            <Pencil className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+            <span className={detailSectionLabelClass}>Product details</span>
+            {quickSaving ? (
+              <Loader2
+                className="ml-1 size-3 animate-spin text-muted-foreground"
+                aria-hidden
+              />
+            ) : null}
+            <span className="ml-auto flex items-center gap-2">
+              {!detailsOpen ? (
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  Name, SKU, alerts
+                </span>
+              ) : null}
+              {detailsOpen ? (
+                <ChevronUp className="size-4 text-muted-foreground" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+              )}
+            </span>
+          </button>
+          {detailsOpen ? (
+            <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
+              {quickEdit === "productName" ? (
+                inlineEdit(
+                  "Display name",
+                  saveQuickProductName,
+                  <input
+                    autoFocus
+                    className={productFormInputClass}
+                    value={quickProductName}
+                    onChange={(e) => setQuickProductName(e.target.value)}
+                    placeholder="Customer-facing title"
+                  />,
+                )
+              ) : (
+                fieldBtn("Name", detail.name, "productName")
+              )}
+              {quickEdit === "sku" ? (
+                inlineEdit(
+                  "SKU",
+                  saveQuickSku,
+                  <input
+                    autoFocus
+                    className={productFormInputMonoClass}
+                    value={quickSku}
+                    onChange={(e) => setQuickSku(e.target.value)}
+                    placeholder="SKU-001"
+                  />,
+                )
+              ) : (
+                fieldBtn("SKU", detail.sku, "sku", true)
+              )}
+              {quickEdit === "barcode" ? (
+                inlineEdit(
+                  "Barcode",
+                  () => void saveQuickBarcode(),
+                  <input
+                    autoFocus
+                    className={productFormInputMonoClass}
+                    value={quickBarcode}
+                    onChange={(e) => setQuickBarcode(e.target.value)}
+                    placeholder="Scan or type…"
+                  />,
+                  <button
+                    type="button"
+                    onClick={() => setScannerOpen(true)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
+                    aria-label="Scan barcode with camera"
+                  >
+                    <Camera className="size-3.5" />
+                  </button>,
+                )
+              ) : (
+                fieldBtn(
+                  "Barcode",
+                  detail.barcode?.trim() || "—",
+                  "barcode",
+                  true,
+                )
+              )}
+              {!sharedStock && detail.bundleQty != null ? (
+                quickEdit === "bundleQty" ? (
+                  inlineEdit(
+                    "Pack qty",
+                    saveQuickBundleQty,
+                    <input
+                      autoFocus
+                      className={productFormInputClass}
+                      inputMode="numeric"
+                      value={quickBundleQty}
+                      onChange={(e) => setQuickBundleQty(e.target.value)}
+                      placeholder="e.g. 6"
+                    />,
+                  )
+                ) : (
+                  fieldBtn(
+                    "Pack qty",
+                    String(detail.bundleQty),
+                    "bundleQty",
+                  )
+                )
+              ) : null}
+              {sharedStock ? (
+                <div className={cn(detailFieldRowClass, "cursor-default")}>
+                  <div className="min-w-0">
+                    <p className={detailFieldLabelClass}>Inventory alerts</p>
+                    <p className="text-xs leading-snug text-muted-foreground">
+                      Min stock and reorder live on{" "}
+                      <span className="font-medium text-foreground">
+                        {variantParentDisplayName ?? "the base product"}
+                      </span>
+                      .
+                    </p>
+                  </div>
+                  {onOpenBaseStock ? (
+                    <button
+                      type="button"
+                      onClick={onOpenBaseStock}
+                      className="shrink-0 text-[11px] font-medium text-primary"
+                    >
+                      Open base
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  {quickEdit === "minStock" ? (
+                    inlineEdit(
+                      "Min stock",
+                      saveQuickMinStock,
+                      <input
+                        autoFocus
+                        className={productFormInputClass}
+                        inputMode="decimal"
+                        value={quickMinStock}
+                        onChange={(e) => setQuickMinStock(e.target.value)}
+                        placeholder="e.g. 5"
+                      />,
+                    )
+                  ) : (
+                    fieldBtn(
+                      "Min stock",
+                      formatAmount(toNumber(detail.minStockLevel)),
+                      "minStock",
+                    )
+                  )}
+                  {quickEdit === "reorder" ? (
+                    <div
+                      className={detailInlineEditClass}
+                      onKeyDown={onInlineEnter(saveQuickReorder)}
+                    >
+                      <span className={cn(productFormLabelClass, "mb-2 block")}>
+                        Reorder
+                      </span>
+                      <div className={productFormGrid2Class}>
+                        <label className={productFormFieldClass}>
+                          <span className={productFormLabelClass}>At level</span>
+                          <input
+                            autoFocus
+                            className={productFormInputClass}
+                            inputMode="decimal"
+                            value={quickReorderLevel}
+                            onChange={(e) =>
+                              setQuickReorderLevel(e.target.value)
+                            }
+                            placeholder="e.g. 10"
+                          />
+                        </label>
+                        <label className={productFormFieldClass}>
+                          <span className={productFormLabelClass}>Order qty</span>
+                          <input
+                            className={productFormInputClass}
+                            inputMode="decimal"
+                            value={quickReorderQty}
+                            onChange={(e) => setQuickReorderQty(e.target.value)}
+                            placeholder="e.g. 50"
+                          />
+                        </label>
+                      </div>
+                      <div className="mt-2 flex justify-end">
+                        {saveCancelBtns(saveQuickReorder)}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={detailFieldRowClass}
+                      onClick={() => openQuickEdit("reorder")}
+                    >
+                      <div className="min-w-0">
+                        <p className={detailFieldLabelClass}>Reorder</p>
+                        <p className="text-xs tabular-nums text-muted-foreground">
+                          At{" "}
+                          <strong className="text-foreground">
+                            {formatAmount(toNumber(detail.reorderLevel))}
+                          </strong>
+                          {" · "}Order{" "}
+                          <strong className="text-foreground">
+                            {formatAmount(toNumber(detail.reorderQty))}
+                          </strong>
+                        </p>
+                      </div>
+                      <Pencil
+                        className="size-3 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary"
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                </>
+              )}
+              <div className="flex items-center justify-end gap-2 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    sharedStock
+                      ? setActiveDrawer("edit-product")
+                      : openQuickEditAll()
+                  }
+                  className="text-[11px] font-medium text-primary"
+                >
+                  {sharedStock ? "Full package edit" : "Edit all fields"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {/* Suppliers */}
+      {supplierLinks.length > 0 ? (
+        <section className={detailSectionClass}>
+          <div className={cn(detailCollapsibleTriggerClass, "cursor-default hover:bg-transparent")}>
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              onClick={() => setSuppliersOpen((o) => !o)}
+              aria-expanded={suppliersOpen}
+            >
+              <Building2
+                className="size-3.5 shrink-0 text-muted-foreground/70"
+                aria-hidden
+              />
+              <span className={detailSectionLabelClass}>
+                Suppliers · {supplierLinks.length}
+              </span>
+              {suppliersOpen ? (
+                <ChevronUp className="ml-1 size-4 text-muted-foreground" aria-hidden />
+              ) : (
+                <ChevronDown className="ml-1 size-4 text-muted-foreground" aria-hidden />
+              )}
+            </button>
+            <button
+              type="button"
+              className="shrink-0 text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
               onClick={() => setActiveDrawer("edit-product")}
             >
               Manage
             </button>
-          </header>
-          <div className="divide-y divide-border/40 bg-background/50">
-            {supplierLinks.map((link) => (
-              <div
-                key={link.id}
-                className="flex items-center justify-between gap-2 px-2.5 py-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span className="truncate text-xs font-medium text-foreground">
-                      {link.supplierName}
-                    </span>
-                    {link.primary && (
-                      <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                        Primary
+          </div>
+          {suppliersOpen ? (
+            <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
+              {supplierLinks.map((link) => (
+                <div
+                  key={link.id}
+                  className="flex items-center justify-between gap-2 px-3 py-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="truncate text-xs font-medium text-foreground">
+                        {link.supplierName}
                       </span>
-                    )}
-                    {!link.active && (
-                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                        Inactive
+                      {link.primary && (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                          Primary
+                        </span>
+                      )}
+                      {!link.active && (
+                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                    {link.supplierSku && (
+                      <span className="font-mono text-[11px] text-muted-foreground">
+                        {link.supplierSku}
                       </span>
                     )}
                   </div>
-                  {link.supplierSku && (
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {link.supplierSku}
-                    </span>
-                  )}
+                  <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-foreground">
+                    {formatAmount(effectiveSupplierUnitCost(link, undefined))}
+                  </span>
                 </div>
-                <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-foreground">
-                  {formatAmount(effectiveSupplierUnitCost(link, undefined))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {sharedStock && variantParentDisplayName ? (
-        <p className="rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2 text-xs text-muted-foreground">
-          Stock is tracked on{" "}
-          <span className="font-medium text-foreground">{variantParentDisplayName}</span>
-          . Each sale deducts{" "}
-          <span className="font-semibold tabular-nums text-foreground">
-            {unitsPerPackage ?? "—"}
-          </span>{" "}
-          {unitsPerPackage != null
-            ? "base units per package"
-            : "base units per package (set under Package / shared base stock in edit)"}
-          .
-        </p>
-      ) : null}
-
-      {packagePoolEmpty ? (
-        <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-          This package shares stock with{" "}
-          <span className="font-medium text-foreground">{variantParentDisplayName}</span>
-          , not with other variants like{" "}
-          <span className="font-medium text-foreground">
-            {siblingWithOwnStock
-              .map((v: ItemSummaryRecord) => v.variantName?.trim() || v.name)
-              .join(", ")}
-          </span>{" "}
-          (
-          {siblingWithOwnStock
-            .map((v: ItemSummaryRecord) => formatStockLabel(v))
-            .join(" · ")}{" "}
-          on their own SKUs).
-          Move stock onto the parent product, or convert those lines to package / shared base stock.
-        </p>
-      ) : null}
-
-      {/* ── 4. Packages & variants ───────────────────────────────────── */}
-      <section className={detailSectionClass}>
-        <header className={cn(detailSectionHeadClass, "justify-between")}>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="flex items-center gap-1.5">
-              <Layers className="size-3 shrink-0 text-muted-foreground/70" aria-hidden />
-              <span className={detailSectionLabelClass}>
-                {packageVariants.length > 0 && optionVariants.length === 0
-                  ? `Packages${packageVariants.length > 0 ? ` · ${packageVariants.length}` : ""}`
-                  : `Variants & packages${variantRows.length > 0 ? ` · ${variantRows.length}` : ""}`}
-              </span>
+              ))}
             </div>
-            {detail.variantOfItemId && variantParentDisplayName ? (
-              <p className="pl-5 text-[10px] leading-snug text-muted-foreground">
-                Same parent as{" "}
-                <span className="font-medium text-foreground">{variantParentDisplayName}</span>
-              </p>
-            ) : !detail.variantOfItemId && variantRows.length > 0 ? (
-              <p className="pl-5 text-[10px] leading-snug text-muted-foreground">
-                Option variants and package sizes share this product&apos;s stock.
-              </p>
-            ) : null}
-          </div>
-          {!detail.variantOfItemId ? (
-            <button
-              type="button"
-              className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-primary transition-colors hover:text-primary/70"
-              onClick={() => setActiveDrawer("add-variant")}
-            >
-              <PackagePlus className="size-3" aria-hidden /> Add
-            </button>
           ) : null}
-        </header>
-        {variantRows.length === 0 ? (
-          <div className="flex flex-col items-center gap-1.5 px-2.5 py-4 text-center">
-            <p className="max-w-[16rem] text-[11px] text-muted-foreground">
-              No variants yet. Open the drawer to add one or many—each row becomes a variant SKU under
-              this parent.
-            </p>
-            <button
-              type="button"
-              onClick={() => setActiveDrawer("add-variant")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
-            >
-              <PackagePlus className="size-3" aria-hidden /> Add variants
-            </button>
-          </div>
-        ) : (
-          <div className="divide-y divide-border/40 bg-background/50">
-            {variantRows.map((v) => {
-              const vThumb = itemListThumbnailUrl(v);
-              const vSelected = selectedId === v.id;
-              const editing = variantInlineEditId === v.id;
-              return (
-                <Fragment key={v.id}>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 px-2.5 py-2 transition-colors",
-                      !vSelected && panelTone.variantRowHover,
-                      vSelected && panelTone.variantRowActive,
-                      editing && "bg-muted/20",
-                    )}
+        </section>
+      ) : null}
+
+      {/* SKUs — variants & packages */}
+      <section className={detailSectionClass}>
+        <button
+          type="button"
+          className={detailCollapsibleTriggerClass}
+          onClick={() => setVariantsOpen((o) => !o)}
+          aria-expanded={variantsOpen}
+        >
+          <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+          <span className={detailSectionLabelClass}>
+            {packageVariants.length > 0 && optionVariants.length === 0
+              ? "Package sizes"
+              : "SKUs & variants"}
+          </span>
+          {variantCountLabel ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
+              {variantCountLabel}
+            </span>
+          ) : null}
+          <span className="ml-auto">
+            {variantsOpen ? (
+              <ChevronUp className="size-4 text-muted-foreground" aria-hidden />
+            ) : (
+              <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+            )}
+          </span>
+        </button>
+        {variantsOpen ? (
+          <>
+            {!detail.variantOfItemId ? (
+              <div className="flex flex-wrap gap-2 border-t border-border/40 bg-muted/15 px-3 py-2">
+                {canAddPackageSales ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 gap-1 rounded-lg text-xs"
+                    onClick={onOpenPackageSales}
+                  >
+                    <Boxes className="size-3.5" aria-hidden />
+                    Add package
+                  </Button>
+                ) : null}
+                {canCatalogWrite ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1 rounded-lg text-xs"
+                    onClick={() => setActiveDrawer("add-variant")}
+                  >
+                    <PackagePlus className="size-3.5" aria-hidden />
+                    Add variant
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {variantRows.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 border-t border-border/40 px-4 py-6 text-center">
+                <div className="flex size-12 items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/30">
+                  <Layers className="size-5 text-muted-foreground/50" aria-hidden />
+                </div>
+                <div className="max-w-[14rem] space-y-1">
+                  <p className="text-xs font-medium text-foreground">
+                    No SKUs yet
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Add option variants or package sizes under this product.
+                  </p>
+                </div>
+                <div className="flex w-full max-w-[16rem] flex-col gap-2 sm:flex-row sm:justify-center">
+                  {canAddPackageSales ? (
+                    <Button
+                      type="button"
+                      className="h-9 flex-1 gap-1.5 rounded-lg text-xs"
+                      onClick={onOpenPackageSales}
+                    >
+                      <Boxes className="size-3.5" aria-hidden />
+                      Package
+                    </Button>
+                  ) : null}
+                  {canCatalogWrite ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 flex-1 gap-1.5 rounded-lg text-xs"
+                      onClick={() => setActiveDrawer("add-variant")}
+                    >
+                      <PackagePlus className="size-3.5" aria-hidden />
+                      Variant
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
+                {variantRows.map((v) => {
+                  const vThumb = itemListThumbnailUrl(v);
+                  const vSelected = selectedId === v.id;
+                  const editing = variantInlineEditId === v.id;
+                  return (
+                    <Fragment key={v.id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2.5 px-3 py-2.5 transition-colors",
+                          !vSelected && panelTone.variantRowHover,
+                          vSelected && panelTone.variantRowActive,
+                          editing && "bg-muted/20",
+                        )}
                     onClick={() => {
                       if (!editing) selectProduct(v.id);
                     }}
@@ -1322,13 +1386,21 @@ export function ProductDetailPanel(props: Props) {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-foreground">
-                        {v.name}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {v.name}
+                        </p>
+                        {v.packageVariant ? (
+                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                            <Boxes className="size-2.5" aria-hidden />
+                            Pack
+                          </span>
+                        ) : null}
+                      </div>
                       {v.packageVariant ? (
-                        <p className="text-[11px] text-muted-foreground">
-                          Package · {toNumber(v.packageUnitsPerSale) ?? "?"}{" "}
-                          base units · {formatStockLabel(v)}
+                        <p className="text-[11px] tabular-nums text-muted-foreground">
+                          {toNumber(v.packageUnitsPerSale) ?? "?"} units ·{" "}
+                          {formatStockLabel(v)}
                         </p>
                       ) : v.variantName ? (
                         <p className="text-[11px] text-muted-foreground">
@@ -1401,12 +1473,59 @@ export function ProductDetailPanel(props: Props) {
                       </p>
                     </div>
                   )}
-                </Fragment>
-              );
-            })}
-          </div>
-        )}
+                    </Fragment>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        ) : null}
       </section>
+
+      {/* Mobile sticky actions */}
+      <div className={detailStickyBarClass}>
+        <div className="mx-auto flex max-w-lg gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium"
+            onClick={() => setActiveDrawer("edit-product")}
+          >
+            <PencilLine className="size-3.5" aria-hidden />
+            Edit
+          </Button>
+          {canAddPackageSales ? (
+            <Button
+              type="button"
+              className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+              onClick={onOpenPackageSales}
+            >
+              <Boxes className="size-3.5" aria-hidden />
+              Package
+            </Button>
+          ) : sharedStock && onOpenBaseStock ? (
+            <Button
+              type="button"
+              className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium"
+              onClick={onOpenBaseStock}
+            >
+              <PackagePlus className="size-3.5" aria-hidden />
+              Stock
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-10 flex-1 gap-1.5 rounded-xl text-xs font-medium"
+              onClick={() => setActiveDrawer("photos")}
+            >
+              <Camera className="size-3.5" aria-hidden />
+              Photos
+            </Button>
+          )}
+        </div>
+      </div>
+
       {scannerOpen && (
         <BarcodeScanner
           onScan={(barcode) => {

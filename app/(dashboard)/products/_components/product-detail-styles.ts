@@ -80,13 +80,42 @@ export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
   };
 }
 
+export const detailShellClass = "relative flex flex-col gap-3 pb-[4.75rem] lg:pb-0";
+
+export const detailHeroClass = cn(
+  "relative overflow-hidden rounded-2xl border border-border/55 p-3 shadow-sm ring-1 ring-inset",
+);
+
 export const detailSectionClass =
-  "overflow-hidden rounded-lg border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
+  "overflow-hidden rounded-xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
 
 export const detailSectionHeadClass = cn(
-  "flex items-center gap-1.5 border-b border-border/45 px-2.5 py-1.5",
+  "flex items-center gap-1.5 border-b border-border/45 px-3 py-2",
   "bg-[linear-gradient(180deg,oklch(0.97_0.003_90),oklch(0.99_0.001_90))] dark:bg-muted/35",
 );
+
+export const detailMetricGridClass =
+  "grid grid-cols-2 gap-px bg-border/45 sm:grid-cols-4";
+
+export const detailMetricCellWrapClass = "bg-background/60";
+
+export const detailCollapsibleTriggerClass = cn(
+  "flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors",
+  "hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-inset",
+);
+
+export const detailPackageCardClass = cn(
+  "relative overflow-hidden rounded-xl border border-primary/25 p-3.5 shadow-sm",
+  "bg-gradient-to-br from-primary/[0.09] via-primary/[0.04] to-transparent",
+  "ring-1 ring-inset ring-primary/15",
+);
+
+export const detailStickyBarClass = cn(
+  "fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 p-2 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)] backdrop-blur-md",
+  "dark:shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.45)] lg:hidden",
+);
+
+export const detailQuickActionGridClass = "grid grid-cols-2 gap-2 sm:grid-cols-3";
 
 export const detailSectionLabelClass =
   "text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/90";
@@ -124,7 +153,7 @@ export function detailStatCellClass(
   highlight?: "success" | "danger" | "default",
 ): string {
   return cn(
-    "px-2 py-2 transition-colors hover:bg-muted/30",
+    "px-2.5 py-2.5 transition-colors sm:px-3",
     highlight === "success" && "bg-emerald-500/[0.06]",
     highlight === "danger" && "bg-red-500/[0.06]",
   );
