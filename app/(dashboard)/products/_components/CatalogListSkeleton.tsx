@@ -26,12 +26,12 @@ function CatalogListSkeletonRow({
       <span className="flex items-center justify-center">
         <span className="size-4 animate-pulse rounded bg-muted" />
       </span>
-      <span className="flex items-center justify-center">
-        <span className="size-9 animate-pulse rounded-lg bg-muted" />
-      </span>
-      <span className="flex min-w-0 flex-col justify-center gap-1.5 py-2">
-        <span className="h-3.5 w-[72%] max-w-xs animate-pulse rounded bg-muted" />
-        <span className="h-3 w-[42%] max-w-[10rem] animate-pulse rounded bg-muted/80" />
+      <span className="flex min-w-0 items-center gap-2 py-2">
+        <span className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+          <span className="h-3.5 w-[72%] max-w-xs animate-pulse rounded bg-muted" />
+          <span className="h-3 w-[42%] max-w-[10rem] animate-pulse rounded bg-muted/80" />
+        </span>
+        <span className="size-8 shrink-0 animate-pulse rounded-lg border border-border/40 bg-muted/80 ring-1 ring-inset ring-black/[0.03]" />
       </span>
       <span className="flex items-center justify-end">
         <span className="h-5 w-12 animate-pulse rounded-full bg-muted" />

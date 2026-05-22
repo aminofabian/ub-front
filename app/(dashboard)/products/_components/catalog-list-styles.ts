@@ -41,15 +41,46 @@ export const catalogListHeaderRowClass = cn(
   "dark:bg-muted/25",
 );
 
-/** checkbox · thumb · product · stock (all breakpoints) · category (md+) · chevron */
+/** checkbox · product (+ thumb after name) · stock · category (md+) · chevron */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-center gap-x-2 gap-y-0 sm:gap-x-2.5 " +
-  "grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto_1rem] " +
-  "md:grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_4.25rem_8.5rem_1rem]";
+  "grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] " +
+  "md:grid-cols-[1.75rem_minmax(0,1fr)_4.25rem_8.5rem_1rem]";
+
+export const catalogListProductCellClass =
+  "relative z-[1] flex min-w-0 items-center gap-2";
 
 /** Right-align content inside fixed stock / category tracks. */
 export const catalogListMetricCellClass =
   "relative z-[1] flex w-full min-w-0 items-center justify-end justify-self-end";
+
+/** Product photo frame in catalog rows */
+export function catalogListThumbFrameClass(
+  kind: CatalogRowKind,
+  state?: { active?: boolean; inactive?: boolean },
+): string {
+  return cn(
+    "relative block shrink-0 overflow-hidden border border-border/50 bg-muted/70 shadow-sm",
+    "ring-1 ring-inset ring-black/[0.04] dark:ring-white/[0.06]",
+    "transition-[box-shadow,ring-color,opacity] duration-150",
+    kind === "group" && "size-9 rounded-xl border-amber-500/25",
+    kind === "variant" && "size-7 rounded-md",
+    kind === "standalone" && "size-8 rounded-lg",
+    state?.active &&
+      "z-[1] border-primary/30 ring-2 ring-primary/25 shadow-md dark:ring-primary/30",
+    state?.inactive && "opacity-55 saturate-[0.65]",
+  );
+}
+
+export const catalogListThumbImageClass = cn(
+  "object-cover transition-transform duration-200 ease-out",
+  "group-hover:scale-[1.04]",
+);
+
+export const catalogListThumbPlaceholderClass = cn(
+  "flex h-full w-full items-center justify-center",
+  "bg-gradient-to-br from-muted/90 via-muted/50 to-background/80",
+);
 
 /** Variant ids under a parent from loaded rows, then item detail when needed. */
 export async function resolveVariantIdsForParent(

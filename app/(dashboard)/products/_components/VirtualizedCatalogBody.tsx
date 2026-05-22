@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Boxes, ChevronRight, Package } from "lucide-react";
@@ -11,11 +10,13 @@ import { cn } from "@/lib/utils";
 
 import { formatStockLabel } from "../_utils";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
+import { CatalogListThumb } from "./CatalogListThumb";
 import {
   buildCatalogRowMeta,
   catalogListGridClass,
   catalogListHeaderRowClass,
   catalogListMetricCellClass,
+  catalogListProductCellClass,
   catalogListShellClass,
   catalogRowHeightPx,
   catalogRowInteractionClasses,
@@ -101,7 +102,6 @@ export function VirtualizedCatalogBody({
         aria-label="Catalog columns"
       >
         <span className="sr-only">Select</span>
-        <span className="sr-only">Image</span>
         <span className="min-w-0 self-center text-left">Product</span>
         <span className={catalogListMetricCellClass}>Stock</span>
         <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>
@@ -172,13 +172,11 @@ export function VirtualizedCatalogBody({
                   : stockTone;
               const isGroup = meta.kind === "group";
               const isVariant = meta.kind === "variant";
-              const isParentRow = !isVariant;
               const variantIdsUnderParent =
                 variantIdsByParentId.get(row.id) ??
                 rows
                   .filter((r) => r.variantOfItemId?.trim() === row.id)
                   .map((r) => r.id);
-              const thumbSize = isGroup ? "size-9" : isVariant ? "size-7" : "size-8";
               const titleInitial = row.name.trim().charAt(0).toUpperCase() || "?";
               const effectiveVariantCount = Math.max(
                 meta.variantCount,
@@ -297,65 +295,13 @@ export function VirtualizedCatalogBody({
                     />
                   </span>
 
-                  <span className="relative z-[1] flex items-center">
-                    {isParentRow ? (
-                      listThumb ? (
-                        <span
-                          className={cn(
-                            "relative block shrink-0 overflow-hidden rounded-lg border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.03]",
-                            thumbSize,
-                            isGroup && "rounded-xl ring-amber-500/15",
-                          )}
-                        >
-                          <Image
-                            src={listThumb}
-                            alt=""
-                            width={isGroup ? 36 : 32}
-                            height={isGroup ? 36 : 32}
-                            className="object-cover"
-                          />
-                        </span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "flex shrink-0 items-center justify-center rounded-lg border border-dashed font-bold tracking-tight",
-                            thumbSize,
-                            tone.accentLight,
-                            isGroup ? "rounded-xl text-sm" : "text-xs",
-                          )}
-                        >
-                          {titleInitial}
-                        </span>
-                      )
-                    ) : listThumb ? (
-                      <span
-                        className={cn(
-                          "relative block shrink-0 overflow-hidden rounded-md border border-border/50 bg-muted",
-                          thumbSize,
-                        )}
-                      >
-                        <Image
-                          src={listThumb}
-                          alt=""
-                          width={28}
-                          height={28}
-                          className="object-cover"
-                        />
-                      </span>
-                    ) : (
-                      <span
-                        className={cn("shrink-0 rounded-md bg-muted/50", thumbSize)}
-                        aria-hidden
-                      />
-                    )}
-                  </span>
-
                   <div
                     className={cn(
-                      "relative z-[1] min-w-0",
+                      catalogListProductCellClass,
                       isVariant && "pl-3 md:pl-5",
                     )}
                   >
+                    <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5">
                       {isVariant ? (
                         <TypeIcon className={cn("size-3.5 shrink-0", tone.muted)} aria-hidden />
@@ -423,6 +369,15 @@ export function VirtualizedCatalogBody({
                         </span>
                       ) : null}
                     </div>
+                    </div>
+                    <CatalogListThumb
+                      src={listThumb}
+                      titleInitial={titleInitial}
+                      kind={meta.kind}
+                      tone={tone}
+                      isActive={active}
+                      isInactive={row.active === false}
+                    />
                   </div>
 
                   <span className={catalogListMetricCellClass}>
