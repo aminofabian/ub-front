@@ -133,8 +133,7 @@ export default function ShopCartView({ slug }: { slug: string }) {
           ) : (
             <p className="text-sm text-muted-foreground">
               Checkout is available once every item in your cart has a price at this
-              store. Remove items shown as &quot;See in store&quot; or ask the branch to set
-              a shelf price.
+              store. Remove unpriced items or ask the branch to set a shelf price.
             </p>
           )}
 

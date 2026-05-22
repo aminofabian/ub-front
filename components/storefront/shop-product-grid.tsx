@@ -8,7 +8,11 @@ import { ShopQuickAddButton } from "@/components/storefront/shop-quick-add-butto
 import { Button } from "@/components/ui/button";
 import { shopItemPathFromCard } from "@/lib/config";
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
-import { formatDisplayPrice, formatStoreQty } from "@/lib/public-storefront";
+import {
+  formatDisplayPrice,
+  formatStoreQty,
+  hasCatalogPrice,
+} from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
 const CARD_SHELL =
@@ -98,7 +102,10 @@ export default function ShopProductGrid({
         const title = item.variantName
           ? `${item.name} · ${item.variantName}`
           : item.name;
-        const priceLabel = formatDisplayPrice(currency, item.price);
+        const hasPrice = hasCatalogPrice(item.price);
+        const priceLabel = hasPrice
+          ? formatDisplayPrice(currency, item.price)
+          : null;
         const stockLabel = formatStoreQty(item.qtyOnHand);
         const badge = stockBadge(item.qtyOnHand);
         const isOutOfStock = item.qtyOnHand != null && item.qtyOnHand <= 0;
@@ -145,9 +152,15 @@ export default function ShopProductGrid({
                 </Link>
 
                 <div className="mt-1.5 flex items-baseline justify-between gap-2 border-t border-border/30 pt-1.5">
-                  <p className="text-sm font-semibold tabular-nums tracking-tight text-foreground">
-                    {priceLabel}
-                  </p>
+                  {priceLabel ? (
+                    <p className="text-sm font-semibold tabular-nums tracking-tight text-foreground">
+                      {priceLabel}
+                    </p>
+                  ) : (
+                    <p className="text-xs font-semibold text-primary">
+                      View options
+                    </p>
+                  )}
                   {stockLabel ? (
                     <span className="shrink-0 rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
                       {stockLabel}
@@ -155,7 +168,7 @@ export default function ShopProductGrid({
                   ) : null}
                 </div>
 
-                {slug && !isOutOfStock && item.price != null ? (
+                {slug && !isOutOfStock && hasPrice ? (
                   <div className="mt-2">
                     <ShopQuickAddButton
                       slug={slug}

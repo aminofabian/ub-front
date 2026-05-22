@@ -215,12 +215,18 @@ export function formatStoreQty(
   return `${label} in store`;
 }
 
+export function hasCatalogPrice(
+  amount: number | null | undefined,
+): amount is number {
+  return amount != null && Number.isFinite(amount);
+}
+
 export function formatDisplayPrice(
   currency: string,
   amount: number | null,
 ): string {
-  if (amount == null) {
-    return "See in store";
+  if (!hasCatalogPrice(amount)) {
+    return "";
   }
   try {
     return new Intl.NumberFormat(undefined, {

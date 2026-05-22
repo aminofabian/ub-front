@@ -13,10 +13,15 @@ import {
   fetchPublicStorefront,
   formatDisplayPrice,
   formatStoreQty,
+  hasCatalogPrice,
 } from "@/lib/public-storefront";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
 import { ShopItemNotifyButton } from "@/components/storefront/shop-item-notify-button";
 import { ShopItemLivePrice } from "@/components/storefront/shop-item-live-price";
+import {
+  mergeVariantOptions,
+  ShopItemVariantPicker,
+} from "@/components/storefront/shop-item-variant-picker";
 import { resolveStorefrontSlug } from "@/lib/storefront-slug";
 
 type PageProps = { params: Promise<{ sku: string }> };
@@ -43,11 +48,14 @@ export async function generateMetadata({
   const heading = item.variantName
     ? `${item.name} · ${item.variantName}`
     : item.name;
+  const pricePart = hasCatalogPrice(item.price)
+    ? formatDisplayPrice(item.currency, item.price)
+    : null;
   return {
     title: `${heading} · ${shopLabel}`,
     description:
       item.description?.trim().slice(0, 160) ||
-      `${heading} — ${formatDisplayPrice(item.currency, item.price)}`,
+      (pricePart ? `${heading} — ${pricePart}` : heading),
     alternates: { canonical },
     openGraph: {
       title: heading,
@@ -68,9 +76,9 @@ export default async function ShopItemPage({ params }: PageProps) {
     permanentRedirect(shopItemPathFromCard(item));
   }
 
-  const heading = item.variantName
-    ? `${item.name} · ${item.variantName}`
-    : item.name;
+  const variantOptions = mergeVariantOptions(item);
+  const hasMultipleOptions = variantOptions.length > 1;
+  const showPrice = hasCatalogPrice(item.price);
   const stockLabel = formatStoreQty(item.qtyOnHand);
   const hero = item.images[0];
   const featureLines = item.description
@@ -98,7 +106,7 @@ export default async function ShopItemPage({ params }: PageProps) {
                 {hero ? (
                   <Image
                     src={hero.url}
-                    alt={hero.altText?.trim() || heading}
+                    alt={hero.altText?.trim() || item.name}
                     fill
                     className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 640px"
@@ -120,7 +128,7 @@ export default async function ShopItemPage({ params }: PageProps) {
                     >
                       <Image
                         src={img.url}
-                        alt={img.altText?.trim() || `${heading} ${idx + 1}`}
+                        alt={img.altText?.trim() || `${item.name} ${idx + 1}`}
                         fill
                         className="object-cover"
                         sizes="96px"
@@ -131,25 +139,65 @@ export default async function ShopItemPage({ params }: PageProps) {
               )}
             </section>
 
-            <section>
-              <h1 className="text-3xl font-extrabold leading-tight tracking-tight">
-                {heading}
+            <section className="flex flex-col">
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl">
+                {item.name}
               </h1>
+              {item.variantName && !hasMultipleOptions ? (
+                <p className="mt-1 text-lg font-medium text-muted-foreground">
+                  {item.variantName}
+                </p>
+              ) : null}
 
-              <div className="mt-4 flex items-baseline gap-3">
-                <ShopItemLivePrice
-                  slug={slug}
-                  itemId={item.id}
-                  currency={item.currency}
-                  initialPrice={item.price}
-                  className="text-4xl font-black tabular-nums text-foreground"
-                />
-                {stockLabel && (
-                  <span className="text-sm font-semibold text-emerald-600">
-                    {stockLabel}
-                  </span>
-                )}
-              </div>
+              {hasMultipleOptions ? (
+                <ShopItemVariantPicker item={item} className="mt-5" />
+              ) : null}
+
+              {(showPrice || stockLabel) && (
+                <div
+                  className={
+                    hasMultipleOptions
+                      ? "mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-border/60 bg-muted/25 px-4 py-3"
+                      : "mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1"
+                  }
+                >
+                  {showPrice ? (
+                    <ShopItemLivePrice
+                      slug={slug}
+                      itemId={item.id}
+                      currency={item.currency}
+                      initialPrice={item.price}
+                      className="text-3xl font-black tabular-nums text-foreground sm:text-4xl"
+                    />
+                  ) : null}
+                  {stockLabel ? (
+                    <span className="text-sm font-semibold text-emerald-600">
+                      {stockLabel}
+                    </span>
+                  ) : null}
+                </div>
+              )}
+
+              {!showPrice && hasMultipleOptions ? (
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  Select an option above to view the price and add it to your cart.
+                </p>
+              ) : null}
+
+              {showPrice ? (
+                <ShopAddToCart slug={slug} itemId={item.id} className="mt-5" />
+              ) : (
+                <div className="mt-5 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                  {hasMultipleOptions
+                    ? "Pick a priced option above to add this product to your cart."
+                    : "This item is not available for online checkout yet. Visit the store or contact us for availability."}
+                </div>
+              )}
+
+              <ShopItemNotifyButton
+                itemId={item.id}
+                outOfStock={item.qtyOnHand != null && item.qtyOnHand <= 0}
+              />
 
               {featureLines.length > 0 && (
                 <ul className="mt-5 divide-y divide-border/70 rounded-lg border border-border/60">
@@ -167,13 +215,7 @@ export default async function ShopItemPage({ params }: PageProps) {
                 </ul>
               )}
 
-              <ShopAddToCart slug={slug} itemId={item.id} className="mt-6" />
-              <ShopItemNotifyButton
-                itemId={item.id}
-                outOfStock={item.qtyOnHand != null && item.qtyOnHand <= 0}
-              />
-
-              <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-xl border border-border/70 text-center">
+              <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-xl border border-border/70 text-center">
                 <div className="px-2 py-3 text-xs text-muted-foreground">
                   Safe Payments
                 </div>
@@ -186,47 +228,21 @@ export default async function ShopItemPage({ params }: PageProps) {
               </div>
             </section>
           </div>
-
-          {item.variants.length > 0 && (
-            <div className="mt-8 border-t border-border/60 pt-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Options
-              </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {item.variants.map((v) => {
-                  const vTitle = v.variantName
-                    ? `${v.name} · ${v.variantName}`
-                    : v.name;
-                  return (
-                    <Link
-                      key={v.id}
-                      href={shopItemPathFromCard({
-                        sku: v.sku,
-                      })}
-                      className={
-                        v.id === item.id
-                          ? "flex items-center justify-between gap-3 rounded-xl border-2 border-primary bg-primary/5 px-4 py-3 text-sm font-medium"
-                          : "flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-sm transition hover:border-primary/40"
-                      }
-                    >
-                      <span className="min-w-0 truncate">{vTitle}</span>
-                      <span className="font-semibold tabular-nums text-primary">
-                        {formatDisplayPrice(item.currency, v.price)}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/95 p-3 shadow-[0_-12px_40px_rgba(15,23,42,0.08)] backdrop-blur-md sm:hidden">
-        <div className="mx-auto max-w-7xl">
-          <ShopAddToCart slug={slug} itemId={item.id} compact className="!mt-0 !border-0 !bg-transparent !p-0" />
+      {showPrice ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/95 p-3 shadow-[0_-12px_40px_rgba(15,23,42,0.08)] backdrop-blur-md sm:hidden">
+          <div className="mx-auto max-w-7xl">
+            <ShopAddToCart
+              slug={slug}
+              itemId={item.id}
+              compact
+              className="!mt-0 !border-0 !bg-transparent !p-0"
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
