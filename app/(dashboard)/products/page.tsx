@@ -2,19 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  List,
-  Loader2,
-  MousePointerClick,
-  PackagePlus,
-  Rows3,
-  Trash2,
-} from "lucide-react";
+import { Loader2, MousePointerClick, PackagePlus } from "lucide-react";
 
-import {
-  DashboardNotice,
-  dashboardHintClass,
-} from "@/components/dashboard-page-ui";
+import { DashboardNotice } from "@/components/dashboard-page-ui";
 import { FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -28,7 +18,7 @@ import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
 import { useQuickEdit } from "./_hooks/useQuickEdit";
 import { useProductMutations } from "./_hooks/useProductMutations";
-import { VirtualizedCatalogBody } from "./_components/VirtualizedCatalogBody";
+import { CatalogListColumn } from "./_components/CatalogListColumn";
 import { ProductDetailPanel } from "./_components/ProductDetailPanel";
 import { ProductHeroHeader } from "./_components/ProductHeroHeader";
 import { ProductMobileFilterBar } from "./_components/ProductMobileFilterBar";
@@ -293,109 +283,18 @@ export default function ProductsPage() {
           >
             <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-4 overflow-x-hidden p-3 sm:p-4 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(0,min(22rem,34vw))] lg:items-stretch lg:gap-4 lg:p-4">
               <ProductFilterSidebar catalog={catalog} />
-              <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-2 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/35 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/25 dark:ring-white/[0.04]">
-                  <span
-                    className={cn(
-                      dashboardHintClass(),
-                      "font-medium tabular-nums text-muted-foreground",
-                    )}
-                  >
-                    <span className="text-foreground">
-                      {catalog.listTotalElements}
-                    </span>{" "}
-                    in view
-                    {catalog.listRows.length < catalog.listTotalElements && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {catalog.listRows.length} loaded
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={
-                        catalog.listDensity === "comfortable"
-                          ? "secondary"
-                          : "ghost"
-                      }
-                      className="h-8 gap-1 px-2 shadow-sm transition-shadow hover:shadow"
-                      onClick={() => catalog.setListDensity("comfortable")}
-                    >
-                      <Rows3 className="size-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={
-                        catalog.listDensity === "dense" ? "secondary" : "ghost"
-                      }
-                      className="h-8 gap-1 px-2 shadow-sm transition-shadow hover:shadow"
-                      onClick={() => catalog.setListDensity("dense")}
-                    >
-                      <List className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
-                {catalog.rowSelection.size > 0 && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2.5 text-xs shadow-sm ring-1 ring-primary/10">
-                    <span className="font-medium text-foreground">
-                      {catalog.rowSelection.size} selected
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {canCatalogWrite && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          className="h-7 gap-1 text-xs"
-                          disabled={m.bulkDeleteBusy}
-                          onClick={() => void m.onBulkDeleteSelected()}
-                        >
-                          {m.bulkDeleteBusy ? (
-                            <Loader2 className="size-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3" />
-                          )}{" "}
-                          Delete selected
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        disabled={m.bulkDeleteBusy}
-                        onClick={() => catalog.setRowSelection(new Set())}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  <VirtualizedCatalogBody
-                    rows={catalog.listRows}
-                    categoryById={catalog.categoryById}
-                    variantIdsByParentId={catalog.variantIdsByParent}
-                    selectedId={detail.selectedId}
-                    selectedIds={catalog.rowSelection}
-                    density={catalog.listDensity}
-                    onRowClick={(id) => {
-                      detail.selectProduct(id);
-                      setMobileDetailOpen(true);
-                    }}
-                    onToggleRowSelect={catalog.onToggleRowSelect}
-                    isRowActive={isListRowActive}
-                    loadingMore={catalog.listLoadingMore}
-                    hasMore={!catalog.listLast}
-                    onLoadMore={catalog.loadMoreCatalog}
-                    initialLoading={catalog.listLoadingInitial}
-                  />
-                </div>
-              </div>
+              <CatalogListColumn
+                catalog={catalog}
+                selectedId={detail.selectedId}
+                onRowClick={(id) => {
+                  detail.selectProduct(id);
+                  setMobileDetailOpen(true);
+                }}
+                isRowActive={isListRowActive}
+                canCatalogWrite={canCatalogWrite}
+                bulkDeleteBusy={m.bulkDeleteBusy}
+                onBulkDelete={m.onBulkDeleteSelected}
+              />
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
                 <div
                   className={cn(

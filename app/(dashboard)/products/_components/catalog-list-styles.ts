@@ -23,11 +23,29 @@ export const CATALOG_PARENT_BLOCK_GAP_PX = {
   dense: 10,
 } as const;
 
-/** Shared grid: checkbox · thumb · product · stock · category · chevron (fixed trailing cols align all rows). */
+export const catalogListShellClass = cn(
+  "flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden",
+  "rounded-2xl border border-border/60 bg-card/85 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]",
+);
+
+export const catalogListToolbarClass = cn(
+  "flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border/55",
+  "bg-muted/30 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/20 dark:ring-white/[0.04]",
+);
+
+export const catalogListToolbarMetaClass =
+  "text-xs text-muted-foreground";
+
+export const catalogListHeaderRowClass = cn(
+  "shrink-0 border-b border-border/50 bg-muted/35 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+  "dark:bg-muted/25",
+);
+
+/** checkbox · thumb · product · stock (all breakpoints) · category (md+) · chevron */
 export const catalogListGridClass =
-  "grid w-full min-w-0 max-w-full items-center gap-x-2.5 gap-y-0 sm:gap-x-3 " +
-  "grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_1.25rem] " +
-  "md:grid-cols-[1.75rem_2.25rem_minmax(0,1fr)_4.75rem_9.5rem_1.25rem]";
+  "grid w-full min-w-0 max-w-full items-center gap-x-2 gap-y-0 sm:gap-x-2.5 " +
+  "grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_auto_1rem] " +
+  "md:grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_4.25rem_8.5rem_1rem]";
 
 /** Right-align content inside fixed stock / category tracks. */
 export const catalogListMetricCellClass =
@@ -289,13 +307,13 @@ export function catalogRowHeightPx(
   const gap =
     startsParentBlock ? CATALOG_PARENT_BLOCK_GAP_PX[density] : 0;
   if (density === "dense") {
-    if (kind === "group") return 50 + gap;
-    if (kind === "variant") return 36;
-    return 38 + gap;
+    if (kind === "group") return 52 + gap;
+    if (kind === "variant") return 40;
+    return 42 + gap;
   }
-  if (kind === "group") return 62 + gap;
-  if (kind === "variant") return 46;
-  return 48 + gap;
+  if (kind === "group") return 64 + gap;
+  if (kind === "variant") return 50;
+  return 52 + gap;
 }
 
 export function catalogStockTone(qty: number | string | null | undefined): {

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronRight } from "lucide-react";
+import { Boxes, ChevronRight, Package } from "lucide-react";
 
 import { kioskCategoryPillClass } from "@/components/cashier/kiosk-listing-styles";
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
@@ -14,7 +14,9 @@ import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import {
   buildCatalogRowMeta,
   catalogListGridClass,
+  catalogListHeaderRowClass,
   catalogListMetricCellClass,
+  catalogListShellClass,
   catalogRowHeightPx,
   catalogRowInteractionClasses,
   catalogRowTone,
@@ -92,50 +94,19 @@ export function VirtualizedCatalogBody({
   }, [density, rows.length, virtualizer]);
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden rounded-2xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]">
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/45 bg-muted/30 px-3 py-2 text-[10px] leading-snug text-muted-foreground dark:bg-muted/25">
-        <span className="font-heading font-bold uppercase tracking-[0.14em] text-foreground/80">
-          Catalog
-        </span>
-        <span className="hidden h-3 w-px bg-border sm:block" aria-hidden />
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-1 shadow-sm" aria-hidden />
-          <span className="font-medium text-foreground/85">Parent group</span>
-        </span>
-        <span className="text-muted-foreground/40">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-2 shadow-sm" aria-hidden />
-          <span className="font-medium text-foreground/85">With variants</span>
-        </span>
-        <span className="text-muted-foreground/40">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-3 shadow-sm" aria-hidden />
-          <span className="font-medium text-foreground/85">Standalone</span>
-        </span>
-        <span className="text-muted-foreground/40">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-1 shrink-0 rounded-full bg-chart-4 shadow-sm" aria-hidden />
-          <span className="font-medium text-foreground/85">Variant</span>
-        </span>
-      </div>
-
+    <div className={catalogListShellClass}>
       <div
-        className={cn(
-          catalogListGridClass,
-          "shrink-0 border-b border-border/50 bg-muted/40 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
-        )}
+        className={cn(catalogListGridClass, catalogListHeaderRowClass)}
         role="row"
         aria-label="Catalog columns"
       >
-        <span className="relative flex min-w-[1.75rem] items-center justify-center">
-          <span className="sr-only">Select</span>
-        </span>
-        <span className="relative flex min-w-[2.25rem] items-center justify-center">
-          <span className="sr-only">Image</span>
-        </span>
+        <span className="sr-only">Select</span>
+        <span className="sr-only">Image</span>
         <span className="min-w-0 self-center text-left">Product</span>
-        <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>Stock</span>
-        <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>Category</span>
+        <span className={catalogListMetricCellClass}>Stock</span>
+        <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>
+          Category
+        </span>
         <span className="sr-only">Open</span>
       </div>
 
@@ -148,11 +119,19 @@ export function VirtualizedCatalogBody({
         {initialLoading ? (
           <CatalogListSkeleton density={density} />
         ) : rows.length === 0 ? (
-          <div className="mx-4 my-14 rounded-2xl border border-dashed border-border/60 bg-muted/15 px-6 py-12 text-center">
-            <p className="text-sm font-semibold text-foreground">No products match</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Widen search, change scope, or reset filters.
-            </p>
+          <div className="mx-3 my-12 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/55 bg-muted/15 px-6 py-10 text-center sm:mx-4">
+            <div className="flex size-12 items-center justify-center rounded-xl border border-border/50 bg-background/80 shadow-sm">
+              <Package className="size-5 text-muted-foreground/45" aria-hidden />
+            </div>
+            <div className="max-w-[16rem] space-y-1">
+              <p className="text-sm font-semibold text-foreground">
+                No products match
+              </p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Try a broader search, change catalog scope, or reset filters in
+                the sidebar.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
@@ -261,9 +240,10 @@ export function VirtualizedCatalogBody({
                     }
                     className={cn(
                       catalogListGridClass,
-                      "group relative min-w-0 max-w-full border-b border-border/25 px-2.5 py-1.5 text-left",
+                      "group relative min-w-0 max-w-full border-b border-border/20 px-2.5 text-left",
+                      density === "dense" ? "py-1.5" : "py-2",
                       catalogRowInteractionClasses(tone, rowInteraction),
-                      row.active === false && "opacity-55",
+                      row.active === false && "opacity-50",
                     )}
                     onClick={() => onRowClick(row.id)}
                     onKeyDown={(event) => {
@@ -273,10 +253,18 @@ export function VirtualizedCatalogBody({
                       }
                     }}
                   >
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute bottom-0 left-0 top-0 w-0.5 rounded-r-full opacity-0 transition-opacity",
+                      tone.accent,
+                      active && "opacity-100",
+                    )}
+                    aria-hidden
+                  />
 
                   {isVariant ? (
                     <span
-                      className="pointer-events-none absolute bottom-0 top-0 w-px bg-border/70 dark:bg-border"
+                      className="pointer-events-none absolute bottom-1 top-1 w-px bg-border/60"
                       style={{ left: "1.75rem" }}
                       aria-hidden
                     />
@@ -383,10 +371,16 @@ export function VirtualizedCatalogBody({
                       >
                         {displayName}
                       </span>
+                      {row.packageVariant ? (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                          <Boxes className="size-2.5" aria-hidden />
+                          Pack
+                        </span>
+                      ) : null}
                       {isGroup ? (
                         <span
                           className={cn(
-                            "hidden shrink-0 rounded-md px-1.5 py-px text-[9px] font-bold uppercase tracking-wide sm:inline",
+                            "hidden shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide sm:inline",
                             tone.accentLight,
                           )}
                         >
@@ -394,45 +388,58 @@ export function VirtualizedCatalogBody({
                         </span>
                       ) : null}
                       {row.active === false ? (
-                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Inactive
+                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Off
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                       {isVariant && optionLabel ? (
-                        <span className="shrink-0 text-[11px] font-normal text-muted-foreground">
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
                           {optionLabel}
                         </span>
                       ) : null}
                       {row.sku ? (
                         <span
-                          className="min-w-0 break-all font-mono text-[11px] leading-tight text-muted-foreground"
+                          className="min-w-0 truncate font-mono text-[11px] text-muted-foreground"
                           title={row.sku}
                         >
                           {row.sku}
                         </span>
                       ) : !isGroup ? (
-                        <span className="text-[11px] text-muted-foreground/40">No SKU</span>
+                        <span className="text-[11px] text-muted-foreground/35">
+                          No SKU
+                        </span>
+                      ) : null}
+                      {categoryLabel ? (
+                        <span
+                          className={cn(
+                            "truncate rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-snug tracking-wide md:hidden",
+                            kioskCategoryPillClass(categoryLabel),
+                          )}
+                          title={categoryLabel}
+                        >
+                          {categoryLabel}
+                        </span>
                       ) : null}
                     </div>
                   </div>
 
-                  <span className={cn(catalogListMetricCellClass, "hidden md:flex")}>
+                  <span className={catalogListMetricCellClass}>
                     {stock.label ? (
                       <span
                         className={cn(
-                          "whitespace-nowrap rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
+                          "whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
                           stock.className,
                         )}
+                        title={formatStockLabel(row)}
                       >
-                        {stock.label}
-                        {row.stockQty != null && Number.isFinite(Number(row.stockQty)) ? (
-                          <span className="ml-1 font-normal opacity-80">{row.stockQty}</span>
-                        ) : null}
+                        {formatStockLabel(row)}
                       </span>
                     ) : (
-                      <span className="whitespace-nowrap text-[11px] text-muted-foreground/35">—</span>
+                      <span className="whitespace-nowrap text-[11px] text-muted-foreground/35">
+                        —
+                      </span>
                     )}
                   </span>
 
