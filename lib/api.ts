@@ -4952,6 +4952,46 @@ export async function fetchSupplierContacts(
   );
 }
 
+export type SupplierPurchaseHistorySummaryRecord = {
+  totalSpent: number;
+  totalPaid: number;
+  openBalance: number;
+  invoiceCount: number;
+  lastInvoiceDate: string | null;
+};
+
+export type SupplierPurchaseHistoryOrderRecord = {
+  supplierInvoiceId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  createdAt: string;
+  lineCount: number;
+  grandTotal: number;
+  amountPaid: number;
+  balanceOpen: number;
+  paymentStatus: string;
+  sourceType: "DIRECT_SUPPLY" | "GOODS_RECEIPT" | "INVOICE" | string;
+};
+
+export type SupplierPurchaseHistoryRecord = {
+  summary: SupplierPurchaseHistorySummaryRecord;
+  orders: SupplierPurchaseHistoryOrderRecord[];
+};
+
+export async function fetchSupplierPurchaseHistory(
+  supplierId: string,
+  opts?: { limit?: number },
+): Promise<SupplierPurchaseHistoryRecord> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) {
+    params.set("limit", String(opts.limit));
+  }
+  const q = params.toString();
+  return request<SupplierPurchaseHistoryRecord>(
+    `/api/v1/suppliers/${supplierId}/purchase-history${q ? `?${q}` : ""}`,
+  );
+}
+
 export async function createSupplierContact(
   supplierId: string,
   body: CreateSupplierContactPayload,

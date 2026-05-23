@@ -100,7 +100,7 @@ export function VirtualizedSupplierList({
       {/* Virtual scroll area */}
       <div
         ref={parentRef}
-        className="min-h-[min(52vh,22rem)] flex-1 overflow-auto overscroll-contain scroll-smooth md:min-h-[24rem] lg:min-h-0"
+        className="min-h-[min(52vh,22rem)] flex-1 overflow-y-auto overscroll-contain scroll-smooth md:min-h-[24rem] xl:min-h-0"
         tabIndex={-1}
       >
         {loadingInitial && rows.length === 0 ? (

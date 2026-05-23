@@ -14,6 +14,7 @@ import type { SupplierContactRecord, SupplierRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+import { SupplierPurchaseHistorySection } from "./SupplierPurchaseHistorySection";
 import { statusBadgeClass } from "./supplier-ui-tokens";
 
 export function SupplierEditColumn({
@@ -157,6 +158,8 @@ export function SupplierEditColumn({
 
       {/* ── Commercial snapshot ── */}
       <SupplierCommercialSection s={detail} />
+
+      <SupplierPurchaseHistorySection supplierId={detail.id} />
 
       {/* ── Notes ── */}
       {detail.notes?.trim() ? (

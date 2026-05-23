@@ -628,7 +628,7 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="relative -mx-4 flex min-h-[calc(100dvh-4.25rem)] w-[calc(100%+2rem)] max-w-none flex-col gap-5 px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4 lg:gap-6">
+    <div className="relative -mx-4 flex h-full min-h-0 w-[calc(100%+2rem)] max-w-none flex-col gap-5 px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4 lg:gap-6">
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-5 lg:gap-6">
         <section className={DASHBOARD_SECTION_SURFACE}>
           <DashboardPageHero
@@ -695,54 +695,65 @@ export default function SuppliersPage() {
           />
         ) : null}
 
-        {isXl ? (
-          <nav
-            className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-muted/25 px-4 py-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
-            aria-label="Workspace steps"
-          >
-            <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Workflow
-            </span>
-            <ol className="flex flex-1 flex-wrap items-center gap-1">
-              {[
-                { n: 1, label: "Directory" },
-                { n: 2, label: "Profile & contacts" },
-                { n: 3, label: "Catalog & links" },
-              ].map(({ n, label }, i, arr) => (
-                <Fragment key={n}>
-                  <li className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm">
-                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
-                      {n}
-                    </span>
-                    {label}
-                  </li>
-                  {i < arr.length - 1 ? (
-                    <ChevronRight
-                      className="size-3 shrink-0 text-muted-foreground/40 max-sm:hidden"
-                      aria-hidden
-                    />
-                  ) : null}
-                </Fragment>
-              ))}
-            </ol>
-            {detail ? (
-              <span className="truncate text-[11px] font-semibold text-primary">
-                {detail.name}
-              </span>
-            ) : null}
-          </nav>
-        ) : null}
-
         <div
           className={cn(
-            "grid min-h-0 flex-1 gap-4 lg:gap-5",
-            isXl &&
-              "xl:grid-cols-[minmax(16rem,21rem)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden",
+            "flex min-h-0 flex-col gap-4 lg:gap-5",
+            isXl && "min-h-0 flex-1 overflow-hidden",
           )}
         >
-          <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          {isXl ? (
+            <nav
+              className="flex shrink-0 flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-muted/25 px-4 py-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
+              aria-label="Workspace steps"
+            >
+              <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Workflow
+              </span>
+              <ol className="flex flex-1 flex-wrap items-center gap-1">
+                {[
+                  { n: 1, label: "Directory" },
+                  { n: 2, label: "Profile & contacts" },
+                  { n: 3, label: "Catalog & links" },
+                ].map(({ n, label }, i, arr) => (
+                  <Fragment key={n}>
+                    <li className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm">
+                      <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                        {n}
+                      </span>
+                      {label}
+                    </li>
+                    {i < arr.length - 1 ? (
+                      <ChevronRight
+                        className="size-3 shrink-0 text-muted-foreground/40 max-sm:hidden"
+                        aria-hidden
+                      />
+                    ) : null}
+                  </Fragment>
+                ))}
+              </ol>
+              {detail ? (
+                <span className="truncate text-[11px] font-semibold text-primary">
+                  {detail.name}
+                </span>
+              ) : null}
+            </nav>
+          ) : null}
+
+          <div
+            className={cn(
+              "grid min-h-0 gap-4 lg:gap-5",
+              isXl &&
+                "min-h-0 flex-1 xl:grid-cols-[minmax(16rem,21rem)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden",
+            )}
+          >
+            <div
+              className={cn(
+                "flex min-h-0 min-w-0 flex-col gap-3",
+                isXl && "overflow-hidden",
+              )}
+            >
             {/* Search + filter bar */}
-            <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/50 bg-muted/25 p-3 shadow-sm ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04] sm:p-4">
+            <div className="flex shrink-0 flex-wrap items-end gap-3 rounded-xl border border-border/50 bg-muted/25 p-3 shadow-sm ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04] sm:p-4">
               <label className="flex min-w-[10rem] flex-1 flex-col gap-2">
                 <span className={dashboardFilterFieldLabelClass()}>Search</span>
                 <span className="relative">
@@ -832,9 +843,9 @@ export default function SuppliersPage() {
                 </div>
               </div>
             ) : null}
-          </div>
+            </div>
 
-          {isXl ? (
+            {isXl ? (
             <>
               <aside className={supPanelShell}>
                 <div className={supPanelHeader}>
@@ -905,7 +916,8 @@ export default function SuppliersPage() {
                 </div>
               </aside>
             </>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
 
