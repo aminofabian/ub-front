@@ -17,6 +17,7 @@ import {
   catalogListHeaderRowClass,
   catalogListMetricCellClass,
   catalogListProductCellClass,
+  catalogListCheckboxClass,
   catalogListShellClass,
   catalogRowHeightPx,
   catalogRowInteractionClasses,
@@ -275,11 +276,7 @@ export function VirtualizedCatalogBody({
                   >
                     <input
                       type="checkbox"
-                      className={cn(
-                        "size-3.5 rounded border-input shadow-sm transition-shadow",
-                        (checkboxChecked || rowBulkSelected) &&
-                          "border-primary/50 ring-1 ring-primary/20",
-                      )}
+                      className={catalogListCheckboxClass}
                       ref={(el) => {
                         if (el) el.indeterminate = checkboxIndeterminate;
                       }}

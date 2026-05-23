@@ -50,6 +50,22 @@ export const catalogListGridClass =
 export const catalogListProductCellClass =
   "relative z-[1] flex min-w-0 items-center gap-2";
 
+/** Native checkbox — neutral charcoal when checked (no system/accent blue) */
+export const catalogListCheckboxClass = cn(
+  "size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border-2 border-muted-foreground/45 bg-background shadow-sm",
+  "transition-[border-color,background-color] duration-150",
+  "checked:border-neutral-800 checked:bg-neutral-800",
+  "indeterminate:border-neutral-800 indeterminate:bg-neutral-800",
+  "dark:checked:border-neutral-200 dark:checked:bg-neutral-200",
+  "dark:indeterminate:border-neutral-200 dark:indeterminate:bg-neutral-200",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+  "bg-center bg-no-repeat [background-size:0.6rem_0.6rem]",
+  "checked:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012l5%205L20%207%22%2F%3E%3C%2Fsvg%3E')]",
+  "indeterminate:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E')]",
+  "dark:checked:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23171717%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012l5%205L20%207%22%2F%3E%3C%2Fsvg%3E')]",
+  "dark:indeterminate:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23171717%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E')]",
+);
+
 /** Right-align content inside fixed stock / category tracks. */
 export const catalogListMetricCellClass =
   "relative z-[1] flex w-full min-w-0 items-center justify-end justify-self-end";
