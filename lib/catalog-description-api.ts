@@ -33,7 +33,6 @@ export async function generateProductDescription(
     "unitType",
     "variantName",
     "sku",
-    "barcode",
   ] as const;
   for (const key of optional) {
     const value = payload[key]?.trim();

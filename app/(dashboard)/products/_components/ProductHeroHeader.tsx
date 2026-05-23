@@ -3,6 +3,7 @@
 import {
   Building2,
   CircleDollarSign,
+  Layers,
   LayoutGrid,
   Package,
   PackagePlus,
@@ -20,9 +21,16 @@ import { cn } from "@/lib/utils";
 type Props = {
   itemTypeCount: number;
   onCreateNew: () => void;
+  onAddVariant?: () => void;
+  canAddVariant?: boolean;
 };
 
-export function ProductHeroHeader({ itemTypeCount, onCreateNew }: Props) {
+export function ProductHeroHeader({
+  itemTypeCount,
+  onCreateNew,
+  onAddVariant,
+  canAddVariant = true,
+}: Props) {
   return (
     <section
       className={cn(
@@ -69,15 +77,29 @@ export function ProductHeroHeader({ itemTypeCount, onCreateNew }: Props) {
             },
           ]}
         />
-        <Button
-          type="button"
-          disabled={itemTypeCount === 0}
-          onClick={onCreateNew}
-          className="h-10 min-h-10 shrink-0 gap-2 self-stretch px-5 shadow-sm transition-shadow hover:shadow-md sm:self-center"
-        >
-          <PackagePlus className="size-4" aria-hidden />
-          New product
-        </Button>
+        <div className="flex flex-col gap-2 self-stretch sm:flex-row sm:items-center sm:self-center">
+          {onAddVariant ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={itemTypeCount === 0 || !canAddVariant}
+              onClick={onAddVariant}
+              className="h-10 min-h-10 shrink-0 gap-2 px-5 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <Layers className="size-4" aria-hidden />
+              Add variant
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            disabled={itemTypeCount === 0}
+            onClick={onCreateNew}
+            className="h-10 min-h-10 shrink-0 gap-2 px-5 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <PackagePlus className="size-4" aria-hidden />
+            New product
+          </Button>
+        </div>
       </div>
     </section>
   );

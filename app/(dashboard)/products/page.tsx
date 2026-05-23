@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   type ProductDrawerId,
+  emptyVariantDraft,
   panelClass,
 } from "./_types";
 import { useCatalogList } from "./_hooks/useCatalogList";
@@ -24,6 +25,7 @@ import { ProductHeroHeader } from "./_components/ProductHeroHeader";
 import { ProductMobileFilterBar } from "./_components/ProductMobileFilterBar";
 import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
+import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
 import { AddPackageModal } from "./_components/AddPackageModal";
 import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
@@ -84,6 +86,7 @@ export default function ProductsPage() {
   );
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
 
   const openBaseStock = useCallback(async () => {
     const pid = detail.detail?.variantOfItemId?.trim();
@@ -174,9 +177,34 @@ export default function ProductsPage() {
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;
+  const handleVariantParentPicked = useCallback(
+    async (hit: { id: string }) => {
+      setVariantParentPickBusy(true);
+      catalog.setMessage("");
+      detail.selectProduct(hit.id);
+      setMobileDetailOpen(true);
+      const row = await detail.refreshSelectedDetail(hit.id);
+      if (!row || row.variantOfItemId?.trim()) {
+        catalog.setMessage("Could not load the parent product.");
+        setActiveDrawer("pick-variant-parent");
+        setVariantParentPickBusy(false);
+        return;
+      }
+      m.setVariantDraftRows([emptyVariantDraft()]);
+      m.setPendingVariantImage(null);
+      setActiveDrawer("add-variant");
+      setVariantParentPickBusy(false);
+    },
+    [catalog, detail, m],
+  );
+
   const catalogMessageInDrawer =
     !!catalog.message.trim() &&
-    !!(activeDrawer || quick.quickEditAllOpen || (mobileDetailOpen && !isLg));
+    !!(
+      activeDrawer ||
+      quick.quickEditAllOpen ||
+      (mobileDetailOpen && !isLg)
+    );
   const quickEditDrawerBanner =
     quick.quickEditAllOpen && (quick.qeaError || catalog.message.trim()) ? (
       <div className="flex flex-col gap-2">
@@ -273,6 +301,12 @@ export default function ProductsPage() {
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
             onCreateNew={() => setActiveDrawer("create-parent")}
+            onAddVariant={
+              canCatalogWrite
+                ? () => setActiveDrawer("pick-variant-parent")
+                : undefined
+            }
+            canAddVariant={canCatalogWrite}
           />
           <ProductMobileFilterBar catalog={catalog} />
           <section
@@ -342,6 +376,15 @@ export default function ProductsPage() {
           ) : null}
         </div>
       </div>
+
+      <VariantParentPickDrawer
+        open={activeDrawer === "pick-variant-parent"}
+        onClose={() => {
+          if (!variantParentPickBusy) setActiveDrawer(null);
+        }}
+        busy={variantParentPickBusy}
+        onParentSelected={handleVariantParentPicked}
+      />
 
       <ProductCreateDrawer
         open={activeDrawer === "create-parent"}

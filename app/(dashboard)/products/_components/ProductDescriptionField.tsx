@@ -60,7 +60,6 @@ export function ProductDescriptionField({
         unitType: context.unitType?.trim() || undefined,
         variantName: context.variantName?.trim() || undefined,
         sku: context.sku?.trim() || undefined,
-        barcode: context.barcode?.trim() || undefined,
       });
       onChange(description);
     } catch (e) {

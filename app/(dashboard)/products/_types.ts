@@ -6,6 +6,7 @@ export type ProductDrawerId =
   | "create-parent"
   | "edit-product"
   | "photos"
+  | "pick-variant-parent"
   | "add-variant";
 
 // ─── edit-product draft ───────────────────────────────────────────────────────
