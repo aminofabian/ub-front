@@ -16,8 +16,9 @@ import {
   catalogListGridClass,
   catalogListHeaderRowClass,
   catalogListMetricCellClass,
-  catalogListProductCellClass,
+  catalogListCheckboxCellClass,
   catalogListCheckboxClass,
+  catalogListProductCellClass,
   catalogListShellClass,
   catalogRowHeightPx,
   catalogRowInteractionClasses,
@@ -263,20 +264,23 @@ export function VirtualizedCatalogBody({
 
                   {isVariant ? (
                     <span
-                      className="pointer-events-none absolute bottom-1 top-1 w-px bg-border/60"
-                      style={{ left: "1.75rem" }}
+                      className="pointer-events-none absolute bottom-1 top-1 w-px bg-violet-400/35"
+                      style={{ left: "0.625rem" }}
                       aria-hidden
                     />
                   ) : null}
 
                   <span
-                    className="relative z-[1] flex items-center"
+                    className={catalogListCheckboxCellClass(isVariant)}
                     onClick={(event) => event.stopPropagation()}
                     onKeyDown={(event) => event.stopPropagation()}
                   >
                     <input
                       type="checkbox"
-                      className={catalogListCheckboxClass}
+                      className={catalogListCheckboxClass(
+                        meta.kind,
+                        meta.variantCount,
+                      )}
                       ref={(el) => {
                         if (el) el.indeterminate = checkboxIndeterminate;
                       }}
@@ -292,12 +296,7 @@ export function VirtualizedCatalogBody({
                     />
                   </span>
 
-                  <div
-                    className={cn(
-                      catalogListProductCellClass,
-                      isVariant && "pl-3 md:pl-5",
-                    )}
-                  >
+                  <div className={catalogListProductCellClass}>
                     <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5">
                       {isVariant ? (

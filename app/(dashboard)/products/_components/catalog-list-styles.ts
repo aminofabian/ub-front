@@ -44,27 +44,74 @@ export const catalogListHeaderRowClass = cn(
 /** checkbox · product (+ thumb after name) · stock · category (md+) · chevron */
 export const catalogListGridClass =
   "grid w-full min-w-0 max-w-full items-center gap-x-2 gap-y-0 sm:gap-x-2.5 " +
-  "grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] " +
-  "md:grid-cols-[1.75rem_minmax(0,1fr)_4.25rem_8.5rem_1rem]";
+  "grid-cols-[2rem_minmax(0,1fr)_auto_1rem] " +
+  "md:grid-cols-[2rem_minmax(0,1fr)_4.25rem_8.5rem_1rem]";
 
 export const catalogListProductCellClass =
   "relative z-[1] flex min-w-0 items-center gap-2";
 
-/** Native checkbox — neutral charcoal when checked (no system/accent blue) */
-export const catalogListCheckboxClass = cn(
-  "size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border-2 border-muted-foreground/45 bg-background shadow-sm",
+/** Checkbox cell — parent flush left, variant indented */
+export function catalogListCheckboxCellClass(isVariant: boolean): string {
+  return cn(
+    "relative z-[1] flex w-full items-center",
+    isVariant ? "justify-end pr-0.5 pl-3" : "justify-start",
+  );
+}
+
+const catalogListCheckboxBaseClass = cn(
+  "size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border-2 bg-background shadow-sm",
   "transition-[border-color,background-color] duration-150",
-  "checked:border-neutral-800 checked:bg-neutral-800",
-  "indeterminate:border-neutral-800 indeterminate:bg-neutral-800",
-  "dark:checked:border-neutral-200 dark:checked:bg-neutral-200",
-  "dark:indeterminate:border-neutral-200 dark:indeterminate:bg-neutral-200",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
   "bg-center bg-no-repeat [background-size:0.6rem_0.6rem]",
   "checked:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012l5%205L20%207%22%2F%3E%3C%2Fsvg%3E')]",
   "indeterminate:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E')]",
-  "dark:checked:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23171717%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012l5%205L20%207%22%2F%3E%3C%2Fsvg%3E')]",
-  "dark:indeterminate:[background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23171717%22%20stroke-width%3D%223.5%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E')]",
 );
+
+/** Row-tone checkbox colors — no black / system blue */
+export function catalogListCheckboxClass(
+  kind: CatalogRowKind,
+  variantCount = 0,
+): string {
+  if (kind === "variant") {
+    return cn(
+      catalogListCheckboxBaseClass,
+      "border-violet-400/45",
+      "checked:border-violet-600 checked:bg-violet-600",
+      "indeterminate:border-violet-600 indeterminate:bg-violet-600",
+      "dark:checked:border-violet-500 dark:checked:bg-violet-500",
+      "dark:indeterminate:border-violet-500 dark:indeterminate:bg-violet-500",
+    );
+  }
+  if (kind === "group") {
+    return cn(
+      catalogListCheckboxBaseClass,
+      "border-amber-400/45",
+      "checked:border-amber-600 checked:bg-amber-600",
+      "indeterminate:border-amber-600 indeterminate:bg-amber-600",
+      "dark:checked:border-amber-500 dark:checked:bg-amber-500",
+      "dark:indeterminate:border-amber-500 dark:indeterminate:bg-amber-500",
+    );
+  }
+  const parentish = variantCount > 0;
+  if (parentish) {
+    return cn(
+      catalogListCheckboxBaseClass,
+      "border-teal-400/45",
+      "checked:border-teal-600 checked:bg-teal-600",
+      "indeterminate:border-teal-600 indeterminate:bg-teal-600",
+      "dark:checked:border-teal-500 dark:checked:bg-teal-500",
+      "dark:indeterminate:border-teal-500 dark:indeterminate:bg-teal-500",
+    );
+  }
+  return cn(
+    catalogListCheckboxBaseClass,
+    "border-emerald-400/45",
+    "checked:border-emerald-600 checked:bg-emerald-600",
+    "indeterminate:border-emerald-600 indeterminate:bg-emerald-600",
+    "dark:checked:border-emerald-500 dark:checked:bg-emerald-500",
+    "dark:indeterminate:border-emerald-500 dark:indeterminate:bg-emerald-500",
+  );
+}
 
 /** Right-align content inside fixed stock / category tracks. */
 export const catalogListMetricCellClass =
