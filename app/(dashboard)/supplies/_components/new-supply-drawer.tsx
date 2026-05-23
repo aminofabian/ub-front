@@ -232,6 +232,7 @@ export function NewSupplyDrawer({
   const [supplierHits, setSupplierHits] = useState<SupplierRecord[]>([]);
   const [supplierLoading, setSupplierLoading] = useState(false);
   const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
+  const [lastSupplierProductQuery, setLastSupplierProductQuery] = useState("");
 
   const [linksLoading, setLinksLoading] = useState(false);
   const [rows, setRows] = useState<SupplyDraftRow[]>([]);
@@ -272,14 +273,37 @@ export function NewSupplyDrawer({
     return () => window.clearTimeout(id);
   }, [supplierQuery]);
 
-  const loadLinks = useCallback(async (sid: string) => {
+  function linksMatchingProductQuery(
+    links: SupplierItemLinkRecord[],
+    query: string,
+  ): SupplierItemLinkRecord[] {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return links;
+    }
+    return links.filter((l) => {
+      const hay = [
+        l.itemName,
+        l.sku,
+        l.barcode ?? "",
+        l.supplierSku ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  const loadLinks = useCallback(async (sid: string, productQuery: string) => {
     setLinksLoading(true);
     setError(null);
     try {
       const list = await fetchSupplierItemLinks(sid);
       const active = list.filter((l) => l.active);
+      const matched = linksMatchingProductQuery(active, productQuery);
+      const rowsSource = matched.length > 0 ? matched : active;
       setRows(
-        active.map((link) => ({
+        rowsSource.map((link) => ({
           key: newRowKey(),
           source: "linked",
           link,
@@ -302,6 +326,10 @@ export function NewSupplyDrawer({
         setError(
           "No catalog products are linked to this supplier yet. Link SKUs on the supplier or products screens, or add rows with “Add product”.",
         );
+      } else if (matched.length === 0 && productQuery.trim().length > 0) {
+        setError(
+          `No linked products match “${productQuery.trim()}”. Showing all ${active.length} catalog line(s) for this supplier.`,
+        );
       }
     } catch (e) {
       setError(
@@ -318,6 +346,7 @@ export function NewSupplyDrawer({
     if (!open) {
       setSupplier(null);
       setSupplierQuery("");
+      setLastSupplierProductQuery("");
       setSupplierHits([]);
       setRows([]);
       setNotes("");
@@ -332,12 +361,12 @@ export function NewSupplyDrawer({
   useEffect(() => {
      
     if (supplier) {
-      void loadLinks(supplier.id);
+      void loadLinks(supplier.id, lastSupplierProductQuery);
     } else {
       setRows([]);
     }
      
-  }, [supplier, loadLinks]);
+  }, [supplier, loadLinks, lastSupplierProductQuery]);
 
   useEffect(() => {
      
@@ -717,7 +746,7 @@ export function NewSupplyDrawer({
           <div className="relative">
             <input
               className={dashboardInputClass(false)}
-              placeholder="Search supplier name or code…"
+              placeholder="Search supplier name, code, or product…"
               value={supplier ? supplier.name : supplierQuery}
               onChange={(e) => {
                 setSupplier(null);
@@ -744,6 +773,7 @@ export function NewSupplyDrawer({
                           type="button"
                           className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent"
                           onClick={() => {
+                            setLastSupplierProductQuery(supplierQuery.trim());
                             setSupplier(s);
                             setSupplierQuery("");
                             setSupplierHits([]);
