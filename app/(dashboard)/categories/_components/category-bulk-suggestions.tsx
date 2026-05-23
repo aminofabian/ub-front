@@ -13,11 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   CATEGORY_STARTER_KITS,
-  SUGGESTED_CATALOG_CATEGORIES,
   SUGGESTED_DEPARTMENT_EMOJI,
+  filterSuggestedDepartments,
+  filterSuggestionPickKeys,
   keysForSuggestedGroups,
+  suggestionKeysForDepartment,
   suggestionSubKey,
-  suggestionTopKey,
 } from "@/lib/category-suggestions";
 import { ONBOARDING_EMPHASIS } from "@/lib/onboarding-tour";
 import { cn } from "@/lib/utils";
@@ -32,11 +33,9 @@ type Props = {
   onAddPicksToQueue: () => void;
   catalogNameLowerSet: Set<string>;
   onboardingHighlight?: boolean;
+  /** Tighter layout when embedded in the create drawer */
+  compact?: boolean;
 };
-
-function departmentKeys(parent: string, children: readonly string[]): string[] {
-  return [suggestionTopKey(parent), ...children.map((c) => suggestionSubKey(parent, c))];
-}
 
 function selectionSummary(
   keys: string[],
@@ -61,32 +60,36 @@ export function CategoryBulkSuggestions({
   onAddPicksToQueue,
   catalogNameLowerSet,
   onboardingHighlight = false,
+  compact = false,
 }: Props) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const departments = useMemo(
-    () => Object.entries(SUGGESTED_CATALOG_CATEGORIES),
-    [],
+  const availableDepartments = useMemo(
+    () => filterSuggestedDepartments(catalogNameLowerSet),
+    [catalogNameLowerSet],
   );
 
   const filteredDepartments = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
-      return departments;
+      return availableDepartments;
     }
-    return departments.filter(([parent, children]) => {
+    return availableDepartments.filter(([parent, children]) => {
       if (parent.toLowerCase().includes(q)) {
         return true;
       }
       return children.some((c) => c.toLowerCase().includes(q));
     });
-  }, [departments, query]);
+  }, [availableDepartments, query]);
 
   const pickCount = pickKeys.length;
 
   const applyKit = (groupNames: readonly string[]) => {
-    const keys = keysForSuggestedGroups(groupNames);
+    const keys = filterSuggestionPickKeys(
+      keysForSuggestedGroups(groupNames),
+      catalogNameLowerSet,
+    );
     onSetPickKeys([...new Set([...pickKeys, ...keys])]);
     const nextExpanded: Record<string, boolean> = { ...expanded };
     for (const name of groupNames) {
@@ -96,7 +99,7 @@ export function CategoryBulkSuggestions({
   };
 
   const toggleDepartment = (parent: string, children: readonly string[]) => {
-    const keys = departmentKeys(parent, children);
+    const keys = suggestionKeysForDepartment(parent, children, catalogNameLowerSet);
     const { all } = selectionSummary(keys, pickKeys);
     if (all) {
       onSetPickKeys(pickKeys.filter((k) => !keys.includes(k)));
@@ -134,28 +137,28 @@ export function CategoryBulkSuggestions({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-b from-primary/[0.06] to-muted/20 shadow-sm",
+        "flex flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/15 shadow-sm",
+        compact && "border-primary/15 bg-primary/[0.03]",
         onboardingHighlight &&
           "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
       )}
       data-onboarding-emphasis={ONBOARDING_EMPHASIS.categoriesSuggestions}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 bg-background/80 px-3 py-3 backdrop-blur-sm">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Sparkles className="size-4 shrink-0 text-primary" aria-hidden />
-            Quick pick categories
-          </p>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Tap a starter kit, then fine-tune. Selected items count when you hit
-            Create.
-          </p>
-        </div>
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 border-b border-border/50 bg-background/90",
+          compact ? "px-2.5 py-2" : "gap-3 px-3 py-3",
+        )}
+      >
+        <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-foreground">
+          <Sparkles className="size-3.5 shrink-0 text-primary" aria-hidden />
+          <span className="truncate">Quick pick</span>
+        </p>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 shrink-0 gap-1 px-2 text-xs"
+          className="h-7 shrink-0 px-2 text-xs"
           onClick={() => onOpenChange(false)}
         >
           <X className="size-3.5" aria-hidden />
@@ -163,26 +166,29 @@ export function CategoryBulkSuggestions({
         </Button>
       </div>
 
-      <div className="space-y-3 px-3 pt-3">
-        <div className="flex flex-wrap gap-2">
+      <div className={cn(compact ? "space-y-2 px-2.5 pt-2" : "space-y-3 px-3 pt-3")}>
+        <div className="flex flex-wrap gap-1.5">
           {CATEGORY_STARTER_KITS.map((kit) => (
             <button
               key={kit.id}
               type="button"
               onClick={() => applyKit(kit.groups)}
               className={cn(
-                "flex min-w-[7.5rem] flex-1 flex-col items-start rounded-lg border px-3 py-2 text-left transition-colors",
-                "border-border/80 bg-background hover:border-primary/40 hover:bg-primary/5",
+                "inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 py-1.5 text-left transition-colors",
+                "hover:border-primary/40 hover:bg-primary/5",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                !compact && "min-w-[7rem] flex-1 flex-col items-start px-3 py-2",
               )}
             >
-              <span className="text-lg leading-none" aria-hidden>
+              <span className="text-base leading-none" aria-hidden>
                 {kit.emoji}
               </span>
-              <span className="mt-1 text-xs font-semibold text-foreground">
+              <span className={cn("font-semibold text-foreground", compact ? "text-xs" : "text-xs")}>
                 {kit.label}
               </span>
-              <span className="text-[10px] text-muted-foreground">{kit.hint}</span>
+              {!compact ? (
+                <span className="text-[10px] text-muted-foreground">{kit.hint}</span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -203,20 +209,28 @@ export function CategoryBulkSuggestions({
         </label>
       </div>
 
-      <div className="mt-3 max-h-[min(22rem,45vh)] space-y-2 overflow-y-auto px-3 pb-2">
-        {filteredDepartments.length === 0 ? (
+      <div
+        className={cn(
+          "mt-2 space-y-1.5 overflow-y-auto pb-2",
+          compact
+            ? "max-h-[min(14rem,32vh)] px-2.5"
+            : "mt-3 max-h-[min(22rem,45vh)] space-y-2 px-3",
+        )}
+      >
+        {availableDepartments.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">
+            All suggestions are already in your catalog.
+          </p>
+        ) : filteredDepartments.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             No matches. Try another search or pick a starter kit above.
           </p>
         ) : (
           filteredDepartments.map(([parent, children]) => {
-            const keys = departmentKeys(parent, children);
+            const keys = suggestionKeysForDepartment(parent, children, catalogNameLowerSet);
             const { selected, total, all, some } = selectionSummary(
               keys,
               pickKeys,
-            );
-            const parentInCatalog = catalogNameLowerSet.has(
-              parent.trim().toLowerCase(),
             );
             const expandedRow = isExpanded(parent);
             const emoji = SUGGESTED_DEPARTMENT_EMOJI[parent] ?? "📦";
@@ -269,7 +283,6 @@ export function CategoryBulkSuggestions({
                     </span>
                     <span className="text-[11px] text-muted-foreground">
                       {selected}/{total} selected
-                      {parentInCatalog ? " · already in catalog" : ""}
                     </span>
                   </button>
                   <Button
@@ -306,9 +319,6 @@ export function CategoryBulkSuggestions({
                       .map((child) => {
                         const subKey = suggestionSubKey(parent, child);
                         const checked = pickKeys.includes(subKey);
-                        const inCatalog = catalogNameLowerSet.has(
-                          child.trim().toLowerCase(),
-                        );
                         return (
                           <button
                             key={child}
@@ -319,7 +329,6 @@ export function CategoryBulkSuggestions({
                               checked
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : "border-border/80 bg-background text-foreground hover:border-primary/40 hover:bg-primary/5",
-                              inCatalog && !checked && "opacity-60",
                             )}
                           >
                             {checked ? (
@@ -337,23 +346,27 @@ export function CategoryBulkSuggestions({
         )}
       </div>
 
-      <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 bg-background/95 px-3 py-2.5 backdrop-blur-sm">
-        <p className="text-xs font-medium text-foreground">
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-2 border-t border-border/50 bg-background/95 backdrop-blur-sm",
+          compact ? "px-2.5 py-2" : "px-3 py-2.5",
+        )}
+      >
+        <p className="text-[11px] font-medium text-foreground">
           {pickCount === 0 ? (
-            <span className="text-muted-foreground">Nothing selected yet</span>
+            <span className="text-muted-foreground">None selected</span>
           ) : (
             <>
-              <span className="tabular-nums text-primary">{pickCount}</span>{" "}
-              {pickCount === 1 ? "category" : "categories"} ready
+              <span className="tabular-nums text-primary">{pickCount}</span> selected
             </>
           )}
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8"
+            className={compact ? "h-7 px-2 text-xs" : "h-8"}
             disabled={pickCount === 0}
             onClick={onClearPicks}
           >
@@ -362,11 +375,11 @@ export function CategoryBulkSuggestions({
           <Button
             type="button"
             size="sm"
-            className="h-8"
+            className={compact ? "h-7 px-2.5 text-xs" : "h-8"}
             disabled={pickCount === 0}
             onClick={onAddPicksToQueue}
           >
-            Pin to list
+            Add to list
           </Button>
         </div>
       </div>

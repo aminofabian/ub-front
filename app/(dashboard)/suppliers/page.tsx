@@ -1,28 +1,21 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
-  ChevronRight,
-  CircleDollarSign,
-  LayoutGrid,
   Link2,
-  Package,
   PencilLine,
-  Plus,
+  RefreshCw,
   Search,
   Truck,
   UserPlus,
 } from "lucide-react";
 
 import {
-  DASHBOARD_SECTION_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  DashboardPageHero,
-  DashboardQuickLinks,
   dashboardFilterFieldLabelClass,
   dashboardInputClass,
   dashboardSelectClass,
@@ -59,15 +52,22 @@ import {
   SupplierProfileFields,
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
+import { SupDrawerFooter, SupMobileSelectionBar, SupWorkflowRail } from "./_components/supplier-layout-primitives";
+import { SupplierPageHeader } from "./_components/SupplierPageHeader";
 import {
   supFieldLabel,
+  supFilterRail,
   supInput,
+  supKickerPrimary,
+  supKickerViolet,
   supPanelBody,
   supPanelBodyFill,
   supPanelHeader,
-  supPanelKicker,
-  supPanelKickerViolet,
+  supPanelHeaderIcon,
   supPanelShell,
+  supPageRoot,
+  supWorkspaceInner,
+  supWorkspaceShell,
 } from "./_components/supplier-ui-tokens";
 import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
@@ -628,65 +628,21 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="relative -mx-4 flex h-full min-h-0 w-[calc(100%+2rem)] max-w-none flex-col gap-5 px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4 lg:gap-6">
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-5 lg:gap-6">
-        <section className={DASHBOARD_SECTION_SURFACE}>
-          <DashboardPageHero
-            compact
-            icon={Truck}
-            eyebrow="Purchasing"
-            title="Suppliers"
-            description={
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Search and filter server-side, work in a fast virtualized
-                directory, then manage profile and catalog links in place.{" "}
-                <kbd className="rounded-md border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
-                  /
-                </kbd>{" "}
-                focuses search.
-              </p>
-            }
-          />
-          <div className="mt-5 flex flex-col gap-4 border-t border-border/50 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <DashboardQuickLinks
-              compact
-              links={[
-                {
-                  href: APP_ROUTES.products,
-                  label: "Products",
-                  desc: "Link items",
-                  icon: Package,
-                },
-                {
-                  href: APP_ROUTES.categories,
-                  label: "Categories",
-                  desc: "Aisles",
-                  icon: LayoutGrid,
-                },
-                {
-                  href: APP_ROUTES.purchasingIntelligence,
-                  label: "Intelligence",
-                  desc: "Spend",
-                  icon: CircleDollarSign,
-                },
-              ]}
-            />
-            {canWrite ? (
-              <Button
-                type="button"
-                className="h-10 min-h-10 shrink-0 gap-2 self-stretch px-5 text-sm font-semibold shadow-sm transition-shadow hover:shadow-md sm:self-center"
-                disabled={listLoadingInitial}
-                onClick={() => {
-                  skipCreateDrawerResetAfterCreate.current = false;
-                  setCreateDrawerOpen(true);
-                }}
-              >
-                <Plus className="size-4" aria-hidden />
-                New supplier
-              </Button>
-            ) : null}
-          </div>
-        </section>
+    <div
+      className={cn(
+        supPageRoot,
+        "-mx-4 w-[calc(100%+2rem)] gap-4 px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4 lg:gap-5",
+      )}
+    >
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4 lg:gap-5">
+        <SupplierPageHeader
+          canWrite={canWrite}
+          listLoadingInitial={listLoadingInitial}
+          onNewSupplier={() => {
+            skipCreateDrawerResetAfterCreate.current = false;
+            setCreateDrawerOpen(true);
+          }}
+        />
 
         {feedback ? (
           <DashboardFeedback
@@ -695,108 +651,86 @@ export default function SuppliersPage() {
           />
         ) : null}
 
-        <div
-          className={cn(
-            "flex min-h-0 flex-col gap-4 lg:gap-5",
-            isXl && "min-h-0 flex-1 overflow-hidden",
-          )}
-        >
-          {isXl ? (
-            <nav
-              className="flex shrink-0 flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-muted/25 px-4 py-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]"
-              aria-label="Workspace steps"
-            >
-              <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Workflow
-              </span>
-              <ol className="flex flex-1 flex-wrap items-center gap-1">
-                {[
+        <div className={cn(supWorkspaceShell, isXl && "min-h-0 flex-1")}>
+          <div className={cn(supWorkspaceInner, isXl && "min-h-0 flex-1 overflow-hidden")}>
+            {isXl ? (
+              <SupWorkflowRail
+                steps={[
                   { n: 1, label: "Directory" },
-                  { n: 2, label: "Profile & contacts" },
-                  { n: 3, label: "Catalog & links" },
-                ].map(({ n, label }, i, arr) => (
-                  <Fragment key={n}>
-                    <li className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm">
-                      <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
-                        {n}
-                      </span>
-                      {label}
-                    </li>
-                    {i < arr.length - 1 ? (
-                      <ChevronRight
-                        className="size-3 shrink-0 text-muted-foreground/40 max-sm:hidden"
-                        aria-hidden
-                      />
-                    ) : null}
-                  </Fragment>
-                ))}
-              </ol>
-              {detail ? (
-                <span className="truncate text-[11px] font-semibold text-primary">
-                  {detail.name}
-                </span>
-              ) : null}
-            </nav>
-          ) : null}
+                  { n: 2, label: "Profile" },
+                  { n: 3, label: "Catalog" },
+                ]}
+                activeLabel={detail?.name ?? null}
+              />
+            ) : null}
 
-          <div
-            className={cn(
-              "grid min-h-0 gap-4 lg:gap-5",
-              isXl &&
-                "min-h-0 flex-1 xl:grid-cols-[minmax(16rem,21rem)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden",
-            )}
-          >
             <div
               className={cn(
-                "flex min-h-0 min-w-0 flex-col gap-3",
-                isXl && "overflow-hidden",
+                "grid min-h-0 gap-4 lg:gap-5",
+                isXl &&
+                  "min-h-0 flex-1 xl:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden",
               )}
             >
-            {/* Search + filter bar */}
-            <div className="flex shrink-0 flex-wrap items-end gap-3 rounded-xl border border-border/50 bg-muted/25 p-3 shadow-sm ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04] sm:p-4">
-              <label className="flex min-w-[10rem] flex-1 flex-col gap-2">
-                <span className={dashboardFilterFieldLabelClass()}>Search</span>
-                <span className="relative">
-                  <Search
-                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden
-                  />
-                  <input
-                    id="supplier-directory-search"
-                    className={cn(dashboardInputClass(listLoadingInitial), "pl-10")}
-                    placeholder="Name or vendor code…"
-                    value={listSearch}
-                    onChange={(e) => setListSearch(e.target.value)}
-                    aria-label="Search suppliers"
-                  />
-                </span>
-              </label>
-              <label className="flex min-w-[8.5rem] flex-col gap-2">
-                <span className={dashboardFilterFieldLabelClass()}>Status</span>
-                <select
-                  className={dashboardSelectClass(listLoadingInitial)}
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  aria-label="Filter by status"
-                >
-                  <option value="">All statuses</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="blocked">Blocked</option>
-                </select>
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-10 min-h-10 shrink-0 px-4 font-medium shadow-sm"
-                disabled={listLoadingInitial}
-                onClick={() => void refreshFullDirectory()}
+              <div
+                className={cn(
+                  "flex min-h-0 min-w-0 flex-col gap-3",
+                  isXl && "overflow-hidden",
+                )}
               >
-                {listLoadingInitial ? "Loading…" : "Refresh"}
-              </Button>
-            </div>
-            <VirtualizedSupplierList
+                <div className={supFilterRail}>
+                  <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5">
+                    <span className={dashboardFilterFieldLabelClass()}>Search</span>
+                    <span className="relative">
+                      <Search
+                        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/80"
+                        aria-hidden
+                      />
+                      <input
+                        id="supplier-directory-search"
+                        className={cn(
+                          dashboardInputClass(listLoadingInitial),
+                          "h-10 rounded-lg pl-10 transition-shadow focus-visible:shadow-sm",
+                        )}
+                        placeholder="Name or vendor code…"
+                        value={listSearch}
+                        onChange={(e) => setListSearch(e.target.value)}
+                        aria-label="Search suppliers"
+                      />
+                    </span>
+                  </label>
+                  <label className="flex min-w-[8.5rem] flex-col gap-1.5">
+                    <span className={dashboardFilterFieldLabelClass()}>Status</span>
+                    <select
+                      className={cn(
+                        dashboardSelectClass(listLoadingInitial),
+                        "h-10 rounded-lg",
+                      )}
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      aria-label="Filter by status"
+                    >
+                      <option value="">All statuses</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="blocked">Blocked</option>
+                    </select>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 shrink-0 gap-1.5 rounded-lg px-3.5 font-medium"
+                    disabled={listLoadingInitial}
+                    onClick={() => void refreshFullDirectory()}
+                  >
+                    <RefreshCw
+                      className={cn("size-3.5", listLoadingInitial && "animate-spin")}
+                      aria-hidden
+                    />
+                    {listLoadingInitial ? "Loading…" : "Refresh"}
+                  </Button>
+                </div>
+                <VirtualizedSupplierList
               rows={rows}
               selectedId={selectedId}
               totalLoaded={rows.length}
@@ -807,60 +741,49 @@ export default function SuppliersPage() {
               hasMore={!listLast}
               onLoadMore={loadMoreDirectory}
             />
-            {!isXl && detail ? (
-              <div className="shrink-0 rounded-2xl border border-border/70 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] sm:p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <div
-                    className="size-2 shrink-0 rounded-full bg-primary"
-                    aria-hidden
-                  />
-                  <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                    {detail.name}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-9 min-h-9 flex-1 gap-1.5 shadow-sm transition-shadow hover:shadow-md"
-                    onClick={() => setEditDrawerOpen(true)}
-                  >
-                    <Building2 className="size-3.5" aria-hidden />
-                    Profile
-                  </Button>
-                  {canReadCatalog ? (
+                {!isXl && detail ? (
+                  <SupMobileSelectionBar name={detail.name}>
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 shadow-sm"
-                      onClick={() => setCatalogDrawerOpen(true)}
+                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-lg shadow-sm"
+                      onClick={() => setEditDrawerOpen(true)}
                     >
-                      <Link2 className="size-3.5" aria-hidden />
-                      Catalog &amp; links
+                      <Building2 className="size-3.5" aria-hidden />
+                      Profile
                     </Button>
-                  ) : null}
-                </div>
+                    {canReadCatalog ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-lg"
+                        onClick={() => setCatalogDrawerOpen(true)}
+                      >
+                        <Link2 className="size-3.5" aria-hidden />
+                        Catalog
+                      </Button>
+                    ) : null}
+                  </SupMobileSelectionBar>
+                ) : null}
               </div>
-            ) : null}
-            </div>
 
-            {isXl ? (
-            <>
-              <aside className={supPanelShell}>
-                <div className={supPanelHeader}>
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
-                      <Building2 className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className={supPanelKicker}>Profile &amp; contacts</p>
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {detail?.name ?? "Select a supplier"}
-                      </p>
+              {isXl ? (
+                <>
+                  <aside className={supPanelShell}>
+                    <div className={supPanelHeader}>
+                      <div className="flex items-center gap-3">
+                        <span className={supPanelHeaderIcon("primary")}>
+                          <Building2 className="size-4" aria-hidden />
+                        </span>
+                        <div className="min-w-0">
+                          <p className={supKickerPrimary}>Profile &amp; contacts</p>
+                          <p className="truncate font-heading text-sm font-semibold tracking-tight text-foreground">
+                            {detail?.name ?? "Select a supplier"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
                 <div className={supPanelBody}>
                   <SupplierEditColumn
                     detail={detail}
@@ -883,24 +806,22 @@ export default function SuppliersPage() {
                   />
                 </div>
               </aside>
-              <aside className={supPanelShell}>
-                <div className={supPanelHeader}>
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 ring-1 ring-violet-500/20 dark:text-violet-400">
-                      <Link2 className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className={supPanelKickerViolet}>
-                        Catalog &amp; links
-                      </p>
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {detail?.name
-                          ? `${detail.name} · SKUs`
-                          : "Select a supplier"}
-                      </p>
+                  <aside className={supPanelShell}>
+                    <div className={supPanelHeader}>
+                      <div className="flex items-center gap-3">
+                        <span className={supPanelHeaderIcon("violet")}>
+                          <Link2 className="size-4" aria-hidden />
+                        </span>
+                        <div className="min-w-0">
+                          <p className={supKickerViolet}>Catalog &amp; links</p>
+                          <p className="truncate font-heading text-sm font-semibold tracking-tight text-foreground">
+                            {detail?.name
+                              ? `${detail.name} · SKUs`
+                              : "Select a supplier"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
                 <div className={supPanelBodyFill}>
                   <SupplierCatalogColumn
                     detail={detail}
@@ -915,8 +836,9 @@ export default function SuppliersPage() {
                   />
                 </div>
               </aside>
-            </>
-            ) : null}
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -932,15 +854,10 @@ export default function SuppliersPage() {
             icon={<PencilLine className="size-5 text-primary" aria-hidden />}
             width="wide"
             footer={
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditDrawerOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
+              <SupDrawerFooter
+                onCancel={() => setEditDrawerOpen(false)}
+                cancelLabel="Close"
+              />
             }
           >
             <SupplierEditColumn
@@ -980,15 +897,10 @@ export default function SuppliersPage() {
             }
             width="wide"
             footer={
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCatalogDrawerOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
+              <SupDrawerFooter
+                onCancel={() => setCatalogDrawerOpen(false)}
+                cancelLabel="Close"
+              />
             }
           >
             <SupplierCatalogColumn
@@ -1017,18 +929,11 @@ export default function SuppliersPage() {
             icon={<PencilLine className="size-5 text-primary" aria-hidden />}
             width="wide"
             footer={
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setProfileEditDrawerOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" form="supplier-patch-form">
-                  Save changes
-                </Button>
-              </div>
+              <SupDrawerFooter
+                onCancel={() => setProfileEditDrawerOpen(false)}
+                submitLabel="Save changes"
+                submitForm="supplier-patch-form"
+              />
             }
           >
             <form
@@ -1059,18 +964,11 @@ export default function SuppliersPage() {
             icon={<UserPlus className="size-5 text-primary" aria-hidden />}
             width="wide"
             footer={
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setAddContactDrawerOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" form="supplier-add-contact-form">
-                  Add contact
-                </Button>
-              </div>
+              <SupDrawerFooter
+                onCancel={() => setAddContactDrawerOpen(false)}
+                submitLabel="Add contact"
+                submitForm="supplier-add-contact-form"
+              />
             }
           >
             <form
@@ -1159,19 +1057,11 @@ export default function SuppliersPage() {
           icon={<Truck className="size-5 text-primary" aria-hidden />}
           width="wide"
           footer={
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onCreateDrawerOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" form="new-supplier-form">
-                <Plus className="size-4" aria-hidden />
-                Create supplier
-              </Button>
-            </div>
+            <SupDrawerFooter
+              onCancel={() => onCreateDrawerOpenChange(false)}
+              submitLabel="Create supplier"
+              submitForm="new-supplier-form"
+            />
           }
         >
           <form

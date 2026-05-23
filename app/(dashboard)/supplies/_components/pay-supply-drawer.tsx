@@ -13,13 +13,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  dashboardHintClass,
-  dashboardInputClass,
-  dashboardLabelClass,
-  dashboardSelectClass,
-  dashboardTextareaClass,
-} from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -40,6 +33,9 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+import { supCardInset, supFieldLabel, supInput, supSelect, supStatTile, supTextarea } from "../../suppliers/_components/supplier-ui-tokens";
+import { formatSupplyMoney, supplyN } from "./supplies-shared";
+
 function defaultLocalDateTime(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -52,18 +48,6 @@ function toIsoInstant(localDateTime: string): string {
     throw new Error("Invalid paid-at date/time");
   }
   return d.toISOString();
-}
-
-function n(v: number | string | null | undefined): number {
-  if (v == null || v === "") {
-    return 0;
-  }
-  const x = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(x) ? x : 0;
-}
-
-function formatMoney(v: number): string {
-  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function resolvePaymentMethod(preferred: string | null | undefined): string {
@@ -130,7 +114,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const [kopokopoPhase, setKopokopoPhase] = useState<KopokopoPayPhase>("idle");
   const [kopokopoMessage, setKopokopoMessage] = useState<string | null>(null);
 
-  const balanceOpen = row ? n(row.balanceOpen) : 0;
+  const balanceOpen = row ? supplyN(row.balanceOpen) : 0;
   const kopokopoEligible = Boolean(payOptions?.kopokopoPayEligible);
   const payoutPhone = payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
   const paidFull = row ? row.paymentStatus === "PAID" : false;
@@ -178,7 +162,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       setKopokopoMessage(null);
       return;
     }
-    const b = n(row.balanceOpen);
+    const b = supplyN(row.balanceOpen);
     const init = b > 0 ? b.toFixed(2) : "";
     setAllocation(init);
     setPaymentAmount(init);
@@ -211,7 +195,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       setKopokopoMessage(status.message ?? "Payment confirmed.");
       toast.success("Supplier paid via M-Pesa", {
         description: row
-          ? `${formatMoney(balanceOpen)} sent to ${row.supplierName || "supplier"}.`
+          ? `${formatSupplyMoney(balanceOpen)} sent to ${row.supplierName || "supplier"}.`
           : undefined,
         duration: 8000,
       });
@@ -291,7 +275,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       return;
     }
     if (allocN > balanceOpen + 0.001) {
-      setError(`Amount cannot exceed open balance (${formatMoney(balanceOpen)}).`);
+      setError(`Amount cannot exceed open balance (${formatSupplyMoney(balanceOpen)}).`);
       return;
     }
     const cash = Number(paymentAmount);
@@ -324,7 +308,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
         allocations: [{ supplierInvoiceId: row.supplierInvoiceId, amount: allocN }],
       });
       toast.success("Supplier paid", {
-        description: `${formatMoney(allocN)} recorded for ${row.supplierName || "supplier"}.`,
+        description: `${formatSupplyMoney(allocN)} recorded for ${row.supplierName || "supplier"}.`,
         duration: 8000,
       });
       onPaid();
@@ -369,7 +353,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       void initiateKopokopoPay();
       return;
     }
-    const b = n(row.balanceOpen);
+    const b = supplyN(row.balanceOpen);
     setAllocation(b > 0 ? b.toFixed(2) : "");
     setPaymentAmount(b > 0 ? b.toFixed(2) : "");
     setCreditApplied("0");
@@ -383,9 +367,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       return "Sending M-Pesa…";
     }
     if (kopokopoEligible) {
-      return `Send M-Pesa · ${formatMoney(balanceOpen)}`;
+      return `Send M-Pesa · ${formatSupplyMoney(balanceOpen)}`;
     }
-    return `Confirm payment · ${formatMoney(balanceOpen)}`;
+    return `Confirm payment · ${formatSupplyMoney(balanceOpen)}`;
   };
 
   return (
@@ -446,20 +430,30 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     >
       {!row ? null : (
         <div className="space-y-5 px-1 pb-4">
-          <div className="grid gap-3 rounded-xl border border-border bg-muted/15 p-4 sm:grid-cols-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Invoice</p>
-              <p className="font-mono text-sm font-semibold">{row.invoiceNumber}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className={supStatTile}>
+              <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Invoice
+              </span>
+              <span className="mt-1 block font-mono text-sm font-semibold">
+                {row.invoiceNumber}
+              </span>
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Invoice total</p>
-              <p className="font-mono text-sm tabular-nums">{formatMoney(n(row.grandTotal))}</p>
+            <div className={supStatTile}>
+              <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Invoice total
+              </span>
+              <span className="mt-1 block font-mono text-sm font-semibold tabular-nums">
+                {formatSupplyMoney(supplyN(row.grandTotal))}
+              </span>
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground">Balance due</p>
-              <p className="font-mono text-lg font-bold tabular-nums text-foreground">
-                {formatMoney(balanceOpen)}
-              </p>
+            <div className={supStatTile}>
+              <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Balance due
+              </span>
+              <span className="mt-1 block font-mono text-lg font-bold tabular-nums text-foreground">
+                {formatSupplyMoney(balanceOpen)}
+              </span>
             </div>
           </div>
 
@@ -475,7 +469,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
           ) : (
             <>
               <section
-                className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm ring-1 ring-primary/10"
+                className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card p-4 shadow-sm ring-1 ring-primary/10"
                 aria-labelledby="supplier-payment-heading"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -540,7 +534,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                         <p className="mt-1 font-mono text-sm font-semibold text-foreground">{payoutPhone}</p>
                         {kopokopoEligible ? (
                           <p className="mt-1 text-xs text-muted-foreground">
-                            Confirm below to send {formatMoney(balanceOpen)} via KopoKopo Send Money.
+                            Confirm below to send {formatSupplyMoney(balanceOpen)} via KopoKopo Send Money.
                           </p>
                         ) : payOptions && !payOptions.supplierPayoutEnabled ? (
                           <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
@@ -568,7 +562,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                       </div>
                     ) : null}
                     {paymentDetails ? (
-                      <div className="rounded-xl border border-border/80 bg-background px-3.5 py-3">
+                      <div className={cn(supCardInset, "px-3.5 py-3")}>
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           Payment &amp; remittance
                         </p>
@@ -612,13 +606,13 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                     <>
                       Tap{" "}
                       <span className="font-semibold text-foreground">Send M-Pesa</span> to pay{" "}
-                      <span className="font-semibold text-foreground">{formatMoney(balanceOpen)}</span>{" "}
+                      <span className="font-semibold text-foreground">{formatSupplyMoney(balanceOpen)}</span>{" "}
                       via KopoKopo. The ledger updates when KopoKopo confirms.
                     </>
                   ) : (
                     <>
                       Send{" "}
-                      <span className="font-semibold text-foreground">{formatMoney(balanceOpen)}</span>{" "}
+                      <span className="font-semibold text-foreground">{formatSupplyMoney(balanceOpen)}</span>{" "}
                       using the details above, then tap{" "}
                       <span className="font-semibold text-foreground">Confirm payment</span> to record it
                       in PalMart.
@@ -648,9 +642,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                 {showAdvanced ? (
                   <div className="grid gap-4 border-t border-border/60 p-3 sm:grid-cols-2">
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={dashboardLabelClass()}>Apply to this supply</span>
+                      <span className={supFieldLabel}>Apply to this supply</span>
                       <input
-                        className={dashboardInputClass(busy)}
+                        className={supInput}
                         value={allocation}
                         onChange={(e) => setAllocation(e.target.value)}
                         disabled={busy}
@@ -658,19 +652,19 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                       />
                     </label>
                     <label className="flex flex-col gap-1.5">
-                      <span className={dashboardLabelClass()}>Paid at</span>
+                      <span className={supFieldLabel}>Paid at</span>
                       <input
                         type="datetime-local"
-                        className={dashboardInputClass(busy)}
+                        className={supInput}
                         value={paidAtLocal}
                         onChange={(e) => setPaidAtLocal(e.target.value)}
                         disabled={busy}
                       />
                     </label>
                     <label className="flex flex-col gap-1.5">
-                      <span className={dashboardLabelClass()}>Method</span>
+                      <span className={supFieldLabel}>Method</span>
                       <select
-                        className={dashboardSelectClass(busy)}
+                        className={supSelect}
                         value={paymentMethod}
                         onChange={(e) => setPaymentMethod(e.target.value)}
                         disabled={busy}
@@ -681,9 +675,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                       </select>
                     </label>
                     <label className="flex flex-col gap-1.5">
-                      <span className={dashboardLabelClass()}>Cash / transfer amount</span>
+                      <span className={supFieldLabel}>Cash / transfer amount</span>
                       <input
-                        className={dashboardInputClass(busy)}
+                        className={supInput}
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(e.target.value)}
                         disabled={busy}
@@ -691,9 +685,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                       />
                     </label>
                     <label className="flex flex-col gap-1.5">
-                      <span className={dashboardLabelClass()}>Supplier credit applied</span>
+                      <span className={supFieldLabel}>Supplier credit applied</span>
                       <input
-                        className={dashboardInputClass(busy)}
+                        className={supInput}
                         value={creditApplied}
                         onChange={(e) => setCreditApplied(e.target.value)}
                         disabled={busy}
@@ -701,18 +695,18 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                       />
                     </label>
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={dashboardLabelClass()}>Reference # (optional)</span>
+                      <span className={supFieldLabel}>Reference # (optional)</span>
                       <input
-                        className={dashboardInputClass(busy)}
+                        className={supInput}
                         value={reference}
                         onChange={(e) => setReference(e.target.value)}
                         disabled={busy}
                       />
                     </label>
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={dashboardLabelClass()}>Notes (optional)</span>
+                      <span className={supFieldLabel}>Notes (optional)</span>
                       <textarea
-                        className={dashboardTextareaClass(busy)}
+                        className={supTextarea}
                         rows={2}
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
@@ -740,7 +734,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
           <div>
             <h4 className="text-sm font-semibold text-foreground">Payment history</h4>
             {!canHistory ? (
-              <p className={cn(dashboardHintClass(), "mt-1")}>
+              <p className={cn("text-xs text-muted-foreground", "mt-1")}>
                 Requires {Permission.PurchasingPaymentRead}.
               </p>
             ) : historyLoading ? (
@@ -749,7 +743,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                 Loading…
               </div>
             ) : history.length === 0 ? (
-              <p className={cn(dashboardHintClass(), "mt-1")}>No payments recorded yet.</p>
+              <p className={cn("text-xs text-muted-foreground", "mt-1")}>No payments recorded yet.</p>
             ) : (
               <div className="mt-2 overflow-x-auto rounded-lg border">
                 <table className="w-full border-collapse text-left text-xs">
@@ -769,7 +763,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                         </td>
                         <td className="px-2 py-1.5 font-mono">{h.paymentMethod}</td>
                         <td className="px-2 py-1.5 text-right font-mono tabular-nums">
-                          {formatMoney(n(h.amountAppliedToInvoice))}
+                          {formatSupplyMoney(supplyN(h.amountAppliedToInvoice))}
                         </td>
                         <td className="max-w-[220px] truncate px-2 py-1.5">{h.reference ?? "—"}</td>
                       </tr>

@@ -57,6 +57,7 @@ import {
   type TaxRateRecord,
 } from "@/lib/api";
 import {
+  filterSuggestionPickKeys,
   parseSuggestionSubKey,
   suggestionSubKey,
   suggestionTopKey,
@@ -66,6 +67,13 @@ import { CategoryBulkSuggestions } from "./_components/category-bulk-suggestions
 import { cn, categoryIconImageUrl } from "@/lib/utils";
 
 const ROOT_PARENT_VALUE = "";
+
+const categoryDrawerLabel =
+  "text-[11px] font-medium text-muted-foreground";
+const categoryDrawerInput =
+  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm";
+const categoryDrawerTextarea =
+  "min-h-[4.5rem] w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm";
 
 type CreateQueueRow = {
   id: string;
@@ -442,11 +450,15 @@ export default function CategoriesPage() {
 
   const depths = useMemo(() => depthByIdMap(rows), [rows]);
 
-  /** Lowercased category names in the catalog — suggestions stay visible; this marks which names already exist. */
+  /** Lowercased category names in the catalog — used to hide suggestions the user already has. */
   const catalogNameLowerSet = useMemo(
     () => new Set(rows.map((r) => r.name.trim().toLowerCase()).filter(Boolean)),
     [rows],
   );
+
+  useEffect(() => {
+    setSuggestionPickKeys((prev) => filterSuggestionPickKeys(prev, catalogNameLowerSet));
+  }, [catalogNameLowerSet]);
 
   const resolveParentIdForSuggestion = useCallback((parentDisplayName: string) => {
     const target = parentDisplayName.trim().toLowerCase();
@@ -1909,6 +1921,7 @@ export default function CategoriesPage() {
       {/* Drawers */}
       <FormDrawer
         open={activeDrawer === "create"}
+        width="half"
         onboardingTarget={ONBOARDING_TARGETS.categoriesDrawer}
         onOpenChange={(open) => {
           if (!open) {
@@ -1917,13 +1930,12 @@ export default function CategoriesPage() {
             setBatchNamesText("");
             setCreateQueue([]);
             setSuggestionPickKeys([]);
-            setShowBulkSuggestions(false);
+            setShowBulkSuggestions(true);
             setCreateBusy(false);
           }
         }}
         title="New category"
-        description="Use Quick pick below for ready-made departments, or type your own names at the top."
-        contextLabel="Catalog · Create"
+        contextLabel="Catalog"
         icon={<FolderPlus className="size-5 text-primary" aria-hidden />}
         banner={
           activeDrawer === "create" && feedback ? (
@@ -1931,72 +1943,60 @@ export default function CategoriesPage() {
           ) : undefined
         }
         footer={
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setActiveDrawer(null)}>
+          <div className="flex w-full justify-end gap-2">
+            <Button type="button" variant="outline" className="h-9" onClick={() => setActiveDrawer(null)}>
               Cancel
             </Button>
-            <Button type="submit" form="create-category-form" disabled={createBusy}>
+            <Button type="submit" form="create-category-form" className="h-9" disabled={createBusy}>
               {createBusy
                 ? "Creating…"
                 : pendingCreateNameCount > 1
-                  ? `Create ${pendingCreateNameCount} categories`
-                  : "Create category"}
+                  ? `Create ${pendingCreateNameCount}`
+                  : "Create"}
             </Button>
           </div>
         }
       >
-        <form id="create-category-form" className="space-y-5" onSubmit={(e) => void onCreate(e)}>
-          <FormDrawerFields legend="Placement">
-            <CategoryBulkSuggestions
-              open={showBulkSuggestions}
-              onOpenChange={setShowBulkSuggestions}
-              pickKeys={suggestionPickKeys}
-              onTogglePickKey={toggleSuggestionPickKey}
-              onSetPickKeys={setSuggestionPickKeys}
-              onClearPicks={clearSuggestionPickKeys}
-              onAddPicksToQueue={addSuggestionPicksToQueue}
-              catalogNameLowerSet={catalogNameLowerSet}
-              onboardingHighlight={
-                searchParams.get("onboarding") === "create-category"
-              }
-            />
+        <form id="create-category-form" className="space-y-4" onSubmit={(e) => void onCreate(e)}>
+          <CategoryBulkSuggestions
+            compact
+            open={showBulkSuggestions}
+            onOpenChange={setShowBulkSuggestions}
+            pickKeys={suggestionPickKeys}
+            onTogglePickKey={toggleSuggestionPickKey}
+            onSetPickKeys={setSuggestionPickKeys}
+            onClearPicks={clearSuggestionPickKeys}
+            onAddPicksToQueue={addSuggestionPicksToQueue}
+            catalogNameLowerSet={catalogNameLowerSet}
+            onboardingHighlight={searchParams.get("onboarding") === "create-category"}
+          />
 
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Or add manually
-            </p>
-
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+          <FormDrawerFields legend="Names" compact>
+            <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
               Name
               <input
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                className={categoryDrawerInput}
                 value={createDraft.name}
                 onChange={(e) => setCreateDraft((p) => ({ ...p, name: e.target.value }))}
-                placeholder="First category, or leave blank if you use the list only"
+                placeholder="Category name"
                 aria-label="New category name"
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              More names (optional)
+            <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+              More names
               <textarea
-                className="min-h-[5.5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                placeholder="One category per line — same parent, position, tax, markup, and description as below"
+                className={categoryDrawerTextarea}
+                placeholder="One per line (same parent)"
                 value={batchNamesText}
                 onChange={(e) => setBatchNamesText(e.target.value)}
                 aria-label="Additional category names one per line"
               />
-              <span className="font-normal text-[11px] text-muted-foreground">
-                Duplicates: the Name + More names block still merges lines that share the same Parent dropdown and the
-                same spelling (case-insensitive). The suggestion create list keeps separate rows even when the name
-                matches, as long as they came from different suggestion picks. Icon image applies only to the first
-                successful create.
-              </span>
             </label>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-2 gap-2">
+              <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
                 Parent
                 <select
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  className={categoryDrawerInput}
                   value={createDraft.parentId}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, parentId: e.target.value }))}
                   aria-label="Parent category"
@@ -2010,11 +2010,11 @@ export default function CategoriesPage() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Sort position (optional)
+              <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+                Position
                 <input
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                  placeholder="0"
+                  className={categoryDrawerInput}
+                  placeholder="Auto"
                   inputMode="numeric"
                   value={createDraft.positionStr}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, positionStr: e.target.value }))}
@@ -2024,40 +2024,29 @@ export default function CategoriesPage() {
             </div>
 
             {effectiveStructuredQueue.length > 0 ? (
-              <div className="rounded-lg border border-border bg-background p-3">
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
                 <p className="text-xs font-medium text-foreground">
-                  Create list ({effectiveStructuredQueue.length} row{effectiveStructuredQueue.length === 1 ? "" : "s"}
-                  {suggestionPickKeys.length > 0 && createQueue.length < effectiveStructuredQueue.length
-                    ? " — includes ticked suggestions"
-                    : ""}
-                  )
+                  To create · {effectiveStructuredQueue.length}
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  From your quick picks above. Remove any row you do not want before creating.
-                </p>
-                <ul className="mt-2 max-h-40 space-y-1.5 overflow-y-auto text-sm">
+                <ul className="mt-1.5 max-h-32 space-y-1 overflow-y-auto text-sm">
                   {effectiveStructuredQueue.map((q) => (
                     <li
                       key={q.id}
-                      className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border/60 bg-muted/20 px-2 py-1.5"
+                      className="flex items-center justify-between gap-2 rounded-md bg-background/80 px-2 py-1"
                     >
-                      <span className="min-w-0 break-words">
-                        {q.fromPickKey ? (
-                          <span className="mr-1 text-[10px] font-medium uppercase text-muted-foreground">Ticked · </span>
-                        ) : null}
+                      <span className="min-w-0 truncate">
                         <span className="font-medium text-foreground">{q.name}</span>
-                        <span className="text-muted-foreground"> · </span>
-                        <span className="text-muted-foreground">{formatCreateListParentCaption(q)}</span>
+                        <span className="text-muted-foreground"> · {formatCreateListParentCaption(q)}</span>
                       </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="xs"
-                        className="h-6 shrink-0 text-muted-foreground hover:text-destructive"
+                        className="h-6 shrink-0 px-1.5 text-muted-foreground hover:text-destructive"
                         onClick={() => discardEffectiveQueueRow(q)}
-                        aria-label={`Remove ${q.name} from create list`}
+                        aria-label={`Remove ${q.name}`}
                       >
-                        Remove
+                        <X className="size-3.5" aria-hidden />
                       </Button>
                     </li>
                   ))}
@@ -2066,16 +2055,13 @@ export default function CategoriesPage() {
             ) : null}
           </FormDrawerFields>
 
-          <FormDrawerFields
-            legend="Kiosk & shelf copy"
-            hint="Upload a square PNG for tiles, or type an emoji / icon key. HTTPS URLs work too."
-          >
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Icon image (optional)
+          <FormDrawerFields legend="Optional" compact>
+            <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+              Icon image
               <input
                 type="file"
                 accept="image/*"
-                className="max-w-full text-sm file:mr-2 file:rounded file:border file:bg-muted file:px-2 file:py-1 file:text-xs"
+                className="max-w-full text-xs file:mr-2 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1"
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
                   setPendingCreateIconFile(f);
@@ -2083,68 +2069,61 @@ export default function CategoriesPage() {
                 }}
               />
               {pendingCreateIconFile ? (
-                <span className="font-normal text-muted-foreground">
-                  Selected: {pendingCreateIconFile.name}
+                <span className="truncate text-[11px] text-muted-foreground">
+                  {pendingCreateIconFile.name}
                 </span>
-              ) : (
-                <span className="font-normal text-[11px] text-muted-foreground">
-                  Saved as category icon URL via Cloudinary.
-                </span>
-              )}
+              ) : null}
             </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Icon text (optional)
-              <input
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                placeholder="Emoji or icon key — skipped when image uploaded"
-                value={createDraft.icon}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, icon: e.target.value }))}
-                aria-label="Icon optional text"
-                disabled={Boolean(pendingCreateIconFile)}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Description (optional)
-              <textarea
-                className="min-h-[4.5rem] resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                placeholder="Shown on rails or drill-down where supported"
-                value={createDraft.description}
-                onChange={(e) => setCreateDraft((p) => ({ ...p, description: e.target.value }))}
-                aria-label="Description optional"
-              />
-            </label>
-          </FormDrawerFields>
-
-          <FormDrawerFields legend="Commercial defaults (optional)">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Default markup %
+            <div className="grid grid-cols-2 gap-2">
+              <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+                Icon
                 <input
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums shadow-sm"
-                  placeholder="e.g. 35"
+                  className={categoryDrawerInput}
+                  placeholder="Emoji"
+                  value={createDraft.icon}
+                  onChange={(e) => setCreateDraft((p) => ({ ...p, icon: e.target.value }))}
+                  aria-label="Icon optional text"
+                  disabled={Boolean(pendingCreateIconFile)}
+                />
+              </label>
+              <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+                Markup %
+                <input
+                  className={cn(categoryDrawerInput, "tabular-nums")}
+                  placeholder="—"
                   inputMode="decimal"
                   value={createDraft.markupStr}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, markupStr: e.target.value }))}
                   aria-label="Default markup optional"
                 />
               </label>
-              <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                Default tax rate
-                <select
-                  className="rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                  value={createDraft.taxRateId}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, taxRateId: e.target.value }))}
-                  aria-label="Default tax optional"
-                >
-                  <option value="">None</option>
-                  {taxRates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
+            <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+              Tax rate
+              <select
+                className={categoryDrawerInput}
+                value={createDraft.taxRateId}
+                onChange={(e) => setCreateDraft((p) => ({ ...p, taxRateId: e.target.value }))}
+                aria-label="Default tax optional"
+              >
+                <option value="">None</option>
+                {taxRates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({String(t.ratePercent)}%){t.inclusive ? " incl." : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={cn("flex flex-col gap-1", categoryDrawerLabel)}>
+              Description
+              <textarea
+                className={cn(categoryDrawerTextarea, "min-h-[3rem]")}
+                placeholder="Shelf copy"
+                value={createDraft.description}
+                onChange={(e) => setCreateDraft((p) => ({ ...p, description: e.target.value }))}
+                aria-label="Description optional"
+              />
+            </label>
           </FormDrawerFields>
         </form>
       </FormDrawer>

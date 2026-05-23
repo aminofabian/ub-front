@@ -231,6 +231,70 @@ export function keysForSuggestedGroups(groups: readonly string[]): string[] {
   return keys;
 }
 
+export function isSuggestedCategoryInCatalog(
+  name: string,
+  catalogNameLowerSet: ReadonlySet<string>,
+): boolean {
+  const key = name.trim().toLowerCase();
+  return key.length > 0 && catalogNameLowerSet.has(key);
+}
+
+/** Departments and subcategories the user has not already created (case-insensitive name match). */
+export function filterSuggestedDepartments(
+  catalogNameLowerSet: ReadonlySet<string>,
+): [parent: string, children: string[]][] {
+  const out: [string, string[]][] = [];
+  for (const [parent, children] of Object.entries(SUGGESTED_CATALOG_CATEGORIES)) {
+    const parentInCatalog = isSuggestedCategoryInCatalog(parent, catalogNameLowerSet);
+    const availableChildren = children.filter(
+      (child) => !isSuggestedCategoryInCatalog(child, catalogNameLowerSet),
+    );
+    if (parentInCatalog && availableChildren.length === 0) {
+      continue;
+    }
+    out.push([parent, availableChildren]);
+  }
+  return out;
+}
+
+export function suggestionKeysForDepartment(
+  parent: string,
+  children: readonly string[],
+  catalogNameLowerSet: ReadonlySet<string>,
+): string[] {
+  const keys: string[] = [];
+  if (!isSuggestedCategoryInCatalog(parent, catalogNameLowerSet)) {
+    keys.push(suggestionTopKey(parent));
+  }
+  for (const child of children) {
+    if (!isSuggestedCategoryInCatalog(child, catalogNameLowerSet)) {
+      keys.push(suggestionSubKey(parent, child));
+    }
+  }
+  return keys;
+}
+
+/** Drop pick keys that point at categories already in the catalog. */
+export function filterSuggestionPickKeys(
+  pickKeys: readonly string[],
+  catalogNameLowerSet: ReadonlySet<string>,
+): string[] {
+  return pickKeys.filter((key) => {
+    if (key.startsWith("top:")) {
+      const name = key.slice(4).trim();
+      return name.length > 0 && !isSuggestedCategoryInCatalog(name, catalogNameLowerSet);
+    }
+    if (key.startsWith("sub:")) {
+      const { childName } = parseSuggestionSubKey(key.slice(4));
+      return (
+        childName.trim().length > 0 &&
+        !isSuggestedCategoryInCatalog(childName, catalogNameLowerSet)
+      );
+    }
+    return true;
+  });
+}
+
 /** One-tap starter kits for the bulk category picker. */
 export const CATEGORY_STARTER_KITS = [
   {

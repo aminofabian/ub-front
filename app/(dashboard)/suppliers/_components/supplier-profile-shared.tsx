@@ -3,8 +3,10 @@
 import { cn } from "@/lib/utils";
 
 import {
+  supCardInset,
   supFieldLabel,
   supInput,
+  supKicker,
   supSelect,
   supTextarea,
 } from "./supplier-ui-tokens";
@@ -51,13 +53,15 @@ export function SupplierProfileFields({
   onDraftChange: (partial: Partial<SupplierProfileDraft>) => void;
 }) {
   return (
-    <div className="space-y-6">
-      {/* ── Identity & status ── */}
-      <section className="space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Identity &amp; status
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <div>
+          <p className={supKicker}>Identity &amp; status</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            How this vendor appears in your directory and records.
+          </p>
+        </div>
+        <div className={cn(supCardInset, "grid gap-3 p-4 sm:grid-cols-2")}>
           <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
             <span className={supFieldLabel}>
               Legal / display name <span className="text-destructive">*</span>
@@ -121,12 +125,14 @@ export function SupplierProfileFields({
         </div>
       </section>
 
-      {/* ── Commercial & payments ── */}
-      <section className="space-y-3 border-t border-border/50 pt-5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Commercial &amp; payments
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <section className="space-y-4 border-t border-border/45 pt-8">
+        <div>
+          <p className={supKicker}>Commercial &amp; payments</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Credit, tax, and how you settle invoices with this supplier.
+          </p>
+        </div>
+        <div className={cn(supCardInset, "grid gap-3 p-4 sm:grid-cols-2")}>
           <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
             <span className={supFieldLabel}>VAT / tax ID</span>
             <input
@@ -137,7 +143,7 @@ export function SupplierProfileFields({
               placeholder="Optional"
             />
           </label>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/50 bg-muted/15 px-3 py-2.5 sm:mt-5">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/50 bg-background/80 px-3 py-2.5 sm:mt-5">
             <input
               type="checkbox"
               className="size-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"

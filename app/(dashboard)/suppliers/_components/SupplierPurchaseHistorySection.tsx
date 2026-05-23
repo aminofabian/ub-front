@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { History, Loader2, Receipt } from "lucide-react";
+import { History, Receipt } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,14 @@ import {
 } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
+
+import { SupLoadingBlock, SupSection } from "./supplier-layout-primitives";
+import {
+  paymentStatusBadgeClass,
+  supStatTile,
+  supTableHead,
+  supTableRow,
+} from "./supplier-ui-tokens";
 
 function n(v: number | string): number {
   const x = typeof v === "number" ? v : Number(v);
@@ -33,26 +41,11 @@ function formatShortDate(iso: string | null | undefined): string {
   }
 }
 
-function paymentStatusBadge(status: string): { label: string; className: string } {
+function paymentStatusLabel(status: string): string {
   const s = status.toUpperCase();
-  if (s === "PAID") {
-    return {
-      label: "Paid",
-      className:
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
-    };
-  }
-  if (s === "PARTIAL") {
-    return {
-      label: "Partial",
-      className:
-        "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100",
-    };
-  }
-  return {
-    label: "Unpaid",
-    className: "border-border/60 bg-muted/50 text-muted-foreground",
-  };
+  if (s === "PAID") return "Paid";
+  if (s === "PARTIAL") return "Partial";
+  return "Unpaid";
 }
 
 function sourceLabel(sourceType: string): string {
@@ -99,9 +92,7 @@ export function SupplierPurchaseHistorySection({
     };
   }, [supplierId]);
 
-  if (!supplierId) {
-    return null;
-  }
+  if (!supplierId) return null;
 
   const summary = data?.summary;
   const orders = data?.orders ?? [];
@@ -109,46 +100,37 @@ export function SupplierPurchaseHistorySection({
   const totalCount = summary?.invoiceCount ?? 0;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/10 p-3">
-      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <History className="size-3.5 text-muted-foreground" aria-hidden />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Purchase history
-          </span>
-        </div>
-        {totalCount > 0 ? (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+    <SupSection
+      title="Purchase history"
+      hint="Posted invoices and what you still owe this vendor."
+      action={
+        totalCount > 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground ring-1 ring-border/50">
+            <History className="size-3 opacity-70" aria-hidden />
             {totalCount} invoice{totalCount === 1 ? "" : "s"}
           </span>
-        ) : null}
-      </div>
-
+        ) : null
+      }
+      bodyClassName="space-y-4"
+    >
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading history…
-        </div>
+        <SupLoadingBlock label="Loading purchase history…" className="py-10" />
       ) : error ? (
-        <p className="py-4 text-center text-xs text-destructive">{error}</p>
+        <p className="py-6 text-center text-xs text-destructive">{error}</p>
       ) : (
         <>
-          <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-            <SummaryStat
-              label="Total spent"
-              value={formatMoney(n(summary?.totalSpent))}
-              emphasize
-            />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <SummaryStat label="Total spent" value={formatMoney(n(summary?.totalSpent ?? 0))} emphasize />
             <SummaryStat
               label="Paid"
-              value={formatMoney(n(summary?.totalPaid))}
+              value={formatMoney(n(summary?.totalPaid ?? 0))}
               valueClassName="text-emerald-700 dark:text-emerald-300"
             />
             <SummaryStat
               label="Open balance"
-              value={formatMoney(n(summary?.openBalance))}
+              value={formatMoney(n(summary?.openBalance ?? 0))}
               valueClassName={
-                n(summary?.openBalance) > 0.009
+                n(summary?.openBalance ?? 0) > 0.009
                   ? "text-amber-800 dark:text-amber-200"
                   : undefined
               }
@@ -161,57 +143,39 @@ export function SupplierPurchaseHistorySection({
           </div>
 
           {orders.length === 0 ? (
-            <p className="py-4 text-center text-xs text-muted-foreground">
+            <p className="rounded-lg border border-dashed border-border/50 bg-muted/15 py-8 text-center text-xs text-muted-foreground">
               No posted invoices with this supplier yet.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border/50 bg-background/80">
-              <table className="w-full min-w-[36rem] border-collapse text-left text-xs">
-                <thead className="border-b border-border/50 bg-muted/30">
+            <div className="overflow-x-auto rounded-lg border border-border/50 bg-background/50">
+              <table className="w-full min-w-[32rem] border-collapse text-left text-xs">
+                <thead className={supTableHead}>
                   <tr>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Date
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Invoice
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Type
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold uppercase tracking-wide text-muted-foreground">
-                      Total
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold uppercase tracking-wide text-muted-foreground">
-                      Paid
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold uppercase tracking-wide text-muted-foreground">
-                      Balance
-                    </th>
-                    <th className="px-3 py-2 font-semibold uppercase tracking-wide text-muted-foreground">
-                      Status
-                    </th>
+                    <th className="px-3 py-2.5 font-semibold">Date</th>
+                    <th className="px-3 py-2.5 font-semibold">Invoice</th>
+                    <th className="px-3 py-2.5 font-semibold">Type</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Total</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Paid</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Balance</th>
+                    <th className="px-3 py-2.5 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/40">
+                <tbody>
                   {orders.map((row) => {
-                    const st = paymentStatusBadge(row.paymentStatus);
                     const bal = n(row.balanceOpen);
                     return (
-                      <tr
-                        key={row.supplierInvoiceId}
-                        className="transition-colors hover:bg-muted/25"
-                      >
+                      <tr key={row.supplierInvoiceId} className={supTableRow}>
                         <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
                           {formatShortDate(row.invoiceDate)}
                         </td>
-                        <td className="px-3 py-2.5 font-mono text-[11px] text-foreground">
+                        <td className="px-3 py-2.5 font-mono text-[11px]">
                           {row.invoiceNumber}
                         </td>
                         <td className="px-3 py-2.5 text-muted-foreground">
                           {sourceLabel(row.sourceType)}
                           {row.lineCount > 0 ? (
-                            <span className="ml-1 tabular-nums text-[10px] text-muted-foreground/80">
-                              · {row.lineCount} line{row.lineCount === 1 ? "" : "s"}
+                            <span className="ml-1 text-[10px] opacity-75">
+                              · {row.lineCount}L
                             </span>
                           ) : null}
                         </td>
@@ -227,11 +191,11 @@ export function SupplierPurchaseHistorySection({
                         <td className="px-3 py-2.5">
                           <span
                             className={cn(
-                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                              st.className,
+                              "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                              paymentStatusBadgeClass(row.paymentStatus),
                             )}
                           >
-                            {st.label}
+                            {paymentStatusLabel(row.paymentStatus)}
                           </span>
                         </td>
                       </tr>
@@ -243,28 +207,28 @@ export function SupplierPurchaseHistorySection({
           )}
 
           {totalCount > shownCount ? (
-            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            <p className="text-center text-[10px] text-muted-foreground">
               Showing latest {shownCount} of {totalCount} invoices.
             </p>
           ) : null}
 
-          <div className="mt-3 flex justify-end">
+          <div className="flex justify-end border-t border-border/40 pt-3">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 rounded-xl text-xs"
+              className="h-8 gap-1.5 rounded-lg text-xs"
               asChild
             >
               <Link href={APP_ROUTES.purchasingAddSupplies}>
                 <Receipt className="size-3.5" aria-hidden />
-                All supplies
+                Manage supplies
               </Link>
             </Button>
           </div>
         </>
       )}
-    </div>
+    </SupSection>
   );
 }
 
@@ -282,14 +246,14 @@ function SummaryStat({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-xl bg-background px-3 py-2.5 ring-1 ring-border/60">
+    <div className={supStatTile}>
       <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <span
         className={cn(
-          "mt-0.5 block text-sm font-semibold tabular-nums text-foreground",
-          emphasize && "text-base",
+          "mt-1 block font-semibold tabular-nums text-foreground",
+          emphasize ? "text-base" : "text-sm",
           mono && "font-mono",
           valueClassName,
         )}

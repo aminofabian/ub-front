@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, PackagePlus, Plus, Trash2 } from "lucide-react";
-
 import {
-  dashboardHintClass,
-  dashboardInputClass,
-  dashboardLabelClass,
-  dashboardSelectClass,
-  dashboardTextareaClass,
-} from "@/components/dashboard-page-ui";
+  Loader2,
+  PackagePlus,
+  Plus,
+  Search,
+  Trash2,
+  Truck,
+} from "lucide-react";
+
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -33,8 +33,29 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-import { ProductPickCell } from "./product-pick-cell";
+import { supBtnPrimary } from "../../suppliers/_components/supplier-ui-tokens";
 import { ExtraCostsSection } from "./extra-costs-section";
+import {
+  nsdAlert,
+  nsdCardInset,
+  nsdDropdown,
+  nsdFieldLabel,
+  nsdInput,
+  nsdSelect,
+  nsdTableHead,
+  nsdTableRow,
+  nsdTableRowReady,
+  nsdTextarea,
+  nsdTotalsPanel,
+  nsdVendorChip,
+  SupplyDrawerSection,
+  SupplyEmptyState,
+  SupplyLoadingInline,
+  SupplyTableSkeleton,
+  SupplyWorkflowRail,
+} from "./new-supply-drawer-ui";
+import { ProductPickCell } from "./product-pick-cell";
+import { SupplyDrawerSummaryPanel } from "./supply-drawer-summary";
 
 export type SupplyDraftRow = {
   key: string;
@@ -125,6 +146,33 @@ type RowPricingHint = {
   suggestedSellPrice: number | null;
   note: string | null;
 };
+
+function sellPricesMatch(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.005;
+}
+
+function formatRowPricingHint(
+  hint: RowPricingHint | undefined,
+  canSetSellPrice: boolean,
+): string {
+  const prefix = !canSetSellPrice ? "View only — no shelf-price permission. " : "";
+  const cur = hint?.currentSellPrice;
+  const sug = hint?.suggestedSellPrice;
+  if (cur != null && sug != null && sellPricesMatch(cur, sug)) {
+    return `${prefix}Current ${cur.toFixed(2)}`;
+  }
+  const parts: string[] = [];
+  if (cur != null) {
+    parts.push(`Current ${cur.toFixed(2)}`);
+  }
+  if (sug != null) {
+    parts.push(`Suggested ${sug.toFixed(2)}`);
+  }
+  if (parts.length > 0) {
+    return `${prefix}${parts.join(" · ")}`;
+  }
+  return hint?.note?.trim() ? `${prefix}${hint.note}` : prefix.trim() || "—";
+}
 
 /** Parses `rowPricingDepsKey` segment `itemId:unitStr` for this item. */
 function draftBuyingUnitFromPricingKey(
@@ -232,7 +280,6 @@ export function NewSupplyDrawer({
   const [supplierHits, setSupplierHits] = useState<SupplierRecord[]>([]);
   const [supplierLoading, setSupplierLoading] = useState(false);
   const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
-  const [lastSupplierProductQuery, setLastSupplierProductQuery] = useState("");
 
   const [linksLoading, setLinksLoading] = useState(false);
   const [rows, setRows] = useState<SupplyDraftRow[]>([]);
@@ -273,37 +320,14 @@ export function NewSupplyDrawer({
     return () => window.clearTimeout(id);
   }, [supplierQuery]);
 
-  function linksMatchingProductQuery(
-    links: SupplierItemLinkRecord[],
-    query: string,
-  ): SupplierItemLinkRecord[] {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      return links;
-    }
-    return links.filter((l) => {
-      const hay = [
-        l.itemName,
-        l.sku,
-        l.barcode ?? "",
-        l.supplierSku ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }
-
-  const loadLinks = useCallback(async (sid: string, productQuery: string) => {
+  const loadLinks = useCallback(async (sid: string) => {
     setLinksLoading(true);
     setError(null);
     try {
       const list = await fetchSupplierItemLinks(sid);
       const active = list.filter((l) => l.active);
-      const matched = linksMatchingProductQuery(active, productQuery);
-      const rowsSource = matched.length > 0 ? matched : active;
       setRows(
-        rowsSource.map((link) => ({
+        active.map((link) => ({
           key: newRowKey(),
           source: "linked",
           link,
@@ -326,10 +350,6 @@ export function NewSupplyDrawer({
         setError(
           "No catalog products are linked to this supplier yet. Link SKUs on the supplier or products screens, or add rows with “Add product”.",
         );
-      } else if (matched.length === 0 && productQuery.trim().length > 0) {
-        setError(
-          `No linked products match “${productQuery.trim()}”. Showing all ${active.length} catalog line(s) for this supplier.`,
-        );
       }
     } catch (e) {
       setError(
@@ -346,7 +366,6 @@ export function NewSupplyDrawer({
     if (!open) {
       setSupplier(null);
       setSupplierQuery("");
-      setLastSupplierProductQuery("");
       setSupplierHits([]);
       setRows([]);
       setNotes("");
@@ -361,12 +380,12 @@ export function NewSupplyDrawer({
   useEffect(() => {
      
     if (supplier) {
-      void loadLinks(supplier.id, lastSupplierProductQuery);
+      void loadLinks(supplier.id);
     } else {
       setRows([]);
     }
      
-  }, [supplier, loadLinks, lastSupplierProductQuery]);
+  }, [supplier, loadLinks]);
 
   useEffect(() => {
      
@@ -515,6 +534,9 @@ export function NewSupplyDrawer({
     return roundMoney2(sum);
   }, [extras]);
 
+  const selectedBranchName =
+    branches.find((b) => b.id === branchId)?.name ?? "";
+
   const duplicateIds = useMemo(() => {
     const m = new Map<string, number>();
     for (const row of rows) {
@@ -529,6 +551,40 @@ export function NewSupplyDrawer({
     }
     return [...m.entries()].filter(([, c]) => c > 1).map(([id]) => id);
   }, [rows]);
+
+  const lineStats = useMemo(() => {
+    let withQty = 0;
+    let valid = 0;
+    for (const row of rows) {
+      if (parsePositiveQty(row.qtyStr) != null) {
+        withQty += 1;
+      }
+      if (linePayload(row)) {
+        valid += 1;
+      }
+    }
+    return { totalRows: rows.length, withQty, valid };
+  }, [rows]);
+
+  const workflowSteps = useMemo(
+    () => [
+      { id: "supplier", label: "Supplier", done: supplier != null },
+      {
+        id: "receipt",
+        label: "Receipt",
+        done: Boolean(branchId.trim() && receivedAtLocal),
+      },
+      {
+        id: "lines",
+        label: "Lines",
+        done: lineStats.valid > 0 && duplicateIds.length === 0,
+      },
+    ],
+    [supplier, branchId, receivedAtLocal, lineStats.valid, duplicateIds.length],
+  );
+
+  const canPost =
+    supplier != null && lineStats.valid > 0 && duplicateIds.length === 0;
 
   const addAdhocRow = () => {
     setRows((r) => [
@@ -698,113 +754,174 @@ export function NewSupplyDrawer({
       onboardingTarget={ONBOARDING_TARGETS.suppliesDrawer}
       onOpenChange={onOpenChange}
       title="New supply"
-      description="Receiving branch stock increases by the quantity on each line. Totals use buying price × quantity. Shelf prices can be updated for this branch after posting (when permitted)."
-      width="wide"
+      description="Record stock received from a vendor. Follow the steps — supplier, receipt, then line quantities."
+      width="half"
+      appearance="sharp"
       icon={<PackagePlus className="size-5 text-primary" aria-hidden />}
-      banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
+      contextLabel="Purchasing"
+      banner={error ? <FormDrawerMessageBanner text={error} sharp /> : undefined}
       footer={
-        <div className="flex w-full flex-wrap items-center justify-between gap-3">
-          <p className={cn(dashboardHintClass(), "max-w-md")}>
-            Totals use buying price × quantity. Shelf price applies to the
-            selected branch after post.{" "}
-            <Link
-              className="text-primary underline"
-              href={APP_ROUTES.suppliers}
-            >
-              Manage supplier links
-            </Link>
-            .
-          </p>
-          <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-end gap-4 sm:gap-6">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                Payable total
+              </p>
+              <p className="font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">
+                {estimatedProfit.cost.toFixed(2)}
+              </p>
+            </div>
+            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+              {lineStats.valid} line{lineStats.valid === 1 ? "" : "s"} ready to post
+              {supplier ? ` · ${supplier.name}` : ""}.{" "}
+              <Link
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                href={APP_ROUTES.suppliers}
+              >
+                Supplier links
+              </Link>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              className="h-10 rounded-lg px-4"
               disabled={busy}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
             <Button
-              type="button"
-              onClick={() => void onSubmit()}
-              disabled={busy || !supplier}
+              type="submit"
+              form="new-supply-form"
+              className={supBtnPrimary}
+              disabled={busy || !canPost}
             >
-              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Post supply
+              {busy ? "Posting…" : "Post supply"}
             </Button>
           </div>
         </div>
       }
     >
-      <div className="space-y-6 px-1 pb-4">
+      <form
+        id="new-supply-form"
+        className="flex flex-col gap-6 pb-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onSubmit();
+        }}
+      >
+        <SupplyWorkflowRail steps={workflowSteps} />
 
-        <section className="rounded-xl border bg-muted/20 p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Building2 className="size-4 text-muted-foreground" />
-            Supplier
-          </div>
-          <div className="relative">
-            <input
-              className={dashboardInputClass(false)}
-              placeholder="Search supplier name, code, or product…"
-              value={supplier ? supplier.name : supplierQuery}
-              onChange={(e) => {
-                setSupplier(null);
-                setSupplierQuery(e.target.value);
-              }}
-              disabled={busy}
-            />
+        <div className="grid gap-6">
+          <div className="flex min-w-0 flex-col gap-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SupplyDrawerSection
+                step={1}
+                title="Supplier"
+                hint="Search by name, code, or linked product."
+                className="relative z-30 overflow-visible lg:z-20"
+                bodyClassName="overflow-visible p-4 sm:p-5"
+              >
+                <div className="relative isolate">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <input
+                    className={cn(nsdInput, "pl-9")}
+                    placeholder="Search supplier name, code, or product…"
+                    value={supplier ? supplier.name : supplierQuery}
+                    onChange={(e) => {
+                      setSupplier(null);
+                      setSupplierQuery(e.target.value);
+                    }}
+                    disabled={busy}
+                    autoComplete="off"
+                    aria-autocomplete="list"
+                    aria-expanded={!supplier && supplierQuery.trim().length > 0}
+                  />
             {!supplier && supplierQuery.trim().length > 0 ? (
-              <div className="absolute z-20 mt-1 max-h-44 w-full overflow-auto rounded-lg border bg-background shadow-md">
+              <ul className={nsdDropdown} role="listbox">
                 {supplierLoading ? (
-                  <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" />
+                  <li
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground"
+                    role="presentation"
+                  >
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
                     Searching…
-                  </div>
+                  </li>
                 ) : supplierHits.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                  <li className="px-3 py-2 text-xs text-muted-foreground" role="presentation">
                     No match
-                  </div>
+                  </li>
                 ) : (
-                  <ul>
-                    {supplierHits.map((s) => (
-                      <li key={s.id}>
-                        <button
-                          type="button"
-                          className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent"
-                          onClick={() => {
-                            setLastSupplierProductQuery(supplierQuery.trim());
-                            setSupplier(s);
-                            setSupplierQuery("");
-                            setSupplierHits([]);
-                          }}
-                        >
-                          <span className="font-medium">{s.name}</span>
-                          {s.code ? (
-                            <span className="text-[11px] text-muted-foreground">
-                              {s.code}
-                            </span>
-                          ) : null}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  supplierHits.map((s) => (
+                    <li key={s.id} role="option">
+                      <button
+                        type="button"
+                        className="flex w-full flex-col items-start px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50"
+                        onClick={() => {
+                          setSupplier(s);
+                          setSupplierQuery("");
+                          setSupplierHits([]);
+                        }}
+                      >
+                        <span className="font-medium">{s.name}</span>
+                        {s.code ? (
+                          <span className="text-[11px] text-muted-foreground">
+                            {s.code}
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))
                 )}
-              </div>
+              </ul>
             ) : null}
           </div>
-          {supplier ? (
-            <p className={cn(dashboardHintClass(), "mt-2")}>
-              Selected: <strong>{supplier.name}</strong>
-            </p>
-          ) : null}
-        </section>
+                {supplier ? (
+                  <div className={nsdVendorChip}>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-primary">
+                        Selected vendor
+                      </p>
+                      <p className="truncate font-semibold text-foreground">
+                        {supplier.name}
+                      </p>
+                      {supplier.code ? (
+                        <p className="text-[11px] text-muted-foreground">{supplier.code}</p>
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0 rounded-lg text-xs"
+                      disabled={busy}
+                      onClick={() => {
+                        setSupplier(null);
+                        setSupplierQuery("");
+                      }}
+                    >
+                      Change
+                    </Button>
+                  </div>
+                ) : null}
+              </SupplyDrawerSection>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+              <SupplyDrawerSection
+                step={2}
+                title="Receipt details"
+                hint="Branch, delivery time, and optional references."
+                bodyClassName="p-4 sm:p-5"
+              >
+                <div className={cn(nsdCardInset, "grid gap-4 p-4 sm:grid-cols-2")}>
           <label className="flex flex-col gap-1.5">
-            <span className={dashboardLabelClass()}>Receiving branch</span>
+            <span className={nsdFieldLabel}>Receiving branch</span>
             <select
-              className={dashboardSelectClass(busy)}
+              className={nsdSelect}
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
               disabled={busy || branchesLoading || branches.length === 0}
@@ -817,75 +934,108 @@ export function NewSupplyDrawer({
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className={dashboardLabelClass()}>Received at</span>
+            <span className={nsdFieldLabel}>Received at</span>
             <input
               type="datetime-local"
-              className={dashboardInputClass(busy)}
+              className={nsdInput}
               value={receivedAtLocal}
               onChange={(e) => setReceivedAtLocal(e.target.value)}
               disabled={busy}
             />
           </label>
           <label className="flex flex-col gap-1.5 sm:col-span-2">
-            <span className={dashboardLabelClass()}>
+            <span className={nsdFieldLabel}>
               Supplier document / DN ref (optional)
             </span>
             <input
-              className={dashboardInputClass(busy)}
+              className={nsdInput}
               value={docRef}
               onChange={(e) => setDocRef(e.target.value)}
               disabled={busy}
             />
           </label>
           <label className="flex flex-col gap-1.5 sm:col-span-2">
-            <span className={dashboardLabelClass()}>Notes (optional)</span>
+            <span className={nsdFieldLabel}>Notes (optional)</span>
             <textarea
-              className={dashboardTextareaClass(busy)}
+              className={nsdTextarea}
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               disabled={busy}
             />
           </label>
-        </div>
+                </div>
+              </SupplyDrawerSection>
+            </div>
 
-        {supplier ? (
-          <ExtraCostsSection extras={extras} onChange={setExtras} busy={busy} />
-        ) : null}
+            {supplier ? (
+              <ExtraCostsSection extras={extras} onChange={setExtras} busy={busy} />
+            ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">
-            Receiving lines
-          </h3>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="gap-1"
-            onClick={addAdhocRow}
-            disabled={busy || !supplier}
-          >
-            <Plus className="size-3.5" />
-            Add product
-          </Button>
-        </div>
+            <SupplyDrawerSection
+              step={3}
+              title="Receiving lines"
+              hint="Buying price × quantity drives payables. Scroll horizontally on small screens."
+              action={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 rounded-lg text-xs"
+                  onClick={addAdhocRow}
+                  disabled={busy || !supplier}
+                >
+                  <Plus className="size-3.5" aria-hidden />
+                  Add product
+                </Button>
+              }
+              bodyClassName="p-0"
+            >
+              {!supplier ? (
+                <SupplyEmptyState
+                  icon={Truck}
+                  title="Choose a supplier first"
+                  description="Search for your vendor above. Linked catalog products load automatically — or add lines manually."
+                />
+              ) : linksLoading ? (
+                <>
+                  <SupplyLoadingInline label="Loading supplier catalog…" />
+                  <SupplyTableSkeleton />
+                </>
+              ) : rows.length === 0 ? (
+                <SupplyEmptyState
+                  icon={PackagePlus}
+                  title="No linked products"
+                  description="Link SKUs on the supplier profile, or add products row by row."
+                  action={
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="gap-1 rounded-lg"
+                      onClick={addAdhocRow}
+                      disabled={busy}
+                    >
+                      <Plus className="size-3.5" aria-hidden />
+                      Add product
+                    </Button>
+                  }
+                />
+              ) : (
+                <>
+                  {duplicateIds.length > 0 ? (
+                    <div className={cn(nsdAlert, "m-4 sm:m-5")}>
+                      Duplicate products in the grid — keep one row per SKU.
+                    </div>
+                  ) : null}
 
-        {linksLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Loading supplier catalog…
-          </div>
-        ) : null}
+                  <p className="border-b border-border bg-muted/25 px-4 py-2 text-[11px] text-muted-foreground sm:px-5">
+                    {lineStats.valid} of {lineStats.totalRows} lines ready · highlighted rows
+                    have qty and cost
+                  </p>
 
-        {duplicateIds.length > 0 ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-950 dark:text-amber-100">
-            Duplicate products in the grid — keep one row per SKU.
-          </div>
-        ) : null}
-
-        <div className="overflow-x-auto rounded-xl border">
+                  <div className="overflow-x-auto">
           <table className="w-full min-w-[72rem] border-collapse text-left text-sm">
-            <thead className="bg-muted/90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <thead className={nsdTableHead}>
               <tr>
                 <th className="px-3 py-2">Product</th>
                 <th className="px-3 py-2">SKU</th>
@@ -911,11 +1061,20 @@ export function NewSupplyDrawer({
                   stock != null && qty != null ? stock + qty : null;
                 const iid = rowItemId(row);
                 const hint = iid ? rowPricing[iid] : undefined;
+                const isReady = p != null;
                 return (
-                  <tr key={row.key} className="border-t align-top">
+                  <tr
+                    key={row.key}
+                    className={cn(
+                      nsdTableRow,
+                      "align-top",
+                      isReady && nsdTableRowReady,
+                    )}
+                  >
                     <td className="px-3 py-2">
                       {row.source === "adhoc" ? (
                         <ProductPickCell
+                          sharp
                           item={row.item}
                           disabled={busy}
                           onItemChange={(item) =>
@@ -950,10 +1109,7 @@ export function NewSupplyDrawer({
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        className={cn(
-                          dashboardInputClass(busy),
-                          "w-16 text-right font-mono text-sm",
-                        )}
+                        className={cn(nsdInput, "w-16 text-right font-mono text-sm")}
                         value={row.qtyStr}
                         onChange={(e) =>
                           setRows((prev) =>
@@ -972,7 +1128,7 @@ export function NewSupplyDrawer({
                     <td className="px-3 py-2">
                       <input
                         className={cn(
-                          dashboardInputClass(busy),
+                          nsdInput,
                           "w-24 text-right font-mono text-sm",
                         )}
                         value={row.unitStr}
@@ -996,7 +1152,7 @@ export function NewSupplyDrawer({
                         {canSetSellPrice ? (
                           <input
                             className={cn(
-                              dashboardInputClass(busy),
+                              nsdInput,
                               "text-right font-mono text-sm",
                               (() => {
                                 const retail = parseRetailPrice(row.sellPriceStr);
@@ -1039,19 +1195,7 @@ export function NewSupplyDrawer({
                           </span>
                         ) : (
                           <span className="text-[10px] leading-snug text-muted-foreground">
-                            {!canSetSellPrice
-                              ? "View only — no shelf-price permission. "
-                              : null}
-                            {[
-                              hint?.currentSellPrice != null
-                                ? `Current ${hint.currentSellPrice.toFixed(2)}`
-                                : null,
-                              hint?.suggestedSellPrice != null
-                                ? `Suggested ${hint.suggestedSellPrice.toFixed(2)}`
-                                : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ") || hint?.note}
+                            {formatRowPricingHint(hint, canSetSellPrice)}
                           </span>
                         )}
                       </div>
@@ -1060,7 +1204,7 @@ export function NewSupplyDrawer({
                       <input
                         type="date"
                         className={cn(
-                          dashboardInputClass(busy),
+                          nsdInput,
                           "min-w-[8.5rem] text-xs",
                         )}
                         value={row.expiry}
@@ -1093,75 +1237,61 @@ export function NewSupplyDrawer({
               })}
             </tbody>
           </table>
-        </div>
+                  </div>
+                </>
+              )}
+            </SupplyDrawerSection>
 
-        {supplier ? (
-          <ExtraCostsSection extras={extras} onChange={setExtras} busy={busy} />
-        ) : null}
-
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-6">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Cost
+            <div className={nsdTotalsPanel}>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                Totals snapshot
               </p>
-              <p className="text-xl font-bold tabular-nums">
-                {estimatedProfit.cost.toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Revenue
-              </p>
-              <p className="text-xl font-bold tabular-nums text-emerald-600">
-                {estimatedProfit.revenue.toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Extras
-              </p>
-              <p className="text-xl font-bold tabular-nums text-muted-foreground">
-                {extrasTotal.toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Net profit
-              </p>
-              <p
-                className={cn(
-                  "text-xl font-bold tabular-nums",
-                  estimatedProfit.profit - extrasTotal >= 0
-                    ? "text-emerald-600"
-                    : "text-red-600",
-                )}
-              >
-                {(estimatedProfit.profit - extrasTotal).toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Margin
-              </p>
-              <p className="text-xl font-bold tabular-nums">
-                {estimatedProfit.revenue > 0
-                  ? Math.round(
-                      ((estimatedProfit.profit - extrasTotal) /
-                        estimatedProfit.revenue) *
-                        100,
-                    )
-                  : 0}
-                %
-              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: "Payable", value: estimatedProfit.cost.toFixed(2) },
+                  {
+                    label: "Retail",
+                    value: estimatedProfit.revenue.toFixed(2),
+                    className: "text-emerald-700 dark:text-emerald-300",
+                  },
+                  { label: "Extras", value: extrasTotal.toFixed(2) },
+                  {
+                    label: "Net",
+                    value: (estimatedProfit.profit - extrasTotal).toFixed(2),
+                    className:
+                      estimatedProfit.profit - extrasTotal >= 0
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-red-600",
+                  },
+                ].map(({ label, value, className }) => (
+                  <div key={label} className="rounded-sm border border-border bg-background px-3 py-2">
+                    <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
+                      {label}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block font-mono text-sm font-bold tabular-nums",
+                        className,
+                      )}
+                    >
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <p className={cn(dashboardHintClass(), "max-w-sm text-right")}>
-            Stock and payables post when you submit. “After” is current stock
-            plus qty in (this branch).
-          </p>
+
+          <SupplyDrawerSummaryPanel
+            supplierName={supplier?.name ?? null}
+            branchName={selectedBranchName}
+            lineStats={lineStats}
+            estimatedProfit={estimatedProfit}
+            extrasTotal={extrasTotal}
+            canPost={canPost}
+          />
         </div>
-      </div>
+      </form>
     </FormDrawer>
   );
 }

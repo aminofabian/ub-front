@@ -9,13 +9,24 @@ import { fetchItemsPage, type ItemSummaryRecord } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
 
+import { nsdDropdown, nsdInput } from "./new-supply-drawer-ui";
+
 type ProductPickCellProps = {
   item: ItemSummaryRecord | null;
   disabled?: boolean;
+  sharp?: boolean;
   onItemChange: (item: ItemSummaryRecord | null) => void;
 };
 
-export function ProductPickCell({ item, disabled, onItemChange }: ProductPickCellProps) {
+export function ProductPickCell({
+  item,
+  disabled,
+  sharp,
+  onItemChange,
+}: ProductPickCellProps) {
+  const inputClass = sharp
+    ? cn(nsdInput, "text-sm", disabled && "opacity-50")
+    : cn(dashboardInputClass(disabled), "text-sm");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
@@ -115,7 +126,7 @@ export function ProductPickCell({ item, disabled, onItemChange }: ProductPickCel
       <div className="relative">
         <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
-          className={cn(dashboardInputClass(disabled), "pl-8 text-sm")}
+          className={cn(inputClass, "pl-8")}
           placeholder="Search name / SKU…"
           disabled={disabled}
           value={q}
@@ -127,7 +138,7 @@ export function ProductPickCell({ item, disabled, onItemChange }: ProductPickCel
         />
       </div>
       <input
-        className={cn(dashboardInputClass(disabled), "mt-1.5 font-mono text-xs")}
+        className={cn(inputClass, "mt-1.5 font-mono text-xs")}
         placeholder="Barcode — Enter"
         disabled={disabled}
         onKeyDown={(e) => {
@@ -137,7 +148,14 @@ export function ProductPickCell({ item, disabled, onItemChange }: ProductPickCel
         }}
       />
       {open && q.trim().length > 0 ? (
-        <div className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-background shadow-md">
+        <div
+          className={cn(
+            "absolute z-30 max-h-48 w-full overflow-auto",
+            sharp
+              ? cn(nsdDropdown, "mt-0")
+              : "mt-1 rounded-lg border border-border bg-background shadow-md",
+          )}
+        >
           {loading ? (
             <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" />
