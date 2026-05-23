@@ -35,6 +35,7 @@ import {
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import { ProductCreatePricingSection } from "./ProductCreatePricingSection";
 import { PackageVariantsSection } from "./PackageVariantsSection";
+import { ProductDescriptionField } from "./ProductDescriptionField";
 import { toNumber } from "../_utils";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -242,12 +243,14 @@ export function ProductCreateDrawer({
     supplier: false,
     details: false,
   });
+  const [descGenError, setDescGenError] = useState("");
 
   /* ── Reset expanded state when drawer opens ── */
   useEffect(() => {
     if (open) {
       setExpanded({ identifiers: false, stock: true, supplier: false, details: false });
       setKeepOpen(false);
+      setDescGenError("");
     }
   }, [open]);
 
@@ -331,6 +334,12 @@ export function ProductCreateDrawer({
   const hasDetailData = Boolean(
     m.parentDraft.description || m.parentDraft.unitType,
   );
+
+  const createCategoryName = useMemo(() => {
+    const id = m.parentDraft.categoryId.trim();
+    if (!id) return undefined;
+    return catalog.sortedCategories.find((c) => c.id === id)?.name;
+  }, [catalog.sortedCategories, m.parentDraft.categoryId]);
 
   /** Per sellable unit — used to value opening stock batches (buy ÷ pack qty). */
   const costPerUnit = useMemo(() => {
@@ -996,15 +1005,27 @@ export function ProductCreateDrawer({
           />
           {expanded.details && (
             <div className="space-y-3 rounded-2xl border border-border/50 bg-gradient-to-br from-card/90 via-background to-muted/15 p-4 shadow-sm sm:p-5">
-              <Label>
-                Description
-                <textarea
-                  className={cn(icClass(), "min-h-[4rem] resize-y")}
-                  placeholder="Optional"
-                  value={m.parentDraft.description}
-                  onChange={(e) => m.setParentDraft((p) => ({ ...p, description: e.target.value }))}
-                />
-              </Label>
+              <ProductDescriptionField
+                value={m.parentDraft.description}
+                onChange={(description) =>
+                  m.setParentDraft((p) => ({ ...p, description }))
+                }
+                onError={setDescGenError}
+                rows={4}
+                textareaClassName="min-h-[4rem]"
+                context={{
+                  name: m.parentDraft.name,
+                  categoryName: createCategoryName,
+                  brand: m.parentDraft.brand,
+                  size: m.parentDraft.size,
+                  unitType: m.parentDraft.unitType,
+                  sku: m.parentDraft.sku,
+                  barcode: m.parentDraft.barcode,
+                }}
+              />
+              {descGenError ? (
+                <p className="text-xs text-destructive">{descGenError}</p>
+              ) : null}
               {!isGroup ? (
                 <Label>
                   Unit

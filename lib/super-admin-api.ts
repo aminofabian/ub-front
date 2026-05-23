@@ -306,6 +306,40 @@ export async function changeSuperAdminPassword(
   });
 }
 
+export type PlatformIntegrationsRecord = {
+  hasDeepseekApiKey: boolean;
+  deepseekHost: string;
+  deepseekUrl: string;
+  deepseekModel: string;
+  hasRapidapiWhatsappKey: boolean;
+  envDeepseekConfigured: boolean;
+  envRapidapiWhatsappConfigured: boolean;
+  secretsReadable: boolean;
+  secretsError: string | null;
+  encryptionEphemeral: boolean;
+};
+
+export type UpdatePlatformIntegrationsPayload = {
+  deepseekApiKey?: string | null;
+  deepseekHost?: string | null;
+  deepseekUrl?: string | null;
+  deepseekModel?: string | null;
+  rapidApiWhatsappKey?: string | null;
+};
+
+export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {
+  return saRequest<PlatformIntegrationsRecord>(API_ROUTES.superAdminPlatformIntegrations);
+}
+
+export async function updatePlatformIntegrations(
+  body: UpdatePlatformIntegrationsPayload,
+): Promise<PlatformIntegrationsRecord> {
+  return saRequest<PlatformIntegrationsRecord>(API_ROUTES.superAdminPlatformIntegrations, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchSaBusinessUsers(
   businessId: string,
 ): Promise<SaBusinessUserRow[]> {

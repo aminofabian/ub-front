@@ -651,6 +651,21 @@ export type SuggestedSkuResponse = {
   suggestedSku: string;
 };
 
+export type GenerateProductDescriptionPayload = {
+  name: string;
+  categoryName?: string;
+  brand?: string;
+  size?: string;
+  unitType?: string;
+  variantName?: string;
+  sku?: string;
+  barcode?: string;
+};
+
+export type GenerateProductDescriptionResponse = {
+  description: string;
+};
+
 /** Body returned from POST /api/v1/items (201). */
 export type ItemCreateResponse = {
   id: string;
@@ -951,6 +966,9 @@ async function request<T>(
 
   return (await response.json()) as T;
 }
+
+/** Authenticated JSON API helper (for focused client modules). */
+export const apiRequest = request;
 
 async function requestMultipartJson<T>(
   path: string,

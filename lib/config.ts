@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   superAdminDashboard: "/super-admin",
   superAdminBusinesses: "/super-admin/businesses",
   superAdminSettings: "/super-admin/settings",
+  superAdminPlatformIntegrations: "/super-admin/platform/integrations",
   superAdminPlatformPayments: "/super-admin/payments/platform",
   business: "/business",
   businessBranding: "/business/branding",
@@ -97,6 +98,7 @@ export const API_ROUTES = {
   superAdminBusinesses: "/api/v1/super-admin/businesses",
   superAdminPlatformPaymentGateways:
     "/api/v1/super-admin/payments/platform-gateways",
+  superAdminPlatformIntegrations: "/api/v1/super-admin/platform/integrations",
   paymentGatewaysAvailable: "/api/v1/payments/gateways/available",
   paymentGateways: "/api/v1/payments/gateways",
   paymentSupplierPayout: "/api/v1/payments/supplier-payout",

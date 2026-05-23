@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, User } from "lucide-react";
+import { KeyRound, Sparkles, User } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
@@ -13,6 +14,7 @@ import {
   changeSuperAdminPassword,
   fetchSuperAdminMe,
 } from "@/lib/super-admin-api";
+import { APP_ROUTES } from "@/lib/config";
 
 export default function SuperAdminSettingsPage() {
   const [me, setMe] = useState<SuperAdminMe | null>(null);
@@ -79,6 +81,28 @@ export default function SuperAdminSettingsPage() {
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
+
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="size-4" aria-hidden />
+              </span>
+              <div>
+                <CardTitle className="font-heading text-lg">Platform API keys</CardTitle>
+                <CardDescription>
+                  DeepSeek product descriptions and RapidAPI WhatsApp fallback — replaces env vars
+                  when set.
+                </CardDescription>
+              </div>
+            </div>
+            <Button variant="secondary" size="sm" className="shadow-sm" asChild>
+              <Link href={APP_ROUTES.superAdminPlatformIntegrations}>Manage integrations</Link>
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {me ? (

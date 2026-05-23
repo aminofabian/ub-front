@@ -33,6 +33,7 @@ import {
   usesSharedPackageStock,
 } from "../_utils";
 import { ProductFormField } from "./ProductFormField";
+import { ProductDescriptionField } from "./ProductDescriptionField";
 import { ProductFormSectionToggle } from "./ProductFormSectionToggle";
 import { StockIncreaseFields } from "./StockIncreaseFields";
 import {
@@ -43,7 +44,6 @@ import {
   productFormInputMonoClass,
   productFormSectionBodyClass,
   productFormSelectClass,
-  productFormTextareaClass,
   productFormToggleCardClass,
 } from "./product-form-styles";
 
@@ -143,6 +143,12 @@ export function ProductEditDrawer({
     if (!d) return "";
     return dr.name?.trim() || d.name?.trim() || "Product";
   }, [d, dr.name]);
+
+  const descriptionCategoryName = useMemo(() => {
+    const id = dr.categoryId?.trim();
+    if (!id) return undefined;
+    return cats.find((c) => c.id === id)?.name;
+  }, [cats, dr.categoryId]);
 
   const handleStockIncrease = async (): Promise<boolean> => {
     if (!d) return false;
@@ -377,19 +383,23 @@ export function ProductEditDrawer({
                   ))}
                 </select>
               </ProductFormField>
-              <ProductFormField label="Description">
-                <textarea
-                  className={productFormTextareaClass}
-                  rows={3}
-                  value={dr.description ?? ""}
-                  onChange={(e) =>
-                    detail.setPatchDraft((p) => ({
-                      ...p,
-                      description: e.target.value,
-                    }))
-                  }
-                />
-              </ProductFormField>
+              <ProductDescriptionField
+                value={dr.description ?? ""}
+                onChange={(description) =>
+                  detail.setPatchDraft((p) => ({ ...p, description }))
+                }
+                onError={setMessage}
+                context={{
+                  name: dr.name?.trim() || d?.name?.trim() || "",
+                  categoryName: descriptionCategoryName,
+                  brand: d?.brand?.trim(),
+                  size: d?.size?.trim(),
+                  unitType: d?.unitType?.trim(),
+                  variantName: dr.variantName?.trim() || d?.variantName?.trim(),
+                  sku: dr.sku?.trim() || d?.sku?.trim(),
+                  barcode: dr.barcode?.trim() || d?.barcode?.trim(),
+                }}
+              />
             </div>
           ) : null}
 
