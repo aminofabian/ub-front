@@ -65,8 +65,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     if (!tokens) return;
 
     const channels = canReadNotifications
-      ? (["notifications", "pos"] as const)
-      : (["pos"] as const);
+      ? (["notifications", "pos", "grocery"] as const)
+      : (["pos", "grocery"] as const);
 
     const client = getRealtimeClient();
     const unregister = client.registerListener("provider", {
