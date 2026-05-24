@@ -45,6 +45,11 @@ import {
   isSaleOutboxSupported,
 } from "@/lib/sale-outbox";
 import {
+  lookupGroceryInvoiceByBarcode,
+  lockGroceryInvoice,
+  GroceryApiError,
+} from "@/lib/grocery-api";
+import {
   getTopProducts,
   recordSaleLines,
   type TopProductRecord,
@@ -73,6 +78,7 @@ import {
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
+import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { usePosCatalogItemType } from "@/components/cashier-shell";
 import {
   CloseShiftModal,
@@ -300,6 +306,7 @@ export function QuickSaleWorkspace({
   const [voidLoading, setVoidLoading] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [outboxCount, setOutboxCount] = useState(0);
+  const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [outboxBusy, setOutboxBusy] = useState(false);
   const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
   const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
@@ -397,12 +404,21 @@ export function QuickSaleWorkspace({
       setNotice("");
     } catch (e) {
       setCustomerHits([]);
-      updateActiveCart({ customerNoPhoneMatch: false, customerRegisterName: "" });
+      updateActiveCart({
+        customerNoPhoneMatch: false,
+        customerRegisterName: "",
+      });
       setError(e instanceof Error ? e.message : "Customer search failed.");
     } finally {
       setCustomerSearchBusy(false);
     }
-  }, [customerPhoneQuery, online, payMethod, setCustomerHits, updateActiveCart]);
+  }, [
+    customerPhoneQuery,
+    online,
+    payMethod,
+    setCustomerHits,
+    updateActiveCart,
+  ]);
 
   const onRegisterCustomer = useCallback(async () => {
     const phone = customerPhoneQuery.trim();
@@ -736,6 +752,91 @@ export function QuickSaleWorkspace({
     },
     [],
   );
+
+  // ── Grocery invoice barcode intercept ─────────────────────────
+
+  const loadedInvoiceRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const q = search.trim();
+    if (!q || !q.startsWith("GI-") || !online) return;
+    if (loadedInvoiceRef.current.has(q)) return;
+
+    const bid = branchId?.trim();
+    if (!bid) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const invoice = await lookupGroceryInvoiceByBarcode(q);
+        if (cancelled) return;
+
+        // Lock the invoice
+        try {
+          await lockGroceryInvoice(invoice.id);
+        } catch (e) {
+          if (e instanceof GroceryApiError && e.status === 409) {
+            toast.error(e.message, { duration: 6000 });
+            setSearch("");
+            return;
+          }
+        }
+
+        dismissCompletedSaleUi();
+        setNotice("");
+        setError("");
+
+        // Build cart lines from invoice
+        const invoiceLines = invoice.lines.map((l) => ({
+          key: crypto.randomUUID(),
+          itemId: l.itemId,
+          label: l.itemName,
+          quantity: String(l.quantity),
+          unitPrice: String(l.unitPrice),
+          item: {
+            id: l.itemId,
+            name: l.itemName,
+            sku: "",
+            thumbnailUrl: null,
+          } as ItemSummaryRecord,
+        }));
+
+        // Create a new cart tab for each invoice
+        setCarts((prev) => {
+          if (prev.length >= MAX_CARTS) {
+            toast.error("Too many carts open. Clear one first.", { duration: 4000 });
+            return prev;
+          }
+          const fresh = createEmptyCartSession();
+          fresh.label = invoice.barcodeCode;
+          fresh.lines = invoiceLines;
+          setActiveCartId(fresh.id);
+          return [...prev, fresh];
+        });
+
+        loadedInvoiceRef.current.add(q);
+        setSearch("");
+        setHits([]);
+        toast.success(
+          "Invoice " + invoice.barcodeCode + " loaded \u00b7 " + invoice.lines.length + " items",
+          { duration: 4000 },
+        );
+      } catch (e) {
+        if (cancelled) return;
+        const msg =
+          e instanceof GroceryApiError ? e.message : "Failed to load invoice";
+        toast.error(msg, { duration: 5000 });
+        setSearch("");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [search, online, branchId, setCarts, setActiveCartId, dismissCompletedSaleUi]);
+
+
 
   const addLine = useCallback(
     (item: ItemSummaryRecord, qty: number = 1, unitPrice: string = "") => {
@@ -1124,6 +1225,7 @@ export function QuickSaleWorkspace({
       const result = await tryPostSaleWithRetries(salePayload, idem);
       if (result.ok) {
         setLastSale(result.sale);
+        setInvoiceRefreshKey((k) => k + 1);
         setLastReceipt(
           buildPosReceiptSnapshot({
             businessName: receiptBusinessName,
@@ -1409,6 +1511,15 @@ export function QuickSaleWorkspace({
 
   return (
     <>
+      <div className="flex items-center justify-between px-1 pb-2">
+        <span className="text-[10px] font-medium text-muted-foreground">
+          {activeBranchName || "Point of sale"}
+        </span>
+        <PendingInvoicesPanel
+          onLoadInvoice={(barcode) => setSearch(barcode)}
+          refreshKey={invoiceRefreshKey}
+        />
+      </div>
       <CashierPosLayout
         pageTitle={heading}
         embeddedInDashboard={!isCashier}
