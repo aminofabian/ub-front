@@ -38,6 +38,12 @@ export type RealtimeEventType =
   | "approval.resolved"
   | "transfer.initiated"
   | "transfer.received"
+  | "grocery.invoice.created"
+  | "grocery.invoice.locked"
+  | "grocery.invoice.unlocked"
+  | "grocery.invoice.paid"
+  | "grocery.invoice.cancelled"
+  | "grocery.invoice.expired"
   | "catch-up.overflow"
   | "error"
   | "ping";
@@ -76,6 +82,12 @@ export interface RealtimeClientOptions {
   onPaymentConfirmed?: FrameHandler;
   onApprovalRequested?: FrameHandler;
   onApprovalResolved?: FrameHandler;
+  onGroceryInvoiceCreated?: FrameHandler;
+  onGroceryInvoiceLocked?: FrameHandler;
+  onGroceryInvoiceUnlocked?: FrameHandler;
+  onGroceryInvoicePaid?: FrameHandler;
+  onGroceryInvoiceCancelled?: FrameHandler;
+  onGroceryInvoiceExpired?: FrameHandler;
   onError?: ErrorHandler;
   onConnectionStateChange?: ConnectionStateHandler;
 }
@@ -97,6 +109,12 @@ const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "payment.confirmed": "onPaymentConfirmed",
   "approval.requested": "onApprovalRequested",
   "approval.resolved": "onApprovalResolved",
+  "grocery.invoice.created": "onGroceryInvoiceCreated",
+  "grocery.invoice.locked": "onGroceryInvoiceLocked",
+  "grocery.invoice.unlocked": "onGroceryInvoiceUnlocked",
+  "grocery.invoice.paid": "onGroceryInvoicePaid",
+  "grocery.invoice.cancelled": "onGroceryInvoiceCancelled",
+  "grocery.invoice.expired": "onGroceryInvoiceExpired",
 };
 
 // ── WS URL Resolution ──
@@ -195,6 +213,12 @@ export type RealtimeListenerOptions = Pick<
   | "onPaymentConfirmed"
   | "onApprovalRequested"
   | "onApprovalResolved"
+  | "onGroceryInvoiceCreated"
+  | "onGroceryInvoiceLocked"
+  | "onGroceryInvoiceUnlocked"
+  | "onGroceryInvoicePaid"
+  | "onGroceryInvoiceCancelled"
+  | "onGroceryInvoiceExpired"
   | "onError"
   | "onConnectionStateChange"
 >;
@@ -206,6 +230,12 @@ const LISTENER_HANDLER_KEYS = [
   "onPaymentConfirmed",
   "onApprovalRequested",
   "onApprovalResolved",
+  "onGroceryInvoiceCreated",
+  "onGroceryInvoiceLocked",
+  "onGroceryInvoiceUnlocked",
+  "onGroceryInvoicePaid",
+  "onGroceryInvoiceCancelled",
+  "onGroceryInvoiceExpired",
   "onError",
   "onConnectionStateChange",
 ] as const satisfies readonly (keyof RealtimeListenerOptions)[];

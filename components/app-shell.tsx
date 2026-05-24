@@ -150,6 +150,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       { href: APP_ROUTES.salesQuick, label: "Quick sale" },
       { href: APP_ROUTES.cashier, label: "Cashier (PWA)" },
+      { href: APP_ROUTES.grocery, label: "Grocery counter" },
+      { href: APP_ROUTES.groceryInvoices, label: "Grocery invoices" },
     ],
   },
 ];
@@ -175,6 +177,7 @@ type NavGate = {
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
+  canAccessGrocery: boolean;
   canManageImports: boolean;
   canViewPaymentGateways: boolean;
   roleKey: string | undefined;
@@ -209,6 +212,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
       APP_ROUTES.purchasingAddSupplies,
+      APP_ROUTES.grocery,
+      APP_ROUTES.groceryInvoices,
     ];
     return allowed.includes(item.href);
   }
@@ -247,6 +252,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
   if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
+  if (item.href === APP_ROUTES.grocery) return gate.canAccessGrocery;
+  if (item.href === APP_ROUTES.groceryInvoices) return gate.canAccessGrocery;
   return featureFlagAllows(item, gate.featureFlags);
 }
 
@@ -351,6 +358,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,
+    canAccessGrocery,
     canManageImports,
     branches,
     branchId,
@@ -404,6 +412,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewSalesIntelligence,
       canViewStorefrontOrders,
       canQuickSale,
+    canAccessGrocery,
       canManageImports,
       canViewPaymentGateways,
       roleKey: me?.role?.key?.trim().toLowerCase(),
@@ -433,6 +442,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,
+    canAccessGrocery,
     canManageImports,
     canViewPaymentGateways,
     me?.role?.key,

@@ -126,6 +126,7 @@ type DashboardContextValue = {
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
+  canAccessGrocery: boolean;
   canManageImports: boolean;
 };
 
@@ -213,6 +214,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [refreshSession]);
 
   const canQuickSale = hasPermission(me?.permissions, Permission.SalesSell);
+  const canAccessGrocery = hasPermission(me?.permissions, Permission.GroceryInvoicesRead);
 
   useEffect(() => {
     if (!me) return;
@@ -379,6 +381,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         Permission.StorefrontOrdersRead,
       ),
       canQuickSale,
+      canAccessGrocery,
       canManageImports: hasPermission(
         me?.permissions,
         Permission.IntegrationsImportsManage,
@@ -400,6 +403,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       itemTypesLoading,
       refreshItemTypes,
       canQuickSale,
+      canAccessGrocery,
     ],
   );
 

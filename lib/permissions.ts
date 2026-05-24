@@ -50,6 +50,11 @@ export const Permission = {
   PaymentsPlatformManage: "payments.platform.manage",
   ReportsNotificationsRead: "reports.notifications.read",
   ReportsNotificationsWrite: "reports.notifications.write",
+  /** Grocery Checkout */
+  GroceryInvoicesCreate: "grocery.invoices.create",
+  GroceryInvoicesRead: "grocery.invoices.read",
+  GroceryInvoicesCancel: "grocery.invoices.cancel",
+  GroceryInvoicesPay: "grocery.invoices.pay",
 } as const;
 
 export function hasPermission(

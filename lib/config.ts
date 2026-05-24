@@ -45,6 +45,8 @@ export const APP_ROUTES = {
   promoCampaigns: "/business/promotions",
   salesQuick: "/sales/quick",
   cashier: "/cashier",
+  grocery: "/grocery",
+  groceryInvoices: "/grocery/invoices",
   shop: "/shop",
   shopAccount: "/shop/account",
   shopCart: "/shop/cart",
@@ -86,7 +88,8 @@ export const API_ROUTES = {
   shopperHub: "/api/v1/me/shopper",
   shopperNotifications: "/api/v1/me/shopper/notifications",
   notificationPreferences: "/api/v1/me/notification-preferences",
-  shopperNotificationSubscriptions: "/api/v1/me/shopper/notification-subscriptions",
+  shopperNotificationSubscriptions:
+    "/api/v1/me/shopper/notification-subscriptions",
   businessMe: "/api/v1/businesses/me",
   branches: "/api/v1/branches",
   users: "/api/v1/users",
