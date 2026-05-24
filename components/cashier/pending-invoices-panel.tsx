@@ -45,23 +45,8 @@ export function PendingInvoicesPanel({
       const list = result.invoices ?? [];
       setInvoices(list);
 
-      // Detect new invoices (not in knownIds) after initial fetch
-      if (firstFetchDone.current) {
-        for (const inv of list) {
-          if (!knownIds.current.has(inv.id)) {
-            knownIds.current.add(inv.id);
-            toast.success(`New invoice ${inv.barcodeCode}`, {
-              description: `${inv.lineCount} items · ${Number(inv.grandTotal).toLocaleString("en-KE", { style: "currency", currency: "KES" })} · by ${inv.createdByName || "Staff"}`,
-              duration: 10_000,
-              action: {
-                label: "Load",
-                onClick: () => onLoadInvoice(inv.barcodeCode),
-              },
-            });
-          }
-        }
-      } else {
-        // First fetch: seed knownIds without toasting
+      // Seed known IDs on first fetch (no toast — WebSocket handles notifications)
+      if (!firstFetchDone.current) {
         for (const inv of list) {
           knownIds.current.add(inv.id);
         }
@@ -72,28 +57,18 @@ export function PendingInvoicesPanel({
     } finally {
       setLoading(false);
     }
-  }, [branchId, online, onLoadInvoice]);
+  }, [branchId, online]);
 
   useEffect(() => {
     if (open) fetchInvoices();
   }, [open, fetchInvoices, refreshKey]);
 
-  // Auto-refresh every 30s while open AND poll in background every 30s for new invoice detection
+  // Auto-refresh every 30s while panel is open
   useEffect(() => {
-    // Fetch immediately on mount to seed knownIds
-    if (online && branchId) {
-      fetchInvoices();
-    }
-
-    const interval = setInterval(() => {
-      if (online && branchId) {
-        fetchInvoices();
-      }
-    }, 30_000);
-
+    if (!open) return;
+    const interval = setInterval(fetchInvoices, 30_000);
     return () => clearInterval(interval);
-    // Only run on mount and when online/branchId change
-  }, [online, branchId, fetchInvoices]);
+  }, [open, fetchInvoices]);
 
   const pendingCount = invoices.length;
 
