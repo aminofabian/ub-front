@@ -7,34 +7,61 @@ import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 
 /**
  * Subscribe to grocery realtime events and show toast notifications.
- * Call once at app level (e.g., in a provider or layout).
+ * Handles both WebSocket frames AND REST polling fallback (notification.created).
  */
 export function useGroceryNotifications() {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
+  const shownEventIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const client = getRealtimeClient();
-    const unregister = client.registerListener("grocery-notifications", {
-      channels: ["grocery"],
-      onGroceryInvoiceCreated: (frame: RealtimeFrame) => {
-        const d = frame.data;
-        const barcode = String(d.barcodeCode ?? "");
-        const total = String(d.grandTotal ?? "");
-        const items = String(d.lineCount ?? "");
-        const by = String(d.createdByName ?? "Staff");
 
-        toast.success(`New grocery invoice ${barcode}`, {
-          description: `${items} items · ${total} · by ${by}`,
-          duration: 10_000,
-          action: {
-            label: "View",
-            onClick: () =>
-              routerRef.current.push(`/cashier?invoice=${encodeURIComponent(barcode)}`),
-          },
-        });
+    const handleInvoiceCreated = (data: Record<string, unknown>) => {
+      const barcode = String(data.barcodeCode ?? "");
+      const total = String(data.grandTotal ?? "");
+      const items = String(data.lineCount ?? "");
+      const by = String(data.createdByName ?? "Staff");
+
+      toast.success(`New grocery invoice ${barcode}`, {
+        description: `${items} items · ${total} · by ${by}`,
+        duration: 10_000,
+        action: {
+          label: "Load",
+          onClick: () =>
+            routerRef.current.push(
+              `/cashier?invoice=${encodeURIComponent(barcode)}`,
+            ),
+        },
+      });
+    };
+
+    const unregister = client.registerListener("grocery-notifications", {
+      channels: ["grocery", "notifications"],
+
+      // WebSocket path: direct grocery.invoice.created frame
+      onGroceryInvoiceCreated: (frame: RealtimeFrame) => {
+        if (shownEventIds.current.has(frame.eventId)) return;
+        shownEventIds.current.add(frame.eventId);
+        handleInvoiceCreated(frame.data);
       },
+
+      // REST polling path: notification.created frame from Notification rows
+      onNotification: (frame: RealtimeFrame) => {
+        const data = frame.data as Record<string, unknown>;
+        const type = String(data.notificationType ?? data.type ?? "");
+        if (type !== "grocery.invoice.created") return;
+
+        const notifId = String(data.id ?? frame.eventId);
+        if (shownEventIds.current.has(notifId)) return;
+        shownEventIds.current.add(notifId);
+
+        // Notification payload is nested differently
+        const payload = (data.payload as Record<string, unknown>) ?? data;
+        handleInvoiceCreated(payload);
+      },
+
       onGroceryInvoiceLocked: (frame: RealtimeFrame) => {
         const d = frame.data;
         const barcode = String(d.barcodeCode ?? "");
@@ -44,6 +71,7 @@ export function useGroceryNotifications() {
           duration: 6_000,
         });
       },
+
       onGroceryInvoicePaid: (frame: RealtimeFrame) => {
         const d = frame.data;
         const barcode = String(d.barcodeCode ?? "");
@@ -51,6 +79,7 @@ export function useGroceryNotifications() {
           duration: 5_000,
         });
       },
+
       onGroceryInvoiceCancelled: (frame: RealtimeFrame) => {
         const d = frame.data;
         const barcode = String(d.barcodeCode ?? "");
@@ -59,6 +88,7 @@ export function useGroceryNotifications() {
           duration: 5_000,
         });
       },
+
       onGroceryInvoiceExpired: (frame: RealtimeFrame) => {
         const d = frame.data;
         const barcode = String(d.barcodeCode ?? "");
@@ -67,8 +97,9 @@ export function useGroceryNotifications() {
           duration: 5_000,
         });
       },
+
       onGroceryInvoiceUnlocked: () => {
-        // Silent — just clears the locked state on other cashiers' screens
+        // Silent
       },
     });
 
