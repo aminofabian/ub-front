@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ClipboardList,
@@ -11,20 +11,16 @@ import {
   User,
   ShoppingBag,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   listGroceryInvoices,
   type GroceryInvoiceSummaryResponse,
-  type GroceryInvoiceStatus,
 } from "@/lib/grocery-api";
 
 type PendingInvoicesPanelProps = {
-  /** Called when cashier wants to load an invoice into the cart. Receives the barcode code. */
   onLoadInvoice: (barcode: string) => void;
-  /** Refresh trigger — increment to force re-fetch. */
   refreshKey?: number;
 };
 
@@ -37,6 +33,8 @@ export function PendingInvoicesPanel({
   const [open, setOpen] = useState(false);
   const [invoices, setInvoices] = useState<GroceryInvoiceSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const knownIds = useRef<Set<string>>(new Set());
+  const firstFetchDone = useRef(false);
 
   const fetchInvoices = useCallback(async () => {
     const bid = branchId?.trim();
@@ -44,24 +42,58 @@ export function PendingInvoicesPanel({
     setLoading(true);
     try {
       const result = await listGroceryInvoices(bid, "pending_payment");
-      setInvoices(result.invoices ?? []);
+      const list = result.invoices ?? [];
+      setInvoices(list);
+
+      // Detect new invoices (not in knownIds) after initial fetch
+      if (firstFetchDone.current) {
+        for (const inv of list) {
+          if (!knownIds.current.has(inv.id)) {
+            knownIds.current.add(inv.id);
+            toast.success(`New invoice ${inv.barcodeCode}`, {
+              description: `${inv.lineCount} items · ${Number(inv.grandTotal).toLocaleString("en-KE", { style: "currency", currency: "KES" })} · by ${inv.createdByName || "Staff"}`,
+              duration: 10_000,
+              action: {
+                label: "Load",
+                onClick: () => onLoadInvoice(inv.barcodeCode),
+              },
+            });
+          }
+        }
+      } else {
+        // First fetch: seed knownIds without toasting
+        for (const inv of list) {
+          knownIds.current.add(inv.id);
+        }
+        firstFetchDone.current = true;
+      }
     } catch {
       // Silently fail — not critical UI
     } finally {
       setLoading(false);
     }
-  }, [branchId, online]);
+  }, [branchId, online, onLoadInvoice]);
 
   useEffect(() => {
     if (open) fetchInvoices();
   }, [open, fetchInvoices, refreshKey]);
 
-  // Auto-refresh every 30s while open
+  // Auto-refresh every 30s while open AND poll in background every 30s for new invoice detection
   useEffect(() => {
-    if (!open) return;
-    const interval = setInterval(fetchInvoices, 30_000);
+    // Fetch immediately on mount to seed knownIds
+    if (online && branchId) {
+      fetchInvoices();
+    }
+
+    const interval = setInterval(() => {
+      if (online && branchId) {
+        fetchInvoices();
+      }
+    }, 30_000);
+
     return () => clearInterval(interval);
-  }, [open, fetchInvoices]);
+    // Only run on mount and when online/branchId change
+  }, [online, branchId, fetchInvoices]);
 
   const pendingCount = invoices.length;
 
@@ -85,27 +117,17 @@ export function PendingInvoicesPanel({
           </span>
         )}
         <ChevronDown
-          className={cn(
-            "size-3 transition-transform",
-            open && "rotate-180",
-          )}
+          className={cn("size-3 transition-transform", open && "rotate-180")}
         />
       </button>
 
       {open && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          {/* Dropdown */}
           <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
-              <span className="text-sm font-semibold">
-                Pending Invoices
-              </span>
+              <span className="text-sm font-semibold">Pending Invoices</span>
               {loading && (
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
               )}
@@ -145,7 +167,8 @@ export function PendingInvoicesPanel({
                             {inv.barcodeCode}
                           </span>
                           <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                            {inv.lineCount} {inv.lineCount === 1 ? "item" : "items"}
+                            {inv.lineCount}{" "}
+                            {inv.lineCount === 1 ? "item" : "items"}
                           </span>
                         </div>
                         <div className="mt-0.5 text-xs font-semibold text-foreground">
