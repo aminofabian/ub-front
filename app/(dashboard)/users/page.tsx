@@ -41,6 +41,7 @@ import {
   fetchBranches,
   fetchRoles,
   fetchUsers,
+  setUserItemTypes,
   updateUser,
   type BranchRecord,
   type RoleRecord,
@@ -211,10 +212,159 @@ function InlineIconButton({
   );
 }
 
+/**
+ * Departments (item types) a grocery_clerk is allowed to invoice from.
+ *
+ * Renders read-only badges with a pencil; tapping the pencil opens an inline
+ * multi-select chip list. The catalog API ANDs this set into every request
+ * coming from this user, so an empty selection means the clerk sees nothing
+ * — make sure to leave at least one ticked before saving.
+ */
+function UserDepartmentsControl({
+  user,
+  itemTypes,
+  canEdit,
+  isEditing,
+  selected,
+  saving,
+  onStartEdit,
+  onChangeSelected,
+  onCancel,
+  onSave,
+}: {
+  user: UserRecord;
+  itemTypes: ReadonlyArray<{ id: string; label: string; active: boolean }>;
+  canEdit: boolean;
+  isEditing: boolean;
+  selected: string[] | undefined;
+  saving: boolean;
+  onStartEdit: () => void;
+  onChangeSelected: (ids: string[]) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  const labelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of itemTypes) {
+      map.set(t.id, t.label?.trim() || t.id);
+    }
+    return map;
+  }, [itemTypes]);
+
+  const assigned = user.itemTypeIds ?? [];
+  const visibleSelection = isEditing ? (selected ?? assigned) : assigned;
+  const selectionSet = useMemo(
+    () => new Set(visibleSelection),
+    [visibleSelection],
+  );
+
+  if (isEditing) {
+    return (
+      <div className="flex flex-col gap-2 rounded-lg border border-border/40 bg-muted/20 p-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Departments
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {itemTypes
+            .filter((t) => t.active)
+            .map((t) => {
+              const isOn = selectionSet.has(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    const next = new Set(selectionSet);
+                    if (isOn) {
+                      next.delete(t.id);
+                    } else {
+                      next.add(t.id);
+                    }
+                    onChangeSelected(Array.from(next));
+                  }}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                    isOn
+                      ? "border-primary/45 bg-primary/10 text-primary"
+                      : "border-border/55 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  )}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          {itemTypes.filter((t) => t.active).length === 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              No active departments — create one first.
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-7 gap-1.5 rounded-md px-2.5 text-[11px] font-medium"
+            disabled={saving}
+            onClick={onSave}
+          >
+            {saving ? (
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+            ) : (
+              <Save className="size-3" aria-hidden />
+            )}
+            Save
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 rounded-md px-2 text-[11px]"
+            disabled={saving}
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+        Departments:
+      </span>
+      {assigned.length > 0 ? (
+        assigned.map((id) => (
+          <span
+            key={id}
+            className="inline-flex items-center rounded-full border border-border/45 bg-muted/35 px-2 py-0.5 text-[11px] font-medium text-foreground"
+          >
+            {labelById.get(id) ?? id}
+          </span>
+        ))
+      ) : (
+        <span className="text-[11px] text-amber-700 dark:text-amber-300">
+          None assigned — clerk will see no items.
+        </span>
+      )}
+      {canEdit ? (
+        <InlineIconButton
+          icon={Pencil}
+          label={`Edit departments for ${user.email}`}
+          onClick={onStartEdit}
+          className="size-6"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
-  const { me, refreshSession } = useDashboard();
+  const { me, refreshSession, itemTypes } = useDashboard();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -238,6 +388,9 @@ export default function UsersPage() {
   const [branchEditUserId, setBranchEditUserId] = useState<string | null>(null);
   const [branchChange, setBranchChange] = useState<Record<string, string>>({});
   const [savingBranchId, setSavingBranchId] = useState<string | null>(null);
+  const [deptEditUserId, setDeptEditUserId] = useState<string | null>(null);
+  const [deptChange, setDeptChange] = useState<Record<string, string[]>>({});
+  const [savingDeptId, setSavingDeptId] = useState<string | null>(null);
 
   const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
@@ -434,6 +587,34 @@ export default function UsersPage() {
       });
     } finally {
       setDeactivatingId(null);
+    }
+  };
+
+  const onSaveDepartments = async (userId: string) => {
+    const selected = deptChange[userId] ?? [];
+    setSavingDeptId(userId);
+    setFeedback(null);
+    try {
+      await setUserItemTypes(userId, selected);
+      setDeptEditUserId(null);
+      setDeptChange((previous) => {
+        const next = { ...previous };
+        delete next[userId];
+        return next;
+      });
+      await loadData();
+      await refreshSession();
+      setFeedback({ kind: "success", text: "Departments updated." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to update departments.",
+      });
+    } finally {
+      setSavingDeptId(null);
     }
   };
 
@@ -909,27 +1090,61 @@ export default function UsersPage() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="flex min-h-12 items-center gap-1.5">
-                                {user.role?.name ? (
-                                  <span className="inline-flex max-w-full items-center truncate rounded-md border border-border/55 bg-muted/45 px-2 py-1 text-xs font-semibold leading-none tracking-tight text-foreground">
-                                    {user.role.name}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground/70">
-                                    —
-                                  </span>
-                                )}
-                                {canAssign ? (
-                                  <InlineIconButton
-                                    icon={Pencil}
-                                    label={`Change role for ${user.email}`}
-                                    onClick={() => {
-                                      setRoleEditUserId(user.id);
-                                      setRoleChange((previous) => ({
+                              <div className="flex min-h-12 flex-col gap-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  {user.role?.name ? (
+                                    <span className="inline-flex max-w-full items-center truncate rounded-md border border-border/55 bg-muted/45 px-2 py-1 text-xs font-semibold leading-none tracking-tight text-foreground">
+                                      {user.role.name}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground/70">
+                                      —
+                                    </span>
+                                  )}
+                                  {canAssign ? (
+                                    <InlineIconButton
+                                      icon={Pencil}
+                                      label={`Change role for ${user.email}`}
+                                      onClick={() => {
+                                        setRoleEditUserId(user.id);
+                                        setRoleChange((previous) => ({
+                                          ...previous,
+                                          [user.id]: user.role?.id ?? "",
+                                        }));
+                                      }}
+                                    />
+                                  ) : null}
+                                </div>
+                                {user.role?.key === "grocery_clerk" ? (
+                                  <UserDepartmentsControl
+                                    user={user}
+                                    itemTypes={itemTypes}
+                                    canEdit={canUpdate}
+                                    isEditing={deptEditUserId === user.id}
+                                    selected={deptChange[user.id]}
+                                    saving={savingDeptId === user.id}
+                                    onStartEdit={() => {
+                                      setDeptEditUserId(user.id);
+                                      setDeptChange((previous) => ({
                                         ...previous,
-                                        [user.id]: user.role?.id ?? "",
+                                        [user.id]: user.itemTypeIds ?? [],
                                       }));
                                     }}
+                                    onChangeSelected={(ids) =>
+                                      setDeptChange((previous) => ({
+                                        ...previous,
+                                        [user.id]: ids,
+                                      }))
+                                    }
+                                    onCancel={() => {
+                                      setDeptEditUserId(null);
+                                      setDeptChange((previous) => {
+                                        const next = { ...previous };
+                                        delete next[user.id];
+                                        return next;
+                                      });
+                                    }}
+                                    onSave={() => void onSaveDepartments(user.id)}
                                   />
                                 ) : null}
                               </div>

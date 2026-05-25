@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { CheckCircle, Printer, PlusCircle, X, Clock } from "lucide-react";
+import {
+  CheckCircle2,
+  Printer,
+  PlusCircle,
+  X,
+  Clock,
+  ShoppingBasket,
+} from "lucide-react";
 import type { GroceryInvoiceResponse } from "@/lib/grocery-api";
 
 type GroceryInvoiceSuccessProps = {
@@ -83,59 +90,71 @@ export function GroceryInvoiceSuccess({
   const itemCount = invoice.lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.25)] ring-1 ring-black/[0.04] dark:bg-card dark:ring-white/[0.06] animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-[0_28px_80px_rgba(0,0,0,0.28),0_0_0_1px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04] dark:bg-card dark:ring-white/[0.06] animate-in zoom-in-95 fade-in duration-300">
+        {/* Top accent gradient */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(80%_120%_at_50%_0%,hsl(142_70%_92%/0.9),transparent_70%)] dark:bg-[radial-gradient(80%_120%_at_50%_0%,hsl(142_70%_22%/0.5),transparent_70%)]"
+        />
+
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex size-9 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:bg-muted hover:text-foreground active:scale-90"
+          className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-2xl bg-white/80 text-muted-foreground backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 hover:bg-white hover:text-foreground active:scale-90 dark:bg-white/10 dark:hover:bg-white/20"
           aria-label="Close"
         >
           <X className="size-4" />
         </button>
 
-        <div className="flex flex-col items-center px-6 pb-7 pt-12 text-center">
+        <div className="relative flex flex-col items-center px-6 pb-7 pt-12 text-center sm:px-8 sm:pt-14">
           {/* Success icon */}
-          <div className="mb-5 flex size-[4.5rem] items-center justify-center rounded-[1.75rem] bg-emerald-100 shadow-[0_8px_24px_rgba(16,185,129,0.2)] dark:bg-emerald-900/30">
-            <CheckCircle className="size-10 text-emerald-600 dark:text-emerald-400" />
+          <div className="relative mb-5">
+            <div className="absolute inset-0 -m-3 rounded-[2.5rem] bg-emerald-400/20 blur-2xl dark:bg-emerald-400/15" />
+            <div className="relative flex size-20 items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_12px_32px_-6px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]">
+              <CheckCircle2 className="size-11 text-white" strokeWidth={2.25} />
+            </div>
           </div>
 
-          <h2 className="text-[22px] font-bold tracking-tight text-foreground">
+          <h2 className="text-[24px] font-bold tracking-tight text-foreground">
             Invoice Ready
           </h2>
-          <p className="mt-2 max-w-[16rem] text-[14px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 max-w-[18rem] text-[13.5px] leading-relaxed text-muted-foreground">
             Show this barcode at the cashier to complete checkout
           </p>
 
           {/* Barcode */}
-          <div className="mt-6 w-full rounded-2xl border border-border/60 bg-white p-5 shadow-sm dark:bg-white">
+          <div className="mt-6 w-full rounded-2xl border border-border/60 bg-white p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_2px_8px_rgba(0,0,0,0.04)] dark:bg-white">
             <div
               className="mx-auto flex max-w-[280px] justify-center"
               dangerouslySetInnerHTML={{ __html: barcodeSvg }}
             />
-            <p className="mt-3.5 text-center font-mono text-[15px] font-bold tracking-[0.18em] text-gray-900">
+            <p className="mt-3.5 text-center font-mono text-[15px] font-bold tracking-[0.2em] text-gray-900">
               {invoice.barcodeCode}
             </p>
           </div>
 
           {/* Invoice summary */}
-          <div className="mt-6 w-full space-y-2.5 rounded-2xl border border-border/[0.08] bg-muted/[0.08] p-4.5 text-left">
+          <div className="mt-5 w-full space-y-2.5 rounded-2xl border border-border/[0.08] bg-muted/[0.1] p-4 text-left">
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-muted-foreground">Items</span>
+              <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+                <ShoppingBasket className="size-3.5" />
+                Items
+              </span>
               <span className="text-[13px] font-semibold tabular-nums text-foreground">
                 {itemCount} item{itemCount === 1 ? "" : "s"}
               </span>
             </div>
-            <div className="flex items-center justify-between border-t border-border/[0.06] pt-2.5">
+            <div className="flex items-center justify-between border-t border-border/[0.08] pt-2.5">
               <span className="text-[13px] font-medium text-muted-foreground">
                 Total
               </span>
-              <span className="text-[20px] font-bold tabular-nums tracking-tight text-foreground">
+              <span className="text-[22px] font-bold tabular-nums tracking-tight text-foreground">
                 {currency} {invoice.grandTotal.toFixed(2)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-[12px]">
+            <div className="flex items-center justify-between border-t border-border/[0.08] pt-2 text-[12px]">
               <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                 <Clock className="size-3.5" />
                 Expires
@@ -147,11 +166,11 @@ export function GroceryInvoiceSuccess({
           </div>
 
           {/* Actions */}
-          <div className="mt-7 flex w-full gap-3">
+          <div className="mt-6 flex w-full gap-3">
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border/60 bg-white px-4 py-3 text-[13px] font-semibold text-foreground shadow-sm transition-all duration-200 hover:bg-muted/50 hover:shadow-md active:scale-[0.97] dark:bg-white/[0.02]"
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-border/60 bg-white px-4 text-[13.5px] font-semibold text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.6)] transition-all duration-200 hover:bg-muted/50 hover:shadow-md active:scale-[0.97] touch-manipulation dark:bg-white/[0.02]"
             >
               <Printer className="size-4" />
               Print
@@ -159,10 +178,14 @@ export function GroceryInvoiceSuccess({
             <button
               type="button"
               onClick={onNewInvoice}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(0,0,0,0.2)] active:scale-[0.97]"
+              className="group relative flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[linear-gradient(135deg,hsl(var(--primary))_0%,color-mix(in_oklch,hsl(var(--primary))_88%,#fff)_50%,hsl(var(--primary))_100%)] px-4 text-[13.5px] font-bold text-white shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.45),inset_0_1px_0_hsl(0_0%_100%/0.2)] transition-all duration-200 hover:shadow-[0_12px_32px_-6px_hsl(var(--primary)/0.55)] active:scale-[0.97] touch-manipulation"
             >
-              <PlusCircle className="size-4" />
-              New Invoice
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              />
+              <PlusCircle className="size-4 transition-transform duration-200 group-hover:rotate-90" />
+              New Sale
             </button>
           </div>
         </div>

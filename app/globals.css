@@ -1394,6 +1394,84 @@ button:hover .tenant-monogram-shell {
     animation: shop-cart-added-pulse 0.65s ease-out both;
 }
 
+/* ── Grocery POS: cart panel/badge pulse on add ────────────────────── */
+@keyframes pos-cart-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 40%, transparent);
+    }
+    35% {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 8px color-mix(in oklch, var(--primary) 18%, transparent);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.animate-pos-cart-pulse {
+    animation: pos-cart-pulse 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Grocery POS: floating button breathing glow ──────────────────── */
+@keyframes pos-fab-breathe {
+    0%,
+    100% {
+        box-shadow:
+            0 10px 32px -8px color-mix(in oklch, var(--primary) 50%, transparent),
+            0 0 0 0 color-mix(in oklch, var(--primary) 38%, transparent);
+    }
+    50% {
+        box-shadow:
+            0 14px 40px -8px color-mix(in oklch, var(--primary) 60%, transparent),
+            0 0 0 6px color-mix(in oklch, var(--primary) 10%, transparent);
+    }
+}
+
+.animate-pos-fab-breathe {
+    animation: pos-fab-breathe 2.6s ease-in-out infinite;
+}
+
+/* ── Grocery POS: horizontal scroll with snap & no scrollbar ─────── */
+.pos-snap-row {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.pos-snap-row::-webkit-scrollbar {
+    display: none;
+}
+
+.pos-snap-row > * {
+    scroll-snap-align: start;
+}
+
+/* ── Grocery POS: subtle line item slide-in on add ────────────────── */
+@keyframes pos-line-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-pos-line-in {
+    animation: pos-line-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-pos-cart-pulse,
+    .animate-pos-fab-breathe,
+    .animate-pos-line-in {
+        animation: none;
+    }
+}
+
 /* POS receipt print — 50mm thermal roll (50×80 mm), bold readable type */
 @media print {
     @page {

@@ -280,6 +280,13 @@ export type MeResponse = {
   branchId?: string;
   role?: RoleSummary;
   permissions?: string[];
+  /**
+   * Department (item-type) IDs this user is restricted to. Currently only
+   * enforced for the `grocery_clerk` role; an empty array means the user
+   * has no department assignments yet (and as a grocery clerk would see no
+   * items until an admin assigns at least one).
+   */
+  itemTypeIds?: string[];
 };
 
 export type UserRecord = MeResponse;
@@ -2056,6 +2063,37 @@ export async function assignUserRole(
 
 export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
+}
+
+/**
+ * List the department (item-type) IDs a user is restricted to. Only
+ * meaningful for the `grocery_clerk` role today; other roles return an
+ * empty list and are unrestricted.
+ */
+export async function fetchUserItemTypes(userId: string): Promise<string[]> {
+  const res = await request<{ itemTypeIds?: string[] }>(
+    `${API_ROUTES.users}/${userId}/item-types`,
+  );
+  return Array.isArray(res?.itemTypeIds) ? res.itemTypeIds : [];
+}
+
+/**
+ * Replace the user's department assignments. Empty array clears all
+ * assignments — for grocery clerks this means they will see no items until
+ * an admin assigns at least one department again.
+ */
+export async function setUserItemTypes(
+  userId: string,
+  itemTypeIds: string[],
+): Promise<string[]> {
+  const res = await request<{ itemTypeIds?: string[] }>(
+    `${API_ROUTES.users}/${userId}/item-types`,
+    {
+      method: "PUT",
+      body: { itemTypeIds },
+    },
+  );
+  return Array.isArray(res?.itemTypeIds) ? res.itemTypeIds : [];
 }
 
 export type CatalogListScope =

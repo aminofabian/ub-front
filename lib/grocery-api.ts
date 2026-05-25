@@ -100,6 +100,20 @@ export type CancelGroceryInvoiceRequest = {
   reason: string;
 };
 
+/**
+ * One row of the server-aggregated grocery "Top sellers" feed. Ranked by
+ * the calling user's own (non-cancelled) invoice activity at the branch.
+ */
+export type GroceryTopProduct = {
+  id: string;
+  name: string;
+  sku?: string | null;
+  thumbnailUrl?: string | null;
+  invoiceCount: number;
+  totalQuantity: number;
+  lastInvoicedAt?: string | null;
+};
+
 // ── Error class ────────────────────────────────────────────────────
 
 export class GroceryApiError extends Error {
@@ -294,4 +308,25 @@ export async function unlockGroceryInvoice(
     `${GROCERY_BASE}/${encodeURIComponent(id)}/unlock`,
     { method: "POST", suppressToast: true },
   );
+}
+
+/**
+ * Server-aggregated top-sellers feed for the grocery counter. Each row is
+ * ranked by the calling user's own invoice activity at the branch, so the
+ * list survives page reloads (sorting happens in the database).
+ *
+ * GET /api/v1/grocery/top-products?branchId=...&limit=20
+ */
+export async function fetchGroceryTopProducts(
+  branchId: string,
+  limit = 20,
+): Promise<GroceryTopProduct[]> {
+  const params = new URLSearchParams();
+  if (branchId) params.set("branchId", branchId);
+  params.set("limit", String(Math.max(1, Math.min(limit, 100))));
+  const list = await groceryRequest<GroceryTopProduct[]>(
+    `/api/v1/grocery/top-products?${params.toString()}`,
+    { suppressToast: true },
+  );
+  return Array.isArray(list) ? list : [];
 }

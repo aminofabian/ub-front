@@ -166,23 +166,42 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const roleKey = me?.role?.key?.trim().toLowerCase();
+  const isGroceryClerk = roleKey === "grocery_clerk";
+  const assignedItemTypeIds = useMemo(() => {
+    const ids = me?.itemTypeIds ?? [];
+    return new Set(
+      ids
+        .map((id) => id?.trim())
+        .filter((id): id is string => !!id && id.length > 0),
+    );
+  }, [me?.itemTypeIds]);
+
   const refreshItemTypes = useCallback(async () => {
     setItemTypesLoading(true);
     try {
       const list = await fetchItemTypes();
-      setItemTypes(list.filter((t) => t.active));
+      let visible = list.filter((t) => t.active);
+      // Grocery clerks are restricted to the departments an admin has assigned
+      // them; everyone else sees the full active list.
+      if (isGroceryClerk && assignedItemTypeIds.size > 0) {
+        visible = visible.filter((t) => assignedItemTypeIds.has(t.id));
+      } else if (isGroceryClerk) {
+        visible = [];
+      }
+      setItemTypes(visible);
     } catch {
       setItemTypes([]);
     } finally {
       setItemTypesLoading(false);
     }
-  }, []);
+  }, [isGroceryClerk, assignedItemTypeIds]);
 
   // ── Stock managers, cashiers and grocery clerks are locked to their assigned branch ─────
   const branchLockedRole =
-    me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
-    me?.role?.key?.trim().toLowerCase() === "cashier" ||
-    me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
+    roleKey === "stock_manager" ||
+    roleKey === "cashier" ||
+    roleKey === "grocery_clerk";
 
   const setBranchId = useCallback(
     (id: string) => {
