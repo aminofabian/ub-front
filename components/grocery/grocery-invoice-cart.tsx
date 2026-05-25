@@ -15,6 +15,7 @@ import {
   WifiOff,
   Sparkles,
   ScanLine,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
@@ -455,42 +456,115 @@ export function GroceryInvoiceCart({
               </span>
             </div>
 
-            {/* Generate Invoice Button */}
+            {/* Generate Invoice Button — receipt-printer themed CTA */}
             <button
               type="button"
               onClick={onGenerate}
               disabled={loading || isEmpty}
               className={cn(
-                "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-5 py-4 text-[15px] font-extrabold text-white",
-                "bg-[linear-gradient(135deg,hsl(var(--primary))_0%,color-mix(in_oklch,hsl(var(--primary))_88%,#fff)_50%,hsl(var(--primary))_100%)]",
-                "shadow-[0_12px_36px_-8px_hsl(var(--primary)/0.5),0_0_0_0_hsl(var(--primary)/0.4),inset_0_1px_0_hsl(0_0%_100%/0.22)]",
-                "transition-all duration-300",
-                "hover:shadow-[0_18px_44px_-8px_hsl(var(--primary)/0.6),0_0_0_5px_hsl(var(--primary)/0.14),inset_0_1px_0_hsl(0_0%_100%/0.25)]",
-                "active:scale-[0.98] active:shadow-[0_4px_16px_hsl(var(--primary)/0.4)]",
-                "touch-manipulation",
-                loading && "pointer-events-none opacity-80",
+                "pos-generate group relative isolate flex w-full items-stretch overflow-hidden rounded-2xl text-left text-white",
+                "bg-[radial-gradient(140%_120%_at_0%_0%,#34c759_0%,hsl(var(--primary))_42%,#1f7a36_100%)]",
+                "shadow-[0_14px_40px_-10px_hsl(var(--primary)/0.55),0_2px_8px_-2px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.18)]",
+                "ring-1 ring-emerald-600/40",
+                "transition-[transform,box-shadow,filter] duration-300 ease-out",
+                "hover:shadow-[0_22px_56px_-10px_hsl(var(--primary)/0.65),0_0_0_5px_hsl(var(--primary)/0.12),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.18)]",
+                "hover:saturate-[1.05]",
+                "active:scale-[0.985] active:shadow-[0_6px_18px_hsl(var(--primary)/0.45),inset_0_1px_0_rgba(255,255,255,0.2)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf8f4] dark:focus-visible:ring-offset-background",
+                "touch-manipulation select-none",
+                loading && "pointer-events-none opacity-90",
                 isEmpty && "pointer-events-none opacity-50",
                 !loading && !isEmpty && "animate-pos-fab-breathe",
               )}
             >
-              {/* Inner sheen */}
+              {/* Top hairline highlight */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
               />
-              {loading ? (
-                <>
-                  <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <span>Creating Invoice…</span>
-                </>
-              ) : (
-                <>
-                  <Receipt className="size-[18px] transition-transform duration-300 group-hover:-rotate-3" strokeWidth={2.25} />
-                  <span className="text-green-600">Generate Invoice</span>
-                  <span className="flex size-6 items-center justify-center rounded-full bg-white/25 text-[11.5px] font-extrabold tabular-nums shadow-inner">
+              {/* Bottom hairline shadow */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/25 to-transparent"
+              />
+              {/* Soft side spotlights */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -left-10 top-1/2 size-32 -translate-y-1/2 rounded-full bg-white/15 blur-2xl"
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-12 bottom-0 size-32 rounded-full bg-emerald-900/30 blur-2xl"
+              />
+              {/* Diagonal sweep — slides across on hover and slowly on idle */}
+              <span
+                aria-hidden
+                className="pos-generate-sweep pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+              />
+              {/* Receipt-strip perforation along the bottom edge */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-4 bottom-[3px] h-px opacity-70"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(circle, rgba(255,255,255,0.65) 1px, transparent 1.2px)",
+                  backgroundSize: "8px 1px",
+                  backgroundRepeat: "repeat-x",
+                  backgroundPosition: "0 0",
+                }}
+              />
+
+              {/* ── Left rail: icon column ── */}
+              <span className="relative z-[1] flex w-14 shrink-0 items-center justify-center border-r border-white/15 bg-white/[0.07] backdrop-blur-[2px]">
+                {loading ? (
+                  <span className="size-[18px] animate-spin rounded-full border-[2.5px] border-white/30 border-t-white" />
+                ) : (
+                  <span className="relative flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+                    <Receipt
+                      className="size-[19px] drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105 group-active:scale-95"
+                      strokeWidth={2.25}
+                    />
+                  </span>
+                )}
+              </span>
+
+              {/* ── Main label column ── */}
+              <span className="relative z-[1] flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-4 py-3.5">
+                {loading ? (
+                  <>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
+                      Working…
+                    </span>
+                    <span className="text-[15.5px] font-extrabold tracking-tight text-white">
+                      Creating invoice
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1.5 text-[9.5px] font-extrabold uppercase tracking-[0.16em] text-white/80">
+                      <span className="relative inline-flex size-1.5 rounded-full bg-white/90">
+                        <span className="absolute inset-0 inline-flex size-1.5 animate-ping rounded-full bg-white/70" />
+                      </span>
+                      Ready · Tap to print
+                    </span>
+                    <span className="text-[15.5px] font-extrabold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)]">
+                      Generate Invoice
+                    </span>
+                  </>
+                )}
+              </span>
+
+              {/* ── Right rail: count + arrow ── */}
+              {!loading && (
+                <span className="relative z-[1] flex shrink-0 items-center gap-2 pr-4">
+                  <span className="flex h-7 min-w-[1.9rem] items-center justify-center gap-1 rounded-full bg-white/22 px-2 text-[11.5px] font-extrabold tabular-nums text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.12)] ring-1 ring-white/25">
+                    <ShoppingBasket className="size-3" strokeWidth={2.5} />
                     {cartItemCount}
                   </span>
-                </>
+                  <span className="flex size-7 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:bg-white/25 group-active:scale-90">
+                    <ArrowRight className="size-3.5" strokeWidth={2.75} />
+                  </span>
+                </span>
               )}
             </button>
 
