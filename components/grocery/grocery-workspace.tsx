@@ -218,6 +218,12 @@ export function GroceryWorkspace() {
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
   const cashierName = me?.name?.trim() || "";
+  // Grocery clerks always see the AppShell's bottom nav (kiosk-nav mode).
+  // We use this to reserve room at the bottom of every scrollable surface
+  // and shrink the workspace's height so the cart panel footer stays above
+  // the always-present nav.
+  const isKiosk =
+    me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
 
   // Item browser state
   const [search, setSearch] = useState("");
@@ -515,7 +521,13 @@ export function GroceryWorkspace() {
   return (
     <div
       className={cn(
-        "relative flex h-[calc(100vh-4rem)] flex-col overflow-hidden",
+        "relative flex flex-col overflow-hidden",
+        // Kiosk-nav mode (grocery clerk): leave room for the always-present
+        // bottom nav so the cart-panel footer + Generate button never get
+        // hidden behind it on tablets/iPads.
+        isKiosk
+          ? "h-[calc(100dvh-4rem-5rem-env(safe-area-inset-bottom,0px))]"
+          : "h-[calc(100dvh-4rem)]",
         // Soft layered background — feels like a native tablet canvas
         "bg-[radial-gradient(110%_60%_at_50%_0%,hsl(var(--primary)/0.045),transparent_60%),linear-gradient(180deg,hsl(var(--muted)/0.35)_0%,hsl(var(--background))_60%)]",
         "dark:bg-[radial-gradient(110%_60%_at_50%_0%,hsl(var(--primary)/0.08),transparent_60%),hsl(var(--background))]",
@@ -832,8 +844,13 @@ export function GroceryWorkspace() {
         className={cn(
           "lg:hidden pointer-events-none fixed inset-x-0 bottom-0 z-30",
           "px-3 sm:px-5",
-          // Sit above mobile bottom-nav (md:hidden mobile-only nav uses ~4.25rem + safe area)
-          "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)] md:pb-[calc(env(safe-area-inset-bottom,0.5rem)+1rem)]",
+          // Sit above the bottom nav (~4.25rem + safe area). At md+ non-kiosk
+          // sessions, the bottom nav is hidden so we relax the clearance —
+          // but in kiosk-nav mode the nav stays at every size, so we keep the
+          // larger padding throughout.
+          isKiosk
+            ? "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)]"
+            : "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)] md:pb-[calc(env(safe-area-inset-bottom,0.5rem)+1rem)]",
         )}
       >
         <div className="pointer-events-auto mx-auto flex max-w-3xl items-center gap-2.5">

@@ -13,6 +13,7 @@ import {
   LogOut,
   MapPin,
   Package,
+  Receipt,
   ShoppingBag,
   SlidersHorizontal,
   Tags,
@@ -386,6 +387,10 @@ export function AppShell({ children }: AppShellProps) {
   const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
   const isGroceryClerk =
     me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
+  // Kiosk-mode layout: replace the desktop sidebar with a bottom nav at every
+  // viewport size. Used for tablet-first cashier-style roles where the
+  // sidebar would steal precious horizontal real-estate from the POS canvas.
+  const kioskNav = isGroceryClerk;
   const homeHref = isStockManager
     ? APP_ROUTES.inventoryStockTake
     : isCashier
@@ -535,14 +540,31 @@ export function AppShell({ children }: AppShellProps) {
       );
     }
     if (roleKey === "grocery_clerk") {
-      return BOTTOM_TABS.map((tab) => {
-        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.grocery };
-        return tab;
-      }).filter(
-        (tab) =>
-          tab.id !== "overview" &&
-          (!tab.href || tab.href === APP_ROUTES.grocery || tab.id === "more"),
-      );
+      // Compact, kiosk-friendly tab set surfaced at every viewport size since
+      // the sidebar is hidden for grocery clerks (kiosk-nav mode).
+      const groceryClerkTabs: readonly BottomTab[] = [
+        {
+          id: "pos",
+          label: "POS",
+          icon: ShoppingBag,
+          href: APP_ROUTES.grocery,
+          matchSectionIds: ["sales"],
+        },
+        {
+          id: "invoices",
+          label: "Invoices",
+          icon: Receipt,
+          href: APP_ROUTES.groceryInvoices,
+          matchSectionIds: ["sales"],
+        },
+        {
+          id: "more",
+          label: "More",
+          icon: Tags,
+          matchSectionIds: ["org", "payments"],
+        },
+      ];
+      return groceryClerkTabs;
     }
     return BOTTOM_TABS;
   }, [me]);
@@ -614,8 +636,13 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-muted/30">
-      {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────────── */}
-      <aside className="hidden md:flex sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background">
+      {/* ── Desktop sidebar (hidden on mobile, fully hidden in kiosk-nav mode) ── */}
+      <aside
+        className={cn(
+          "sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background",
+          kioskNav ? "hidden" : "hidden md:flex",
+        )}
+      >
         <div className="border-b p-4">
           <Link
             href={homeHref}
@@ -747,8 +774,13 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* ── Right panel ─────────────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Desktop top header */}
-        <header className="hidden md:flex items-center justify-between gap-4 border-b bg-background px-6 py-3">
+        {/* Desktop top header (hidden in kiosk-nav mode — mobile header used instead) */}
+        <header
+          className={cn(
+            "items-center justify-between gap-4 border-b bg-background px-6 py-3",
+            kioskNav ? "hidden" : "hidden md:flex",
+          )}
+        >
           <div className="flex min-w-0 flex-col">
             <p className="text-sm text-muted-foreground truncate">
               {headerSubtitle ? headerSubtitle : ""}
@@ -840,8 +872,13 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        {/* ── Mobile top header ──────────────────────────────────────────────── */}
-        <header className="md:hidden sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/50 bg-background/95 px-4 py-3 backdrop-blur-md shadow-sm">
+        {/* ── Mobile top header (also used at every size in kiosk-nav mode) ── */}
+        <header
+          className={cn(
+            "sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/50 bg-background/95 px-4 py-3 backdrop-blur-md shadow-sm",
+            kioskNav ? "" : "md:hidden",
+          )}
+        >
           {/* Brand */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background text-sm font-bold shadow-sm">
@@ -886,15 +923,24 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* ── Main content ───────────────────────────────────────────────────── */}
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-28 md:p-6 md:pb-6">
+        <main
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto p-4 pb-28",
+            // Outside kiosk-nav mode, restore the roomier desktop padding once
+            // the sidebar appears at md+. Kiosk mode keeps the mobile-style
+            // bottom padding at every size to clear the always-present nav.
+            kioskNav ? "" : "md:p-6 md:pb-6",
+          )}
+        >
           {children}
         </main>
 
-        {/* ── Mobile bottom nav ──────────────────────────────────────────────── */}
+        {/* ── Bottom nav (mobile-only by default; always visible in kiosk-nav) ── */}
         <nav
           aria-label="Main navigation"
           className={cn(
-            "md:hidden fixed bottom-0 inset-x-0 z-40",
+            "fixed bottom-0 inset-x-0 z-40",
+            kioskNav ? "" : "md:hidden",
             "border-t border-border/40 bg-background/95 backdrop-blur-xl",
             "shadow-[0_-1px_0_0_hsl(var(--border)/0.5),0_-8px_32px_-8px_hsl(var(--foreground)/0.08)]",
             "pb-[env(safe-area-inset-bottom,0px)]",
@@ -959,9 +1005,14 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </nav>
 
-        {/* ── Mobile "More" drawer ──────────────────────────────────────────── */}
+        {/* ── "More" drawer (mobile-only by default; available everywhere in kiosk-nav) ── */}
         {moreOpen ? (
-          <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-background">
+          <div
+            className={cn(
+              "fixed inset-0 z-50 flex flex-col bg-background",
+              kioskNav ? "" : "md:hidden",
+            )}
+          >
             <div className="flex items-center justify-between border-b px-4 py-3">
               <span className="text-sm font-semibold">More</span>
               <button
