@@ -89,7 +89,10 @@ describe("isSessionRelatedProblem", () => {
     ).toBe(false);
   });
 
-  it("matches missing tenant context on authenticated calls", () => {
+  // Missing tenant context (400) and unmapped tenant host (404) are NOT
+  // session-related failures - they are routing/configuration issues. The
+  // user keeps their session and sees a normal error toast.
+  it("ignores missing tenant context regardless of auth", () => {
     expect(
       isSessionRelatedProblem(400, {
         title: "Bad Request",
@@ -97,10 +100,7 @@ describe("isSessionRelatedProblem", () => {
         detail:
           "Tenant context missing. Provide mapped Host header or X-Tenant-Id.",
       }),
-    ).toBe(true);
-  });
-
-  it("ignores missing tenant context on public calls", () => {
+    ).toBe(false);
     expect(
       isSessionRelatedProblem(
         400,
@@ -112,6 +112,17 @@ describe("isSessionRelatedProblem", () => {
         },
         { requiresAuth: false },
       ),
+    ).toBe(false);
+  });
+
+  it("ignores unmapped tenant host 404 (routing problem, not auth)", () => {
+    expect(
+      isSessionRelatedProblem(404, {
+        type: "urn:problem:tenant-not-found",
+        title: "Tenant not found",
+        status: 404,
+        detail: "No active tenant mapping found for host: kiosk.zelisline.com",
+      }),
     ).toBe(false);
   });
 });

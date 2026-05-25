@@ -16,10 +16,9 @@ import {
   getSessionTokens,
   signOutClientAndRedirectToLogin,
   registerRealtimeDisconnect,
-  setSessionTokens,
 } from "./auth";
+import { refreshAccessToken } from "./api";
 import {
-  API_ROUTES,
   apiUrl,
   resolveRealtimeWebSocketBaseUrl,
   STORAGE_KEYS,
@@ -165,16 +164,36 @@ interface TicketResponse {
 }
 
 async function mintTicket(channels: string[]): Promise<TicketResponse> {
-  const tokens = getSessionTokens();
-  if (!tokens) {
-    throw new Error("No session tokens available");
-  }
+  /*
+   * Ticket mint is a normal authenticated API call. If our access token has
+   * just expired the first attempt will 401; rather than letting the WS layer
+   * see a bogus failure and tear the connection down, route the 401 through
+   * the shared single-flight refresh and retry exactly once. That way WS
+   * reconnection never races with a parallel API refresh and never trips
+   * the backend reuse cascade.
+   */
+  const attempt = async (): Promise<Response> => {
+    const tokens = getSessionTokens();
+    if (!tokens) {
+      throw new Error("No session tokens available");
+    }
+    return fetch(apiUrl("/api/v1/realtime/tickets"), {
+      method: "POST",
+      headers: buildAuthHeaders(tokens.accessToken),
+      body: JSON.stringify({ channels }),
+    });
+  };
 
-  const response = await fetch(apiUrl("/api/v1/realtime/tickets"), {
-    method: "POST",
-    headers: buildAuthHeaders(tokens.accessToken),
-    body: JSON.stringify({ channels }),
-  });
+  let response = await attempt();
+  if (response.status === 401) {
+    const outcome = await refreshAccessToken();
+    if (outcome.kind === "ok") {
+      response = await attempt();
+    } else if (outcome.kind === "rejected") {
+      throw new Error("Unauthorized");
+    }
+    // network failure: fall through with the original 401 below
+  }
 
   if (!response.ok) {
     const problem = await response.json().catch(() => ({}));
@@ -516,31 +535,32 @@ export class RealtimeClient {
     }, delay);
   }
 
+  /*
+   * The server sent close code 4401: our credentials were rejected on the WS
+   * upgrade or during a reauth round-trip. Route the refresh through the
+   * shared single-flight helper so this never races against a parallel API
+   * refresh. A transient (network) failure must not sign the user out -
+   * attemptReconnect will retry with exponential backoff.
+   */
   private async handleReauthAndReconnect(): Promise<void> {
     try {
-      const tokens = getSessionTokens();
-      if (!tokens) {
+      if (!getSessionTokens()) {
         signOutClientAndRedirectToLogin();
         return;
       }
-      const refreshUrl = apiUrl(API_ROUTES.refresh);
-      const response = await fetch(refreshUrl, {
-        method: "POST",
-        headers: buildAuthHeaders(tokens.accessToken),
-        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-      });
-      if (response.ok) {
-        const body = await response.json();
-        setSessionTokens({
-          accessToken: body.accessToken,
-          refreshToken: body.refreshToken ?? tokens.refreshToken,
-        });
+      const outcome = await refreshAccessToken();
+      if (outcome.kind === "ok") {
         this.attemptReconnect();
         return;
       }
-      signOutClientAndRedirectToLogin();
+      if (outcome.kind === "rejected") {
+        signOutClientAndRedirectToLogin();
+        return;
+      }
+      // network: keep the session, try to reconnect later with current tokens
+      this.attemptReconnect();
     } catch {
-      signOutClientAndRedirectToLogin();
+      this.attemptReconnect();
     }
   }
 

@@ -12,6 +12,114 @@ export type SessionTokens = {
   refreshToken: string;
 };
 
+/*
+ * Cross-tab auth synchronization.
+ *
+ * Without coordination, two open tabs run independent refresh timers; both
+ * detect "access token about to expire" at almost the same wall-clock instant
+ * and both POST /auth/refresh with the same refresh token. The second one
+ * loses the race and, prior to the backend grace window, would trigger the
+ * RFC 6819 reuse cascade and revoke every active session for the user.
+ *
+ * BroadcastChannel ("ub-auth") is the primary transport: instant, in-process,
+ * and not subject to the same-tab quirks of the "storage" event (which only
+ * fires in OTHER tabs and not the one that wrote). We also subscribe to the
+ * "storage" event as a fallback for environments where BroadcastChannel is
+ * unavailable (older Safari, locked-down WebViews).
+ */
+type AuthBroadcastMessage =
+  | { type: "tokens"; accessToken: string; refreshToken: string }
+  | { type: "logout" };
+
+const AUTH_CHANNEL_NAME = "ub-auth";
+
+type AuthBroadcastListener = (msg: AuthBroadcastMessage) => void;
+
+let authChannel: BroadcastChannel | null = null;
+const authListeners = new Set<AuthBroadcastListener>();
+let storageListenerInstalled = false;
+
+function getAuthChannel(): BroadcastChannel | null {
+  if (typeof window === "undefined") return null;
+  if (authChannel) return authChannel;
+  if (typeof BroadcastChannel === "undefined") return null;
+  try {
+    authChannel = new BroadcastChannel(AUTH_CHANNEL_NAME);
+    authChannel.addEventListener("message", (event) => {
+      const data = event.data as AuthBroadcastMessage | undefined;
+      if (!data || typeof data.type !== "string") return;
+      for (const listener of authListeners) {
+        try {
+          listener(data);
+        } catch {
+          /* listener errors must not break delivery to others */
+        }
+      }
+    });
+  } catch {
+    authChannel = null;
+  }
+  return authChannel;
+}
+
+function installStorageFallback(): void {
+  if (storageListenerInstalled) return;
+  if (typeof window === "undefined") return;
+  storageListenerInstalled = true;
+  window.addEventListener("storage", (event) => {
+    if (event.storageArea !== window.localStorage) return;
+    if (event.key === STORAGE_KEYS.accessToken) {
+      const tokens = getSessionTokens();
+      if (tokens) {
+        for (const listener of authListeners) {
+          try {
+            listener({ type: "tokens", ...tokens });
+          } catch {
+            /* ignore */
+          }
+        }
+      } else if (event.newValue === null) {
+        for (const listener of authListeners) {
+          try {
+            listener({ type: "logout" });
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Subscribe to auth events broadcast from other tabs. Returns an unsubscribe
+ * function. Safe to call on the server (returns a no-op).
+ */
+export function subscribeToAuthBroadcasts(
+  listener: AuthBroadcastListener,
+): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+  getAuthChannel();
+  installStorageFallback();
+  authListeners.add(listener);
+  return () => {
+    authListeners.delete(listener);
+  };
+}
+
+function postAuthBroadcast(msg: AuthBroadcastMessage): void {
+  const channel = getAuthChannel();
+  if (channel) {
+    try {
+      channel.postMessage(msg);
+    } catch {
+      /* channel closed; ignore */
+    }
+  }
+}
+
 export function getSessionTokens(): SessionTokens | null {
   if (typeof window === "undefined") {
     return null;
@@ -29,6 +137,11 @@ export function getSessionTokens(): SessionTokens | null {
 export function setSessionTokens(tokens: SessionTokens): void {
   window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
   window.localStorage.setItem(STORAGE_KEYS.refreshToken, tokens.refreshToken);
+  postAuthBroadcast({
+    type: "tokens",
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+  });
 }
 
 export function clearSessionTokens(): void {
@@ -69,11 +182,25 @@ export function clearAllSessionData(): void {
   window.localStorage.removeItem("ub.webCart.v1");
 }
 
+/*
+ * Idempotency guard: signOutClientAndRedirectToLogin can be invoked from many
+ * places in the same tick (the catch arm of a request, a refresh failure, a
+ * "session is no longer active" 401 returned to a parallel request, etc.).
+ * Without this guard the second call clobbers the navigation that the first
+ * one already initiated and we end up issuing redundant work / extra storage
+ * mutations / extra broadcasts.
+ */
+let signOutInProgress = false;
+
 /** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
 export function signOutClientAndRedirectToLogin(): void {
   if (typeof window === "undefined") {
     return;
   }
+  if (signOutInProgress) {
+    return;
+  }
+  signOutInProgress = true;
   // Tear down realtime WebSocket before clearing tokens
   try {
     // Dynamic import to avoid circular dependency at module-load time
@@ -87,6 +214,7 @@ export function signOutClientAndRedirectToLogin(): void {
     /* ignore */
   }
   clearAllSessionData();
+  postAuthBroadcast({ type: "logout" });
   window.location.assign(APP_ROUTES.login);
 }
 

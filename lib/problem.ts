@@ -140,6 +140,13 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
 /**
  * Whether an API failure means the stored session is unusable and the client should
  * clear auth data and redirect to login. Skips public/unauthenticated calls (e.g. login).
+ *
+ * <p>This is intentionally CONSERVATIVE: only true authentication failures
+ * (401, refresh-token rejected, account locked, JWT tenant mismatch) count
+ * as session-related. A misconfigured X-Tenant-Host (404 tenant-not-found),
+ * a missing tenant context header (400) or any other 4xx/5xx is treated as
+ * a normal request failure - the user keeps their session and sees a toast
+ * rather than being kicked back to /login.
  */
 export function isSessionRelatedProblem(
   status: number,
@@ -148,14 +155,6 @@ export function isSessionRelatedProblem(
 ): boolean {
   if (options?.requiresAuth === false) {
     return false;
-  }
-
-  if (status === 404 && isUnmappedTenantHostProblem(payload)) {
-    return true;
-  }
-
-  if (status === 400 && isTenantContextMissingProblem(payload)) {
-    return true;
   }
 
   if (status === 401) {

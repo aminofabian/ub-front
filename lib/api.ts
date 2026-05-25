@@ -15,6 +15,7 @@ import {
   getSessionTokens,
   setSessionTokens,
   signOutClientAndRedirectToLogin,
+  subscribeToAuthBroadcasts,
 } from "@/lib/auth";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
@@ -110,10 +111,12 @@ async function resolveUnauthorizedResponse(
     }
     failRequest(response.status, payload, options);
   }
-  if (await tryRefreshToken()) {
+  const result = await refreshAccessToken();
+  if (result.kind === "ok") {
     return execute();
   }
-  if (options?.requiresAuth !== false) {
+  if (result.kind === "rejected" && options?.requiresAuth !== false) {
+    // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
     signOutClientAndRedirectToLogin();
     throw new ApiRequestError(
       formatApiProblemMessage(payload),
@@ -121,6 +124,14 @@ async function resolveUnauthorizedResponse(
       payload,
     );
   }
+  /*
+   * Network/server transient failure during refresh: do NOT sign out.
+   * Surfacing the original 401 lets the caller decide (toast, retry, etc.)
+   * and lets the next user action attempt refresh again. We may also have
+   * lost the single-flight race to a sibling tab that succeeded; in that
+   * case the broadcast listener has already updated localStorage and a
+   * retried call will pick up the new access token automatically.
+   */
   failRequest(response.status, payload, options);
 }
 
@@ -864,10 +875,59 @@ function getNetworkErrorMessage(): string {
   return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
 }
 
-export async function tryRefreshToken(): Promise<boolean> {
+/**
+ * Granular outcome of a refresh attempt.
+ *
+ * - `ok`: a fresh access+refresh pair is now in storage (either we minted it
+ *   ourselves or another tab beat us to it and we adopted its result).
+ * - `rejected`: the backend rejected the refresh token with a 4xx that means
+ *   the session is unrecoverable (revoked, expired, malformed). Caller should
+ *   sign the user out.
+ * - `network`: a transient failure (network down, 5xx, backend hiccup). Caller
+ *   must NOT sign the user out - the session is still valid and the next
+ *   attempt should work.
+ */
+export type RefreshOutcome =
+  | { kind: "ok" }
+  | { kind: "rejected" }
+  | { kind: "network" };
+
+/*
+ * Single-flight refresh.
+ *
+ * Every callsite that wants to refresh (API 401 handler, scheduled timer,
+ * activity-triggered refresh, WS reauth) goes through refreshAccessToken().
+ * If a refresh is already in flight, callers receive the SAME promise and
+ * therefore the SAME outcome. This prevents:
+ *   1. Multiple parallel POST /auth/refresh calls with the same refresh token
+ *      (which would otherwise trip RFC 6819 reuse detection on the backend).
+ *   2. Wasted backend round-trips when a navigation fires 5+ requests that
+ *      all hit 401 within the same tick.
+ *
+ * The first caller actually performs the fetch; everyone else awaits the
+ * same promise. Once it settles the slot is freed so future expiries can
+ * trigger fresh refreshes.
+ *
+ * Cross-tab coordination is handled separately via the BroadcastChannel /
+ * "storage" event listener installed below: when a sibling tab finishes a
+ * refresh, the new tokens land in localStorage automatically.
+ */
+let inFlightRefresh: Promise<RefreshOutcome> | null = null;
+
+export async function refreshAccessToken(): Promise<RefreshOutcome> {
+  if (inFlightRefresh) {
+    return inFlightRefresh;
+  }
+  inFlightRefresh = performRefreshOnce().finally(() => {
+    inFlightRefresh = null;
+  });
+  return inFlightRefresh;
+}
+
+async function performRefreshOnce(): Promise<RefreshOutcome> {
   const session = getSessionTokens();
   if (!session) {
-    return false;
+    return { kind: "rejected" };
   }
 
   let response: Response;
@@ -878,18 +938,42 @@ export async function tryRefreshToken(): Promise<boolean> {
       body: JSON.stringify({ refreshToken: session.refreshToken }),
     });
   } catch {
-    throw new Error(getNetworkErrorMessage());
+    // True network failure (offline, DNS, CORS preflight error). Session is
+    // still considered valid - caller will surface a transient error.
+    return { kind: "network" };
+  }
+
+  // 5xx and 408/429 are server-side hiccups, not auth failures. Treat them
+  // as transient and keep the session intact.
+  if (response.status >= 500 || response.status === 408 || response.status === 429) {
+    return { kind: "network" };
   }
 
   if (!response.ok) {
-    signOutClientAndRedirectToLogin();
-    return false;
+    /*
+     * 400/401/403 etc from /auth/refresh: refresh token is invalid, expired,
+     * or revoked. There is no point retrying with the same token. However, we
+     * still have to handle the case where ANOTHER tab succeeded in refreshing
+     * while we were waiting: a parallel refresh wins, our token becomes the
+     * just-rotated (revoked) one, and the backend (inside the rotation grace
+     * window) returns 401 here. Adopt whatever tokens are now in storage
+     * before declaring the session dead.
+     */
+    const current = getSessionTokens();
+    if (current && current.accessToken !== session.accessToken) {
+      return { kind: "ok" };
+    }
+    return { kind: "rejected" };
   }
 
-  const payload = (await response.json()) as LoginResponse;
+  let payload: LoginResponse;
+  try {
+    payload = (await response.json()) as LoginResponse;
+  } catch {
+    return { kind: "network" };
+  }
   if (!payload.accessToken || !payload.refreshToken) {
-    signOutClientAndRedirectToLogin();
-    return false;
+    return { kind: "rejected" };
   }
 
   setSessionTokens({
@@ -897,7 +981,36 @@ export async function tryRefreshToken(): Promise<boolean> {
     refreshToken: payload.refreshToken,
   });
 
-  return true;
+  return { kind: "ok" };
+}
+
+/*
+ * Cross-tab broadcast subscription.
+ *
+ * If another tab refreshes the session, mark any in-flight refresh as a
+ * success (we have fresh tokens in storage already) and let our pending
+ * 401 retry pick them up. If another tab signs out, we sign out too so the
+ * user does not see stale data in this tab.
+ */
+if (typeof window !== "undefined") {
+  subscribeToAuthBroadcasts((msg) => {
+    if (msg.type === "logout") {
+      signOutClientAndRedirectToLogin();
+    }
+  });
+}
+
+/**
+ * Backwards-compatible boolean wrapper around {@link refreshAccessToken}.
+ * Returns true when the session is usable (new tokens were minted or adopted
+ * from a sibling tab) and false when the session is unrecoverable.
+ *
+ * Callers that need to differentiate network failures from refresh rejection
+ * should use {@link refreshAccessToken} directly.
+ */
+export async function tryRefreshToken(): Promise<boolean> {
+  const outcome = await refreshAccessToken();
+  return outcome.kind === "ok";
 }
 
 function parseList<T>(payload: unknown): T[] {
