@@ -293,7 +293,7 @@ export function GroceryWorkspace() {
   const hasSearch = search.trim().length > 0;
   const showCatalog = !hasSearch;
   const cartItemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
-  const isEmptyCart = false && lines.length === 0;
+  const isEmptyCart = lines.length === 0;
 
   const activeBranchName = useMemo(() => {
     return branches.find((b) => b.id === branchId)?.name?.trim() ?? "";
