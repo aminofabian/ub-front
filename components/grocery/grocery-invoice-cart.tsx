@@ -547,7 +547,7 @@ export function GroceryInvoiceCart({
                       </span>
                       <span className="truncate">Ready · Tap to print</span>
                     </span>
-                    <span className="truncate text-[15px] font-extrabold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:text-[15.5px]">
+                    <span className="truncate text-[15px] font-extrabold tracking-tight text-green-500 drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:text-[15.5px]">
                       Generate Invoice
                     </span>
                   </>
