@@ -293,7 +293,7 @@ export function GroceryWorkspace() {
   const hasSearch = search.trim().length > 0;
   const showCatalog = !hasSearch;
   const cartItemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
-  const isEmptyCart = lines.length === 0;
+  const isEmptyCart = false && lines.length === 0;
 
   const activeBranchName = useMemo(() => {
     return branches.find((b) => b.id === branchId)?.name?.trim() ?? "";
@@ -1063,42 +1063,90 @@ export function GroceryWorkspace() {
             onClick={isEmptyCart ? () => setShowCartDrawer(true) : onGenerate}
             disabled={loading}
             className={cn(
-              "group relative flex h-14 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl px-5 text-[14px] font-extrabold text-white",
-              "transition-[transform,box-shadow] duration-300",
-              "active:scale-[0.96]",
-              "touch-manipulation",
+              "pos-generate group relative isolate flex h-14 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl px-4 text-[14px] font-extrabold text-white sm:px-5",
+              "transition-[transform,box-shadow,filter] duration-300 ease-out",
+              "active:scale-[0.965]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 dark:focus-visible:ring-offset-background",
+              "touch-manipulation select-none",
               isEmptyCart
                 ? "bg-zinc-900 shadow-[0_10px_28px_-8px_rgba(15,23,42,0.35),inset_0_1px_0_rgba(255,255,255,0.1)] dark:bg-white dark:text-zinc-900"
-                : "bg-[linear-gradient(135deg,hsl(var(--primary))_0%,color-mix(in_oklch,hsl(var(--primary))_88%,#fff)_50%,hsl(var(--primary))_100%)]",
-              !isEmptyCart &&
-                "shadow-[0_14px_34px_-8px_hsl(var(--primary)/0.55),inset_0_1px_0_hsl(0_0%_100%/0.25)]",
+                : [
+                    "ring-1 ring-emerald-600/40",
+                    "shadow-[0_14px_38px_-10px_rgba(34,140,55,0.6),0_2px_8px_-2px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.18)]",
+                    "hover:saturate-[1.05]",
+                  ],
               !isEmptyCart && !loading && "animate-pos-fab-breathe",
-              loading && "pointer-events-none opacity-80",
+              loading && "pointer-events-none opacity-90",
               "animate-in zoom-in-95 fade-in duration-300",
-              // Make solo button fill width when cart is empty on small screens
               isEmptyCart && "flex-1 sm:flex-none",
             )}
           >
+            {/* Top hairline + bottom shadow */}
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"
+              className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/65 to-transparent"
             />
+            {!isEmptyCart && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/25 to-transparent"
+              />
+            )}
+            {/* Side spotlights for depth (only when active) */}
+            {!isEmptyCart && (
+              <>
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -left-8 top-1/2 size-24 -translate-y-1/2 rounded-full bg-white/15 blur-2xl"
+                />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -right-10 bottom-0 size-24 rounded-full bg-emerald-900/30 blur-2xl"
+                />
+                {/* Diagonal animated sweep */}
+                <span
+                  aria-hidden
+                  className="pos-generate-sweep pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+                />
+                {/* Receipt-strip perforation along the bottom edge */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-3 bottom-[3px] h-px opacity-70"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(circle, rgba(255,255,255,0.65) 1px, transparent 1.2px)",
+                    backgroundSize: "8px 1px",
+                    backgroundRepeat: "repeat-x",
+                  }}
+                />
+              </>
+            )}
+
             {loading ? (
               <>
-                <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                <span className="hidden sm:inline">Processing…</span>
+                <span className="relative z-[1] size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                <span className="relative z-[1] hidden sm:inline">Processing…</span>
               </>
             ) : isEmptyCart ? (
               <>
-                <ShoppingBasket className="size-[18px]" strokeWidth={2.25} />
-                <span>View Cart</span>
+                <ShoppingBasket className="relative z-[1] size-[18px]" strokeWidth={2.25} />
+                <span className="relative z-[1]">View Cart</span>
               </>
             ) : (
               <>
-                <Receipt className="size-[18px] transition-transform duration-300 group-hover:-rotate-3" strokeWidth={2.25} />
-                <span className="hidden sm:inline">Generate Invoice</span>
-                <span className="sm:hidden">Generate</span>
-                <span className="flex size-5 items-center justify-center rounded-full bg-white/25 text-[11px] font-extrabold tabular-nums">
+                <span className="relative z-[1] flex size-8 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.32)]">
+                  <Receipt
+                    className="size-[17px] drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] transition-transform duration-500 ease-out group-hover:-rotate-6 group-active:scale-95"
+                    strokeWidth={2.25}
+                  />
+                </span>
+                <span className="relative z-[1] hidden text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:inline">
+                  Generate Invoice
+                </span>
+                <span className="relative z-[1] text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:hidden">
+                  Generate
+                </span>
+                <span className="relative z-[1] flex h-6 min-w-[1.6rem] items-center justify-center rounded-full bg-white/25 px-1.5 text-[11px] font-extrabold tabular-nums text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.14)] ring-1 ring-white/25">
                   {cartItemCount}
                 </span>
               </>

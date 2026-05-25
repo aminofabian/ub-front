@@ -371,7 +371,7 @@ export function GroceryInvoiceCart({
       </div>
 
       {/* ── Footer: Totals + Generate ── */}
-      {(!isEmpty || true) && (
+      {!isEmpty && (
         <div
           className={cn(
             "relative shrink-0 border-t border-zinc-200/80 dark:border-white/[0.06]",
@@ -463,18 +463,17 @@ export function GroceryInvoiceCart({
               disabled={loading || isEmpty}
               className={cn(
                 "pos-generate group relative isolate flex w-full items-stretch overflow-hidden rounded-2xl text-left text-white",
-                "bg-[radial-gradient(140%_120%_at_0%_0%,#34c759_0%,hsl(var(--primary))_42%,#1f7a36_100%)]",
-                "shadow-[0_14px_40px_-10px_hsl(var(--primary)/0.55),0_2px_8px_-2px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.18)]",
+                "shadow-[0_14px_40px_-10px_rgba(34,140,55,0.55),0_2px_8px_-2px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.18)]",
                 "ring-1 ring-emerald-600/40",
                 "transition-[transform,box-shadow,filter] duration-300 ease-out",
-                "hover:shadow-[0_22px_56px_-10px_hsl(var(--primary)/0.65),0_0_0_5px_hsl(var(--primary)/0.12),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.18)]",
+                "hover:shadow-[0_22px_56px_-10px_rgba(34,140,55,0.65),0_0_0_5px_rgba(34,140,55,0.14),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.18)]",
                 "hover:saturate-[1.05]",
-                "active:scale-[0.985] active:shadow-[0_6px_18px_hsl(var(--primary)/0.45),inset_0_1px_0_rgba(255,255,255,0.2)]",
+                "active:scale-[0.985] active:shadow-[0_6px_18px_rgba(34,140,55,0.45),inset_0_1px_0_rgba(255,255,255,0.2)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf8f4] dark:focus-visible:ring-offset-background",
                 "touch-manipulation select-none",
                 loading && "pointer-events-none opacity-90",
-                false && isEmpty && "pointer-events-none opacity-50",
-                !loading && "animate-pos-fab-breathe",
+                isEmpty && "pointer-events-none opacity-50",
+                !loading && !isEmpty && "animate-pos-fab-breathe",
               )}
             >
               {/* Top hairline highlight */}
@@ -547,7 +546,7 @@ export function GroceryInvoiceCart({
                       </span>
                       <span className="truncate">Ready · Tap to print</span>
                     </span>
-                    <span className="truncate text-[15px] font-extrabold tracking-tight text-green-500 drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:text-[15.5px]">
+                    <span className="truncate text-[15px] font-extrabold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:text-[15.5px]">
                       Generate Invoice
                     </span>
                   </>
