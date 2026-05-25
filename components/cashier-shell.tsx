@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -75,7 +76,17 @@ export function CashierShell({ children }: CashierShellProps) {
   const showBranchPicker = canQuickSale;
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const branchLockedRole =
-    roleKey === "stock_manager" || roleKey === "cashier";
+    roleKey === "stock_manager" ||
+    roleKey === "cashier" ||
+    roleKey === "grocery_clerk";
+
+  // Grocery clerks cannot use the cashier — bounce them back to their
+  // workspace so they can generate invoices instead.
+  useEffect(() => {
+    if (roleKey === "grocery_clerk") {
+      router.replace(APP_ROUTES.grocery);
+    }
+  }, [roleKey, router]);
 
   const brandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),

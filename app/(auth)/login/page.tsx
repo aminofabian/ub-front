@@ -156,6 +156,16 @@ function LoginPageContent() {
       if (isBuyerAccount(me)) {
         return buyerHomePath();
       }
+      const roleKey = me?.role?.key?.trim().toLowerCase();
+      if (roleKey === "grocery_clerk") {
+        return APP_ROUTES.grocery;
+      }
+      if (roleKey === "cashier") {
+        return APP_ROUTES.salesQuick;
+      }
+      if (roleKey === "stock_manager") {
+        return APP_ROUTES.inventoryStockTake;
+      }
       const requested = searchParams.get("next")?.trim();
       if (requested?.startsWith("/") && !requested.startsWith("//")) {
         return requested;
@@ -242,7 +252,12 @@ function LoginPageContent() {
       }
       persistTenantId(id);
       await loginWithPin(email, pin, branchId);
-      await syncSlugAndNavigate(router, APP_ROUTES.products, "push");
+      const pinDest = await resolveAfterPasswordAuth();
+      await syncSlugAndNavigate(
+        router,
+        pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest,
+        "push",
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "PIN login failed.",

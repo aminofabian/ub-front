@@ -178,10 +178,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // ── Stock managers and cashiers are locked to their assigned branch ─────
+  // ── Stock managers, cashiers and grocery clerks are locked to their assigned branch ─────
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
-    me?.role?.key?.trim().toLowerCase() === "cashier";
+    me?.role?.key?.trim().toLowerCase() === "cashier" ||
+    me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
 
   const setBranchId = useCallback(
     (id: string) => {
@@ -227,7 +228,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (branches.length === 0) return;
 
-    // Stock managers and cashiers are forced to their assigned branch.
+    // Stock managers, cashiers and grocery clerks are forced to their assigned branch.
     if (branchLockedRole) {
       const assigned = me?.branchId?.trim();
       if (assigned && branches.some((b) => b.id === assigned)) {

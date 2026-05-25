@@ -218,6 +218,16 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return allowed.includes(item.href);
   }
 
+  // Grocery clerks: generate invoices and look at the ones they created.
+  // No cashier, no sales, no other dashboard surfaces.
+  if (gate.roleKey === "grocery_clerk") {
+    const allowed: readonly string[] = [
+      APP_ROUTES.grocery,
+      APP_ROUTES.groceryInvoices,
+    ];
+    return allowed.includes(item.href);
+  }
+
   if (item.href === APP_ROUTES.overview) return true;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
@@ -374,11 +384,15 @@ export function AppShell({ children }: AppShellProps) {
   const isStockManager =
     me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
+  const isGroceryClerk =
+    me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
   const homeHref = isStockManager
     ? APP_ROUTES.inventoryStockTake
     : isCashier
       ? APP_ROUTES.salesQuick
-      : APP_ROUTES.overview;
+      : isGroceryClerk
+        ? APP_ROUTES.grocery
+        : APP_ROUTES.overview;
   const canReadNotifications = hasPermission(
     me?.permissions,
     Permission.ReportsNotificationsRead,
@@ -520,6 +534,16 @@ export function AppShell({ children }: AppShellProps) {
             tab.id === "more"),
       );
     }
+    if (roleKey === "grocery_clerk") {
+      return BOTTOM_TABS.map((tab) => {
+        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.grocery };
+        return tab;
+      }).filter(
+        (tab) =>
+          tab.id !== "overview" &&
+          (!tab.href || tab.href === APP_ROUTES.grocery || tab.id === "more"),
+      );
+    }
     return BOTTOM_TABS;
   }, [me]);
 
@@ -575,6 +599,17 @@ export function AppShell({ children }: AppShellProps) {
       }
       return;
     }
+
+    if (roleKey === "grocery_clerk") {
+      const allowed = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
+      const isAllowed = allowed.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+      );
+      if (!isAllowed) {
+        router.replace(APP_ROUTES.grocery);
+      }
+      return;
+    }
   }, [me, pathname, router]);
 
   return (
@@ -609,7 +644,7 @@ export function AppShell({ children }: AppShellProps) {
           </p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pb-4">
-          {isStockManager || isCashier ? (
+          {isStockManager || isCashier || isGroceryClerk ? (
             <div className="space-y-0.5">
               {visibleSections
                 .flatMap((s) => s.items)
@@ -728,8 +763,8 @@ export function AppShell({ children }: AppShellProps) {
 
           <div className="flex items-center gap-3">
             {canReadNotifications ? <NotificationBell /> : null}
-            {/* Phase 9: Branch selector — hidden for stock managers and cashiers who are locked to their assigned branch */}
-            {isStockManager || isCashier ? (
+            {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
+            {isStockManager || isCashier || isGroceryClerk ? (
               currentBranch ? (
                 <span
                   className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30 cursor-not-allowed"
@@ -973,7 +1008,7 @@ export function AppShell({ children }: AppShellProps) {
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Branch
                   </label>
-                  {!isStockManager && !isCashier && isOwner ? (
+                  {!isStockManager && !isCashier && !isGroceryClerk && isOwner ? (
                     <select
                       className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                       value={branchId}
@@ -1002,15 +1037,16 @@ export function AppShell({ children }: AppShellProps) {
                     <span
                       className={cn(
                         "mt-1 flex w-full items-center gap-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium text-muted-foreground",
-                        (isStockManager || isCashier) && "cursor-not-allowed",
+                        (isStockManager || isCashier || isGroceryClerk) &&
+                          "cursor-not-allowed",
                       )}
                       title={
-                        isStockManager || isCashier
+                        isStockManager || isCashier || isGroceryClerk
                           ? "Branch switching is disabled for your role"
                           : undefined
                       }
                     >
-                      {isStockManager || isCashier ? (
+                      {isStockManager || isCashier || isGroceryClerk ? (
                         <Lock className="size-3.5 shrink-0" aria-hidden />
                       ) : (
                         <MapPin className="size-3.5 shrink-0" aria-hidden />
@@ -1052,7 +1088,7 @@ export function AppShell({ children }: AppShellProps) {
               </div>
 
               {/* Navigation sections */}
-              {isStockManager || isCashier ? (
+              {isStockManager || isCashier || isGroceryClerk ? (
                 <div className="space-y-0.5">
                   {visibleSections
                     .flatMap((s) => s.items)

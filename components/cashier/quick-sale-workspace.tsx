@@ -159,7 +159,8 @@ export function QuickSaleWorkspace({
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
-    me?.role?.key?.trim().toLowerCase() === "cashier";
+    me?.role?.key?.trim().toLowerCase() === "cashier" ||
+    me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
 
   const [topProducts, setTopProducts] = useState<TopProductRecord[]>([]);
   const [search, setSearch] = useState("");
