@@ -486,7 +486,7 @@ export function GroceryInvoiceCart({
               ) : (
                 <>
                   <Receipt className="size-[18px] transition-transform duration-300 group-hover:-rotate-3" strokeWidth={2.25} />
-                  <span className="text-teal-600">Generate Invoice</span>
+                  <span className="text-green-600">Generate Invoice</span>
                   <span className="flex size-6 items-center justify-center rounded-full bg-white/25 text-[11.5px] font-extrabold tabular-nums shadow-inner">
                     {cartItemCount}
                   </span>
