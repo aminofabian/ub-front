@@ -213,7 +213,6 @@ export function GroceryWorkspace() {
     branchId,
     branchesLoading,
     itemTypes,
-    itemTypeId,
   } = useDashboard();
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
@@ -271,15 +270,16 @@ export function GroceryWorkspace() {
     return branches.find((b) => b.id === branchId)?.name?.trim() ?? "";
   }, [branches, branchId]);
 
-  // Departments (item types) the operator is allowed to invoice from.
-  // For grocery_clerk users this list is already filtered server- and
-  // client-side to only the assigned departments; everyone else sees
-  // every active item type in the business.
+  // Departments (item types) the grocery clerk is allowed to invoice from.
+  // The dashboard provider already trims `itemTypes` to the assigned set for
+  // clerks, so this label is only meaningful when the role is restricted —
+  // otherwise the operator can search the full catalog and we hide the chip.
   const allowedDepartmentLabel = useMemo(() => {
+    if (!isKiosk) return "";
     if (itemTypes.length === 0) return "";
     if (itemTypes.length === 1) return itemTypes[0].label?.trim() || "";
     return `${itemTypes.length} departments`;
-  }, [itemTypes]);
+  }, [isKiosk, itemTypes]);
 
   // ── Effects ──────────────────────────────────────────────────────
 
@@ -327,13 +327,13 @@ export function GroceryWorkspace() {
     const t = window.setTimeout(() => {
       let cancelled = false;
       const bid = branchId?.trim() || undefined;
-      // Backend already restricts grocery_clerk callers to their
-      // assigned item types; passing the active itemTypeId narrows
-      // results further for everyone else.
-      const tid = itemTypeId?.trim() || undefined;
+      // No itemTypeId is passed here on purpose: the grocery counter should
+      // search every product the operator is allowed to invoice. For
+      // grocery_clerk users the backend already AND-s in all of their
+      // assigned departments via the role-based filter, so narrowing to a
+      // single dashboard-selected department would just hide valid hits.
       fetchItems(q, {
         branchId: bid,
-        itemTypeId: tid,
         page: 0,
         size: 50,
       })
@@ -352,7 +352,7 @@ export function GroceryWorkspace() {
       };
     }, 250);
     return () => window.clearTimeout(t);
-  }, [search, branchId, itemTypeId, online]);
+  }, [search, branchId, online]);
 
   useEffect(() => {
     if (!online) {
