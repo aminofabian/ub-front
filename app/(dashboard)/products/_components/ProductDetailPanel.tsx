@@ -142,6 +142,10 @@ type Props = {
   selectProduct: (id: string | null) => void;
   onOpenPackageSales?: () => void;
   onOpenBaseStock?: () => void;
+  /** When provided, the panel shows a "Change department" quick action. */
+  onOpenChangeItemType?: () => void;
+  /** Human-friendly label of the product's current department (item type). */
+  itemTypeLabel?: string;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -211,6 +215,8 @@ export function ProductDetailPanel(props: Props) {
     selectProduct,
     onOpenPackageSales,
     onOpenBaseStock,
+    onOpenChangeItemType,
+    itemTypeLabel,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -599,6 +605,24 @@ export function ProductDetailPanel(props: Props) {
           <Camera className="size-3.5" aria-hidden />
           Photos
         </Button>
+        {canCatalogWrite && onOpenChangeItemType ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+            onClick={onOpenChangeItemType}
+            title={
+              itemTypeLabel
+                ? `Current department: ${itemTypeLabel}`
+                : "Change department"
+            }
+          >
+            <Layers className="size-3.5" aria-hidden />
+            <span className="truncate">
+              {itemTypeLabel ? `Dept: ${itemTypeLabel}` : "Department"}
+            </span>
+          </Button>
+        ) : null}
         {!detail.variantOfItemId && canCatalogWrite ? (
           <Button
             type="button"

@@ -135,6 +135,7 @@ export function useProductMutations(d: Dependencies) {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [quickSavingVariant, setQuickSavingVariant] = useState(false);
   const [packageCreateBusy, setPackageCreateBusy] = useState(false);
+  const [changeItemTypeBusy, setChangeItemTypeBusy] = useState(false);
 
   const addVariantDraftRow = useCallback(() => {
     setVariantDraftRows((rows) => {
@@ -1120,6 +1121,59 @@ export function useProductMutations(d: Dependencies) {
     ],
   );
 
+  const onChangeItemType = useCallback(
+    async (nextItemTypeId: string): Promise<boolean> => {
+      if (!selectedId) {
+        setMessage("Select a product first.");
+        return false;
+      }
+      if (!canCatalogWrite) {
+        setMessage("You do not have permission to edit products.");
+        return false;
+      }
+      const tid = nextItemTypeId.trim();
+      if (!tid) {
+        setMessage("Pick a department.");
+        return false;
+      }
+      const known = itemTypes.find((t) => t.id === tid);
+      if (!known) {
+        setMessage("Selected department no longer exists.");
+        return false;
+      }
+      if (detail?.itemTypeId === tid) {
+        // Nothing to change — treat as success so the modal closes.
+        return true;
+      }
+      setChangeItemTypeBusy(true);
+      setMessage("");
+      try {
+        await patchItem(selectedId, { itemTypeId: tid });
+        const updated = await refreshSelectedDetail();
+        if (updated) syncListRowFromDetail(updated);
+        // The list filters by item type, so the row may have moved. Refresh.
+        await refreshFullCatalog();
+        setMessage(`Moved to ${known.label}.`);
+        return true;
+      } catch (err) {
+        setMessage(formatMutationError(err, "Could not change department."));
+        return false;
+      } finally {
+        setChangeItemTypeBusy(false);
+      }
+    },
+    [
+      selectedId,
+      canCatalogWrite,
+      detail?.itemTypeId,
+      itemTypes,
+      refreshSelectedDetail,
+      syncListRowFromDetail,
+      refreshFullCatalog,
+      setMessage,
+    ],
+  );
+
   return {
     suppliersForLink,
     suppliersLoading,
@@ -1162,6 +1216,8 @@ export function useProductMutations(d: Dependencies) {
     saveVariantInline,
     packageCreateBusy,
     onCreatePackages,
+    onChangeItemType,
+    changeItemTypeBusy,
   };
 }
 

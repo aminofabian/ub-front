@@ -730,6 +730,8 @@ export type PatchItemPayload = {
   packageVariant?: boolean;
   packagingUnitName?: string | null;
   packagingUnitQty?: number | string | null;
+  /** Move the SKU to a different department (item type). */
+  itemTypeId?: string;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */

@@ -27,6 +27,7 @@ import { ProductCreateDrawer } from "./_components/ProductCreateDrawer";
 import { VariantCreateDrawer } from "./_components/VariantCreateDrawer";
 import { VariantParentPickDrawer } from "./_components/VariantParentPickDrawer";
 import { AddPackageModal } from "./_components/AddPackageModal";
+import { ChangeItemTypeModal } from "./_components/ChangeItemTypeModal";
 import { resolveCatalogParentId } from "./_utils";
 import { ProductFilterSidebar } from "./_components/ProductFilterSidebar";
 import { ProductEditDrawer } from "./_components/ProductEditDrawer";
@@ -85,6 +86,7 @@ export default function ProductsPage() {
     null,
   );
   const [packageModalOpen, setPackageModalOpen] = useState(false);
+  const [changeItemTypeOpen, setChangeItemTypeOpen] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [variantParentPickBusy, setVariantParentPickBusy] = useState(false);
 
@@ -292,6 +294,12 @@ export default function ProductsPage() {
     onOpenBaseStock: canInventoryWrite
       ? () => void openBaseStock()
       : undefined,
+    onOpenChangeItemType: canCatalogWrite
+      ? () => setChangeItemTypeOpen(true)
+      : undefined,
+    itemTypeLabel:
+      catalog.itemTypes.find((t) => t.id === D?.itemTypeId)?.label?.trim() ||
+      undefined,
   };
 
   return (
@@ -473,6 +481,18 @@ export default function ProductsPage() {
           currencyCode={business?.currency?.trim() || ""}
           busy={m.packageCreateBusy}
           onCreatePackages={m.onCreatePackages}
+        />
+      ) : null}
+
+      {D ? (
+        <ChangeItemTypeModal
+          open={changeItemTypeOpen}
+          onOpenChange={setChangeItemTypeOpen}
+          productName={D.name?.trim() || "Product"}
+          itemTypes={catalog.itemTypes}
+          currentItemTypeId={D.itemTypeId ?? null}
+          busy={m.changeItemTypeBusy}
+          onSave={(nextId) => m.onChangeItemType(nextId)}
         />
       ) : null}
 
