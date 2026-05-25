@@ -14,6 +14,7 @@ import {
   Wifi,
   WifiOff,
   Sparkles,
+  ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
@@ -74,7 +75,7 @@ function QuantityStepper({
   bumpKey?: number;
 }) {
   return (
-    <div className="inline-flex select-none items-center rounded-2xl border border-border/40 bg-white/70 p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]">
+    <div className="inline-flex select-none items-center rounded-2xl border border-zinc-200 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.6)] dark:border-white/10 dark:bg-white/[0.04]">
       <button
         type="button"
         onClick={(e) => {
@@ -83,17 +84,17 @@ function QuantityStepper({
         }}
         disabled={value <= min}
         className={cn(
-          "flex size-9 items-center justify-center rounded-xl text-foreground transition-all duration-150 touch-manipulation",
-          "hover:bg-muted/70 active:scale-90",
+          "flex size-9 items-center justify-center rounded-xl text-zinc-700 transition-all duration-150 touch-manipulation dark:text-zinc-200",
+          "hover:bg-zinc-100 hover:text-zinc-900 active:scale-90 dark:hover:bg-white/[0.06]",
           "disabled:opacity-25 disabled:hover:bg-transparent",
         )}
         aria-label="Decrease quantity"
       >
-        <Minus className="size-4" />
+        <Minus className="size-4" strokeWidth={2.5} />
       </button>
       <span
         key={bumpKey ?? value}
-        className="animate-shop-qty-pop flex min-w-[2.5rem] items-center justify-center text-[14px] font-bold tabular-nums text-foreground"
+        className="animate-shop-qty-pop flex min-w-[2.75rem] items-center justify-center text-[15px] font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50"
       >
         {value}
       </span>
@@ -103,10 +104,10 @@ function QuantityStepper({
           e.stopPropagation();
           onIncrease();
         }}
-        className="flex size-9 items-center justify-center rounded-xl text-foreground transition-all duration-150 touch-manipulation hover:bg-muted/70 active:scale-90"
+        className="flex size-9 items-center justify-center rounded-xl bg-primary text-white transition-all duration-150 touch-manipulation hover:bg-primary/90 active:scale-90 shadow-[0_2px_6px_-1px_rgba(40,167,69,0.35)]"
         aria-label="Increase quantity"
       >
-        <Plus className="size-4" />
+        <Plus className="size-4" strokeWidth={2.5} />
       </button>
     </div>
   );
@@ -141,20 +142,31 @@ function CartLineItem({
     <div
       className={cn(
         "group relative flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 sm:px-5",
-        "hover:bg-foreground/[0.025] dark:hover:bg-white/[0.025]",
-        !isLast && "border-b border-border/[0.06]",
-        isRecentlyAdded && "animate-pos-line-in",
+        "hover:bg-zinc-900/[0.025] dark:hover:bg-white/[0.025]",
+        !isLast && "border-b border-dashed border-zinc-200/80 dark:border-white/[0.06]",
+        isRecentlyAdded && "animate-pos-line-in bg-primary/[0.05]",
       )}
     >
+      {/* Line index ribbon */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-r-full transition-colors",
+          isRecentlyAdded ? "bg-primary" : "bg-transparent group-hover:bg-zinc-300 dark:group-hover:bg-white/15",
+        )}
+      />
+
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-1 text-[13.5px] font-semibold leading-[1.25] text-foreground">
+        <p className="line-clamp-2 text-[13.5px] font-bold leading-[1.3] text-zinc-900 dark:text-zinc-50">
           {line.label}
         </p>
 
-        <p className="mt-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">
-          {priceLabel ?? `${currency} ${line.unitPrice.toFixed(2)}`}
+        <p className="mt-1 text-[11px] font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">
+          <span className="text-zinc-600 dark:text-zinc-300">
+            {priceLabel ?? `${currency} ${line.unitPrice.toFixed(2)}`}
+          </span>
           {line.unitName ? (
-            <span className="text-muted-foreground/60">
+            <span className="text-zinc-400 dark:text-zinc-500">
               {" "}
               · {line.unitName}
             </span>
@@ -176,16 +188,16 @@ function CartLineItem({
       </div>
 
       <div className="flex flex-col items-end gap-2 pt-0.5">
-        <span className="text-[15.5px] font-bold tabular-nums leading-none text-foreground">
+        <span className="text-[16px] font-extrabold tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50">
           {totalLabel ?? `${currency} ${lineTotal.toFixed(2)}`}
         </span>
         <button
           type="button"
           onClick={() => onRemoveLine(line.key)}
-          className="flex size-9 items-center justify-center rounded-xl text-muted-foreground/40 transition-all duration-150 touch-manipulation hover:bg-destructive/10 hover:text-destructive active:scale-90"
+          className="flex size-9 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 touch-manipulation hover:bg-red-50 hover:text-red-600 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
           aria-label="Remove item"
         >
-          <Trash2 className="size-3.5" />
+          <Trash2 className="size-3.5" strokeWidth={2.25} />
         </button>
       </div>
     </div>
@@ -217,32 +229,41 @@ export function GroceryInvoiceCart({
   const [showTotalsBreakdown, setShowTotalsBreakdown] = useState(false);
 
   return (
-    <div
-      className={cn(
-        "relative flex h-full flex-col",
-        !compact &&
-          "bg-[radial-gradient(120%_60%_at_50%_0%,hsl(var(--primary)/0.04),transparent_55%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--background)/0.85)_100%)] dark:bg-[radial-gradient(120%_60%_at_50%_0%,hsl(var(--primary)/0.08),transparent_60%),linear-gradient(180deg,hsl(var(--background)/0.4)_0%,hsl(var(--background)/0.2)_100%)]",
-      )}
-    >
+    <div className={cn("relative flex h-full flex-col")}>
       {/* ── Header ── */}
       <div
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border/[0.08] px-4 sm:px-5",
-          compact ? "pt-1 pb-3" : "py-4",
+          "relative flex shrink-0 items-center gap-3 border-b border-zinc-200/80 px-4 sm:px-5 dark:border-white/[0.06]",
+          compact ? "pt-1 pb-3.5" : "py-4",
         )}
       >
+        {/* Receipt-style top edge dots (only when not compact) */}
+        {!compact && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-px left-4 right-4 hidden h-px lg:block"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(15,23,42,0.18) 1px, transparent 1.2px)",
+              backgroundSize: "8px 1px",
+              backgroundRepeat: "repeat-x",
+              backgroundPosition: "0 0",
+            }}
+          />
+        )}
+
         <div
           key={pulseSignal}
           className={cn(
-            "relative flex size-10 shrink-0 items-center justify-center rounded-2xl",
-            "bg-gradient-to-br from-primary/[0.14] to-primary/[0.06]",
-            "ring-1 ring-primary/[0.12]",
+            "relative flex size-11 shrink-0 items-center justify-center rounded-[14px]",
+            "bg-gradient-to-br from-primary via-emerald-600 to-emerald-700",
+            "ring-1 ring-emerald-500/40 shadow-[0_4px_12px_-2px_rgba(40,167,69,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]",
             pulseSignal != null && "animate-pos-cart-pulse",
           )}
         >
-          <ShoppingBasket className="size-[18px] text-primary" />
+          <Receipt className="size-[19px] text-white" strokeWidth={2.25} />
           {!isEmpty && (
-            <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground shadow-[0_2px_6px_rgba(0,0,0,0.18)] tabular-nums">
+            <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.35rem] items-center justify-center rounded-full bg-zinc-900 px-1 text-[10px] font-extrabold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.25)] ring-2 ring-white tabular-nums dark:bg-white dark:text-zinc-900 dark:ring-card">
               {cartItemCount}
             </span>
           )}
@@ -250,26 +271,28 @@ export function GroceryInvoiceCart({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <h2 className="truncate text-[15px] font-bold tracking-tight text-foreground">
+            <h2 className="font-sans truncate text-[16px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
               Current Sale
             </h2>
             {online === false && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-amber-800 ring-1 ring-amber-300/60 dark:bg-amber-950/60 dark:text-amber-200 dark:ring-amber-800/50">
                 <WifiOff className="size-2.5" />
                 Off
               </span>
             )}
             {online === true && !compact && (
-              <span className="hidden lg:inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                <Wifi className="size-2.5" />
+              <span className="hidden lg:inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50">
+                <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500">
+                  <span className="absolute inset-0 size-1.5 animate-ping rounded-full bg-emerald-500/70" />
+                </span>
                 Live
               </span>
             )}
           </div>
-          <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+          <p className="mt-0.5 truncate text-[11.5px] font-semibold text-zinc-600 dark:text-zinc-300">
             {branchName ? branchName : "No branch selected"}
             {cashierName ? (
-              <span className="text-muted-foreground/60"> · {cashierName}</span>
+              <span className="text-zinc-400 dark:text-zinc-500"> · {cashierName}</span>
             ) : null}
           </p>
         </div>
@@ -278,7 +301,7 @@ export function GroceryInvoiceCart({
           <button
             type="button"
             onClick={onClearCart}
-            className="hidden sm:inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive active:scale-95"
+            className="hidden sm:inline-flex items-center gap-1 rounded-xl border border-zinc-200/80 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-900/40"
             aria-label="Clear cart"
           >
             <Trash2 className="size-3.5" />
@@ -290,10 +313,10 @@ export function GroceryInvoiceCart({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-90"
+            className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 active:scale-90 dark:bg-white/[0.06] dark:text-zinc-300 dark:hover:bg-white/[0.1]"
             aria-label="Close cart"
           >
-            <X className="size-4" />
+            <X className="size-4" strokeWidth={2.25} />
           </button>
         )}
       </div>
@@ -301,21 +324,31 @@ export function GroceryInvoiceCart({
       {/* ── Line Items ── */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center px-8 py-16 text-center sm:py-20">
+          <div className="relative flex flex-col items-center justify-center px-8 py-16 text-center sm:py-20">
+            {/* Decorative blob */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -top-4 left-1/2 size-48 -translate-x-1/2 rounded-full bg-primary/[0.06] blur-3xl"
+            />
             <div className="relative mb-5">
-              <div className="absolute inset-0 -m-2 rounded-[2.25rem] bg-primary/[0.04] blur-md" />
-              <div className="relative flex size-20 items-center justify-center rounded-[2rem] bg-gradient-to-br from-muted/40 to-muted/10 ring-1 ring-border/40">
-                <ShoppingBasket className="size-9 text-muted-foreground/30" />
+              <div className="absolute inset-0 -m-3 rounded-[2.5rem] bg-primary/[0.05] blur-md" />
+              <div className="relative flex size-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-white via-zinc-50 to-zinc-100 ring-1 ring-zinc-200/80 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85)] dark:from-white/[0.05] dark:via-white/[0.03] dark:to-white/[0.02] dark:ring-white/[0.08]">
+                <ShoppingBasket className="size-10 text-zinc-300 dark:text-white/15" strokeWidth={1.5} />
               </div>
+              {/* Floating tag */}
+              <span className="absolute -right-2 -top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-zinc-700 shadow-[0_4px_12px_-2px_rgba(15,23,42,0.15)] ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-white/[0.08]">
+                <ScanLine className="size-2.5" />
+                Ready
+              </span>
             </div>
-            <p className="text-[15px] font-semibold text-foreground/80">
+            <p className="text-[16px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
               Empty cart
             </p>
-            <p className="mt-2 max-w-[19rem] text-[13px] leading-relaxed text-muted-foreground/70">
+            <p className="mt-2 max-w-[20rem] text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
               Tap products to add them. Scan barcodes for instant entry.
             </p>
-            <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-primary/[0.06] px-3 py-1.5 text-[11px] font-semibold text-primary/80 ring-1 ring-primary/[0.08]">
-              <Sparkles className="size-3" />
+            <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/15 to-primary/5 px-3.5 py-1.5 text-[11px] font-bold text-primary ring-1 ring-primary/20 dark:from-primary/25 dark:to-primary/10">
+              <Sparkles className="size-3" strokeWidth={2.5} />
               Ready when you are
             </div>
           </div>
@@ -340,31 +373,43 @@ export function GroceryInvoiceCart({
       {!isEmpty && (
         <div
           className={cn(
-            "shrink-0 border-t border-border/[0.08]",
-            "bg-gradient-to-t from-white/95 via-white/80 to-white/40 backdrop-blur-xl",
-            "dark:from-background/95 dark:via-background/80 dark:to-background/40",
-            "supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-background/60",
+            "relative shrink-0 border-t border-zinc-200/80 dark:border-white/[0.06]",
+            "bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75",
+            "dark:bg-background/85 dark:supports-[backdrop-filter]:bg-background/70",
           )}
         >
+          {/* Receipt-style perforation at top of footer */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-px left-4 right-4 h-px"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(15,23,42,0.18) 1px, transparent 1.2px)",
+              backgroundSize: "8px 1px",
+              backgroundRepeat: "repeat-x",
+              backgroundPosition: "0 0",
+            }}
+          />
+
           {/* Order summary toggle */}
           <div className="px-4 pt-3 sm:px-5">
             <button
               type="button"
               onClick={() => setShowTotalsBreakdown(!showTotalsBreakdown)}
-              className="flex w-full items-center justify-between rounded-xl py-1.5 text-[12px] transition-colors hover:bg-muted/30 active:scale-[0.99]"
+              className="flex w-full items-center justify-between rounded-xl py-1.5 text-[12px] transition-colors hover:bg-zinc-100/50 active:scale-[0.99] dark:hover:bg-white/[0.04]"
               aria-expanded={showTotalsBreakdown}
             >
-              <span className="font-semibold text-muted-foreground/80">
+              <span className="font-bold uppercase tracking-[0.06em] text-zinc-500 dark:text-zinc-400">
                 Order Summary
               </span>
-              <span className="inline-flex items-center gap-1 text-muted-foreground/50">
-                <span className="text-[11px] tabular-nums">
+              <span className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
+                <span className="text-[11px] font-bold tabular-nums">
                   {cartItemCount} item{cartItemCount === 1 ? "" : "s"}
                 </span>
                 {showTotalsBreakdown ? (
-                  <ChevronUp className="size-3.5" />
+                  <ChevronUp className="size-3.5" strokeWidth={2.5} />
                 ) : (
-                  <ChevronDown className="size-3.5" />
+                  <ChevronDown className="size-3.5" strokeWidth={2.5} />
                 )}
               </span>
             </button>
@@ -372,39 +417,39 @@ export function GroceryInvoiceCart({
             {showTotalsBreakdown && (
               <div className="mt-2 space-y-2 animate-in slide-in-from-top-1 fade-in duration-200">
                 <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-semibold tabular-nums text-foreground">
+                  <span className="text-zinc-600 dark:text-zinc-400">Subtotal</span>
+                  <span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
                     {formatShelfPriceLabel(subtotal, currency) ??
                       `${currency} ${subtotal.toFixed(2)}`}
                   </span>
                 </div>
                 {subtotal !== grandTotal && (
                   <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span className="font-semibold tabular-nums text-destructive">
+                    <span className="text-zinc-600 dark:text-zinc-400">Discount</span>
+                    <span className="font-bold tabular-nums text-red-600 dark:text-red-400">
                       −
                       {formatShelfPriceLabel(subtotal - grandTotal, currency) ??
                         `${currency} ${(subtotal - grandTotal).toFixed(2)}`}
                     </span>
                   </div>
                 )}
-                <div className="h-px bg-border/[0.08]" />
+                <div className="h-px bg-zinc-200/80 dark:bg-white/[0.06]" />
               </div>
             )}
           </div>
 
           {/* Grand total + generate */}
           <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-5">
-            <div className="mb-3 flex items-end justify-between">
+            <div className="mb-3 flex items-end justify-between rounded-2xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 to-white px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:from-white/[0.04] dark:to-white/[0.02] dark:border-white/[0.08]">
               <div className="flex flex-col">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
+                <span className="text-[10.5px] font-extrabold uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">
                   Total Due
                 </span>
-                <span className="mt-0.5 text-[11px] text-muted-foreground/60">
+                <span className="mt-1 text-[10.5px] font-medium text-zinc-500 dark:text-zinc-500">
                   Tax included
                 </span>
               </div>
-              <span className="text-[26px] font-bold tabular-nums leading-none tracking-tight text-foreground">
+              <span className="text-[28px] font-extrabold tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50">
                 {formatShelfPriceLabel(grandTotal, currency) ??
                   `${currency} ${grandTotal.toFixed(2)}`}
               </span>
@@ -416,11 +461,11 @@ export function GroceryInvoiceCart({
               onClick={onGenerate}
               disabled={loading || isEmpty}
               className={cn(
-                "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-5 py-4 text-[14.5px] font-bold text-white",
+                "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl px-5 py-4 text-[15px] font-extrabold text-white",
                 "bg-[linear-gradient(135deg,hsl(var(--primary))_0%,color-mix(in_oklch,hsl(var(--primary))_88%,#fff)_50%,hsl(var(--primary))_100%)]",
-                "shadow-[0_10px_32px_-6px_hsl(var(--primary)/0.45),0_0_0_0_hsl(var(--primary)/0.4),inset_0_1px_0_hsl(0_0%_100%/0.18)]",
+                "shadow-[0_12px_36px_-8px_hsl(var(--primary)/0.5),0_0_0_0_hsl(var(--primary)/0.4),inset_0_1px_0_hsl(0_0%_100%/0.22)]",
                 "transition-all duration-300",
-                "hover:shadow-[0_16px_40px_-6px_hsl(var(--primary)/0.55),0_0_0_5px_hsl(var(--primary)/0.12),inset_0_1px_0_hsl(0_0%_100%/0.22)]",
+                "hover:shadow-[0_18px_44px_-8px_hsl(var(--primary)/0.6),0_0_0_5px_hsl(var(--primary)/0.14),inset_0_1px_0_hsl(0_0%_100%/0.25)]",
                 "active:scale-[0.98] active:shadow-[0_4px_16px_hsl(var(--primary)/0.4)]",
                 "touch-manipulation",
                 loading && "pointer-events-none opacity-80",
@@ -431,7 +476,7 @@ export function GroceryInvoiceCart({
               {/* Inner sheen */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"
               />
               {loading ? (
                 <>
@@ -440,9 +485,9 @@ export function GroceryInvoiceCart({
                 </>
               ) : (
                 <>
-                  <Receipt className="size-[18px] transition-transform duration-300 group-hover:-rotate-3" />
+                  <Receipt className="size-[18px] transition-transform duration-300 group-hover:-rotate-3" strokeWidth={2.25} />
                   <span>Generate Invoice</span>
-                  <span className="flex size-6 items-center justify-center rounded-full bg-white/20 text-[11.5px] font-bold tabular-nums shadow-inner">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-white/25 text-[11.5px] font-extrabold tabular-nums shadow-inner">
                     {cartItemCount}
                   </span>
                 </>
@@ -450,8 +495,8 @@ export function GroceryInvoiceCart({
             </button>
 
             {/* Payment hint */}
-            <p className="mt-2.5 text-center text-[11px] text-muted-foreground/70">
-              <Banknote className="mr-1 inline size-3 align-text-bottom" />
+            <p className="mt-2.5 flex items-center justify-center gap-1.5 text-center text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+              <Banknote className="size-3" strokeWidth={2.25} />
               Customer pays at the cashier
             </p>
           </div>
