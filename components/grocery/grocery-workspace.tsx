@@ -361,15 +361,28 @@ export function GroceryWorkspace() {
       // grocery_clerk users the backend already AND-s in all of their
       // assigned departments via the role-based filter, so narrowing to a
       // single dashboard-selected department would just hide valid hits.
+      //
+      // `catalogScope: "SKUS_ONLY"` asks the backend to skip catalog
+      // "group label" rows (parent records that exist only to anchor
+      // variant trees in the products page). Without this flag, listing
+      // a product like Apple → [Green, Pink] returns both the parent
+      // group row *and* each variant SKU, so the POS would show the same
+      // product twice. We also drop any `groupLabelOnly` row that slips
+      // through, matching how every other sellable-product picker
+      // (supplies, stock-take, stock levels) filters its results.
       fetchItems(q, {
         branchId: bid,
         page: 0,
         size: 50,
+        catalogScope: "SKUS_ONLY",
       })
         .then((items) => {
           if (cancelled) return;
-          setHits(items ?? []);
-          setSearchBanner(items.length === 0 ? "No items match." : null);
+          const sellable = (items ?? []).filter(
+            (r) => r.groupLabelOnly !== true,
+          );
+          setHits(sellable);
+          setSearchBanner(sellable.length === 0 ? "No items match." : null);
         })
         .catch(() => {
           if (cancelled) return;
