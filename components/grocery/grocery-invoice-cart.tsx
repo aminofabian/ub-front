@@ -371,7 +371,7 @@ export function GroceryInvoiceCart({
       </div>
 
       {/* ── Footer: Totals + Generate ── */}
-      {!isEmpty && (
+      {(!isEmpty || true) && (
         <div
           className={cn(
             "relative shrink-0 border-t border-zinc-200/80 dark:border-white/[0.06]",
@@ -473,8 +473,8 @@ export function GroceryInvoiceCart({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf8f4] dark:focus-visible:ring-offset-background",
                 "touch-manipulation select-none",
                 loading && "pointer-events-none opacity-90",
-                isEmpty && "pointer-events-none opacity-50",
-                !loading && !isEmpty && "animate-pos-fab-breathe",
+                false && isEmpty && "pointer-events-none opacity-50",
+                !loading && "animate-pos-fab-breathe",
               )}
             >
               {/* Top hairline highlight */}
