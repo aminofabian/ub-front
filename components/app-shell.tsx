@@ -387,10 +387,19 @@ export function AppShell({ children }: AppShellProps) {
   const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
   const isGroceryClerk =
     me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
-  // Kiosk-mode layout: replace the desktop sidebar with a bottom nav at every
-  // viewport size. Used for tablet-first cashier-style roles where the
-  // sidebar would steal precious horizontal real-estate from the POS canvas.
+  // Kiosk-mode layout: replace the desktop sidebar with a bottom nav on
+  // tablets, iPads, and phones. On true desktop monitors (xl+ / ≥1280px)
+  // grocery clerks get the regular sidebar — the bottom nav only hides
+  // the sidebar on POS-sized screens where horizontal real-estate is
+  // precious.
   const kioskNav = isGroceryClerk;
+  // Tailwind responsive class fragments derived from `kioskNav`. For
+  // grocery clerks we flip from bottom-nav to sidebar at `xl` (1280px);
+  // for every other role the default `md` (768px) breakpoint still
+  // controls when the desktop chrome takes over.
+  const kioskDesktopVisible = kioskNav ? "hidden xl:flex" : "hidden md:flex";
+  const kioskMobileVisible = kioskNav ? "xl:hidden" : "md:hidden";
+  const kioskMainPadding = kioskNav ? "xl:p-6 xl:pb-6" : "md:p-6 md:pb-6";
   const homeHref = isStockManager
     ? APP_ROUTES.inventoryStockTake
     : isCashier
@@ -636,11 +645,12 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-muted/30">
-      {/* ── Desktop sidebar (hidden on mobile, fully hidden in kiosk-nav mode) ── */}
+      {/* ── Desktop sidebar — hidden on tablets/mobile; appears at xl+ for
+          grocery clerks (kiosk-nav mode) and at md+ for everyone else. ── */}
       <aside
         className={cn(
           "sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background",
-          kioskNav ? "hidden" : "hidden md:flex",
+          kioskDesktopVisible,
         )}
       >
         <div className="border-b p-4">
@@ -774,11 +784,12 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* ── Right panel ─────────────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Desktop top header (hidden in kiosk-nav mode — mobile header used instead) */}
+        {/* Desktop top header — paired with the desktop sidebar. Appears at
+            xl+ for grocery clerks, md+ for everyone else. */}
         <header
           className={cn(
             "items-center justify-between gap-4 border-b bg-background px-6 py-3",
-            kioskNav ? "hidden" : "hidden md:flex",
+            kioskDesktopVisible,
           )}
         >
           <div className="flex min-w-0 flex-col">
@@ -872,11 +883,12 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        {/* ── Mobile top header (also used at every size in kiosk-nav mode) ── */}
+        {/* ── Mobile/tablet top header — used below xl for grocery clerks
+            (iPad-sized POS screens) and below md for everyone else. ── */}
         <header
           className={cn(
             "sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/50 bg-background/95 px-4 py-3 backdrop-blur-md shadow-sm",
-            kioskNav ? "" : "md:hidden",
+            kioskMobileVisible,
           )}
         >
           {/* Brand */}
@@ -926,21 +938,23 @@ export function AppShell({ children }: AppShellProps) {
         <main
           className={cn(
             "min-h-0 flex-1 overflow-y-auto p-4 pb-28",
-            // Outside kiosk-nav mode, restore the roomier desktop padding once
-            // the sidebar appears at md+. Kiosk mode keeps the mobile-style
-            // bottom padding at every size to clear the always-present nav.
-            kioskNav ? "" : "md:p-6 md:pb-6",
+            // Restore the roomier desktop padding once the sidebar takes
+            // over: at md+ for normal roles, at xl+ for grocery clerks
+            // (since they keep the bottom-nav layout through iPad sizes).
+            kioskMainPadding,
           )}
         >
           {children}
         </main>
 
-        {/* ── Bottom nav (mobile-only by default; always visible in kiosk-nav) ── */}
+        {/* ── Bottom nav — visible below md for normal roles and below xl
+            for grocery clerks (so iPads/tablets keep the POS-friendly
+            bottom nav and only true desktops hide it). ── */}
         <nav
           aria-label="Main navigation"
           className={cn(
             "fixed bottom-0 inset-x-0 z-40",
-            kioskNav ? "" : "md:hidden",
+            kioskMobileVisible,
             "border-t border-border/40 bg-background/95 backdrop-blur-xl",
             "shadow-[0_-1px_0_0_hsl(var(--border)/0.5),0_-8px_32px_-8px_hsl(var(--foreground)/0.08)]",
             "pb-[env(safe-area-inset-bottom,0px)]",
@@ -1005,12 +1019,12 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </nav>
 
-        {/* ── "More" drawer (mobile-only by default; available everywhere in kiosk-nav) ── */}
+        {/* ── "More" drawer — same visibility envelope as the bottom nav. ── */}
         {moreOpen ? (
           <div
             className={cn(
               "fixed inset-0 z-50 flex flex-col bg-background",
-              kioskNav ? "" : "md:hidden",
+              kioskMobileVisible,
             )}
           >
             <div className="flex items-center justify-between border-b px-4 py-3">

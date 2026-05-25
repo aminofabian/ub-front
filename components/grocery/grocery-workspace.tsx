@@ -565,11 +565,12 @@ export function GroceryWorkspace() {
     <div
       className={cn(
         "grocery-workspace relative flex flex-col overflow-hidden",
-        // Kiosk-nav mode (grocery clerk): leave room for the always-present
-        // bottom nav so the cart-panel footer + Generate button never get
-        // hidden behind it on tablets/iPads.
+        // Kiosk-nav mode (grocery clerk): leave room for the bottom nav so
+        // the cart-panel footer + Generate button never get hidden behind
+        // it on tablets/iPads. At xl+ the sidebar replaces the bottom nav,
+        // so we restore the full available height.
         isKiosk
-          ? "h-[calc(100dvh-4rem-5rem-env(safe-area-inset-bottom,0px))]"
+          ? "h-[calc(100dvh-4rem-5rem-env(safe-area-inset-bottom,0px))] xl:h-[calc(100dvh-4rem)]"
           : "h-[calc(100dvh-4rem)]",
         // Layered "counter" background: warm-cool gradient + soft grid + subtle vignette
         "bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.07),transparent_55%),linear-gradient(180deg,#fafbfc_0%,#f3f4f6_55%,#eef0f3_100%)]",
@@ -985,10 +986,10 @@ export function GroceryWorkspace() {
         className={cn(
           "lg:hidden pointer-events-none fixed inset-x-0 bottom-0 z-30",
           "px-3 sm:px-5",
-          // Sit above the bottom nav (~4.25rem + safe area). At md+ non-kiosk
-          // sessions, the bottom nav is hidden so we relax the clearance —
-          // but in kiosk-nav mode the nav stays at every size, so we keep the
-          // larger padding throughout.
+          // Sit above the bottom nav (~4.25rem + safe area). Below `lg`
+          // the side cart panel hasn't appeared yet, so this dock is the
+          // only cart entry point. Kiosk-nav mode keeps the bottom nav
+          // through tablet sizes, so we keep the larger clearance for it.
           isKiosk
             ? "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)]"
             : "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)] md:pb-[calc(env(safe-area-inset-bottom,0.5rem)+1rem)]",
