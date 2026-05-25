@@ -1433,6 +1433,46 @@ button:hover .tenant-monogram-shell {
     animation: pos-fab-breathe 2.6s ease-in-out infinite;
 }
 
+/* ── Grocery POS: Generate Invoice button — diagonal shine sweep ── */
+@keyframes pos-generate-sweep {
+    0% {
+        transform: translateX(0) skewX(-12deg);
+        opacity: 0;
+    }
+    8% {
+        opacity: 1;
+    }
+    55% {
+        opacity: 1;
+    }
+    65% {
+        transform: translateX(640%) skewX(-12deg);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(640%) skewX(-12deg);
+        opacity: 0;
+    }
+}
+
+.pos-generate .pos-generate-sweep {
+    animation: pos-generate-sweep 5.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    animation-delay: 1.2s;
+}
+
+/* Hovering speeds the sweep up so the button feels alive when reached for. */
+.pos-generate:hover .pos-generate-sweep {
+    animation-duration: 1.6s;
+    animation-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pos-generate .pos-generate-sweep {
+        animation: none;
+        opacity: 0;
+    }
+}
+
 /* ── Grocery POS: horizontal scroll with snap & no scrollbar ─────── */
 .pos-snap-row {
     scroll-snap-type: x mandatory;
