@@ -87,7 +87,7 @@ function LiveClock() {
   });
 
   return (
-    <span className="hidden items-center gap-1.5 rounded-full border border-zinc-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-zinc-700 shadow-[0_1px_0_hsl(0_0%_100%/0.6)_inset] backdrop-blur-md md:inline-flex dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-200">
+    <span className="hidden items-center gap-1.5 rounded-full border border-zinc-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-zinc-700 shadow-[0_1px_0_hsl(0_0%_100%/0.6)_inset] backdrop-blur-md lg:inline-flex dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-200">
       <Clock3 className="size-3 text-zinc-500" />
       {time}
     </span>
@@ -633,7 +633,7 @@ export function GroceryWorkspace() {
               <h1 className="font-sans truncate text-[17px] font-extrabold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">
                 Grocery POS
               </h1>
-              <span className="hidden min-[420px]:inline-flex items-center gap-1 rounded-md bg-zinc-900 px-1.5 py-[3px] text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-white shadow-[0_1px_0_rgba(255,255,255,0.1)_inset] dark:bg-white dark:text-zinc-900">
+              <span className="hidden lg:inline-flex items-center gap-1 rounded-md bg-zinc-900 px-1.5 py-[3px] text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-white shadow-[0_1px_0_rgba(255,255,255,0.1)_inset] dark:bg-white dark:text-zinc-900">
                 Live · Sale
               </span>
             </div>
