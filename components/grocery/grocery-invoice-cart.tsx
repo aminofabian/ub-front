@@ -529,26 +529,26 @@ export function GroceryInvoiceCart({
               </span>
 
               {/* ── Main label column ── */}
-              <span className="relative z-[1] flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-4 py-3.5">
+              <span className="relative z-[1] flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3.5 py-3.5 sm:px-4">
                 {loading ? (
                   <>
                     <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
                       Working…
                     </span>
-                    <span className="text-[15.5px] font-extrabold tracking-tight text-white">
+                    <span className="truncate text-[15px] font-extrabold tracking-tight text-white sm:text-[15.5px]">
                       Creating invoice
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="flex items-center gap-1.5 text-[9.5px] font-extrabold uppercase tracking-[0.16em] text-white/80">
-                      <span className="relative inline-flex size-1.5 rounded-full bg-white/90">
+                    <span className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-white/85 sm:text-[9.5px] sm:tracking-[0.16em]">
+                      <span className="relative inline-flex size-1.5 rounded-full bg-white/95">
                         <span className="absolute inset-0 inline-flex size-1.5 animate-ping rounded-full bg-white/70" />
                       </span>
-                      Ready · Tap to print
+                      <span className="truncate">Ready · Tap to print</span>
                     </span>
-                    <span className="text-green-600 font-extrabold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)]">
-                      <span className="text-green-600">Generate Invoice</span>  
+                    <span className="truncate text-[15px] font-extrabold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:text-[15.5px]">
+                      Generate Invoice
                     </span>
                   </>
                 )}
