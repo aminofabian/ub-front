@@ -40,7 +40,10 @@ const dialogContentVariants = cva(
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
         right:
           "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-full max-w-md overflow-hidden border-l border-border/60 " +
-          "bg-background/95 shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)] " +
+          // Solid background — older Chromium on Windows 10 (and any setup
+          // without `backdrop-filter` support) would otherwise let page text
+          // bleed through the panel.
+          "bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)] " +
           "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] " +
           "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-24px_0_80px_-24px_rgba(0,0,0,0.45)] " +
           "sm:rounded-l-2xl " +

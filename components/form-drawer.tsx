@@ -117,7 +117,13 @@ export function FormDrawer({
         {!onboardingTarget && !isFull ? (
           <Dialog.Overlay
             className={cn(
-              "fixed inset-0 z-50 bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40",
+              // Base color must read as a real scrim on browsers that don't
+              // support `backdrop-filter` (older Chromium on Windows 10, GPUs
+              // with hardware acceleration disabled, etc.). The blur is a
+              // progressive enhancement, not the source of separation.
+              "fixed inset-0 z-50 bg-black/35 dark:bg-black/55",
+              "supports-[backdrop-filter]:bg-black/20 supports-[backdrop-filter]:backdrop-blur-[3px]",
+              "supports-[backdrop-filter]:dark:bg-black/40",
               "data-[state=open]:animate-in data-[state=closed]:animate-out",
               "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300",
             )}
@@ -140,7 +146,10 @@ export function FormDrawer({
                   sharp
                     ? "border-l border-border bg-background shadow-none dark:bg-background"
                     : cn(
-                        "border-l border-border/60 bg-background/95 shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)]",
+                        // The panel itself must be fully opaque so page text
+                        // behind it can never bleed through on browsers
+                        // without `backdrop-filter` support.
+                        "border-l border-border/60 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)]",
                         "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-24px_0_80px_-24px_rgba(0,0,0,0.45)]",
                       ),
                   "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
