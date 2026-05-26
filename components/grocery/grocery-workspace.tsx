@@ -101,11 +101,17 @@ function ProductCard({
   shelfLine,
   onPick,
   isTopSeller,
+  cartQty = 0,
+  cartLineTotal = 0,
+  currency,
 }: {
   item: ItemSummaryRecord;
   shelfLine: string;
   onPick: () => void;
   isTopSeller?: boolean;
+  cartQty?: number;
+  cartLineTotal?: number;
+  currency: string;
 }) {
   const thumb = itemListThumbnailUrl(item);
   const title = cashierItemPrimaryLabel(item);
@@ -114,21 +120,51 @@ function ProductCard({
     amount &&
     amount !== CASHIER_POS_UI_COPY.tileShelfEmpty &&
     amount !== CASHIER_POS_UI_COPY.tileShelfLoading;
+  const inCart = cartQty > 0;
+  // Running total label — only meaningful when we actually know a unit price.
+  // If shelf price is still loading/unknown, fall back to showing just the
+  // count so we don't render "0 KES" totals.
+  const lineTotalLabel =
+    inCart && cartLineTotal > 0
+      ? formatShelfPriceLabel(cartLineTotal, currency)
+      : null;
+  const lineTotalSplit = lineTotalLabel
+    ? splitShelfPriceDisplay(lineTotalLabel)
+    : null;
 
   return (
     <button
       type="button"
       onClick={onPick}
+      aria-label={
+        inCart
+          ? `${title} — ${cartQty} in cart. Tap to add another.`
+          : `Add ${title} to cart`
+      }
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-2xl text-left",
-        "border border-zinc-200/90 bg-white",
-        "shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.6)_inset]",
+        "border bg-white",
         "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-        "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_28px_-10px_rgba(15,23,42,0.18),0_2px_6px_-2px_rgba(15,23,42,0.06)]",
         "active:translate-y-0 active:scale-[0.97] active:shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50",
-        "dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-white/[0.2]",
+        "dark:bg-white/[0.03]",
         "touch-manipulation select-none",
+        inCart
+          ? [
+              // "In-cart" state — subtle but obvious: green-tinted border,
+              // soft emerald glow, and a faint cream-on-green wash so the
+              // card reads as "already in your sale".
+              "border-emerald-400/70 bg-gradient-to-br from-emerald-50/85 via-white to-white",
+              "shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_22px_-12px_rgba(40,167,69,0.45),0_1px_0_rgba(255,255,255,0.6)_inset]",
+              "hover:-translate-y-0.5 hover:border-emerald-500/80 hover:shadow-[0_12px_30px_-10px_rgba(40,167,69,0.4),0_2px_6px_-2px_rgba(15,23,42,0.06)]",
+              "dark:border-emerald-500/30 dark:from-emerald-950/30 dark:via-white/[0.03] dark:to-white/[0.03]",
+            ]
+          : [
+              "border-zinc-200/90",
+              "shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.6)_inset]",
+              "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_28px_-10px_rgba(15,23,42,0.18),0_2px_6px_-2px_rgba(15,23,42,0.06)]",
+              "dark:border-white/[0.08] dark:hover:border-white/[0.2]",
+            ],
       )}
     >
       {/* Image area */}
@@ -149,11 +185,31 @@ function ProductCard({
           </div>
         )}
 
-        {/* Top seller ribbon */}
+        {/* Top seller ribbon — left side, never collides with the cart badge */}
         {isTopSeller && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-[3px] text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-white shadow-[0_4px_10px_rgba(217,119,6,0.35)] ring-1 ring-amber-300/50">
+          <span className="absolute left-2 top-2 z-[1] inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-[3px] text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-white shadow-[0_4px_10px_rgba(217,119,6,0.35)] ring-1 ring-amber-300/50">
             <Sparkles className="size-2.5" strokeWidth={2.5} />
             Top
+          </span>
+        )}
+
+        {/* In-cart count badge — top-right; keyed on count so it remounts and
+            pops every time the user taps the tile (visual confirmation that
+            "yes, we just added another one"). Shows "× N" so it reads as a
+            multiplier next to the running total in the price strip below. */}
+        {inCart && (
+          <span
+            key={cartQty}
+            className={cn(
+              "pos-tile-qty-badge absolute right-2 top-2 z-[2] inline-flex h-6 min-w-[1.5rem] items-center justify-center gap-1 rounded-full px-1.5 text-[11px] font-extrabold tabular-nums text-white",
+              "bg-gradient-to-br from-emerald-500 via-primary to-emerald-700",
+              "shadow-[0_6px_14px_-2px_rgba(40,167,69,0.5),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.18)]",
+              "ring-2 ring-white dark:ring-background",
+            )}
+            aria-hidden
+          >
+            <ShoppingBasket className="size-2.5" strokeWidth={2.75} />
+            <span>&times;&thinsp;{cartQty}</span>
           </span>
         )}
 
@@ -163,8 +219,17 @@ function ProductCard({
           className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/[0.06] to-transparent"
         />
 
-        {/* Quick-add bubble */}
-        <div className="absolute bottom-2 right-2 flex translate-y-1 items-center justify-center opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 group-active:opacity-100">
+        {/* Quick-add bubble — always visible (more prominent) once an item is
+            in the cart, since "tap again to add another" is now the action.
+            Otherwise reveal on hover/focus as before. */}
+        <div
+          className={cn(
+            "absolute bottom-2 right-2 flex items-center justify-center transition-all duration-200",
+            inCart
+              ? "translate-y-0 opacity-100"
+              : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 group-active:opacity-100",
+          )}
+        >
           <span className="flex size-10 items-center justify-center rounded-full bg-primary text-white shadow-[0_6px_16px_rgba(40,167,69,0.4)] ring-2 ring-white/60 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 group-active:scale-90">
             <Plus className="size-[18px]" strokeWidth={2.75} />
           </span>
@@ -177,6 +242,33 @@ function ProductCard({
           {title}
         </p>
 
+        {lineTotalSplit ? (
+          // ── In-cart price strip ──
+          // The running total (qty × unit price) is the hero figure; the
+          // unit price is demoted to a subtle caption so the clerk can still
+          // see what each one costs without it competing for attention.
+          <div
+            key={cartLineTotal}
+            className="pos-tile-line-total flex min-w-0 items-end justify-between gap-2"
+          >
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex items-baseline gap-1 leading-none">
+                <span className="truncate text-[16px] font-extrabold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-300">
+                  {lineTotalSplit.amount}
+                </span>
+                {lineTotalSplit.code && (
+                  <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-emerald-600/80 dark:text-emerald-400/80">
+                    {lineTotalSplit.code}
+                  </span>
+                )}
+              </span>
+              <span className="truncate text-[10px] font-semibold tabular-nums leading-none text-zinc-500 dark:text-zinc-400">
+                {cartQty}&thinsp;&times;&thinsp;{amount}
+                {code ? ` ${code}` : ""}
+              </span>
+            </div>
+          </div>
+        ) : (
         <div className="flex items-baseline gap-1">
           {hasPrice ? (
             <>
@@ -195,6 +287,7 @@ function ProductCard({
             </span>
           )}
         </div>
+        )}
       </div>
     </button>
   );
@@ -271,6 +364,23 @@ export function GroceryWorkspace() {
   const [lines, setLines] = useState<GroceryCartLine[]>([]);
   const [cartPulse, setCartPulse] = useState(0);
   const [recentlyAddedKey, setRecentlyAddedKey] = useState<string | null>(null);
+
+  // Quick lookup of how much of each product is already in the cart —
+  // both the running quantity and the running line total. Drives the count
+  // badge and the in-cart price strip on each product tile so the clerk
+  // can tell at a glance "I've already added this one, 3 times, totalling
+  // 150 KES". Items can theoretically appear on multiple lines so we sum.
+  const lineDataByItem = useMemo(() => {
+    const m = new Map<string, { qty: number; total: number }>();
+    for (const l of lines) {
+      const prev = m.get(l.itemId) ?? { qty: 0, total: 0 };
+      m.set(l.itemId, {
+        qty: prev.qty + l.quantity,
+        total: prev.total + l.quantity * (l.unitPrice ?? 0),
+      });
+    }
+    return m;
+  }, [lines]);
 
   // Invoice generation state
   const [loading, setLoading] = useState(false);
@@ -857,18 +967,24 @@ export function GroceryWorkspace() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                    {hits.map((item) => (
-                      <ProductCard
-                        key={item.id}
-                        item={item}
-                        shelfLine={tileShelfLine(
-                          online,
-                          tileShelfPrices,
-                          item.id,
-                        )}
-                        onPick={() => addLine(item)}
-                      />
-                    ))}
+                    {hits.map((item) => {
+                      const d = lineDataByItem.get(item.id);
+                      return (
+                        <ProductCard
+                          key={item.id}
+                          item={item}
+                          shelfLine={tileShelfLine(
+                            online,
+                            tileShelfPrices,
+                            item.id,
+                          )}
+                          onPick={() => addLine(item)}
+                          cartQty={d?.qty ?? 0}
+                          cartLineTotal={d?.total ?? 0}
+                          currency={currency}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -928,7 +1044,9 @@ export function GroceryWorkspace() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                    {topProducts.map((p) => (
+                    {topProducts.map((p) => {
+                      const d = lineDataByItem.get(p.id);
+                      return (
                       <ProductCard
                         key={p.id}
                         item={{
@@ -946,9 +1064,13 @@ export function GroceryWorkspace() {
                             thumbnailUrl: p.thumbnailUrl ?? null,
                           })
                         }
+                        cartQty={d?.qty ?? 0}
+                        cartLineTotal={d?.total ?? 0}
+                        currency={currency}
                         isTopSeller
                       />
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>

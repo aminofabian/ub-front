@@ -1506,6 +1506,56 @@ button:hover .tenant-monogram-shell {
         animation: none;
         opacity: 0;
     }
+    .pos-generate:not(:disabled) {
+        animation: none;
+    }
+}
+
+/* ── Grocery POS: product tile "in-cart" count badge pop ──────────── */
+/* The badge has `key={cartQty}` on the React side, so every tap remounts it
+   and re-runs this animation — a tiny visual confirmation of each add. */
+@keyframes pos-tile-qty-pop {
+    0% {
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    55% {
+        transform: scale(1.18);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.pos-tile-qty-badge {
+    animation: pos-tile-qty-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    transform-origin: 70% 30%;
+}
+
+/* Running line-total strip — a gentle slide+fade when the total changes so
+   the eye is drawn to the new figure without it screaming. */
+@keyframes pos-tile-line-total-in {
+    0% {
+        transform: translateY(2px);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.pos-tile-line-total {
+    animation: pos-tile-line-total-in 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pos-tile-qty-badge,
+    .pos-tile-line-total {
+        animation: none;
+    }
 }
 
 /* ── Grocery POS: horizontal scroll with snap & no scrollbar ─────── */
