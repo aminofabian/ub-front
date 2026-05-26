@@ -22,6 +22,9 @@ import {
   StickyNote,
   ShoppingBasket,
   FileText,
+  LayoutGrid,
+  Table2,
+  ArrowDownUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,7 +33,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useOnlineStatus } from "@/hooks/use-online-status";
-import { GroceryInvoicesList } from "@/components/grocery/grocery-invoices-list";
+import {
+  GroceryInvoicesList,
+  type InvoicesViewMode,
+} from "@/components/grocery/grocery-invoices-list";
 import {
   listGroceryInvoices,
   cancelGroceryInvoice,
@@ -42,6 +48,12 @@ import {
 } from "@/lib/grocery-api";
 
 type TabValue = GroceryInvoiceStatus | "all";
+type SortKey =
+  | "created_desc"
+  | "created_asc"
+  | "total_desc"
+  | "total_asc"
+  | "status";
 
 const STATUS_TABS: Array<{ label: string; value: TabValue }> = [
   { label: "All", value: "all" },
@@ -50,6 +62,26 @@ const STATUS_TABS: Array<{ label: string; value: TabValue }> = [
   { label: "Cancelled", value: "cancelled" },
   { label: "Expired", value: "expired" },
 ];
+
+const SORT_OPTIONS: Array<{ label: string; value: SortKey }> = [
+  { label: "Newest first", value: "created_desc" },
+  { label: "Oldest first", value: "created_asc" },
+  { label: "Highest total", value: "total_desc" },
+  { label: "Lowest total", value: "total_asc" },
+  { label: "By status", value: "status" },
+];
+
+// Stable ordering for the "By status" sort — pending first so staff can act on
+// what matters most without scanning.
+const STATUS_ORDER: Record<GroceryInvoiceStatus, number> = {
+  pending_payment: 0,
+  paid: 1,
+  expired: 2,
+  cancelled: 3,
+};
+
+const VIEW_STORAGE_KEY = "palmart.grocery.invoices.view";
+const SORT_STORAGE_KEY = "palmart.grocery.invoices.sort";
 
 // Soft tint per status — used to colorize stat tiles, tab counts, and the
 // detail modal header so the page reads as a single, consistent system.
@@ -123,11 +155,52 @@ export default function GroceryInvoicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabValue>("all");
   const [query, setQuery] = useState("");
+  const [viewMode, setViewMode] = useState<InvoicesViewMode>("table");
+  const [sort, setSort] = useState<SortKey>("created_desc");
   const [viewingInvoice, setViewingInvoice] =
     useState<GroceryInvoiceResponse | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+
+  // Hydrate persisted view + sort once on mount. Done in an effect so SSR and
+  // first paint stay deterministic (no hydration mismatch).
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
+      if (v === "grid" || v === "table") setViewMode(v);
+      const s = window.localStorage.getItem(SORT_STORAGE_KEY);
+      if (
+        s === "created_desc" ||
+        s === "created_asc" ||
+        s === "total_desc" ||
+        s === "total_asc" ||
+        s === "status"
+      ) {
+        setSort(s);
+      }
+    } catch {
+      // localStorage unavailable — keep defaults.
+    }
+  }, []);
+
+  const updateViewMode = useCallback((next: InvoicesViewMode) => {
+    setViewMode(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const updateSort = useCallback((next: SortKey) => {
+    setSort(next);
+    try {
+      window.localStorage.setItem(SORT_STORAGE_KEY, next);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const fetchInvoices = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -187,7 +260,7 @@ export default function GroceryInvoicesPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return invoices
+    const list = invoices
       .filter((inv) => (activeTab === "all" ? true : inv.status === activeTab))
       .filter((inv) => {
         if (!q) return true;
@@ -196,7 +269,35 @@ export default function GroceryInvoicesPage() {
           (inv.createdByName ?? "").toLowerCase().includes(q)
         );
       });
-  }, [invoices, activeTab, query]);
+
+    const sorted = [...list];
+    const byCreated = (a: GroceryInvoiceSummaryResponse) =>
+      new Date(a.createdAt).getTime() || 0;
+    switch (sort) {
+      case "created_asc":
+        sorted.sort((a, b) => byCreated(a) - byCreated(b));
+        break;
+      case "total_desc":
+        sorted.sort((a, b) => b.grandTotal - a.grandTotal);
+        break;
+      case "total_asc":
+        sorted.sort((a, b) => a.grandTotal - b.grandTotal);
+        break;
+      case "status":
+        sorted.sort((a, b) => {
+          const oa = STATUS_ORDER[a.status] ?? 99;
+          const ob = STATUS_ORDER[b.status] ?? 99;
+          if (oa !== ob) return oa - ob;
+          return byCreated(b) - byCreated(a);
+        });
+        break;
+      case "created_desc":
+      default:
+        sorted.sort((a, b) => byCreated(b) - byCreated(a));
+        break;
+    }
+    return sorted;
+  }, [invoices, activeTab, query, sort]);
 
   // ── Actions ──────────────────────────────────────────────────────
   const onViewInvoice = useCallback(async (id: string) => {
@@ -380,27 +481,70 @@ export default function GroceryInvoicesPage() {
         </div>
       </section>
 
-      {/* ── Filter bar: search + tabs ─────────────────────────────── */}
+      {/* ── Filter bar: search + view toggle + sort + tabs ────────── */}
       <section className="space-y-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by barcode or cashier name…"
-            className="h-10 pl-9 pr-9"
-            aria-label="Search invoices"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Clear search"
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by barcode or cashier name…"
+              className="h-10 pl-9 pr-9"
+              aria-label="Search invoices"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Sort dropdown — native select wrapped to look like a button so it
+              stays accessible (keyboard + mobile native picker) without
+              dragging in a popover dependency. */}
+          <label className="relative inline-flex h-10 items-center">
+            <span className="sr-only">Sort invoices</span>
+            <ArrowDownUp className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <select
+              value={sort}
+              onChange={(e) => updateSort(e.target.value as SortKey)}
+              className={cn(
+                "h-10 appearance-none rounded-lg border border-input bg-background pl-8 pr-7 text-sm font-medium text-foreground shadow-sm",
+                "hover:bg-muted focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                "cursor-pointer transition-colors",
+              )}
+              aria-label="Sort order"
             >
-              <X className="size-3.5" />
-            </button>
-          )}
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <svg
+              aria-hidden
+              viewBox="0 0 12 12"
+              className="pointer-events-none absolute right-2 size-3 text-muted-foreground"
+            >
+              <path
+                d="M2 4l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </label>
+
+          {/* View mode segmented control */}
+          <ViewModeToggle value={viewMode} onChange={updateViewMode} />
         </div>
 
         <div
@@ -479,6 +623,7 @@ export default function GroceryInvoicesPage() {
           query={query}
           activeTab={activeTab}
           totalCount={invoices.length}
+          viewMode={viewMode}
         />
       </section>
 
@@ -492,6 +637,10 @@ export default function GroceryInvoicesPage() {
           of {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
           {activeTab !== "all" && ` · ${activeTab.replace(/_/g, " ")}`}
           {query && ` · matching “${query}”`}
+          {" · "}
+          {viewMode === "table" ? "table view" : "grid view"}
+          {" · "}
+          {SORT_OPTIONS.find((o) => o.value === sort)?.label.toLowerCase()}
         </p>
       )}
 
@@ -508,6 +657,63 @@ export default function GroceryInvoicesPage() {
           onCancel={onCancelInvoice}
         />
       )}
+    </div>
+  );
+}
+
+// ── View mode toggle ────────────────────────────────────────────────
+
+function ViewModeToggle({
+  value,
+  onChange,
+}: {
+  value: InvoicesViewMode;
+  onChange: (next: InvoicesViewMode) => void;
+}) {
+  const items: Array<{
+    value: InvoicesViewMode;
+    label: string;
+    icon: typeof Table2;
+  }> = [
+    { value: "table", label: "Table", icon: Table2 },
+    { value: "grid", label: "Grid", icon: LayoutGrid },
+  ];
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Layout"
+      className="relative inline-flex h-10 items-center rounded-lg border border-input bg-background p-0.5 shadow-sm"
+    >
+      {/* Sliding thumb — sits behind the labels and slides between segments. */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-primary shadow-sm transition-transform duration-200 ease-out",
+          value === "grid" && "translate-x-full",
+        )}
+      />
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = value === item.value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(item.value)}
+            className={cn(
+              "relative z-[1] inline-flex h-9 min-w-[3.5rem] items-center justify-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-semibold transition-colors",
+              active
+                ? "text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon className="size-3.5" strokeWidth={2.25} />
+            <span className="hidden sm:inline">{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
