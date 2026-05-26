@@ -79,13 +79,31 @@ describe("isSessionRelatedProblem", () => {
     ).toBe(true);
   });
 
-  it("ignores permission denied", () => {
+  it("treats any authenticated 403 as session failure", () => {
     expect(
       isSessionRelatedProblem(403, {
         title: "Forbidden",
         status: 403,
         type: "urn:problem:permission-denied",
       }),
+    ).toBe(true);
+  });
+
+  it("treats bare 403 with no problem body as session failure", () => {
+    expect(isSessionRelatedProblem(403, {})).toBe(true);
+  });
+
+  it("ignores 403 on public calls", () => {
+    expect(
+      isSessionRelatedProblem(
+        403,
+        {
+          title: "Forbidden",
+          status: 403,
+          type: "urn:problem:permission-denied",
+        },
+        { requiresAuth: false },
+      ),
     ).toBe(false);
   });
 

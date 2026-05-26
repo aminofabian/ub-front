@@ -141,12 +141,17 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
  * Whether an API failure means the stored session is unusable and the client should
  * clear auth data and redirect to login. Skips public/unauthenticated calls (e.g. login).
  *
- * <p>This is intentionally CONSERVATIVE: only true authentication failures
- * (401, refresh-token rejected, account locked, JWT tenant mismatch) count
- * as session-related. A misconfigured X-Tenant-Host (404 tenant-not-found),
- * a missing tenant context header (400) or any other 4xx/5xx is treated as
- * a normal request failure - the user keeps their session and sees a toast
- * rather than being kicked back to /login.
+ * <p>Any 401 OR 403 from an authenticated call is treated as a session failure:
+ * the access token is unusable (expired/revoked/tenant-mismatched/permission-denied),
+ * so the user is signed out and redirected to /login. Other 4xx/5xx responses
+ * (400 tenant-context-missing, 404 tenant-not-found, etc.) are treated as
+ * normal request failures - the user keeps their session and sees a toast.
+ *
+ * <p>Note: {@link TENANT_TOKEN_MISMATCH_TITLE}, {@link UNAUTHORIZED_PROBLEM_TYPE},
+ * {@link SESSION_AUTH_TITLES}, {@link PROBLEM_TITLES.invalidOrExpiredAccessToken},
+ * and {@link ERROR_CODES.tokenExpired} are kept as fall-throughs so that any
+ * future status code carrying those signals (e.g. a 400 with token_expired)
+ * still triggers sign-out.
  */
 export function isSessionRelatedProblem(
   status: number,
@@ -157,7 +162,7 @@ export function isSessionRelatedProblem(
     return false;
   }
 
-  if (status === 401) {
+  if (status === 401 || status === 403) {
     return true;
   }
 
@@ -178,7 +183,7 @@ export function isSessionRelatedProblem(
   if (SESSION_AUTH_TITLES.has(problem.title)) {
     return true;
   }
-  if (status === 403 && problem.title === TENANT_TOKEN_MISMATCH_TITLE) {
+  if (problem.title === TENANT_TOKEN_MISMATCH_TITLE) {
     return true;
   }
 
