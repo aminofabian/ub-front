@@ -1,22 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Receipt,
-  Filter,
   Loader2,
   AlertTriangle,
   ArrowLeft,
+  Plus,
+  RefreshCw,
+  Search,
+  Wifi,
+  WifiOff,
+  X,
+  Copy,
+  CheckCircle2,
+  XCircle,
+  Hourglass,
+  CalendarClock,
+  User,
+  StickyNote,
+  ShoppingBasket,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useOnlineStatus } from "@/hooks/use-online-status";
-import { DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
 import { GroceryInvoicesList } from "@/components/grocery/grocery-invoices-list";
 import {
   listGroceryInvoices,
@@ -28,51 +41,120 @@ import {
   type GroceryInvoiceResponse,
 } from "@/lib/grocery-api";
 
-const STATUS_TABS: Array<{ label: string; value: GroceryInvoiceStatus | "all" }> =
-  [
-    { label: "All", value: "all" },
-    { label: "Pending", value: "pending_payment" },
-    { label: "Paid", value: "paid" },
-    { label: "Cancelled", value: "cancelled" },
-    { label: "Expired", value: "expired" },
-  ];
+type TabValue = GroceryInvoiceStatus | "all";
+
+const STATUS_TABS: Array<{ label: string; value: TabValue }> = [
+  { label: "All", value: "all" },
+  { label: "Pending", value: "pending_payment" },
+  { label: "Paid", value: "paid" },
+  { label: "Cancelled", value: "cancelled" },
+  { label: "Expired", value: "expired" },
+];
+
+// Soft tint per status — used to colorize stat tiles, tab counts, and the
+// detail modal header so the page reads as a single, consistent system.
+const STATUS_THEME: Record<
+  GroceryInvoiceStatus,
+  { dot: string; pill: string; chip: string; ring: string }
+> = {
+  pending_payment: {
+    dot: "bg-amber-500",
+    pill: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    chip: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
+    ring: "ring-amber-200/60 dark:ring-amber-900/40",
+  },
+  paid: {
+    dot: "bg-emerald-500",
+    pill: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    chip: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
+    ring: "ring-emerald-200/60 dark:ring-emerald-900/40",
+  },
+  cancelled: {
+    dot: "bg-zinc-400",
+    pill: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300",
+    chip: "bg-zinc-50 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-400",
+    ring: "ring-zinc-200/70 dark:ring-zinc-800/60",
+  },
+  expired: {
+    dot: "bg-red-500",
+    pill: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300",
+    chip: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-300",
+    ring: "ring-red-200/60 dark:ring-red-900/40",
+  },
+};
+
+function formatCurrency(currency: string, n: number): string {
+  if (!Number.isFinite(n)) return `${currency} 0.00`;
+  if (Math.abs(n) >= 1_000_000) {
+    return `${currency} ${(n / 1_000_000).toFixed(n >= 10_000_000 ? 1 : 2)}M`;
+  }
+  if (Math.abs(n) >= 10_000) {
+    return `${currency} ${(n / 1_000).toFixed(n >= 100_000 ? 0 : 1)}k`;
+  }
+  return `${currency} ${n.toFixed(2)}`;
+}
+
+function formatDateTime(iso?: string): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export default function GroceryInvoicesPage() {
-  const router = useRouter();
-  const { branchId, business } = useDashboard();
+  const { branchId, business, branches } = useDashboard();
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
+  const branchName = useMemo(
+    () => branches.find((b) => b.id === branchId)?.name ?? "this branch",
+    [branches, branchId],
+  );
 
   const [invoices, setInvoices] = useState<GroceryInvoiceSummaryResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<GroceryInvoiceStatus | "all">(
-    "all",
-  );
+  const [activeTab, setActiveTab] = useState<TabValue>("all");
+  const [query, setQuery] = useState("");
   const [viewingInvoice, setViewingInvoice] =
     useState<GroceryInvoiceResponse | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
-  const fetchInvoices = useCallback(async () => {
-    if (!branchId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const status = activeTab === "all" ? undefined : activeTab;
-      const result = await listGroceryInvoices(branchId, status);
-      setInvoices(result.invoices ?? []);
-    } catch (e) {
-      const msg =
-        e instanceof GroceryApiError
-          ? e.message
-          : e instanceof Error
+  const fetchInvoices = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!branchId) return;
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+      try {
+        // Fetch all statuses once, then filter/count client-side. This makes
+        // tab badges accurate without round-tripping for every tab switch.
+        const result = await listGroceryInvoices(branchId);
+        setInvoices(result.invoices ?? []);
+      } catch (e) {
+        const msg =
+          e instanceof GroceryApiError
             ? e.message
-            : "Failed to load invoices";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [branchId, activeTab]);
+            : e instanceof Error
+              ? e.message
+              : "Failed to load invoices";
+        setError(msg);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [branchId],
+  );
 
   useEffect(() => {
     if (branchId) {
@@ -80,17 +162,54 @@ export default function GroceryInvoicesPage() {
     }
   }, [branchId, fetchInvoices]);
 
+  // ── Derived: counts + totals + filtered list ────────────────────
+  const counts = useMemo(() => {
+    const c: Record<TabValue, number> = {
+      all: invoices.length,
+      pending_payment: 0,
+      paid: 0,
+      cancelled: 0,
+      expired: 0,
+    };
+    for (const inv of invoices) c[inv.status]++;
+    return c;
+  }, [invoices]);
+
+  const totals = useMemo(() => {
+    let pending = 0;
+    let paid = 0;
+    for (const inv of invoices) {
+      if (inv.status === "pending_payment") pending += inv.grandTotal;
+      else if (inv.status === "paid") paid += inv.grandTotal;
+    }
+    return { pending, paid };
+  }, [invoices]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return invoices
+      .filter((inv) => (activeTab === "all" ? true : inv.status === activeTab))
+      .filter((inv) => {
+        if (!q) return true;
+        return (
+          inv.barcodeCode.toLowerCase().includes(q) ||
+          (inv.createdByName ?? "").toLowerCase().includes(q)
+        );
+      });
+  }, [invoices, activeTab, query]);
+
+  // ── Actions ──────────────────────────────────────────────────────
   const onViewInvoice = useCallback(async (id: string) => {
     setViewLoading(true);
+    setViewingInvoice({ id } as GroceryInvoiceResponse); // open the shell immediately
     try {
       const invoice = await getGroceryInvoice(id);
       setViewingInvoice(invoice);
     } catch (e) {
       const msg =
-        e instanceof GroceryApiError
-          ? e.message
-          : "Failed to load invoice";
+        e instanceof GroceryApiError ? e.message : "Failed to load invoice";
       toast.error(msg);
+      setViewingInvoice(null);
     } finally {
       setViewLoading(false);
     }
@@ -99,210 +218,651 @@ export default function GroceryInvoicesPage() {
   const onCancelInvoice = useCallback(
     async (id: string) => {
       if (!confirm("Cancel this invoice? This cannot be undone.")) return;
+      setCancelling(true);
       try {
         await cancelGroceryInvoice(id, {
           reason: "Cancelled by staff from dashboard",
         });
         toast.success("Invoice cancelled");
-        void fetchInvoices();
+        if (viewingInvoice?.id === id) setViewingInvoice(null);
+        void fetchInvoices({ silent: true });
       } catch (e) {
         const msg =
-          e instanceof GroceryApiError
-            ? e.message
-            : "Failed to cancel invoice";
+          e instanceof GroceryApiError ? e.message : "Failed to cancel invoice";
         toast.error(msg);
+      } finally {
+        setCancelling(false);
       }
     },
-    [fetchInvoices],
+    [fetchInvoices, viewingInvoice?.id],
   );
 
+  const onCopyBarcode = useCallback(async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(true);
+      toast.success("Barcode copied");
+      window.setTimeout(() => setCopiedCode(false), 1600);
+    } catch {
+      toast.error("Could not copy barcode");
+    }
+  }, []);
+
+  // Lock background scroll while modal is open.
+  useEffect(() => {
+    if (!viewingInvoice) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [viewingInvoice]);
+
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-6 px-4 pb-16 sm:px-6">
-      {/* Header */}
-      <section className={cn(DASHBOARD_SECTION_SURFACE)}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-3">
-              <Link href="/grocery">
-                <Button variant="ghost" size="icon-sm" className="-ml-1">
-                  <ArrowLeft className="size-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-                  Grocery Invoices
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-4 sm:px-6 sm:pt-6">
+      {/* ── Hero header ───────────────────────────────────────────── */}
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] sm:p-6",
+        )}
+      >
+        {/* Soft decorative gradient blob */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-primary/10 blur-3xl"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -left-20 bottom-0 size-44 rounded-full bg-emerald-400/[0.07] blur-3xl"
+        />
+
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <Link href="/grocery" aria-label="Back to grocery workspace">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="-ml-1 mt-0.5"
+                aria-label="Back"
+              >
+                <ArrowLeft className="size-4" />
+              </Button>
+            </Link>
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="hidden size-11 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-sm sm:flex">
+                <Receipt className="size-5" strokeWidth={2.25} />
+              </span>
+              <div className="min-w-0">
+                <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Grocery · {branchName}
+                </span>
+                <h1 className="mt-0.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  Invoices
                 </h1>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  All invoices for the current branch
+                <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  Track every barcode you’ve handed out at this branch — pending
+                  pickups, completed sales, and what’s expired.
                 </p>
               </div>
             </div>
           </div>
-          {!online && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-              <AlertTriangle className="size-3" />
-              Offline
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                online
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+              )}
+            >
+              {online ? (
+                <Wifi className="size-3" />
+              ) : (
+                <WifiOff className="size-3" />
+              )}
+              {online ? "Live" : "Offline"}
             </span>
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void fetchInvoices({ silent: true })}
+              disabled={loading || refreshing || !branchId}
+              className="gap-1.5"
+            >
+              <RefreshCw
+                className={cn("size-3.5", refreshing && "animate-spin")}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button asChild size="sm" className="gap-1.5">
+              <Link href="/grocery">
+                <Plus className="size-3.5" />
+                New invoice
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Stat tiles */}
+        <div className="relative mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:grid-cols-4 sm:gap-3">
+          <StatTile
+            icon={<FileText className="size-3.5" />}
+            label="Total"
+            value={String(counts.all)}
+            hint={`${counts.all === 1 ? "invoice" : "invoices"} all time`}
+            loading={loading}
+          />
+          <StatTile
+            icon={<Hourglass className="size-3.5" />}
+            label="Pending"
+            value={String(counts.pending_payment)}
+            hint={formatCurrency(currency, totals.pending)}
+            tone="amber"
+            loading={loading}
+          />
+          <StatTile
+            icon={<CheckCircle2 className="size-3.5" />}
+            label="Paid"
+            value={String(counts.paid)}
+            hint={formatCurrency(currency, totals.paid)}
+            tone="emerald"
+            loading={loading}
+          />
+          <StatTile
+            icon={<XCircle className="size-3.5" />}
+            label="Closed"
+            value={String(counts.cancelled + counts.expired)}
+            hint={`${counts.cancelled} cancelled · ${counts.expired} expired`}
+            tone="muted"
+            loading={loading}
+          />
         </div>
       </section>
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-border/50 bg-card p-1 shadow-sm">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setActiveTab(tab.value)}
-            className={cn(
-              "flex-1 shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-all",
-              activeTab === tab.value
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* ── Filter bar: search + tabs ─────────────────────────────── */}
+      <section className="space-y-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by barcode or cashier name…"
+            className="h-10 pl-9 pr-9"
+            aria-label="Search invoices"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
 
-      {/* Error */}
+        <div
+          role="tablist"
+          aria-label="Invoice status"
+          className="flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-card p-1 shadow-sm"
+        >
+          {STATUS_TABS.map((tab) => {
+            const count = counts[tab.value];
+            const isActive = activeTab === tab.value;
+            const theme =
+              tab.value === "all" ? null : STATUS_THEME[tab.value];
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(tab.value)}
+                className={cn(
+                  "group inline-flex flex-1 shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {theme && (
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full transition-colors",
+                      isActive ? "bg-white/90" : theme.dot,
+                    )}
+                  />
+                )}
+                <span className="truncate">{tab.label}</span>
+                <span
+                  className={cn(
+                    "ml-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums",
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-muted text-muted-foreground/90",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Error banner ──────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/[0.06] px-4 py-3 text-sm text-destructive">
           <AlertTriangle className="size-4 shrink-0" />
-          <span>{error}</span>
+          <span className="min-w-0 flex-1">{error}</span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => void fetchInvoices()}
-            className="ml-auto text-xs"
+            className="text-xs"
           >
             Retry
           </Button>
         </div>
       )}
 
-      {/* Invoices list */}
-      <section className={cn(DASHBOARD_SECTION_SURFACE, "flex-1")}>
+      {/* ── Invoices list ─────────────────────────────────────────── */}
+      <section className="flex-1">
         <GroceryInvoicesList
-          invoices={invoices}
+          invoices={filtered}
           onViewInvoice={onViewInvoice}
           onCancelInvoice={onCancelInvoice}
           loading={loading}
           currency={currency}
+          query={query}
+          activeTab={activeTab}
+          totalCount={invoices.length}
         />
       </section>
 
-      {/* View invoice detail modal */}
+      {/* ── Quick filter summary ──────────────────────────────────── */}
+      {!loading && !error && invoices.length > 0 && (
+        <p className="text-center text-xs text-muted-foreground">
+          Showing{" "}
+          <span className="font-semibold text-foreground">
+            {filtered.length}
+          </span>{" "}
+          of {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
+          {activeTab !== "all" && ` · ${activeTab.replace(/_/g, " ")}`}
+          {query && ` · matching “${query}”`}
+        </p>
+      )}
+
+      {/* ── Invoice detail modal ──────────────────────────────────── */}
       {viewingInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-card shadow-2xl ring-1 ring-black/[0.06] dark:ring-white/[0.08]">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/50 bg-card/95 px-5 py-4 backdrop-blur-sm">
-              <h3 className="text-base font-bold tracking-tight text-foreground">
-                Invoice Detail
+        <InvoiceDetailModal
+          invoice={viewingInvoice}
+          loading={viewLoading}
+          cancelling={cancelling}
+          currency={currency}
+          copied={copiedCode}
+          onCopy={onCopyBarcode}
+          onClose={() => setViewingInvoice(null)}
+          onCancel={onCancelInvoice}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Stat tile ────────────────────────────────────────────────────────
+
+function StatTile({
+  icon,
+  label,
+  value,
+  hint,
+  tone = "default",
+  loading = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "default" | "emerald" | "amber" | "muted";
+  loading?: boolean;
+}) {
+  const toneStyles: Record<string, string> = {
+    default:
+      "border-border/70 bg-card/80 text-foreground [&_[data-icon]]:bg-primary/10 [&_[data-icon]]:text-primary",
+    emerald:
+      "border-emerald-200/60 bg-emerald-50/60 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-50 [&_[data-icon]]:bg-emerald-500/15 [&_[data-icon]]:text-emerald-600 dark:[&_[data-icon]]:text-emerald-300",
+    amber:
+      "border-amber-200/60 bg-amber-50/70 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-50 [&_[data-icon]]:bg-amber-500/15 [&_[data-icon]]:text-amber-700 dark:[&_[data-icon]]:text-amber-300",
+    muted:
+      "border-border/70 bg-muted/30 text-foreground [&_[data-icon]]:bg-muted [&_[data-icon]]:text-muted-foreground",
+  };
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col gap-2 rounded-xl border p-3 shadow-sm transition-colors sm:p-3.5",
+        toneStyles[tone],
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] opacity-75">
+          {label}
+        </span>
+        <span
+          data-icon
+          className="flex size-6 items-center justify-center rounded-md"
+          aria-hidden
+        >
+          {icon}
+        </span>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        {loading ? (
+          <span className="block h-6 w-12 animate-pulse rounded-md bg-foreground/10" />
+        ) : (
+          <span className="text-2xl font-bold tabular-nums leading-none tracking-tight sm:text-[1.6rem]">
+            {value}
+          </span>
+        )}
+      </div>
+      {hint && (
+        <span className="truncate text-[11px] font-medium opacity-70">
+          {hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Detail modal ─────────────────────────────────────────────────────
+
+function InvoiceDetailModal({
+  invoice,
+  loading,
+  cancelling,
+  currency,
+  copied,
+  onCopy,
+  onClose,
+  onCancel,
+}: {
+  invoice: GroceryInvoiceResponse;
+  loading: boolean;
+  cancelling: boolean;
+  currency: string;
+  copied: boolean;
+  onCopy: (code: string) => void;
+  onClose: () => void;
+  onCancel: (id: string) => void;
+}) {
+  // While the shell is opening, the invoice may not have a status yet.
+  const status: GroceryInvoiceStatus | undefined = invoice.status;
+  const theme = status ? STATUS_THEME[status] : null;
+  const statusLabel = status
+    ? status.replace(/_/g, " ")
+    : "Loading";
+  const itemCount =
+    invoice.lines?.reduce((sum, l) => sum + l.quantity, 0) ?? 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Invoice detail"
+    >
+      <div
+        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl bg-card shadow-2xl ring-1 ring-black/[0.06] dark:ring-white/[0.08] animate-in slide-in-from-bottom-4 fade-in duration-300 sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky header strip */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border/50 bg-card/95 px-5 py-4 backdrop-blur-sm">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize",
+                theme?.pill ??
+                  "bg-muted text-muted-foreground",
+              )}
+            >
+              {theme && (
+                <span className={cn("size-1.5 rounded-full", theme.dot)} />
+              )}
+              {statusLabel}
+            </span>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-bold tracking-tight text-foreground sm:text-base">
+                Invoice detail
               </h3>
-              <button
-                type="button"
-                onClick={() => setViewingInvoice(null)}
-                className="flex size-8 items-center justify-center rounded-full bg-muted/80 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-5">
-              {viewLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Barcode
-                    </p>
-                    <p className="mt-1 font-mono text-sm font-bold tracking-wider text-foreground">
-                      {viewingInvoice.barcodeCode}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <p className="font-semibold capitalize">
-                        {viewingInvoice.status.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Created</p>
-                      <p className="font-medium">
-                        {new Date(viewingInvoice.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Created by</p>
-                      <p className="font-medium">
-                        {viewingInvoice.createdByName || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Expires</p>
-                      <p className="font-medium">
-                        {new Date(viewingInvoice.expiresAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="border-t border-border/40 pt-4">
-                    <h4 className="mb-2 text-sm font-semibold text-foreground">
-                      Items
-                    </h4>
-                    <ul className="divide-y divide-border/30">
-                      {viewingInvoice.lines.map((line) => (
-                        <li
-                          key={line.id}
-                          className="flex items-center justify-between py-2 text-sm"
-                        >
-                          <div>
-                            <p className="font-medium">{line.itemName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {line.quantity} × {currency}{" "}
-                              {line.unitPrice.toFixed(2)}
-                            </p>
-                          </div>
-                          <span className="font-semibold tabular-nums">
-                            {currency} {line.lineTotal.toFixed(2)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-border/40 pt-3">
-                    <span className="text-base font-bold">Total</span>
-                    <span className="text-xl font-bold tabular-nums">
-                      {currency} {viewingInvoice.grandTotal.toFixed(2)}
-                    </span>
-                  </div>
-                  {viewingInvoice.notes && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Notes</p>
-                      <p className="text-sm">{viewingInvoice.notes}</p>
-                    </div>
-                  )}
-                </div>
+              {invoice.createdAt && (
+                <p className="truncate text-[11px] text-muted-foreground">
+                  Created {formatDateTime(invoice.createdAt)}
+                </p>
               )}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted/80 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Close detail"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-      )}
 
-      {/* Quick filter summary */}
-      {!loading && !error && (
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <Filter className="size-3.5" />
-          <span>
-            {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
-            {activeTab !== "all" ? ` · ${activeTab.replace(/_/g, " ")}` : ""}
-          </span>
+        <div className="px-5 py-5 sm:px-6 sm:py-6">
+          {loading || !invoice.barcodeCode ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <Loader2 className="size-7 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Loading invoice details…
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {/* Barcode block */}
+              <div
+                className={cn(
+                  "relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-muted/50 via-card to-card p-4 shadow-sm",
+                  theme && `ring-1 ${theme.ring}`,
+                )}
+              >
+                <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  Barcode
+                </p>
+                <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <p className="min-w-0 truncate font-mono text-base font-bold tracking-[0.16em] text-foreground sm:text-lg">
+                    {invoice.barcodeCode}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onCopy(invoice.barcodeCode)}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-[11px] font-semibold text-foreground shadow-sm transition-colors hover:bg-muted",
+                      copied &&
+                        "border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
+                    )}
+                  >
+                    {copied ? (
+                      <CheckCircle2 className="size-3.5" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Info grid */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <InfoCell
+                  icon={<User className="size-3.5" />}
+                  label="Created by"
+                  value={invoice.createdByName || "—"}
+                />
+                <InfoCell
+                  icon={<CalendarClock className="size-3.5" />}
+                  label="Expires"
+                  value={formatDateTime(invoice.expiresAt)}
+                />
+                {invoice.paidAt && (
+                  <InfoCell
+                    icon={<CheckCircle2 className="size-3.5" />}
+                    label="Paid"
+                    value={formatDateTime(invoice.paidAt)}
+                  />
+                )}
+                {invoice.paidByName && (
+                  <InfoCell
+                    icon={<User className="size-3.5" />}
+                    label="Paid by"
+                    value={invoice.paidByName}
+                  />
+                )}
+                {invoice.cancelledAt && (
+                  <InfoCell
+                    icon={<XCircle className="size-3.5" />}
+                    label="Cancelled"
+                    value={formatDateTime(invoice.cancelledAt)}
+                  />
+                )}
+                {invoice.cancelledReason && (
+                  <InfoCell
+                    icon={<StickyNote className="size-3.5" />}
+                    label="Reason"
+                    value={invoice.cancelledReason}
+                    full
+                  />
+                )}
+              </div>
+
+              {/* Items list */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                    <ShoppingBasket className="size-3.5" />
+                    Items
+                  </h4>
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {itemCount} item{itemCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <ul className="overflow-hidden rounded-xl border border-border/60 bg-background/60">
+                  {(invoice.lines ?? []).map((line) => (
+                    <li
+                      key={line.id}
+                      className="flex items-center justify-between gap-3 border-b border-border/40 px-3.5 py-2.5 text-sm last:border-b-0"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-foreground">
+                          {line.itemName}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {line.quantity} × {currency}{" "}
+                          {line.unitPrice.toFixed(2)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-semibold tabular-nums text-foreground">
+                        {currency} {line.lineTotal.toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-1.5 rounded-xl border border-border/60 bg-gradient-to-br from-muted/40 to-muted/10 p-3.5">
+                {invoice.subtotal !== invoice.grandTotal && (
+                  <div className="flex items-center justify-between text-[13px] text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span className="tabular-nums">
+                      {currency} {invoice.subtotal.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-end justify-between gap-3">
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Grand total
+                  </span>
+                  <span className="text-2xl font-bold tabular-nums leading-none tracking-tight text-foreground">
+                    {currency} {invoice.grandTotal.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {invoice.notes && (
+                <div className="rounded-xl border border-border/60 bg-muted/20 p-3.5">
+                  <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                    <StickyNote className="size-3.5" />
+                    Notes
+                  </p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-foreground">
+                    {invoice.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  Close
+                </Button>
+                {status === "pending_payment" && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onCancel(invoice.id)}
+                    disabled={cancelling}
+                    className="gap-1.5"
+                  >
+                    {cancelling ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <XCircle className="size-3.5" />
+                    )}
+                    Cancel invoice
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoCell({
+  icon,
+  label,
+  value,
+  full = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  full?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/60 bg-background/60 px-3 py-2.5",
+        full && "col-span-2",
       )}
+    >
+      <p className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+        {icon}
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-medium text-foreground">
+        {value}
+      </p>
     </div>
   );
 }
