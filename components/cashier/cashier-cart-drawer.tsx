@@ -30,6 +30,7 @@ import {
 } from "./cashier-currency-inline";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone } from "@/lib/customer-phone";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { cn } from "@/lib/utils";
@@ -526,22 +527,27 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                 <section className={cn(drawerSectionShell, "space-y-3")}>
                   <div className={drawerSectionHeader}>
                     <h3 className={DRAWER_SECTION_TITLE}>Payment</h3>
-                    <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        className="size-3.5 rounded border-border/60 text-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
-                        checked={splitPay}
-                        disabled={payMethodNeedsCustomer(payMethod)}
-                        onChange={(e) => {
-                          const next = e.target.checked;
-                          if (next && payMethodNeedsCustomer(payMethod)) {
-                            setPayMethod("cash");
-                          }
-                          setSplitPay(next);
-                        }}
-                      />
-                      Split cash + M-Pesa
-                    </label>
+                    {/* Split cash + M-Pesa relies on the STK Push flow below; */}
+                    {/* desktop SKU is offline and only supports cash + customer-tab tenders here */}
+                    {/* (manual M-Pesa is still reachable via the Pay Invoice flow). */}
+                    {!IS_DESKTOP ? (
+                      <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          className="size-3.5 rounded border-border/60 text-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
+                          checked={splitPay}
+                          disabled={payMethodNeedsCustomer(payMethod)}
+                          onChange={(e) => {
+                            const next = e.target.checked;
+                            if (next && payMethodNeedsCustomer(payMethod)) {
+                              setPayMethod("cash");
+                            }
+                            setSplitPay(next);
+                          }}
+                        />
+                        Split cash + M-Pesa
+                      </label>
+                    ) : null}
                   </div>
 
                   {!splitPay ? (
@@ -552,12 +558,15 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       >
                         Cash
                       </PayChip>
-                      <PayChip
-                        active={payMethod === "mpesa_manual"}
-                        onClick={() => setPayMethod("mpesa_manual")}
-                      >
-                        M-Pesa
-                      </PayChip>
+                      {/* M-Pesa chip drives the STK Push prompt below; both are cloud-only. */}
+                      {!IS_DESKTOP ? (
+                        <PayChip
+                          active={payMethod === "mpesa_manual"}
+                          onClick={() => setPayMethod("mpesa_manual")}
+                        >
+                          M-Pesa
+                        </PayChip>
+                      ) : null}
                       {canLookupCustomers ? (
                         <PayChip
                           active={payMethod === "customer_credit"}

@@ -3,6 +3,11 @@ import type { MetadataRoute } from "next";
 const THEME_COLOR = "#28A745";
 const BACKGROUND_COLOR = "#fafafa";
 
+// The manifest body is a pure constant — no `headers()`, no fetches — so
+// telling Next to treat it as a static asset both unlocks `output: 'export'`
+// for the desktop SKU and lets cloud CDNs cache it.
+export const dynamic = "force-static";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Kiosk POS — Point of Sale & Storefront",

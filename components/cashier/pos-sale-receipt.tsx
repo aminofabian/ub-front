@@ -8,6 +8,7 @@ import {
   formatReceiptMoney,
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
+import { printPosReceipt } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
 
 export const POS_RECEIPT_PRINT_ROOT_ID = "pos-receipt-print";
@@ -17,6 +18,8 @@ export const THERMAL_RECEIPT_WIDTH_MM = 50;
 
 type PosSaleReceiptProps = {
   receipt: PosReceiptSnapshot;
+  /** Required on desktop for ESC/POS printing via the device bridge. */
+  saleId?: string;
   className?: string;
   showPrintButton?: boolean;
 };
@@ -34,6 +37,7 @@ function hasReceiptFooter(receipt: PosReceiptSnapshot): boolean {
 
 export function PosSaleReceipt({
   receipt,
+  saleId,
   className,
   showPrintButton = true,
 }: PosSaleReceiptProps) {
@@ -48,7 +52,13 @@ export function PosSaleReceipt({
             variant="outline"
             size="sm"
             className="h-8 gap-1.5 text-xs"
-            onClick={() => window.print()}
+            onClick={() => {
+              if (saleId) {
+                void printPosReceipt(saleId);
+              } else {
+                window.print();
+              }
+            }}
           >
             <Printer className="size-3.5" aria-hidden />
             Print receipt

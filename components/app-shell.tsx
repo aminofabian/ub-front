@@ -21,6 +21,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
+import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
+
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
@@ -29,6 +32,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { logoutRemote } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
 const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
@@ -69,6 +73,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.users, label: "Users" },
       { href: APP_ROUTES.businessImport, label: "Data import" },
       { href: APP_ROUTES.promoCampaigns, label: "Promotions" },
+      { href: APP_ROUTES.desktopSettings, label: "Desktop & LAN" },
     ],
   },
   {
@@ -193,7 +198,28 @@ function featureFlagAllows(
   return featureFlags[item.featureFlag] !== false;
 }
 
+/**
+ * Routes that depend on cloud-only integrations (SMS/WhatsApp blasts, KopoKopo
+ * STK gateway, public storefront orders, multi-domain hosting). Hidden in the
+ * desktop SKU so users don't land on a dead page. See {@code DESKTOP_INSTALLATION.md} §6.2.
+ */
+const DESKTOP_HIDDEN_NAV_HREFS: readonly string[] = [
+  APP_ROUTES.paymentsSettings,
+  APP_ROUTES.promoCampaigns,
+  APP_ROUTES.businessDomains,
+  APP_ROUTES.storefrontWebOrders,
+];
+
+const DESKTOP_ONLY_NAV_HREFS: readonly string[] = [APP_ROUTES.desktopSettings];
+
 function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
+  if (!IS_DESKTOP && DESKTOP_ONLY_NAV_HREFS.includes(item.href)) {
+    return false;
+  }
+  if (IS_DESKTOP && DESKTOP_HIDDEN_NAV_HREFS.includes(item.href)) {
+    return false;
+  }
+
   // Restricted roles: only explicitly-allowed pages
   if (gate.roleKey === "stock_manager") {
     const allowed: readonly string[] = [
@@ -934,16 +960,19 @@ export function AppShell({ children }: AppShellProps) {
           </button>
         </header>
 
+        {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
+
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto p-4 pb-28",
+            "relative min-h-0 flex-1 overflow-y-auto p-4 pb-28",
             // Restore the roomier desktop padding once the sidebar takes
             // over: at md+ for normal roles, at xl+ for grocery clerks
             // (since they keep the bottom-nav layout through iPad sizes).
             kioskMainPadding,
           )}
         >
+          {IS_DESKTOP ? <DesktopReadOnlyOverlay /> : null}
           {children}
         </main>
 

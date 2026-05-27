@@ -81,6 +81,12 @@ function withTenantProvider(
   );
 }
 
+// Desktop builds run fully offline; remote analytics scripts must not be
+// referenced (CSP blocks them and a failed fetch creates a confusing console
+// error during pilot demos). This guard collapses to a constant at build time
+// because NEXT_PUBLIC_* env vars are inlined by Next.
+const IS_DESKTOP = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -104,19 +110,23 @@ export default async function RootLayout({
       >
         <TenantHostSync />
         {withTenantProvider(tenant, body)}
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-QTMX2VD4Y8"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-QTMX2VD4Y8');
-          `}
-        </Script>
+        {IS_DESKTOP ? null : (
+          <>
+            {/* Google Analytics — cloud only. */}
+            <Script
+              src="https://www.googletagmanager.com/gtag/js?id=G-QTMX2VD4Y8"
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-QTMX2VD4Y8');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

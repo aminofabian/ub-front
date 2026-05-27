@@ -7,6 +7,7 @@
     "dev": "next dev",
     "dev:turbo": "next dev",
     "build": "next build --webpack",
+    "build:desktop": "node scripts/build-desktop.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "bun test",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@tanstack/react-virtual": "^3.13.24",
+    "@types/qrcode": "^1.5.6",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "class-variance-authority": "^0.7.1",
@@ -24,6 +26,7 @@
     "eslint-config-next": "16.2.6",
     "lucide-react": "^1.11.0",
     "next": "16.3.0-canary.19",
+    "qrcode": "^1.5.4",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",

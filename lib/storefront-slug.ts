@@ -12,11 +12,24 @@ import {
 
 const LOCALHOST_SUFFIX = ".localhost";
 
+/**
+ * Desktop builds are single-tenant and rendered as a fully static export, so
+ * `headers()` (which is intrinsically dynamic) must not be called during
+ * `next build`. Any caller that resolves tenant context returns `null`
+ * unconditionally; the backend's `DesktopTenantResolver` injects the single
+ * `Business` at request time and the UI's `TenantProvider` handles a null
+ * tenant by falling through to the platform/admin look.
+ */
+const IS_DESKTOP_BUILD = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
+
 function parseHostname(raw: string): string {
   return raw.trim().toLowerCase().split(":")[0] ?? "";
 }
 
 async function requestHostname(): Promise<string | null> {
+  if (IS_DESKTOP_BUILD) {
+    return null;
+  }
   const h = await headers();
   const raw = h.get("x-forwarded-host") ?? h.get("host");
   if (!raw) {
@@ -96,6 +109,9 @@ export async function getRequestHostname(): Promise<string | null> {
 }
 
 async function resolveTenantContextUncached(): Promise<TenantContext | null> {
+  if (IS_DESKTOP_BUILD) {
+    return null;
+  }
   const hostname = await requestHostname();
   if (!hostname) {
     return null;

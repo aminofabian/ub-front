@@ -156,7 +156,7 @@ export function PosSaleCompletePanel({
         </section>
 
         <div className="pos-sale-success-enter-delay mt-5">
-          <PosSaleReceipt receipt={receipt} />
+          <PosSaleReceipt receipt={receipt} saleId={sale.id} />
         </div>
 
         {error ? (

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { DesktopLicenseProvider } from "@/components/desktop/desktop-license-provider";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
@@ -58,7 +60,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return <DashboardAppShellSkeleton />;
   }
 
-  return (
+  const shell = (
     <DashboardProvider>
       <RealtimeProvider>
         <Suspense fallback={null}>
@@ -70,4 +72,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </RealtimeProvider>
     </DashboardProvider>
   );
+
+  if (!IS_DESKTOP) {
+    return shell;
+  }
+
+  return <DesktopLicenseProvider>{shell}</DesktopLicenseProvider>;
 }

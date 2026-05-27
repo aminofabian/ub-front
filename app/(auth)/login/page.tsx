@@ -24,6 +24,7 @@ import {
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
+import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchBusiness,
   fetchMe,
@@ -50,6 +51,13 @@ async function syncSlugAndNavigate(
   path: string,
   mode: "push" | "replace",
 ): Promise<void> {
+  // Desktop SKU: single origin, no subdomain tenant routing.
+  // Skip the cross-origin handoff and navigate in-app.
+  if (IS_DESKTOP) {
+    navigateInApp(router, path, mode);
+    return;
+  }
+
   let slug: string | null = null;
   let primaryHost: string | null = null;
   try {
@@ -381,8 +389,10 @@ function LoginPageContent() {
         </p>
       ) : null}
 
-      {/* Onboarding CTA — only on landing page */}
-      {!tenant && !showOnboarding ? (
+      {/* Onboarding CTA — only on landing page. */}
+      {/* Hidden on desktop because the SKU is single-tenant: the first business is */}
+      {/* created by the /setup first-run wizard, not from the login screen. */}
+      {!tenant && !showOnboarding && !IS_DESKTOP ? (
         <button
           type="button"
           className="mt-5 flex w-full items-center gap-3 rounded-2xl border-2 border-[var(--auth-accent)] bg-[color-mix(in_srgb,var(--auth-accent)_8%,white)] p-4 text-left shadow-sm transition hover:bg-[color-mix(in_srgb,var(--auth-accent)_14%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_12%,#18181b)] dark:hover:bg-[color-mix(in_srgb,var(--auth-accent)_20%,#18181b)]"
@@ -432,7 +442,7 @@ function LoginPageContent() {
         </button>
       </div>
 
-      {showOnboarding ? (
+      {showOnboarding && !IS_DESKTOP ? (
         <>
           <div className="mt-6 rounded-2xl border border-[color-mix(in_srgb,var(--auth-accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--auth-accent)_6%,white)] p-5 backdrop-blur-md dark:bg-[color-mix(in_srgb,var(--auth-accent)_10%,#18181b)]">
             <h3 className="mb-1 text-sm font-bold text-foreground">

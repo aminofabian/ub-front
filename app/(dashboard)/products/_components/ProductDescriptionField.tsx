@@ -5,6 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { generateProductDescription } from "@/lib/catalog-description-api";
+import { IS_DESKTOP } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 
 import { productFormFieldClass, productFormTextareaClass } from "./product-form-styles";
@@ -77,21 +78,26 @@ export function ProductDescriptionField({
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           Description
         </span>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-[11px] shadow-sm"
-          disabled={generating}
-          onClick={() => void handleGenerate()}
-        >
-          {generating ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          ) : (
-            <Sparkles className="size-3.5 text-primary" aria-hidden />
-          )}
-          {generating ? "Generating…" : "Generate with AI"}
-        </Button>
+        {/* AI description posts to an external LLM (RapidAPI DeepSeek); */}
+        {/* the desktop SKU is offline so the button is hidden, leaving the */}
+        {/* manual textarea below as the only editor. */}
+        {!IS_DESKTOP ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-[11px] shadow-sm"
+            disabled={generating}
+            onClick={() => void handleGenerate()}
+          >
+            {generating ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Sparkles className="size-3.5 text-primary" aria-hidden />
+            )}
+            {generating ? "Generating…" : "Generate with AI"}
+          </Button>
+        ) : null}
       </div>
       <textarea
         className={cn(productFormTextareaClass, textareaClassName)}

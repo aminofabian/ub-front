@@ -25,6 +25,10 @@ import {
   isSessionRelatedProblem,
 } from "@/lib/problem";
 import { toast } from "sonner";
+import {
+  DESKTOP_LICENSE_READ_ONLY_TYPE,
+  isDesktopLicenseWriteBlocked,
+} from "@/lib/desktop-license-gate";
 import type { BranchReceiptSettings } from "@/lib/branch-receipt";
 import { parseBranchReceipt } from "@/lib/branch-receipt";
 
@@ -1036,6 +1040,24 @@ async function request<T>(
     toast: suppressToast,
   }: RequestOptions = {},
 ): Promise<T> {
+  if (isDesktopLicenseWriteBlocked(method, path)) {
+    const payload = {
+      type: DESKTOP_LICENSE_READ_ONLY_TYPE,
+      title: "License read-only",
+      status: 423,
+      detail:
+        "Your trial or license has ended. Open Desktop & LAN settings to renew.",
+    };
+    if (suppressToast !== false) {
+      notifyHttpErrorToast(formatApiProblemMessage(payload));
+    }
+    throw new ApiRequestError(
+      formatApiProblemMessage(payload),
+      423,
+      payload,
+    );
+  }
+
   const execute = async () => {
     const session = requiresAuth ? getSessionTokens() : null;
     const headersInit = buildRequestHeaders(

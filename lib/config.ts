@@ -53,6 +53,8 @@ export const APP_ROUTES = {
   shopCheckout: "/shop/checkout",
   barcode: "/barcode",
   paymentsSettings: "/payments/settings",
+  /** Desktop SKU: license, LAN sharing, local backups (DESKTOP_INSTALLATION.md). */
+  desktopSettings: "/settings/desktop",
   tenantSuspended: "/_status/suspended",
   tenantInactive: "/_status/inactive",
 } as const;

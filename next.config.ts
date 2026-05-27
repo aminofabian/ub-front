@@ -7,6 +7,19 @@ const securityHeaders = [
 ];
 
 /**
+ * Desktop / on-premise SKU.
+ *
+ * When `NEXT_PUBLIC_RUNTIME=desktop`, the Next.js app is built as a fully
+ * static site (`output: 'export'`) that the Spring Boot fat JAR serves from
+ * its classpath at `http://127.0.0.1:5050`. Browser → API traffic is
+ * same-origin against Spring, so the BFF rewrites and the WebSocket origin
+ * override are unused and must be omitted.
+ *
+ * See DESKTOP_INSTALLATION.md §6.1 for the full rationale.
+ */
+const IS_DESKTOP = process.env.NEXT_PUBLIC_RUNTIME === "desktop";
+
+/**
  * Backend origin the Next.js BFF proxies REST + webhook calls to.
  *
  * Keeping all browser → API traffic same-origin (via these rewrites) eliminates
@@ -30,7 +43,7 @@ const REALTIME_WS_ORIGIN = (
   process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() || BACKEND_ORIGIN
 ).replace(/\/+$/, "");
 
-const nextConfig: NextConfig = {
+const cloudOnlyConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_REALTIME_WS_ORIGIN: REALTIME_WS_ORIGIN,
   },
@@ -74,5 +87,28 @@ const nextConfig: NextConfig = {
     ];
   },
 };
+
+/**
+ * Static-export configuration for the desktop SKU. No rewrites (Spring serves
+ * `/api/*`, `/webhooks/*`, `/actuator/*` directly on the same origin), no
+ * `headers()` (the Tauri webview / Spring static handler control headers), and
+ * no `next/image` loader (Next disallows the default loader in `export`).
+ *
+ * `trailingSlash: true` makes each route emit `<route>/index.html`, which keeps
+ * the Spring `ResourceHandler` mapping simple — no extension-less HTML files.
+ */
+const desktopConfig: NextConfig = {
+  output: "export",
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+    qualities: [75, 95],
+  },
+  env: {
+    NEXT_PUBLIC_REALTIME_WS_ORIGIN: "",
+  },
+};
+
+const nextConfig: NextConfig = IS_DESKTOP ? desktopConfig : cloudOnlyConfig;
 
 export default nextConfig;
