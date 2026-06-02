@@ -44,7 +44,7 @@ function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
       type="button"
       onClick={toggleDrawer}
       className={cn(
-        "fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-4 z-[60] flex items-center gap-2.5 rounded-full border py-2.5 pl-3 pr-4 shadow-lg backdrop-blur-md transition-all duration-300 active:scale-[0.98] lg:hidden",
+        "fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-4 z-[60] flex items-center gap-2.5 rounded-full border py-2.5 pl-3 pr-4 shadow-lg backdrop-blur-md transition-all duration-300 active:scale-[0.98] md:hidden",
         drawerOpen
           ? "border-primary/30 bg-background shadow-xl ring-2 ring-primary/20"
           : "border-border/80 bg-background/95 shadow-black/10 ring-1 ring-black/[0.04] hover:scale-[1.02]",

@@ -15,7 +15,7 @@ export function ShopCartMobileFloat() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
+    <div className="fixed inset-0 z-50 md:hidden" role="presentation">
       <button
         type="button"
         className="absolute inset-0 bg-black/15 backdrop-blur-[2px] transition-opacity"

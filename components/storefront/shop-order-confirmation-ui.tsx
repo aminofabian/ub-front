@@ -50,48 +50,74 @@ export function ConfirmationTopProgress({
     </div>
   );
 }
-/** Single scroll surface; bottom pad tracks the fixed dock via --shop-checkout-dock-height */
+/** Scroll area when a viewport-fixed dock reserves bottom space */
 export const CONFIRMATION_SCROLL =
   "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-[calc(var(--shop-checkout-dock-height,9.5rem)+env(safe-area-inset-bottom,0px)+0.35rem)] [-webkit-overflow-scrolling:touch] lg:pb-[calc(var(--shop-checkout-dock-height,9rem)+0.35rem)]";
+
+/** Scroll area when the dock is in-flow at the bottom of the checkout form */
+export const CONFIRMATION_SCROLL_ANCHORED =
+  "h-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-0.5 pb-3 [-webkit-overflow-scrolling:touch]";
 
 export function ConfirmationFloatingDock({
   children,
   ariaLabel,
+  /** In-flow dock at the bottom of a flex column (avoids clipping inside overflow-hidden shells). */
+  anchored = false,
 }: {
   children: React.ReactNode;
   ariaLabel: string;
+  anchored?: boolean;
 }) {
+  const panelClass = cn(
+    "w-full max-w-lg",
+    "rounded-t-2xl border border-border/35",
+    "bg-linear-to-t from-background/98 via-background/95 to-background/90",
+    "shadow-[0_-12px_36px_-10px_rgba(15,23,42,0.14)]",
+    "ring-1 ring-black/[0.03] backdrop-blur-lg backdrop-saturate-150",
+    "supports-[backdrop-filter]:bg-background/88",
+    "sm:max-w-[22rem] sm:rounded-xl sm:border sm:shadow-lg",
+  );
+
+  const inner = (
+    <>
+      <div className="flex justify-center pt-1.5 pb-0 sm:hidden" aria-hidden>
+        <span className="h-1 w-9 rounded-full bg-foreground/12" />
+      </div>
+      <div className="min-w-0 space-y-1 px-2.5 pt-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:space-y-1.5 sm:p-2.5">
+        {children}
+      </div>
+    </>
+  );
+
+  if (anchored) {
+    return (
+      <div
+        id={SHOP_CHECKOUT_DOCK_ID}
+        className={cn("shrink-0 border-t", panelClass)}
+        role="region"
+        aria-label={ariaLabel}
+      >
+        {inner}
+      </div>
+    );
+  }
+
   return (
     <>
       <ShopCheckoutDockHeightSync />
       <div
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center lg:justify-end lg:pr-8"
-        role="region"
-        aria-label={ariaLabel}
-      >
-      <div
-        id={SHOP_CHECKOUT_DOCK_ID}
-        className={cn(
-          "pointer-events-auto w-full max-w-lg",
-          "rounded-t-2xl border border-b-0 border-border/35",
-          "bg-linear-to-t from-background/98 via-background/95 to-background/90",
-          "shadow-[0_-12px_36px_-10px_rgba(15,23,42,0.14)]",
-          "ring-1 ring-black/[0.03] backdrop-blur-lg backdrop-saturate-150",
-          "supports-[backdrop-filter]:bg-background/88",
-          "sm:mb-4 sm:max-w-[22rem] sm:rounded-xl sm:border sm:shadow-lg",
-        )}
+        role="presentation"
       >
         <div
-          className="flex justify-center pt-1.5 pb-0 sm:hidden"
-          aria-hidden
+          id={SHOP_CHECKOUT_DOCK_ID}
+          className={cn("pointer-events-auto", panelClass)}
+          role="region"
+          aria-label={ariaLabel}
         >
-          <span className="h-1 w-9 rounded-full bg-foreground/12" />
-        </div>
-        <div className="min-w-0 space-y-1 px-2.5 pt-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:space-y-1.5 sm:p-2.5">
-          {children}
+          {inner}
         </div>
       </div>
-    </div>
     </>
   );
 }

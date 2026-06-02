@@ -38,6 +38,7 @@ import {
 import { CheckoutScrollEndSpacer } from "@/components/storefront/shop-checkout-dock-height";
 import {
   CONFIRMATION_SCROLL,
+  CONFIRMATION_SCROLL_ANCHORED,
   CONFIRMATION_VIEWPORT,
   ConfirmationDockActions,
   ConfirmationFloatingDock,
@@ -1285,7 +1286,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
         onSubmit={(ev) => void onSubmit(ev)}
       >
-        <div className={CONFIRMATION_SCROLL}>
+        <div className={CONFIRMATION_SCROLL_ANCHORED}>
       <header className={CHECKOUT_STICKY_HEAD}>
         <div className="flex items-center gap-1 py-1.5">
           <Link
@@ -1726,7 +1727,7 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         <CheckoutScrollEndSpacer />
         </div>
 
-        <ConfirmationFloatingDock ariaLabel="Checkout actions">
+        <ConfirmationFloatingDock anchored ariaLabel="Checkout actions">
           <div className="space-y-1">
             {showFloatingPayment ? (
               <ShopCheckoutPaymentSection
