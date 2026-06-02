@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
+import { ShopCheckoutExperience } from "@/components/storefront/shop-checkout-experience";
 import { fetchPublicStorefront } from "@/lib/public-storefront";
 import {
   resolveStorefrontSlug,
@@ -31,9 +31,5 @@ export default async function ShopCheckoutPage() {
     notFound();
   }
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <ShopCheckoutForm slug={slug} />
-    </div>
-  );
+  return <ShopCheckoutExperience slug={slug} mode="page" />;
 }

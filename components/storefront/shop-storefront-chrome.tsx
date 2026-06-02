@@ -7,6 +7,8 @@ import { Suspense, type ReactNode } from "react";
 import { APP_ROUTES } from "@/lib/config";
 
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
+import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
+import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopFooterMart } from "@/components/storefront/shop-footer-mart";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
@@ -22,9 +24,10 @@ function RailFallback() {
 
 function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
   const pathname = usePathname();
-  const { itemCount, cart, drawerOpen, toggleDrawer, loading } = useShopCart();
+  const { itemCount, cart, drawerOpen, checkoutOpen, toggleDrawer, loading } =
+    useShopCart();
 
-  if (pathname === APP_ROUTES.shopCheckout) {
+  if (pathname === APP_ROUTES.shopCheckout || checkoutOpen) {
     return null;
   }
   const accent =
@@ -83,10 +86,16 @@ function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
  * Storefront chrome rendered inside ShopCartProvider so header cart and drawers
  * share context (server-passed `children` alone does not receive client context).
  */
-const COMPACT_CHROME_PATHS: ReadonlySet<string> = new Set([
-  APP_ROUTES.shopCart,
-  APP_ROUTES.shopCheckout,
-]);
+function useCompactStorefrontChrome(): boolean {
+  const pathname = usePathname();
+  const isMd = useMediaMd();
+  if (isMd) {
+    return false;
+  }
+  return (
+    pathname === APP_ROUTES.shopCart || pathname === APP_ROUTES.shopCheckout
+  );
+}
 
 export function ShopStorefrontChrome({
   slug,
@@ -110,7 +119,7 @@ export function ShopStorefrontChrome({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const compactChrome = COMPACT_CHROME_PATHS.has(pathname ?? "");
+  const compactChrome = useCompactStorefrontChrome();
 
   return (
     <ShopCartProvider slug={slug}>
@@ -156,6 +165,7 @@ export function ShopStorefrontChrome({
         />
       ) : null}
       <ShopCartDrawer />
+      <ShopCheckoutDrawer />
       <FloatingCartButton accentHex={accentHex} />
     </ShopCartProvider>
   );

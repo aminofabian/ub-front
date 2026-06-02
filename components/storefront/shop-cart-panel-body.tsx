@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Check, ChevronRight, ShoppingBag, Sparkles, Truck, X } from "lucide-react";
 
 import { ShopCartLinesScroll } from "@/components/storefront/shop-cart-lines-scroll";
 import { Button } from "@/components/ui/button";
+import { useMediaMd } from "@/hooks/use-media-md";
 import { useShopCart } from "@/hooks/use-shop-cart";
 import { APP_ROUTES } from "@/lib/config";
 import { formatDisplayPrice } from "@/lib/public-storefront";
@@ -47,6 +49,8 @@ type Props = {
 };
 
 export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
+  const router = useRouter();
+  const isMd = useMediaMd();
   const {
     cart,
     loading,
@@ -58,6 +62,7 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
     focusItemId,
     cartViewMode,
     showAllCartItems,
+    openCheckout,
   } = useShopCart();
 
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
@@ -97,6 +102,15 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
       : null;
   const canCheckout = cart != null && cartIsCheckoutReady(cart);
 
+  function startCheckout() {
+    onClose();
+    if (isMd) {
+      openCheckout();
+      return;
+    }
+    router.push(APP_ROUTES.shopCheckout);
+  }
+
   const focusedLine = focusMode && cart ? cart.lines.find((l) => l.itemId === focusItemId) : null;
   const focusedTitle = focusedLine
     ? focusedLine.variantName
@@ -114,7 +128,9 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
       <div
         className={cn(
           "flex shrink-0 items-center justify-between gap-2 border-b border-border/60",
-          compactHeader ? "px-3.5 py-3" : "px-5 pb-4 pt-5",
+          compactHeader
+            ? "px-3.5 py-3"
+            : "bg-linear-to-b from-[color-mix(in_srgb,var(--primary)_7%,transparent)] to-transparent px-5 pb-4 pt-5",
         )}
       >
         <div className="flex min-w-0 items-center gap-2.5">
@@ -215,8 +231,10 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
 
             <div
               className={cn(
-                "shrink-0 border-t border-border/60 bg-muted/20",
-                compactHeader ? "px-3.5 py-3" : "px-5 py-4",
+                "shrink-0 border-t border-border/60",
+                compactHeader
+                  ? "bg-muted/20 px-3.5 py-3"
+                  : "bg-linear-to-t from-muted/35 to-muted/10 px-5 py-4",
               )}
             >
               <div className="flex items-center gap-2 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1.5 text-[11px] font-medium text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
@@ -236,15 +254,13 @@ export function ShopCartPanelBody({ onClose, compactHeader }: Props) {
               <div className="mt-3 grid gap-1.5">
                 {canCheckout ? (
                   <Button
-                    asChild
+                    type="button"
                     size="sm"
-                    className="h-10 w-full rounded-xl text-sm font-semibold"
-                    onClick={onClose}
+                    className="h-10 w-full gap-2 rounded-xl text-sm font-semibold"
+                    onClick={startCheckout}
                   >
-                    <Link href={APP_ROUTES.shopCheckout} className="gap-2">
-                      Checkout
-                      <ArrowRight className="size-3.5" aria-hidden />
-                    </Link>
+                    Checkout
+                    <ArrowRight className="size-3.5" aria-hidden />
                   </Button>
                 ) : (
                   <p className="text-center text-[11px] text-muted-foreground">

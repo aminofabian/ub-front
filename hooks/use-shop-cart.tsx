@@ -42,12 +42,15 @@ type ShopCartContextValue = {
   lineCount: number;
   itemCount: number;
   drawerOpen: boolean;
+  checkoutOpen: boolean;
   /** When set, mobile float shows only this line until user expands. */
   focusItemId: string | null;
   cartViewMode: "focus" | "all";
   openDrawer: () => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
+  openCheckout: () => void;
+  closeCheckout: () => void;
   showAllCartItems: () => void;
   refresh: () => Promise<void>;
   /** Set absolute line quantity (0 removes). Updates shared cart state immediately. */
@@ -71,6 +74,7 @@ export function ShopCartProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [cartViewMode, setCartViewMode] = useState<"focus" | "all">("all");
 
@@ -210,6 +214,17 @@ export function ShopCartProvider({
     setCartViewMode("all");
   }, []);
 
+  const closeCheckout = useCallback(() => {
+    setCheckoutOpen(false);
+  }, []);
+
+  const openCheckout = useCallback(() => {
+    setDrawerOpen(false);
+    setFocusItemId(null);
+    setCartViewMode("all");
+    setCheckoutOpen(true);
+  }, []);
+
   const value = useMemo<ShopCartContextValue>(
     () => ({
       slug,
@@ -219,10 +234,13 @@ export function ShopCartProvider({
       lineCount,
       itemCount,
       drawerOpen,
+      checkoutOpen,
       focusItemId,
       cartViewMode,
       openDrawer: openFullCart,
       closeDrawer: closeCart,
+      openCheckout,
+      closeCheckout,
       toggleDrawer: () => {
         setDrawerOpen((open) => {
           if (open) {
@@ -262,10 +280,13 @@ export function ShopCartProvider({
       lineCount,
       itemCount,
       drawerOpen,
+      checkoutOpen,
       focusItemId,
       cartViewMode,
       openFullCart,
       closeCart,
+      openCheckout,
+      closeCheckout,
       refresh,
       setLineQty,
       changeQty,

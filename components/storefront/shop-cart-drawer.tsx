@@ -11,6 +11,7 @@ function ShopCartDesktopDrawer() {
 
   return (
     <ShopSlideOver
+      variant="floating"
       open={drawerOpen}
       onClose={closeDrawer}
       ariaLabel="Your cart"

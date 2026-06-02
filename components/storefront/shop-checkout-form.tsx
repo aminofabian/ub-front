@@ -334,7 +334,14 @@ function SelectField({
   );
 }
 
-export default function ShopCheckoutForm({ slug }: { slug: string }) {
+export default function ShopCheckoutForm({
+  slug,
+  embedded = false,
+}: {
+  slug: string;
+  /** Desktop half-panel: outer chrome handles back/close */
+  embedded?: boolean;
+}) {
   const router = useRouter();
   const [cart, setCart] = useState<PublicWebCart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1287,15 +1294,22 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
         onSubmit={(ev) => void onSubmit(ev)}
       >
         <div className={CONFIRMATION_SCROLL_ANCHORED}>
-      <header className={CHECKOUT_STICKY_HEAD}>
-        <div className="flex items-center gap-1 py-1.5">
-          <Link
-            href={APP_ROUTES.shopCart}
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-            aria-label="Back to cart"
-          >
-            <ChevronLeft className="size-5" aria-hidden />
-          </Link>
+      <header
+        className={cn(
+          CHECKOUT_STICKY_HEAD,
+          embedded && "border-t-0 bg-transparent backdrop-blur-none",
+        )}
+      >
+        <div className={cn("flex items-center gap-1", embedded ? "py-0.5" : "py-1.5")}>
+          {!embedded ? (
+            <Link
+              href={APP_ROUTES.shopCart}
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              aria-label="Back to cart"
+            >
+              <ChevronLeft className="size-5" aria-hidden />
+            </Link>
+          ) : null}
           <div className="min-w-0 flex-1 pr-1">
             <CheckoutProgressSteps
               activeStep={activeCheckoutStep}
@@ -1304,7 +1318,12 @@ export default function ShopCheckoutForm({ slug }: { slug: string }) {
             />
           </div>
         </div>
-        <dl className="hidden flex-wrap gap-1.5 border-t border-border/30 px-1 py-1.5 lg:flex">
+        <dl
+          className={cn(
+            "hidden flex-wrap gap-1.5 border-t border-border/30 px-1 py-1.5",
+            embedded ? "md:flex" : "lg:flex",
+          )}
+        >
           <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/35 px-2 py-1 text-[11px] text-foreground">
             <ShoppingBag className="size-3.5 shrink-0 opacity-60" aria-hidden />
             <span className="font-semibold tabular-nums">
