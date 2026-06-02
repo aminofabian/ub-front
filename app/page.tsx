@@ -1,4 +1,5 @@
 import { DesktopRootRedirect } from "@/components/desktop-root-redirect";
+import { PlatformStructuredData } from "@/components/tenant-console/platform-structured-data";
 import { TenantConsolePage } from "@/components/tenant-console/tenant-console-page";
 import { StorefrontCatalogHome } from "@/components/storefront/storefront-catalog-home";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
@@ -44,5 +45,10 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   // Platform/admin host (no tenant mapping) → tenant console landing.
-  return <TenantConsolePage />;
+  return (
+    <>
+      <PlatformStructuredData />
+      <TenantConsolePage />
+    </>
+  );
 }

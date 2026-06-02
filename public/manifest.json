@@ -1,24 +1,41 @@
 {
-  "name": "PalMart POS",
-  "short_name": "PalMart",
-  "description": "Point of sale, inventory, and storefront management",
+  "name": "Kiosk POS — Point of Sale & Storefront",
+  "short_name": "Kiosk",
+  "description": "Point of sale for shop counters in Kenya — barcode scan, M-Pesa, offline sales, and your storefront.",
   "start_url": "/cashier",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "theme_color": "#28A745",
-  "background_color": "#ffffff",
+  "background_color": "#0f1410",
   "icons": [
     {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/kiosk-mark.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "/cashier-icon.svg",
-      "sizes": "any",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     }
   ],
-  "categories": ["business", "finance"],
-  "lang": "en",
+  "categories": ["business", "productivity", "shopping"],
+  "lang": "en-KE",
   "dir": "ltr",
-  "prefer_related_applications": false,
   "scope": "/",
-  "iarc_rating_id": ""
+  "prefer_related_applications": false
 }

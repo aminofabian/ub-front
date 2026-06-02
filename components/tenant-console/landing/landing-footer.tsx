@@ -126,8 +126,6 @@ export function LandingFooter() {
                     size="md"
                     variant="landing"
                     layout="badge"
-                    showTagline
-                    tagline={PLATFORM_DOMAIN.toUpperCase()}
                   />
                   <p className="mt-6 max-w-[300px] text-[15px] leading-[1.65] text-[var(--kiosk-text-dim)]">
                     Point of sale built by people who sell at the counter — scan,

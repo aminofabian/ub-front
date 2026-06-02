@@ -24,16 +24,22 @@ export default function manifest(): MetadataRoute.Manifest {
     screenshots: [],
     icons: [
       {
-        src: "/cashier-icon.svg",
-        type: "image/svg+xml",
-        sizes: "512x512",
+        src: "/apple-icon",
+        type: "image/png",
+        sizes: "180x180",
         purpose: "any",
       },
       {
-        src: "/cashier-icon.svg",
-        type: "image/svg+xml",
-        sizes: "512x512",
+        src: "/apple-icon",
+        type: "image/png",
+        sizes: "180x180",
         purpose: "maskable",
+      },
+      {
+        src: "/kiosk-mark.svg",
+        type: "image/svg+xml",
+        sizes: "32x32",
+        purpose: "any",
       },
     ],
   };

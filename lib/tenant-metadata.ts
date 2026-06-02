@@ -2,32 +2,27 @@ import "server-only";
 
 import type { Metadata } from "next";
 
+import {
+  PLATFORM_DESCRIPTION,
+  PLATFORM_KEYWORDS,
+  PLATFORM_SITE_NAME,
+  PLATFORM_THEME_COLOR,
+  PLATFORM_TITLE,
+} from "@/lib/platform-seo";
 import type { TenantContext } from "@/lib/public-storefront";
 import { resolveTenantFaviconHref } from "@/lib/tenant-favicon-path";
 
-const PLATFORM_TITLE = "Kiosk — Point of Sale, Storefront & Cashier";
-const PLATFORM_DESCRIPTION =
-  "Kiosk is the all-in-one POS platform that powers your storefront, cashier counter, inventory, and sales — everything you need to run your retail business, online and in-store.";
+const BRAND_THEME_COLOR = PLATFORM_THEME_COLOR;
 
-const BRAND_THEME_COLOR = "#28A745";
-
-const PLATFORM_KEYWORDS = [
-  "POS",
-  "point of sale",
-  "storefront",
-  "cashier",
-  "cash register",
-  "inventory management",
-  "retail POS",
-  "sales",
-  "barcode scanner",
-  "multi-store",
-  "small business POS",
-  "shop counter",
-  "digital storefront",
-  "ecommerce",
-  "payment terminal",
-];
+/** Crawlable PNG favicon (Google prefers ≥48px); SVG from `/icon` for browsers. */
+const PLATFORM_ICONS: Metadata["icons"] = {
+  icon: [
+    { url: "/icon", type: "image/svg+xml" },
+    { url: "/apple-icon", type: "image/png", sizes: "180x180" },
+  ],
+  apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  shortcut: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+};
 
 function isHex3or6(s: string): boolean {
   return /^#[0-9A-Fa-f]{3}$/.test(s) || /^#[0-9A-Fa-f]{6}$/.test(s);
@@ -91,8 +86,9 @@ export function metadataFromTenantAndHost(
       template: `%s · ${PLATFORM_TITLE}`,
     },
     description: PLATFORM_DESCRIPTION,
-    keywords: PLATFORM_KEYWORDS,
-    applicationName: "Kiosk",
+    keywords: [...PLATFORM_KEYWORDS],
+    applicationName: PLATFORM_SITE_NAME,
+    icons: PLATFORM_ICONS,
     appleWebApp: {
       capable: true,
       title: "Kiosk POS",
@@ -101,8 +97,9 @@ export function metadataFromTenantAndHost(
       type: "website",
       title: PLATFORM_TITLE,
       description: PLATFORM_DESCRIPTION,
-      siteName: "Kiosk",
-      locale: "en_US",
+      siteName: PLATFORM_SITE_NAME,
+      locale: "en_KE",
+      ...(metadataBase ? { url: metadataBase.href } : {}),
     },
     twitter: {
       card: "summary_large_image",

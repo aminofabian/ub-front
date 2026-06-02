@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   "/",
   "/cashier",
   "/manifest.json",
+  "/kiosk-mark.svg",
   "/cashier-icon.svg",
 ];
 
@@ -129,8 +130,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "Palmart", {
       body: data.body || "",
-      icon: "/cashier-icon.svg",
-      badge: "/cashier-icon.svg",
+      icon: "/kiosk-mark.svg",
+      badge: "/kiosk-mark.svg",
       data: { url: data.url || "/" },
       tag: "palmart-notification",
     })
