@@ -133,7 +133,7 @@ export default function DesktopSettingsPage() {
       const next = await toggleDesktopLan();
       setLan(next);
       if (next.restartRequired) {
-        toast.message("Restart Palmart Desktop to apply the network change.", {
+        toast.message("Restart Kiosk Desktop to apply the network change.", {
           duration: 8000,
         });
       }
@@ -159,13 +159,13 @@ export default function DesktopSettingsPage() {
 
   async function onRestore(filename: string) {
     const ok = window.confirm(
-      `Restore from "${filename}"?\n\nThis overwrites the current database. Palmart will need a restart afterward.`,
+      `Restore from "${filename}"?\n\nThis overwrites the current database. Kiosk will need a restart afterward.`,
     );
     if (!ok) return;
     setRestoring(filename);
     try {
       await restoreDesktopBackup(filename);
-      toast.success("Restore finished. Restart Palmart Desktop.");
+      toast.success("Restore finished. Restart Kiosk Desktop.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Restore failed.");
     } finally {
@@ -347,7 +347,7 @@ export default function DesktopSettingsPage() {
             {lan?.restartRequired ? (
               <DashboardFeedback
                 kind="warning"
-                text="Restart Palmart Desktop for the bind address change to take effect."
+                text="Restart Kiosk Desktop for the bind address change to take effect."
               />
             ) : null}
           </div>
@@ -463,7 +463,7 @@ export default function DesktopSettingsPage() {
               <div>
                 <h2 className="text-base font-semibold">Backups</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Nightly database dumps under your Palmart data folder. Use
+                  Nightly database dumps under your Kiosk data folder. Use
                   &quot;Backup now&quot; before risky changes.
                 </p>
               </div>

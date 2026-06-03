@@ -40,10 +40,10 @@ function delay(ms: number, signal: AbortSignal) {
 }
 
 function loadingMessage(attempt: number): string {
-  if (attempt <= 1) return "Starting Palmart on this PC…";
+  if (attempt <= 1) return "Starting Kiosk on this PC…";
   if (attempt <= 4) return "Starting local database and services…";
   if (attempt <= 10) return "Almost ready — first launch can take a minute.";
-  return "Still starting — check that Palmart is allowed to run locally.";
+  return "Still starting — check that Kiosk is allowed to run locally.";
 }
 
 export function DesktopRootRedirect() {

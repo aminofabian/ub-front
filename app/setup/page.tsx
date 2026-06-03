@@ -123,7 +123,7 @@ export default function DesktopSetupPage() {
 
   return (
     <DesktopBootShell
-      title="Welcome to Palmart Desktop"
+      title="Welcome to Kiosk Desktop"
       message={
         submitState.kind === "success"
           ? "Shop created. Taking you to sign in…"

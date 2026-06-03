@@ -40,7 +40,6 @@ export function DesktopBootShell({
           size="lg"
           variant="auth"
           plain
-          wordmark="Palmart"
           showTagline
           tagline="Point of sale"
           layout="inline"
