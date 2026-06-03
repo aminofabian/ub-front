@@ -4,6 +4,8 @@ import {
   APP_BASE_URL,
   APP_ROUTES,
   isPlatformApexHost,
+  SESSION_PRESENCE_COOKIE,
+  SESSION_PRESENCE_MAX_AGE_SEC,
   STORAGE_KEYS,
 } from "@/lib/config";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
@@ -140,9 +142,33 @@ export function getSessionTokens(): SessionTokens | null {
   return { accessToken, refreshToken };
 }
 
+function setSessionPresenceCookie(): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.cookie = `${SESSION_PRESENCE_COOKIE}=1; path=/; max-age=${SESSION_PRESENCE_MAX_AGE_SEC}; SameSite=Lax`;
+}
+
+function clearSessionPresenceCookie(): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.cookie = `${SESSION_PRESENCE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+}
+
+/** Sets the middleware hint when tokens exist (e.g. after deploy or cookie cleared). */
+export function syncSessionPresenceCookie(): void {
+  if (getSessionTokens()) {
+    setSessionPresenceCookie();
+  } else {
+    clearSessionPresenceCookie();
+  }
+}
+
 export function setSessionTokens(tokens: SessionTokens): void {
   window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
   window.localStorage.setItem(STORAGE_KEYS.refreshToken, tokens.refreshToken);
+  setSessionPresenceCookie();
   postAuthBroadcast({
     type: "tokens",
     accessToken: tokens.accessToken,
@@ -188,6 +214,7 @@ export function clearAllSessionData(): void {
   window.localStorage.removeItem("ub_catalog_item_search_v1");
   // Web cart handle (guest storefront)
   window.localStorage.removeItem("ub.webCart.v1");
+  clearSessionPresenceCookie();
 }
 
 /*
@@ -200,18 +227,8 @@ export function clearAllSessionData(): void {
  */
 let signOutInProgress = false;
 
-/** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
-export function signOutClientAndRedirectToLogin(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  if (signOutInProgress) {
-    return;
-  }
-  signOutInProgress = true;
-  // Tear down realtime WebSocket before clearing tokens
+function disconnectRealtimeClient(): void {
   try {
-    // Dynamic import to avoid circular dependency at module-load time
     const disconnectFn = (window as unknown as Record<string, unknown>)[
       "__ub_disconnectRealtime"
     ] as (() => void) | undefined;
@@ -221,8 +238,28 @@ export function signOutClientAndRedirectToLogin(): void {
   } catch {
     /* ignore */
   }
+}
+
+/** Clears session storage and notifies other tabs; does not redirect. */
+export function finalizeClientSignOut(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  disconnectRealtimeClient();
   clearAllSessionData();
-  postAuthBroadcast({ type: "logout" });
+  broadcastAuthLogout();
+}
+
+/** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
+export function signOutClientAndRedirectToLogin(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (signOutInProgress) {
+    return;
+  }
+  signOutInProgress = true;
+  finalizeClientSignOut();
   window.location.assign(APP_ROUTES.login);
 }
 

@@ -1,6 +1,47 @@
 import { describe, expect, it } from "bun:test";
 
-import { decodeAuthHandoffPayload, encodeAuthHandoffPayload } from "./auth-handoff";
+import {
+  AUTH_HANDOFF_TTL_MS,
+  bufferAuthHandoffFragment,
+  clearAuthHandoffFragment,
+  consumeAuthHandoffFragment,
+  decodeAuthHandoffPayload,
+  encodeAuthHandoffPayload,
+  peekAuthHandoffFragment,
+} from "./auth-handoff";
+
+function withSessionStorage(run: () => void): void {
+  const store = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  };
+  const previous = globalThis.sessionStorage;
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: storage,
+  });
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { sessionStorage: storage },
+  });
+  try {
+    run();
+  } finally {
+    Object.defineProperty(globalThis, "sessionStorage", {
+      configurable: true,
+      value: previous,
+    });
+  }
+}
 
 describe("auth-handoff", () => {
   it("roundtrips payload", () => {
@@ -17,5 +58,30 @@ describe("auth-handoff", () => {
   it("rejects garbage", () => {
     expect(decodeAuthHandoffPayload("")).toBeNull();
     expect(decodeAuthHandoffPayload("!!!")).toBeNull();
+  });
+
+  it("buffers and consumes fragment within TTL", () => {
+    withSessionStorage(() => {
+      sessionStorage.clear();
+      bufferAuthHandoffFragment("abc123");
+      expect(peekAuthHandoffFragment()).toBe("abc123");
+      expect(consumeAuthHandoffFragment()).toBe("abc123");
+      expect(peekAuthHandoffFragment()).toBeNull();
+    });
+  });
+
+  it("expires buffered fragment after TTL", () => {
+    withSessionStorage(() => {
+      sessionStorage.clear();
+      sessionStorage.setItem(
+        "ub.authHandoffFragment",
+        JSON.stringify({
+          fragment: "stale",
+          storedAt: Date.now() - AUTH_HANDOFF_TTL_MS - 1,
+        }),
+      );
+      expect(peekAuthHandoffFragment()).toBeNull();
+      clearAuthHandoffFragment();
+    });
   });
 });

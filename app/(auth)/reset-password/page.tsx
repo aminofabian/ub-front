@@ -9,6 +9,14 @@ import { AuthBranding } from "@/components/auth/auth-branding";
 import { AuthCard } from "@/components/auth/auth-card";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
 import { Button } from "@/components/ui/button";
+import {
+  clearSessionTenantId,
+  setSessionTenantId,
+} from "@/lib/auth";
+import {
+  AUTH_TENANT_RESOLVE_ERROR,
+  useTenantIdPrefill,
+} from "@/lib/auth-tenant-prefill";
 import { resetPasswordWithToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
@@ -16,6 +24,7 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tokenFromQuery = searchParams.get("token") ?? "";
+  const [, ensureTenantResolved] = useTenantIdPrefill();
 
   const [token, setToken] = useState(tokenFromQuery);
   const [password, setPassword] = useState("");
@@ -27,6 +36,19 @@ function ResetPasswordContent() {
   useEffect(() => {
     setToken(tokenFromQuery);
   }, [tokenFromQuery]);
+
+  useEffect(() => {
+    void ensureTenantResolved();
+  }, [ensureTenantResolved]);
+
+  const persistTenantId = (raw: string) => {
+    const id = raw.trim();
+    if (id.length > 0) {
+      setSessionTenantId(id);
+    } else {
+      clearSessionTenantId();
+    }
+  };
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,6 +64,12 @@ function ResetPasswordContent() {
     }
     setBusy(true);
     try {
+      const id = await ensureTenantResolved();
+      if (!id?.trim()) {
+        setErrorMessage(AUTH_TENANT_RESOLVE_ERROR);
+        return;
+      }
+      persistTenantId(id);
       await resetPasswordWithToken(token.trim(), password);
       setMessage("Password updated. Redirecting to sign in…");
       router.replace(APP_ROUTES.login);

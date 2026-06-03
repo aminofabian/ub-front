@@ -121,6 +121,11 @@ export const STORAGE_KEYS = {
   superAdminAccessToken: "ub.sa.accessToken",
 } as const;
 
+export {
+  SESSION_PRESENCE_COOKIE,
+  SESSION_PRESENCE_MAX_AGE_SEC,
+} from "@/lib/auth-route-guard";
+
 export const ERROR_CODES = {
   tokenExpired: "token_expired",
 } as const;

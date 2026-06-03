@@ -11,12 +11,11 @@ import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
+import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 import { getSessionTokens } from "@/lib/auth";
 import { ApiRequestError, fetchMe } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
-import { APP_ROUTES } from "@/lib/config";
 import { isSessionRelatedProblem } from "@/lib/problem";
-import { startSessionRefresh } from "@/lib/session-refresh";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -25,11 +24,12 @@ type DashboardLayoutProps = {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [checkedAuth, setCheckedAuth] = useState(false);
   const router = useRouter();
+  const { ready: sessionReady, hasSession } = useAuthenticatedSession({
+    requireAuth: true,
+  });
 
   useEffect(() => {
-    const hasSession = Boolean(getSessionTokens());
-    if (!hasSession) {
-      router.replace(APP_ROUTES.login);
+    if (!sessionReady || !hasSession) {
       return;
     }
 
@@ -58,15 +58,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       }
     })();
 
-    const stopRefresh = startSessionRefresh();
-
     return () => {
       cancelled = true;
-      stopRefresh();
     };
-  }, [router]);
+  }, [sessionReady, hasSession, router]);
 
-  if (!checkedAuth) {
+  if (!sessionReady || !checkedAuth) {
     return <DashboardAppShellSkeleton />;
   }
 

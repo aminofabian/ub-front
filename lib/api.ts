@@ -11,8 +11,7 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import {
-  broadcastAuthLogout,
-  clearAllSessionData,
+  finalizeClientSignOut,
   getSessionTenantHost,
   getSessionTenantId,
   getSessionTokens,
@@ -1437,17 +1436,7 @@ export async function logoutRemote(): Promise<void> {
     }
   }
 
-  // Tear down realtime WebSocket BEFORE clearing tokens so it doesn't attempt re-auth
-  try {
-    const { disconnectRealtimeClient } = await import("@/lib/realtime");
-    disconnectRealtimeClient();
-  } catch {
-    /* realtime module may not be loaded on this page */
-  }
-
-  // Clear all persisted session data (tokens, tenant context, branch/item-type selections, caches)
-  clearAllSessionData();
-  broadcastAuthLogout();
+  finalizeClientSignOut();
 }
 
 export async function fetchMe(): Promise<MeResponse> {

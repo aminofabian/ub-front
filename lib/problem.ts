@@ -141,9 +141,10 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
  * Whether an API failure means the stored session is unusable and the client should
  * clear auth data and redirect to login. Skips public/unauthenticated calls (e.g. login).
  *
- * <p>Any 401 OR 403 from an authenticated call is treated as a session failure:
- * the access token is unusable (expired/revoked/tenant-mismatched/permission-denied),
- * so the user is signed out and redirected to /login. Other 4xx/5xx responses
+ * <p>401 from an authenticated call is treated as a session failure. 403 only
+ * signs out when the problem body carries an auth signal (tenant token mismatch,
+ * expired token, etc.) — generic permission-denied keeps the session and
+ * surfaces a toast. Other 4xx/5xx responses (404 tenant-not-found, etc.) are
  * (404 tenant-not-found, etc.) are treated as normal request failures - the
  * user keeps their session and sees a toast. Authenticated calls that return
  * 400 tenant-context-missing also sign out: the JWT filter rejects the request
@@ -166,7 +167,7 @@ export function isSessionRelatedProblem(
     return false;
   }
 
-  if (status === 401 || status === 403) {
+  if (status === 401) {
     return true;
   }
 

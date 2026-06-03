@@ -3,11 +3,19 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { decodeAuthHandoffPayload } from "@/lib/auth-handoff";
-import { getSessionTokens, persistTenantHostFromSlug, setSessionTenantId, setSessionTokens } from "@/lib/auth";
+import {
+  bufferAuthHandoffFragment,
+  clearAuthHandoffFragment,
+  consumeAuthHandoffFragment,
+  decodeAuthHandoffPayload,
+} from "@/lib/auth-handoff";
+import {
+  getSessionTokens,
+  persistTenantHostFromSlug,
+  setSessionTenantId,
+  setSessionTokens,
+} from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
-
-const HANDOFF_BUFFER_KEY = "ub.authHandoffFragment";
 
 function AuthHandoffInner() {
   const router = useRouter();
@@ -18,35 +26,38 @@ function AuthHandoffInner() {
     const pathOnly = window.location.pathname;
     const qs = window.location.search;
 
-    const fromHash = window.location.hash.replace(/^#/, "");
+    const fromHash = window.location.hash.replace(/^#/, "").trim();
     if (fromHash) {
-      sessionStorage.setItem(HANDOFF_BUFFER_KEY, fromHash);
+      bufferAuthHandoffFragment(fromHash);
       window.history.replaceState(null, "", pathOnly + qs);
     }
 
-    const raw = fromHash || sessionStorage.getItem(HANDOFF_BUFFER_KEY) || "";
-
-    if (!raw) {
+    if (!fromHash) {
       const existing = getSessionTokens();
       const nextFallback = searchParams.get("next");
       if (existing && nextFallback?.startsWith("/")) {
+        clearAuthHandoffFragment();
         const slug = searchParams.get("slug");
         persistTenantHostFromSlug(slug ?? undefined);
         router.replace(nextFallback);
         return;
       }
+    }
+
+    const raw = fromHash || consumeAuthHandoffFragment() || "";
+
+    if (!raw) {
+      clearAuthHandoffFragment();
       setError("Missing session. Return to sign in and try again.");
       return;
     }
 
     const data = decodeAuthHandoffPayload(raw);
     if (!data) {
-      sessionStorage.removeItem(HANDOFF_BUFFER_KEY);
+      clearAuthHandoffFragment();
       setError("Invalid or expired session transfer.");
       return;
     }
-
-    sessionStorage.removeItem(HANDOFF_BUFFER_KEY);
 
     setSessionTokens({
       accessToken: data.accessToken,
@@ -59,6 +70,7 @@ function AuthHandoffInner() {
 
     const slug = searchParams.get("slug");
     persistTenantHostFromSlug(slug ?? undefined);
+    clearAuthHandoffFragment();
 
     const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
     const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;

@@ -7,6 +7,7 @@ import { LogOut, Sparkles } from "lucide-react";
 
 import { ShopAccountHub, fmtMoney } from "@/components/storefront/shop-account-hub";
 import { Button } from "@/components/ui/button";
+import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 import { fetchBusiness, fetchMe, logoutRemote, type MeResponse } from "@/lib/api";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
@@ -15,6 +16,7 @@ type LoadState = "loading" | "guest" | "ready" | "error";
 
 export default function ShopAccountPage() {
   const router = useRouter();
+  useAuthenticatedSession();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [peekCurrency, setPeekCurrency] = useState<string | undefined>();

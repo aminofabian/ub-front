@@ -3,8 +3,11 @@
 import {
   getSessionTokens,
   signOutClientAndRedirectToLogin,
+  subscribeToAuthBroadcasts,
+  syncSessionPresenceCookie,
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
+import { parseAccessTokenClaims } from "@/lib/jwt-client";
 
 /*
  * Background access-token refresh strategy.
@@ -41,19 +44,8 @@ let lastActivityRefresh = 0;
 function getAccessTokenExpiry(): number | null {
   const tokens = getSessionTokens();
   if (!tokens?.accessToken) return null;
-
-  try {
-    const payload = tokens.accessToken.split(".")[1];
-    if (!payload) return null;
-    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-    const exp = json.exp;
-    if (typeof exp === "number") {
-      return exp * 1000;
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return null;
+  const exp = parseAccessTokenClaims(tokens.accessToken)?.exp;
+  return typeof exp === "number" ? exp * 1000 : null;
 }
 
 function scheduleNextRefresh() {
@@ -130,6 +122,8 @@ export function startSessionRefresh(): () => void {
     return () => {};
   }
 
+  syncSessionPresenceCookie();
+
   /*
    * Eager refresh on mount.
    *
@@ -186,4 +180,12 @@ export function startSessionRefresh(): () => void {
     document.removeEventListener("visibilitychange", visibilityHandler);
     window.removeEventListener("online", onlineHandler);
   };
+}
+
+if (typeof window !== "undefined") {
+  subscribeToAuthBroadcasts((msg) => {
+    if (msg.type === "tokens") {
+      scheduleNextRefresh();
+    }
+  });
 }
