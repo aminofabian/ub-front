@@ -144,8 +144,12 @@ export function isItemNotFoundProblem(payload: unknown): boolean {
  * <p>Any 401 OR 403 from an authenticated call is treated as a session failure:
  * the access token is unusable (expired/revoked/tenant-mismatched/permission-denied),
  * so the user is signed out and redirected to /login. Other 4xx/5xx responses
- * (400 tenant-context-missing, 404 tenant-not-found, etc.) are treated as
- * normal request failures - the user keeps their session and sees a toast.
+ * (404 tenant-not-found, etc.) are treated as normal request failures - the
+ * user keeps their session and sees a toast. Authenticated calls that return
+ * 400 tenant-context-missing also sign out: the JWT filter rejects the request
+ * before session-revocation checks when {@code X-Tenant-Id} / host mapping is
+ * absent, which commonly happens once stored tenant context is lost while
+ * tokens remain in {@code localStorage}.
  *
  * <p>Note: {@link TENANT_TOKEN_MISMATCH_TITLE}, {@link UNAUTHORIZED_PROBLEM_TYPE},
  * {@link SESSION_AUTH_TITLES}, {@link PROBLEM_TITLES.invalidOrExpiredAccessToken},
@@ -184,6 +188,9 @@ export function isSessionRelatedProblem(
     return true;
   }
   if (problem.title === TENANT_TOKEN_MISMATCH_TITLE) {
+    return true;
+  }
+  if (isTenantContextMissingProblem(payload)) {
     return true;
   }
 

@@ -107,10 +107,10 @@ describe("isSessionRelatedProblem", () => {
     ).toBe(false);
   });
 
-  // Missing tenant context (400) and unmapped tenant host (404) are NOT
-  // session-related failures - they are routing/configuration issues. The
-  // user keeps their session and sees a normal error toast.
-  it("ignores missing tenant context regardless of auth", () => {
+  // Missing tenant context on authenticated calls means stored tenant routing
+  // was lost while tokens remain — sign out instead of surfacing a toast.
+  // Public/unauthenticated calls still treat it as a configuration error.
+  it("treats missing tenant context on authenticated calls as session failure", () => {
     expect(
       isSessionRelatedProblem(400, {
         title: "Bad Request",
@@ -118,7 +118,10 @@ describe("isSessionRelatedProblem", () => {
         detail:
           "Tenant context missing. Provide mapped Host header or X-Tenant-Id.",
       }),
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it("ignores missing tenant context on public calls", () => {
     expect(
       isSessionRelatedProblem(
         400,
