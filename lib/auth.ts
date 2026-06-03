@@ -6,6 +6,7 @@ import {
   isPlatformApexHost,
   STORAGE_KEYS,
 } from "@/lib/config";
+import { businessIdFromAccessToken } from "@/lib/jwt-client";
 
 export type SessionTokens = {
   accessToken: string;
@@ -120,6 +121,11 @@ function postAuthBroadcast(msg: AuthBroadcastMessage): void {
   }
 }
 
+/** Notifies other tabs to sign out (e.g. after explicit logout in this tab). */
+export function broadcastAuthLogout(): void {
+  postAuthBroadcast({ type: "logout" });
+}
+
 export function getSessionTokens(): SessionTokens | null {
   if (typeof window === "undefined") {
     return null;
@@ -157,9 +163,11 @@ export function clearAllSessionData(): void {
   // Auth tokens
   window.localStorage.removeItem(STORAGE_KEYS.accessToken);
   window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
-  // Tenant context
+  // Tenant context (session + durable copy)
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
+  window.localStorage.removeItem(STORAGE_KEYS.tenantHost);
+  window.localStorage.removeItem(STORAGE_KEYS.tenantId);
   // Branch / item-type selections (all business IDs)
   const keysToRemove: string[] = [];
   for (let i = 0; i < window.localStorage.length; i++) {
@@ -218,6 +226,65 @@ export function signOutClientAndRedirectToLogin(): void {
   window.location.assign(APP_ROUTES.login);
 }
 
+function readStoredTenantId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const fromSession = window.sessionStorage.getItem(STORAGE_KEYS.tenantId)?.trim();
+  if (fromSession) {
+    return fromSession;
+  }
+  const fromLocal = window.localStorage.getItem(STORAGE_KEYS.tenantId)?.trim();
+  if (fromLocal) {
+    window.sessionStorage.setItem(STORAGE_KEYS.tenantId, fromLocal);
+    return fromLocal;
+  }
+  const fromJwt = businessIdFromAccessToken(getSessionTokens()?.accessToken);
+  if (fromJwt) {
+    persistTenantIdToStorage(fromJwt);
+    return fromJwt;
+  }
+  return null;
+}
+
+function readStoredTenantHost(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const fromSession = window.sessionStorage.getItem(STORAGE_KEYS.tenantHost)?.trim();
+  if (fromSession) {
+    return fromSession;
+  }
+  const fromLocal = window.localStorage.getItem(STORAGE_KEYS.tenantHost)?.trim();
+  if (fromLocal) {
+    window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, fromLocal);
+    return fromLocal;
+  }
+  return null;
+}
+
+function persistTenantIdToStorage(id: string): void {
+  const trimmed = id.trim();
+  if (!trimmed) {
+    window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
+    window.localStorage.removeItem(STORAGE_KEYS.tenantId);
+    return;
+  }
+  window.sessionStorage.setItem(STORAGE_KEYS.tenantId, trimmed);
+  window.localStorage.setItem(STORAGE_KEYS.tenantId, trimmed);
+}
+
+function persistTenantHostToStorage(hostname: string): void {
+  const n = hostname.trim().toLowerCase();
+  if (!n) {
+    window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
+    window.localStorage.removeItem(STORAGE_KEYS.tenantHost);
+    return;
+  }
+  window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, n);
+  window.localStorage.setItem(STORAGE_KEYS.tenantHost, n);
+}
+
 /** Registers a global reference to disconnectRealtimeClient so signOutClientAndRedirectToLogin can call it without a circular import. */
 export function registerRealtimeDisconnect(fn: () => void): void {
   if (typeof window === "undefined") {
@@ -228,31 +295,30 @@ export function registerRealtimeDisconnect(fn: () => void): void {
 }
 
 export function setSessionTenantId(id: string): void {
-  window.sessionStorage.setItem(STORAGE_KEYS.tenantId, id);
+  persistTenantIdToStorage(id);
 }
 
 export function getSessionTenantId(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return window.sessionStorage.getItem(STORAGE_KEYS.tenantId);
+  return readStoredTenantId();
 }
 
 export function clearSessionTenantId(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
+  window.localStorage.removeItem(STORAGE_KEYS.tenantId);
 }
 
 /** Hostname sent as `X-Tenant-Host` on API requests (e.g. when the dev server uses bare localhost). */
+export function getSessionTenantHost(): string | null {
+  return readStoredTenantHost();
+}
 export function persistSessionTenantHost(hostname: string): void {
   if (typeof window === "undefined") {
     return;
   }
-  const n = hostname.trim().toLowerCase();
-  if (!n) {
-    window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
-    return;
-  }
-  window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, n);
+  persistTenantHostToStorage(hostname);
 }
 
 /**
@@ -268,10 +334,11 @@ export function persistTenantHostFromSlug(
   const s = slug?.trim().toLowerCase();
   if (!s) {
     window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
+    window.localStorage.removeItem(STORAGE_KEYS.tenantHost);
     return;
   }
   const parent = new URL(APP_BASE_URL).hostname.toLowerCase();
-  window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, `${s}.${parent}`);
+  persistTenantHostToStorage(`${s}.${parent}`);
 }
 
 /**
@@ -294,5 +361,5 @@ export function syncTenantHostFromBrowserHostname(): void {
   if (isPlatformApexHost(h)) {
     return;
   }
-  window.sessionStorage.setItem(STORAGE_KEYS.tenantHost, h);
+  persistTenantHostToStorage(h);
 }

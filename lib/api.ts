@@ -11,7 +11,10 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import {
+  broadcastAuthLogout,
   clearAllSessionData,
+  getSessionTenantHost,
+  getSessionTenantId,
   getSessionTokens,
   setSessionTokens,
   signOutClientAndRedirectToLogin,
@@ -808,11 +811,9 @@ export type InventoryMutationResponseRecord = {
 const IDEMPOTENCY_METHODS: RequestMethod[] = ["POST", "PATCH"];
 
 function defaultTenantIdReader(): string | null {
-  if (typeof window !== "undefined") {
-    const stored = window.sessionStorage.getItem(STORAGE_KEYS.tenantId);
-    if (stored?.trim()) {
-      return stored.trim();
-    }
+  const stored = getSessionTenantId()?.trim();
+  if (stored) {
+    return stored;
   }
   if (PUBLIC_TENANT_ID.length > 0) {
     return PUBLIC_TENANT_ID;
@@ -825,12 +826,7 @@ export function buildRequestHeaders(
   accessToken?: string,
   method: RequestMethod = "GET",
   idempotencyKeyFactory: () => string = nextIdempotencyKey,
-  tenantHostReader: () => string | null = () => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    return window.sessionStorage.getItem(STORAGE_KEYS.tenantHost);
-  },
+  tenantHostReader: () => string | null = () => getSessionTenantHost(),
   tenantIdReader: () => string | null = defaultTenantIdReader,
 ): HeadersInit {
   const headers: HeadersInit = {
@@ -1451,6 +1447,7 @@ export async function logoutRemote(): Promise<void> {
 
   // Clear all persisted session data (tokens, tenant context, branch/item-type selections, caches)
   clearAllSessionData();
+  broadcastAuthLogout();
 }
 
 export async function fetchMe(): Promise<MeResponse> {

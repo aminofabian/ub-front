@@ -12,9 +12,10 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { getSessionTokens } from "@/lib/auth";
-import { fetchMe } from "@/lib/api";
+import { ApiRequestError, fetchMe } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES } from "@/lib/config";
+import { isSessionRelatedProblem } from "@/lib/problem";
 import { startSessionRefresh } from "@/lib/session-refresh";
 
 type DashboardLayoutProps = {
@@ -40,8 +41,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           router.replace(buyerHomePath());
           return;
         }
-      } catch {
-        /* invalid session — still allow layout to mount so providers can surface errors */
+      } catch (err) {
+        if (!cancelled && !getSessionTokens()) {
+          return;
+        }
+        if (
+          !cancelled &&
+          err instanceof ApiRequestError &&
+          isSessionRelatedProblem(err.status, err.payload)
+        ) {
+          return;
+        }
       }
       if (!cancelled) {
         setCheckedAuth(true);

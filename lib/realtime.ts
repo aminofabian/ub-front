@@ -13,6 +13,8 @@
  */
 
 import {
+  getSessionTenantHost,
+  getSessionTenantId,
   getSessionTokens,
   signOutClientAndRedirectToLogin,
   registerRealtimeDisconnect,
@@ -21,7 +23,6 @@ import { refreshAccessToken } from "./api";
 import {
   apiUrl,
   resolveRealtimeWebSocketBaseUrl,
-  STORAGE_KEYS,
 } from "./config";
 import { normalizeNotificationData } from "./notification-display";
 
@@ -209,9 +210,9 @@ function buildAuthHeaders(accessToken: string): Record<string, string> {
     Authorization: `Bearer ${accessToken}`,
   };
   if (typeof window !== "undefined") {
-    const host = window.sessionStorage.getItem(STORAGE_KEYS.tenantHost);
+    const host = getSessionTenantHost();
     if (host) headers["X-Tenant-Host"] = host;
-    const tid = window.sessionStorage.getItem(STORAGE_KEYS.tenantId);
+    const tid = getSessionTenantId();
     if (tid) headers["X-Tenant-Id"] = tid;
   }
   return headers;

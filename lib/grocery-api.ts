@@ -1,7 +1,7 @@
 "use client";
 
 import { apiUrl } from "@/lib/config";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTenantHost, getSessionTenantId, getSessionTokens } from "@/lib/auth";
 import { formatApiProblemMessage } from "@/lib/problem";
 import { toast } from "sonner";
 
@@ -162,9 +162,9 @@ async function groceryRequest<T>(
 
   // Copy tenant headers from existing session if available
   if (typeof window !== "undefined") {
-    const tenantHost = window.sessionStorage.getItem("ub.tenantHost");
+    const tenantHost = getSessionTenantHost();
     if (tenantHost) headers.set("X-Tenant-Host", tenantHost);
-    const tenantId = window.sessionStorage.getItem("ub.tenantId");
+    const tenantId = getSessionTenantId();
     if (tenantId) headers.set("X-Tenant-Id", tenantId);
   }
 
