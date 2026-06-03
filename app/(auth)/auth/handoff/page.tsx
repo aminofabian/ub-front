@@ -15,6 +15,7 @@ import {
   setSessionTenantId,
   setSessionTokens,
 } from "@/lib/auth";
+import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 
 function AuthHandoffInner() {
@@ -23,58 +24,79 @@ function AuthHandoffInner() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const pathOnly = window.location.pathname;
-    const qs = window.location.search;
+    let cancelled = false;
 
-    const fromHash = window.location.hash.replace(/^#/, "").trim();
-    if (fromHash) {
-      bufferAuthHandoffFragment(fromHash);
-      window.history.replaceState(null, "", pathOnly + qs);
-    }
+    void (async () => {
+      const pathOnly = window.location.pathname;
+      const qs = window.location.search;
 
-    if (!fromHash) {
-      const existing = getSessionTokens();
-      const nextFallback = searchParams.get("next");
-      if (existing && nextFallback?.startsWith("/")) {
+      const fromHash = window.location.hash.replace(/^#/, "").trim();
+      if (fromHash) {
+        bufferAuthHandoffFragment(fromHash);
+        window.history.replaceState(null, "", pathOnly + qs);
+      }
+
+      if (!fromHash) {
+        const existing = getSessionTokens();
+        const nextFallback = searchParams.get("next");
+        if (existing && nextFallback?.startsWith("/")) {
+          clearAuthHandoffFragment();
+          const slug = searchParams.get("slug");
+          persistTenantHostFromSlug(slug ?? undefined);
+          router.replace(nextFallback);
+          return;
+        }
+      }
+
+      const raw = fromHash || consumeAuthHandoffFragment() || "";
+
+      if (!raw) {
         clearAuthHandoffFragment();
-        const slug = searchParams.get("slug");
-        persistTenantHostFromSlug(slug ?? undefined);
-        router.replace(nextFallback);
+        if (!cancelled) {
+          setError("Missing session. Return to sign in and try again.");
+        }
         return;
       }
-    }
 
-    const raw = fromHash || consumeAuthHandoffFragment() || "";
+      const data = decodeAuthHandoffPayload(raw);
+      if (!data) {
+        clearAuthHandoffFragment();
+        if (!cancelled) {
+          setError("Invalid or expired session transfer.");
+        }
+        return;
+      }
 
-    if (!raw) {
+      setSessionTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
+
+      if (data.tenantId?.trim()) {
+        setSessionTenantId(data.tenantId.trim());
+      }
+
+      const slug = searchParams.get("slug");
+      persistTenantHostFromSlug(slug ?? undefined);
       clearAuthHandoffFragment();
-      setError("Missing session. Return to sign in and try again.");
-      return;
-    }
 
-    const data = decodeAuthHandoffPayload(raw);
-    if (!data) {
-      clearAuthHandoffFragment();
-      setError("Invalid or expired session transfer.");
-      return;
-    }
+      const outcome = await refreshAccessToken();
+      if (cancelled) {
+        return;
+      }
+      if (outcome.kind === "rejected") {
+        setError("Session transfer failed. Sign in again.");
+        return;
+      }
 
-    setSessionTokens({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
+      const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
+      const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
+      router.replace(next);
+    })();
 
-    if (data.tenantId?.trim()) {
-      setSessionTenantId(data.tenantId.trim());
-    }
-
-    const slug = searchParams.get("slug");
-    persistTenantHostFromSlug(slug ?? undefined);
-    clearAuthHandoffFragment();
-
-    const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
-    const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
-    router.replace(next);
+    return () => {
+      cancelled = true;
+    };
   }, [router, searchParams]);
 
   if (!error) {

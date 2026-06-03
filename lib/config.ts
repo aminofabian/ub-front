@@ -86,6 +86,7 @@ export const API_ROUTES = {
   passwordReset: "/api/v1/auth/password/reset",
   logout: "/api/v1/auth/logout",
   refresh: "/api/v1/auth/refresh",
+  clearSessionCookie: "/api/v1/auth/clear-session-cookie",
   me: "/api/v1/me",
   shopperHub: "/api/v1/me/shopper",
   shopperNotifications: "/api/v1/me/shopper/notifications",

@@ -143,8 +143,11 @@ async function resolveUnauthorizedResponse(
 
 type LoginResponse = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 };
+
+/** Send httpOnly refresh cookie on auth/session API calls. */
+const AUTH_FETCH_CREDENTIALS: RequestCredentials = "include";
 
 const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
 const PUBLIC_HOST_ONBOARD_PATH = "/api/v1/public/host/onboard";
@@ -940,10 +943,15 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 
   let response: Response;
   try {
+    const refreshBody =
+      session.refreshToken != null && session.refreshToken.length > 0
+        ? { refreshToken: session.refreshToken }
+        : {};
     response = await fetch(apiUrl(API_ROUTES.refresh), {
       method: "POST",
+      credentials: AUTH_FETCH_CREDENTIALS,
       headers: buildRequestHeaders(false, undefined, "POST"),
-      body: JSON.stringify({ refreshToken: session.refreshToken }),
+      body: JSON.stringify(refreshBody),
     });
   } catch {
     // True network failure (offline, DNS, CORS preflight error). Session is
@@ -980,7 +988,7 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
   } catch {
     return { kind: "network" };
   }
-  if (!payload.accessToken || !payload.refreshToken) {
+  if (!payload.accessToken) {
     return { kind: "rejected" };
   }
 
@@ -1072,6 +1080,7 @@ async function request<T>(
       return await fetch(apiUrl(path), {
         method,
         headers,
+        credentials: AUTH_FETCH_CREDENTIALS,
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch {
@@ -1429,6 +1438,7 @@ export async function logoutRemote(): Promise<void> {
     try {
       await fetch(apiUrl(API_ROUTES.logout), {
         method: "POST",
+        credentials: AUTH_FETCH_CREDENTIALS,
         headers: buildRequestHeaders(true, session.accessToken, "POST"),
       });
     } catch {

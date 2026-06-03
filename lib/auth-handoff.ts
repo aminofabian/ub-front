@@ -1,6 +1,6 @@
 export type AuthHandoffPayload = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   tenantId?: string;
   nextPath?: string;
 };
@@ -108,12 +108,12 @@ export function decodeAuthHandoffPayload(fragment: string): AuthHandoffPayload |
       Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)),
     );
     const o = JSON.parse(json) as Record<string, unknown>;
-    if (typeof o.accessToken !== "string" || typeof o.refreshToken !== "string") {
+    if (typeof o.accessToken !== "string") {
       return null;
     }
     return {
       accessToken: o.accessToken,
-      refreshToken: o.refreshToken,
+      refreshToken: typeof o.refreshToken === "string" ? o.refreshToken : undefined,
       tenantId: typeof o.tenantId === "string" ? o.tenantId : undefined,
       nextPath: typeof o.nextPath === "string" ? o.nextPath : undefined,
     };

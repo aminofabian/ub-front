@@ -60,6 +60,17 @@ describe("auth-handoff", () => {
     expect(decodeAuthHandoffPayload("!!!")).toBeNull();
   });
 
+  it("accepts access-only handoff payload", () => {
+    const enc = encodeAuthHandoffPayload({
+      accessToken: "a.b.c",
+      nextPath: "/business",
+    });
+    expect(decodeAuthHandoffPayload(enc)).toEqual({
+      accessToken: "a.b.c",
+      nextPath: "/business",
+    });
+  });
+
   it("buffers and consumes fragment within TTL", () => {
     withSessionStorage(() => {
       sessionStorage.clear();

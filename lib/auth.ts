@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  API_ROUTES,
   APP_BASE_URL,
   APP_ROUTES,
+  apiUrl,
   isPlatformApexHost,
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
@@ -12,7 +14,8 @@ import { businessIdFromAccessToken } from "@/lib/jwt-client";
 
 export type SessionTokens = {
   accessToken: string;
-  refreshToken: string;
+  /** Present during handoff migration; otherwise stored in httpOnly cookie. */
+  refreshToken?: string;
 };
 
 /*
@@ -31,7 +34,7 @@ export type SessionTokens = {
  * unavailable (older Safari, locked-down WebViews).
  */
 type AuthBroadcastMessage =
-  | { type: "tokens"; accessToken: string; refreshToken: string }
+  | { type: "tokens"; accessToken: string; refreshToken?: string }
   | { type: "logout" };
 
 const AUTH_CHANNEL_NAME = "ub-auth";
@@ -134,12 +137,14 @@ export function getSessionTokens(): SessionTokens | null {
   }
 
   const accessToken = window.localStorage.getItem(STORAGE_KEYS.accessToken);
-  const refreshToken = window.localStorage.getItem(STORAGE_KEYS.refreshToken);
-  if (!accessToken || !refreshToken) {
+  if (!accessToken) {
     return null;
   }
-
-  return { accessToken, refreshToken };
+  const refreshToken = window.localStorage.getItem(STORAGE_KEYS.refreshToken)?.trim();
+  return {
+    accessToken,
+    refreshToken: refreshToken || undefined,
+  };
 }
 
 function setSessionPresenceCookie(): void {
@@ -167,12 +172,17 @@ export function syncSessionPresenceCookie(): void {
 
 export function setSessionTokens(tokens: SessionTokens): void {
   window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
-  window.localStorage.setItem(STORAGE_KEYS.refreshToken, tokens.refreshToken);
+  const refresh = tokens.refreshToken?.trim();
+  if (refresh) {
+    window.localStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
+  } else {
+    window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  }
   setSessionPresenceCookie();
   postAuthBroadcast({
     type: "tokens",
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
+    refreshToken: refresh,
   });
 }
 
@@ -240,12 +250,21 @@ function disconnectRealtimeClient(): void {
   }
 }
 
+function clearRefreshSessionCookie(): void {
+  void fetch(apiUrl(API_ROUTES.clearSessionCookie), {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  }).catch(() => {});
+}
+
 /** Clears session storage and notifies other tabs; does not redirect. */
 export function finalizeClientSignOut(): void {
   if (typeof window === "undefined") {
     return;
   }
   disconnectRealtimeClient();
+  clearRefreshSessionCookie();
   clearAllSessionData();
   broadcastAuthLogout();
 }
