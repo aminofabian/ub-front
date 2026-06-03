@@ -78,7 +78,6 @@ export const config = {
     "/credits/:path*",
     "/cashier/:path*",
     "/grocery/:path*",
-    "/barcode/:path*",
     "/overview",
     "/business",
     "/branches",
@@ -91,6 +90,5 @@ export const config = {
     "/supplies",
     "/cashier",
     "/grocery",
-    "/barcode",
   ],
 };

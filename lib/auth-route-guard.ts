@@ -32,7 +32,6 @@ export const AUTH_PROTECTED_PREFIXES = [
   "/credits",
   "/cashier",
   "/grocery",
-  "/barcode",
 ] as const;
 
 export function isAuthProtectedPath(pathname: string): boolean {
