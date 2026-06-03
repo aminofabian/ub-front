@@ -1388,6 +1388,7 @@ export async function resendVerificationEmail(
   try {
     response = await fetch(apiUrl(API_ROUTES.resendVerification), {
       method: "POST",
+      credentials: AUTH_FETCH_CREDENTIALS,
       headers,
       body: JSON.stringify({ email }),
     });

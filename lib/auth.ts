@@ -71,6 +71,7 @@ function getAuthChannel(): BroadcastChannel | null {
 function installStorageFallback(): void {
   if (storageListenerInstalled) return;
   if (typeof window === "undefined") return;
+  if (typeof window.addEventListener !== "function") return;
   storageListenerInstalled = true;
   window.addEventListener("storage", (event) => {
     if (event.storageArea !== window.localStorage) return;

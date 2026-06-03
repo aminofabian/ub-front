@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { DesktopBootShell } from "@/components/desktop/desktop-boot-shell";
 import { IS_DESKTOP } from "@/lib/runtime";
 
 /**
@@ -121,18 +122,24 @@ export default function DesktopSetupPage() {
   const submitting = submitState.kind === "submitting";
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
-        <header className="space-y-1 text-center">
-          <h1 className="text-xl font-bold tracking-tight">
-            Welcome to Palmart Desktop
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Let&apos;s set up your shop. This stays on this PC — nothing is
-            uploaded.
-          </p>
-        </header>
-
+    <DesktopBootShell
+      title="Welcome to Palmart Desktop"
+      message={
+        submitState.kind === "success"
+          ? "Shop created. Taking you to sign in…"
+          : submitting
+            ? "Creating your shop…"
+            : "Set up your shop on this PC — nothing is uploaded to the cloud."
+      }
+      status={
+        submitState.kind === "success"
+          ? "success"
+          : submitting
+            ? "loading"
+            : undefined
+      }
+    >
+      <div className="w-full space-y-4 rounded-2xl border border-border/60 bg-card/95 p-6 text-left shadow-sm backdrop-blur-sm">
         <form className="space-y-4" onSubmit={onSubmit}>
           <fieldset className="space-y-3" disabled={submitting}>
             <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -270,15 +277,6 @@ export default function DesktopSetupPage() {
             </div>
           ) : null}
 
-          {submitState.kind === "success" ? (
-            <div
-              role="status"
-              className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100"
-            >
-              Shop created. Taking you to sign in…
-            </div>
-          ) : null}
-
           <button
             type="submit"
             className="h-11 w-full rounded-md bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
@@ -288,7 +286,7 @@ export default function DesktopSetupPage() {
           </button>
         </form>
       </div>
-    </main>
+    </DesktopBootShell>
   );
 }
 

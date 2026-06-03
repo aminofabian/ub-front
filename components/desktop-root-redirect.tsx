@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { DesktopBootShell } from "@/components/desktop/desktop-boot-shell";
 
 /**
  * Client-side router for the desktop SKU's root URL
@@ -14,83 +16,123 @@ import { useRouter } from "next/navigation";
  * already been seeded, then redirects to either {@code /setup} (first run) or
  * {@code /login} (returning user).
  *
- * <p>If the status probe fails (backend not up yet, network blip on LAN tills)
- * we surface a small retry UI rather than redirecting to a broken page.
+ * <p>MariaDB + JVM startup can take tens of seconds on first launch, so failed
+ * probes retry with backoff instead of surfacing an error immediately.
  */
 type Status = "loading" | "needs-setup" | "ready" | "error";
+
+const MAX_ATTEMPTS = 40;
+const INITIAL_DELAY_MS = 400;
+const MAX_DELAY_MS = 2500;
+
+function delay(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true },
+    );
+  });
+}
+
+function loadingMessage(attempt: number): string {
+  if (attempt <= 1) return "Starting Palmart on this PC…";
+  if (attempt <= 4) return "Starting local database and services…";
+  if (attempt <= 10) return "Almost ready — first launch can take a minute.";
+  return "Still starting — check that Palmart is allowed to run locally.";
+}
 
 export function DesktopRootRedirect() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("loading");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [message, setMessage] = useState(loadingMessage(0));
+  const [errorMessage, setErrorMessage] = useState("");
+  const attemptRef = useRef(0);
+
+  const probe = useCallback(
+    async (signal: AbortSignal) => {
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+        if (signal.aborted) return;
+        attemptRef.current = attempt;
+        setMessage(loadingMessage(attempt));
+
+        try {
+          const res = await fetch("/api/v1/desktop/setup/status", {
+            signal,
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            throw new Error(`Setup status check failed (${res.status})`);
+          }
+          const body = (await res.json()) as { setupRequired?: boolean };
+          if (body.setupRequired) {
+            setStatus("needs-setup");
+            setMessage("Opening first-run setup…");
+            router.replace("/setup");
+          } else {
+            setStatus("ready");
+            setMessage("Loading sign-in…");
+            router.replace("/login");
+          }
+          return;
+        } catch (err) {
+          if (signal.aborted) return;
+          const isLast = attempt >= MAX_ATTEMPTS - 1;
+          if (!isLast) {
+            const backoff = Math.min(
+              INITIAL_DELAY_MS * 1.35 ** attempt,
+              MAX_DELAY_MS,
+            );
+            await delay(backoff, signal);
+            continue;
+          }
+          const detail =
+            err instanceof Error ? err.message : "Could not reach the backend";
+          setStatus("error");
+          setErrorMessage(detail);
+        }
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     const ac = new AbortController();
-
-    async function probe() {
-      try {
-        const res = await fetch("/api/v1/desktop/setup/status", {
-          signal: ac.signal,
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
-        if (!res.ok) {
-          throw new Error(`Setup status check failed (${res.status})`);
-        }
-        const body = (await res.json()) as { setupRequired?: boolean };
-        if (body.setupRequired) {
-          setStatus("needs-setup");
-          router.replace("/setup");
-        } else {
-          setStatus("ready");
-          router.replace("/login");
-        }
-      } catch (err) {
-        if (ac.signal.aborted) return;
-        const message =
-          err instanceof Error ? err.message : "Could not reach the backend";
-        setStatus("error");
-        setErrorMessage(message);
-      }
-    }
-
-    void probe();
+    void probe(ac.signal);
     return () => ac.abort();
-  }, [router]);
+  }, [probe]);
 
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-6 text-center">
-      <div className="max-w-sm space-y-4">
-        {status === "loading" || status === "needs-setup" || status === "ready" ? (
-          <>
-            <div
-              className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"
-              aria-hidden
-            />
-            <p className="text-sm text-muted-foreground">
-              {status === "needs-setup"
-                ? "Opening first-run setup…"
-                : status === "ready"
-                  ? "Loading sign-in…"
-                  : "Checking install status…"}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-base font-semibold">
-              Could not reach the local backend
-            </p>
-            <p className="text-sm text-muted-foreground">{errorMessage}</p>
-            <button
-              type="button"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </button>
-          </>
-        )}
-      </div>
-    </main>
-  );
+  const retry = useCallback(() => {
+    setStatus("loading");
+    setErrorMessage("");
+    setMessage(loadingMessage(0));
+    attemptRef.current = 0;
+    const ac = new AbortController();
+    void probe(ac.signal);
+  }, [probe]);
+
+  if (status === "error") {
+    return (
+      <DesktopBootShell
+        title="Could not reach the local backend"
+        message={errorMessage}
+        status="error"
+      >
+        <button
+          type="button"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          onClick={retry}
+        >
+          Retry
+        </button>
+      </DesktopBootShell>
+    );
+  }
+
+  return <DesktopBootShell message={message} status="loading" />;
 }

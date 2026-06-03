@@ -66,14 +66,19 @@ Current tests cover API request helper behavior:
 - **Products**: create parent (needs item types), open row, add variant (SKU + variant label), save edits.
 - **Lighthouse** (login): labels + `autocomplete` on fields; security headers help Best Practices (run against local or staging build).
 
-## Auth and Session Keys
+## Auth and session
 
-The client stores session values in browser storage:
+**Access token** — `localStorage` (`ub.accessToken`).
 
-- `ub.accessToken`
-- `ub.refreshToken`
-- `ub.tenantHost` (session storage)
-- `ub.tenantId` (session storage; dev / explicit tenant)
+**Refresh token** — httpOnly cookie `ub.refresh` on the API origin (path `/api/v1/auth`), set by login/refresh. Not stored in `localStorage` in cookie mode. Legacy/handoff flows may still pass a refresh token in the URL fragment once; handoff then calls `/auth/refresh` to mint the cookie on the target origin.
+
+**Tenant context** — `ub.tenantId` and `ub.tenantHost` in `sessionStorage`, mirrored to `localStorage` for resilience. Fallback: `business_id` claim on the access JWT.
+
+**Session hint** — non-secret cookie `ub.session=1` for middleware redirects on protected routes; real auth remains JWT validation client-side.
+
+**Sign-out** — `logoutRemote()` revokes the server session, clears the refresh cookie via `/auth/clear-session-cookie`, and runs `finalizeClientSignOut()` (realtime disconnect + cross-tab broadcast).
+
+**Proactive refresh** — `session-refresh.ts` schedules refresh before expiry; cross-tab sync via `BroadcastChannel` + `storage` fallback.
 
 ## Tenant Telemetry Header
 
