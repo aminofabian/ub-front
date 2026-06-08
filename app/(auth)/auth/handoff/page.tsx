@@ -12,10 +12,10 @@ import {
 } from "@/lib/auth-handoff";
 import {
   getSessionTokens,
+  ensureSessionPresenceCookie,
   persistTenantHostAfterAuth,
   setSessionTenantId,
   setSessionTokens,
-  syncSessionPresenceCookie,
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
@@ -90,11 +90,17 @@ function AuthHandoffInner() {
         setError("Session transfer failed. Sign in again.");
         return;
       }
-      syncSessionPresenceCookie();
+      const cookieOk = await ensureSessionPresenceCookie();
+      if (!cookieOk) {
+        setError(
+          "Could not save your session (Safari may be blocking cookies). Return to sign in and allow cookies for this site.",
+        );
+        return;
+      }
 
       const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
       const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
-      router.replace(next);
+      window.location.assign(next);
     })();
 
     return () => {

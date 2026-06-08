@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
@@ -14,13 +14,11 @@ import {
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
-  clearSessionTokens,
+  ensureSessionPresenceCookie,
   getSessionTenantId,
   getSessionTokens,
-  hasSessionPresenceCookie,
   persistTenantHostAfterAuth,
   setSessionTenantId,
-  syncSessionPresenceCookie,
 } from "@/lib/auth";
 import {
   AUTH_TENANT_RESOLVE_ERROR,
@@ -45,20 +43,17 @@ import {
 import { cn } from "@/lib/utils";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
-type LoginRouter = {
-  push: (href: string) => void;
-  replace: (href: string) => void;
-};
+const SESSION_COOKIE_ERROR =
+  "Could not save your session (Safari may be blocking cookies). Allow cookies for this site in Settings, then try again.";
 
-async function syncSlugAndNavigate(
-  router: LoginRouter,
-  path: string,
-  mode: "push" | "replace",
-): Promise<void> {
-  // Desktop SKU: single origin, no subdomain tenant routing.
-  // Skip the cross-origin handoff and navigate in-app.
+/** Full document navigation so middleware receives the session hint cookie. */
+function navigateAfterAuth(path: string): void {
+  window.location.assign(path);
+}
+
+async function syncSlugAndNavigate(path: string): Promise<void> {
   if (IS_DESKTOP) {
-    navigateInApp(router, path, mode);
+    navigateAfterAuth(path);
     return;
   }
 
@@ -80,12 +75,12 @@ async function syncSlugAndNavigate(
 
   if (normalizedPrimary && tenantHostsMatch(currentHost, normalizedPrimary)) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateInApp(router, path, mode);
+    navigateAfterAuth(path);
     return;
   }
   if (slug && currentHost.startsWith(slug.toLowerCase() + ".")) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateInApp(router, path, mode);
+    navigateAfterAuth(path);
     return;
   }
 
@@ -97,7 +92,7 @@ async function syncSlugAndNavigate(
 
   if (!slug || targetOrigin === window.location.origin) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateInApp(router, path, mode);
+    navigateAfterAuth(path);
     return;
   }
 
@@ -105,7 +100,7 @@ async function syncSlugAndNavigate(
   const tenantId = getSessionTenantId();
   if (!tokens) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateInApp(router, path, mode);
+    navigateAfterAuth(path);
     return;
   }
 
@@ -122,16 +117,15 @@ async function syncSlugAndNavigate(
   );
 }
 
-function navigateInApp(
-  router: LoginRouter,
-  path: string,
-  mode: "push" | "replace",
-): void {
-  if (mode === "replace") {
-    router.replace(path);
-  } else {
-    router.push(path);
+async function completeLoginAndNavigate(
+  dest: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const cookieOk = await ensureSessionPresenceCookie();
+  if (!cookieOk) {
+    return { ok: false, message: SESSION_COOKIE_ERROR };
   }
+  await syncSlugAndNavigate(dest);
+  return { ok: true };
 }
 
 const AUTH_MODE = {
@@ -190,22 +184,6 @@ function LoginPageContent() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!getSessionTokens()) {
-      return;
-    }
-    syncSessionPresenceCookie();
-    if (!hasSessionPresenceCookie()) {
-      // Orphan tokens (cookie blocked or cleared) cause silent redirect loops on iOS.
-      clearSessionTokens();
-      return;
-    }
-    void (async () => {
-      const dest = await resolveAfterPasswordAuth();
-      await syncSlugAndNavigate(router, dest, "replace");
-    })();
-  }, [router, resolveAfterPasswordAuth]);
-
   const persistTenantId = (raw: string) => {
     const id = raw.trim();
     if (id.length > 0) {
@@ -248,7 +226,11 @@ function LoginPageContent() {
       persistTenantId(id);
       await loginWithPassword(email, password);
       const dest = await resolveAfterPasswordAuth();
-      await syncSlugAndNavigate(router, dest, "push");
+      const outcome = await completeLoginAndNavigate(dest);
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message);
+        return;
+      }
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed.");
@@ -285,11 +267,13 @@ function LoginPageContent() {
       persistTenantId(id);
       await loginWithPin(email, pin, branchId);
       const pinDest = await resolveAfterPasswordAuth();
-      await syncSlugAndNavigate(
-        router,
-        pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest,
-        "push",
-      );
+      const pinPath =
+        pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
+      const outcome = await completeLoginAndNavigate(pinPath);
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message);
+        return;
+      }
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(

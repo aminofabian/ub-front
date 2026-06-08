@@ -11,11 +11,7 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
-import {
-  cookieDomainForHost,
-  stripLeadingWww,
-  tenantHostsMatch,
-} from "@/lib/tenant-host";
+import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
 export type SessionTokens = {
   accessToken: string;
@@ -153,17 +149,15 @@ export function getSessionTokens(): SessionTokens | null {
   };
 }
 
+const SESSION_HINT_API = "/api/auth/session-hint";
+
 function sessionPresenceCookieAttrs(maxAgeSec: number): string {
   const secure =
     typeof window !== "undefined" && window.location.protocol === "https:"
       ? "; Secure"
       : "";
-  const domain =
-    typeof window !== "undefined"
-      ? cookieDomainForHost(window.location.hostname)
-      : "";
-  const domainAttr = domain ? `; domain=${domain}` : "";
-  return `path=/; max-age=${maxAgeSec}; SameSite=Lax${secure}${domainAttr}`;
+  // Host-only (no Domain=). Safari iOS 15 often rejects parent-domain JS cookies.
+  return `path=/; max-age=${maxAgeSec}; SameSite=Lax${secure}`;
 }
 
 /** Whether the middleware session hint cookie is present (not secret — UX only). */
@@ -188,12 +182,42 @@ function clearSessionPresenceCookie(): void {
     return;
   }
   document.cookie = `${SESSION_PRESENCE_COOKIE}=; ${sessionPresenceCookieAttrs(0)}`;
+  void fetch(SESSION_HINT_API, { method: "DELETE", credentials: "include" }).catch(
+    () => {},
+  );
+}
+
+/**
+ * Sets the middleware session hint via document.cookie and, when that fails
+ * (common on Safari iOS), via {@link SESSION_HINT_API} Set-Cookie.
+ */
+export async function ensureSessionPresenceCookie(): Promise<boolean> {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  setSessionPresenceCookie();
+  if (hasSessionPresenceCookie()) {
+    return true;
+  }
+  try {
+    const response = await fetch(SESSION_HINT_API, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (response.ok) {
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+  return hasSessionPresenceCookie();
 }
 
 /** Sets the middleware hint when tokens exist (e.g. after deploy or cookie cleared). */
 export function syncSessionPresenceCookie(): void {
   if (getSessionTokens()) {
     setSessionPresenceCookie();
+    void ensureSessionPresenceCookie();
   } else {
     clearSessionPresenceCookie();
   }
@@ -214,6 +238,7 @@ export function setSessionTokens(tokens: SessionTokens): void {
     );
   }
   setSessionPresenceCookie();
+  void ensureSessionPresenceCookie();
   postAuthBroadcast({
     type: "tokens",
     accessToken: tokens.accessToken,
