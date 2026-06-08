@@ -149,6 +149,28 @@ type LoginResponse = {
 /** Send httpOnly refresh cookie on auth/session API calls. */
 const AUTH_FETCH_CREDENTIALS: RequestCredentials = "include";
 
+const CLIENT_FETCH_TIMEOUT_MS = 25_000;
+
+function fetchWithClientTimeout(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(
+    () => controller.abort(),
+    CLIENT_FETCH_TIMEOUT_MS,
+  );
+  const { signal: existingSignal, ...rest } = init;
+  if (existingSignal) {
+    existingSignal.addEventListener("abort", () => controller.abort(), {
+      once: true,
+    });
+  }
+  return fetch(url, { ...rest, signal: controller.signal }).finally(() => {
+    window.clearTimeout(timer);
+  });
+}
+
 const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
 const PUBLIC_HOST_ONBOARD_PATH = "/api/v1/public/host/onboard";
 const PUBLIC_HOST_RESOLVE_BY_EMAIL_PATH =
@@ -1077,13 +1099,18 @@ async function request<T>(
       headers.set("Idempotency-Key", idem);
     }
     try {
-      return await fetch(apiUrl(path), {
+      return await fetchWithClientTimeout(apiUrl(path), {
         method,
         headers,
         credentials: AUTH_FETCH_CREDENTIALS,
         body: body ? JSON.stringify(body) : undefined,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          "Request timed out. Check your connection and try again.",
+        );
+      }
       throw new Error(getNetworkErrorMessage());
     }
   };

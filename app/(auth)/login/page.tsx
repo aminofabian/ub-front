@@ -14,7 +14,6 @@ import {
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
-  ensureSessionPresenceCookie,
   getSessionTenantId,
   getSessionTokens,
   persistTenantHostAfterAuth,
@@ -42,13 +41,11 @@ import {
 } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
+import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 
-const SESSION_COOKIE_ERROR =
-  "Could not save your session (Safari may be blocking cookies). Allow cookies for this site in Settings, then try again.";
-
-/** Full document navigation so middleware receives the session hint cookie. */
+/** Server prefetches dashboard data, then redirects (works when client fetch fails). */
 function navigateAfterAuth(path: string): void {
-  window.location.assign(path);
+  submitStoreSessionNavigate(path);
 }
 
 async function syncSlugAndNavigate(path: string): Promise<void> {
@@ -120,10 +117,6 @@ async function syncSlugAndNavigate(path: string): Promise<void> {
 async function completeLoginAndNavigate(
   dest: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const cookieOk = await ensureSessionPresenceCookie();
-  if (!cookieOk) {
-    return { ok: false, message: SESSION_COOKIE_ERROR };
-  }
   await syncSlugAndNavigate(dest);
   return { ok: true };
 }

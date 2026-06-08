@@ -40,8 +40,13 @@ import {
   type PatchBusinessPayload,
 } from "@/lib/api";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import {
+  readSessionBootstrap,
+  SESSION_BOOTSTRAP_KEYS,
+} from "@/lib/session-bootstrap";
 
 const MAX_FEATURED = 12;
+const LOAD_TIMEOUT_MS = 20_000;
 
 const TIER_SUGGESTIONS = ["starter", "growth", "enterprise"] as const;
 
@@ -129,6 +134,25 @@ function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
 
 type Feedback = { kind: "success" | "error"; text: string };
 
+function applyBusinessSnapshot(
+  payload: BusinessRecord,
+  branchList: BranchRecord[],
+): {
+  editable: EditableBusiness;
+  storefront: StorefrontForm;
+  inventory: InventoryForm;
+} {
+  return {
+    editable: {
+      name: String(payload.name ?? ""),
+      subscriptionTier: String(payload.subscriptionTier ?? "starter"),
+      active: Boolean(payload.active ?? true),
+    },
+    storefront: storefrontFromRecord(payload, branchList),
+    inventory: inventoryFromRecord(payload),
+  };
+}
+
 function inputClass(disabled?: boolean) {
   return cn(
     "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors",
@@ -160,22 +184,31 @@ export default function BusinessPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const skipDrawerResetAfterSave = useRef(false);
+  const hydratedFromBootstrap = useRef(false);
 
   const load = useCallback(() => {
-    return fetchBusiness()
+    const timeout = new Promise<never>((_, reject) => {
+      window.setTimeout(
+        () => reject(new Error("Request timed out. Tap Try again.")),
+        LOAD_TIMEOUT_MS,
+      );
+    });
+
+    return Promise.race([fetchBusiness(), timeout])
       .then((payload) => {
         setLoadFailed(false);
         setFeedback(null);
         setSnapshot(payload);
-        setEditable({
-          name: String(payload.name ?? ""),
-          subscriptionTier: String(payload.subscriptionTier ?? "starter"),
-          active: Boolean(payload.active ?? true),
-        });
-        setStorefront(storefrontFromRecord(payload, branches));
-        setInventory(inventoryFromRecord(payload));
+        hydratedFromBootstrap.current = true;
+        const next = applyBusinessSnapshot(payload, branches);
+        setEditable(next.editable);
+        setStorefront(next.storefront);
+        setInventory(next.inventory);
       })
       .catch((error) => {
+        if (hydratedFromBootstrap.current) {
+          return;
+        }
         setLoadFailed(true);
         setSnapshot(null);
         setFeedback({
@@ -186,9 +219,21 @@ export default function BusinessPage() {
               : "Could not load your business.",
         });
       });
-  }, []);
+  }, [branches]);
 
   useEffect(() => {
+    const boot = readSessionBootstrap<BusinessRecord>(
+      SESSION_BOOTSTRAP_KEYS.business,
+    );
+    if (boot) {
+      hydratedFromBootstrap.current = true;
+      setLoadFailed(false);
+      setSnapshot(boot);
+      const next = applyBusinessSnapshot(boot, branches);
+      setEditable(next.editable);
+      setStorefront(next.storefront);
+      setInventory(next.inventory);
+    }
     void load();
   }, [load]);
 

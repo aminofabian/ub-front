@@ -19,6 +19,7 @@ import {
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 
 function AuthHandoffInner() {
   const router = useRouter();
@@ -100,7 +101,7 @@ function AuthHandoffInner() {
 
       const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
       const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
-      window.location.assign(next);
+      submitStoreSessionNavigate(next);
     })();
 
     return () => {

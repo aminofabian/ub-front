@@ -6,9 +6,15 @@ import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
-import { APP_ROUTES, getServerApiOrigin, STORAGE_KEYS } from "@/lib/config";
+import { getServerApiOrigin } from "@/lib/config";
 import { fetchTenantContext } from "@/lib/public-storefront";
 import { formatApiProblemMessage } from "@/lib/problem";
+import {
+  buildSessionFinalizeHtml,
+  newLoginIdempotencyKey,
+  prefetchSessionBootstrap,
+  safeAuthNextPath,
+} from "@/lib/login-session.server";
 
 function resolveTenantHost(request: NextRequest): string | null {
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
@@ -19,63 +25,10 @@ function resolveTenantHost(request: NextRequest): string | null {
   return host && host.length > 0 ? host : null;
 }
 
-function safeNextPath(raw: string | null): string {
-  const trimmed = raw?.trim() ?? "";
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
-    return trimmed;
-  }
-  return APP_ROUTES.business;
-}
-
 function loginErrorRedirect(request: NextRequest, message: string): NextResponse {
-  const url = new URL(APP_ROUTES.login, request.url);
+  const url = new URL("/login", request.url);
   url.searchParams.set("error", message);
   return NextResponse.redirect(url, 303);
-}
-
-function buildSessionHtml(opts: {
-  accessToken: string;
-  refreshToken?: string;
-  tenantId: string;
-  tenantHost: string | null;
-  nextPath: string;
-}): string {
-  const { accessToken, refreshToken, tenantId, tenantHost, nextPath } = opts;
-  const scriptLines = [
-    `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.accessToken)}, ${JSON.stringify(accessToken)});`,
-    refreshToken
-      ? `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.refreshToken)}, ${JSON.stringify(refreshToken)});`
-      : `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
-    `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
-    `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
-  ];
-  if (tenantHost) {
-    scriptLines.push(
-      `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)}, ${JSON.stringify(tenantHost)});`,
-      `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)}, ${JSON.stringify(tenantHost)});`,
-    );
-  }
-  scriptLines.push(`window.location.replace(${JSON.stringify(nextPath)});`);
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Signing in…</title>
-  <style>body{font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;color:#444}</style>
-</head>
-<body>
-  <p>Signing you in…</p>
-  <script>
-    try {
-      ${scriptLines.join("\n      ")}
-    } catch (e) {
-      document.body.innerHTML = "<p>Sign-in succeeded but your browser blocked saving the session. Allow site data for this domain, then try again.</p>";
-    }
-  </script>
-</body>
-</html>`;
 }
 
 async function resolveTenantId(
@@ -101,7 +54,7 @@ export async function POST(request: NextRequest) {
   const form = await request.formData();
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  const nextPath = safeNextPath(String(form.get("next") ?? ""));
+  const nextPath = safeAuthNextPath(String(form.get("next") ?? ""));
   const tenantHost = resolveTenantHost(request);
   const tenantId = await resolveTenantId(
     String(form.get("tenantId") ?? ""),
@@ -123,7 +76,7 @@ export async function POST(request: NextRequest) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
-    "Idempotency-Key": randomUUID(),
+    "Idempotency-Key": newLoginIdempotencyKey(),
     "X-Tenant-Id": tenantId,
   };
   if (tenantHost) {
@@ -159,12 +112,19 @@ export async function POST(request: NextRequest) {
     return loginErrorRedirect(request, "Login failed: no access token returned.");
   }
 
-  const html = buildSessionHtml({
+  const bootstrap = await prefetchSessionBootstrap(
+    accessToken,
+    tenantId,
+    tenantHost,
+  );
+
+  const html = buildSessionFinalizeHtml({
     accessToken,
     refreshToken: payload.refreshToken?.trim(),
     tenantId,
     tenantHost,
     nextPath,
+    bootstrap,
   });
 
   const response = new NextResponse(html, {

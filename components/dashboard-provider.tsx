@@ -22,6 +22,10 @@ import {
 } from "@/lib/api";
 import { persistTenantHostFromSlug } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  readSessionBootstrap,
+  SESSION_BOOTSTRAP_KEYS,
+} from "@/lib/session-bootstrap";
 
 const SELECTED_BRANCH_PREFIX = "palmart:selectedBranch:v1:";
 const SELECTED_ITEM_TYPE_PREFIX = "palmart:selectedItemType:v1:";
@@ -225,10 +229,31 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
+    const bootBiz = readSessionBootstrap<BusinessRecord>(
+      SESSION_BOOTSTRAP_KEYS.business,
+    );
+    if (bootMe) {
+      setMe(bootMe);
+    }
+    if (bootBiz) {
+      setBusiness(bootBiz);
+      if (bootBiz.slug?.trim()) {
+        persistTenantHostFromSlug(bootBiz.slug);
+      }
+    }
+    if (bootMe || bootBiz) {
+      setLoading(false);
+    }
+
     refreshSession()
       .catch(() => {
-        setMe(null);
-        setBusiness(null);
+        if (!bootMe) {
+          setMe(null);
+        }
+        if (!bootBiz) {
+          setBusiness(null);
+        }
       })
       .finally(() => setLoading(false));
   }, [refreshSession]);

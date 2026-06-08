@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { DesktopLicenseProvider } from "@/components/desktop/desktop-license-provider";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
+import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
@@ -48,7 +49,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const shell = (
-    <DashboardProvider>
+    <>
+      <DashboardClientGuards />
+      <DashboardProvider>
       <RealtimeProvider>
         <Suspense fallback={null}>
           <OnboardingQuestionnaireProvider>
@@ -58,6 +61,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <DashboardToaster />
       </RealtimeProvider>
     </DashboardProvider>
+    </>
   );
 
   if (!IS_DESKTOP) {
