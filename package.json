@@ -53,5 +53,12 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
+  ],
+  "browserslist": [
+    "> 0.2%",
+    "last 4 versions",
+    "iOS >= 12.2",
+    "Safari >= 12.1",
+    "not dead"
   ]
 }
