@@ -13,8 +13,8 @@ import { cn } from "@/lib/utils";
 
 export const POS_RECEIPT_PRINT_ROOT_ID = "pos-receipt-print";
 
-/** Printable width for 50mm thermal roll (minus ~2mm non-print margin). */
-export const THERMAL_RECEIPT_WIDTH_MM = 50;
+/** Printable width for 80mm thermal roll (minus ~2mm non-print margin). */
+export const THERMAL_RECEIPT_WIDTH_MM = 80;
 
 type PosSaleReceiptProps = {
   receipt: PosReceiptSnapshot;
