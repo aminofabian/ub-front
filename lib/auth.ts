@@ -428,6 +428,15 @@ export function clearSessionTenantId(): void {
 
 /** Hostname sent as `X-Tenant-Host` on API requests (e.g. when the dev server uses bare localhost). */
 export function getSessionTenantHost(): string | null {
+  if (typeof window === "undefined") {
+    return readStoredTenantHost();
+  }
+  const browserHost = stripLeadingWww(window.location.hostname);
+  const bareLocal = new Set(["localhost", "127.0.0.1", "::1"]);
+  if (!bareLocal.has(browserHost) && !isPlatformApexHost(browserHost)) {
+    // Always honor the hostname the clerk is actually on (custom domains).
+    return browserHost;
+  }
   return readStoredTenantHost();
 }
 export function persistSessionTenantHost(hostname: string): void {

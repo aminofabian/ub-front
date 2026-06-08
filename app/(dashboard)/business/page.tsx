@@ -40,10 +40,7 @@ import {
   type PatchBusinessPayload,
 } from "@/lib/api";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
-import {
-  readSessionBootstrap,
-  SESSION_BOOTSTRAP_KEYS,
-} from "@/lib/session-bootstrap";
+import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 
 const MAX_FEATURED = 12;
 const LOAD_TIMEOUT_MS = 20_000;
@@ -173,35 +170,20 @@ function hintClass() {
 export default function BusinessPage() {
   const searchParams = useSearchParams();
   const { canManageBusinessSettings, refreshSession } = useDashboard();
-  const initialBootstrap = readSessionBootstrap<BusinessRecord>(
-    SESSION_BOOTSTRAP_KEYS.business,
-  );
-  const [snapshot, setSnapshot] = useState<BusinessRecord | null>(
-    initialBootstrap,
-  );
+  const bootstrapBusiness = useSessionBootstrapSnapshot().business;
+  const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [editable, setEditable] = useState<EditableBusiness>(() =>
-    initialBootstrap
-      ? applyBusinessSnapshot(initialBootstrap, []).editable
-      : DEFAULT_EDITABLE,
-  );
+  const [editable, setEditable] = useState<EditableBusiness>(DEFAULT_EDITABLE);
   const [storefront, setStorefront] =
-    useState<StorefrontForm>(() =>
-      initialBootstrap
-        ? applyBusinessSnapshot(initialBootstrap, []).storefront
-        : DEFAULT_STOREFRONT,
-    );
-  const [inventory, setInventory] = useState<InventoryForm>(() =>
-    initialBootstrap
-      ? applyBusinessSnapshot(initialBootstrap, []).inventory
-      : DEFAULT_INVENTORY,
-  );
+    useState<StorefrontForm>(DEFAULT_STOREFRONT);
+  const [inventory, setInventory] = useState<InventoryForm>(DEFAULT_INVENTORY);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const skipDrawerResetAfterSave = useRef(false);
-  const hydratedFromBootstrap = useRef(Boolean(initialBootstrap));
+  const hydratedFromBootstrap = useRef(Boolean(bootstrapBusiness));
+  const effectiveSnapshot = snapshot ?? bootstrapBusiness;
 
   const load = useCallback(() => {
     const timeout = new Promise<never>((_, reject) => {
@@ -239,20 +221,17 @@ export default function BusinessPage() {
   }, [branches]);
 
   useEffect(() => {
-    const boot = readSessionBootstrap<BusinessRecord>(
-      SESSION_BOOTSTRAP_KEYS.business,
-    );
-    if (boot) {
+    if (bootstrapBusiness) {
       hydratedFromBootstrap.current = true;
       setLoadFailed(false);
-      setSnapshot(boot);
-      const next = applyBusinessSnapshot(boot, branches);
+      setSnapshot(bootstrapBusiness);
+      const next = applyBusinessSnapshot(bootstrapBusiness, branches);
       setEditable(next.editable);
       setStorefront(next.storefront);
       setInventory(next.inventory);
     }
     void load();
-  }, [load]);
+  }, [load, bootstrapBusiness]);
 
   useEffect(() => {
     if (!canManageBusinessSettings) {
@@ -371,7 +350,7 @@ export default function BusinessPage() {
     }
   };
 
-  const isLoading = snapshot === null && !loadFailed;
+  const isLoading = effectiveSnapshot === null && !loadFailed;
   const activeBranches = branches.filter((b) => b.active);
   const storefrontNeedsBranch =
     canManageBusinessSettings &&
@@ -456,7 +435,7 @@ export default function BusinessPage() {
     return <BusinessSettingsSkeleton />;
   }
 
-  if (loadFailed && !snapshot) {
+  if (loadFailed && !effectiveSnapshot) {
     return (
       <div className="mx-auto max-w-lg py-16">
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
@@ -509,7 +488,7 @@ export default function BusinessPage() {
               type="button"
               size="lg"
               className="w-full gap-2 shadow-md sm:w-auto lg:shrink-0"
-              disabled={!snapshot || isSaving}
+              disabled={!effectiveSnapshot || isSaving}
               onClick={() => {
                 skipDrawerResetAfterSave.current = false;
                 setSettingsDrawerOpen(true);
@@ -532,7 +511,7 @@ export default function BusinessPage() {
           ) : null}
 
           {/* ── Workspace info card ───────────────────────────────────────── */}
-          {snapshot ? (
+          {effectiveSnapshot ? (
             <section className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-card to-card/80 shadow-sm">
               {/* Header */}
               <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
@@ -542,22 +521,22 @@ export default function BusinessPage() {
                 />
                 <div className="min-w-0 flex-1">
                   <h2 className="text-sm font-semibold leading-tight">
-                    {snapshot.name ?? "—"}
+                    {effectiveSnapshot.name ?? "—"}
                   </h2>
                   <p className="text-[11px] text-muted-foreground capitalize">
-                    {snapshot.subscriptionTier ?? "starter"} ·{" "}
-                    {snapshot.active ? "Active" : "Inactive"}
+                    {effectiveSnapshot.subscriptionTier ?? "starter"} ·{" "}
+                    {effectiveSnapshot.active ? "Active" : "Inactive"}
                   </p>
                 </div>
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                    snapshot.active
+                    effectiveSnapshot.active
                       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                       : "bg-muted text-muted-foreground",
                   )}
                 >
-                  {snapshot.active ? "Live" : "Paused"}
+                  {effectiveSnapshot.active ? "Live" : "Paused"}
                 </span>
               </div>
 
@@ -569,20 +548,20 @@ export default function BusinessPage() {
                 </p>
                 <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {[
-                    { label: "Slug", value: snapshot.slug ?? "—", icon: Globe },
+                    { label: "Slug", value: effectiveSnapshot.slug ?? "—", icon: Globe },
                     {
                       label: "Country",
-                      value: snapshot.countryCode ?? "—",
+                      value: effectiveSnapshot.countryCode ?? "—",
                       icon: MapPin,
                     },
                     {
                       label: "Currency",
-                      value: snapshot.currency ?? "—",
+                      value: effectiveSnapshot.currency ?? "—",
                       icon: Coins,
                     },
                     {
                       label: "Timezone",
-                      value: snapshot.timezone ?? "—",
+                      value: effectiveSnapshot.timezone ?? "—",
                       icon: Clock,
                     },
                   ].map(({ label, value, icon: Icon }) => (

@@ -12,6 +12,7 @@ import {
   metadataFromTenantAndHost,
   themeColorFromTenant,
 } from "@/lib/tenant-metadata";
+import { platformApexHostname, STORAGE_KEYS } from "@/lib/config";
 import {
   getRequestHostname,
   resolveTenantContext,
@@ -103,6 +104,9 @@ export default async function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <Script id="client-session-init" strategy="beforeInteractive">
+          {`(function(){try{var h=location.hostname.toLowerCase();var local={"localhost":1,"127.0.0.1":1,"::1":1};if(!local[h]&&location.pathname.indexOf("/super-admin")!==0){var apex=${JSON.stringify(platformApexHostname())};if(!apex||h!==apex&&h!=="www."+apex){try{localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantHost)},h);}catch(e){}}}}catch(e){}if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(function(r){for(var i=0;i<r.length;i++){r[i].unregister();}});}})();`}
+        </Script>
       </head>
       <body
         className="min-h-full flex flex-col font-sans"

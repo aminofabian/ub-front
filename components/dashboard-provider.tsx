@@ -20,13 +20,10 @@ import {
   type ItemTypeRecord,
   type MeResponse,
 } from "@/lib/api";
-import { persistTenantHostFromSlug } from "@/lib/auth";
+import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { extractPageContent } from "@/lib/page-content";
 import { hasPermission, Permission } from "@/lib/permissions";
-import {
-  readSessionBootstrap,
-  SESSION_BOOTSTRAP_KEYS,
-} from "@/lib/session-bootstrap";
+import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 
 const SELECTED_BRANCH_PREFIX = "palmart:selectedBranch:v1:";
 const SELECTED_ITEM_TYPE_PREFIX = "palmart:selectedItemType:v1:";
@@ -137,45 +134,13 @@ type DashboardContextValue = {
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
-function readBootstrapSnapshot(): {
-  me: MeResponse | null;
-  business: BusinessRecord | null;
-  branches: BranchRecord[];
-} {
-  if (typeof window === "undefined") {
-    return { me: null, business: null, branches: [] };
-  }
-  const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
-  const bootBiz = readSessionBootstrap<BusinessRecord>(
-    SESSION_BOOTSTRAP_KEYS.business,
-  );
-  const bootBranchesRaw = readSessionBootstrap<unknown>(
-    SESSION_BOOTSTRAP_KEYS.branches,
-  );
-  let branches: BranchRecord[] = [];
-  if (bootBranchesRaw) {
-    branches = extractPageContent<BranchRecord>(bootBranchesRaw).filter(
-      (branch) => branch.active,
-    );
-  }
-  return { me: bootMe, business: bootBiz, branches };
-}
-
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const initialBootstrap = readBootstrapSnapshot();
-  const [me, setMe] = useState<MeResponse | null>(initialBootstrap.me);
-  const [business, setBusiness] = useState<BusinessRecord | null>(
-    initialBootstrap.business,
-  );
-  const [loading, setLoading] = useState(
-    !initialBootstrap.me && !initialBootstrap.business,
-  );
-  const [branches, setBranches] = useState<BranchRecord[]>(
-    initialBootstrap.branches,
-  );
-  const [branchId, setBranchIdState] = useState(
-    () => initialBootstrap.me?.branchId?.trim() ?? "",
-  );
+  const bootstrap = useSessionBootstrapSnapshot();
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [business, setBusiness] = useState<BusinessRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [branchId, setBranchIdState] = useState("");
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [itemTypeId, setItemTypeIdState] = useState("");
@@ -188,9 +153,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setMe(meData);
     setBusiness(biz);
     if (biz?.slug?.trim()) {
-      persistTenantHostFromSlug(biz.slug);
+      persistTenantHostAfterAuth(biz.slug, biz.primaryDomain);
     }
   }, []);
+
+  const effectiveMe = me ?? bootstrap.me;
+  const effectiveBusiness = business ?? bootstrap.business;
+  const effectiveBranches =
+    branches.length > 0 ? branches : bootstrap.branches;
+  const effectiveBranchId =
+    branchId || bootstrap.me?.branchId?.trim() || "";
+  const effectiveLoading =
+    loading && !bootstrap.me && !bootstrap.business;
 
   const refreshBranches = useCallback(async () => {
     setBranchesLoading(true);
@@ -204,16 +178,16 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const roleKey = me?.role?.key?.trim().toLowerCase();
+  const roleKey = effectiveMe?.role?.key?.trim().toLowerCase();
   const isGroceryClerk = roleKey === "grocery_clerk";
   const assignedItemTypeIds = useMemo(() => {
-    const ids = me?.itemTypeIds ?? [];
+    const ids = effectiveMe?.itemTypeIds ?? [];
     return new Set(
       ids
         .map((id) => id?.trim())
         .filter((id): id is string => !!id && id.length > 0),
     );
-  }, [me?.itemTypeIds]);
+  }, [effectiveMe?.itemTypeIds]);
 
   const refreshItemTypes = useCallback(async () => {
     setItemTypesLoading(true);
@@ -248,106 +222,106 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
       userTouchedBranchRef.current = true;
       setBranchIdState(id);
-      writePersistedBranch(business?.id ?? null, id);
+      writePersistedBranch(effectiveBusiness?.id ?? null, id);
     },
-    [business?.id, branchLockedRole],
+    [effectiveBusiness?.id, branchLockedRole],
   );
 
   const setItemTypeId = useCallback(
     (id: string) => {
       userTouchedItemTypeRef.current = true;
       setItemTypeIdState(id);
-      writePersistedItemType(business?.id ?? null, id);
+      writePersistedItemType(effectiveBusiness?.id ?? null, id);
     },
-    [business?.id],
+    [effectiveBusiness?.id],
   );
 
   useEffect(() => {
-    const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
-    const bootBiz = readSessionBootstrap<BusinessRecord>(
-      SESSION_BOOTSTRAP_KEYS.business,
-    );
-    const bootBranchesRaw = readSessionBootstrap<unknown>(
-      SESSION_BOOTSTRAP_KEYS.branches,
-    );
-    if (bootMe) {
-      setMe(bootMe);
-      const assigned = bootMe.branchId?.trim();
-      if (assigned) {
-        setBranchIdState(assigned);
-      }
-    }
-    if (bootBiz) {
-      setBusiness(bootBiz);
-      if (bootBiz.slug?.trim()) {
-        persistTenantHostFromSlug(bootBiz.slug);
-      }
-    }
-    if (bootBranchesRaw) {
-      const list = extractPageContent<BranchRecord>(bootBranchesRaw);
-      setBranches(list.filter((branch) => branch.active));
-    }
-    if (bootMe || bootBiz) {
+    if (bootstrap.me || bootstrap.business) {
       setLoading(false);
     }
 
     refreshSession()
       .catch(() => {
-        if (!bootMe) {
+        if (!bootstrap.me) {
           setMe(null);
         }
-        if (!bootBiz) {
+        if (!bootstrap.business) {
           setBusiness(null);
         }
       })
       .finally(() => setLoading(false));
-  }, [refreshSession]);
+  }, [refreshSession, bootstrap.me, bootstrap.business]);
 
-  const canQuickSale = hasPermission(me?.permissions, Permission.SalesSell);
-  const canAccessGrocery = hasPermission(me?.permissions, Permission.GroceryInvoicesRead);
+  const canQuickSale = hasPermission(
+    effectiveMe?.permissions,
+    Permission.SalesSell,
+  );
+  const canAccessGrocery = hasPermission(
+    effectiveMe?.permissions,
+    Permission.GroceryInvoicesRead,
+  );
 
   useEffect(() => {
-    if (!me) return;
+    if (!effectiveMe) return;
 
     void refreshBranches();
     void refreshItemTypes();
-  }, [me, refreshBranches, refreshItemTypes]);
+  }, [effectiveMe, refreshBranches, refreshItemTypes]);
 
   // ── seed branchId ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (branchLockedRole) {
-      const assigned = me?.branchId?.trim();
-      if (assigned && assigned !== branchId) {
-        if (branches.length === 0 || branches.some((b) => b.id === assigned)) {
+      const assigned = effectiveMe?.branchId?.trim();
+      if (assigned && assigned !== effectiveBranchId) {
+        if (
+          effectiveBranches.length === 0 ||
+          effectiveBranches.some((b) => b.id === assigned)
+        ) {
           setBranchIdState(assigned);
           return;
         }
       }
-      if (!branchId && branches[0]?.id) {
-        setBranchIdState(branches[0].id);
+      if (!effectiveBranchId && effectiveBranches[0]?.id) {
+        setBranchIdState(effectiveBranches[0].id);
       }
       return;
     }
 
-    if (branches.length === 0) {
+    if (effectiveBranches.length === 0) {
       return;
     }
 
     if (userTouchedBranchRef.current) {
-      if (branchId && branches.some((b) => b.id === branchId)) return;
+      if (
+        effectiveBranchId &&
+        effectiveBranches.some((b) => b.id === effectiveBranchId)
+      ) {
+        return;
+      }
     }
-    const persisted = readPersistedBranch(business?.id ?? null);
-    const candidates = [persisted, me?.branchId, branches[0]?.id];
+    const persisted = readPersistedBranch(effectiveBusiness?.id ?? null);
+    const candidates = [
+      persisted,
+      effectiveMe?.branchId,
+      effectiveBranches[0]?.id,
+    ];
     for (const candidate of candidates) {
       const id = candidate?.trim();
-      if (id && branches.some((b) => b.id === id)) {
-        if (id !== branchId) {
+      if (id && effectiveBranches.some((b) => b.id === id)) {
+        if (id !== effectiveBranchId) {
           setBranchIdState(id);
         }
         return;
       }
     }
-  }, [branches, business?.id, me?.branchId, branchId, branchLockedRole]);
+  }, [
+    effectiveBranches,
+    effectiveBusiness?.id,
+    effectiveMe?.branchId,
+    effectiveBranchId,
+    branchLockedRole,
+  ]);
 
   // ── seed itemTypeId ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -355,7 +329,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     if (userTouchedItemTypeRef.current) {
       if (itemTypeId && itemTypes.some((t) => t.id === itemTypeId)) return;
     }
-    const persisted = readPersistedItemType(business?.id ?? null);
+    const persisted = readPersistedItemType(effectiveBusiness?.id ?? null);
     const defaultType = itemTypes.find((t) => t.isDefault);
     const candidates = [persisted, defaultType?.id, itemTypes[0]?.id];
     for (const candidate of candidates) {
@@ -367,16 +341,16 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         return;
       }
     }
-  }, [itemTypes, business?.id, itemTypeId]);
+  }, [itemTypes, effectiveBusiness?.id, itemTypeId]);
 
   const value = useMemo<DashboardContextValue>(
     () => ({
-      me,
-      business,
-      loading,
+      me: effectiveMe,
+      business: effectiveBusiness,
+      loading: effectiveLoading,
       refreshSession,
-      branches,
-      branchId,
+      branches: effectiveBranches,
+      branchId: effectiveBranchId,
       setBranchId,
       branchesLoading,
       refreshBranches,
@@ -385,105 +359,105 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setItemTypeId,
       itemTypesLoading,
       refreshItemTypes,
-      canListUsers: hasPermission(me?.permissions, Permission.UsersList),
+      canListUsers: hasPermission(effectiveMe?.permissions, Permission.UsersList),
       canViewCategories: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.CatalogItemsRead,
       ),
       canManageCategories: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.CatalogCategoriesWrite,
       ),
       canManageBusinessSettings: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.BusinessManageSettings,
       ),
       canViewPurchasingIntelligence: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.PurchasingIntelligenceRead,
       ),
       canPathBRead: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.PurchasingPathBRead,
       ),
       canPathBWrite: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.PurchasingPathBWrite,
       ),
       canViewApAging: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.PurchasingPaymentRead,
       ),
       canViewSuppliers: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.SuppliersRead,
       ),
       canViewCustomers: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.CreditsCustomersRead,
       ),
       canManageCustomers: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.CreditsCustomersWrite,
       ),
       canManageCreditSettings: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.CreditsSettingsWrite,
       ),
       canRecordSupplierPayment: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.PurchasingPaymentWrite,
       ),
       canViewInventoryValuation: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.InventoryRead,
       ),
       canViewInventoryTransfers: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.InventoryTransfer,
       ),
       canViewSupplyBatches: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.InventoryRead,
       ),
       canViewStockTake:
-        hasPermission(me?.permissions, Permission.StocktakeRead) ||
-        hasPermission(me?.permissions, Permission.StocktakeRun) ||
-        hasPermission(me?.permissions, Permission.StocktakeApprove),
+        hasPermission(effectiveMe?.permissions, Permission.StocktakeRead) ||
+        hasPermission(effectiveMe?.permissions, Permission.StocktakeRun) ||
+        hasPermission(effectiveMe?.permissions, Permission.StocktakeApprove),
       canViewPricing:
-        hasPermission(me?.permissions, Permission.PricingRead) ||
-        hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
-        hasPermission(me?.permissions, Permission.PricingRulesManage),
+        hasPermission(effectiveMe?.permissions, Permission.PricingRead) ||
+        hasPermission(effectiveMe?.permissions, Permission.PricingSellPriceSet) ||
+        hasPermission(effectiveMe?.permissions, Permission.PricingRulesManage),
       canViewShifts:
-        hasPermission(me?.permissions, Permission.ShiftsOpen) ||
-        hasPermission(me?.permissions, Permission.ShiftsClose) ||
-        hasPermission(me?.permissions, Permission.ShiftsRead),
+        hasPermission(effectiveMe?.permissions, Permission.ShiftsOpen) ||
+        hasPermission(effectiveMe?.permissions, Permission.ShiftsClose) ||
+        hasPermission(effectiveMe?.permissions, Permission.ShiftsRead),
       canViewAnalytics: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.SalesIntelligenceRead,
       ),
       canViewSalesIntelligence: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.SalesIntelligenceRead,
       ),
       canViewStorefrontOrders: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.StorefrontOrdersRead,
       ),
       canQuickSale,
       canAccessGrocery,
       canManageImports: hasPermission(
-        me?.permissions,
+        effectiveMe?.permissions,
         Permission.IntegrationsImportsManage,
       ),
     }),
     [
-      me,
-      business,
-      loading,
+      effectiveMe,
+      effectiveBusiness,
+      effectiveLoading,
       refreshSession,
-      branches,
-      branchId,
+      effectiveBranches,
+      effectiveBranchId,
       setBranchId,
       branchesLoading,
       refreshBranches,

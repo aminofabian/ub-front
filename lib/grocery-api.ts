@@ -1,7 +1,8 @@
 "use client";
 
 import { apiUrl } from "@/lib/config";
-import { getSessionTenantHost, getSessionTenantId, getSessionTokens } from "@/lib/auth";
+import { buildRequestHeaders } from "@/lib/api";
+import { getSessionTokens } from "@/lib/auth";
 import { formatApiProblemMessage } from "@/lib/problem";
 import { toast } from "sonner";
 
@@ -147,25 +148,16 @@ async function groceryRequest<T>(
 ): Promise<T> {
   const method = options.method ?? "GET";
   const session = getSessionTokens();
-  const headers = new Headers({
-    "Content-Type": "application/json",
-  });
-
-  if (session?.accessToken) {
-    headers.set("Authorization", `Bearer ${session.accessToken}`);
-  }
+  const headers = new Headers(
+    buildRequestHeaders(true, session?.accessToken, method) as Record<
+      string,
+      string
+    >,
+  );
 
   const idem = options.idempotencyKey?.trim();
   if (idem && IDEMPOTENCY_METHODS.has(method)) {
     headers.set("Idempotency-Key", idem);
-  }
-
-  // Copy tenant headers from existing session if available
-  if (typeof window !== "undefined") {
-    const tenantHost = getSessionTenantHost();
-    if (tenantHost) headers.set("X-Tenant-Host", tenantHost);
-    const tenantId = getSessionTenantId();
-    if (tenantId) headers.set("X-Tenant-Id", tenantId);
   }
 
   let response: Response;
@@ -173,6 +165,7 @@ async function groceryRequest<T>(
     response = await fetch(apiUrl(path), {
       method,
       headers,
+      credentials: "include",
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
   } catch {
