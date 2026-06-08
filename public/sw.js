@@ -1,7 +1,7 @@
 // Phase 9 Slice 5: PWA service worker — caches the app shell and serves
 // stale-while-revalidate for API calls when offline.
 
-const CACHE_VERSION = "palmart-v2";
+const CACHE_VERSION = "palmart-v3";
 const STATIC_CACHE = `palmart-static-${CACHE_VERSION}`;
 const API_CACHE = `palmart-api-${CACHE_VERSION}`;
 
@@ -73,11 +73,8 @@ self.addEventListener("fetch", (event) => {
   // Skip cross-origin requests — let the browser handle them directly.
   if (url.origin !== self.location.origin) return;
 
-  // API requests: network-first with cache fallback
-  if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirst(request));
-    return;
-  }
+  // Never intercept API traffic — auth and tenant resolve must always hit the network.
+  if (url.pathname.startsWith("/api/")) return;
 
   // Static assets: cache-first with network update
   if (request.destination === "script" ||

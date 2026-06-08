@@ -72,9 +72,10 @@ const cloudOnlyConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      // Next.js route handlers under /api/auth/* must not be proxied to Java.
       {
-        source: "/api/:path*",
-        destination: `${BACKEND_ORIGIN}/api/:path*`,
+        source: "/api/v1/:path*",
+        destination: `${BACKEND_ORIGIN}/api/v1/:path*`,
       },
       {
         source: "/webhooks/:path*",

@@ -59,10 +59,20 @@ export const AUTH_TENANT_RESOLVE_ERROR =
 export async function resolveTenantForAuthContext(
   urlQ: string | null,
   hostQ: string | null,
+  knownTenantId?: string | null,
 ): Promise<string | null> {
   if (PUBLIC_TENANT_ID.length > 0) {
     setSessionTenantId(PUBLIC_TENANT_ID);
     return PUBLIC_TENANT_ID;
+  }
+  const fromServer = knownTenantId?.trim();
+  if (fromServer) {
+    setSessionTenantId(fromServer);
+    const host = pickHostForResolve(urlQ, hostQ);
+    if (host) {
+      persistSessionTenantHost(host);
+    }
+    return fromServer;
   }
   const stored = getSessionTenantId()?.trim();
   if (stored) {
@@ -86,19 +96,26 @@ export async function resolveTenantForAuthContext(
  * or `GET /api/v1/public/host/resolve?host=…` using the current hostname
  * or `?url=` / `?host=` query parameters.
  */
-export function useTenantIdPrefill(): readonly [string, () => Promise<string | null>] {
+export function useTenantIdPrefill(
+  knownTenantId?: string | null,
+): readonly [string, () => Promise<string | null>] {
   const searchParams = useSearchParams();
   const urlQ = searchParams.get("url");
   const hostQ = searchParams.get("host");
-  const [tenantId, setTenantId] = useState("");
+  const serverTenantId = knownTenantId?.trim() ?? "";
+  const [tenantId, setTenantId] = useState(serverTenantId);
 
   const ensureTenantResolved = useCallback(async (): Promise<string | null> => {
-    const id = await resolveTenantForAuthContext(urlQ, hostQ);
+    const id = await resolveTenantForAuthContext(
+      urlQ,
+      hostQ,
+      serverTenantId || null,
+    );
     if (id) {
       setTenantId(id);
     }
     return id;
-  }, [urlQ, hostQ]);
+  }, [urlQ, hostQ, serverTenantId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +126,15 @@ export function useTenantIdPrefill(): readonly [string, () => Promise<string | n
       }
       if (PUBLIC_TENANT_ID.length > 0) {
         setTenantId(PUBLIC_TENANT_ID);
+        return;
+      }
+      if (serverTenantId) {
+        setSessionTenantId(serverTenantId);
+        const host = pickHostForResolve(urlQ, hostQ);
+        if (host) {
+          persistSessionTenantHost(host);
+        }
+        setTenantId(serverTenantId);
         return;
       }
       const stored = getSessionTenantId();
@@ -133,7 +159,7 @@ export function useTenantIdPrefill(): readonly [string, () => Promise<string | n
     return () => {
       cancelled = true;
     };
-  }, [urlQ, hostQ]);
+  }, [urlQ, hostQ, serverTenantId]);
 
   return [tenantId, ensureTenantResolved] as const;
 }

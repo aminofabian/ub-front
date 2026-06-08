@@ -145,7 +145,7 @@ function LoginPageContent() {
   const tenantGreeting =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
-  const [, ensureTenantResolved] = useTenantIdPrefill();
+  const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
@@ -507,7 +507,14 @@ function LoginPageContent() {
           </button>
         </>
       ) : mode === AUTH_MODE.password ? (
-        <form className="mt-6 space-y-4" onSubmit={onPasswordLogin}>
+        <form
+          className="mt-6 space-y-4"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onPasswordLogin(event);
+          }}
+        >
           <div>
             <label
               className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
@@ -586,7 +593,14 @@ function LoginPageContent() {
           </button>
         </form>
       ) : (
-        <form className="mt-6 space-y-4" onSubmit={onPinLogin}>
+        <form
+          className="mt-6 space-y-4"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onPinLogin(event);
+          }}
+        >
           <div>
             <label
               className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
