@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -14,10 +14,13 @@ import {
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
 import {
   clearSessionTenantId,
+  clearSessionTokens,
   getSessionTenantId,
   getSessionTokens,
-  persistTenantHostFromSlug,
+  hasSessionPresenceCookie,
+  persistTenantHostAfterAuth,
   setSessionTenantId,
+  syncSessionPresenceCookie,
 } from "@/lib/auth";
 import {
   AUTH_TENANT_RESOLVE_ERROR,
@@ -40,6 +43,7 @@ import {
   slugDerivedShopUrl,
 } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
 type LoginRouter = {
   push: (href: string) => void;
@@ -69,16 +73,18 @@ async function syncSlugAndNavigate(
   }
 
   // If the user is already on the tenant's canonical domain, skip the handoff.
-  // This handles subdomain tenants (e.g. barakia.palmart.co.ke) that match the
-  // slug-derived hostname, and tenants with a custom primaryDomain.
-  const currentHost = window.location.hostname.toLowerCase();
-  if (primaryHost && currentHost === primaryHost.toLowerCase()) {
-    persistTenantHostFromSlug(slug);
+  const currentHost = stripLeadingWww(window.location.hostname);
+  const normalizedPrimary = primaryHost
+    ? stripLeadingWww(primaryHost.toLowerCase())
+    : null;
+
+  if (normalizedPrimary && tenantHostsMatch(currentHost, normalizedPrimary)) {
+    persistTenantHostAfterAuth(slug, normalizedPrimary);
     navigateInApp(router, path, mode);
     return;
   }
   if (slug && currentHost.startsWith(slug.toLowerCase() + ".")) {
-    persistTenantHostFromSlug(slug);
+    persistTenantHostAfterAuth(slug, normalizedPrimary);
     navigateInApp(router, path, mode);
     return;
   }
@@ -90,7 +96,7 @@ async function syncSlugAndNavigate(
     : window.location.origin;
 
   if (!slug || targetOrigin === window.location.origin) {
-    persistTenantHostFromSlug(slug);
+    persistTenantHostAfterAuth(slug, normalizedPrimary);
     navigateInApp(router, path, mode);
     return;
   }
@@ -98,7 +104,7 @@ async function syncSlugAndNavigate(
   const tokens = getSessionTokens();
   const tenantId = getSessionTenantId();
   if (!tokens) {
-    persistTenantHostFromSlug(slug);
+    persistTenantHostAfterAuth(slug, normalizedPrimary);
     navigateInApp(router, path, mode);
     return;
   }
@@ -136,7 +142,7 @@ const AUTH_MODE = {
 type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 
 const primaryCtaClass =
-  "inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
 
 function LoginPageContent() {
   const tenant = useOptionalTenant();
@@ -188,6 +194,12 @@ function LoginPageContent() {
     if (!getSessionTokens()) {
       return;
     }
+    syncSessionPresenceCookie();
+    if (!hasSessionPresenceCookie()) {
+      // Orphan tokens (cookie blocked or cleared) cause silent redirect loops on iOS.
+      clearSessionTokens();
+      return;
+    }
     void (async () => {
       const dest = await resolveAfterPasswordAuth();
       await syncSlugAndNavigate(router, dest, "replace");
@@ -208,14 +220,22 @@ function LoginPageContent() {
     setIsSubmitting(true);
     setErrorMessage("");
 
+    let navigatedAway = false;
     try {
+      if (password.length < passwordMinLength) {
+        setErrorMessage(
+          `Password must be at least ${passwordMinLength} characters.`,
+        );
+        return;
+      }
+
       const id = await ensureTenantResolved();
       if (!id?.trim()) {
-        // Try to find the user's business by email and redirect
         const biz = await resolveBusinessByEmail(email);
         if (biz?.slug) {
           const shopUrl = slugDerivedShopUrl(biz.slug);
           if (shopUrl) {
+            navigatedAway = true;
             window.location.assign(
               `${shopUrl}/login?email=${encodeURIComponent(email)}`,
             );
@@ -229,10 +249,13 @@ function LoginPageContent() {
       await loginWithPassword(email, password);
       const dest = await resolveAfterPasswordAuth();
       await syncSlugAndNavigate(router, dest, "push");
+      navigatedAway = true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed.");
     } finally {
-      setIsSubmitting(false);
+      if (!navigatedAway) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -241,14 +264,15 @@ function LoginPageContent() {
     setIsSubmitting(true);
     setErrorMessage("");
 
+    let navigatedAway = false;
     try {
       const id = await ensureTenantResolved();
       if (!id?.trim()) {
-        // Try to find the user's business by email and redirect
         const biz = await resolveBusinessByEmail(email);
         if (biz?.slug) {
           const shopUrl = slugDerivedShopUrl(biz.slug);
           if (shopUrl) {
+            navigatedAway = true;
             window.location.assign(
               `${shopUrl}/login?email=${encodeURIComponent(email)}`,
             );
@@ -266,12 +290,15 @@ function LoginPageContent() {
         pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest,
         "push",
       );
+      navigatedAway = true;
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "PIN login failed.",
       );
     } finally {
-      setIsSubmitting(false);
+      if (!navigatedAway) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -361,8 +388,10 @@ function LoginPageContent() {
     cn(
       "rounded-xl border px-3 py-2.5 text-xs font-semibold transition",
       active
-        ? "border-[var(--auth-accent)] bg-[color-mix(in_srgb,var(--auth-accent)_18%,white)] text-foreground shadow-sm dark:bg-[color-mix(in_srgb,var(--auth-accent)_22%,transparent)]"
+        ? "border-[var(--auth-accent)] bg-black/[0.04] text-foreground shadow-sm dark:bg-white/[0.08]"
         : "border-black/[0.08] bg-white/50 text-muted-foreground hover:bg-white/80 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]",
+      active &&
+        "bg-[color-mix(in_srgb,var(--auth-accent)_18%,white)] dark:bg-[color-mix(in_srgb,var(--auth-accent)_22%,transparent)]",
     );
 
   return (
@@ -537,7 +566,6 @@ function LoginPageContent() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
-                minLength={passwordMinLength}
                 required
               />
               <button
@@ -561,8 +589,16 @@ function LoginPageContent() {
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
+            aria-busy={isSubmitting}
           >
-            {isSubmitting ? "Signing in…" : "Sign in"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Signing in…
+              </>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
       ) : (
@@ -626,8 +662,16 @@ function LoginPageContent() {
             type="submit"
             className={primaryCtaClass}
             disabled={isSubmitting}
+            aria-busy={isSubmitting}
           >
-            {isSubmitting ? "Signing in…" : "Sign in with PIN"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Signing in…
+              </>
+            ) : (
+              "Sign in with PIN"
+            )}
           </button>
         </form>
       )}

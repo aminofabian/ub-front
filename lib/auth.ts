@@ -11,6 +11,11 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
+import {
+  cookieDomainForHost,
+  stripLeadingWww,
+  tenantHostsMatch,
+} from "@/lib/tenant-host";
 
 export type SessionTokens = {
   accessToken: string;
@@ -148,18 +153,41 @@ export function getSessionTokens(): SessionTokens | null {
   };
 }
 
+function sessionPresenceCookieAttrs(maxAgeSec: number): string {
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  const domain =
+    typeof window !== "undefined"
+      ? cookieDomainForHost(window.location.hostname)
+      : "";
+  const domainAttr = domain ? `; domain=${domain}` : "";
+  return `path=/; max-age=${maxAgeSec}; SameSite=Lax${secure}${domainAttr}`;
+}
+
+/** Whether the middleware session hint cookie is present (not secret — UX only). */
+export function hasSessionPresenceCookie(): boolean {
+  if (typeof document === "undefined") {
+    return false;
+  }
+  return document.cookie
+    .split(";")
+    .some((part) => part.trim().startsWith(`${SESSION_PRESENCE_COOKIE}=1`));
+}
+
 function setSessionPresenceCookie(): void {
   if (typeof document === "undefined") {
     return;
   }
-  document.cookie = `${SESSION_PRESENCE_COOKIE}=1; path=/; max-age=${SESSION_PRESENCE_MAX_AGE_SEC}; SameSite=Lax`;
+  document.cookie = `${SESSION_PRESENCE_COOKIE}=1; ${sessionPresenceCookieAttrs(SESSION_PRESENCE_MAX_AGE_SEC)}`;
 }
 
 function clearSessionPresenceCookie(): void {
   if (typeof document === "undefined") {
     return;
   }
-  document.cookie = `${SESSION_PRESENCE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+  document.cookie = `${SESSION_PRESENCE_COOKIE}=; ${sessionPresenceCookieAttrs(0)}`;
 }
 
 /** Sets the middleware hint when tokens exist (e.g. after deploy or cookie cleared). */
@@ -172,12 +200,18 @@ export function syncSessionPresenceCookie(): void {
 }
 
 export function setSessionTokens(tokens: SessionTokens): void {
-  window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
   const refresh = tokens.refreshToken?.trim();
-  if (refresh) {
-    window.localStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
-  } else {
-    window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
+    if (refresh) {
+      window.localStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
+    } else {
+      window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    }
+  } catch {
+    throw new Error(
+      "Could not save your session. Allow site data for this domain (Safari Private Browsing blocks sign-in).",
+    );
   }
   setSessionPresenceCookie();
   postAuthBroadcast({
@@ -396,6 +430,44 @@ export function persistTenantHostFromSlug(
   }
   const parent = new URL(APP_BASE_URL).hostname.toLowerCase();
   persistTenantHostToStorage(`${s}.${parent}`);
+}
+
+/**
+ * After auth, persist the hostname the API should use. Prefers the browser host
+ * or tenant {@code primaryDomain} (custom domains like {@code palmart.co.ke})
+ * over slug-derived kiosk subdomains.
+ */
+export function persistTenantHostAfterAuth(
+  slug: string | null | undefined,
+  primaryHost?: string | null,
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const browserHost = stripLeadingWww(window.location.hostname);
+  const primary = primaryHost?.trim()
+    ? stripLeadingWww(primaryHost.trim())
+    : null;
+
+  if (primary && tenantHostsMatch(browserHost, primary)) {
+    persistTenantHostToStorage(primary);
+    return;
+  }
+
+  const s = slug?.trim().toLowerCase();
+  if (s && browserHost.startsWith(`${s}.`)) {
+    persistTenantHostToStorage(browserHost);
+    return;
+  }
+
+  const bareLocal = new Set(["localhost", "127.0.0.1", "::1"]);
+  if (!bareLocal.has(browserHost) && !isPlatformApexHost(browserHost)) {
+    persistTenantHostToStorage(browserHost);
+    return;
+  }
+
+  persistTenantHostFromSlug(slug);
 }
 
 /**

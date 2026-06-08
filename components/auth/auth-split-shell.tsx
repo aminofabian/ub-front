@@ -15,10 +15,11 @@ import { cn } from "@/lib/utils";
 
 /** Shared input chrome for auth split + simple auth pages. */
 export const authInputClassName = cn(
-  "w-full rounded-2xl border px-4 py-3 text-sm shadow-sm outline-none transition",
+  "w-full rounded-2xl border px-4 py-3 text-base shadow-sm outline-none transition",
   "border-black/[0.06] bg-white/85 text-foreground backdrop-blur-md placeholder:text-muted-foreground/70",
-  "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--auth-primary)_30%,transparent)]",
+  "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[var(--auth-primary)]/30",
   "dark:border-white/10 dark:bg-white/[0.07]",
+  "md:text-sm",
 );
 
 function normalizeHex(color: string | null | undefined): string | null {
@@ -40,6 +41,19 @@ function normalizeHex(color: string | null | undefined): string | null {
     ).toLowerCase();
   }
   return null;
+}
+
+function blendWithHex(base: string, tint: string, tintWeight: number): string {
+  const h1 = base.replace("#", "");
+  const h2 = tint.replace("#", "");
+  const w = Math.min(1, Math.max(0, tintWeight));
+  const mix = (i: number) =>
+    Math.round(
+      parseInt(h1.slice(i, i + 2), 16) * (1 - w) +
+        parseInt(h2.slice(i, i + 2), 16) * w,
+    );
+  const to2 = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${to2(mix(0))}${to2(mix(2))}${to2(mix(4))}`;
 }
 
 function mixTowardWhite(hex: string, amount: number): string {
@@ -92,6 +106,8 @@ export function authThemeStyle(tenant: TenantContext | null): CSSProperties {
         ? mixTowardWhite(primary, 0.12)
         : BRAND_ACCENT;
 
+  const glow = mixTowardWhite(primary, 0.55);
+
   return {
     "--auth-primary": primary,
     "--auth-primary-hover": primaryHover,
@@ -99,7 +115,8 @@ export function authThemeStyle(tenant: TenantContext | null): CSSProperties {
     "--auth-accent": primary,
     "--auth-accent-ink": inkForAccent(primary),
     "--auth-secondary-ink": inkForAccent(secondary),
-    "--auth-glow": mixTowardWhite(primary, 0.55),
+    "--auth-glow": glow,
+    backgroundColor: blendWithHex("#e4e6ec", glow, 0.18),
   } as CSSProperties;
 }
 
@@ -130,11 +147,8 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-3 py-6 sm:px-6 sm:py-10"
-      style={{
-        ...style,
-        backgroundColor: "color-mix(in srgb, var(--auth-glow) 18%, #e4e6ec)",
-      }}
+      className="relative flex min-h-[100dvh] min-h-screen items-start justify-center overflow-x-hidden overflow-y-auto px-3 py-6 sm:items-center sm:px-6 sm:py-10"
+      style={style}
     >
       {/* Ambient brand field */}
       <div className="pointer-events-none fixed inset-0 z-0">
@@ -173,12 +187,16 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
 
       <div
         className={cn(
-          "relative z-10 grid w-full max-w-[1000px] overflow-hidden rounded-[2rem] border shadow-2xl backdrop-blur-xl",
+          "relative z-10 my-auto grid w-full max-w-[1000px] rounded-[2rem] border border-black/10 shadow-2xl backdrop-blur-xl",
           "border-[color-mix(in_srgb,var(--auth-primary)_22%,white)]",
+          "bg-white/95 bg-[linear-gradient(165deg,#ffffffef_0%,#ffffffd9_40%,#ffffff_100%)]",
           "bg-[linear-gradient(165deg,#ffffffef_0%,#ffffffd9_40%,color-mix(in_srgb,var(--auth-primary)_6%,white)_100%)]",
+          "dark:border-white/15 dark:bg-zinc-900/95",
           "dark:border-[color-mix(in_srgb,var(--auth-primary)_35%,transparent)]",
+          "dark:bg-[linear-gradient(165deg,#18181bee_0%,#18181bcc_45%,#18181b_100%)]",
           "dark:bg-[linear-gradient(165deg,#18181bee_0%,#18181bcc_45%,color-mix(in_srgb,var(--auth-primary)_12%,#18181b)_100%)]",
-          "min-h-[min(100dvh-2.5rem,760px)] lg:min-h-[640px] lg:grid-cols-2",
+          "min-h-0 sm:min-h-[min(100dvh-2.5rem,760px)] lg:min-h-[640px] lg:grid-cols-2",
+          "shadow-[0_32px_64px_-20px_rgba(0,0,0,0.18)]",
           "shadow-[0_0_0_1px_color-mix(in_srgb,var(--auth-primary)_12%,transparent),0_32px_64px_-20px_color-mix(in_srgb,var(--auth-primary)_35%,#00000055)]",
         )}
         style={style}
@@ -186,8 +204,9 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
         {/* Left — form rail */}
         <div
           className={cn(
-            "relative flex flex-col justify-center overflow-hidden px-6 py-10 sm:px-11 sm:py-12",
-            "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(135deg,transparent_40%,color-mix(in_srgb,var(--auth-primary)_8%,transparent)_100%)]",
+            "relative flex min-h-0 flex-col justify-start px-6 py-10 sm:justify-center sm:px-11 sm:py-12",
+            "before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br before:from-transparent before:to-black/[0.03]",
+            "before:bg-[linear-gradient(135deg,transparent_40%,color-mix(in_srgb,var(--auth-primary)_8%,transparent)_100%)]",
           )}
         >
           <TenantLogo
@@ -219,7 +238,7 @@ export function AuthSplitShell({ tenant, children }: AuthSplitShellProps) {
             />
 
             <span
-              className="ml-auto hidden items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--auth-primary)] sm:inline-flex"
+              className="ml-auto hidden items-center gap-1.5 rounded-full bg-black/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--auth-primary)] sm:inline-flex"
               style={{
                 background: "color-mix(in srgb, var(--auth-primary) 14%, transparent)",
               }}

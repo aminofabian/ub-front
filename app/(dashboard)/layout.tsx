@@ -12,7 +12,7 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, signOutClientAndRedirectToLogin } from "@/lib/auth";
 import { ApiRequestError, fetchMe } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { isSessionRelatedProblem } from "@/lib/problem";
@@ -62,6 +62,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       cancelled = true;
     };
   }, [sessionReady, hasSession, router]);
+
+  useEffect(() => {
+    if (!sessionReady || !hasSession || checkedAuth) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (getSessionTokens()) {
+        signOutClientAndRedirectToLogin();
+      }
+    }, 15_000);
+    return () => window.clearTimeout(timer);
+  }, [sessionReady, hasSession, checkedAuth]);
 
   if (!sessionReady || !checkedAuth) {
     return <DashboardAppShellSkeleton />;

@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -11,9 +12,10 @@ import {
 } from "@/lib/auth-handoff";
 import {
   getSessionTokens,
-  persistTenantHostFromSlug,
+  persistTenantHostAfterAuth,
   setSessionTenantId,
   setSessionTokens,
+  syncSessionPresenceCookie,
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
@@ -42,7 +44,7 @@ function AuthHandoffInner() {
         if (existing && nextFallback?.startsWith("/")) {
           clearAuthHandoffFragment();
           const slug = searchParams.get("slug");
-          persistTenantHostFromSlug(slug ?? undefined);
+          persistTenantHostAfterAuth(slug ?? undefined);
           router.replace(nextFallback);
           return;
         }
@@ -77,17 +79,18 @@ function AuthHandoffInner() {
       }
 
       const slug = searchParams.get("slug");
-      persistTenantHostFromSlug(slug ?? undefined);
+      persistTenantHostAfterAuth(slug ?? undefined);
       clearAuthHandoffFragment();
 
       const outcome = await refreshAccessToken();
       if (cancelled) {
         return;
       }
-      if (outcome.kind === "rejected") {
+      if (outcome.kind === "rejected" && !getSessionTokens()?.accessToken) {
         setError("Session transfer failed. Sign in again.");
         return;
       }
+      syncSessionPresenceCookie();
 
       const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
       const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
@@ -101,7 +104,8 @@ function AuthHandoffInner() {
 
   if (!error) {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--auth-accent,#28a745)]" aria-hidden />
         <p>Finishing sign-in…</p>
       </div>
     );
