@@ -6,7 +6,7 @@
     "predev": "mkdir -p .next/dev/cache .next/dev/server/pages/_app .next/dev/static/development && rm -rf .next/dev/cache/*.sst",
     "dev": "next dev",
     "dev:turbo": "next dev",
-    "build": "next build --webpack",
+    "build": "rm -rf .next/cache && next build --webpack && node scripts/verify-legacy-safe.mjs",
     "build:desktop": "node scripts/build-desktop.mjs",
     "start": "next start",
     "lint": "eslint",
