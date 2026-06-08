@@ -29,6 +29,7 @@ export const APP_ROUTES = {
   purchasingApAging: "/purchasing/ap-aging",
   purchasingRecordPayment: "/purchasing/record-payment",
   inventoryStock: "/inventory/stock",
+  inventoryRestock: "/inventory/restock",
   inventoryValuation: "/inventory/valuation",
   inventoryTransfers: "/inventory/transfers",
   inventoryStockTake: "/inventory/stock-take",
