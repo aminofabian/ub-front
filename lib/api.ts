@@ -19,6 +19,7 @@ import {
   signOutClientAndRedirectToLogin,
   subscribeToAuthBroadcasts,
 } from "@/lib/auth";
+import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
 import {
@@ -959,14 +960,11 @@ export async function refreshAccessToken(): Promise<RefreshOutcome> {
 
 async function performRefreshOnce(): Promise<RefreshOutcome> {
   const session = getSessionTokens();
-  if (!session) {
-    return { kind: "rejected" };
-  }
 
   let response: Response;
   try {
     const refreshBody =
-      session.refreshToken != null && session.refreshToken.length > 0
+      session?.refreshToken != null && session.refreshToken.length > 0
         ? { refreshToken: session.refreshToken }
         : {};
     response = await fetch(apiUrl(API_ROUTES.refresh), {
@@ -998,7 +996,11 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
      * before declaring the session dead.
      */
     const current = getSessionTokens();
-    if (current && current.accessToken !== session.accessToken) {
+    if (
+      session?.accessToken &&
+      current &&
+      current.accessToken !== session.accessToken
+    ) {
       return { kind: "ok" };
     }
     return { kind: "rejected" };
@@ -1084,7 +1086,17 @@ async function request<T>(
   }
 
   const execute = async () => {
-    const session = requiresAuth ? getSessionTokens() : null;
+    let session = requiresAuth ? getSessionTokens() : null;
+    if (requiresAuth && !session?.accessToken) {
+      await restoreClientSessionFromCookie();
+      session = getSessionTokens();
+    }
+    if (requiresAuth && !session?.accessToken) {
+      const refresh = await refreshAccessToken();
+      if (refresh.kind === "ok") {
+        session = getSessionTokens();
+      }
+    }
     const headersInit = buildRequestHeaders(
       requiresAuth,
       session?.accessToken,

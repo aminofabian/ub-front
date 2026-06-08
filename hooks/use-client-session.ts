@@ -3,7 +3,6 @@
 import { useSyncExternalStore } from "react";
 
 import { getSessionTokens } from "@/lib/auth";
-import { STORAGE_KEYS } from "@/lib/config";
 import {
   readSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -16,17 +15,7 @@ function hasClientSession(): boolean {
   if (getSessionTokens()) {
     return true;
   }
-  if (readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me)) {
-    return true;
-  }
-  try {
-    return Boolean(
-      window.localStorage.getItem(STORAGE_KEYS.tenantId) ||
-        window.sessionStorage.getItem(STORAGE_KEYS.tenantId),
-    );
-  } catch {
-    return false;
-  }
+  return Boolean(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me));
 }
 
 function subscribeToSession(onStoreChange: () => void): () => void {

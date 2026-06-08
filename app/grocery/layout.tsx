@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
-import { AppShell } from "@/components/app-shell";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
@@ -70,7 +69,7 @@ function GroceryLayoutInner({ children }: GroceryLayoutProps) {
       <DashboardClientGuards />
       <DashboardProvider>
         <RealtimeProvider>
-          <AppShell>{children}</AppShell>
+          {children}
           <DashboardToaster />
         </RealtimeProvider>
       </DashboardProvider>

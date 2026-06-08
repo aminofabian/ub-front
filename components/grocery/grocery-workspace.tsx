@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { cn } from "@/lib/utils";
@@ -335,15 +336,13 @@ export function GroceryWorkspace() {
     branchesLoading,
     itemTypes,
   } = useDashboard();
+  const bootstrap = useSessionBootstrapSnapshot();
+  const effectiveMe = me ?? bootstrap.me;
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
-  const cashierName = me?.name?.trim() || "";
-  // Grocery clerks always see the AppShell's bottom nav (kiosk-nav mode).
-  // We use this to reserve room at the bottom of every scrollable surface
-  // and shrink the workspace's height so the cart panel footer stays above
-  // the always-present nav.
-  const isKiosk =
-    me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
+  const cashierName = effectiveMe?.name?.trim() || "";
+  // Grocery POS is always kiosk layout on this route (do not wait for /me).
+  const isKiosk = true;
 
   // Item browser state
   const [search, setSearch] = useState("");
@@ -688,13 +687,7 @@ export function GroceryWorkspace() {
     <div
       className={cn(
         "grocery-workspace relative flex flex-col overflow-hidden",
-        // Kiosk-nav mode (grocery clerk): leave room for the bottom nav so
-        // the cart-panel footer + Generate button never get hidden behind
-        // it on tablets/iPads. At xl+ the sidebar replaces the bottom nav,
-        // so we restore the full available height.
-        isKiosk
-          ? "h-[calc(100dvh-4rem-5rem-env(safe-area-inset-bottom,0px))] xl:h-[calc(100dvh-4rem)]"
-          : "h-[calc(100dvh-4rem)]",
+        "h-[calc(100dvh-env(safe-area-inset-bottom,0px))]",
         // Layered "counter" background: warm-cool gradient + soft grid + subtle vignette
         "bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.07),transparent_55%),linear-gradient(180deg,#fafbfc_0%,#f3f4f6_55%,#eef0f3_100%)]",
         "dark:bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.12),transparent_55%),hsl(var(--background))]",

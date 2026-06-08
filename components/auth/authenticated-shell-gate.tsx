@@ -14,21 +14,22 @@ type AuthenticatedShellGateProps = {
 
 /** Shows the dashboard shell once a session is readable; never spins forever. */
 export function AuthenticatedShellGate({ children }: AuthenticatedShellGateProps) {
-  const { ready, hasSession } = useAuthenticatedSession({ requireAuth: true });
+  const { ready, hasSession, restoring } = useAuthenticatedSession({
+    requireAuth: true,
+  });
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    if (!ready || hasSession) {
+    if (!ready || hasSession || restoring) {
       setTimedOut(false);
       return;
     }
     const timer = window.setTimeout(() => setTimedOut(true), SESSION_WAIT_MS);
     return () => window.clearTimeout(timer);
-  }, [ready, hasSession]);
+  }, [ready, hasSession, restoring]);
 
-  // SSR / slow hydration: never leave users on the SSR skeleton forever (iPad Safari).
-  if (!ready) {
-    return children;
+  if (!ready || restoring) {
+    return <DashboardAppShellSkeleton />;
   }
   if (!hasSession) {
     return timedOut ? <AuthRecoveryPanel /> : <DashboardAppShellSkeleton />;

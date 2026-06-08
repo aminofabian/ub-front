@@ -138,11 +138,15 @@ export function getSessionTokens(): SessionTokens | null {
     return null;
   }
 
-  const accessToken = window.localStorage.getItem(STORAGE_KEYS.accessToken);
+  const accessToken =
+    window.localStorage.getItem(STORAGE_KEYS.accessToken) ||
+    window.sessionStorage.getItem(STORAGE_KEYS.accessToken);
   if (!accessToken) {
     return null;
   }
-  const refreshToken = window.localStorage.getItem(STORAGE_KEYS.refreshToken)?.trim();
+  const refreshToken =
+    window.localStorage.getItem(STORAGE_KEYS.refreshToken)?.trim() ||
+    window.sessionStorage.getItem(STORAGE_KEYS.refreshToken)?.trim();
   return {
     accessToken,
     refreshToken: refreshToken || undefined,
@@ -227,10 +231,13 @@ export function setSessionTokens(tokens: SessionTokens): void {
   const refresh = tokens.refreshToken?.trim();
   try {
     window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
+    window.sessionStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
     if (refresh) {
       window.localStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
+      window.sessionStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
     } else {
       window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+      window.sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
     }
   } catch {
     throw new Error(

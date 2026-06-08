@@ -77,9 +77,13 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
 
   const scriptLines = [
     `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.accessToken)}, ${JSON.stringify(accessToken)});`,
+    `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.accessToken)}, ${JSON.stringify(accessToken)});`,
     refreshToken
       ? `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.refreshToken)}, ${JSON.stringify(refreshToken)});`
       : `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
+    refreshToken
+      ? `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.refreshToken)}, ${JSON.stringify(refreshToken)});`
+      : `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
     `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
     `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
   ];
