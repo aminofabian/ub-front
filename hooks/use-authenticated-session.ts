@@ -31,6 +31,7 @@ export function useAuthenticatedSession(
 
     if (requireAuth && !session) {
       router.replace(loginPath);
+      setReady(true);
       return;
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { DesktopLicenseProvider } from "@/components/desktop/desktop-license-provider";
@@ -12,70 +12,38 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
-import { getSessionTokens, signOutClientAndRedirectToLogin } from "@/lib/auth";
-import { ApiRequestError, fetchMe } from "@/lib/api";
+import { fetchMe } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
-import { isSessionRelatedProblem } from "@/lib/problem";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [checkedAuth, setCheckedAuth] = useState(false);
   const router = useRouter();
   const { ready: sessionReady, hasSession } = useAuthenticatedSession({
     requireAuth: true,
   });
 
+  // Redirect buyers to the shop — must not block the shell on fetchMe (iPad often
+  // fails the first client API call even when the session is valid).
   useEffect(() => {
     if (!sessionReady || !hasSession) {
       return;
     }
 
-    let cancelled = false;
-    void (async () => {
-      try {
-        const me = await fetchMe();
-        if (!cancelled && isBuyerAccount(me)) {
+    void fetchMe()
+      .then((me) => {
+        if (isBuyerAccount(me)) {
           router.replace(buyerHomePath());
-          return;
         }
-      } catch (err) {
-        if (!cancelled && !getSessionTokens()) {
-          return;
-        }
-        if (
-          !cancelled &&
-          err instanceof ApiRequestError &&
-          isSessionRelatedProblem(err.status, err.payload)
-        ) {
-          return;
-        }
-      }
-      if (!cancelled) {
-        setCheckedAuth(true);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+      })
+      .catch(() => {
+        /* Child routes show load/auth errors; do not trap the user on skeleton. */
+      });
   }, [sessionReady, hasSession, router]);
 
-  useEffect(() => {
-    if (!sessionReady || !hasSession || checkedAuth) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      if (getSessionTokens()) {
-        signOutClientAndRedirectToLogin();
-      }
-    }, 15_000);
-    return () => window.clearTimeout(timer);
-  }, [sessionReady, hasSession, checkedAuth]);
-
-  if (!sessionReady || !checkedAuth) {
+  if (!sessionReady || !hasSession) {
     return <DashboardAppShellSkeleton />;
   }
 
