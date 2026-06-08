@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 
 import { APP_ROUTES, getServerApiOrigin, STORAGE_KEYS } from "@/lib/config";
+import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { SESSION_BOOTSTRAP_KEYS } from "@/lib/session-bootstrap";
 
 export type SessionFinalizeInput = {
@@ -123,7 +124,18 @@ export function safeAuthNextPath(raw: string | null): string {
   if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
     return trimmed;
   }
-  return APP_ROUTES.business;
+  return "";
+}
+
+/** Resolve redirect from prefetched /me; role beats client-supplied next hints. */
+export function resolveFinalizeDestination(
+  me: unknown,
+  requestedNext?: string | null,
+): string {
+  return resolvePostAuthDestination(
+    me as Parameters<typeof resolvePostAuthDestination>[0],
+    safeAuthNextPath(requestedNext ?? null) || null,
+  );
 }
 
 /** Idempotency key factory for upstream login POST. */

@@ -33,12 +33,12 @@ import {
   onboardBusiness,
   resolveBusinessByEmail,
 } from "@/lib/api";
-import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import {
   APP_ROUTES,
   hostDerivedShopUrl,
   slugDerivedShopUrl,
 } from "@/lib/config";
+import { resolvePostAuthDestination } from "@/lib/post-auth-destination";
 import { cn } from "@/lib/utils";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
@@ -48,20 +48,27 @@ function navigateAfterAuth(path: string): void {
   submitStoreSessionNavigate(path);
 }
 
-async function syncSlugAndNavigate(path: string): Promise<void> {
+async function syncSlugAndNavigate(
+  nextHint: string,
+  knownSlug?: string | null,
+): Promise<void> {
   if (IS_DESKTOP) {
-    navigateAfterAuth(path);
+    navigateAfterAuth(nextHint);
     return;
   }
 
-  let slug: string | null = null;
+  let slug = knownSlug?.trim() || null;
   let primaryHost: string | null = null;
-  try {
-    const biz = await fetchBusiness();
-    slug = biz.slug?.trim() || null;
-    primaryHost = biz.primaryDomain?.trim() || null;
-  } catch {
-    /* tenant id header may still work for same-origin navigation */
+  if (!slug) {
+    try {
+      const biz = await fetchBusiness();
+      slug = biz.slug?.trim() || null;
+      primaryHost = biz.primaryDomain?.trim() || null;
+    } catch {
+      /* tenant id header may still work for same-origin navigation */
+    }
+  } else {
+    primaryHost = stripLeadingWww(window.location.hostname);
   }
 
   // If the user is already on the tenant's canonical domain, skip the handoff.
@@ -72,12 +79,12 @@ async function syncSlugAndNavigate(path: string): Promise<void> {
 
   if (normalizedPrimary && tenantHostsMatch(currentHost, normalizedPrimary)) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(path);
+    navigateAfterAuth(nextHint);
     return;
   }
   if (slug && currentHost.startsWith(slug.toLowerCase() + ".")) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(path);
+    navigateAfterAuth(nextHint);
     return;
   }
 
@@ -89,7 +96,7 @@ async function syncSlugAndNavigate(path: string): Promise<void> {
 
   if (!slug || targetOrigin === window.location.origin) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(path);
+    navigateAfterAuth(nextHint);
     return;
   }
 
@@ -97,7 +104,7 @@ async function syncSlugAndNavigate(path: string): Promise<void> {
   const tenantId = getSessionTenantId();
   if (!tokens) {
     persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(path);
+    navigateAfterAuth(nextHint);
     return;
   }
 
@@ -105,9 +112,9 @@ async function syncSlugAndNavigate(path: string): Promise<void> {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
     tenantId: tenantId ?? undefined,
-    nextPath: path,
+    nextPath: nextHint,
   });
-  const nextEnc = encodeURIComponent(path);
+  const nextEnc = encodeURIComponent(nextHint);
   const slugEnc = encodeURIComponent(slug);
   window.location.assign(
     `${shopBase}${APP_ROUTES.authHandoff}?next=${nextEnc}&slug=${slugEnc}#${fragment}`,
@@ -116,8 +123,9 @@ async function syncSlugAndNavigate(path: string): Promise<void> {
 
 async function completeLoginAndNavigate(
   dest: string,
+  knownSlug?: string | null,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  await syncSlugAndNavigate(dest);
+  await syncSlugAndNavigate(dest, knownSlug);
   return { ok: true };
 }
 
@@ -156,37 +164,16 @@ function LoginPageContent() {
   const [businessName, setBusinessName] = useState("");
   const [isOnboarding, setIsOnboarding] = useState(false);
   const router = useRouter();
-  const loginNextPath = (() => {
-    const requested = searchParams.get("next")?.trim();
-    if (requested?.startsWith("/") && !requested.startsWith("//")) {
-      return requested;
-    }
-    return APP_ROUTES.business;
-  })();
+  const loginNextHint = searchParams.get("next")?.trim() ?? "";
 
   const resolveAfterPasswordAuth = useCallback(async (): Promise<string> => {
+    const requestedNext = searchParams.get("next");
     try {
       const me = await fetchMe();
-      if (isBuyerAccount(me)) {
-        return buyerHomePath();
-      }
-      const roleKey = me?.role?.key?.trim().toLowerCase();
-      if (roleKey === "grocery_clerk") {
-        return APP_ROUTES.grocery;
-      }
-      if (roleKey === "cashier") {
-        return APP_ROUTES.salesQuick;
-      }
-      if (roleKey === "stock_manager") {
-        return APP_ROUTES.inventoryStockTake;
-      }
-      const requested = searchParams.get("next")?.trim();
-      if (requested?.startsWith("/") && !requested.startsWith("//")) {
-        return requested;
-      }
-      return APP_ROUTES.business;
+      return resolvePostAuthDestination(me, requestedNext);
     } catch {
-      return APP_ROUTES.business;
+      // store-session resolves role server-side when client fetch fails (iPad).
+      return requestedNext?.trim() ?? "";
     }
   }, [searchParams]);
 
@@ -232,11 +219,7 @@ function LoginPageContent() {
       persistTenantId(id);
       await loginWithPassword(email, password);
       const dest = await resolveAfterPasswordAuth();
-      const outcome = await completeLoginAndNavigate(dest);
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message);
-        return;
-      }
+      await completeLoginAndNavigate(dest, tenant?.slug);
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Login failed.");
@@ -275,11 +258,7 @@ function LoginPageContent() {
       const pinDest = await resolveAfterPasswordAuth();
       const pinPath =
         pinDest === APP_ROUTES.business ? APP_ROUTES.products : pinDest;
-      const outcome = await completeLoginAndNavigate(pinPath);
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message);
-        return;
-      }
+      await completeLoginAndNavigate(pinPath, tenant?.slug);
       navigatedAway = true;
     } catch (error) {
       setErrorMessage(
@@ -528,7 +507,7 @@ function LoginPageContent() {
             name="tenantId"
             value={tenant?.tenantId ?? getSessionTenantId() ?? ""}
           />
-          <input type="hidden" name="next" value={loginNextPath} />
+          <input type="hidden" name="next" value={loginNextHint} />
           <div>
             <label
               className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"

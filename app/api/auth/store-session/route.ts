@@ -8,7 +8,7 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   buildSessionFinalizeHtml,
   prefetchSessionBootstrap,
-  safeAuthNextPath,
+  resolveFinalizeDestination,
 } from "@/lib/login-session.server";
 
 function resolveTenantHost(request: NextRequest): string | null {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   const accessToken = readField(form, "accessToken");
   const refreshToken = readField(form, "refreshToken");
   const tenantId = readField(form, "tenantId");
-  const nextPath = safeAuthNextPath(String(form.get("next") ?? ""));
+  const requestedNext = String(form.get("next") ?? "");
   const tenantHost = resolveTenantHost(request);
 
   if (!accessToken || !tenantId) {
@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
       "Could not verify your session. Please sign in again.",
     );
   }
+
+  const nextPath = resolveFinalizeDestination(bootstrap.me, requestedNext);
 
   const html = buildSessionFinalizeHtml({
     accessToken,

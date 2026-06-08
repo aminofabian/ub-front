@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
 import { AppShell } from "@/components/app-shell";
@@ -13,36 +13,57 @@ import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
-import { fetchMe } from "@/lib/api";
+import { fetchMe, type MeResponse } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
+import { roleLandingRedirect } from "@/lib/post-auth-destination";
+import {
+  readSessionBootstrap,
+  SESSION_BOOTSTRAP_KEYS,
+} from "@/lib/session-bootstrap";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function applyRoleRedirects(
+  me: MeResponse,
+  pathname: string,
+  router: ReturnType<typeof useRouter>,
+): void {
+  if (isBuyerAccount(me)) {
+    router.replace(buyerHomePath());
+    return;
+  }
+  const landingRedirect = roleLandingRedirect(me, pathname);
+  if (landingRedirect) {
+    router.replace(landingRedirect);
+  }
+}
+
+function DashboardLayoutInner({ children }: DashboardLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { ready: sessionReady, hasSession } = useAuthenticatedSession({
     requireAuth: true,
   });
 
-  // Redirect buyers to the shop — must not block the shell on fetchMe (iPad often
-  // fails the first client API call even when the session is valid).
   useEffect(() => {
     if (!sessionReady || !hasSession) {
       return;
     }
 
+    const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
+    if (bootMe) {
+      applyRoleRedirects(bootMe, pathname, router);
+      return;
+    }
+
     void fetchMe()
-      .then((me) => {
-        if (isBuyerAccount(me)) {
-          router.replace(buyerHomePath());
-        }
-      })
+      .then((me) => applyRoleRedirects(me, pathname, router))
       .catch(() => {
-        /* Child routes show load/auth errors; do not trap the user on skeleton. */
+        /* Child routes show load/auth errors. */
       });
-  }, [sessionReady, hasSession, router]);
+  }, [sessionReady, hasSession, pathname, router]);
 
   if (!sessionReady || !hasSession) {
     return <DashboardAppShellSkeleton />;
@@ -52,15 +73,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <>
       <DashboardClientGuards />
       <DashboardProvider>
-      <RealtimeProvider>
-        <Suspense fallback={null}>
-          <OnboardingQuestionnaireProvider>
-            <AppShell>{children}</AppShell>
-          </OnboardingQuestionnaireProvider>
-        </Suspense>
-        <DashboardToaster />
-      </RealtimeProvider>
-    </DashboardProvider>
+        <RealtimeProvider>
+          <Suspense fallback={null}>
+            <OnboardingQuestionnaireProvider>
+              <AppShell>{children}</AppShell>
+            </OnboardingQuestionnaireProvider>
+          </Suspense>
+          <DashboardToaster />
+        </RealtimeProvider>
+      </DashboardProvider>
     </>
   );
 
@@ -69,4 +90,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return <DesktopLicenseProvider>{shell}</DesktopLicenseProvider>;
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return <DashboardLayoutInner>{children}</DashboardLayoutInner>;
 }

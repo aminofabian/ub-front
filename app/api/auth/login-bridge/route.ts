@@ -13,7 +13,7 @@ import {
   buildSessionFinalizeHtml,
   newLoginIdempotencyKey,
   prefetchSessionBootstrap,
-  safeAuthNextPath,
+  resolveFinalizeDestination,
 } from "@/lib/login-session.server";
 
 function resolveTenantHost(request: NextRequest): string | null {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   const form = await request.formData();
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  const nextPath = safeAuthNextPath(String(form.get("next") ?? ""));
+  const requestedNext = String(form.get("next") ?? "");
   const tenantHost = resolveTenantHost(request);
   const tenantId = await resolveTenantId(
     String(form.get("tenantId") ?? ""),
@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
     tenantId,
     tenantHost,
   );
+
+  const nextPath = resolveFinalizeDestination(bootstrap.me, requestedNext);
 
   const html = buildSessionFinalizeHtml({
     accessToken,
