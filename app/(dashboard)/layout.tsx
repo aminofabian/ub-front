@@ -3,16 +3,16 @@
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
+import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
 import { AppShell } from "@/components/app-shell";
 import { DesktopLicenseProvider } from "@/components/desktop/desktop-license-provider";
 import { IS_DESKTOP } from "@/lib/runtime";
-import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { OnboardingQuestionnaireProvider } from "@/components/onboarding/onboarding-questionnaire-provider";
 import { RealtimeProvider } from "@/components/realtime-provider";
-import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
+import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { fetchMe, type MeResponse } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { roleLandingRedirect } from "@/lib/post-auth-destination";
@@ -25,52 +25,51 @@ type DashboardLayoutProps = {
   children: React.ReactNode;
 };
 
-function applyRoleRedirects(
-  me: MeResponse,
-  pathname: string,
-  router: ReturnType<typeof useRouter>,
-): void {
-  if (isBuyerAccount(me)) {
-    router.replace(buyerHomePath());
-    return;
-  }
-  const landingRedirect = roleLandingRedirect(me, pathname);
-  if (landingRedirect) {
-    router.replace(landingRedirect);
-  }
-}
-
-function DashboardLayoutInner({ children }: DashboardLayoutProps) {
+function DashboardRoleRedirects() {
   const router = useRouter();
   const pathname = usePathname();
-  const { ready: sessionReady, hasSession } = useAuthenticatedSession({
-    requireAuth: true,
-  });
+  const ready = useClientSessionReady();
+  const hasSession = useClientHasSession();
 
   useEffect(() => {
-    if (!sessionReady || !hasSession) {
+    if (!ready || !hasSession) {
       return;
     }
 
     const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
     if (bootMe) {
-      applyRoleRedirects(bootMe, pathname, router);
+      if (isBuyerAccount(bootMe)) {
+        router.replace(buyerHomePath());
+        return;
+      }
+      const landingRedirect = roleLandingRedirect(bootMe, pathname);
+      if (landingRedirect) {
+        router.replace(landingRedirect);
+      }
       return;
     }
 
     void fetchMe()
-      .then((me) => applyRoleRedirects(me, pathname, router))
-      .catch(() => {
-        /* Child routes show load/auth errors. */
-      });
-  }, [sessionReady, hasSession, pathname, router]);
+      .then((me) => {
+        if (isBuyerAccount(me)) {
+          router.replace(buyerHomePath());
+          return;
+        }
+        const landingRedirect = roleLandingRedirect(me, pathname);
+        if (landingRedirect) {
+          router.replace(landingRedirect);
+        }
+      })
+      .catch(() => {});
+  }, [ready, hasSession, pathname, router]);
 
-  if (!sessionReady || !hasSession) {
-    return <DashboardAppShellSkeleton />;
-  }
+  return null;
+}
 
+function DashboardLayoutInner({ children }: DashboardLayoutProps) {
   const shell = (
     <>
+      <DashboardRoleRedirects />
       <DashboardClientGuards />
       <DashboardProvider>
         <RealtimeProvider>
@@ -93,5 +92,9 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  return <DashboardLayoutInner>{children}</DashboardLayoutInner>;
+  return (
+    <AuthenticatedShellGate>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </AuthenticatedShellGate>
+  );
 }

@@ -26,10 +26,6 @@ export default function CashierLayout({ children }: CashierLayoutProps) {
     });
   }, [ready]);
 
-  if (!ready) {
-    return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
-  }
-
   return (
     <DashboardProvider>
       <RealtimeProvider>

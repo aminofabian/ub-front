@@ -173,18 +173,35 @@ function hintClass() {
 export default function BusinessPage() {
   const searchParams = useSearchParams();
   const { canManageBusinessSettings, refreshSession } = useDashboard();
-  const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
+  const initialBootstrap = readSessionBootstrap<BusinessRecord>(
+    SESSION_BOOTSTRAP_KEYS.business,
+  );
+  const [snapshot, setSnapshot] = useState<BusinessRecord | null>(
+    initialBootstrap,
+  );
   const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [editable, setEditable] = useState<EditableBusiness>(DEFAULT_EDITABLE);
+  const [editable, setEditable] = useState<EditableBusiness>(() =>
+    initialBootstrap
+      ? applyBusinessSnapshot(initialBootstrap, []).editable
+      : DEFAULT_EDITABLE,
+  );
   const [storefront, setStorefront] =
-    useState<StorefrontForm>(DEFAULT_STOREFRONT);
-  const [inventory, setInventory] = useState<InventoryForm>(DEFAULT_INVENTORY);
+    useState<StorefrontForm>(() =>
+      initialBootstrap
+        ? applyBusinessSnapshot(initialBootstrap, []).storefront
+        : DEFAULT_STOREFRONT,
+    );
+  const [inventory, setInventory] = useState<InventoryForm>(() =>
+    initialBootstrap
+      ? applyBusinessSnapshot(initialBootstrap, []).inventory
+      : DEFAULT_INVENTORY,
+  );
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const skipDrawerResetAfterSave = useRef(false);
-  const hydratedFromBootstrap = useRef(false);
+  const hydratedFromBootstrap = useRef(Boolean(initialBootstrap));
 
   const load = useCallback(() => {
     const timeout = new Promise<never>((_, reject) => {

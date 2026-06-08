@@ -2,6 +2,7 @@
 export const SESSION_BOOTSTRAP_KEYS = {
   me: "ub.bootstrap.me",
   business: "ub.bootstrap.business",
+  branches: "ub.bootstrap.branches",
 } as const;
 
 export function readSessionBootstrap<T>(key: string): T | null {
@@ -13,7 +14,16 @@ export function readSessionBootstrap<T>(key: string): T | null {
     if (!raw) {
       return null;
     }
-    return JSON.parse(raw) as T;
+    let parsed: unknown = JSON.parse(raw);
+    // Login handoff double-stringifies bootstrap payloads in inline HTML scripts.
+    if (typeof parsed === "string") {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        return null;
+      }
+    }
+    return parsed as T;
   } catch {
     return null;
   }

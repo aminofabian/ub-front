@@ -21,6 +21,7 @@ import {
   type MeResponse,
 } from "@/lib/api";
 import { persistTenantHostFromSlug } from "@/lib/auth";
+import { extractPageContent } from "@/lib/page-content";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   readSessionBootstrap,
@@ -136,12 +137,45 @@ type DashboardContextValue = {
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
+function readBootstrapSnapshot(): {
+  me: MeResponse | null;
+  business: BusinessRecord | null;
+  branches: BranchRecord[];
+} {
+  if (typeof window === "undefined") {
+    return { me: null, business: null, branches: [] };
+  }
+  const bootMe = readSessionBootstrap<MeResponse>(SESSION_BOOTSTRAP_KEYS.me);
+  const bootBiz = readSessionBootstrap<BusinessRecord>(
+    SESSION_BOOTSTRAP_KEYS.business,
+  );
+  const bootBranchesRaw = readSessionBootstrap<unknown>(
+    SESSION_BOOTSTRAP_KEYS.branches,
+  );
+  let branches: BranchRecord[] = [];
+  if (bootBranchesRaw) {
+    branches = extractPageContent<BranchRecord>(bootBranchesRaw).filter(
+      (branch) => branch.active,
+    );
+  }
+  return { me: bootMe, business: bootBiz, branches };
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [business, setBusiness] = useState<BusinessRecord | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [branchId, setBranchIdState] = useState("");
+  const initialBootstrap = readBootstrapSnapshot();
+  const [me, setMe] = useState<MeResponse | null>(initialBootstrap.me);
+  const [business, setBusiness] = useState<BusinessRecord | null>(
+    initialBootstrap.business,
+  );
+  const [loading, setLoading] = useState(
+    !initialBootstrap.me && !initialBootstrap.business,
+  );
+  const [branches, setBranches] = useState<BranchRecord[]>(
+    initialBootstrap.branches,
+  );
+  const [branchId, setBranchIdState] = useState(
+    () => initialBootstrap.me?.branchId?.trim() ?? "",
+  );
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [itemTypeId, setItemTypeIdState] = useState("");
@@ -233,14 +267,25 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const bootBiz = readSessionBootstrap<BusinessRecord>(
       SESSION_BOOTSTRAP_KEYS.business,
     );
+    const bootBranchesRaw = readSessionBootstrap<unknown>(
+      SESSION_BOOTSTRAP_KEYS.branches,
+    );
     if (bootMe) {
       setMe(bootMe);
+      const assigned = bootMe.branchId?.trim();
+      if (assigned) {
+        setBranchIdState(assigned);
+      }
     }
     if (bootBiz) {
       setBusiness(bootBiz);
       if (bootBiz.slug?.trim()) {
         persistTenantHostFromSlug(bootBiz.slug);
       }
+    }
+    if (bootBranchesRaw) {
+      const list = extractPageContent<BranchRecord>(bootBranchesRaw);
+      setBranches(list.filter((branch) => branch.active));
     }
     if (bootMe || bootBiz) {
       setLoading(false);
@@ -270,21 +315,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // ── seed branchId ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (branches.length === 0) return;
-
-    // Stock managers, cashiers and grocery clerks are forced to their assigned branch.
     if (branchLockedRole) {
       const assigned = me?.branchId?.trim();
-      if (assigned && branches.some((b) => b.id === assigned)) {
-        if (assigned !== branchId) {
+      if (assigned && assigned !== branchId) {
+        if (branches.length === 0 || branches.some((b) => b.id === assigned)) {
           setBranchIdState(assigned);
+          return;
         }
-        return;
       }
-      // Fallback: if no assigned branch, use first available.
       if (!branchId && branches[0]?.id) {
         setBranchIdState(branches[0].id);
       }
+      return;
+    }
+
+    if (branches.length === 0) {
       return;
     }
 

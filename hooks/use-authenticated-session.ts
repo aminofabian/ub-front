@@ -1,9 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-import { getSessionTokens, syncSessionPresenceCookie } from "@/lib/auth";
+import {
+  useClientHasSession,
+  useClientSessionReady,
+} from "@/hooks/use-client-session";
+import { syncSessionPresenceCookie } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { startSessionRefresh } from "@/lib/session-refresh";
 
@@ -16,38 +20,32 @@ type UseAuthenticatedSessionOptions = {
 /**
  * Starts proactive token refresh when a session exists. Optionally guards
  * routes that require authentication.
+ *
+ * Session is detected synchronously via {@link useClientHasSession} so iPad
+ * Safari does not sit on a skeleton waiting for useEffect.
  */
 export function useAuthenticatedSession(
   options: UseAuthenticatedSessionOptions = {},
 ): { ready: boolean; hasSession: boolean } {
   const { requireAuth = false, loginPath = APP_ROUTES.login } = options;
   const router = useRouter();
-  const [ready, setReady] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
+  const ready = useClientSessionReady();
+  const hasSession = useClientHasSession();
 
   useEffect(() => {
-    const session = Boolean(getSessionTokens());
-    setHasSession(session);
-
-    if (requireAuth && !session) {
+    if (!ready) {
+      return;
+    }
+    if (requireAuth && !hasSession) {
       router.replace(loginPath);
-      setReady(true);
       return;
     }
-
-    if (!session) {
-      setReady(true);
+    if (!hasSession) {
       return;
     }
-
     syncSessionPresenceCookie();
-    const stopRefresh = startSessionRefresh();
-    setReady(true);
-
-    return () => {
-      stopRefresh();
-    };
-  }, [requireAuth, loginPath, router]);
+    return startSessionRefresh();
+  }, [ready, hasSession, requireAuth, loginPath, router]);
 
   return { ready, hasSession };
 }

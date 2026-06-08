@@ -13,6 +13,7 @@ export type SessionFinalizeInput = {
   bootstrap?: {
     me?: unknown;
     business?: unknown;
+    branches?: unknown;
   };
 };
 
@@ -36,7 +37,11 @@ export async function prefetchSessionBootstrap(
   accessToken: string,
   tenantId: string,
   tenantHost: string | null,
-): Promise<{ me: unknown | null; business: unknown | null }> {
+): Promise<{
+  me: unknown | null;
+  business: unknown | null;
+  branches: unknown | null;
+}> {
   const origin = getServerApiOrigin();
   const headers = authUpstreamHeaders(accessToken, tenantId, tenantHost);
 
@@ -52,11 +57,12 @@ export async function prefetchSessionBootstrap(
     }
   }
 
-  const [me, business] = await Promise.all([
+  const [me, business, branches] = await Promise.all([
     load("/api/v1/me"),
     load("/api/v1/businesses/me"),
+    load("/api/v1/branches?page=0&size=100"),
   ]);
-  return { me, business };
+  return { me, business, branches };
 }
 
 export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
@@ -87,12 +93,17 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
 
   if (bootstrap?.me) {
     scriptLines.push(
-      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.me)}, ${JSON.stringify(JSON.stringify(bootstrap.me))});`,
+      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.me)}, ${JSON.stringify(bootstrap.me)});`,
     );
   }
   if (bootstrap?.business) {
     scriptLines.push(
-      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.business)}, ${JSON.stringify(JSON.stringify(bootstrap.business))});`,
+      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.business)}, ${JSON.stringify(bootstrap.business)});`,
+    );
+  }
+  if (bootstrap?.branches) {
+    scriptLines.push(
+      `sessionStorage.setItem(${JSON.stringify(SESSION_BOOTSTRAP_KEYS.branches)}, ${JSON.stringify(bootstrap.branches)});`,
     );
   }
 

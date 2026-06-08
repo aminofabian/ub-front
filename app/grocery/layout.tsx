@@ -3,13 +3,13 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
 import { AppShell } from "@/components/app-shell";
-import { DashboardAppShellSkeleton } from "@/components/dashboard/dashboard-app-shell-skeleton";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
-import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
+import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { fetchMe, type MeResponse } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { roleLandingRedirect } from "@/lib/post-auth-destination";
@@ -22,15 +22,14 @@ type GroceryLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function GroceryLayout({ children }: GroceryLayoutProps) {
+function GroceryRoleRedirects() {
   const router = useRouter();
   const pathname = usePathname();
-  const { ready: sessionReady, hasSession } = useAuthenticatedSession({
-    requireAuth: true,
-  });
+  const ready = useClientSessionReady();
+  const hasSession = useClientHasSession();
 
   useEffect(() => {
-    if (!sessionReady || !hasSession) {
+    if (!ready || !hasSession) {
       return;
     }
 
@@ -59,14 +58,15 @@ export default function GroceryLayout({ children }: GroceryLayoutProps) {
         }
       })
       .catch(() => {});
-  }, [sessionReady, hasSession, pathname, router]);
+  }, [ready, hasSession, pathname, router]);
 
-  if (!sessionReady || !hasSession) {
-    return <DashboardAppShellSkeleton />;
-  }
+  return null;
+}
 
+function GroceryLayoutInner({ children }: GroceryLayoutProps) {
   return (
     <>
+      <GroceryRoleRedirects />
       <DashboardClientGuards />
       <DashboardProvider>
         <RealtimeProvider>
@@ -75,5 +75,13 @@ export default function GroceryLayout({ children }: GroceryLayoutProps) {
         </RealtimeProvider>
       </DashboardProvider>
     </>
+  );
+}
+
+export default function GroceryLayout({ children }: GroceryLayoutProps) {
+  return (
+    <AuthenticatedShellGate>
+      <GroceryLayoutInner>{children}</GroceryLayoutInner>
+    </AuthenticatedShellGate>
   );
 }
