@@ -19,7 +19,6 @@ export const authInputClassName = cn(
   "border-black/[0.06] bg-white/85 text-foreground backdrop-blur-md placeholder:text-muted-foreground/70",
   "focus-visible:border-[var(--auth-primary)] focus-visible:ring-2 focus-visible:ring-[var(--auth-primary)]/30",
   "dark:border-white/10 dark:bg-white/[0.07]",
-  "md:text-sm",
 );
 
 function normalizeHex(color: string | null | undefined): string | null {

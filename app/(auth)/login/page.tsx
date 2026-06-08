@@ -138,6 +138,8 @@ type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
 
+const LOGIN_BRIDGE = "/api/auth/login-bridge";
+
 function LoginPageContent() {
   const tenant = useOptionalTenant();
   const searchParams = useSearchParams();
@@ -146,17 +148,28 @@ function LoginPageContent() {
     tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
   const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
   const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(
+    () => searchParams.get("email")?.trim() ?? "",
+  );
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [branchId, setBranchId] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(
+    () => searchParams.get("error")?.trim() ?? "",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [isOnboarding, setIsOnboarding] = useState(false);
   const router = useRouter();
+  const loginNextPath = (() => {
+    const requested = searchParams.get("next")?.trim();
+    if (requested?.startsWith("/") && !requested.startsWith("//")) {
+      return requested;
+    }
+    return APP_ROUTES.business;
+  })();
 
   const resolveAfterPasswordAuth = useCallback(async (): Promise<string> => {
     try {
@@ -509,12 +522,20 @@ function LoginPageContent() {
       ) : mode === AUTH_MODE.password ? (
         <form
           className="mt-6 space-y-4"
+          action={LOGIN_BRIDGE}
+          method="POST"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
             void onPasswordLogin(event);
           }}
         >
+          <input
+            type="hidden"
+            name="tenantId"
+            value={tenant?.tenantId ?? getSessionTenantId() ?? ""}
+          />
+          <input type="hidden" name="next" value={loginNextPath} />
           <div>
             <label
               className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
@@ -526,6 +547,7 @@ function LoginPageContent() {
               id="login-email"
               className={authInputClassName}
               type="email"
+              name="email"
               placeholder="you@business.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -553,6 +575,7 @@ function LoginPageContent() {
                 id="login-password"
                 className={cn(authInputClassName, "pr-12")}
                 type={showPassword ? "text" : "password"}
+                name="password"
                 placeholder="Password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
