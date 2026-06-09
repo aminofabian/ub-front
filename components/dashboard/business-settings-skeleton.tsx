@@ -17,25 +17,31 @@ export function BusinessSettingsSkeleton() {
       aria-busy="true"
       aria-label="Loading business settings"
     >
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <header className="min-w-0 flex-1 space-y-8 border-b border-border/50 pb-10">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <SkeletonBar className="size-10 rounded-xl" />
+      <div className="space-y-2 2xl:space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 2xl:hidden">
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonBar key={i} className="h-7 w-24 rounded-lg" />
+            ))}
+          </div>
+          <SkeletonBar className="h-8 w-28 rounded-lg" />
+        </div>
+
+        <div className="hidden flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between 2xl:flex">
+          <header className="min-w-0 flex-1 space-y-4">
+            <div className="flex items-center gap-3">
+              <SkeletonBar className="size-10 rounded-xl" />
+              <div className="space-y-2">
                 <SkeletonBar className="h-3 w-20" />
-              </div>
-              <div className="space-y-3">
-                <SkeletonBar className="h-9 w-56 max-w-full sm:w-72" />
-                <SkeletonBar className="h-4 w-full max-w-md" />
-                <SkeletonBar className="h-4 w-4/5 max-w-sm" />
+                <SkeletonBar className="h-7 w-56 max-w-full" />
               </div>
             </div>
+            <SkeletonBar className="h-4 w-full max-w-md" />
           </header>
           <SkeletonBar className="h-11 w-full rounded-lg sm:w-36 lg:shrink-0" />
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="hidden gap-2 sm:grid-cols-3 2xl:grid">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
@@ -50,8 +56,8 @@ export function BusinessSettingsSkeleton() {
           ))}
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-          <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
+        <section className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm 2xl:rounded-2xl">
+          <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-3 py-2.5 sm:px-4 2xl:px-5 2xl:py-3">
             <SkeletonBar className="size-4 shrink-0 rounded" />
             <div className="min-w-0 flex-1 space-y-2">
               <SkeletonBar className="h-4 w-40" />
@@ -59,13 +65,13 @@ export function BusinessSettingsSkeleton() {
             </div>
             <SkeletonBar className="h-5 w-12 rounded-full" />
           </div>
-          <div className="p-4 sm:p-5">
-            <SkeletonBar className="mb-3 h-3 w-full max-w-sm" />
-            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="p-3 sm:p-4 2xl:p-5">
+            <SkeletonBar className="mb-2 hidden h-3 w-full max-w-sm sm:mb-3 sm:block" />
+            <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-3"
+                  className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-2.5 sm:gap-2 sm:rounded-xl sm:px-3 sm:py-3"
                 >
                   <SkeletonBar className="h-2.5 w-16" />
                   <SkeletonBar className="h-4 w-20" />

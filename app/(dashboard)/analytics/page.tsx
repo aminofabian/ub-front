@@ -131,8 +131,9 @@ function MetricCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-border/40 bg-linear-to-b from-card to-card/80 p-4 shadow-sm transition-all duration-300",
+        "group relative flex flex-col gap-2 overflow-hidden rounded-xl border border-border/40 bg-linear-to-b from-card to-card/80 p-3 shadow-sm transition-all duration-300",
         "hover:-translate-y-0.5 hover:border-border/70 hover:shadow-lg hover:shadow-foreground/[0.03]",
+        "2xl:gap-3 2xl:rounded-2xl 2xl:p-4",
         className,
       )}
     >
@@ -151,8 +152,9 @@ function MetricCard({
         </span>
         <span
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-xl border border-border/30 bg-muted/20 transition-all duration-300",
+            "flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/30 bg-muted/20 transition-all duration-300",
             "group-hover:border-border/50 group-hover:shadow-sm",
+            "2xl:size-8 2xl:rounded-xl",
             accent,
           )}
         >
@@ -161,7 +163,7 @@ function MetricCard({
       </div>
 
       <div className="space-y-0.5">
-        <p className="font-heading text-[1.65rem] font-bold leading-none tracking-tight text-foreground">
+        <p className="font-heading text-xl font-bold leading-none tracking-tight text-foreground 2xl:text-[1.65rem]">
           {value}
         </p>
         {subtitle ? (
@@ -217,14 +219,14 @@ function SectionCard({
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-4 py-2.5">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/90">
+      <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-3 py-2 2xl:px-4 2xl:py-2.5">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/90 2xl:text-[11px]">
           <Icon className="size-3.5 text-muted-foreground/60" aria-hidden />
           {title}
         </div>
         {action ? <div>{action}</div> : null}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-3 2xl:p-4">{children}</div>
     </div>
   );
 }
@@ -248,22 +250,23 @@ function AnalyticsSection({
     <section
       id={id}
       className={cn(
-        "scroll-mt-24 space-y-2 sm:scroll-mt-28 sm:space-y-2.5",
+        "scroll-mt-[calc(5.5rem+env(safe-area-inset-top,0px))] space-y-2",
+        "sm:scroll-mt-24 sm:space-y-2.5 2xl:scroll-mt-28",
         className,
       )}
     >
-      <header className="flex items-center gap-3">
+      <header className="flex items-center gap-2 2xl:gap-3">
         <span
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-linear-to-br from-primary to-primary/90 text-[10px] font-bold tabular-nums text-primary-foreground shadow-sm shadow-primary/20"
+          className="hidden size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-linear-to-br from-primary to-primary/90 text-[10px] font-bold tabular-nums text-primary-foreground shadow-sm shadow-primary/20 2xl:flex"
           aria-hidden
         >
           {stepLabel}
         </span>
-        <h2 className="min-w-0 text-sm font-bold tracking-tight text-foreground sm:text-base">
+        <h2 className="min-w-0 text-sm font-bold tracking-tight text-foreground">
           {title}
         </h2>
         <span
-          className="hidden h-px min-w-[2rem] flex-1 bg-linear-to-r from-border/70 via-border/30 to-transparent sm:block"
+          className="hidden h-px min-w-[2rem] flex-1 bg-linear-to-r from-border/70 via-border/30 to-transparent 2xl:block"
           aria-hidden
         />
       </header>
@@ -285,21 +288,30 @@ const ANALYTICS_JOURNEY: AnalyticsJourneyItem[] = [
   { kind: "route", href: "/analytics/activity", label: "Activity" },
 ];
 
-function AnalyticsJourneyNav() {
+function AnalyticsJourneyNav({ compact = false }: { compact?: boolean }) {
   const linkClass =
-    "inline-flex shrink-0 items-center border border-transparent px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-border/80 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+    "inline-flex shrink-0 items-center border border-transparent px-2 py-1 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:border-border/80 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background 2xl:px-2.5 2xl:py-1.5 2xl:text-[11px]";
 
   return (
     <nav
       aria-label="Jump to section"
-      className="sticky top-0 z-20 overflow-x-auto border border-border/70 bg-background/80 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/65"
+      className={cn(
+        "overflow-x-auto",
+        compact
+          ? "py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          : "sticky top-0 z-20 border border-border/70 bg-background/80 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/65",
+      )}
     >
       <div className="flex min-w-0 items-center gap-0.5 px-1.5">
-        <span className="flex shrink-0 items-center gap-1 pl-1 pr-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          <ListOrdered className="size-3 opacity-70" aria-hidden />
-          Flow
-        </span>
-        <div className="mx-1 h-4 w-px shrink-0 bg-border/70" aria-hidden />
+        {!compact ? (
+          <>
+            <span className="flex shrink-0 items-center gap-1 pl-1 pr-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <ListOrdered className="size-3 opacity-70" aria-hidden />
+              Flow
+            </span>
+            <div className="mx-1 h-4 w-px shrink-0 bg-border/70" aria-hidden />
+          </>
+        ) : null}
         <ul className="flex min-w-0 items-center gap-0.5">
           {ANALYTICS_JOURNEY.filter((i) => i.kind === "hash").map((item) => (
             <li key={item.id}>
@@ -837,13 +849,17 @@ export default function AnalyticsPage() {
         <div className="absolute bottom-0 left-1/2 h-56 w-[min(100%,32rem)] -translate-x-1/2 bg-accent/[0.08] blur-3xl" />
       </div>
       <div
-        className={cn(DASHBOARD_MAX_WIDE, "!space-y-3 !pb-12 sm:!space-y-4")}
+        className={cn(
+          DASHBOARD_MAX_WIDE,
+          "!space-y-2 !pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:!space-y-3",
+          "2xl:!space-y-4 2xl:!pb-12",
+        )}
       >
         {/* ── Unified header bar ── */}
         <div className="sticky top-0 z-30 overflow-hidden border border-border/40 bg-linear-to-b from-card/95 via-card/90 to-card/85 shadow-lg shadow-foreground/[0.02] backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-            {/* Icon + label + date */}
-            <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 2xl:gap-x-4 2xl:px-4 2xl:py-2.5">
+            {/* Icon + label + date — wide desktop only (tablet shell shows title) */}
+            <div className="hidden min-w-0 items-center gap-2.5 2xl:flex">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-linear-to-br from-primary/10 to-primary/[0.04] text-primary/80 shadow-inner">
                 <BarChart3 className="size-[15px]" aria-hidden />
               </span>
@@ -859,14 +875,19 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Divider */}
+            {activeRangeSummary ? (
+              <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground 2xl:hidden">
+                {activeRangeSummary}
+              </span>
+            ) : null}
+
             <span
-              className="hidden h-5 w-px bg-border/60 sm:block"
+              className="hidden h-5 w-px bg-border/60 2xl:block"
               aria-hidden
             />
 
-            {/* Time presets */}
-            <div className="flex flex-wrap items-center gap-1">
+            {/* Time presets — single scroll row on tablet */}
+            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
                 <button
                   key={key}
@@ -874,8 +895,8 @@ export default function AnalyticsPage() {
                   title={hint}
                   onClick={() => setPreset(key)}
                   className={cn(
-                    "h-6.5 rounded-lg border px-2.5 text-[10.5px] font-semibold tracking-tight transition-all duration-200",
-                    "hover:-translate-y-px",
+                    "h-7 shrink-0 rounded-lg border px-2.5 text-[10px] font-semibold tracking-tight transition-all duration-200",
+                    "hover:-translate-y-px 2xl:h-6.5 2xl:text-[10.5px]",
                     preset === key
                       ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-sm shadow-primary/20"
                       : "border-transparent bg-muted/50 text-muted-foreground hover:border-border/60 hover:bg-muted/80 hover:text-foreground hover:shadow-sm",
@@ -887,7 +908,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Branch + Refresh */}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-1.5 2xl:gap-2">
               <div className="relative">
                 <select
                   value={branchId}
@@ -934,8 +955,12 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Custom date row */}
+          <div className="border-t border-border/30 2xl:hidden">
+            <AnalyticsJourneyNav compact />
+          </div>
+
           {preset === "custom" ? (
-            <div className="flex items-center gap-2 border-t border-border/30 bg-muted/[0.15] px-4 pb-2.5 pt-2">
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/30 bg-muted/[0.15] px-3 pb-2 pt-2 2xl:px-4 2xl:pb-2.5">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 From
               </span>
@@ -958,11 +983,13 @@ export default function AnalyticsPage() {
 
         {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-        <AnalyticsJourneyNav />
+        <div className="hidden 2xl:block">
+          <AnalyticsJourneyNav />
+        </div>
 
         {/* ── Section 1: Key Metrics ─────────────────────────────── */}
         <AnalyticsSection id="analytics-overview" step={1} title="Key metrics">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:gap-4">
             <MetricCard
               label="Total Revenue"
               value={formatMoney(totalRevenue)}
@@ -1012,7 +1039,7 @@ export default function AnalyticsPage() {
           step={2}
           title="Revenue and tender mix"
         >
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-2 sm:gap-3 lg:grid-cols-3">
             <SectionCard
               title="Revenue Trend"
               icon={BarChart3}
@@ -1086,7 +1113,7 @@ export default function AnalyticsPage() {
           step={3}
           title="Stock and inventory"
         >
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-2 sm:gap-3 lg:grid-cols-2">
             <SectionCard title="Inventory" icon={Package}>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1219,7 +1246,7 @@ export default function AnalyticsPage() {
           step={4}
           title="Catalog and team"
         >
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-2 sm:gap-3 lg:grid-cols-2">
             <SectionCard title="Revenue by Category" icon={Package}>
               {categoryRevenue.length > 0 ? (
                 <div className="max-h-[min(11rem,38vh)] space-y-2 overflow-y-auto overflow-x-hidden pr-1">

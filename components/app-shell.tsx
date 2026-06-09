@@ -949,6 +949,8 @@ export function AppShell({ children }: AppShellProps) {
             userDisplayName={userDisplayName}
             userEmail={me?.email}
             tenantTitle={tenantTitle}
+            logoUrl={business?.branding?.logoUrl}
+            faviconUrl={business?.branding?.faviconUrl}
             userInitial={userInitial}
             primaryColor={business?.branding?.primaryColor}
             sections={visibleSections}

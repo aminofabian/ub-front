@@ -304,8 +304,8 @@ export default function ProductsPage() {
 
   return (
     <>
-      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-4 overflow-x-hidden px-3 pb-6 sm:px-4 md:px-4">
-        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-4">
+      <div className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col gap-2 overflow-x-hidden px-3 pb-6 sm:px-4 2xl:gap-4 2xl:px-4">
+        <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-2 2xl:gap-4">
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
             onCreateNew={() => setActiveDrawer("create-parent")}
@@ -323,7 +323,7 @@ export default function ProductsPage() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-4 overflow-x-hidden p-3 sm:p-4 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(0,min(22rem,34vw))] lg:items-stretch lg:gap-4 lg:p-4">
+            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-2 overflow-x-hidden p-2 sm:p-3 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(0,min(22rem,34vw))] lg:items-stretch lg:gap-4 lg:p-4 2xl:gap-4 2xl:p-4">
               <ProductFilterSidebar catalog={catalog} />
               <CatalogListColumn
                 catalog={catalog}

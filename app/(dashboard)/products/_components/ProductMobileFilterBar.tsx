@@ -32,34 +32,31 @@ export function ProductMobileFilterBar({ catalog }: Props) {
     catalog.search.trim() !== catalog.debouncedSearch.trim();
 
   return (
-    <div className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] lg:hidden">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <input
-          id="catalog-omni"
-          className={cn(dashboardInputClass(), "h-10 py-2 pl-9 pr-9")}
-          value={catalog.search}
-          onChange={(e) => catalog.setSearch(e.target.value)}
-          placeholder="Search by name, SKU, barcode…"
-          aria-label="Search catalog"
-        />
-        {catalog.search ? (
-          <button
-            type="button"
-            onClick={() => catalog.setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Clear search"
-          >
-            <X className="size-3.5" />
-          </button>
-        ) : null}
-      </div>
-      {searchPending ? (
-        <p className="-mt-1 text-[10px] text-muted-foreground">Updating results…</p>
-      ) : null}
-      <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+    <div className="flex shrink-0 flex-col gap-2 rounded-xl border border-border/70 bg-card p-2.5 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] lg:hidden">
+      <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,10.5rem)_minmax(0,9.5rem)]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input
+            id="catalog-omni"
+            className={cn(dashboardInputClass(), "h-9 py-1.5 pl-8 pr-8 text-sm")}
+            value={catalog.search}
+            onChange={(e) => catalog.setSearch(e.target.value)}
+            placeholder="Search by name, SKU, barcode…"
+            aria-label="Search catalog"
+          />
+          {catalog.search ? (
+            <button
+              type="button"
+              onClick={() => catalog.setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : null}
+        </div>
         <select
-          className={cn(dashboardSelectClass(), "h-10 min-w-0 w-full truncate")}
+          className={cn(dashboardSelectClass(), "h-9 min-w-0 w-full truncate text-sm")}
           value={catalog.filterCategoryId}
           onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
           aria-label="Filter by category"
@@ -73,7 +70,7 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           ))}
         </select>
         <select
-          className={cn(dashboardSelectClass(), "h-10 min-w-0 w-full")}
+          className={cn(dashboardSelectClass(), "h-9 min-w-0 w-full text-sm")}
           value={catalog.catalogScope}
           onChange={(e) => catalog.setCatalogScope(e.target.value as typeof catalog.catalogScope)}
           aria-label="Catalog scope"
@@ -84,6 +81,9 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           <option value="VARIANTS_ONLY">Variants only</option>
         </select>
       </div>
+      {searchPending ? (
+        <p className="-mt-1 text-[10px] text-muted-foreground">Updating results…</p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-1.5">
         {[
           ["No barcode", catalog.filterNoBarcode, () => catalog.setFilterNoBarcode((v: boolean) => !v)],

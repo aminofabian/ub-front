@@ -26,6 +26,7 @@ import {
   DASHBOARD_MAX,
   DashboardFeedback,
   DashboardPageHero,
+  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
@@ -381,28 +382,30 @@ export default function BusinessPage() {
     setSettingsDrawerOpen(open);
   };
 
+  const businessQuickLinks = [
+    {
+      href: APP_ROUTES.businessBranding,
+      label: "Branding",
+      desc: "Logo, colors, shop name",
+      icon: Palette,
+    },
+    {
+      href: APP_ROUTES.businessDomains,
+      label: "Domains",
+      desc: "Custom hostnames",
+      icon: Globe,
+    },
+    {
+      href: APP_ROUTES.branches,
+      label: "Branches",
+      desc: "Locations & registers",
+      icon: Building2,
+    },
+  ] as const;
+
   const relatedLinks = (
-    <div className="grid gap-2 sm:grid-cols-3">
-      {[
-        {
-          href: APP_ROUTES.businessBranding,
-          label: "Branding",
-          desc: "Logo, colors, shop name",
-          icon: Palette,
-        },
-        {
-          href: APP_ROUTES.businessDomains,
-          label: "Domains",
-          desc: "Custom hostnames",
-          icon: Globe,
-        },
-        {
-          href: APP_ROUTES.branches,
-          label: "Branches",
-          desc: "Locations & registers",
-          icon: Building2,
-        },
-      ].map(({ href, label, desc, icon: Icon }) => (
+    <div className="hidden gap-2 sm:grid-cols-3 2xl:grid">
+      {businessQuickLinks.map(({ href, label, desc, icon: Icon }) => (
         <Link
           key={href}
           href={href}
@@ -429,6 +432,26 @@ export default function BusinessPage() {
         </Link>
       ))}
     </div>
+  );
+
+  const editSettingsButton = (
+    disabled: boolean,
+    className?: string,
+    size: "default" | "sm" | "lg" = "lg",
+  ) => (
+    <Button
+      type="button"
+      size={size}
+      className={cn("gap-2 shadow-md", className)}
+      disabled={disabled}
+      onClick={() => {
+        skipDrawerResetAfterSave.current = false;
+        setSettingsDrawerOpen(true);
+      }}
+    >
+      <Pencil className="size-4" aria-hidden />
+      Edit settings
+    </Button>
   );
 
   if (isLoading) {
@@ -465,11 +488,26 @@ export default function BusinessPage() {
 
   return (
     <>
-      <div className={DASHBOARD_MAX}>
-        <div className="space-y-5">
-          {/* ── Page hero + CTA ───────────────────────────────────────────── */}
-          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className={cn(DASHBOARD_MAX, "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:pb-20")}>
+        <div className="space-y-2 2xl:space-y-5">
+          {/* Tablet / iPad — shell header already shows the page title */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 2xl:hidden">
+            {canManageBusinessSettings ? (
+              <DashboardQuickLinks compact links={[...businessQuickLinks]} />
+            ) : (
+              <div />
+            )}
+            {editSettingsButton(
+              !effectiveSnapshot || isSaving,
+              "h-8 shrink-0 px-3 text-xs sm:w-auto",
+              "sm",
+            )}
+          </div>
+
+          {/* Wide desktop — full hero + CTA */}
+          <div className="hidden flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between 2xl:flex">
             <DashboardPageHero
+              compact
               icon={Shield}
               eyebrow="Account"
               title="Business settings"
@@ -484,22 +522,13 @@ export default function BusinessPage() {
                 </>
               }
             />
-            <Button
-              type="button"
-              size="lg"
-              className="w-full gap-2 shadow-md sm:w-auto lg:shrink-0"
-              disabled={!effectiveSnapshot || isSaving}
-              onClick={() => {
-                skipDrawerResetAfterSave.current = false;
-                setSettingsDrawerOpen(true);
-              }}
-            >
-              <Pencil className="size-4" aria-hidden />
-              Edit settings
-            </Button>
+            {editSettingsButton(
+              !effectiveSnapshot || isSaving,
+              "w-full sm:w-auto lg:shrink-0",
+            )}
           </div>
 
-          {/* ── Related quick-links ───────────────────────────────────────── */}
+          {/* Desktop quick-link cards */}
           {canManageBusinessSettings ? relatedLinks : null}
 
           {/* ── Save feedback ─────────────────────────────────────────────── */}
@@ -512,9 +541,9 @@ export default function BusinessPage() {
 
           {/* ── Workspace info card ───────────────────────────────────────── */}
           {effectiveSnapshot ? (
-            <section className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-card to-card/80 shadow-sm">
+            <section className="overflow-hidden rounded-xl border border-border/80 bg-gradient-to-b from-card to-card/80 shadow-sm 2xl:rounded-2xl">
               {/* Header */}
-              <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
+              <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-3 py-2.5 sm:px-4 2xl:px-5 2xl:py-3">
                 <Shield
                   className="size-4 shrink-0 text-muted-foreground"
                   aria-hidden
@@ -541,12 +570,12 @@ export default function BusinessPage() {
               </div>
 
               {/* Workspace identifiers */}
-              <div className="p-4 sm:p-5">
-                <p className="mb-3 text-xs text-muted-foreground">
+              <div className="p-3 sm:p-4 2xl:p-5">
+                <p className="mb-2 hidden text-xs text-muted-foreground sm:mb-3 sm:block">
                   Read-only workspace identifiers — change other fields via Edit
                   settings.
                 </p>
-                <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
                   {[
                     { label: "Slug", value: effectiveSnapshot.slug ?? "—", icon: Globe },
                     {
@@ -567,7 +596,7 @@ export default function BusinessPage() {
                   ].map(({ label, value, icon: Icon }) => (
                     <div
                       key={label}
-                      className="flex flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3 py-3"
+                      className="flex flex-col gap-1 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-2.5 sm:gap-1.5 sm:rounded-xl sm:px-3 sm:py-3"
                     >
                       <dt className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                         <Icon className="size-3 shrink-0" aria-hidden />
