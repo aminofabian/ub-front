@@ -6,7 +6,6 @@ import {
   Receipt,
   Loader2,
   AlertTriangle,
-  ArrowLeft,
   Plus,
   RefreshCw,
   Search,
@@ -28,6 +27,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import {
+  GroceryAppBottomNav,
+  GROCERY_TAB_BAR_CLEARANCE,
+} from "@/components/grocery/grocery-app-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -360,52 +363,25 @@ export default function GroceryInvoicesPage() {
   }, [viewingInvoice]);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-4 sm:px-6 sm:pt-6">
-      {/* ── Hero header ───────────────────────────────────────────── */}
-      <section
-        className={cn(
-          "relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04] sm:p-6",
-        )}
+    <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
+      <div
+        className="grocery-app-stage relative mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden bg-background"
+        style={{ paddingBottom: GROCERY_TAB_BAR_CLEARANCE }}
       >
-        {/* Soft decorative gradient blob */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-primary/10 blur-3xl"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -left-20 bottom-0 size-44 rounded-full bg-emerald-400/[0.07] blur-3xl"
-        />
-
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <Link href="/grocery" aria-label="Back to grocery workspace">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="-ml-1 mt-0.5"
-                aria-label="Back"
-              >
-                <ArrowLeft className="size-4" />
-              </Button>
-            </Link>
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="hidden size-11 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-sm sm:flex">
-                <Receipt className="size-5" strokeWidth={2.25} />
-              </span>
-              <div className="min-w-0">
-                <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Grocery · {branchName}
-                </span>
-                <h1 className="mt-0.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  Invoices
-                </h1>
-                <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
-                  Track every barcode you’ve handed out at this branch — pending
-                  pickups, completed sales, and what’s expired.
-                </p>
-              </div>
-            </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-3 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:gap-5 sm:px-5 sm:pt-4">
+      {/* ── Compact app header ───────────────────────────────────────── */}
+      <section className="relative shrink-0 border-b border-border/60 pb-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              {branchName || "Grocery"}
+            </span>
+            <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              Invoices
+            </h1>
+            <p className="mt-1 max-w-prose text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Pending pickups, paid sales, and expired barcodes.
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -657,6 +633,9 @@ export default function GroceryInvoicesPage() {
           onCancel={onCancelInvoice}
         />
       )}
+        </div>
+        <GroceryAppBottomNav activeTab="invoices" />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import {
@@ -10,7 +17,6 @@ import {
   X,
   Receipt,
   Plus,
-  History,
   Sparkles,
   Wifi,
   WifiOff,
@@ -20,7 +26,12 @@ import {
   Clock3,
 } from "lucide-react";
 
+import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useDashboard } from "@/components/dashboard-provider";
+import {
+  GroceryAppBottomNav,
+  GROCERY_TAB_BAR_CLEARANCE,
+} from "@/components/grocery/grocery-app-chrome";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
@@ -88,7 +99,7 @@ function LiveClock() {
   });
 
   return (
-    <span className="hidden items-center gap-1.5 rounded-full border border-zinc-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-zinc-700 shadow-[0_1px_0_hsl(0_0%_100%/0.6)_inset] backdrop-blur-md lg:inline-flex dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-200">
+    <span className="hidden items-center gap-1.5 rounded-full border border-zinc-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-zinc-700 shadow-[0_1px_0_hsl(0_0%_100%/0.6)_inset] backdrop-blur-md sm:inline-flex dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-200">
       <Clock3 className="size-3 text-zinc-500" />
       {time}
     </span>
@@ -143,7 +154,7 @@ function ProductCard({
           : `Add ${title} to cart`
       }
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl text-left",
+        "group relative flex flex-col overflow-hidden rounded-xl text-left",
         "border bg-white",
         "transition-[transform,box-shadow,border-color] duration-200 ease-out",
         "active:translate-y-0 active:scale-[0.97] active:shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
@@ -182,14 +193,14 @@ function ProductCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <ShoppingBasket className="size-9 text-zinc-300 dark:text-white/15" />
+            <ShoppingBasket className="size-7 text-zinc-300 dark:text-white/15" />
           </div>
         )}
 
         {/* Top seller ribbon — left side, never collides with the cart badge */}
         {isTopSeller && (
-          <span className="absolute left-2 top-2 z-[1] inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-[3px] text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-white shadow-[0_4px_10px_rgba(217,119,6,0.35)] ring-1 ring-amber-300/50">
-            <Sparkles className="size-2.5" strokeWidth={2.5} />
+          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex items-center gap-0.5 rounded-full bg-amber-500 px-1.5 py-px text-[8px] font-extrabold uppercase tracking-[0.05em] text-white shadow-[0_2px_6px_rgba(217,119,6,0.35)] ring-1 ring-amber-300/50">
+            <Sparkles className="size-2" strokeWidth={2.5} />
             Top
           </span>
         )}
@@ -202,7 +213,7 @@ function ProductCard({
           <span
             key={cartQty}
             className={cn(
-              "pos-tile-qty-badge absolute right-2 top-2 z-[2] inline-flex h-6 min-w-[1.5rem] items-center justify-center gap-1 rounded-full px-1.5 text-[11px] font-extrabold tabular-nums text-white",
+              "pos-tile-qty-badge absolute right-1.5 top-1.5 z-[2] inline-flex h-5 min-w-[1.25rem] items-center justify-center gap-0.5 rounded-full px-1 text-[9px] font-extrabold tabular-nums text-white",
               "bg-gradient-to-br from-emerald-500 via-primary to-emerald-700",
               "shadow-[0_6px_14px_-2px_rgba(40,167,69,0.5),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.18)]",
               "ring-2 ring-white dark:ring-background",
@@ -225,21 +236,21 @@ function ProductCard({
             Otherwise reveal on hover/focus as before. */}
         <div
           className={cn(
-            "absolute bottom-2 right-2 flex items-center justify-center transition-all duration-200",
+            "absolute bottom-1.5 right-1.5 flex items-center justify-center transition-all duration-200",
             inCart
               ? "translate-y-0 opacity-100"
               : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 group-active:opacity-100",
           )}
         >
-          <span className="flex size-10 items-center justify-center rounded-full bg-primary text-white shadow-[0_6px_16px_rgba(40,167,69,0.4)] ring-2 ring-white/60 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 group-active:scale-90">
-            <Plus className="size-[18px]" strokeWidth={2.75} />
+          <span className="flex size-7 items-center justify-center rounded-full bg-primary text-white shadow-[0_4px_10px_rgba(40,167,69,0.4)] ring-1 ring-white/60 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105 group-active:scale-90">
+            <Plus className="size-3.5" strokeWidth={2.75} />
           </span>
         </div>
       </div>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col justify-between gap-2 px-3 pb-3 pt-2.5">
-        <p className="line-clamp-2 text-[13px] font-semibold leading-[1.3] text-zinc-900 dark:text-zinc-50">
+      <div className="flex flex-1 flex-col justify-between gap-1 px-2 pb-2 pt-1.5">
+        <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
           {title}
         </p>
 
@@ -254,7 +265,7 @@ function ProductCard({
           >
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="flex items-baseline gap-1 leading-none">
-                <span className="truncate text-[16px] font-extrabold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-300">
+                <span className="truncate text-[13px] font-extrabold tabular-nums tracking-tight text-emerald-700 dark:text-emerald-300">
                   {lineTotalSplit.amount}
                 </span>
                 {lineTotalSplit.code && (
@@ -273,7 +284,7 @@ function ProductCard({
         <div className="flex items-baseline gap-1">
           {hasPrice ? (
             <>
-              <span className="text-[15px] font-extrabold tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50">
+              <span className="text-[12px] font-extrabold tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50">
                 {amount}
               </span>
               {code && (
@@ -308,7 +319,7 @@ function SectionHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="mb-3.5 flex items-center justify-between gap-3">
+    <div className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3.5 sm:gap-3">
       <div className="flex min-w-0 items-center gap-2.5">
         {icon}
         <h3 className="font-sans truncate text-[15px] font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
@@ -341,8 +352,11 @@ export function GroceryWorkspace() {
   const online = useOnlineStatus();
   const currency = business?.currency?.trim() || "KES";
   const cashierName = effectiveMe?.name?.trim() || "";
-  // Grocery POS is always kiosk layout on this route (do not wait for /me).
-  const isKiosk = true;
+  const tenantTitle =
+    business?.branding?.displayName?.trim() ||
+    business?.name?.trim() ||
+    "Grocery";
+  const primaryColor = business?.branding?.primaryColor;
 
   // Item browser state
   const [search, setSearch] = useState("");
@@ -413,11 +427,10 @@ export function GroceryWorkspace() {
   // clerks, so this label is only meaningful when the role is restricted —
   // otherwise the operator can search the full catalog and we hide the chip.
   const allowedDepartmentLabel = useMemo(() => {
-    if (!isKiosk) return "";
     if (itemTypes.length === 0) return "";
     if (itemTypes.length === 1) return itemTypes[0].label?.trim() || "";
     return `${itemTypes.length} departments`;
-  }, [isKiosk, itemTypes]);
+  }, [itemTypes]);
 
   // ── Effects ──────────────────────────────────────────────────────
 
@@ -684,15 +697,19 @@ export function GroceryWorkspace() {
   // ── Render ───────────────────────────────────────────────────────
 
   return (
-    <div
-      className={cn(
-        "grocery-workspace relative flex flex-col overflow-hidden",
-        "h-[calc(100dvh-env(safe-area-inset-bottom,0px))]",
-        // Layered "counter" background: warm-cool gradient + soft grid + subtle vignette
-        "bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.07),transparent_55%),linear-gradient(180deg,#fafbfc_0%,#f3f4f6_55%,#eef0f3_100%)]",
-        "dark:bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.12),transparent_55%),hsl(var(--background))]",
-      )}
-    >
+    <div className="grocery-app-root relative flex h-[100dvh] min-h-0 w-full flex-col">
+      <div
+        className={cn(
+          "grocery-app-stage grocery-workspace relative mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-hidden",
+          "bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.07),transparent_55%),linear-gradient(180deg,#fafbfc_0%,#f3f4f6_55%,#eef0f3_100%)]",
+          "dark:bg-[radial-gradient(120%_70%_at_50%_-10%,hsl(var(--primary)/0.12),transparent_55%),hsl(var(--background))]",
+        )}
+        style={
+          {
+            "--grocery-tab-clearance": GROCERY_TAB_BAR_CLEARANCE,
+          } as CSSProperties
+        }
+      >
       {/* Decorative grid pattern */}
       <div
         aria-hidden
@@ -708,108 +725,94 @@ export function GroceryWorkspace() {
         }}
       />
 
-      {/* ── Header ── */}
+      {/* ── App header ── */}
       <header
         className={cn(
-          "relative z-30 flex shrink-0 items-center justify-between gap-3 px-3 py-3 sm:px-5 sm:py-3.5",
-          "border-b border-zinc-200/80",
-          "bg-white/85 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/70",
-          "shadow-[0_1px_0_rgba(15,23,42,0.02)]",
-          "dark:bg-background/60 dark:supports-[backdrop-filter]:bg-background/50 dark:border-white/[0.06]",
+          "relative z-30 shrink-0 border-b border-zinc-200/80 pt-[env(safe-area-inset-top,0px)]",
+          "bg-white/90 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/75",
+          "dark:border-white/[0.06] dark:bg-background/70",
         )}
       >
-        {/* Top accent stripe */}
         <span
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
         />
+        <div
+          className="pointer-events-none absolute -right-10 -top-16 h-32 w-48 rounded-full opacity-[0.12] blur-3xl"
+          style={{
+            background: primaryColor
+              ? `radial-gradient(circle, ${primaryColor}, transparent 70%)`
+              : undefined,
+          }}
+          aria-hidden
+        />
 
-        <div className="flex min-w-0 items-center gap-3">
-          {/* Brand badge */}
-          <div className="relative hidden size-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-primary via-emerald-600 to-emerald-700 shadow-[0_6px_18px_-6px_rgba(40,167,69,0.5),inset_0_1px_0_rgba(255,255,255,0.25)] ring-1 ring-emerald-500/40 sm:flex">
-            <ShoppingBasket className="size-[20px] text-white drop-shadow-sm" />
+        <div className="relative flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-black/[0.06] dark:ring-white/[0.08] sm:size-11">
+              <TenantLogo
+                brand={tenantTitle}
+                logoUrl={business?.branding?.logoUrl}
+                faviconUrl={business?.branding?.faviconUrl}
+                primaryColor={primaryColor}
+                variant="sidebar-mark"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                {tenantTitle}
+              </p>
+              <h1 className="truncate font-heading text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-xl">
+                Counter
+              </h1>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <MapPin className="size-3 shrink-0 opacity-70" aria-hidden />
+                  <span className="truncate font-medium">
+                    {branchesLoading
+                      ? "Loading…"
+                      : activeBranchName || "Select branch"}
+                  </span>
+                </span>
+                {allowedDepartmentLabel ? (
+                  <span className="inline-flex items-center gap-1 border-l border-border/50 pl-2">
+                    {allowedDepartmentLabel}
+                  </span>
+                ) : null}
+                {cashierName ? (
+                  <span className="hidden border-l border-border/50 pl-2 sm:inline">
+                    {cashierName}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <LiveClock />
             <span
               className={cn(
-                "absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full ring-2 ring-white",
-                online ? "bg-emerald-500" : "bg-amber-500",
+                "inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ring-1",
+                online
+                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50"
+                  : "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:ring-amber-800/50",
               )}
-              aria-hidden
             >
               <span
                 className={cn(
-                  "absolute size-3.5 rounded-full",
-                  online ? "bg-emerald-500/60" : "bg-amber-500/60",
-                  "animate-ping",
+                  "relative inline-flex size-1.5 rounded-full",
+                  online ? "bg-emerald-500" : "bg-amber-500",
                 )}
-              />
+              >
+                {online ? (
+                  <span className="absolute inset-0 size-1.5 animate-ping rounded-full bg-emerald-500/70" />
+                ) : null}
+              </span>
+              <span className="hidden min-[380px]:inline">
+                {online ? "Live" : "Off"}
+              </span>
             </span>
           </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-sans truncate text-[17px] font-extrabold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">
-                Grocery POS
-              </h1>
-              <span className="hidden lg:inline-flex items-center gap-1 rounded-md bg-zinc-900 px-1.5 py-[3px] text-[9.5px] font-extrabold uppercase tracking-[0.1em] text-white shadow-[0_1px_0_rgba(255,255,255,0.1)_inset] dark:bg-white dark:text-zinc-900">
-                Live · Sale
-              </span>
-            </div>
-            <div className="mt-0.5 flex items-center gap-2 text-[11.5px]">
-              <span className="inline-flex items-center gap-1 text-zinc-600 dark:text-zinc-300">
-                <MapPin className="size-3 text-zinc-400" />
-                <span className="truncate font-semibold">
-                  {branchesLoading
-                    ? "Loading branches…"
-                    : activeBranchName || "Select a branch"}
-                </span>
-              </span>
-              {cashierName && (
-                <>
-                  <span className="hidden text-zinc-300 sm:inline">·</span>
-                  <span className="hidden text-zinc-500 sm:inline">
-                    {cashierName}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <LiveClock />
-
-          <span
-            className={cn(
-              "hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.08em] ring-1",
-              online
-                ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50"
-                : "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:ring-amber-800/50",
-            )}
-          >
-            <span
-              className={cn(
-                "relative inline-flex size-1.5 rounded-full",
-                online ? "bg-emerald-500" : "bg-amber-500",
-              )}
-            >
-              {online && (
-                <span className="absolute inset-0 size-1.5 animate-ping rounded-full bg-emerald-500/70" />
-              )}
-            </span>
-            {online ? "Online" : "Offline"}
-          </span>
-
-          <a
-            href="/grocery/invoices"
-            className={cn(
-              "inline-flex h-10 items-center gap-1.5 rounded-xl border border-zinc-200/90 bg-white px-3 text-[12.5px] font-bold text-zinc-700 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.6)]",
-              "transition-all duration-200 hover:-translate-y-[1px] hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-[0_4px_12px_-4px_rgba(15,23,42,0.1)] active:scale-[0.96] active:translate-y-0",
-              "dark:bg-white/[0.04] dark:border-white/[0.08] dark:text-zinc-200",
-            )}
-          >
-            <History className="size-4" />
-            <span className="hidden sm:inline">Invoices</span>
-          </a>
         </div>
       </header>
 
@@ -831,18 +834,21 @@ export function GroceryWorkspace() {
       {/* ── Main Split View ── */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-row">
         {/* ── LEFT: Product Browser ── */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:w-[62%] lg:flex-none xl:w-[64%] 2xl:w-[66%]">
-          {/* Sticky search + filters block */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col md:w-[58%] md:flex-none lg:w-[60%] xl:w-[62%]">
+          {/* Sticky search */}
           <div
             className={cn(
-              "shrink-0 px-3 pb-3 pt-3.5 sm:px-5 sm:pt-4",
+              "sticky top-0 z-20 shrink-0 border-b border-zinc-200/60 px-3 pb-3 pt-2.5",
+              "bg-[#fafbfc]/92 backdrop-blur-xl supports-[backdrop-filter]:bg-[#fafbfc]/80",
+              "dark:border-white/[0.06] dark:bg-background/80",
+              "sm:px-4 sm:pt-3",
             )}
           >
             <div className="flex items-center gap-2">
               {/* Search */}
               <div
                 className={cn(
-                  "group relative flex h-[3.25rem] flex-1 items-center gap-1.5 rounded-2xl pl-4 pr-1.5",
+                  "group relative flex h-12 flex-1 items-center gap-1.5 rounded-2xl pl-3.5 pr-1.5 sm:h-[3.25rem] sm:pl-4",
                   "border border-zinc-200/90 bg-white",
                   "shadow-[0_2px_6px_-1px_rgba(15,23,42,0.05),inset_0_1px_0_rgba(255,255,255,0.7)]",
                   "transition-[border-color,box-shadow,transform] duration-200",
@@ -899,29 +905,13 @@ export function GroceryWorkspace() {
                 </button>
               </div>
             </div>
-
-            {/* Filter / context bar */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {allowedDepartmentLabel && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/90 bg-white px-2.5 py-1 text-[11px] font-bold text-zinc-700 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset] dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-200">
-                  <span className="inline-block size-1.5 rounded-full bg-primary" />
-                  {allowedDepartmentLabel}
-                </span>
-              )}
-              {activeBranchName && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/90 bg-white px-2.5 py-1 text-[11px] font-bold text-zinc-700 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset] dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-200">
-                  <MapPin className="size-3 text-zinc-500" />
-                  {activeBranchName}
-                </span>
-              )}
-              <span className="ml-auto hidden text-[11px] font-semibold text-zinc-500 sm:inline">
-                Tap a product to add · Hold to edit qty
-              </span>
-            </div>
           </div>
 
           {/* Scrollable Product Area */}
-          <div className="relative flex-1 overflow-y-auto overscroll-contain px-3 pb-32 pt-1 sm:px-5 lg:pb-6">
+          <div
+            className="relative flex-1 overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4 md:pb-4"
+            style={{ paddingBottom: `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})` }}
+          >
             {/* Top fade for scroll cue */}
             <span
               aria-hidden
@@ -959,7 +949,7 @@ export function GroceryWorkspace() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {hits.map((item) => {
                       const d = lineDataByItem.get(item.id);
                       return (
@@ -1036,7 +1026,7 @@ export function GroceryWorkspace() {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {topProducts.map((p) => {
                       const d = lineDataByItem.get(p.id);
                       return (
@@ -1072,12 +1062,12 @@ export function GroceryWorkspace() {
           </div>
         </div>
 
-        {/* ── RIGHT: Cart side panel (lg+) ── */}
+        {/* ── RIGHT: Cart side panel (iPad md+) ── */}
         <aside
           className={cn(
-            "hidden lg:flex shrink-0 flex-col",
-            "lg:w-[38%] xl:w-[36%] 2xl:w-[34%]",
-            "relative",
+            "hidden shrink-0 flex-col md:flex",
+            "md:w-[42%] lg:w-[40%] xl:w-[38%]",
+            "relative pb-[var(--grocery-tab-clearance)]",
             // Distinct cream/warm tint so the cart side feels like a "register counter"
             "bg-[linear-gradient(180deg,#fdfcfa_0%,#faf8f4_100%)]",
             "border-l border-zinc-200/90",
@@ -1109,19 +1099,14 @@ export function GroceryWorkspace() {
         </aside>
       </div>
 
-      {/* ── < lg: Floating Cart Dock + FAB ── */}
+      {/* ── Phone: floating cart dock above tab bar ── */}
       <div
-        className={cn(
-          "lg:hidden pointer-events-none fixed inset-x-0 bottom-0 z-30",
-          "px-3 sm:px-5",
-          // Sit above the bottom nav (~4.25rem + safe area). Below `lg`
-          // the side cart panel hasn't appeared yet, so this dock is the
-          // only cart entry point. Kiosk-nav mode keeps the bottom nav
-          // through tablet sizes, so we keep the larger clearance for it.
-          isKiosk
-            ? "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)]"
-            : "pb-[calc(env(safe-area-inset-bottom,0.5rem)+4.75rem)] md:pb-[calc(env(safe-area-inset-bottom,0.5rem)+1rem)]",
-        )}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-3 pb-[var(--grocery-tab-clearance)] sm:px-4 md:hidden"
+        style={
+          {
+            "--grocery-tab-clearance": GROCERY_TAB_BAR_CLEARANCE,
+          } as CSSProperties
+        }
       >
         {/* Fade gradient mask above the dock */}
         <div
@@ -1270,10 +1255,10 @@ export function GroceryWorkspace() {
         </div>
       </div>
 
-      {/* ── Cart drawer (< lg only; slide-from-right on md, bottom-sheet on mobile) ── */}
+      {/* ── Cart drawer (phones only) ── */}
       {showCartDrawer && (
         <div
-          className="fixed inset-0 z-50 lg:hidden"
+          className="fixed inset-0 z-50 md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Cart"
@@ -1284,20 +1269,16 @@ export function GroceryWorkspace() {
             onClick={() => setShowCartDrawer(false)}
           />
 
-          {/* Mobile: bottom sheet | Tablet portrait: right side drawer */}
           <div
             className={cn(
-              "absolute flex flex-col bg-[linear-gradient(180deg,#fdfcfa_0%,#faf8f4_100%)] shadow-[0_-16px_56px_rgba(15,23,42,0.25)]",
-              "max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:max-h-[88vh] max-md:rounded-t-[1.75rem]",
-              "max-md:animate-in max-md:slide-in-from-bottom max-md:duration-300",
-              "md:right-0 md:top-0 md:h-full md:w-[28rem] md:max-w-[90vw]",
-              "md:animate-in md:slide-in-from-right md:duration-300",
-              "md:border-l md:border-zinc-200/90",
-              "dark:bg-card dark:md:border-white/[0.06]",
+              "absolute bottom-0 left-0 right-0 flex max-h-[88vh] flex-col",
+              "rounded-t-[1.75rem] bg-[linear-gradient(180deg,#fdfcfa_0%,#faf8f4_100%)]",
+              "shadow-[0_-16px_56px_rgba(15,23,42,0.25)]",
+              "animate-in slide-in-from-bottom duration-300",
+              "dark:bg-card",
             )}
           >
-            {/* Mobile-only drag handle */}
-            <div className="flex justify-center pt-3 pb-1 md:hidden">
+            <div className="flex justify-center pt-3 pb-1">
               <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-white/15" />
             </div>
 
@@ -1343,6 +1324,9 @@ export function GroceryWorkspace() {
           currency={currency}
         />
       )}
+
+      <GroceryAppBottomNav activeTab="counter" />
+      </div>
     </div>
   );
 }

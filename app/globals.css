@@ -418,6 +418,49 @@
     }
 }
 
+/* ── Standalone grocery POS (/grocery) — iPad app frame ─────────────── */
+.grocery-app-root {
+    background: var(--background);
+}
+
+@media (min-width: 768px) {
+    .grocery-app-root {
+        background:
+            radial-gradient(
+                ellipse 120% 80% at 50% -20%,
+                rgba(40, 167, 69, 0.07),
+                transparent 55%
+            ),
+            rgb(245, 245, 245);
+        padding: 0.5rem;
+    }
+
+    .dark .grocery-app-root {
+        background:
+            radial-gradient(
+                ellipse 120% 80% at 50% -20%,
+                rgba(40, 167, 69, 0.1),
+                transparent 55%
+            ),
+            rgb(10, 10, 10);
+    }
+
+    .grocery-app-stage {
+        border-radius: 1.35rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow:
+            0 -2px 24px -8px rgba(0, 0, 0, 0.1),
+            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    }
+
+    .dark .grocery-app-stage {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow:
+            0 -2px 32px -8px rgba(0, 0, 0, 0.45),
+            0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    }
+}
+
 /* Premium storefront animations */
 @keyframes fade-in-up {
     from {

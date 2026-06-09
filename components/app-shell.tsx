@@ -13,8 +13,10 @@ import {
   MapPin,
   Package,
   Receipt,
+  ScanLine,
   ShoppingBag,
   SlidersHorizontal,
+  Store,
   Tags,
   Warehouse,
   type LucideIcon,
@@ -23,6 +25,8 @@ import {
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
 import {
+  HeaderPosLinks,
+  type HeaderPosLink,
   TabletAppHeader,
   TabletBottomNav,
   TabletMoreSheet,
@@ -542,6 +546,25 @@ export function AppShell({ children }: AppShellProps) {
 
   const userInitial = userDisplayName.charAt(0).toUpperCase();
 
+  const headerPosLinks = useMemo((): HeaderPosLink[] => {
+    const links: HeaderPosLink[] = [];
+    if (canQuickSale) {
+      links.push({
+        href: APP_ROUTES.cashier,
+        label: "Cashier",
+        icon: ScanLine,
+      });
+    }
+    if (canAccessGrocery) {
+      links.push({
+        href: APP_ROUTES.grocery,
+        label: "Grocery",
+        icon: Store,
+      });
+    }
+    return links;
+  }, [canQuickSale, canAccessGrocery]);
+
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
     if (roleKey === "stock_manager") {
@@ -828,6 +851,11 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="flex items-center gap-3">
+            <HeaderPosLinks
+              links={headerPosLinks}
+              pathname={pathname}
+              variant="desktop"
+            />
             {canReadNotifications ? <NotificationBell /> : null}
             {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
             {isStockManager || isCashier || isGroceryClerk ? (
@@ -917,6 +945,7 @@ export function AppShell({ children }: AppShellProps) {
             departmentName={currentItemType?.label}
             userInitial={userInitial}
             canReadNotifications={canReadNotifications}
+            posLinks={headerPosLinks}
             onOpenMore={() => setMoreOpen(true)}
           />
         </div>

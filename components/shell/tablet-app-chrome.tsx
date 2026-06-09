@@ -38,6 +38,84 @@ export type TabletBottomTab = {
   matchSectionIds: string[];
 };
 
+export type HeaderPosLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+function headerPosLinkActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return (
+    pathname === href ||
+    pathname.startsWith(`${href}/`) ||
+    pathname.startsWith(`${href}?`)
+  );
+}
+
+export function HeaderPosLinks({
+  links,
+  pathname,
+  variant = "tablet",
+}: {
+  links: readonly HeaderPosLink[];
+  pathname: string;
+  variant?: "tablet" | "desktop";
+}) {
+  if (links.length === 0) return null;
+
+  if (variant === "desktop") {
+    return (
+      <div className="flex items-center gap-2">
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = headerPosLinkActive(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+                active
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon className="size-3.5 shrink-0" aria-hidden />
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {links.map(({ href, label, icon: Icon }) => {
+        const active = headerPosLinkActive(pathname, href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "inline-flex h-9 max-w-[5.5rem] items-center gap-1 rounded-full border px-2 text-[10px] font-semibold leading-none transition-colors sm:max-w-none sm:gap-1.5 sm:px-2.5 sm:text-[11px]",
+              active
+                ? "border-primary/35 bg-primary/12 text-primary shadow-sm"
+                : "border-border/55 bg-background/85 text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
+            )}
+            aria-current={active ? "page" : undefined}
+            title={label}
+          >
+            <Icon className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">{label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 type TabletAppHeaderProps = {
   tenantTitle: string;
   businessName?: string | null;
@@ -49,6 +127,7 @@ type TabletAppHeaderProps = {
   departmentName?: string | null;
   userInitial: string;
   canReadNotifications: boolean;
+  posLinks?: readonly HeaderPosLink[];
   onOpenMore: () => void;
 };
 
@@ -63,6 +142,7 @@ export function TabletAppHeader({
   departmentName,
   userInitial,
   canReadNotifications,
+  posLinks = [],
   onOpenMore,
 }: TabletAppHeaderProps) {
   const pathname = usePathname();
@@ -129,6 +209,7 @@ export function TabletAppHeader({
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
+            <HeaderPosLinks links={posLinks} pathname={pathname} />
             {canReadNotifications ? (
               <span className="tablet-app-icon-btn">
                 <NotificationBell />
