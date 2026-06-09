@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Package, RefreshCw, Search } from "lucide-react";
+import { Check, Package, Pencil, RefreshCw, Search, X } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
@@ -14,10 +15,13 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchAllocationPreview,
   fetchBatchDashboard,
   fetchBranches,
   fetchCategories,
   fetchItemsPage,
+  postBatchDecrease,
+  postStockIncrease,
   type BranchRecord,
   type CategoryRecord,
   type ItemSummaryRecord,
@@ -44,6 +48,8 @@ type StockRow = {
   reorderLevel: number | null;
   categoryId: string | null;
   categoryName: string | null;
+  /** Package variants hold stock on a parent SKU, so inline editing is disabled. */
+  editable: boolean;
 };
 
 const STOCK_STATUS_FILTERS: { id: StockStatusFilter; label: string }[] = [
@@ -146,30 +152,131 @@ function barFillPercent(stock: number, reorderLevel: number | null): number {
   return Math.min(100, Math.max(0, Math.round((stock / cap) * 100)));
 }
 
-function StockRowItem({ row }: { row: StockRow }) {
+type StockRowItemProps = {
+  row: StockRow;
+  canWrite: boolean;
+  editing: boolean;
+  editQty: string;
+  editCost: string;
+  saving: boolean;
+  onEditQtyChange: (value: string) => void;
+  onEditCostChange: (value: string) => void;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveEdit: () => void;
+};
+
+function StockRowItem({
+  row,
+  canWrite,
+  editing,
+  editQty,
+  editCost,
+  saving,
+  onEditQtyChange,
+  onEditCostChange,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+}: StockRowItemProps) {
   const out = isOutOfStock(row.stock);
   const low = isLowStock(row.stock, row.reorderLevel);
   const fill = barFillPercent(row.stock, row.reorderLevel);
   const leftLabel =
     row.stock === 1 ? "1 left" : `${row.stock.toLocaleString("en-KE")} left`;
 
+  const target = Number(editQty.trim());
+  const showCost =
+    editing && Number.isFinite(target) && target > row.stock;
+
   return (
-    <Link
-      href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
-      className="block px-5 py-4 transition-colors hover:bg-[#F9F6F0]/50"
-    >
-      <div className="mb-2.5 flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate text-[15px] font-medium text-[#333333]">
-          {row.name}
-        </span>
-        <span
-          className={cn(
-            "shrink-0 text-sm tabular-nums",
-            out || low ? "font-medium text-[#C47A5A]" : "text-[#666666]",
-          )}
+    <div className="px-5 py-4 transition-colors hover:bg-[#F9F6F0]/50">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <Link
+          href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
+          className="min-w-0 truncate text-[15px] font-medium text-[#333333] hover:underline"
         >
-          {out ? "Out of stock" : leftLabel}
-        </span>
+          {row.name}
+        </Link>
+
+        {editing ? (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              autoFocus
+              value={editQty}
+              disabled={saving}
+              onChange={(e) => onEditQtyChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSaveEdit();
+                if (e.key === "Escape") onCancelEdit();
+              }}
+              className="w-20 rounded-md border border-[#E8DFD0] bg-white px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-[#B08D48] disabled:opacity-60"
+              placeholder="Qty"
+              aria-label={`New stock for ${row.name}`}
+            />
+            {showCost ? (
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={editCost}
+                disabled={saving}
+                onChange={(e) => onEditCostChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onSaveEdit();
+                  if (e.key === "Escape") onCancelEdit();
+                }}
+                className="w-20 rounded-md border border-[#EEEEEE] bg-white px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-[#B08D48] disabled:opacity-60"
+                placeholder="Cost"
+                aria-label={`Unit cost for ${row.name}`}
+              />
+            ) : null}
+            <button
+              type="button"
+              onClick={onSaveEdit}
+              disabled={saving || !editQty.trim()}
+              className="inline-flex size-7 items-center justify-center rounded-md bg-[#B08D48] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              aria-label="Save stock"
+            >
+              <Check className="size-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              disabled={saving}
+              className="inline-flex size-7 items-center justify-center rounded-md border border-[#EEEEEE] text-[#888888] transition-colors hover:text-foreground disabled:opacity-40"
+              aria-label="Cancel"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
+        ) : (
+          <div className="flex shrink-0 items-center gap-2">
+            <span
+              className={cn(
+                "text-sm tabular-nums",
+                out || low ? "font-medium text-[#C47A5A]" : "text-[#666666]",
+              )}
+            >
+              {out ? "Out of stock" : leftLabel}
+            </span>
+            {canWrite && row.editable ? (
+              <button
+                type="button"
+                onClick={onStartEdit}
+                className="inline-flex size-7 items-center justify-center rounded-md border border-[#EEEEEE] text-[#888888] transition-colors hover:border-[#E8DFD0] hover:text-[#B08D48]"
+                aria-label={`Edit stock for ${row.name}`}
+              >
+                <Pencil className="size-3.5" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
       <div
         className="h-1.5 w-full overflow-hidden rounded-full"
@@ -183,7 +290,7 @@ function StockRowItem({ row }: { row: StockRow }) {
           }}
         />
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -209,6 +316,7 @@ function StockListSkeleton() {
 export function StockLevelsPage() {
   const { me, branchId: sessionBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.InventoryRead);
+  const canWrite = hasPermission(me?.permissions, Permission.InventoryWrite);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
@@ -219,6 +327,112 @@ export function StockLevelsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Inline stock editing
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState("");
+  const [editCost, setEditCost] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = useCallback((row: StockRow) => {
+    setEditId(row.id);
+    setEditQty(String(row.stock));
+    setEditCost("");
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditId(null);
+    setEditQty("");
+    setEditCost("");
+  }, []);
+
+  const saveEdit = useCallback(
+    async (row: StockRow) => {
+      const branch = branchId.trim();
+      if (!branch || !canWrite) return;
+      const targetRaw = editQty.trim();
+      const target = Number(targetRaw);
+      if (!targetRaw || !Number.isFinite(target) || target < 0) {
+        toast.error("Enter an on-hand quantity of zero or more.");
+        return;
+      }
+      const delta = Math.round((target - row.stock) * 10000) / 10000;
+      if (Math.abs(delta) < 0.0001) {
+        cancelEdit();
+        return;
+      }
+
+      setSavingEdit(true);
+      try {
+        if (delta > 0) {
+          const costRaw = editCost.trim();
+          const unitCost = costRaw === "" ? 0 : Number(costRaw);
+          if (!Number.isFinite(unitCost) || unitCost < 0) {
+            toast.error("Unit cost must be a valid non-negative number.");
+            setSavingEdit(false);
+            return;
+          }
+          await postStockIncrease({
+            branchId: branch,
+            itemId: row.id,
+            quantity: delta,
+            unitCost,
+            notes: "Stock set from stock levels page",
+          });
+        } else {
+          const decreaseQty = Math.abs(delta);
+          const allocations = await fetchAllocationPreview({
+            itemId: row.id,
+            branchId: branch,
+            quantity: decreaseQty,
+          });
+          if (!allocations.length) {
+            toast.error("Could not allocate stock to remove for this branch.");
+            setSavingEdit(false);
+            return;
+          }
+          let allocated = 0;
+          for (const line of allocations) {
+            const q = Number(line.quantity);
+            if (!Number.isFinite(q) || q <= 0) continue;
+            allocated += q;
+            await postBatchDecrease({
+              batchId: line.batchId,
+              quantity: q,
+              reason: "Stock set from stock levels page",
+            });
+          }
+          if (allocated < decreaseQty - 0.0001) {
+            toast.error(
+              `Only ${allocated} could be removed; check batch availability.`,
+            );
+            setRows((prev) =>
+              prev.map((r) =>
+                r.id === row.id ? { ...r, stock: row.stock - allocated } : r,
+              ),
+            );
+            setSavingEdit(false);
+            setEditId(null);
+            return;
+          }
+        }
+        setRows((prev) =>
+          prev.map((r) => (r.id === row.id ? { ...r, stock: target } : r)),
+        );
+        toast.success(`${row.name} set to ${target.toLocaleString("en-KE")}.`);
+        setEditId(null);
+        setEditQty("");
+        setEditCost("");
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Stock update failed.",
+        );
+      } finally {
+        setSavingEdit(false);
+      }
+    },
+    [branchId, canWrite, editQty, editCost, cancelEdit],
+  );
 
   useEffect(() => {
     void Promise.all([
@@ -251,6 +465,7 @@ export function StockLevelsPage() {
 
     setLoading(true);
     setError(null);
+    setEditId(null);
     try {
       const reorderByItemId = new Map<string, number>();
       const categoryByItemId = new Map<string, string>();
@@ -295,6 +510,7 @@ export function StockLevelsPage() {
               item.categoryName?.trim() ||
               categoryByItemId.get(item.id) ||
               null,
+            editable: !item.packageVariant,
           });
         }
 
@@ -481,7 +697,20 @@ export function StockLevelsPage() {
         <div className={STOCK_SURFACE}>
           <div className="divide-y divide-[#EEEEEE]">
             {filteredRows.map((row) => (
-              <StockRowItem key={row.id} row={row} />
+              <StockRowItem
+                key={row.id}
+                row={row}
+                canWrite={canWrite}
+                editing={editId === row.id}
+                editQty={editId === row.id ? editQty : ""}
+                editCost={editId === row.id ? editCost : ""}
+                saving={savingEdit && editId === row.id}
+                onEditQtyChange={setEditQty}
+                onEditCostChange={setEditCost}
+                onStartEdit={() => startEdit(row)}
+                onCancelEdit={cancelEdit}
+                onSaveEdit={() => void saveEdit(row)}
+              />
             ))}
           </div>
         </div>
