@@ -57,12 +57,14 @@ const USER_STATUS_FILTERS = [
   { value: "locked", label: "Locked" },
 ] as const;
 
+type CredentialMethod = "invite" | "pin";
+
 type UserDraft = {
   name: string;
   email: string;
   roleId: string;
+  credentialMethod: CredentialMethod;
   pin: string;
-  status: string;
   branchId: string;
 };
 
@@ -70,8 +72,8 @@ const DEFAULT_DRAFT: UserDraft = {
   name: "",
   email: "",
   roleId: "",
+  credentialMethod: "invite",
   pin: "",
-  status: "active",
   branchId: "",
 };
 
@@ -478,6 +480,18 @@ export default function UsersPage() {
 
   const onCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const usePin = draft.credentialMethod === "pin";
+    if (usePin && !/^\d{4,6}$/.test(draft.pin.trim())) {
+      setFeedback({ kind: "error", text: "PIN must be 4 to 6 digits." });
+      return;
+    }
+    if (usePin && !draft.branchId) {
+      setFeedback({
+        kind: "error",
+        text: "Select a branch — PIN login requires a branch.",
+      });
+      return;
+    }
     setCreating(true);
     setFeedback(null);
     try {
@@ -485,8 +499,9 @@ export default function UsersPage() {
         name: draft.name,
         email: draft.email,
         roleId: draft.roleId,
-        pin: draft.pin || undefined,
-        status: draft.status,
+        pin: usePin ? draft.pin.trim() : undefined,
+        sendInvite: usePin ? undefined : true,
+        status: usePin ? "active" : "invited",
         branchId: draft.branchId || undefined,
       });
       setDraft((previous) => ({ ...DEFAULT_DRAFT, roleId: previous.roleId }));
@@ -494,7 +509,12 @@ export default function UsersPage() {
       await refreshSession();
       skipInviteDrawerResetAfterCreate.current = true;
       setInviteDrawerOpen(false);
-      setFeedback({ kind: "success", text: "User created." });
+      setFeedback({
+        kind: "success",
+        text: usePin
+          ? "User created with a PIN."
+          : "Invitation sent. The user will get an email to set their password.",
+      });
     } catch (error) {
       setFeedback({
         kind: "error",
@@ -1354,7 +1374,7 @@ export default function UsersPage() {
           >
             <FormDrawerFields
               legend="Account"
-              hint="Email must be unique in your workspace. PIN is optional for cashier-style access."
+              hint="Email must be unique in your workspace. Choose an email invite (user sets their own password) or a PIN for kiosk/cashier access."
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
@@ -1435,42 +1455,54 @@ export default function UsersPage() {
                   </select>
                 </label>
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                  Status
+                  Sign-in method
                   <select
                     className={dashboardSelectClass()}
-                    value={draft.status}
+                    value={draft.credentialMethod}
                     onChange={(event) =>
                       setDraft((previous) => ({
                         ...previous,
-                        status: event.target.value,
+                        credentialMethod: event.target
+                          .value as CredentialMethod,
+                        pin:
+                          event.target.value === "pin" ? previous.pin : "",
                       }))
                     }
-                    aria-label="Status for new user"
+                    aria-label="Sign-in method for new user"
                   >
-                    <option value="active">active</option>
-                    <option value="invited">invited</option>
+                    <option value="invite">
+                      Email invite (sets own password)
+                    </option>
+                    <option value="pin">PIN (kiosk / cashier)</option>
                   </select>
                 </label>
-                <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                  PIN{" "}
-                  <span className="font-normal text-muted-foreground/80">
-                    (optional, 4–6 digits)
-                  </span>
-                  <input
-                    className={dashboardInputClass()}
-                    placeholder="For kiosk / cashier-style users"
-                    inputMode="numeric"
-                    pattern="\d{4,6}"
-                    value={draft.pin}
-                    onChange={(event) =>
-                      setDraft((previous) => ({
-                        ...previous,
-                        pin: event.target.value,
-                      }))
-                    }
-                    aria-label="PIN for cashier-style user"
-                  />
-                </label>
+                {draft.credentialMethod === "pin" ? (
+                  <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+                    PIN{" "}
+                    <span className="font-normal text-muted-foreground/80">
+                      (4–6 digits, required for PIN login on a branch)
+                    </span>
+                    <input
+                      className={dashboardInputClass()}
+                      placeholder="e.g. 4821"
+                      inputMode="numeric"
+                      pattern="\d{4,6}"
+                      value={draft.pin}
+                      onChange={(event) =>
+                        setDraft((previous) => ({
+                          ...previous,
+                          pin: event.target.value,
+                        }))
+                      }
+                      aria-label="PIN for cashier-style user"
+                    />
+                  </label>
+                ) : (
+                  <p className="sm:col-span-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                    We&apos;ll email this person a secure link to set their own
+                    password. They can sign in once they&apos;ve set it.
+                  </p>
+                )}
               </div>
             </FormDrawerFields>
           </form>

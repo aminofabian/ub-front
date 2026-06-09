@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthPageHeader } from "@/components/auth/auth-page-header";
@@ -27,11 +27,13 @@ import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   fetchBusiness,
+  fetchLoginBranches,
   fetchMe,
   loginWithPassword,
   loginWithPin,
   onboardBusiness,
   resolveBusinessByEmail,
+  type LoginBranchOption,
 } from "@/lib/api";
 import {
   APP_ROUTES,
@@ -155,6 +157,9 @@ function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [branchOptions, setBranchOptions] = useState<LoginBranchOption[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [manualBranchEntry, setManualBranchEntry] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
     () => searchParams.get("error")?.trim() ?? "",
@@ -185,6 +190,39 @@ function LoginPageContent() {
       clearSessionTenantId();
     }
   };
+
+  // PIN login: load the tenant's branches so the cashier can pick a branch by
+  // name instead of pasting a UUID. Falls back to manual entry on failure.
+  useEffect(() => {
+    if (mode !== AUTH_MODE.pin) {
+      return;
+    }
+    let cancelled = false;
+    setBranchesLoading(true);
+    void (async () => {
+      try {
+        const id = await ensureTenantResolved();
+        if (id?.trim()) {
+          setSessionTenantId(id);
+        }
+        const list = await fetchLoginBranches();
+        if (!cancelled) {
+          setBranchOptions(list);
+        }
+      } catch {
+        if (!cancelled) {
+          setBranchOptions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setBranchesLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, ensureTenantResolved]);
 
   const onPasswordLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -615,22 +653,59 @@ function LoginPageContent() {
             />
           </div>
           <div>
-            <label
-              className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
-              htmlFor="pin-branch-id"
-            >
-              Branch ID
-            </label>
-            <input
-              id="pin-branch-id"
-              className={authInputClassName}
-              type="text"
-              placeholder="Branch UUID"
-              value={branchId}
-              onChange={(event) => setBranchId(event.target.value)}
-              autoComplete="off"
-              required
-            />
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                className="block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                htmlFor={
+                  manualBranchEntry || branchOptions.length === 0
+                    ? "pin-branch-id"
+                    : "pin-branch-select"
+                }
+              >
+                Branch
+              </label>
+              {branchOptions.length > 0 ? (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[var(--auth-accent)] underline-offset-2 hover:underline"
+                  onClick={() => {
+                    setManualBranchEntry((prev) => !prev);
+                    setBranchId("");
+                  }}
+                >
+                  {manualBranchEntry ? "Choose from list" : "Enter ID manually"}
+                </button>
+              ) : null}
+            </div>
+            {branchOptions.length > 0 && !manualBranchEntry ? (
+              <select
+                id="pin-branch-select"
+                className={authInputClassName}
+                value={branchId}
+                onChange={(event) => setBranchId(event.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  {branchesLoading ? "Loading branches…" : "Select your branch"}
+                </option>
+                {branchOptions.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="pin-branch-id"
+                className={authInputClassName}
+                type="text"
+                placeholder="Branch UUID"
+                value={branchId}
+                onChange={(event) => setBranchId(event.target.value)}
+                autoComplete="off"
+                required
+              />
+            )}
           </div>
           <div>
             <label

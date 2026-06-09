@@ -80,6 +80,7 @@ export function categoryAnalyticsPath(slug: string): string {
 export const API_ROUTES = {
   login: "/api/v1/auth/login",
   loginPin: "/api/v1/auth/login-pin",
+  loginBranches: "/api/v1/auth/branches",
   register: "/api/v1/auth/register",
   verifyEmail: "/api/v1/auth/verify-email",
   resendVerification: "/api/v1/auth/resend-verification",

@@ -664,6 +664,14 @@ export type CreateUserPayload = {
   status?: string;
   branchId?: string;
   phone?: string;
+  /** Email the user a set-password link instead of providing a PIN/password. */
+  sendInvite?: boolean;
+};
+
+/** Branch id + name for the public PIN-login branch picker. */
+export type LoginBranchOption = {
+  id: string;
+  name: string;
 };
 
 export type PatchUserPayload = {
@@ -1374,6 +1382,33 @@ export async function loginWithPin(
     accessToken: payload.accessToken,
     refreshToken: payload.refreshToken,
   });
+}
+
+/**
+ * Active branches for the resolved tenant, for the PIN-login branch picker.
+ * Public (no auth); returns `[]` when the tenant can't be resolved so the UI
+ * can fall back to manual branch-ID entry.
+ */
+export async function fetchLoginBranches(): Promise<LoginBranchOption[]> {
+  try {
+    const payload = await request<unknown>(API_ROUTES.loginBranches, {
+      requiresAuth: false,
+    });
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+    return payload
+      .map((row) => {
+        const record = row as Record<string, unknown>;
+        return {
+          id: String(record.id ?? ""),
+          name: String(record.name ?? ""),
+        };
+      })
+      .filter((branch) => branch.id.length > 0);
+  } catch {
+    return [];
+  }
 }
 
 export type RegisterResponse = {
