@@ -10,7 +10,6 @@ import {
   CreditCard,
   LayoutDashboard,
   Lock,
-  LogOut,
   MapPin,
   Package,
   Receipt,
@@ -23,6 +22,11 @@ import {
 
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
+import {
+  TabletAppHeader,
+  TabletBottomNav,
+  TabletMoreSheet,
+} from "@/components/shell/tablet-app-chrome";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useOptionalTenant } from "@/components/providers/tenant-provider";
@@ -417,19 +421,12 @@ export function AppShell({ children }: AppShellProps) {
   const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
   const isGroceryClerk =
     me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
-  // Kiosk-mode layout: replace the desktop sidebar with a bottom nav on
-  // tablets, iPads, and phones. On true desktop monitors (xl+ / ≥1280px)
-  // grocery clerks get the regular sidebar — the bottom nav only hides
-  // the sidebar on POS-sized screens where horizontal real-estate is
-  // precious.
-  const kioskNav = isGroceryClerk;
-  // Tailwind responsive class fragments derived from `kioskNav`. For
-  // grocery clerks we flip from bottom-nav to sidebar at `xl` (1280px);
-  // for every other role the default `md` (768px) breakpoint still
-  // controls when the desktop chrome takes over.
-  const kioskDesktopVisible = kioskNav ? "hidden xl:flex" : "hidden md:flex";
-  const kioskMobileVisible = kioskNav ? "xl:hidden" : "md:hidden";
-  const kioskMainPadding = kioskNav ? "xl:p-6 xl:pb-6" : "md:p-6 md:pb-6";
+  // Tablet / iPad app shell: bottom nav + large-title header for every role
+  // below 2xl (1536px). That keeps all iPad sizes — including 12.9″ landscape
+  // at 1366px — in native-app mode; only wide desktop monitors get the sidebar.
+  const desktopChromeVisible = "hidden 2xl:flex";
+  const tabletChromeVisible = "2xl:hidden";
+  const mainContentPadding = "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
   const homeHref = isStockManager
     ? APP_ROUTES.inventoryStockTake
     : isCashier
@@ -544,9 +541,6 @@ export function AppShell({ children }: AppShellProps) {
     : [business?.name, userDisplayName].filter(Boolean).join(" · ");
 
   const userInitial = userDisplayName.charAt(0).toUpperCase();
-  const businessInitial = (business?.name ?? tenantTitle)
-    .charAt(0)
-    .toUpperCase();
 
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
@@ -674,13 +668,12 @@ export function AppShell({ children }: AppShellProps) {
   }, [me, pathname, router]);
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-muted/30">
-      {/* ── Desktop sidebar — hidden on tablets/mobile; appears at xl+ for
-          grocery clerks (kiosk-nav mode) and at md+ for everyone else. ── */}
+    <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">
+      {/* ── Desktop sidebar — only on wide monitors (2xl+). iPads use bottom nav. ── */}
       <aside
         className={cn(
           "sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background",
-          kioskDesktopVisible,
+          desktopChromeVisible,
         )}
       >
         <div className="border-b p-4">
@@ -812,14 +805,14 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
       </aside>
 
-      {/* ── Right panel ─────────────────────────────────────────────────────── */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* ── Right panel — on iPad/tablet this becomes the rounded “app stage”. ── */}
+      <div className="tablet-app-stage flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Desktop top header — paired with the desktop sidebar. Appears at
             xl+ for grocery clerks, md+ for everyone else. */}
         <header
           className={cn(
             "items-center justify-between gap-4 border-b bg-background px-6 py-3",
-            kioskDesktopVisible,
+            desktopChromeVisible,
           )}
         >
           <div className="flex min-w-0 flex-col">
@@ -913,344 +906,74 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
-        {/* ── Mobile/tablet top header — used below xl for grocery clerks
-            (iPad-sized POS screens) and below md for everyone else. ── */}
-        <header
-          className={cn(
-            "sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/50 bg-background/95 px-4 py-3 backdrop-blur-md shadow-sm",
-            kioskMobileVisible,
-          )}
-        >
-          {/* Brand */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background text-sm font-bold shadow-sm">
-              {businessInitial}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold leading-tight tracking-tight">
-                {tenantTitle}
-              </p>
-              {business?.name && business.name !== tenantTitle ? (
-                <p className="truncate text-[11px] leading-none text-muted-foreground">
-                  {business.name}
-                </p>
-              ) : null}
-            </div>
-          </div>
-          {/* Mobile branch + type indicator */}
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            {currentBranch ? (
-              <span className="truncate max-w-[6rem] sm:max-w-[7rem]">
-                {currentBranch.name}
-              </span>
-            ) : null}
-            {currentItemType ? (
-              <span className="hidden sm:inline truncate max-w-[7rem] border-l border-border/50 pl-2">
-                {currentItemType.label}
-              </span>
-            ) : null}
-          </div>
-          {/* User avatar */}
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            aria-label="Open menu"
-            className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted text-sm font-semibold text-muted-foreground",
-              "hover:bg-accent transition-colors active:scale-95",
-            )}
-          >
-            {userInitial}
-          </button>
-        </header>
+        <div className={tabletChromeVisible}>
+          <TabletAppHeader
+            tenantTitle={tenantTitle}
+            businessName={business?.name}
+            logoUrl={business?.branding?.logoUrl}
+            faviconUrl={business?.branding?.faviconUrl}
+            primaryColor={business?.branding?.primaryColor}
+            branchName={currentBranch?.name}
+            departmentName={currentItemType?.label}
+            userInitial={userInitial}
+            canReadNotifications={canReadNotifications}
+            onOpenMore={() => setMoreOpen(true)}
+          />
+        </div>
 
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
 
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main
           className={cn(
-            "relative min-h-0 flex-1 overflow-y-auto p-4 pb-28",
-            // Restore the roomier desktop padding once the sidebar takes
-            // over: at md+ for normal roles, at xl+ for grocery clerks
-            // (since they keep the bottom-nav layout through iPad sizes).
-            kioskMainPadding,
+            "tablet-app-main relative min-h-0 flex-1 overflow-y-auto",
+            mainContentPadding,
           )}
         >
           {IS_DESKTOP ? <DesktopReadOnlyOverlay /> : null}
           {children}
         </main>
 
-        {/* ── Bottom nav — visible below md for normal roles and below xl
-            for grocery clerks (so iPads/tablets keep the POS-friendly
-            bottom nav and only true desktops hide it). ── */}
-        <nav
-          aria-label="Main navigation"
-          className={cn(
-            "fixed bottom-0 inset-x-0 z-40",
-            kioskMobileVisible,
-            "border-t border-border/40 bg-background/95 backdrop-blur-xl",
-            "shadow-[0_-1px_0_0_hsl(var(--border)/0.5),0_-8px_32px_-8px_hsl(var(--foreground)/0.08)]",
-            "pb-[env(safe-area-inset-bottom,0px)]",
-          )}
-        >
-          <div className="flex items-center justify-around px-2 py-1">
-            {visibleBottomTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isMoreTab = tab.id === "more";
-              const isActive = activeBottomTabId === tab.id;
+        <div className={tabletChromeVisible}>
+          <TabletBottomNav
+            tabs={visibleBottomTabs}
+            activeTabId={activeBottomTabId}
+            onMore={() => setMoreOpen(true)}
+          />
+        </div>
 
-              if (isMoreTab) {
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setMoreOpen(true)}
-                    aria-label={tab.label}
-                    className={cn(
-                      "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-8 items-center justify-center rounded-xl transition-colors",
-                        isActive && "bg-primary/10 text-primary",
-                      )}
-                    >
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              }
-
-              return (
-                <Link
-                  key={tab.id}
-                  href={tab.href ?? "#"}
-                  className={cn(
-                    "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-xl transition-colors",
-                      isActive && "bg-primary/10 text-primary",
-                    )}
-                  >
-                    <Icon className="size-4" aria-hidden />
-                  </span>
-                  <span>{tab.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* ── "More" drawer — same visibility envelope as the bottom nav. ── */}
-        {moreOpen ? (
-          <div
-            className={cn(
-              "fixed inset-0 z-50 flex flex-col bg-background",
-              kioskMobileVisible,
-            )}
-          >
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <span className="text-sm font-semibold">More</span>
-              <button
-                type="button"
-                onClick={() => setMoreOpen(false)}
-                className="flex size-8 items-center justify-center rounded-full hover:bg-muted"
-                aria-label="Close menu"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* User info */}
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-foreground text-background text-sm font-bold">
-                  {userInitial}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{userDisplayName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {me?.email?.trim() && me.email !== userDisplayName
-                      ? me.email
-                      : business?.name}
-                  </p>
-                </div>
-              </div>
-
-              {/* Branch & item type selectors on mobile */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Branch
-                  </label>
-                  {!isStockManager && !isCashier && !isGroceryClerk && isOwner ? (
-                    <select
-                      className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                      value={branchId}
-                      onChange={(e) => setBranchId(e.target.value)}
-                      disabled={branchesLoading || branches.length === 0}
-                      aria-label="Select branch"
-                    >
-                      {branches.length === 0 ? (
-                        <option value="">
-                          {branchesLoading ? "Loading…" : "No branches"}
-                        </option>
-                      ) : (
-                        <>
-                          {!branchId ? (
-                            <option value="">Select branch…</option>
-                          ) : null}
-                          {branches.map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.name}
-                            </option>
-                          ))}
-                        </>
-                      )}
-                    </select>
-                  ) : currentBranch ? (
-                    <span
-                      className={cn(
-                        "mt-1 flex w-full items-center gap-1.5 rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium text-muted-foreground",
-                        (isStockManager || isCashier || isGroceryClerk) &&
-                          "cursor-not-allowed",
-                      )}
-                      title={
-                        isStockManager || isCashier || isGroceryClerk
-                          ? "Branch switching is disabled for your role"
-                          : undefined
-                      }
-                    >
-                      {isStockManager || isCashier || isGroceryClerk ? (
-                        <Lock className="size-3.5 shrink-0" aria-hidden />
-                      ) : (
-                        <MapPin className="size-3.5 shrink-0" aria-hidden />
-                      )}
-                      {currentBranch.name}
-                    </span>
-                  ) : null}
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Department
-                  </label>
-                  <select
-                    className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                    value={itemTypeId}
-                    onChange={(e) => setItemTypeId(e.target.value)}
-                    disabled={itemTypesLoading || itemTypes.length === 0}
-                    aria-label="Select department"
-                  >
-                    {itemTypes.length === 0 ? (
-                      <option value="">
-                        {itemTypesLoading ? "Loading…" : "No departments"}
-                      </option>
-                    ) : (
-                      <>
-                        {!itemTypeId ? (
-                          <option value="">Select department…</option>
-                        ) : null}
-                        {itemTypes.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.label}
-                            {t.isDefault ? " ★" : ""}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              {/* Navigation sections */}
-              {isStockManager || isCashier || isGroceryClerk ? (
-                <div className="space-y-0.5">
-                  {visibleSections
-                    .flatMap((s) => s.items)
-                    .map((item) => {
-                      const active = itemIsActive(pathname, item.href);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setMoreOpen(false)}
-                          className={cn(
-                            "block rounded-md px-3 py-2 text-sm transition-colors",
-                            active
-                              ? "bg-accent font-medium text-accent-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                          )}
-                        >
-                          {item.label}
-                        </Link>
-                      );
-                    })}
-                </div>
-              ) : (
-                visibleSections.map((section) => (
-                  <div key={section.id}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                      {section.title}
-                    </p>
-                    <div className="space-y-0.5">
-                      {section.items.map((item) => {
-                        const active = itemIsActive(pathname, item.href);
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setMoreOpen(false)}
-                            className={cn(
-                              "block rounded-md px-3 py-2 text-sm transition-colors",
-                              active
-                                ? "bg-accent font-medium text-accent-foreground"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            )}
-                          >
-                            {item.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {/* Logout */}
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={onLogout}
-              >
-                <LogOut className="size-4" aria-hidden />
-                Log out
-              </Button>
-            </div>
-          </div>
-        ) : null}
+        <div className={tabletChromeVisible}>
+          <TabletMoreSheet
+            open={moreOpen}
+            onClose={() => setMoreOpen(false)}
+            userDisplayName={userDisplayName}
+            userEmail={me?.email}
+            tenantTitle={tenantTitle}
+            userInitial={userInitial}
+            primaryColor={business?.branding?.primaryColor}
+            sections={visibleSections}
+            pathname={pathname}
+            branchName={currentBranch?.name}
+            branchLocked={isStockManager || isCashier || isGroceryClerk}
+            branches={branches}
+            branchId={branchId}
+            branchesLoading={branchesLoading}
+            onBranchChange={setBranchId}
+            showBranchPicker={
+              !isStockManager &&
+              !isCashier &&
+              !isGroceryClerk &&
+              multiBranch
+            }
+            itemTypes={itemTypes}
+            itemTypeId={itemTypeId}
+            itemTypesLoading={itemTypesLoading}
+            onItemTypeChange={setItemTypeId}
+            onLogout={onLogout}
+            itemIsActive={itemIsActive}
+            compactNav={isStockManager || isCashier || isGroceryClerk}
+          />
+        </div>
       </div>
     </div>
   );
