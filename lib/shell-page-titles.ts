@@ -43,8 +43,12 @@ export function shellPageTitle(pathname: string): string {
   if (exact[path]) return exact[path];
 
   if (path.startsWith(APP_ROUTES.products)) return "Products";
-  if (path.startsWith(APP_ROUTES.inventory)) return "Inventory";
-  if (path.startsWith(APP_ROUTES.purchasing)) return "Purchasing";
+  if (path.startsWith("/inventory")) return "Inventory";
+  if (
+    path.startsWith("/purchasing") ||
+    path.startsWith(APP_ROUTES.purchasingAddSupplies)
+  )
+    return "Purchasing";
   if (path.startsWith(APP_ROUTES.sales)) return "Sales";
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";
