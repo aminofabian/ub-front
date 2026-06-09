@@ -338,36 +338,25 @@ export default function ProductsPage() {
                 onBulkDelete={m.onBulkDeleteSelected}
               />
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
-                <div
-                  className={cn(
-                    "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]",
-                  )}
-                >
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
                   {D ? (
-                    <>
-                      <div className="shrink-0 border-b border-border/50 bg-muted/35 px-3 py-2 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/25 dark:ring-white/[0.04] sm:px-3.5">
-                        <h2 className="text-xs font-semibold tracking-tight text-foreground">
-                          Product details
-                        </h2>
-                      </div>
-                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:px-3.5 sm:py-3">
-                        <ProductDetailPanel {...p} />
-                      </div>
-                    </>
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:px-3.5 sm:py-3">
+                      <ProductDetailPanel {...p} />
+                    </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
-                      <div className="flex size-16 items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-primary/[0.04]">
-                        <MousePointerClick className="size-8 text-primary/70" />
+                    <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+                      <div className="flex size-12 items-center justify-center rounded-lg border border-dashed border-border bg-muted/50">
+                        <MousePointerClick className="size-6 text-muted-foreground" />
                       </div>
-                      <p className="text-sm font-semibold">
-                        Choose something from the catalog
+                      <p className="text-sm text-muted-foreground">
+                        Select a product from the list
                       </p>
                       <Button
                         type="button"
                         variant="default"
                         disabled={catalog.itemTypes.length === 0}
                         onClick={() => setActiveDrawer("create-parent")}
-                        className="gap-2 rounded-xl shadow-sm"
+                        className="gap-2"
                       >
                         <PackagePlus className="size-4" /> New product
                       </Button>

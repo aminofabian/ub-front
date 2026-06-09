@@ -1728,103 +1728,6 @@ button:hover .tenant-monogram-shell {
     animation: pos-cart-pulse 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ── Grocery POS: floating button breathing glow ──────────────────── */
-@keyframes pos-fab-breathe {
-    0%,
-    100% {
-        box-shadow:
-            0 10px 32px -8px color-mix(in oklch, var(--primary) 50%, transparent),
-            0 0 0 0 color-mix(in oklch, var(--primary) 38%, transparent);
-    }
-    50% {
-        box-shadow:
-            0 14px 40px -8px color-mix(in oklch, var(--primary) 60%, transparent),
-            0 0 0 6px color-mix(in oklch, var(--primary) 10%, transparent);
-    }
-}
-
-.animate-pos-fab-breathe {
-    animation: pos-fab-breathe 2.6s ease-in-out infinite;
-}
-
-/* ── Grocery POS: Generate Invoice button ── */
-/* The gradient is defined here as a real CSS rule because Tailwind 4 can't
-   reliably parse arbitrary `bg-[radial-gradient(...)]` values containing
-   commas, `hsl(var(...))`, and hex colors — the rule silently drops and the
-   button renders transparent (we saw this on tablet). Keep the visual identity
-   centralised here so the main cart-panel CTA and the floating dock CTA share
-   the exact same look. */
-.pos-generate {
-    /* `--primary` is stored as a full hex color (#28a745), not an HSL triplet,
-       so we use it directly. Wrapping it in `hsl(...)` would invalidate the
-       gradient and the button would render transparent. */
-    background-image: radial-gradient(
-        140% 120% at 0% 0%,
-        #34c759 0%,
-        var(--primary) 42%,
-        #1f7a36 100%
-    );
-    background-color: var(--primary);
-}
-
-/* Idle state: subtle ambient gradient drift so the surface doesn't feel flat. */
-@keyframes pos-generate-drift {
-    0%,
-    100% {
-        background-position: 0% 0%;
-    }
-    50% {
-        background-position: 12% 8%;
-    }
-}
-
-.pos-generate:not(:disabled) {
-    background-size: 130% 130%;
-    animation: pos-generate-drift 7s ease-in-out infinite;
-}
-
-@keyframes pos-generate-sweep {
-    0% {
-        transform: translateX(0) skewX(-12deg);
-        opacity: 0;
-    }
-    8% {
-        opacity: 1;
-    }
-    55% {
-        opacity: 1;
-    }
-    65% {
-        transform: translateX(640%) skewX(-12deg);
-        opacity: 0;
-    }
-    100% {
-        transform: translateX(640%) skewX(-12deg);
-        opacity: 0;
-    }
-}
-
-.pos-generate .pos-generate-sweep {
-    animation: pos-generate-sweep 5.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-    animation-delay: 1.2s;
-}
-
-/* Hovering speeds the sweep up so the button feels alive when reached for. */
-.pos-generate:hover .pos-generate-sweep {
-    animation-duration: 1.6s;
-    animation-delay: 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .pos-generate .pos-generate-sweep {
-        animation: none;
-        opacity: 0;
-    }
-    .pos-generate:not(:disabled) {
-        animation: none;
-    }
-}
-
 /* ── Grocery POS: product tile "in-cart" count badge pop ──────────── */
 /* The badge has `key={cartQty}` on the React side, so every tap remounts it
    and re-runs this animation — a tiny visual confirmation of each add. */
@@ -1905,7 +1808,6 @@ button:hover .tenant-monogram-shell {
 
 @media (prefers-reduced-motion: reduce) {
     .animate-pos-cart-pulse,
-    .animate-pos-fab-breathe,
     .animate-pos-line-in {
         animation: none;
     }

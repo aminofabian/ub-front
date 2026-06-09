@@ -9,13 +9,8 @@ import {
   Receipt,
   ChevronDown,
   ChevronUp,
-  Banknote,
   X,
-  Wifi,
   WifiOff,
-  Sparkles,
-  ScanLine,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatShelfPriceLabel } from "@/lib/cashier-shelf-price";
@@ -67,16 +62,14 @@ function QuantityStepper({
   min = 1,
   onDecrease,
   onIncrease,
-  bumpKey,
 }: {
   value: number;
   min?: number;
   onDecrease: () => void;
   onIncrease: () => void;
-  bumpKey?: number;
 }) {
   return (
-    <div className="inline-flex select-none items-center rounded-2xl border border-zinc-200 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04),inset_0_1px_0_rgba(255,255,255,0.6)] dark:border-white/10 dark:bg-white/[0.04]">
+    <div className="inline-flex select-none items-center rounded-lg border border-border bg-card p-0.5">
       <button
         type="button"
         onClick={(e) => {
@@ -85,18 +78,15 @@ function QuantityStepper({
         }}
         disabled={value <= min}
         className={cn(
-          "flex size-9 items-center justify-center rounded-xl text-zinc-700 transition-all duration-150 touch-manipulation dark:text-zinc-200",
-          "hover:bg-zinc-100 hover:text-zinc-900 active:scale-90 dark:hover:bg-white/[0.06]",
-          "disabled:opacity-25 disabled:hover:bg-transparent",
+          "flex size-8 items-center justify-center rounded-md text-foreground transition-colors touch-manipulation",
+          "hover:bg-muted active:scale-95",
+          "disabled:opacity-30 disabled:hover:bg-transparent",
         )}
         aria-label="Decrease quantity"
       >
-        <Minus className="size-4" strokeWidth={2.5} />
+        <Minus className="size-3.5" strokeWidth={2.5} />
       </button>
-      <span
-        key={bumpKey ?? value}
-        className="animate-shop-qty-pop flex min-w-[2.75rem] items-center justify-center text-[15px] font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50"
-      >
+      <span className="flex min-w-[2.25rem] items-center justify-center text-sm font-semibold tabular-nums text-foreground">
         {value}
       </span>
       <button
@@ -105,10 +95,10 @@ function QuantityStepper({
           e.stopPropagation();
           onIncrease();
         }}
-        className="flex size-9 items-center justify-center rounded-xl bg-primary text-white transition-all duration-150 touch-manipulation hover:bg-primary/90 active:scale-90 shadow-[0_2px_6px_-1px_rgba(40,167,69,0.35)]"
+        className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors touch-manipulation hover:bg-[var(--primary-hover)] active:scale-95"
         aria-label="Increase quantity"
       >
-        <Plus className="size-4" strokeWidth={2.5} />
+        <Plus className="size-3.5" strokeWidth={2.5} />
       </button>
     </div>
   );
@@ -142,42 +132,24 @@ function CartLineItem({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 px-4 py-3.5 transition-colors duration-150 sm:px-5",
-        "hover:bg-zinc-900/[0.025] dark:hover:bg-white/[0.025]",
-        !isLast && "border-b border-dashed border-zinc-200/80 dark:border-white/[0.06]",
-        isRecentlyAdded && "animate-pos-line-in bg-primary/[0.05]",
+        "flex items-start gap-3 px-4 py-3 sm:px-5",
+        !isLast && "border-b border-border",
+        isRecentlyAdded && "bg-primary/[0.04]",
       )}
     >
-      {/* Line index ribbon */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-r-full transition-colors",
-          isRecentlyAdded ? "bg-primary" : "bg-transparent group-hover:bg-zinc-300 dark:group-hover:bg-white/15",
-        )}
-      />
-
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-[13.5px] font-bold leading-[1.3] text-zinc-900 dark:text-zinc-50">
+        <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
           {line.label}
         </p>
 
-        <p className="mt-1 text-[11px] font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">
-          <span className="text-zinc-600 dark:text-zinc-300">
-            {priceLabel ?? `${currency} ${line.unitPrice.toFixed(2)}`}
-          </span>
-          {line.unitName ? (
-            <span className="text-zinc-400 dark:text-zinc-500">
-              {" "}
-              · {line.unitName}
-            </span>
-          ) : null}
+        <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+          {priceLabel ?? `${currency} ${line.unitPrice.toFixed(2)}`}
+          {line.unitName ? ` · ${line.unitName}` : null}
         </p>
 
-        <div className="mt-2.5">
+        <div className="mt-2">
           <QuantityStepper
             value={line.quantity}
-            bumpKey={line.quantity}
             onDecrease={() =>
               onUpdateLine(line.key, "quantity", Math.max(1, line.quantity - 1))
             }
@@ -188,14 +160,14 @@ function CartLineItem({
         </div>
       </div>
 
-      <div className="flex flex-col items-end gap-2 pt-0.5">
-        <span className="text-[16px] font-extrabold tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50">
+      <div className="flex flex-col items-end gap-1.5 pt-0.5">
+        <span className="text-sm font-semibold tabular-nums text-foreground">
           {totalLabel ?? `${currency} ${lineTotal.toFixed(2)}`}
         </span>
         <button
           type="button"
           onClick={() => onRemoveLine(line.key)}
-          className="flex size-9 items-center justify-center rounded-xl text-zinc-400 transition-all duration-150 touch-manipulation hover:bg-red-50 hover:text-red-600 active:scale-90 dark:text-zinc-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           aria-label="Remove item"
         >
           <Trash2 className="size-3.5" strokeWidth={2.25} />
@@ -234,67 +206,34 @@ export function GroceryInvoiceCart({
       {/* ── Header ── */}
       <div
         className={cn(
-          "relative flex shrink-0 items-center gap-3 border-b border-zinc-200/80 px-4 sm:px-5 dark:border-white/[0.06]",
-          compact ? "pt-1 pb-3.5" : "py-4",
+          "flex shrink-0 items-center gap-3 border-b border-border px-4 sm:px-5",
+          compact ? "pt-1 pb-3" : "py-3",
         )}
       >
-        {/* Receipt-style top edge dots (only when not compact) */}
-        {!compact && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -top-px left-4 right-4 hidden h-px lg:block"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, rgba(15,23,42,0.18) 1px, transparent 1.2px)",
-              backgroundSize: "8px 1px",
-              backgroundRepeat: "repeat-x",
-              backgroundPosition: "0 0",
-            }}
-          />
-        )}
-
-        <div
-          key={pulseSignal}
-          className={cn(
-            "relative flex size-11 shrink-0 items-center justify-center rounded-[14px]",
-            "bg-gradient-to-br from-primary via-emerald-600 to-emerald-700",
-            "ring-1 ring-emerald-500/40 shadow-[0_4px_12px_-2px_rgba(40,167,69,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]",
-            pulseSignal != null && "animate-pos-cart-pulse",
-          )}
-        >
-          <Receipt className="size-[19px] text-white" strokeWidth={2.25} />
+        <div className="relative flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Receipt className="size-4" strokeWidth={2.25} />
           {!isEmpty && (
-            <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.35rem] items-center justify-center rounded-full bg-zinc-900 px-1 text-[10px] font-extrabold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.25)] ring-2 ring-white tabular-nums dark:bg-white dark:text-zinc-900 dark:ring-card">
+            <span className="absolute -right-1.5 -top-1.5 flex min-w-[1.1rem] items-center justify-center rounded-full bg-foreground px-1 text-[9px] font-semibold leading-none text-background tabular-nums">
               {cartItemCount}
             </span>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <h2 className="font-sans truncate text-[16px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-base font-semibold text-foreground">
               Current Sale
             </h2>
             {online === false && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-amber-800 ring-1 ring-amber-300/60 dark:bg-amber-950/60 dark:text-amber-200 dark:ring-amber-800/50">
+              <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 <WifiOff className="size-2.5" />
-                Off
-              </span>
-            )}
-            {online === true && !compact && (
-              <span className="hidden lg:inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/50">
-                <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500">
-                  <span className="absolute inset-0 size-1.5 animate-ping rounded-full bg-emerald-500/70" />
-                </span>
-                Live
+                Offline
               </span>
             )}
           </div>
-          <p className="mt-0.5 truncate text-[11.5px] font-semibold text-zinc-600 dark:text-zinc-300">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {branchName ? branchName : "No branch selected"}
-            {cashierName ? (
-              <span className="text-zinc-400 dark:text-zinc-500"> · {cashierName}</span>
-            ) : null}
+            {cashierName ? ` · ${cashierName}` : null}
           </p>
         </div>
 
@@ -302,7 +241,7 @@ export function GroceryInvoiceCart({
           <button
             type="button"
             onClick={onClearCart}
-            className="hidden sm:inline-flex items-center gap-1 rounded-xl border border-zinc-200/80 bg-white px-2.5 py-1.5 text-[11px] font-bold text-zinc-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-900/40"
+            className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border px-2 py-1.5 text-xs font-medium text-muted-foreground hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
             aria-label="Clear cart"
           >
             <Trash2 className="size-3.5" />
@@ -314,7 +253,7 @@ export function GroceryInvoiceCart({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 active:scale-90 dark:bg-white/[0.06] dark:text-zinc-300 dark:hover:bg-white/[0.1]"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Close cart"
           >
             <X className="size-4" strokeWidth={2.25} />
@@ -325,33 +264,12 @@ export function GroceryInvoiceCart({
       {/* ── Line Items ── */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {isEmpty ? (
-          <div className="relative flex flex-col items-center justify-center px-8 py-16 text-center sm:py-20">
-            {/* Decorative blob */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -top-4 left-1/2 size-48 -translate-x-1/2 rounded-full bg-primary/[0.06] blur-3xl"
-            />
-            <div className="relative mb-5">
-              <div className="absolute inset-0 -m-3 rounded-[2.5rem] bg-primary/[0.05] blur-md" />
-              <div className="relative flex size-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-white via-zinc-50 to-zinc-100 ring-1 ring-zinc-200/80 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85)] dark:from-white/[0.05] dark:via-white/[0.03] dark:to-white/[0.02] dark:ring-white/[0.08]">
-                <ShoppingBasket className="size-10 text-zinc-300 dark:text-white/15" strokeWidth={1.5} />
-              </div>
-              {/* Floating tag */}
-              <span className="absolute -right-2 -top-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-zinc-700 shadow-[0_4px_12px_-2px_rgba(15,23,42,0.15)] ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-white/[0.08]">
-                <ScanLine className="size-2.5" />
-                Ready
-              </span>
-            </div>
-            <p className="text-[16px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Empty cart
+          <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
+            <ShoppingBasket className="mb-3 size-10 text-muted-foreground/40" strokeWidth={1.5} />
+            <p className="text-sm font-medium text-foreground">Empty cart</p>
+            <p className="mt-1 max-w-[18rem] text-xs text-muted-foreground">
+              Tap products to add them, or scan a barcode.
             </p>
-            <p className="mt-2 max-w-[20rem] text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-              Tap products to add them. Scan barcodes for instant entry.
-            </p>
-            <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/15 to-primary/5 px-3.5 py-1.5 text-[11px] font-bold text-primary ring-1 ring-primary/20 dark:from-primary/25 dark:to-primary/10">
-              <Sparkles className="size-3" strokeWidth={2.5} />
-              Ready when you are
-            </div>
           </div>
         ) : (
           <div className="pb-2">
@@ -372,204 +290,91 @@ export function GroceryInvoiceCart({
 
       {/* ── Footer: Totals + Generate ── */}
       {!isEmpty && (
-        <div
-          className={cn(
-            "relative shrink-0 border-t border-zinc-200/80 dark:border-white/[0.06]",
-            "bg-white/85 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75",
-            "dark:bg-background/85 dark:supports-[backdrop-filter]:bg-background/70",
-          )}
-        >
-          {/* Receipt-style perforation at top of footer */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -top-px left-4 right-4 h-px"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, rgba(15,23,42,0.18) 1px, transparent 1.2px)",
-              backgroundSize: "8px 1px",
-              backgroundRepeat: "repeat-x",
-              backgroundPosition: "0 0",
-            }}
-          />
-
-          {/* Order summary toggle */}
+        <div className="shrink-0 border-t border-border bg-background">
           <div className="px-4 pt-3 sm:px-5">
             <button
               type="button"
               onClick={() => setShowTotalsBreakdown(!showTotalsBreakdown)}
-              className="flex w-full items-center justify-between rounded-xl py-1.5 text-[12px] transition-colors hover:bg-zinc-100/50 active:scale-[0.99] dark:hover:bg-white/[0.04]"
+              className="flex w-full items-center justify-between py-1 text-xs text-muted-foreground hover:text-foreground"
               aria-expanded={showTotalsBreakdown}
             >
-              <span className="font-bold uppercase tracking-[0.06em] text-zinc-500 dark:text-zinc-400">
-                Order Summary
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
-                <span className="text-[11px] font-bold tabular-nums">
+              <span className="font-medium">Summary</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="tabular-nums">
                   {cartItemCount} item{cartItemCount === 1 ? "" : "s"}
                 </span>
                 {showTotalsBreakdown ? (
-                  <ChevronUp className="size-3.5" strokeWidth={2.5} />
+                  <ChevronUp className="size-3.5" />
                 ) : (
-                  <ChevronDown className="size-3.5" strokeWidth={2.5} />
+                  <ChevronDown className="size-3.5" />
                 )}
               </span>
             </button>
 
             {showTotalsBreakdown && (
-              <div className="mt-2 space-y-2 animate-in slide-in-from-top-1 fade-in duration-200">
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-zinc-600 dark:text-zinc-400">Subtotal</span>
-                  <span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
+              <div className="mt-2 space-y-2 pb-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium tabular-nums text-foreground">
                     {formatShelfPriceLabel(subtotal, currency) ??
                       `${currency} ${subtotal.toFixed(2)}`}
                   </span>
                 </div>
                 {subtotal !== grandTotal && (
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-zinc-600 dark:text-zinc-400">Discount</span>
-                    <span className="font-bold tabular-nums text-red-600 dark:text-red-400">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Discount</span>
+                    <span className="font-medium tabular-nums text-destructive">
                       −
                       {formatShelfPriceLabel(subtotal - grandTotal, currency) ??
                         `${currency} ${(subtotal - grandTotal).toFixed(2)}`}
                     </span>
                   </div>
                 )}
-                <div className="h-px bg-zinc-200/80 dark:bg-white/[0.06]" />
+                <div className="h-px bg-border" />
               </div>
             )}
           </div>
 
-          {/* Grand total + generate */}
-          <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-5">
-            <div className="mb-3 flex items-end justify-between rounded-2xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 to-white px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:from-white/[0.04] dark:to-white/[0.02] dark:border-white/[0.08]">
-              <div className="flex flex-col">
-                <span className="text-[10.5px] font-extrabold uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">
-                  Total Due
-                </span>
-                <span className="mt-1 text-[10.5px] font-medium text-zinc-500 dark:text-zinc-500">
-                  Tax included
-                </span>
-              </div>
-              <span className="text-[28px] font-extrabold tabular-nums leading-none tracking-tight text-zinc-900 dark:text-zinc-50">
+          <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-1 sm:px-5">
+            <div className="mb-3 flex items-end justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+              <span className="text-xs text-muted-foreground">Total</span>
+              <span className="text-2xl font-semibold tabular-nums text-foreground">
                 {formatShelfPriceLabel(grandTotal, currency) ??
                   `${currency} ${grandTotal.toFixed(2)}`}
               </span>
             </div>
 
-            {/* Generate Invoice Button — receipt-printer themed CTA */}
+            {/* Generate Invoice */}
             <button
               type="button"
               onClick={onGenerate}
               disabled={loading || isEmpty}
               className={cn(
-                "pos-generate group relative isolate flex w-full items-stretch overflow-hidden rounded-2xl text-left text-white",
-                "shadow-[0_14px_40px_-10px_rgba(34,140,55,0.55),0_2px_8px_-2px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.18)]",
-                "ring-1 ring-emerald-600/40",
-                "transition-[transform,box-shadow,filter] duration-300 ease-out",
-                "hover:shadow-[0_22px_56px_-10px_rgba(34,140,55,0.65),0_0_0_5px_rgba(34,140,55,0.14),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.18)]",
-                "hover:saturate-[1.05]",
-                "active:scale-[0.985] active:shadow-[0_6px_18px_rgba(34,140,55,0.45),inset_0_1px_0_rgba(255,255,255,0.2)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf8f4] dark:focus-visible:ring-offset-background",
-                "touch-manipulation select-none",
-                loading && "pointer-events-none opacity-90",
-                isEmpty && "pointer-events-none opacity-50",
-                !loading && !isEmpty && "animate-pos-fab-breathe",
+                "flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm",
+                "transition-colors hover:bg-[var(--primary-hover)] active:scale-[0.98]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none disabled:opacity-50",
               )}
             >
-              {/* Top hairline highlight */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
-              />
-              {/* Bottom hairline shadow */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-black/25 to-transparent"
-              />
-              {/* Soft side spotlights */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -left-10 top-1/2 size-32 -translate-y-1/2 rounded-full bg-white/15 blur-2xl"
-              />
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -right-12 bottom-0 size-32 rounded-full bg-emerald-900/30 blur-2xl"
-              />
-              {/* Diagonal sweep — slides across on hover and slowly on idle */}
-              <span
-                aria-hidden
-                className="pos-generate-sweep pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent"
-              />
-              {/* Receipt-strip perforation along the bottom edge */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-4 bottom-[3px] h-px opacity-70"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(circle, rgba(255,255,255,0.65) 1px, transparent 1.2px)",
-                  backgroundSize: "8px 1px",
-                  backgroundRepeat: "repeat-x",
-                  backgroundPosition: "0 0",
-                }}
-              />
-
-              {/* ── Left rail: icon column ── */}
-              <span className="relative z-[1] flex w-14 shrink-0 items-center justify-center border-r border-white/15 bg-white/[0.07] backdrop-blur-[2px]">
-                {loading ? (
-                  <span className="size-[18px] animate-spin rounded-full border-[2.5px] border-white/30 border-t-white" />
-                ) : (
-                  <span className="relative flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
-                    <Receipt
-                      className="size-[19px] drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105 group-active:scale-95"
-                      strokeWidth={2.25}
-                    />
-                  </span>
-                )}
-              </span>
-
-              {/* ── Main label column ── */}
-              <span className="relative z-[1] flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3.5 py-3.5 sm:px-4">
-                {loading ? (
-                  <>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
-                      Working…
+              {loading ? (
+                <>
+                  <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                  Processing…
+                </>
+              ) : (
+                <>
+                  <Receipt className="size-4" strokeWidth={2.25} />
+                  Generate Invoice
+                  {cartItemCount > 0 ? (
+                    <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs font-bold tabular-nums">
+                      {cartItemCount}
                     </span>
-                    <span className="truncate text-[15px] font-extrabold tracking-tight text-white sm:text-[15.5px]">
-                      Creating invoice
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-white/85 sm:text-[9.5px] sm:tracking-[0.16em]">
-                      <span className="relative inline-flex size-1.5 rounded-full bg-white/95">
-                        <span className="absolute inset-0 inline-flex size-1.5 animate-ping rounded-full bg-white/70" />
-                      </span>
-                      <span className="truncate">Ready · Tap to print</span>
-                    </span>
-                    <span className="truncate text-[15px] font-extrabold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.18)] sm:text-[15.5px]">
-                      Generate Invoice
-                    </span>
-                  </>
-                )}
-              </span>
-
-              {/* ── Right rail: count + arrow ── */}
-              {!loading && (
-                <span className="relative z-[1] flex shrink-0 items-center gap-2 pr-4">
-                  <span className="flex h-7 min-w-[1.9rem] items-center justify-center gap-1 rounded-full bg-white/22 px-2 text-[11.5px] font-extrabold tabular-nums text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.12)] ring-1 ring-white/25">
-                    <ShoppingBasket className="size-3" strokeWidth={2.5} />
-                    {cartItemCount}
-                  </span>
-                  <span className="flex size-7 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:bg-white/25 group-active:scale-90">
-                    <ArrowRight className="size-3.5" strokeWidth={2.75} />
-                  </span>
-                </span>
+                  ) : null}
+                </>
               )}
             </button>
 
-            {/* Payment hint */}
-            <p className="mt-2.5 flex items-center justify-center gap-1.5 text-center text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
-              <Banknote className="size-3" strokeWidth={2.25} />
+            <p className="mt-2 text-center text-xs text-muted-foreground">
               Customer pays at the cashier
             </p>
           </div>

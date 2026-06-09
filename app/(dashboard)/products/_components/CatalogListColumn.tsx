@@ -70,31 +70,18 @@ export function CatalogListColumn({
   return (
     <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-2 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
       <div className={catalogListToolbarClass}>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
-              Catalog
-            </h2>
-            <p className={catalogListToolbarMetaClass}>
-              <span className="tabular-nums font-semibold text-foreground">
-                {catalog.listTotalElements.toLocaleString()}
-              </span>{" "}
-              in view
-              {loadedHint ? (
-                <span className="text-muted-foreground"> · {loadedHint}</span>
-              ) : null}
-            </p>
-          </div>
+        <p className={catalogListToolbarMetaClass}>
+          <span className="tabular-nums font-medium text-foreground">
+            {catalog.listTotalElements.toLocaleString()}
+          </span>{" "}
+          in view
+          {loadedHint ? (
+            <span className="text-muted-foreground"> · {loadedHint}</span>
+          ) : null}
           {filtersActive ? (
-            <p className="text-[11px] text-muted-foreground">
-              Filters applied — adjust in the sidebar or search
-            </p>
-          ) : (
-            <p className="hidden text-[11px] text-muted-foreground sm:block">
-              Parents, variants, and packages in one list
-            </p>
-          )}
-        </div>
+            <span className="text-muted-foreground"> · filtered</span>
+          ) : null}
+        </p>
         <div className="flex shrink-0 items-center gap-1.5">
           <span
             className="mr-0.5 hidden items-center gap-1 text-[10px] text-muted-foreground lg:inline-flex"
