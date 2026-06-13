@@ -65,7 +65,7 @@ export function StockTakeSearchResults({
       ) : null}
 
       {searching ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-muted/20 py-10 text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-muted/20 py-8 text-sm text-muted-foreground">
           <span
             className="size-4 animate-pulse rounded-full bg-primary/40"
             aria-hidden
@@ -73,7 +73,7 @@ export function StockTakeSearchResults({
           Searching catalog…
         </div>
       ) : items.length > 0 ? (
-        <ul className="max-h-72 space-y-2 overflow-auto pr-0.5">
+        <ul className="max-h-60 space-y-1.5 overflow-auto pr-0.5">
           {items.map((item) => {
             const status = getLineStatus(checklistLines, item.id);
             const existingLine = getLineByItemId(checklistLines, item.id);

@@ -16,6 +16,7 @@ import {
   Pencil,
   PencilLine,
   Save,
+  Star,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -146,6 +147,11 @@ type Props = {
   onOpenChangeItemType?: () => void;
   /** Human-friendly label of the product's current department (item type). */
   itemTypeLabel?: string;
+  isStorefrontFeatured?: boolean;
+  canManageFeatured?: boolean;
+  featuredBusy?: boolean;
+  featuredAtCapacity?: boolean;
+  onToggleFeatured?: () => void;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -217,6 +223,11 @@ export function ProductDetailPanel(props: Props) {
     onOpenBaseStock,
     onOpenChangeItemType,
     itemTypeLabel,
+    isStorefrontFeatured = false,
+    canManageFeatured = false,
+    featuredBusy = false,
+    featuredAtCapacity = false,
+    onToggleFeatured,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -227,6 +238,10 @@ export function ProductDetailPanel(props: Props) {
   const [variantsOpen, setVariantsOpen] = useState(true);
 
   const panelKind = detailPanelKind(detail, variantRows.length);
+  const canToggleFeatured =
+    canManageFeatured &&
+    !!onToggleFeatured &&
+    (panelKind === "standalone" || panelKind === "variant");
   const canAddPackageSales =
     canCatalogWrite && panelKind !== "group" && !!onOpenPackageSales;
   const panelTone = detailPanelTone(panelKind);
@@ -533,6 +548,12 @@ export function ProductDetailPanel(props: Props) {
                   Online
                 </span>
               )}
+              {isStorefrontFeatured && (
+                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200">
+                  <Star className="size-2.5 fill-current" aria-hidden />
+                  Featured
+                </span>
+              )}
               {sharedStock && (
                 <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
                   <Boxes className="size-2.5" aria-hidden />
@@ -621,6 +642,37 @@ export function ProductDetailPanel(props: Props) {
             <span className="truncate">
               {itemTypeLabel ? `Dept: ${itemTypeLabel}` : "Department"}
             </span>
+          </Button>
+        ) : null}
+        {canToggleFeatured ? (
+          <Button
+            type="button"
+            variant={isStorefrontFeatured ? "secondary" : "outline"}
+            className="h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm"
+            disabled={
+              featuredBusy || (!isStorefrontFeatured && featuredAtCapacity)
+            }
+            onClick={onToggleFeatured}
+            title={
+              isStorefrontFeatured
+                ? "Remove from storefront featured list"
+                : featuredAtCapacity
+                  ? "Featured list is full (max 12)"
+                  : "Pin on your public storefront home"
+            }
+          >
+            {featuredBusy ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Star
+                className={cn(
+                  "size-3.5",
+                  isStorefrontFeatured && "fill-current text-amber-600",
+                )}
+                aria-hidden
+              />
+            )}
+            {isStorefrontFeatured ? "Remove featured" : "Add to featured"}
           </Button>
         ) : null}
         {!detail.variantOfItemId && canCatalogWrite ? (

@@ -19,6 +19,7 @@ import { useCatalogList } from "./_hooks/useCatalogList";
 import { useProductDetail } from "./_hooks/useProductDetail";
 import { useQuickEdit } from "./_hooks/useQuickEdit";
 import { useProductMutations } from "./_hooks/useProductMutations";
+import { useStorefrontFeatured } from "./_hooks/useStorefrontFeatured";
 import { CatalogListColumn } from "./_components/CatalogListColumn";
 import { ProductDetailPanel } from "./_components/ProductDetailPanel";
 import { ProductHeroHeader } from "./_components/ProductHeroHeader";
@@ -70,6 +71,7 @@ export default function ProductsPage() {
 
   const catalog = useCatalogList(branchId);
   const detail = useProductDetail(branchId);
+  const featured = useStorefrontFeatured(catalog.setMessage);
   const quick = useQuickEdit({
     selectedId: detail.selectedId,
     detail: detail.detail,
@@ -300,6 +302,15 @@ export default function ProductsPage() {
     itemTypeLabel:
       catalog.itemTypes.find((t) => t.id === D?.itemTypeId)?.label?.trim() ||
       undefined,
+    isStorefrontFeatured: D?.id
+      ? featured.isFeatured(D.id)
+      : false,
+    canManageFeatured: featured.canManageFeatured,
+    featuredBusy: featured.featuredBusy,
+    featuredAtCapacity: featured.featuredAtCapacity,
+    onToggleFeatured: D?.id
+      ? () => void featured.toggleFeatured(D.id)
+      : undefined,
   };
 
   return (

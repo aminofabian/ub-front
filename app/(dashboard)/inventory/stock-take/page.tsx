@@ -6,10 +6,14 @@ import {
   ArrowRightLeft,
   BarChart3,
   ClipboardList,
+  Layers,
   MapPin,
+  Package,
+  PackageX,
   Plus,
   ScanLine,
   Search,
+  Warehouse,
   CheckCircle2,
   Clock,
   Trash2,
@@ -18,9 +22,10 @@ import {
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
-  DashboardFeedback,
   DashboardPageHero,
   DashboardQuickLinks,
+  dashboardInputClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { Button } from "@/components/ui/button";
@@ -527,6 +532,68 @@ export default function StockTakePage() {
     [checklistLines],
   );
 
+  const stockTakeQuickLinks = useMemo(
+    () => [
+      {
+        href: APP_ROUTES.inventoryStock,
+        label: "Stock",
+        desc: "On-hand",
+        icon: Warehouse,
+      },
+      {
+        href: APP_ROUTES.inventoryRestock,
+        label: "Out of stock",
+        desc: "Restock",
+        icon: PackageX,
+      },
+      {
+        href: APP_ROUTES.inventorySupplyBatches,
+        label: "Supply batches",
+        desc: "Cost layers",
+        icon: Layers,
+      },
+      {
+        href: APP_ROUTES.inventoryValuation,
+        label: "Valuation",
+        desc: "Value on hand",
+        icon: BarChart3,
+      },
+      {
+        href: APP_ROUTES.inventoryTransfers,
+        label: "Transfers",
+        desc: "Move stock",
+        icon: ArrowRightLeft,
+      },
+      {
+        href: APP_ROUTES.products,
+        label: "Products",
+        desc: "Catalog",
+        icon: Package,
+      },
+      ...(canApprove
+        ? [
+            {
+              href: `${APP_ROUTES.inventoryStockTake}?review=1`,
+              label: "Reviews",
+              desc: "Pending counts",
+              icon: ClipboardList,
+            },
+          ]
+        : []),
+      ...(isBranchLockedRole
+        ? []
+        : [
+            {
+              href: APP_ROUTES.branches,
+              label: "Branches",
+              desc: "Locations",
+              icon: MapPin,
+            },
+          ]),
+    ],
+    [canApprove, isBranchLockedRole],
+  );
+
   // ── Permissions guard
   if (!allowed) {
     return (
@@ -548,91 +615,55 @@ export default function StockTakePage() {
   if (!session) {
     return (
       <div className={DASHBOARD_MAX}>
-        <div className="space-y-8">
-          <header className="space-y-4">
+        <div className="space-y-4">
+          <header className="space-y-2 border-b border-border/50 pb-4">
             <DashboardPageHero
+              compact
               icon={ClipboardList}
               eyebrow="Inventory"
               title="Stock take"
-              description="Count physical inventory against system records."
+              description="Count physical stock against system records."
             />
-            <DashboardQuickLinks
-              links={[
-                ...(canApprove
-                  ? [
-                      {
-                        href: `${APP_ROUTES.inventoryStockTake}?review=1`,
-                        label: "Pending Reviews",
-                        desc: "Approve submitted counts",
-                        icon: ClipboardList,
-                      },
-                    ]
-                  : []),
-                {
-                  href: APP_ROUTES.inventoryValuation,
-                  label: "Valuation",
-                  desc: "Value on hand",
-                  icon: BarChart3,
-                },
-                {
-                  href: APP_ROUTES.inventoryTransfers,
-                  label: "Transfers",
-                  desc: "Move stock",
-                  icon: ArrowRightLeft,
-                },
-                ...(isBranchLockedRole
-                  ? []
-                  : [
-                      {
-                        href: APP_ROUTES.branches,
-                        label: "Branches",
-                        desc: "Locations",
-                        icon: MapPin,
-                      },
-                    ]),
-              ]}
-            />
+            <DashboardQuickLinks compact links={stockTakeQuickLinks} />
           </header>
 
           {hasStaleSession ? (
-            <DashboardFeedback
-              kind="error"
-              text={`⚠️ You have an open stocktake from ${staleSessionDate ?? "a previous date"}. Contact an admin to close it before starting a new one.`}
-            />
+            <p className="text-xs text-destructive">
+              Open stocktake from {staleSessionDate ?? "a previous date"} — contact
+              an admin to close it before starting a new session.
+            </p>
           ) : null}
 
           {isBranchLockedRole && !me?.branchId?.trim() ? (
-            <DashboardFeedback
-              kind="error"
-              text="Your account is not assigned to a branch. Contact your administrator before starting a stock take."
-            />
+            <p className="text-xs text-destructive">
+              Your account is not assigned to a branch. Contact your administrator.
+            </p>
           ) : null}
 
           {canRun ? (
-            <div className="space-y-4 rounded-lg border bg-card p-6 shadow-sm">
-              <h3 className="text-lg font-semibold">Open New Session</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Session Type
-                  </span>
+            <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+              <p className="text-xs font-semibold text-foreground">New session</p>
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
+                  <span className="text-muted-foreground">Type</span>
                   <select
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
                     value={selSessionType}
                     onChange={(e) =>
                       setSelSessionType(e.target.value as "morning" | "evening")
                     }
                   >
-                    <option value="morning">🌅 Morning</option>
-                    <option value="evening">🌙 Evening</option>
+                    <option value="morning">Morning</option>
+                    <option value="evening">Evening</option>
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Branch
-                  </span>
+                <label className="flex min-w-[10rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[11rem]">
+                  <span className="text-muted-foreground">Branch</span>
                   <select
-                    className="rounded-md border bg-background px-3 py-2 text-sm"
+                    className={cn(
+                      dashboardSelectClass(),
+                      "h-9 py-1.5 text-sm disabled:opacity-60",
+                    )}
                     value={selBranchId}
                     disabled={isBranchLockedRole}
                     onChange={(e) => setSelBranchId(e.target.value)}
@@ -651,50 +682,53 @@ export default function StockTakePage() {
                       ))}
                   </select>
                 </label>
+                <label className="flex min-w-[10rem] flex-[2] flex-col gap-0.5 text-xs">
+                  <span className="text-muted-foreground">Notes</span>
+                  <input
+                    className={cn(dashboardInputClass(), "h-9 py-1.5 text-sm")}
+                    placeholder="Optional…"
+                    value={startNotes}
+                    onChange={(e) => setStartNotes(e.target.value)}
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  className="h-9 shrink-0"
+                  disabled={
+                    loading ||
+                    !selBranchId.trim() ||
+                    (isBranchLockedRole && !me?.branchId?.trim())
+                  }
+                  onClick={onStartSession}
+                >
+                  {loading ? "Starting…" : "Start session"}
+                </Button>
               </div>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Notes (optional)
-                </span>
-                <input
-                  className="rounded-md border bg-background px-3 py-2 text-sm"
-                  placeholder="e.g. Counting aisles 1-4"
-                  value={startNotes}
-                  onChange={(e) => setStartNotes(e.target.value)}
-                />
-              </label>
-              <Button
-                disabled={
-                  loading ||
-                  !selBranchId.trim() ||
-                  (isBranchLockedRole && !me?.branchId?.trim())
-                }
-                onClick={onStartSession}
-                className="w-full sm:w-auto"
-              >
-                Start Session
-              </Button>
             </div>
           ) : (
-            <DashboardFeedback
-              kind="error"
-              text="You do not have permission to start a stocktake session."
-            />
+            <p className="text-xs text-destructive">
+              You do not have permission to start a stocktake session.
+            </p>
           )}
 
-          {/* Admin: pending sessions to review */}
           {canApprove ? (
-            <div className="space-y-3 rounded-lg border bg-card p-6 shadow-sm">
-              <h3 className="text-lg font-semibold">Pending Reviews</h3>
-              <p className="text-sm text-muted-foreground">
-                Sessions waiting for your approval.
-              </p>
+            <div className="overflow-hidden rounded-xl border border-border/60">
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
+                <h2 className="text-xs font-semibold sm:text-sm">
+                  Pending reviews
+                </h2>
+                {!sessionsLoading ? (
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {pendingSessions.length}
+                  </span>
+                ) : null}
+              </div>
               {sessionsLoading ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="px-3 py-8 text-center text-sm text-muted-foreground">
                   Loading…
                 </p>
               ) : pendingSessions.length > 0 ? (
-                <div className="max-h-64 overflow-auto rounded-md border">
+                <div className="max-h-56 divide-y divide-border/60 overflow-auto">
                   {pendingSessions.map((s) => {
                     const pendingCount = s.lines.filter(
                       (l) => l.status === "submitted",
@@ -706,42 +740,40 @@ export default function StockTakePage() {
                     return (
                       <div
                         key={s.id}
-                        className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b last:border-0 transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30"
                       >
                         <Link
                           href={`/inventory/stock-take/review/${s.id}`}
-                          className="flex-1 min-w-0 flex items-center justify-between"
+                          className="flex min-w-0 flex-1 items-center justify-between gap-2"
                         >
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                               {s.sessionNumber > 0 ? (
-                                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-medium">
+                                <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-[10px] font-medium">
                                   #{s.sessionNumber}
                                 </span>
                               ) : null}
-                              <span className="truncate font-medium">
+                              <span className="truncate text-sm font-medium">
                                 {s.name}
                               </span>
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <p className="truncate text-[11px] text-muted-foreground">
                               {s.branchId}
-                              {s.startedBy
-                                ? ` · Started by ${s.startedBy}`
-                                : ""}
-                            </div>
+                              {s.startedBy ? ` · ${s.startedBy}` : ""}
+                            </p>
                           </div>
-                          <div className="ml-4 flex shrink-0 items-center gap-3 text-xs">
+                          <div className="flex shrink-0 items-center gap-1.5 text-[10px]">
                             <span className="text-muted-foreground">
-                              {totalCount} items
+                              {totalCount}
                             </span>
                             {pendingCount > 0 ? (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                                 {pendingCount} pending
                               </span>
                             ) : null}
                             {confirmedCount > 0 ? (
-                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                                {confirmedCount} confirmed
+                              <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                {confirmedCount} ok
                               </span>
                             ) : null}
                           </div>
@@ -751,15 +783,15 @@ export default function StockTakePage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="ml-3 shrink-0 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                            className="h-8 shrink-0 px-2 text-destructive hover:bg-destructive/5"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               onDeleteSession(s);
                             }}
+                            aria-label="Delete session"
                           >
-                            <Trash2 className="size-4" />
-                            Delete
+                            <Trash2 className="size-3.5" />
                           </Button>
                         ) : null}
                       </div>
@@ -767,11 +799,15 @@ export default function StockTakePage() {
                   })}
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="px-3 py-8 text-center text-sm text-muted-foreground">
                   No pending sessions.
                 </p>
               )}
             </div>
+          ) : null}
+
+          {message ? (
+            <p className="text-xs text-muted-foreground">{message}</p>
           ) : null}
         </div>
       </div>
@@ -781,127 +817,127 @@ export default function StockTakePage() {
   // ── Render: Counting mode
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-6">
-        {/* Session header */}
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border bg-card p-4 shadow-sm">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {session.sessionNumber > 0 ? (
-                <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-medium">
-                  #{session.sessionNumber}
-                </span>
-              ) : null}
-              <h2 className="text-lg font-semibold">{session.name}</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Status:{" "}
-              <span className="font-medium text-foreground">
-                {session.status === "in_progress"
-                  ? "In Progress"
-                  : session.status}
+      <div className="space-y-4">
+        <header className="space-y-2 border-b border-border/50 pb-3">
+          <DashboardPageHero
+            compact
+            icon={ClipboardList}
+            eyebrow="Inventory"
+            title="Stock take"
+            description={
+              <>
+                {session.name}
+                {session.sessionNumber > 0 ? ` · #${session.sessionNumber}` : ""}
+              </>
+            }
+          />
+          <DashboardQuickLinks compact links={stockTakeQuickLinks} />
+        </header>
+
+        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+          <div className="flex flex-wrap gap-1.5">
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">Checklist</span>
+              <span className="text-base font-bold tabular-nums leading-none">
+                {totalChecklist}
               </span>
-              {" · "}
-              {totalChecklist} items on checklist
-            </p>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1.5">
-              <div className="size-2.5 rounded-full bg-amber-400" />
-              <span>{remainingCount} remaining</span>
             </div>
-            {canApprove && session ? (
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">Remaining</span>
+              <span className="text-base font-bold tabular-nums leading-none text-amber-700 dark:text-amber-400">
+                {remainingCount}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">Pending</span>
+              <span className="text-base font-bold tabular-nums leading-none">
+                {countedCount}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-2">
+              <span className="text-[11px] text-muted-foreground">Confirmed</span>
+              <span className="text-base font-bold tabular-nums leading-none text-emerald-700 dark:text-emerald-400">
+                {confirmedCount}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background px-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Scan barcode"
+              title="Scan barcode"
+            >
+              <ScanLine className="size-4" />
+            </button>
+            <div className="relative min-w-[10rem] flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className={cn(
+                  dashboardInputClass(),
+                  "h-9 w-full py-1.5 pl-8 text-sm",
+                )}
+                placeholder="Search name, SKU, barcode…"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                aria-label="Search products to count"
+              />
+            </div>
+            {canApprove ? (
               <Link
                 href={`/inventory/stock-take/review/${session.id}`}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 -mx-2 hover:bg-amber-100 dark:hover:bg-amber-950 transition-colors"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-500/10 dark:text-amber-300"
               >
-                <Clock className="size-4 text-amber-600" />
-                <span className="font-medium text-amber-700 dark:text-amber-400">
-                  {countedCount} pending
-                </span>
-                <span className="text-[10px] text-amber-500 ml-0.5">
-                  &rarr;
-                </span>
+                <Clock className="size-3.5" />
+                Review
               </Link>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <Clock className="size-4 text-muted-foreground" />
-                <span>{countedCount} pending</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="size-4 text-emerald-500" />
-              <span>{confirmedCount} confirmed</span>
-            </div>
+            ) : null}
+            {canDelete ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0 gap-1 px-2.5 text-xs text-destructive hover:bg-destructive/5"
+                onClick={() => onDeleteSession(session)}
+              >
+                <Trash2 className="size-3.5" />
+                Delete
+              </Button>
+            ) : null}
           </div>
-          {canDelete ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-              onClick={() => onDeleteSession(session)}
-            >
-              <Trash2 className="size-4" />
-              Delete session
-            </Button>
-          ) : null}
         </div>
 
-        {/* Admin quick link to other pending sessions */}
         {canApprove && pendingSessions.length > 1 ? (
           <button
             type="button"
-            className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground underline hover:text-foreground"
             onClick={() => setSession(null)}
           >
-            ← Back to pending reviews ({pendingSessions.length - 1} other
-            session{pendingSessions.length > 2 ? "s" : ""})
+            ← {pendingSessions.length - 1} other pending session
+            {pendingSessions.length > 2 ? "s" : ""}
           </button>
         ) : null}
 
-        {/* Search bar */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowScanner(true)}
-            className="shrink-0 rounded-md p-2 text-muted-foreground/70 hover:bg-muted hover:text-foreground transition-colors border border-border/50"
-            aria-label="Scan barcode with phone camera"
-            title="Scan barcode with camera"
-          >
-            <ScanLine className="size-4" />
-          </button>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
-              placeholder="Search name, SKU or scan barcode…"
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Stale session warning */}
         {hasStaleSession ? (
-          <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-            ⚠️ You have an open stocktake from{" "}
-            {staleSessionDate ?? "a previous date"}. Contact an admin to close
-            it.
-          </div>
+          <p className="text-xs text-amber-800 dark:text-amber-300">
+            Open stocktake from {staleSessionDate ?? "a previous date"} — contact
+            an admin to close it.
+          </p>
         ) : null}
 
-        {/* Still to count */}
         {uncountedLines.length > 0 ? (
-          <details open className="group">
-            <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Still to count ({uncountedLines.length} remaining)
+          <details open className="group rounded-xl border border-border/60">
+            <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+              Still to count ({uncountedLines.length})
             </summary>
-            <div className="mt-2 max-h-48 overflow-auto rounded-md border">
+            <div className="max-h-40 divide-y divide-border/60 overflow-auto border-t border-border/60">
               {uncountedLines.slice(0, 50).map((line) => (
                 <button
                   key={line.id}
                   type="button"
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50 border-b last:border-0 transition-colors"
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-muted/30"
                   onClick={() => {
                     openCountModal({
                       id: line.itemId,
@@ -913,16 +949,18 @@ export default function StockTakePage() {
                     });
                   }}
                 >
-                  <span className="truncate font-medium">{getLineDisplayName(line)}</span>
+                  <span className="truncate font-medium">
+                    {getLineDisplayName(line)}
+                  </span>
                   {line.aisle ? (
-                    <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                    <span className="ml-2 shrink-0 text-[11px] text-muted-foreground">
                       {line.aisle}
                     </span>
                   ) : null}
                 </button>
               ))}
               {uncountedLines.length > 50 ? (
-                <p className="px-3 py-2 text-xs text-muted-foreground">
+                <p className="px-3 py-1.5 text-[11px] text-muted-foreground">
                   …and {uncountedLines.length - 50} more
                 </p>
               ) : null}
@@ -946,22 +984,17 @@ export default function StockTakePage() {
           }}
         />
 
-        {/* Summary bar */}
-        <div className="rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          Checklist: {totalChecklist} · Counted: {countedCount + confirmedCount}{" "}
-          · Remaining: {remainingCount}
-          {session.lines.filter((l) => l.countedQty != null).length >
-          totalChecklist
-            ? ` · Extra items counted: ${session.lines.filter((l) => l.countedQty != null).length - totalChecklist}`
-            : ""}
-        </div>
-
-        {/* Message feedback */}
         {message ? (
-          <DashboardFeedback
-            kind={/started|counted|saved/i.test(message) ? "success" : "error"}
-            text={message}
-          />
+          <p
+            className={cn(
+              "text-xs",
+              /started|counted|saved|deleted/i.test(message)
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-destructive",
+            )}
+          >
+            {message}
+          </p>
         ) : null}
 
         {/* Barcode scanner overlay */}

@@ -1,12 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Banknote,
   Building2,
-  ChevronDown,
   CreditCard,
   LayoutDashboard,
   Lock,
@@ -18,12 +15,14 @@ import {
   SlidersHorizontal,
   Store,
   Tags,
+  Truck,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
 
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
+import { DesktopNavRail } from "@/components/shell/desktop-nav-rail";
 import {
   HeaderPosLinks,
   type HeaderPosLink,
@@ -32,7 +31,6 @@ import {
   TabletMoreSheet,
 } from "@/components/shell/tablet-app-chrome";
 
-import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useOptionalTenant, useFeatureFlags } from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
@@ -55,8 +53,11 @@ type NavItem = {
 type NavSection = {
   id: string;
   title: string;
+  shortLabel: string;
   blurb: string;
   icon: LucideIcon;
+  /** Default route when tapping the section in the icon rail. */
+  entryHref: string;
   items: readonly NavItem[];
 };
 
@@ -64,15 +65,19 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "overview",
     title: "Home",
-    blurb: "Dashboard overview",
+    shortLabel: "Home",
+    blurb: "Pulse of the business",
     icon: LayoutDashboard,
+    entryHref: APP_ROUTES.overview,
     items: [{ href: APP_ROUTES.overview, label: "Overview" }],
   },
   {
     id: "org",
     title: "Organization",
-    blurb: "Identity, access, locations",
+    shortLabel: "Setup",
+    blurb: "Identity, access, and locations",
     icon: Building2,
+    entryHref: APP_ROUTES.business,
     items: [
       { href: APP_ROUTES.business, label: "Business settings" },
       { href: APP_ROUTES.businessBranding, label: "Branding" },
@@ -86,24 +91,27 @@ const NAV_SECTIONS: readonly NavSection[] = [
   },
   {
     id: "catalog",
-    title: "Catalog & relationships",
-    blurb: "What you sell and who you trade with",
+    title: "Catalog",
+    shortLabel: "Catalog",
+    blurb: "What you sell and how it's organized",
     icon: Package,
+    entryHref: APP_ROUTES.products,
     items: [
       { href: APP_ROUTES.products, label: "Products" },
       { href: APP_ROUTES.itemTypes, label: "Departments" },
       { href: APP_ROUTES.categories, label: "Categories" },
-      { href: APP_ROUTES.suppliers, label: "Suppliers" },
-      { href: APP_ROUTES.customers, label: "Customers" },
     ],
   },
   {
-    id: "purchasing",
-    title: "Purchasing & payables",
-    blurb: "Spend visibility and supplier cash",
-    icon: Banknote,
+    id: "procurement",
+    title: "Procurement",
+    shortLabel: "Buy",
+    blurb: "Vendors, deliveries, and payables",
+    icon: Truck,
+    entryHref: APP_ROUTES.suppliers,
     items: [
-      { href: APP_ROUTES.purchasingAddSupplies, label: "Add supplies" },
+      { href: APP_ROUTES.suppliers, label: "Suppliers" },
+      { href: APP_ROUTES.purchasingAddSupplies, label: "Receive supplies" },
       {
         href: APP_ROUTES.purchasingIntelligence,
         label: "Supplier intelligence",
@@ -115,8 +123,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "inventory",
     title: "Inventory",
-    blurb: "Stock truth, movement, counts",
+    shortLabel: "Stock",
+    blurb: "On-hand stock, movement, and counts",
     icon: Warehouse,
+    entryHref: APP_ROUTES.inventoryStock,
     items: [
       { href: APP_ROUTES.inventorySupplyBatches, label: "Supply batches" },
       { href: APP_ROUTES.inventoryStock, label: "Stock" },
@@ -133,8 +143,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "ops",
     title: "Operations",
-    blurb: "Pricing and floor rhythm",
+    shortLabel: "Ops",
+    blurb: "Shelf prices and shift rhythm",
     icon: SlidersHorizontal,
+    entryHref: APP_ROUTES.pricing,
     items: [
       { href: APP_ROUTES.pricing, label: "Pricing" },
       { href: APP_ROUTES.shifts, label: "Shifts" },
@@ -143,16 +155,21 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "payments",
     title: "Payments",
-    blurb: "Gateways and methods",
+    shortLabel: "Pay",
+    blurb: "Checkout gateways and methods",
     icon: CreditCard,
+    entryHref: APP_ROUTES.paymentsSettings,
     items: [{ href: APP_ROUTES.paymentsSettings, label: "Gateway settings" }],
   },
   {
     id: "sales",
     title: "Sales & POS",
-    blurb: "Channels, reports, checkout",
+    shortLabel: "Sales",
+    blurb: "Customers, tills, and revenue",
     icon: ShoppingBag,
+    entryHref: APP_ROUTES.sales,
     items: [
+      { href: APP_ROUTES.customers, label: "Customers" },
       { href: APP_ROUTES.sales, label: "Sales" },
       { href: APP_ROUTES.salesTransactions, label: "Transactions" },
       {
@@ -362,7 +379,7 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     label: "Stock",
     icon: Warehouse,
     href: APP_ROUTES.inventoryStock,
-    matchSectionIds: ["purchasing", "inventory"],
+    matchSectionIds: ["procurement", "inventory"],
   },
   {
     id: "ops",
@@ -532,24 +549,7 @@ export function AppShell({ children }: AppShellProps) {
     return null;
   }, [pathname, visibleSections]);
 
-  const [userExpandedSectionIds, setUserExpandedSectionIds] = useState<
-    ReadonlySet<string>
-  >(() => new Set());
   const [moreOpen, setMoreOpen] = useState(false);
-
-  const toggleSection = useCallback(
-    (id: string) => {
-      const section = visibleSections.find((s) => s.id === id);
-      if (section && sectionHasActiveItem(pathname, section.items)) return;
-      setUserExpandedSectionIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
-    },
-    [pathname, visibleSections],
-  );
 
   const onLogout = async () => {
     await logoutRemote();
@@ -710,141 +710,19 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">
-      {/* ── Desktop sidebar — only on wide monitors (2xl+). iPads use bottom nav. ── */}
-      <aside
-        className={cn(
-          "sticky top-0 h-screen w-64 shrink-0 flex-col border-r bg-background",
-          desktopChromeVisible,
-        )}
-      >
-        <div className="border-b p-4">
-          <Link
-            href={homeHref}
-            className="mb-3 flex items-center gap-2.5 rounded-lg outline-none ring-offset-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
-          >
-            <TenantLogo
-              brand={tenantTitle}
-              logoUrl={business?.branding?.logoUrl}
-              faviconUrl={business?.branding?.faviconUrl}
-              primaryColor={business?.branding?.primaryColor}
-              variant="sidebar-mark"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold leading-tight tracking-tight">
-                {tenantTitle}
-              </span>
-              {!business?.branding?.logoUrl?.trim() ? (
-                <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
-                  Powered by Kiosk
-                </span>
-              ) : null}
-            </span>
-          </Link>
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Navigate by area — groups collapse to reduce noise.
-          </p>
-        </div>
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pb-4">
-          {isStockManager || isCashier || isGroceryClerk ? (
-            <div className="space-y-0.5">
-              {visibleSections
-                .flatMap((s) => s.items)
-                .map((item) => {
-                  const active = itemIsActive(pathname, item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "block rounded-md py-1.5 pl-2.5 pr-2 text-[13px] leading-snug transition-colors",
-                        active
-                          ? "bg-accent font-medium text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-            </div>
-          ) : (
-            visibleSections.map((section) => {
-              const Icon = section.icon;
-              const routeOpen = sectionHasActiveItem(pathname, section.items);
-              const isOpen =
-                routeOpen || userExpandedSectionIds.has(section.id);
-              const sectionActive = activeSectionId === section.id;
-              return (
-                <div
-                  key={section.id}
-                  className={cn(
-                    "rounded-lg border border-transparent transition-colors",
-                    sectionActive && "border-primary/15 bg-primary/[0.04]",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleSection(section.id)}
-                    className={cn(
-                      "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
-                      "hover:bg-muted/80",
-                      routeOpen && "cursor-default",
-                    )}
-                    aria-expanded={isOpen}
-                  >
-                    <span
-                      className={cn(
-                        "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/40",
-                        sectionActive &&
-                          "border-primary/25 bg-primary/10 text-primary",
-                      )}
-                    >
-                      <Icon className="size-3.5" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1 font-medium leading-none">
-                        {section.title}
-                        <ChevronDown
-                          className={cn(
-                            "size-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
-                            isOpen ? "rotate-0" : "-rotate-90",
-                          )}
-                          aria-hidden
-                        />
-                      </span>
-                      <span className="mt-1 block text-[11px] font-normal leading-snug text-muted-foreground">
-                        {section.blurb}
-                      </span>
-                    </span>
-                  </button>
-                  {isOpen ? (
-                    <ul className="relative mx-1 mb-1.5 mt-0.5 space-y-0.5 border-l border-border/70 pl-2 ml-4">
-                      {section.items.map((item) => {
-                        const active = itemIsActive(pathname, item.href);
-                        return (
-                          <li key={item.href}>
-                            <Link
-                              href={item.href}
-                              className={cn(
-                                "block rounded-md py-1.5 pl-2.5 pr-2 text-[13px] leading-snug text-muted-foreground transition-colors",
-                                "hover:bg-accent hover:text-accent-foreground",
-                                active &&
-                                  "bg-accent font-medium text-accent-foreground",
-                              )}
-                            >
-                              {item.label}
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                </div>
-              );
-            })
-          )}
-        </nav>
-      </aside>
+      {/* ── Desktop sidebar — icon rail + sub-nav (2xl+). iPads use bottom nav. ── */}
+      <div className={cn("shrink-0", desktopChromeVisible)}>
+        <DesktopNavRail
+          pathname={pathname}
+          homeHref={homeHref}
+          tenantTitle={tenantTitle}
+          logoUrl={business?.branding?.logoUrl}
+          faviconUrl={business?.branding?.faviconUrl}
+          primaryColor={business?.branding?.primaryColor}
+          sections={visibleSections}
+          flat={isStockManager || isCashier || isGroceryClerk}
+        />
+      </div>
 
       {/* ── Right panel — on iPad/tablet this becomes the rounded “app stage”. ── */}
       <div className="tablet-app-stage flex min-h-0 flex-1 flex-col overflow-hidden">

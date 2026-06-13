@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PackageX, RefreshCw, Package, ClipboardList, Search } from "lucide-react";
+import { PackageX, RefreshCw, Package, ClipboardList, Search, Warehouse, Layers, BarChart3, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
-  DashboardNotice,
   DashboardPageHero,
   DashboardQuickLinks,
+  dashboardInputClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -146,7 +147,7 @@ export default function InventoryRestockPage() {
       );
       setLoaded(true);
       if (found.length === 0) {
-        setMessage("Nothing is out of stock at this branch. 🎉");
+        setMessage("Nothing is out of stock at this branch.");
       }
     } catch (e) {
       setRows([]);
@@ -259,33 +260,47 @@ export default function InventoryRestockPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-8">
-        <header className="space-y-4">
+      <div className="space-y-4">
+        <header className="space-y-2 border-b border-border/50 pb-4">
           <DashboardPageHero
+            compact
             icon={PackageX}
             eyebrow="Inventory"
             title="Out of stock"
-            description={
-              <>
-                Every product with zero on-hand at the selected branch. Type the
-                quantity you have and save — the figure becomes the new stock
-                level.
-              </>
-            }
+            description="Zero on-hand at this branch — enter qty and save to restock."
           />
           <DashboardQuickLinks
+            compact
             links={[
               {
                 href: APP_ROUTES.inventoryStock,
                 label: "Stock",
                 desc: "On-hand",
-                icon: Package,
+                icon: Warehouse,
               },
               {
                 href: APP_ROUTES.inventoryStockTake,
                 label: "Stock take",
                 desc: "Counts",
                 icon: ClipboardList,
+              },
+              {
+                href: APP_ROUTES.inventorySupplyBatches,
+                label: "Supply batches",
+                desc: "Cost layers",
+                icon: Layers,
+              },
+              {
+                href: APP_ROUTES.inventoryValuation,
+                label: "Valuation",
+                desc: "Extension value",
+                icon: BarChart3,
+              },
+              {
+                href: APP_ROUTES.inventoryTransfers,
+                label: "Transfers",
+                desc: "Move stock",
+                icon: ArrowRightLeft,
               },
               {
                 href: APP_ROUTES.products,
@@ -297,88 +312,115 @@ export default function InventoryRestockPage() {
           />
         </header>
 
-        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-muted/20 p-4">
-          <label className="flex min-w-[14rem] flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Branch</span>
-            <select
-              className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm disabled:opacity-60"
-              value={branchId}
-              disabled={isBranchLockedRole}
-              onChange={(e) => setBranchId(e.target.value)}
+        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+          {(loaded || loading) && branchId ? (
+            <div
+              className="flex items-center justify-between gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-2.5 py-2"
+              aria-live="polite"
             >
-              <option value="">Select a branch…</option>
-              {branches
-                .filter((b) => b.active || b.id === branchId)
-                .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
-                .map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-            </select>
-          </label>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Out of stock
+              </span>
+              <span className="text-base font-bold tabular-nums leading-none text-destructive">
+                {rows.length.toLocaleString("en-KE")}
+              </span>
+            </div>
+          ) : null}
 
-          <label className="flex min-w-[14rem] flex-1 flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Search</span>
-            <span className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                className="w-full rounded-lg border border-border bg-background py-2 pl-8 pr-2.5 text-sm"
-                placeholder="Filter by name, SKU, barcode…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </span>
-          </label>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[11rem]">
+              <span className="text-muted-foreground">Branch</span>
+              <select
+                className={cn(
+                  dashboardSelectClass(),
+                  "h-9 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
+                )}
+                value={branchId}
+                disabled={isBranchLockedRole}
+                onChange={(e) => setBranchId(e.target.value)}
+                aria-label="Branch"
+              >
+                <option value="">Select branch…</option>
+                {branches
+                  .filter((b) => b.active || b.id === branchId)
+                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => void loadOutOfStock()}
-            disabled={loading || !branchId.trim()}
-          >
-            <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-            {loading ? "Loading…" : "Refresh"}
-          </Button>
+            <label className="flex min-w-[10rem] flex-[2] flex-col gap-0.5 text-xs">
+              <span className="text-muted-foreground">Search</span>
+              <span className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="search"
+                  className={cn(
+                    dashboardInputClass(),
+                    "h-9 py-1.5 pl-8 text-sm",
+                  )}
+                  placeholder="Name, SKU, barcode…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Search out-of-stock products"
+                />
+              </span>
+            </label>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 gap-1.5"
+              onClick={() => void loadOutOfStock()}
+              disabled={loading || !branchId.trim()}
+            >
+              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+              {loading ? "…" : "Refresh"}
+            </Button>
+          </div>
         </div>
 
-        {message ? <DashboardNotice text={message} /> : null}
-        {capped ? (
-          <DashboardNotice
-            text={`Showing the first ${MAX_SCAN_PAGES * PAGE_SIZE} products scanned. Use search after refreshing to find a specific item.`}
-          />
+        {message ? (
+          <p className="text-xs text-muted-foreground">{message}</p>
         ) : null}
-
+        {capped ? (
+          <p className="text-xs text-muted-foreground">
+            Scanned the first {MAX_SCAN_PAGES * PAGE_SIZE} products — use search
+            to find a specific item.
+          </p>
+        ) : null}
         {!canWrite && rows.length > 0 ? (
-          <DashboardNotice text="You can view out-of-stock products but need the inventory.write permission to update quantities." />
+          <p className="text-xs text-muted-foreground">
+            View-only — inventory write permission required to restock.
+          </p>
         ) : null}
 
         <div className="overflow-hidden rounded-xl border border-border/60">
-          <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/30 px-4 py-2.5">
-            <h2 className="text-sm font-semibold tracking-tight">
-              {rows.length} out of stock
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
+            <h2 className="text-xs font-semibold tracking-tight sm:text-sm">
+              {filteredRows.length.toLocaleString("en-KE")} to restock
               {activeBranchName ? ` · ${activeBranchName}` : ""}
             </h2>
             {search.trim() && filteredRows.length !== rows.length ? (
               <span className="text-xs text-muted-foreground">
-                {filteredRows.length} match{filteredRows.length === 1 ? "" : "es"}
+                {filteredRows.length} of {rows.length} match
               </span>
             ) : null}
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[36rem] text-left text-sm">
-              <thead className="border-b border-border/60 bg-background text-xs uppercase tracking-wide text-muted-foreground">
+            <table className="w-full min-w-[32rem] text-left text-sm">
+              <thead className="border-b border-border/60 bg-background text-[11px] uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Product</th>
-                  <th className="px-3 py-2.5 font-medium">SKU</th>
-                  <th className="px-3 py-2.5 text-right font-medium">New qty</th>
-                  <th className="px-3 py-2.5 text-right font-medium">
-                    Unit cost
-                  </th>
-                  <th className="px-4 py-2.5 text-right font-medium">Action</th>
+                  <th className="px-3 py-2 font-medium">Product</th>
+                  <th className="px-2 py-2 font-medium">SKU</th>
+                  <th className="px-2 py-2 text-right font-medium">Qty</th>
+                  <th className="px-2 py-2 text-right font-medium">Cost</th>
+                  <th className="px-3 py-2 text-right font-medium" />
                 </tr>
               </thead>
               <tbody>
@@ -386,7 +428,7 @@ export default function InventoryRestockPage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-4 py-10 text-center text-muted-foreground"
+                      className="px-3 py-10 text-center text-sm text-muted-foreground"
                     >
                       {loading
                         ? "Loading products…"
@@ -403,26 +445,26 @@ export default function InventoryRestockPage() {
                       key={r.item.id}
                       className="border-b border-border/40 last:border-0 hover:bg-muted/20"
                     >
-                      <td className="px-4 py-2.5">
-                        <div className="font-medium text-foreground">
+                      <td className="px-3 py-2">
+                        <div className="text-sm font-medium text-foreground">
                           {r.item.name?.trim() || "Unnamed product"}
+                          {r.item.variantName?.trim() ? (
+                            <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+                              {r.item.variantName}
+                            </span>
+                          ) : null}
                         </div>
-                        {r.item.variantName?.trim() ? (
-                          <div className="text-xs text-muted-foreground">
-                            {r.item.variantName}
-                          </div>
-                        ) : null}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">
+                      <td className="px-2 py-2 font-mono text-[11px] text-muted-foreground">
                         {r.item.sku?.trim() || "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="px-2 py-2 text-right">
                         <input
                           type="number"
                           inputMode="decimal"
                           min={0}
                           step="any"
-                          className="w-24 rounded-lg border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums disabled:opacity-60"
+                          className="h-8 w-20 rounded-md border border-border bg-background px-2 text-right text-sm tabular-nums disabled:opacity-60"
                           placeholder="0"
                           value={r.qty}
                           disabled={!canWrite || r.saving}
@@ -432,15 +474,16 @@ export default function InventoryRestockPage() {
                           onKeyDown={(e) => {
                             if (e.key === "Enter") void saveRow(r.item.id);
                           }}
+                          aria-label={`Quantity for ${r.item.name ?? "product"}`}
                         />
                       </td>
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="px-2 py-2 text-right">
                         <input
                           type="number"
                           inputMode="decimal"
                           min={0}
                           step="any"
-                          className="w-24 rounded-lg border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums disabled:opacity-60"
+                          className="h-8 w-20 rounded-md border border-border bg-background px-2 text-right text-sm tabular-nums disabled:opacity-60"
                           placeholder="opt."
                           value={r.cost}
                           disabled={!canWrite || r.saving}
@@ -450,16 +493,18 @@ export default function InventoryRestockPage() {
                           onKeyDown={(e) => {
                             if (e.key === "Enter") void saveRow(r.item.id);
                           }}
+                          aria-label={`Unit cost for ${r.item.name ?? "product"}`}
                         />
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-3 py-2 text-right">
                         <Button
                           type="button"
                           size="sm"
+                          className="h-8 px-2.5 text-xs"
                           onClick={() => void saveRow(r.item.id)}
                           disabled={!canWrite || r.saving || !r.qty.trim()}
                         >
-                          {r.saving ? "Saving…" : "Save"}
+                          {r.saving ? "…" : "Save"}
                         </Button>
                       </td>
                     </tr>

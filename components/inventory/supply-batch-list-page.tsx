@@ -4,16 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRightLeft,
+  BarChart3,
   Calculator,
   CheckCircle2,
   ClipboardList,
   Download,
   Eye,
+  Layers,
   Loader2,
-  Package,
+  PackageX,
   Pencil,
   RefreshCw,
   Search,
+  Truck,
   Warehouse,
   X,
   XOctagon,
@@ -21,17 +24,12 @@ import {
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_SECTION_SURFACE,
   DASHBOARD_TABLE_SURFACE,
-  DASHBOARD_TABLE_HEAD,
   DashboardAccessDenied,
-  DashboardFeedback,
   DashboardPageHero,
   DashboardQuickLinks,
-  dashboardHintClass,
   dashboardInputClass,
   dashboardSelectClass,
-  dashboardFilterFieldLabelClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -381,6 +379,27 @@ export function SupplyBatchListPage() {
   const hasFilters =
     branchFilter || supplierFilter || statusFilter || searchQuery;
 
+  const batchCounts = useMemo(() => {
+    const norm = (s: string) => s?.toLowerCase() ?? "";
+    return {
+      total: batches.length,
+      active: batches.filter((b) => norm(b.status) === "active").length,
+      soldout: batches.filter(
+        (b) =>
+          norm(b.status) === "soldout" ||
+          norm(b.status) === "sold_out" ||
+          norm(b.status) === "sold out",
+      ).length,
+      closed: batches.filter((b) => norm(b.status) === "closed").length,
+    };
+  }, [batches]);
+
+  type StatusFilter = "" | "active" | "soldout" | "closed";
+
+  const setStatusFilterQuick = (value: StatusFilter) => {
+    setStatusFilter((prev) => (prev === value ? "" : value));
+  };
+
   // ── Sort indicator helper ────────────────────────────────────────────
 
   const sortIndicator = (col: SortCol): string => {
@@ -414,151 +433,161 @@ export function SupplyBatchListPage() {
 
   return (
     <div className={DASHBOARD_MAX_WIDE}>
-      {/* ── Hero + Quick Links + Actions in one card ───────────────── */}
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <DashboardPageHero
-          icon={Warehouse}
-          eyebrow="Inventory"
-          title="Supply batches"
-          description="View and manage all incoming deliveries and purchase batches. Click a batch number to see details."
-          compact
-        />
-        <div className="mt-5 flex flex-col gap-4 border-t border-border/50 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="space-y-4">
+        <header className="space-y-2 border-b border-border/50 pb-4">
+          <DashboardPageHero
+            compact
+            icon={Layers}
+            eyebrow="Inventory"
+            title="Supply batches"
+            description="Deliveries and cost layers — click a batch # for details."
+          />
           <DashboardQuickLinks
             compact
             links={[
               {
-                href: APP_ROUTES.inventoryValuation,
-                label: "Valuation",
-                desc: "",
-                icon: Package,
+                href: APP_ROUTES.inventoryStock,
+                label: "Stock",
+                desc: "On-hand",
+                icon: Warehouse,
               },
               {
-                href: APP_ROUTES.inventoryTransfers,
-                label: "Transfers",
-                desc: "",
-                icon: ArrowRightLeft,
+                href: APP_ROUTES.inventoryRestock,
+                label: "Out of stock",
+                desc: "Restock",
+                icon: PackageX,
+              },
+              {
+                href: APP_ROUTES.purchasingAddSupplies,
+                label: "Receive supplies",
+                desc: "New delivery",
+                icon: Truck,
+              },
+              {
+                href: APP_ROUTES.inventoryValuation,
+                label: "Valuation",
+                desc: "Extension value",
+                icon: BarChart3,
               },
               {
                 href: APP_ROUTES.inventoryStockTake,
                 label: "Stock take",
-                desc: "",
+                desc: "Counts",
                 icon: ClipboardList,
+              },
+              {
+                href: APP_ROUTES.inventoryTransfers,
+                label: "Transfers",
+                desc: "Move stock",
+                icon: ArrowRightLeft,
               },
             ]}
           />
-          <div className="flex flex-wrap gap-2 sm:shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1 shadow-sm"
-              disabled={loading}
-              onClick={load}
+        </header>
+
+        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+          {(batches.length > 0 || loading) && (
+            <div
+              className="flex flex-wrap gap-1.5 sm:flex-nowrap"
+              role="group"
+              aria-label="Batch summary"
             >
-              <RefreshCw
-                className={cn("size-3.5", loading && "animate-spin")}
-              />
-              Refresh
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Feedback ────────────────────────────────────────────────── */}
-      {message ? <DashboardFeedback kind="error" text={message} /> : null}
-      {clearResult ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <DashboardFeedback kind="success" text={clearResult} />
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            className="shrink-0 self-end sm:self-start"
-            onClick={() => setClearResult(null)}
-          >
-            Dismiss
-          </Button>
-        </div>
-      ) : null}
-
-      {/* ── Table ───────────────────────────────────────────────────── */}
-      <section className={DASHBOARD_TABLE_SURFACE}>
-        <div className={DASHBOARD_TABLE_HEAD}>
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-            <div className="min-w-0">
-              <h2 className="text-base font-semibold tracking-tight text-foreground">
-                All batches
-              </h2>
-              <p className={cn(dashboardHintClass(), "mt-1")}>
-                Incoming deliveries and purchase batches.
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {loading ? (
-                <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                  Loading…
-                </span>
-              ) : (
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {filtered.length} batch(es)
-                </span>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="shadow-sm"
-                onClick={exportCSV}
+              <button
+                type="button"
+                onClick={() => setStatusFilter("")}
+                className={cn(
+                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
+                  !statusFilter
+                    ? "border-primary/35 bg-primary/5 ring-1 ring-primary/15"
+                    : "border-border/60 bg-background hover:bg-muted/30",
+                )}
               >
-                <Download className="mr-1 h-3.5 w-3.5" />
-                Export CSV
-              </Button>
+                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                  All
+                </span>
+                <span className="shrink-0 text-base font-bold tabular-nums leading-none">
+                  {batchCounts.total.toLocaleString("en-KE")}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilterQuick("active")}
+                className={cn(
+                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
+                  statusFilter === "active"
+                    ? "border-emerald-500/35 bg-emerald-500/5 ring-1 ring-emerald-500/15"
+                    : "border-border/60 bg-background hover:bg-muted/30",
+                )}
+              >
+                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                  Active
+                </span>
+                <span className="shrink-0 text-base font-bold tabular-nums leading-none text-emerald-700 dark:text-emerald-400">
+                  {batchCounts.active.toLocaleString("en-KE")}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilterQuick("soldout")}
+                className={cn(
+                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
+                  statusFilter === "soldout"
+                    ? "border-blue-500/35 bg-blue-500/5 ring-1 ring-blue-500/15"
+                    : "border-border/60 bg-background hover:bg-muted/30",
+                )}
+              >
+                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                  Sold out
+                </span>
+                <span className="shrink-0 text-base font-bold tabular-nums leading-none text-blue-700 dark:text-blue-400">
+                  {batchCounts.soldout.toLocaleString("en-KE")}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilterQuick("closed")}
+                className={cn(
+                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
+                  statusFilter === "closed"
+                    ? "border-border bg-muted/50 ring-1 ring-border"
+                    : "border-border/60 bg-background hover:bg-muted/30",
+                )}
+              >
+                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                  Closed
+                </span>
+                <span className="shrink-0 text-base font-bold tabular-nums leading-none text-muted-foreground">
+                  {batchCounts.closed.toLocaleString("en-KE")}
+                </span>
+              </button>
             </div>
-          </div>
+          )}
 
-          {/* Inline filter bar */}
-          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border/40 pt-3">
-            <label className="flex flex-1 min-w-0 flex-col gap-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Search
-              </span>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[10rem] flex-[2] flex-col gap-0.5 text-xs">
+              <span className="text-muted-foreground">Search</span>
+              <span className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  type="text"
+                  type="search"
                   placeholder="Batch #, name, supplier…"
-                  className={dashboardInputClass(false, "pl-9 h-9 text-sm")}
+                  className={cn(
+                    dashboardInputClass(),
+                    "h-9 w-full py-1.5 pl-8 text-sm",
+                  )}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search batches"
                 />
-              </div>
-            </label>
-            <label className="flex min-w-[10rem] flex-col gap-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Status
               </span>
-              <select
-                className={dashboardSelectClass(false, "h-9 text-sm")}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="soldout">Sold out</option>
-                <option value="closed">Closed</option>
-              </select>
             </label>
-            <label className="hidden sm:flex min-w-[12rem] flex-col gap-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Branch
-              </span>
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
+              <span className="text-muted-foreground">Branch</span>
               <select
-                className={dashboardSelectClass(false, "h-9 text-sm")}
+                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
+                aria-label="Branch filter"
               >
                 <option value="">All branches</option>
                 {branches.map((b) => (
@@ -568,14 +597,13 @@ export function SupplyBatchListPage() {
                 ))}
               </select>
             </label>
-            <label className="hidden sm:flex min-w-[12rem] flex-col gap-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Supplier
-              </span>
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
+              <span className="text-muted-foreground">Supplier</span>
               <select
-                className={dashboardSelectClass(false, "h-9 text-sm")}
+                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
                 value={supplierFilter}
                 onChange={(e) => setSupplierFilter(e.target.value)}
+                aria-label="Supplier filter"
               >
                 <option value="">All suppliers</option>
                 {suppliers.map((s) => (
@@ -590,7 +618,7 @@ export function SupplyBatchListPage() {
                 variant="outline"
                 size="sm"
                 type="button"
-                className="mt-auto shadow-sm"
+                className="h-9 shrink-0 gap-1 px-2.5 text-xs"
                 onClick={() => {
                   setBranchFilter("");
                   setSupplierFilter("");
@@ -598,96 +626,159 @@ export function SupplyBatchListPage() {
                   setSearchQuery("");
                 }}
               >
-                <X className="mr-1 h-3.5 w-3.5" />
-                Clear filters
+                <X className="size-3.5" />
+                Clear
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 gap-1.5"
+              disabled={loading}
+              onClick={load}
+            >
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+              />
+              {loading ? "…" : "Refresh"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 gap-1.5"
+              onClick={exportCSV}
+              disabled={filtered.length === 0}
+            >
+              <Download className="size-3.5" />
+              CSV
+            </Button>
           </div>
         </div>
+
+        {message ? (
+          <p className="text-xs text-destructive">{message}</p>
+        ) : null}
+        {clearResult ? (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-emerald-700 dark:text-emerald-400">
+              {clearResult}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              className="h-7 shrink-0 px-2 text-xs"
+              onClick={() => setClearResult(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        ) : null}
+
+        <section className={DASHBOARD_TABLE_SURFACE}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
+            <h2 className="text-xs font-semibold sm:text-sm">
+              {loading ? (
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Loading…
+                </span>
+              ) : (
+                <>
+                  {filtered.length.toLocaleString("en-KE")} batch
+                  {filtered.length === 1 ? "" : "es"}
+                  {searchQuery.trim() && filtered.length !== batches.length
+                    ? ` · ${filtered.length} of ${batches.length} match search`
+                    : null}
+                </>
+              )}
+            </h2>
+          </div>
 
         <table className="hidden sm:table w-full border-collapse text-left text-sm">
           <thead className="border-b border-border/50 bg-muted/25">
             <tr>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("batchNumber")}
               >
                 Batch #{sortIndicator("batchNumber")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("batchName")}
               >
                 Name{sortIndicator("batchName")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("supplierName")}
               >
                 Supplier{sortIndicator("supplierName")}
               </th>
               <th
                 scope="col"
-                className="hidden md:table-cell cursor-pointer select-none px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="hidden md:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("itemCount")}
               >
                 Items{sortIndicator("itemCount")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("soldPercentage")}
               >
                 Sold{sortIndicator("soldPercentage")}
               </th>
               <th
                 scope="col"
-                className="hidden lg:table-cell cursor-pointer select-none px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="hidden lg:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("totalCost")}
               >
                 Cost{sortIndicator("totalCost")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("totalRevenue")}
               >
                 Revenue{sortIndicator("totalRevenue")}
               </th>
               <th
                 scope="col"
-                className="hidden lg:table-cell cursor-pointer select-none px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="hidden lg:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("totalAssociatedCosts")}
               >
                 Extras{sortIndicator("totalAssociatedCosts")}
               </th>
               <th
                 scope="col"
-                className="hidden md:table-cell cursor-pointer select-none px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="hidden md:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("totalRemainingQuantity")}
               >
                 Left{sortIndicator("totalRemainingQuantity")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("status")}
               >
                 Status{sortIndicator("status")}
               </th>
               <th
                 scope="col"
-                className="hidden lg:table-cell cursor-pointer select-none px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-6"
+                className="hidden lg:table-cell cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
                 onClick={() => handleSort("receivedAt")}
               >
                 Received{sortIndicator("receivedAt")}
               </th>
               <th
                 scope="col"
-                className="px-5 py-3.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
               >
                 Actions
               </th>
@@ -698,7 +789,7 @@ export function SupplyBatchListPage() {
               <tr>
                 <td
                   colSpan={13}
-                  className="px-6 py-12 text-center text-sm text-muted-foreground"
+                  className="px-3 py-8 text-center text-sm text-muted-foreground"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -710,7 +801,7 @@ export function SupplyBatchListPage() {
               <tr>
                 <td
                   colSpan={13}
-                  className="px-6 py-12 text-center text-sm text-muted-foreground"
+                  className="px-3 py-8 text-center text-sm text-muted-foreground"
                 >
                   {hasFilters
                     ? "No supply batches match your filters."
@@ -732,7 +823,7 @@ export function SupplyBatchListPage() {
                     className="transition-colors hover:bg-muted/30"
                   >
                     {/* Batch # */}
-                    <td className="px-5 py-4 sm:px-6">
+                    <td className="px-3 py-2.5 sm:px-4">
                       <Link
                         href={`/inventory/supply-batches/${b.id}`}
                         className="font-medium text-foreground hover:text-primary decoration-1 underline-offset-4 hover:underline"
@@ -742,7 +833,7 @@ export function SupplyBatchListPage() {
                     </td>
 
                     {/* Name */}
-                    <td className="px-5 py-4 sm:px-6">
+                    <td className="px-3 py-2.5 sm:px-4">
                       {editingId === b.id ? (
                         <div className="flex items-center gap-1.5">
                           <input
@@ -794,37 +885,37 @@ export function SupplyBatchListPage() {
                     </td>
 
                     {/* Supplier */}
-                    <td className="px-5 py-4 text-muted-foreground sm:px-6">
+                    <td className="px-3 py-2.5 text-muted-foreground sm:px-4">
                       {b.supplierName ?? "—"}
                     </td>
 
                     {/* Items */}
-                    <td className="hidden md:table-cell px-5 py-4 text-right tabular-nums text-muted-foreground sm:px-6">
+                    <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-muted-foreground sm:px-4">
                       {b.itemCount}
                     </td>
 
                     {/* Sold % */}
-                    <td className="px-5 py-4 text-right sm:px-6">
+                    <td className="px-3 py-2.5 text-right sm:px-4">
                       {soldBar(b.soldPercentage)}
                     </td>
 
                     {/* Cost */}
-                    <td className="hidden lg:table-cell px-5 py-4 text-right font-mono tabular-nums sm:px-6">
+                    <td className="hidden lg:table-cell px-3 py-2.5 text-right font-mono tabular-nums sm:px-4">
                       {formatMoneyShort(b.totalCost)}
                     </td>
 
                     {/* Revenue */}
-                    <td className="px-5 py-4 text-right font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300 sm:px-6">
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300 sm:px-4">
                       {formatMoneyShort(b.totalRevenue)}
                     </td>
 
                     {/* Extras */}
-                    <td className="hidden lg:table-cell px-5 py-4 text-right font-mono tabular-nums text-muted-foreground sm:px-6">
+                    <td className="hidden lg:table-cell px-3 py-2.5 text-right font-mono tabular-nums text-muted-foreground sm:px-4">
                       {formatMoneyShort(b.totalAssociatedCosts)}
                     </td>
 
                     {/* Left */}
-                    <td className="hidden md:table-cell px-5 py-4 text-right tabular-nums sm:px-6">
+                    <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums sm:px-4">
                       <span
                         className={cn(
                           Number(b.totalRemainingQuantity) <= 0
@@ -837,7 +928,7 @@ export function SupplyBatchListPage() {
                     </td>
 
                     {/* Status */}
-                    <td className="px-5 py-4 sm:px-6">
+                    <td className="px-3 py-2.5 sm:px-4">
                       <span
                         className={cn(
                           "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
@@ -849,14 +940,14 @@ export function SupplyBatchListPage() {
                     </td>
 
                     {/* Received */}
-                    <td className="hidden lg:table-cell px-5 py-4 text-xs text-muted-foreground sm:px-6">
+                    <td className="hidden lg:table-cell px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
                       {new Date(b.receivedAt).toLocaleDateString(undefined, {
                         dateStyle: "medium",
                       })}
                     </td>
 
                     {/* Actions */}
-                    <td className="px-5 py-4 text-right sm:px-6">
+                    <td className="px-3 py-2.5 text-right sm:px-4">
                       <div className="flex flex-wrap justify-end gap-1.5">
                         <Link href={`/inventory/supply-batches/${b.id}`}>
                           <Button
@@ -922,12 +1013,12 @@ export function SupplyBatchListPage() {
         {/* ── Mobile card layout (< sm breakpoint) ───────────────── */}
         <div className="flex flex-col gap-3 sm:hidden">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading supply batches…
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
+            <div className="py-8 text-center text-sm text-muted-foreground">
               {hasFilters
                 ? "No supply batches match your filters."
                 : "No supply batches found. Create your first supply batch from the Purchasing → Supplies page."}
@@ -944,7 +1035,7 @@ export function SupplyBatchListPage() {
               return (
                 <div
                   key={b.id}
-                  className="rounded-xl border border-border/60 bg-card p-4 shadow-sm"
+                  className="rounded-lg border border-border/60 bg-card p-3 shadow-sm"
                 >
                   {/* Top row: Batch # + Status badge */}
                   <div className="flex items-center justify-between gap-2">
@@ -1055,8 +1146,8 @@ export function SupplyBatchListPage() {
 
             {clearDialog.hasRemaining ? (
               <div className="mt-4 space-y-4">
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className={dashboardFilterFieldLabelClass()}>
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-xs text-muted-foreground">
                     Reason for write-off
                   </span>
                   <select
@@ -1071,10 +1162,8 @@ export function SupplyBatchListPage() {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className={dashboardFilterFieldLabelClass()}>
-                    Notes
-                  </span>
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-xs text-muted-foreground">Notes</span>
                   <input
                     className={dashboardInputClass(false)}
                     value={clearNotes}
@@ -1108,6 +1197,7 @@ export function SupplyBatchListPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -2,12 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Package, Pencil, RefreshCw, Search, X } from "lucide-react";
+import {
+  ArrowRightLeft,
+  BarChart3,
+  Check,
+  ClipboardList,
+  Layers,
+  Package,
+  PackageX,
+  Pencil,
+  RefreshCw,
+  Search,
+  Warehouse,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
+  DashboardPageHero,
+  DashboardQuickLinks,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
@@ -29,13 +44,6 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-const STOCK_SURFACE =
-  "overflow-hidden rounded-xl border border-[#EEEEEE] bg-white";
-const STOCK_MUTED = "text-[#888888]";
-const STOCK_ACCENT = "#B08D48";
-const STOCK_LOW = "#C47A5A";
-const STOCK_TRACK = "#F0F0F0";
-
 const MAX_PAGES = 20;
 const PAGE_SIZE = 100;
 
@@ -51,13 +59,6 @@ type StockRow = {
   /** Package variants hold stock on a parent SKU, so inline editing is disabled. */
   editable: boolean;
 };
-
-const STOCK_STATUS_FILTERS: { id: StockStatusFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "in_stock", label: "In stock" },
-  { id: "low", label: "Low stock" },
-  { id: "out", label: "Out of stock" },
-];
 
 function toNum(n: number | string | null | undefined): number | null {
   if (n == null || n === "") return null;
@@ -101,45 +102,6 @@ function matchesStockStatus(
   }
 }
 
-function FilterPills<T extends string>({
-  options,
-  value,
-  onChange,
-  ariaLabel,
-}: {
-  options: { id: T; label: string }[];
-  value: T;
-  onChange: (id: T) => void;
-  ariaLabel: string;
-}) {
-  return (
-    <div
-      className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-[#EEEEEE] bg-white p-1"
-      role="group"
-      aria-label={ariaLabel}
-    >
-      {options.map(({ id, label }) => {
-        const active = value === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onChange(id)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              active
-                ? "border border-[#E8DFD0] bg-[#F9F6F0] text-[#B08D48]"
-                : "border border-transparent text-[#666666] hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function barCapacity(stock: number, reorderLevel: number | null): number {
   if (reorderLevel != null && reorderLevel > 0) {
     return Math.max(reorderLevel * 4, stock, reorderLevel);
@@ -150,6 +112,50 @@ function barCapacity(stock: number, reorderLevel: number | null): number {
 function barFillPercent(stock: number, reorderLevel: number | null): number {
   const cap = barCapacity(stock, reorderLevel);
   return Math.min(100, Math.max(0, Math.round((stock / cap) * 100)));
+}
+
+type StockStatCardProps = {
+  label: string;
+  value: number;
+  active: boolean;
+  tone?: "default" | "success" | "warning" | "danger";
+  onClick: () => void;
+};
+
+function StockStatCard({
+  label,
+  value,
+  active,
+  tone = "default",
+  onClick,
+}: StockStatCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
+        active
+          ? "border-primary/35 bg-primary/5 ring-1 ring-primary/15"
+          : "border-border/60 bg-background hover:border-border hover:bg-muted/30",
+      )}
+    >
+      <span className="truncate text-[11px] font-medium text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "shrink-0 text-base font-bold tabular-nums leading-none",
+          tone === "success" && "text-emerald-600 dark:text-emerald-400",
+          tone === "warning" && "text-amber-600 dark:text-amber-400",
+          tone === "danger" && "text-destructive",
+          tone === "default" && "text-foreground",
+        )}
+      >
+        {value.toLocaleString("en-KE")}
+      </span>
+    </button>
+  );
 }
 
 type StockRowItemProps = {
@@ -190,14 +196,23 @@ function StockRowItem({
     editing && Number.isFinite(target) && target > row.stock;
 
   return (
-    <div className="px-5 py-4 transition-colors hover:bg-[#F9F6F0]/50">
-      <div className="mb-2.5 flex items-center justify-between gap-3">
-        <Link
-          href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
-          className="min-w-0 truncate text-[15px] font-medium text-[#333333] hover:underline"
-        >
-          {row.name}
-        </Link>
+    <div className="px-3 py-2 transition-colors hover:bg-muted/20 sm:px-4">
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <Link
+              href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.name)}`}
+              className="truncate text-sm font-medium text-foreground hover:underline"
+            >
+              {row.name}
+            </Link>
+            {row.categoryName ? (
+              <span className="hidden shrink-0 truncate text-[11px] text-muted-foreground sm:inline">
+                {row.categoryName}
+              </span>
+            ) : null}
+          </div>
+        </div>
 
         {editing ? (
           <div className="flex shrink-0 items-center gap-1.5">
@@ -214,7 +229,7 @@ function StockRowItem({
                 if (e.key === "Enter") onSaveEdit();
                 if (e.key === "Escape") onCancelEdit();
               }}
-              className="w-20 rounded-md border border-[#E8DFD0] bg-white px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-[#B08D48] disabled:opacity-60"
+              className="w-20 rounded-md border border-border bg-background px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 disabled:opacity-60"
               placeholder="Qty"
               aria-label={`New stock for ${row.name}`}
             />
@@ -231,7 +246,7 @@ function StockRowItem({
                   if (e.key === "Enter") onSaveEdit();
                   if (e.key === "Escape") onCancelEdit();
                 }}
-                className="w-20 rounded-md border border-[#EEEEEE] bg-white px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-[#B08D48] disabled:opacity-60"
+                className="w-20 rounded-md border border-border bg-background px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 disabled:opacity-60"
                 placeholder="Cost"
                 aria-label={`Unit cost for ${row.name}`}
               />
@@ -240,7 +255,7 @@ function StockRowItem({
               type="button"
               onClick={onSaveEdit}
               disabled={saving || !editQty.trim()}
-              className="inline-flex size-7 items-center justify-center rounded-md bg-[#B08D48] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="inline-flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
               aria-label="Save stock"
             >
               <Check className="size-4" aria-hidden />
@@ -249,7 +264,7 @@ function StockRowItem({
               type="button"
               onClick={onCancelEdit}
               disabled={saving}
-              className="inline-flex size-7 items-center justify-center rounded-md border border-[#EEEEEE] text-[#888888] transition-colors hover:text-foreground disabled:opacity-40"
+              className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
               aria-label="Cancel"
             >
               <X className="size-4" aria-hidden />
@@ -260,7 +275,9 @@ function StockRowItem({
             <span
               className={cn(
                 "text-sm tabular-nums",
-                out || low ? "font-medium text-[#C47A5A]" : "text-[#666666]",
+                out || low
+                  ? "font-medium text-destructive"
+                  : "text-muted-foreground",
               )}
             >
               {out ? "Out of stock" : leftLabel}
@@ -269,7 +286,7 @@ function StockRowItem({
               <button
                 type="button"
                 onClick={onStartEdit}
-                className="inline-flex size-7 items-center justify-center rounded-md border border-[#EEEEEE] text-[#888888] transition-colors hover:border-[#E8DFD0] hover:text-[#B08D48]"
+                className="inline-flex size-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
                 aria-label={`Edit stock for ${row.name}`}
               >
                 <Pencil className="size-3.5" aria-hidden />
@@ -278,16 +295,13 @@ function StockRowItem({
           </div>
         )}
       </div>
-      <div
-        className="h-1.5 w-full overflow-hidden rounded-full"
-        style={{ backgroundColor: STOCK_TRACK }}
-      >
+      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${fill}%`,
-            backgroundColor: out || low ? STOCK_LOW : STOCK_ACCENT,
-          }}
+          className={cn(
+            "h-full rounded-full transition-all duration-300",
+            out || low ? "bg-destructive/70" : "bg-primary/70",
+          )}
+          style={{ width: `${fill}%` }}
         />
       </div>
     </div>
@@ -296,17 +310,17 @@ function StockRowItem({
 
 function StockListSkeleton() {
   return (
-    <div className={STOCK_SURFACE}>
+    <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="border-b border-[#EEEEEE] px-5 py-4 last:border-0"
+          className="border-b border-border/60 px-4 py-2.5 last:border-0"
         >
-          <div className="mb-2.5 flex justify-between gap-3">
-            <div className="h-4 w-40 rounded bg-[#EEEEEE] animate-pulse" />
-            <div className="h-4 w-14 rounded bg-[#EEEEEE] animate-pulse" />
+          <div className="mb-1.5 flex justify-between gap-3">
+            <div className="h-3.5 w-36 animate-pulse rounded bg-muted" />
+            <div className="h-3.5 w-12 animate-pulse rounded bg-muted" />
           </div>
-          <div className="h-1.5 w-full rounded-full bg-[#EEEEEE] animate-pulse" />
+          <div className="h-1 w-full animate-pulse rounded-full bg-muted" />
         </div>
       ))}
     </div>
@@ -318,6 +332,10 @@ export function StockLevelsPage() {
   const allowed = hasPermission(me?.permissions, Permission.InventoryRead);
   const canWrite = hasPermission(me?.permissions, Permission.InventoryWrite);
 
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isBranchLockedRole =
+    roleKey === "stock_manager" || roleKey === "cashier";
+
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [branchId, setBranchId] = useState("");
@@ -328,7 +346,6 @@ export function StockLevelsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Inline stock editing
   const [editId, setEditId] = useState<string | null>(null);
   const [editQty, setEditQty] = useState("");
   const [editCost, setEditCost] = useState("");
@@ -449,11 +466,27 @@ export function StockLevelsPage() {
   }, []);
 
   useEffect(() => {
+    if (isBranchLockedRole) {
+      setBranchId(me?.branchId?.trim() ?? "");
+      return;
+    }
     const id = (sessionBranchId ?? "").trim();
-    if (!id) return;
-    const valid = branches.some((b) => b.id === id);
-    if (valid) setBranchId(id);
-  }, [sessionBranchId, branches]);
+    if (id && branches.some((b) => b.id === id)) {
+      setBranchId(id);
+      return;
+    }
+    if (!branchId && branches.length > 0) {
+      const fallback =
+        branches.find((b) => b.active)?.id ?? branches[0]?.id ?? "";
+      if (fallback) setBranchId(fallback);
+    }
+  }, [
+    isBranchLockedRole,
+    me?.branchId,
+    sessionBranchId,
+    branches,
+    branchId,
+  ]);
 
   const load = useCallback(async () => {
     const branch = branchId.trim();
@@ -570,6 +603,9 @@ export function StockLevelsPage() {
     return "No stocked products found for this branch.";
   }, [search, statusFilter, categoryId]);
 
+  const activeBranchName =
+    branches.find((b) => b.id === branchId)?.name?.trim() || "";
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -582,139 +618,245 @@ export function StockLevelsPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-6")}>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className={cn("text-sm font-medium", STOCK_MUTED)}>Inventory</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-black">
-            Stock
-          </h1>
-          <p className={cn("mt-1 text-sm", STOCK_MUTED)}>
-            {rows.length > 0
-              ? `${stockCounts.total.toLocaleString("en-KE")} products · ${stockCounts.low.toLocaleString("en-KE")} low · ${stockCounts.out.toLocaleString("en-KE")} out`
-              : "On-hand levels for your catalogue at the selected branch."}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="gap-2 border-[#EEEEEE] bg-white"
-          onClick={() => void load()}
-          disabled={loading || !branchId}
-        >
-          <RefreshCw
-            className={cn("size-4", loading && "animate-spin")}
-            aria-hidden
+    <div className={DASHBOARD_MAX}>
+      <div className="space-y-4">
+        <header className="space-y-2 border-b border-border/50 pb-4">
+          <DashboardPageHero
+            compact
+            icon={Warehouse}
+            eyebrow="Inventory"
+            title="Stock"
+            description="On-hand by branch — click a stat to filter."
           />
-          Refresh
-        </Button>
-      </header>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#888888]"
-            aria-hidden
+          <DashboardQuickLinks
+            compact
+            links={[
+              {
+                href: APP_ROUTES.inventoryRestock,
+                label: "Out of stock",
+                desc: "Restock zeros",
+                icon: PackageX,
+              },
+              {
+                href: APP_ROUTES.inventoryStockTake,
+                label: "Stock take",
+                desc: "Counts",
+                icon: ClipboardList,
+              },
+              {
+                href: APP_ROUTES.inventorySupplyBatches,
+                label: "Supply batches",
+                desc: "Cost layers",
+                icon: Layers,
+              },
+              {
+                href: APP_ROUTES.inventoryValuation,
+                label: "Valuation",
+                desc: "Extension value",
+                icon: BarChart3,
+              },
+              {
+                href: APP_ROUTES.inventoryTransfers,
+                label: "Transfers",
+                desc: "Move stock",
+                icon: ArrowRightLeft,
+              },
+              {
+                href: APP_ROUTES.products,
+                label: "Products",
+                desc: "Catalog",
+                icon: Package,
+              },
+            ]}
           />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products…"
-            className={cn(dashboardInputClass(), "pl-9")}
-            aria-label="Search stock"
-          />
-        </div>
-        <select
-          value={branchId}
-          onChange={(e) => setBranchId(e.target.value)}
-          className={cn(dashboardSelectClass(), "sm:w-56")}
-          aria-label="Branch"
-        >
-          <option value="">Select branch</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </div>
+        </header>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <FilterPills
-          options={STOCK_STATUS_FILTERS}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          ariaLabel="Stock status"
-        />
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className={cn(dashboardSelectClass(), "w-full sm:w-56")}
-          aria-label="Category"
-          disabled={!branchId}
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {error ? (
-        <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-
-      {!branchId ? (
-        <div
-          className={cn(
-            STOCK_SURFACE,
-            "flex flex-col items-center justify-center gap-3 px-6 py-16 text-center",
-          )}
-        >
-          <Package className="size-10 text-[#CCCCCC]" aria-hidden />
-          <p className={cn("text-sm", STOCK_MUTED)}>
-            Choose a branch to see stock levels.
-          </p>
-        </div>
-      ) : loading ? (
-        <StockListSkeleton />
-      ) : filteredRows.length === 0 ? (
-        <div
-          className={cn(
-            STOCK_SURFACE,
-            "px-6 py-16 text-center text-sm",
-            STOCK_MUTED,
-          )}
-        >
-          {emptyMessage}
-        </div>
-      ) : (
-        <div className={STOCK_SURFACE}>
-          <div className="divide-y divide-[#EEEEEE]">
-            {filteredRows.map((row) => (
-              <StockRowItem
-                key={row.id}
-                row={row}
-                canWrite={canWrite}
-                editing={editId === row.id}
-                editQty={editId === row.id ? editQty : ""}
-                editCost={editId === row.id ? editCost : ""}
-                saving={savingEdit && editId === row.id}
-                onEditQtyChange={setEditQty}
-                onEditCostChange={setEditCost}
-                onStartEdit={() => startEdit(row)}
-                onCancelEdit={cancelEdit}
-                onSaveEdit={() => void saveEdit(row)}
+        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+          {(rows.length > 0 || loading) && (
+            <div
+              className="flex flex-wrap gap-1.5 sm:flex-nowrap"
+              role="group"
+              aria-label="Stock summary"
+            >
+              <StockStatCard
+                label="All"
+                value={stockCounts.total}
+                active={statusFilter === "all"}
+                onClick={() => setStatusFilter("all")}
               />
-            ))}
+              <StockStatCard
+                label="In stock"
+                value={stockCounts.inStock}
+                active={statusFilter === "in_stock"}
+                tone="success"
+                onClick={() => setStatusFilter("in_stock")}
+              />
+              <StockStatCard
+                label="Low"
+                value={stockCounts.low}
+                active={statusFilter === "low"}
+                tone="warning"
+                onClick={() => setStatusFilter("low")}
+              />
+              <StockStatCard
+                label="Out"
+                value={stockCounts.out}
+                active={statusFilter === "out"}
+                tone="danger"
+                onClick={() => setStatusFilter("out")}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[11rem]">
+              <span className="text-muted-foreground">Branch</span>
+              <select
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                disabled={isBranchLockedRole}
+                className={cn(
+                  dashboardSelectClass(),
+                  "h-9 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
+                )}
+                aria-label="Branch"
+              >
+                <option value="">Select branch…</option>
+                {branches
+                  .filter((b) => b.active || b.id === branchId)
+                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            <label className="flex min-w-[10rem] flex-[2] flex-col gap-0.5 text-xs">
+              <span className="text-muted-foreground">Search</span>
+              <span className="relative">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Product name…"
+                  className={cn(
+                    dashboardInputClass(),
+                    "h-9 py-1.5 pl-8 text-sm",
+                  )}
+                  aria-label="Search stock"
+                />
+              </span>
+            </label>
+
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[11rem]">
+              <span className="text-muted-foreground">Category</span>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+                aria-label="Category"
+                disabled={!branchId}
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0 gap-1.5"
+              onClick={() => void load()}
+              disabled={loading || !branchId}
+            >
+              <RefreshCw
+                className={cn("size-3.5", loading && "animate-spin")}
+                aria-hidden
+              />
+              {loading ? "…" : "Refresh"}
+            </Button>
           </div>
         </div>
-      )}
+
+        {error ? (
+          <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {error}
+          </p>
+        ) : null}
+
+        {!canWrite && rows.length > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            View-only — inventory write permission required to edit quantities.
+          </p>
+        ) : null}
+
+        {!branchId ? (
+          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-10 text-center">
+            <Package className="size-8 text-muted-foreground/40" aria-hidden />
+            <p className="text-sm text-muted-foreground">
+              {isBranchLockedRole
+                ? "Your account is not assigned to a branch. Contact your administrator."
+                : "Choose a branch to see stock levels."}
+            </p>
+          </div>
+        ) : loading ? (
+          <StockListSkeleton />
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border/60">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
+              <h2 className="text-xs font-semibold tracking-tight sm:text-sm">
+                {filteredRows.length.toLocaleString("en-KE")} product
+                {filteredRows.length === 1 ? "" : "s"}
+                {statusFilter !== "all"
+                  ? ` · ${statusFilter === "in_stock" ? "in stock" : statusFilter === "low" ? "low stock" : "out of stock"}`
+                  : ""}
+                {activeBranchName ? ` · ${activeBranchName}` : ""}
+              </h2>
+              {search.trim() && filteredRows.length !== rows.length ? (
+                <span className="text-xs text-muted-foreground">
+                  {filteredRows.length} of {rows.length} match search
+                </span>
+              ) : null}
+            </div>
+
+            {filteredRows.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                {emptyMessage}
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60 bg-card">
+                {filteredRows.map((row) => (
+                  <StockRowItem
+                    key={row.id}
+                    row={row}
+                    canWrite={canWrite}
+                    editing={editId === row.id}
+                    editQty={editId === row.id ? editQty : ""}
+                    editCost={editId === row.id ? editCost : ""}
+                    saving={savingEdit && editId === row.id}
+                    onEditQtyChange={setEditQty}
+                    onEditCostChange={setEditCost}
+                    onStartEdit={() => startEdit(row)}
+                    onCancelEdit={cancelEdit}
+                    onSaveEdit={() => void saveEdit(row)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
