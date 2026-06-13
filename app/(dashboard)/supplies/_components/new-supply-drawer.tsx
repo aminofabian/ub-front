@@ -1165,7 +1165,7 @@ export function NewSupplyDrawer({
           <table className="w-full min-w-[62rem] border-collapse text-left text-sm">
             <thead className={nsdTableHead}>
               <tr className="border-b border-border/50 bg-muted/60 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                <th colSpan={2} className="px-2 py-1 text-left font-semibold">
+                <th className="px-2 py-1 text-left font-semibold">
                   Product
                 </th>
                 <th
@@ -1206,7 +1206,6 @@ export function NewSupplyDrawer({
               </tr>
               <tr>
                 <th className={cn(nsdTableTh, "min-w-[9rem]")}>Product</th>
-                <th className={cn(nsdTableTh, "min-w-[5rem]")}>Barcode</th>
                 <th className={cn(nsdTableTh, "min-w-[4rem] text-right", nsdTableGroupDivider)}>
                   Stock
                 </th>
@@ -1249,43 +1248,42 @@ export function NewSupplyDrawer({
                     )}
                   >
                     <td className={nsdTableCell}>
-                      {row.source === "adhoc" ? (
-                        <ProductPickCell
-                          sharp
-                          branchId={branchId}
-                          item={row.item}
-                          disabled={busy}
-                          onItemChange={(item) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.key === row.key
-                                  ? {
-                                      ...r,
-                                      item,
-                                      sellPriceStr: "",
-                                      sellPriceTouched: false,
-                                    }
-                                  : r,
-                              ),
-                            )
-                          }
-                        />
-                      ) : (
-                        <div
-                          className="max-w-[14rem] truncate text-sm font-medium leading-snug"
-                          title={rowLabel(row)}
-                        >
-                          {rowLabel(row)}
-                        </div>
-                      )}
-                    </td>
-                    <td
-                      className={cn(
-                        nsdTableCell,
-                        "align-top font-mono text-[10px] leading-snug text-muted-foreground break-all",
-                      )}
-                    >
-                      {rowBarcode(row)}
+                      <div className="min-w-0">
+                        {row.source === "adhoc" ? (
+                          <ProductPickCell
+                            sharp
+                            branchId={branchId}
+                            item={row.item}
+                            disabled={busy}
+                            onItemChange={(item) =>
+                              setRows((prev) =>
+                                prev.map((r) =>
+                                  r.key === row.key
+                                    ? {
+                                        ...r,
+                                        item,
+                                        sellPriceStr: "",
+                                        sellPriceTouched: false,
+                                      }
+                                    : r,
+                                ),
+                              )
+                            }
+                          />
+                        ) : (
+                          <div
+                            className="max-w-[14rem] truncate text-sm font-medium leading-snug"
+                            title={rowLabel(row)}
+                          >
+                            {rowLabel(row)}
+                          </div>
+                        )}
+                        {rowBarcode(row) !== "—" ? (
+                          <p className="mt-0.5 break-all font-mono text-[10px] leading-snug text-muted-foreground">
+                            {rowBarcode(row)}
+                          </p>
+                        ) : null}
+                      </div>
                     </td>
                     <td className={cn(nsdTableCell, "min-w-[4rem] align-top", nsdTableGroupDivider)}>
                       <SupplyStockCell
