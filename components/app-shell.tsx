@@ -741,7 +741,7 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     if (roleKey === "grocery_clerk") {
-      const allowed = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
+      const allowed: string[] = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
       if (groceryClerkStockAccessEnabled(business)) {
         allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
       }

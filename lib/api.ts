@@ -826,6 +826,7 @@ export type SupplierItemLinkRecord = {
   supplierSku?: string | null;
   defaultCostPrice?: number | string | null;
   lastCostPrice?: number | string | null;
+  reorderLevel?: number | string | null;
   active: boolean;
   version?: number;
   createdAt?: string;

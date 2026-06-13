@@ -322,7 +322,7 @@ export function NewSupplyDrawer({
   );
   const [lineSearchQuery, setLineSearchQuery] = useState("");
   const pricingGenRef = useRef(0);
-  const linesSectionRef = useRef<HTMLElement | null>(null);
+  const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
 
   useEffect(() => {
