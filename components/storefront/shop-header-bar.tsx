@@ -43,8 +43,8 @@ export function ShopHeaderBar({
 }) {
   return (
     <div className="border-b border-border/40 bg-card/90 backdrop-blur-sm">
-      <div className="mx-auto max-w-7xl px-3 py-2 sm:px-6 sm:py-4 lg:py-5">
-        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-8">
+      <div className="mx-auto max-w-7xl px-3 py-1.5 sm:px-6 sm:py-2">
+        <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-4">
           <div className="flex items-center gap-2 lg:contents">
             <TenantLogo
               brand={headerTitle}
@@ -60,18 +60,18 @@ export function ShopHeaderBar({
               logoUrl={logoUrl}
               primaryColor={primaryHex}
               variant="storefront"
-              size="lg"
+              size="md"
               href={APP_ROUTES.shop}
-              className="hidden shrink-0 self-start lg:inline-flex"
+              className="hidden shrink-0 self-center lg:inline-flex"
             />
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-0.5 lg:hidden">
               <Link
                 href={APP_ROUTES.shopAccount}
-                className="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                 aria-label="Account"
               >
-                <UserRound className="size-5" aria-hidden />
+                <UserRound className="size-4.5" aria-hidden />
               </Link>
               {slug ? (
                 <ShopCartTrigger accentHex={primaryHex} compact className="px-1" />
@@ -83,7 +83,7 @@ export function ShopHeaderBar({
             <Suspense
               fallback={
                 <div
-                  className="h-10 animate-pulse rounded-xl bg-muted/50 lg:h-12"
+                  className="h-9 animate-pulse rounded-xl bg-muted/50 sm:h-10"
                   aria-hidden
                 />
               }
@@ -95,10 +95,10 @@ export function ShopHeaderBar({
           <div className="hidden shrink-0 items-center justify-end gap-2 sm:gap-3 lg:flex">
             <Link
               href={APP_ROUTES.shopAccount}
-              className="group inline-flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted/50 hover:text-foreground sm:px-3"
+              className="group inline-flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted/50 hover:text-foreground"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted/30 transition-colors group-hover:bg-muted/60">
-                <UserRound className="h-4.5 w-4.5" aria-hidden />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/30 transition-colors group-hover:bg-muted/60">
+                <UserRound className="h-4 w-4" aria-hidden />
               </span>
               <span className="hidden whitespace-nowrap sm:inline">
                 Account

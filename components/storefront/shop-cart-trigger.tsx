@@ -44,10 +44,10 @@ export function ShopCartTrigger({
       <span
         className={cn(
           "relative flex items-center justify-center rounded-xl bg-muted/40 text-muted-foreground transition-colors group-hover:bg-muted/70 group-hover:text-foreground",
-          compact ? "size-10" : "h-10 w-10",
+          compact ? "size-9" : "h-9 w-9",
         )}
       >
-        <ShoppingBag className="h-5 w-5" aria-hidden />
+        <ShoppingBag className="h-4.5 w-4.5" aria-hidden />
         {itemCount > 0 ? (
           <span
             className={cn(

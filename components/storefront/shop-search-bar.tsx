@@ -29,7 +29,7 @@ export default function ShopSearchBar({
       <form
         action={formAction}
         method="get"
-        className="group relative flex h-10 items-stretch overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.04] transition-shadow focus-within:border-primary/30 focus-within:shadow-md sm:h-12"
+        className="group relative flex h-9 items-stretch overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.04] transition-shadow focus-within:border-primary/30 focus-within:shadow-md sm:h-10"
         role="search"
       >
         <label className="sr-only" htmlFor={inputId}>
@@ -37,7 +37,7 @@ export default function ShopSearchBar({
         </label>
         <div className="relative flex flex-1 items-center">
           <Search
-            className="pointer-events-none absolute left-4 h-4 w-4 text-muted-foreground/70"
+            className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-muted-foreground/70"
             aria-hidden
           />
           <input
@@ -46,7 +46,7 @@ export default function ShopSearchBar({
             type="search"
             defaultValue={defaultQuery ?? ""}
             placeholder="Search products…"
-            className="h-full w-full border-0 bg-transparent pl-11 pr-3 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:ring-0 sm:placeholder:text-muted-foreground/70"
+            className="h-full w-full border-0 bg-transparent pl-9 pr-2 text-sm outline-none placeholder:text-muted-foreground/70 focus-visible:ring-0 sm:placeholder:text-muted-foreground/70"
           />
         </div>
         {categoryId ? <input type="hidden" name="categoryId" value={categoryId} /> : null}
@@ -54,7 +54,7 @@ export default function ShopSearchBar({
           type="submit"
           aria-label="Search"
           className={cn(
-            "flex h-full w-12 shrink-0 items-center justify-center text-white transition hover:brightness-110 active:brightness-95 sm:w-14",
+            "flex h-full w-10 shrink-0 items-center justify-center text-white transition hover:brightness-110 active:brightness-95 sm:w-11",
             !validAccent && "bg-primary",
           )}
           style={validAccent ? { backgroundColor: validAccent, color: "#fff" } : undefined}

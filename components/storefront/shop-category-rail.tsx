@@ -167,18 +167,18 @@ function ShopByAisleMenu({
         : (roots[0] ?? null);
 
   return (
-    <div className="group/aisle relative shrink-0 border-r border-white/15 py-2.5 pr-3 sm:pr-4">
+    <div className="group/aisle relative shrink-0 border-r border-white/15 py-1.5 pr-2 sm:pr-3">
       <button
         type="button"
-        className="flex items-center gap-2 text-sm font-semibold text-white"
+        className="flex items-center gap-1.5 text-xs font-semibold text-white"
         aria-haspopup="true"
       >
-        <LayoutGrid className="h-4 w-4 shrink-0" aria-hidden />
+        <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="hidden whitespace-nowrap sm:inline">
           Shop by Aisle
         </span>
         <span className="sm:hidden">Aisles</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-white/85" aria-hidden />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/85" aria-hidden />
       </button>
 
       <div
@@ -281,7 +281,7 @@ function FeaturedAisleNav({
 }) {
   return (
     <nav
-      className="flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto py-1.5 sm:justify-start sm:gap-2"
+      className="flex min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto py-1 sm:justify-start sm:gap-1.5"
       aria-label="Featured aisles"
     >
       {featured.map((c) => {
@@ -294,7 +294,7 @@ function FeaturedAisleNav({
             key={c.id}
             href={shopListPath({ categoryPathSlug: seg, q })}
             className={cn(
-              "shrink-0 truncate rounded-md px-2 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] transition sm:px-3 sm:text-[11px] sm:tracking-[0.14em]",
+              "shrink-0 truncate rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] transition sm:px-2.5 sm:text-[10px] sm:tracking-[0.14em]",
               active
                 ? "bg-white/20 text-white"
                 : "text-white/90 hover:bg-white/10 hover:text-white",
@@ -383,10 +383,10 @@ export function ShopCategoryRail({
         <Link
           href={`${APP_ROUTES.shop}#shop-catalog`}
           className={cn(
-            "ml-auto inline-flex shrink-0 items-center gap-1.5 self-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold transition hover:bg-white/10",
+            "ml-auto inline-flex shrink-0 items-center gap-1 self-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold transition hover:bg-white/10",
           )}
         >
-          <Flame className="h-4 w-4" aria-hidden />
+          <Flame className="h-3.5 w-3.5" aria-hidden />
           <span className="hidden sm:inline">Offers</span>
           <span
             className="rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase text-white shadow"

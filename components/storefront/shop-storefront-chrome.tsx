@@ -10,7 +10,6 @@ import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
-import { ShopFooterMart } from "@/components/storefront/shop-footer-mart";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
 import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
 import { ShopCartProvider, useShopCart } from "@/hooks/use-shop-cart";
@@ -19,7 +18,7 @@ import { formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
 function RailFallback() {
-  return <div className="h-11 animate-pulse bg-primary/40" aria-hidden />;
+  return <div className="h-9 animate-pulse bg-primary/40" aria-hidden />;
 }
 
 function FloatingCartButton({ accentHex }: { accentHex?: string | null }) {
@@ -105,7 +104,6 @@ export function ShopStorefrontChrome({
   accentHex,
   locationHint,
   categories,
-  storeName,
   children,
 }: {
   slug: string;
@@ -115,7 +113,6 @@ export function ShopStorefrontChrome({
   accentHex: string | null;
   locationHint?: string | null;
   categories: PublicCategory[];
-  storeName: string;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -150,20 +147,11 @@ export function ShopStorefrontChrome({
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col",
-          compactChrome
-            ? "overflow-hidden"
-            : "overflow-y-auto overscroll-y-contain pb-[var(--shop-footer-offset,9.5rem)]",
+          compactChrome ? "overflow-hidden" : "overflow-y-auto overscroll-y-contain",
         )}
       >
         {children}
       </div>
-      {!compactChrome ? (
-        <ShopFooterMart
-          primaryHex={primaryHex}
-          storeName={storeName}
-          logoUrl={logoUrl}
-        />
-      ) : null}
       <ShopCartDrawer />
       <ShopCheckoutDrawer />
       <FloatingCartButton accentHex={accentHex} />

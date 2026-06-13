@@ -63,19 +63,27 @@ export function ConfirmationFloatingDock({
   ariaLabel,
   /** In-flow dock at the bottom of a flex column (avoids clipping inside overflow-hidden shells). */
   anchored = false,
+  /** Full-width bar for checkout drawer / embedded panels */
+  fullWidth = false,
 }: {
   children: React.ReactNode;
   ariaLabel: string;
   anchored?: boolean;
+  fullWidth?: boolean;
 }) {
   const panelClass = cn(
-    "w-full max-w-lg",
-    "rounded-t-2xl border border-border/35",
+    "w-full",
+    fullWidth ? "max-w-none" : "max-w-lg sm:max-w-[22rem]",
+    fullWidth
+      ? "rounded-none border-x-0 border-b-0 shadow-[0_-8px_24px_-8px_rgba(15,23,42,0.12)]"
+      : cn(
+          "rounded-t-2xl border border-border/35",
+          "shadow-[0_-12px_36px_-10px_rgba(15,23,42,0.14)]",
+          "sm:rounded-xl sm:border sm:shadow-lg",
+        ),
     "bg-linear-to-t from-background/98 via-background/95 to-background/90",
-    "shadow-[0_-12px_36px_-10px_rgba(15,23,42,0.14)]",
     "ring-1 ring-black/[0.03] backdrop-blur-lg backdrop-saturate-150",
     "supports-[backdrop-filter]:bg-background/88",
-    "sm:max-w-[22rem] sm:rounded-xl sm:border sm:shadow-lg",
   );
 
   const inner = (

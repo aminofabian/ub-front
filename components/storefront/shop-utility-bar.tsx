@@ -59,7 +59,7 @@ export function ShopUtilityBar({
   return (
     <div
       className={cn(
-        "text-[12px] font-medium text-white/85 sm:text-xs",
+        "text-[11px] font-medium text-white/85",
         !resolvedPrimary && "bg-primary",
         className,
       )}
@@ -69,9 +69,9 @@ export function ShopUtilityBar({
           : undefined
       }
     >
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-1.5 px-4 py-2 sm:px-6">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-1 sm:px-6">
+        <div className="flex min-w-0 items-center gap-1">
+          <MapPin className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
           <span className="truncate opacity-85">
             Delivering to{" "}
             <span className="font-semibold opacity-100">
@@ -83,7 +83,7 @@ export function ShopUtilityBar({
         <nav className="flex shrink-0 items-center gap-x-0.5 sm:gap-x-1">
           <Link
             href={APP_ROUTES.shopCart}
-            className="rounded-md px-2.5 py-1 transition hover:bg-white/10"
+            className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
           >
             Track Order
           </Link>
@@ -92,7 +92,7 @@ export function ShopUtilityBar({
           </span>
           <Link
             href="#shop-catalog"
-            className="rounded-md px-2.5 py-1 transition hover:bg-white/10"
+            className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
           >
             Help
           </Link>
@@ -100,12 +100,12 @@ export function ShopUtilityBar({
             ·
           </span>
           {!mounted ? (
-            <span className="rounded-md px-2.5 py-1 opacity-60">…</span>
+            <span className="rounded-md px-2 py-0.5 opacity-60">…</span>
           ) : signedIn ? (
             <>
               <Link
                 href={APP_ROUTES.business}
-                className="rounded-md px-2.5 py-1 transition hover:bg-white/10"
+                className="rounded-md px-2 py-0.5 transition hover:bg-white/10"
               >
                 Dashboard
               </Link>
@@ -114,7 +114,7 @@ export function ShopUtilityBar({
               </span>
               <button
                 type="button"
-                className="rounded-md px-2.5 py-1 font-semibold transition hover:bg-white/10"
+                className="rounded-md px-2 py-0.5 font-semibold transition hover:bg-white/10"
                 onClick={() => void onSignOut()}
               >
                 Sign out
@@ -123,7 +123,7 @@ export function ShopUtilityBar({
           ) : (
             <Link
               href={APP_ROUTES.login}
-              className="rounded-md px-2.5 py-1 font-semibold transition hover:bg-white/10"
+              className="rounded-md px-2 py-0.5 font-semibold transition hover:bg-white/10"
             >
               Sign in
             </Link>

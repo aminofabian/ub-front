@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ArrowLeft, Lock, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -49,11 +49,6 @@ export function ShopCheckoutDrawerChrome({ onClose, children, className }: Props
         />
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
       </div>
-
-      <p className="relative z-10 flex shrink-0 items-center justify-center gap-1.5 border-t border-border/40 bg-muted/20 py-2 text-[10px] font-medium text-muted-foreground">
-        <Lock className="size-3 opacity-70" aria-hidden />
-        Encrypted · M-Pesa & manual pay supported
-      </p>
     </div>
   );
 }

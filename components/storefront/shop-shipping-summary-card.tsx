@@ -27,6 +27,8 @@ type Props = {
   onEdit: () => void;
   className?: string;
   compact?: boolean;
+  /** Larger edit control when the card replaces the inline delivery form */
+  prominentEdit?: boolean;
 };
 
 export function ShopShippingSummaryCard({
@@ -34,6 +36,7 @@ export function ShopShippingSummaryCard({
   onEdit,
   className,
   compact = false,
+  prominentEdit = false,
 }: Props) {
   const zoneLabel = formatDeliveryZone(
     contact.ward,
@@ -43,7 +46,7 @@ export function ShopShippingSummaryCard({
 
   return (
     <div className={cn(CHECKOUT_CARD, "overflow-hidden", className)}>
-      <DeliveryContactCardHeader onEdit={onEdit} />
+      <DeliveryContactCardHeader onEdit={onEdit} prominentEdit={prominentEdit} />
       <DeliveryContactDetails
         customerName={contact.customerName}
         customerPhone={contact.customerPhone}

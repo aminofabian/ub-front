@@ -173,8 +173,10 @@ export function DeliveryContactDetails({
 
 export function DeliveryContactCardHeader({
   onEdit,
+  prominentEdit = false,
 }: {
   onEdit?: () => void;
+  prominentEdit?: boolean;
 }) {
   return (
     <div
@@ -192,13 +194,16 @@ export function DeliveryContactCardHeader({
       {onEdit ? (
         <Button
           type="button"
-          variant="ghost"
+          variant={prominentEdit ? "outline" : "ghost"}
           size="sm"
-          className="h-7 shrink-0 gap-1 px-2 text-[11px] font-medium text-primary hover:bg-primary/10"
+          className={cn(
+            "h-7 shrink-0 gap-1 px-2 text-[11px] font-medium text-primary hover:bg-primary/10",
+            prominentEdit && "h-8 border-primary/25 bg-background px-3 text-xs font-semibold",
+          )}
           onClick={onEdit}
         >
           <Pencil className="size-3" aria-hidden />
-          Edit
+          Edit details
         </Button>
       ) : null}
     </div>

@@ -25,6 +25,10 @@ export const CHECKOUT_SELECT = CHECKOUT_INPUT;
 export const CHECKOUT_SERIF_AMOUNT =
   "font-serif text-lg font-semibold tabular-nums tracking-tight";
 
+/** Compact totals in sticky docks — sans-serif avoids faux-bold overlap in tight layouts */
+export const CHECKOUT_DOCK_AMOUNT =
+  "text-base font-bold tabular-nums tracking-tight text-foreground";
+
 export const CHECKOUT_PRIMARY_BTN =
   "h-10 rounded-lg bg-primary text-sm font-semibold text-white shadow-sm transition-[transform,box-shadow] hover:bg-[var(--primary-hover)] active:scale-[0.98]";
 

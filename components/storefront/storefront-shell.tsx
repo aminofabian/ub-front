@@ -13,7 +13,7 @@ import { resolveStorefrontSlug, resolveTenantContext } from "@/lib/storefront-sl
 import { cn } from "@/lib/utils";
 
 /**
- * Storefront chrome (utility bar, header, category rail, footer) shared by
+ * Storefront chrome (utility bar, header, category rail) shared by
  * `/shop/*` and the host-mapped homepage `/`.
  */
 export async function StorefrontShell({
@@ -69,7 +69,7 @@ export async function StorefrontShell({
       primaryHex={primary}
       accentHex={accent}
       className={cn(
-        "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] [--shop-footer-offset:6.5rem] sm:[--shop-footer-offset:11.5rem] dark:bg-background",
+        "h-[100dvh] max-h-[100dvh] overflow-hidden bg-[oklch(0.985_0.002_90)] dark:bg-background",
       )}
     >
       {slug ? (
@@ -81,7 +81,6 @@ export async function StorefrontShell({
           accentHex={accent}
           locationHint={locationHint}
           categories={categories}
-          storeName={headerTitle}
         >
           {children}
         </ShopStorefrontChrome>
