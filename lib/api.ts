@@ -553,6 +553,7 @@ export type BusinessRecord = {
   subscriptionTier?: string;
   storefront?: StorefrontSettingsRecord;
   inventory?: InventorySettingsRecord;
+  featureFlags?: Record<string, boolean>;
   profile?: {
     storeType?: string | null;
   };
@@ -632,12 +633,24 @@ export type InventoryPatchPayload = {
   stocktake?: StocktakePatchPayload;
 };
 
+export type PosDraftsFeatureFlagsPatch = {
+  enabled?: boolean;
+  uiVisible?: boolean;
+  shadowWrites?: boolean;
+  offlineMirror?: boolean;
+};
+
+export type FeatureFlagsPatchPayload = {
+  posDrafts?: PosDraftsFeatureFlagsPatch;
+};
+
 export type PatchBusinessPayload = {
   name?: string;
   subscriptionTier?: string;
   active?: boolean;
   storefront?: StorefrontPatchPayload;
   inventory?: InventoryPatchPayload;
+  featureFlags?: FeatureFlagsPatchPayload;
 };
 
 export type BrandingPatchPayload = {

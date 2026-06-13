@@ -55,6 +55,11 @@ export const Permission = {
   GroceryInvoicesRead: "grocery.invoices.read",
   GroceryInvoicesCancel: "grocery.invoices.cancel",
   GroceryInvoicesPay: "grocery.invoices.pay",
+  /** POS draft carts (cashier persistence) */
+  PosDraftsRead: "pos.drafts.read",
+  PosDraftsWrite: "pos.drafts.write",
+  PosDraftsCancelOwn: "pos.drafts.cancel.own",
+  PosDraftsCancelAny: "pos.drafts.cancel.any",
 } as const;
 
 export function hasPermission(

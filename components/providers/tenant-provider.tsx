@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
+import { useOptionalDashboard } from "@/components/dashboard-provider";
 import type { TenantContext } from "@/lib/public-storefront";
 
 const TenantContextCtx = createContext<TenantContext | null>(null);
@@ -44,9 +45,26 @@ export function useOptionalTenant(): TenantContext | null {
 
 /**
  * Convenience: read a single feature flag, defaulting to {@code false} when
- * the flag is absent. Keeps consumer code free of optional-chaining noise.
+ * the flag is absent. Merges tenant host-resolve flags with the authenticated
+ * business record so dashboard toggles take effect without waiting on host cache.
  */
 export function useFeatureFlag(key: string): boolean {
   const ctx = useOptionalTenant();
-  return ctx?.featureFlags?.[key] === true;
+  const dashboard = useOptionalDashboard();
+  const fromTenant = ctx?.featureFlags?.[key] === true;
+  const fromBusiness = dashboard?.business?.featureFlags?.[key] === true;
+  return fromTenant || fromBusiness;
+}
+
+/** Merged tenant + business flags for nav gates and bulk checks. */
+export function useFeatureFlags(): Record<string, boolean> {
+  const ctx = useOptionalTenant();
+  const dashboard = useOptionalDashboard();
+  return useMemo(
+    () => ({
+      ...(ctx?.featureFlags ?? {}),
+      ...(dashboard?.business?.featureFlags ?? {}),
+    }),
+    [ctx?.featureFlags, dashboard?.business?.featureFlags],
+  );
 }

@@ -4,9 +4,22 @@ import type {
   SalePaymentMethod,
 } from "@/lib/api";
 
+/** Server sync state for persisted POS drafts. */
+export type CartSyncStatus = "idle" | "syncing" | "error" | "conflict";
+
 /** Per-cart state that was previously flat in QuickSaleWorkspace. */
 export type CartSession = {
   id: string;
+  /** Stable idempotency key for draft creation (one per tab). */
+  clientDraftId: string;
+  /** Server pos_drafts.id — null until first successful sync. */
+  draftId: string | null;
+  /** Branch-scoped ticket number (Sale #N). */
+  ticketNumber: number | null;
+  /** Optimistic-lock version from server. */
+  version: number;
+  syncStatus: CartSyncStatus;
+  lastSyncedAt: string | null;
   label: string;
   createdAt: number;
   lines: CartSessionLine[];
@@ -39,6 +52,8 @@ export type CartSession = {
 /** Mirror of CartLine from quick-sale-workspace — keep in sync. */
 export type CartSessionLine = {
   key: string;
+  /** Server pos_draft_lines.id after sync. */
+  serverLineId?: string;
   itemId: string;
   label: string;
   quantity: string;
@@ -64,6 +79,12 @@ export function createEmptyCartSession(): CartSession {
   cartCounter += 1;
   return {
     id: crypto.randomUUID(),
+    clientDraftId: crypto.randomUUID(),
+    draftId: null,
+    ticketNumber: null,
+    version: 0,
+    syncStatus: "idle",
+    lastSyncedAt: null,
     label: `Cart ${cartCounter}`,
     createdAt: Date.now(),
     lines: [],
@@ -87,10 +108,13 @@ export function createEmptyCartSession(): CartSession {
   };
 }
 
-/** Derive a display label: "Cart N" or customer name if selected. */
+/** Derive a display label: "#N", "Cart N", or customer name if selected. */
 export function cartSessionLabel(cart: CartSession): string {
   if (cart.selectedCustomer?.name?.trim()) {
     return cart.selectedCustomer.name.trim();
+  }
+  if (cart.ticketNumber != null && cart.ticketNumber > 0) {
+    return `#${cart.ticketNumber}`;
   }
   return cart.label;
 }

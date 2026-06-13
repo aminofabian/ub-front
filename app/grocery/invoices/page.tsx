@@ -40,6 +40,7 @@ import {
   GroceryInvoicesList,
   type InvoicesViewMode,
 } from "@/components/grocery/grocery-invoices-list";
+import { GroceryDraftsList } from "@/components/grocery/grocery-drafts-list";
 import {
   listGroceryInvoices,
   cancelGroceryInvoice,
@@ -49,8 +50,13 @@ import {
   type GroceryInvoiceStatus,
   type GroceryInvoiceResponse,
 } from "@/lib/grocery-api";
+import {
+  listGroceryDrafts,
+  cancelGroceryDraft,
+  type GroceryDraftSummaryResponse,
+} from "@/lib/grocery-draft-api";
 
-type TabValue = GroceryInvoiceStatus | "all";
+type TabValue = GroceryInvoiceStatus | "all" | "drafts";
 type SortKey =
   | "created_desc"
   | "created_asc"
@@ -60,6 +66,7 @@ type SortKey =
 
 const STATUS_TABS: Array<{ label: string; value: TabValue }> = [
   { label: "All", value: "all" },
+  { label: "Drafts", value: "drafts" },
   { label: "Pending", value: "pending_payment" },
   { label: "Paid", value: "paid" },
   { label: "Cancelled", value: "cancelled" },
@@ -153,6 +160,7 @@ export default function GroceryInvoicesPage() {
   );
 
   const [invoices, setInvoices] = useState<GroceryInvoiceSummaryResponse[]>([]);
+  const [drafts, setDrafts] = useState<GroceryDraftSummaryResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -232,16 +240,49 @@ export default function GroceryInvoicesPage() {
     [branchId],
   );
 
+  const fetchDrafts = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!branchId) return;
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+      try {
+        const result = await listGroceryDrafts({
+          branchId,
+          status: "building",
+          hoursBack: 48,
+        });
+        setDrafts(result.drafts ?? []);
+      } catch (e) {
+        const msg =
+          e instanceof GroceryApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "Failed to load drafts";
+        setError(msg);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [branchId],
+  );
+
   useEffect(() => {
-    if (branchId) {
+    if (!branchId) return;
+    if (activeTab === "drafts") {
+      void fetchDrafts();
+    } else {
       void fetchInvoices();
     }
-  }, [branchId, fetchInvoices]);
+  }, [branchId, activeTab, fetchInvoices, fetchDrafts]);
 
   // ── Derived: counts + totals + filtered list ────────────────────
   const counts = useMemo(() => {
     const c: Record<TabValue, number> = {
       all: invoices.length,
+      drafts: drafts.length,
       pending_payment: 0,
       paid: 0,
       cancelled: 0,
@@ -249,7 +290,7 @@ export default function GroceryInvoicesPage() {
     };
     for (const inv of invoices) c[inv.status]++;
     return c;
-  }, [invoices]);
+  }, [invoices, drafts]);
 
   const totals = useMemo(() => {
     let pending = 0;
@@ -261,7 +302,7 @@ export default function GroceryInvoicesPage() {
     return { pending, paid };
   }, [invoices]);
 
-  const filtered = useMemo(() => {
+  const filteredInvoices = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = invoices
       .filter((inv) => (activeTab === "all" ? true : inv.status === activeTab))
@@ -302,6 +343,19 @@ export default function GroceryInvoicesPage() {
     return sorted;
   }, [invoices, activeTab, query, sort]);
 
+  const filteredDrafts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return drafts
+      .filter((d) => {
+        if (!q) return true;
+        return (
+          String(d.counterNumber).includes(q) ||
+          (d.createdByName ?? "").toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [drafts, query]);
+
   // ── Actions ──────────────────────────────────────────────────────
   const onViewInvoice = useCallback(async (id: string) => {
     setViewLoading(true);
@@ -339,6 +393,22 @@ export default function GroceryInvoicesPage() {
       }
     },
     [fetchInvoices, viewingInvoice?.id],
+  );
+
+  const onCancelDraft = useCallback(
+    async (id: string) => {
+      if (!confirm("Cancel this draft? This cannot be undone.")) return;
+      try {
+        await cancelGroceryDraft(id, "Cancelled by staff from dashboard");
+        toast.success("Draft cancelled");
+        void fetchDrafts({ silent: true });
+      } catch (e) {
+        const msg =
+          e instanceof GroceryApiError ? e.message : "Failed to cancel draft";
+        toast.error(msg);
+      }
+    },
+    [fetchDrafts],
   );
 
   const onCopyBarcode = useCallback(async (code: string) => {
@@ -532,7 +602,9 @@ export default function GroceryInvoicesPage() {
             const count = counts[tab.value];
             const isActive = activeTab === tab.value;
             const theme =
-              tab.value === "all" ? null : STATUS_THEME[tab.value];
+              tab.value === "all" || tab.value === "drafts"
+                ? null
+                : STATUS_THEME[tab.value];
             return (
               <button
                 key={tab.value}
@@ -588,37 +660,55 @@ export default function GroceryInvoicesPage() {
         </div>
       )}
 
-      {/* ── Invoices list ─────────────────────────────────────────── */}
+      {/* ── Invoices / Drafts list ─────────────────────────────────────────── */}
       <section className="flex-1">
-        <GroceryInvoicesList
-          invoices={filtered}
-          onViewInvoice={onViewInvoice}
-          onCancelInvoice={onCancelInvoice}
-          loading={loading}
-          currency={currency}
-          query={query}
-          activeTab={activeTab}
-          totalCount={invoices.length}
-          viewMode={viewMode}
-        />
+        {activeTab === "drafts" ? (
+          <GroceryDraftsList
+            drafts={filteredDrafts}
+            currency={currency}
+            loading={loading}
+            onCancel={(id) => void onCancelDraft(id)}
+          />
+        ) : (
+          <GroceryInvoicesList
+            invoices={filteredInvoices}
+            onViewInvoice={onViewInvoice}
+            onCancelInvoice={onCancelInvoice}
+            loading={loading}
+            currency={currency}
+            query={query}
+            activeTab={activeTab}
+            totalCount={invoices.length}
+            viewMode={viewMode}
+          />
+        )}
       </section>
 
       {/* ── Quick filter summary ──────────────────────────────────── */}
-      {!loading && !error && invoices.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground">
-          Showing{" "}
-          <span className="font-semibold text-foreground">
-            {filtered.length}
-          </span>{" "}
-          of {invoices.length} invoice{invoices.length === 1 ? "" : "s"}
-          {activeTab !== "all" && ` · ${activeTab.replace(/_/g, " ")}`}
-          {query && ` · matching “${query}”`}
-          {" · "}
-          {viewMode === "table" ? "table view" : "grid view"}
-          {" · "}
-          {SORT_OPTIONS.find((o) => o.value === sort)?.label.toLowerCase()}
-        </p>
-      )}
+      {!loading &&
+        !error &&
+        (activeTab === "drafts" ? drafts.length > 0 : invoices.length > 0) && (
+          <p className="text-center text-xs text-muted-foreground">
+            Showing{" "}
+            <span className="font-semibold text-foreground">
+              {activeTab === "drafts" ? filteredDrafts.length : filteredInvoices.length}
+            </span>{" "}
+            of{" "}
+            {activeTab === "drafts"
+              ? `${drafts.length} draft${drafts.length === 1 ? "" : "s"}`
+              : `${invoices.length} invoice${invoices.length === 1 ? "" : "s"}`}
+            {activeTab !== "all" && activeTab !== "drafts" && ` · ${activeTab.replace(/_/g, " ")}`}
+            {query && ` · matching “${query}”`}
+            {activeTab !== "drafts" && (
+              <>
+                {" · "}
+                {viewMode === "table" ? "table view" : "grid view"}
+                {" · "}
+                {SORT_OPTIONS.find((o) => o.value === sort)?.label.toLowerCase()}
+              </>
+            )}
+          </p>
+        )}
 
       {/* ── Invoice detail modal ──────────────────────────────────── */}
       {viewingInvoice && (

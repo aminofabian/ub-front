@@ -23,6 +23,10 @@ import {
 import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { extractPageContent } from "@/lib/page-content";
 import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  writeSessionBootstrap,
+  SESSION_BOOTSTRAP_KEYS,
+} from "@/lib/session-bootstrap";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 
 const SELECTED_BRANCH_PREFIX = "palmart:selectedBranch:v1:";
@@ -152,6 +156,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const [meData, biz] = await Promise.all([fetchMe(), fetchBusiness()]);
     setMe(meData);
     setBusiness(biz);
+    writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me, meData);
+    writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.business, biz);
     if (biz?.slug?.trim()) {
       persistTenantHostAfterAuth(biz.slug, biz.primaryDomain);
     }

@@ -33,7 +33,7 @@ import {
 } from "@/components/shell/tablet-app-chrome";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
-import { useOptionalTenant } from "@/components/providers/tenant-provider";
+import { useOptionalTenant, useFeatureFlags } from "@/components/providers/tenant-provider";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -155,6 +155,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.sales, label: "Sales" },
       { href: APP_ROUTES.salesTransactions, label: "Transactions" },
+      {
+        href: APP_ROUTES.salesPendingCarts,
+        label: "Pending sales",
+        featureFlag: "pos_drafts.ui_visible",
+      },
       { href: APP_ROUTES.analytics, label: "Analytics" },
       { href: APP_ROUTES.analyticsActivity, label: "Activity" },
       { href: APP_ROUTES.salesReports, label: "Sales by category" },
@@ -192,6 +197,7 @@ type NavGate = {
   canViewSalesIntelligence: boolean;
   canViewStorefrontOrders: boolean;
   canQuickSale: boolean;
+  canViewPosDrafts: boolean;
   canAccessGrocery: boolean;
   canManageImports: boolean;
   canViewPaymentGateways: boolean;
@@ -204,7 +210,11 @@ function featureFlagAllows(
 ): boolean {
   if (!item.featureFlag) return true;
   if (!featureFlags) return false;
-  return featureFlags[item.featureFlag] !== false;
+  const key = item.featureFlag;
+  if (key.startsWith("pos_drafts.") || key.startsWith("grocery_drafts.")) {
+    return featureFlags[key] === true;
+  }
+  return featureFlags[key] !== false;
 }
 
 /**
@@ -297,6 +307,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewPaymentGateways;
   if (item.href === APP_ROUTES.salesTransactions)
     return gate.canViewSalesIntelligence;
+  if (item.href === APP_ROUTES.salesPendingCarts)
+    return gate.canViewPosDrafts;
   if (item.href === APP_ROUTES.salesReports)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
@@ -382,7 +394,7 @@ export function AppShell({ children }: AppShellProps) {
   const tenant = useOptionalTenant();
   const tenantTitle =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? "UB Admin";
-  const featureFlags = tenant?.featureFlags;
+  const mergedFeatureFlags = useFeatureFlags();
 
   const {
     business,
@@ -446,12 +458,16 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.PaymentsGatewaysRead,
   );
+  const canViewPosDrafts = hasPermission(
+    me?.permissions,
+    Permission.PosDraftsRead,
+  );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
 
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
-      featureFlags,
+      featureFlags: mergedFeatureFlags,
       canListUsers,
       canManageBusinessSettings,
       canViewCategories,
@@ -471,6 +487,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewSalesIntelligence,
       canViewStorefrontOrders,
       canQuickSale,
+      canViewPosDrafts,
     canAccessGrocery,
       canManageImports,
       canViewPaymentGateways,
@@ -481,7 +498,7 @@ export function AppShell({ children }: AppShellProps) {
       items: section.items.filter((item) => isNavItemVisible(item, gate)),
     })).filter((s) => s.items.length > 0);
   }, [
-    featureFlags,
+    mergedFeatureFlags,
     canListUsers,
     canManageBusinessSettings,
     canViewCategories,
@@ -501,6 +518,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewSalesIntelligence,
     canViewStorefrontOrders,
     canQuickSale,
+    canViewPosDrafts,
     canAccessGrocery,
     canManageImports,
     canViewPaymentGateways,
@@ -634,7 +652,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [activeSectionId, visibleBottomTabs]);
 
   // ── Phase 9: multi_branch gate ────────────────────────────────────────
-  const multiBranch = featureFlags?.multi_branch !== false;
+  const multiBranch = mergedFeatureFlags.multi_branch !== false;
 
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);

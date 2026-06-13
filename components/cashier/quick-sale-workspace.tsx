@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +12,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import {
   fetchCategoryTree,
   fetchCurrentShift,
@@ -79,12 +81,32 @@ import {
 } from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
+import { PendingSalesPanel } from "./pending-sales-panel";
+import { DraftConflictModal } from "./draft-conflict-modal";
 import { usePosCatalogItemType } from "@/components/cashier-shell";
 import {
   CloseShiftModal,
   DrawoutModal,
   OpenShiftModal,
 } from "@/components/shifts/shift-action-modals";
+import { POS_DRAFT_FLAGS, fetchPosDraft, listPosDrafts, tryCompletePosDraftWithRetries } from "@/lib/pos-draft-api";
+import {
+  applyPosDraftToCart,
+  mergeHydratedCartSessions,
+  replayMirroredDraftsToServer,
+  resolveDraftConflictUseMine,
+  resolveDraftConflictUseServer,
+  syncCartSessionToServer,
+} from "@/lib/pos-draft-sync";
+import {
+  enqueuePendingDraftComplete,
+  flushPendingDraftCompleteOutbox,
+  isPosDraftStoreSupported,
+  loadMirroredCarts,
+  removeMirroredCart,
+  saveMirroredCart,
+  saveMirroredCarts,
+} from "@/lib/pos-draft-store";
 
 function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
   return (
@@ -138,6 +160,22 @@ export function QuickSaleWorkspace({
     itemTypes,
   } = useDashboard();
   const online = useOnlineStatus();
+  const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
+  const posDraftsShadow = useFeatureFlag(POS_DRAFT_FLAGS.shadowWrites);
+  const posDraftsUi = useFeatureFlag(POS_DRAFT_FLAGS.uiVisible);
+  const posDraftOfflineMirror = useFeatureFlag(POS_DRAFT_FLAGS.offlineMirror);
+  const posDraftPersistence = posDraftsEnabled || posDraftsShadow;
+  const posDraftSyncEnabled = posDraftPersistence || posDraftOfflineMirror;
+  const posDraftSyncTimers = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
+  const posDraftMirrorTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const posDraftHydratedRef = useRef(false);
+  const resumeDraftHandledRef = useRef(false);
+  const wasOfflineRef = useRef(false);
+  const searchParams = useSearchParams();
   const posCatalog = usePosCatalogItemType();
   const posItemTypeId = posCatalog?.posItemTypeId?.trim() || null;
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
@@ -202,6 +240,204 @@ export function QuickSaleWorkspace({
     },
     [activeCartId],
   );
+
+  const updateCartById = useCallback(
+    (
+      cartId: string,
+      patch: Partial<CartSession> | ((prev: CartSession) => CartSession),
+    ) => {
+      setCarts((prev) =>
+        prev.map((c) => {
+          if (c.id !== cartId) return c;
+          if (typeof patch === "function") return patch(c);
+          return { ...c, ...patch };
+        }),
+      );
+    },
+    [],
+  );
+
+  const schedulePosDraftSync = useCallback(
+    (cartId: string, debounceMs = 300) => {
+      if (!posDraftSyncEnabled) return;
+      const bid = branchId.trim();
+      const bizId = business?.id?.trim() ?? "";
+      const uid = me?.id?.trim() ?? "";
+      if (!bid) return;
+
+      const pending = posDraftSyncTimers.current[cartId];
+      if (pending) clearTimeout(pending);
+
+      posDraftSyncTimers.current[cartId] = setTimeout(() => {
+        void (async () => {
+          let snapshot: CartSession | undefined;
+          setCarts((prev) => {
+            snapshot = prev.find((c) => c.id === cartId);
+            if (!snapshot || snapshot.lines.length === 0) return prev;
+            return prev.map((c) =>
+              c.id === cartId ? { ...c, syncStatus: "syncing" as const } : c,
+            );
+          });
+          if (!snapshot || snapshot.lines.length === 0) return;
+
+          if (!online) {
+            if (posDraftOfflineMirror && bizId && uid) {
+              await saveMirroredCart(bizId, bid, uid, snapshot);
+              updateCartById(cartId, (prev) => ({
+                ...prev,
+                syncStatus: "idle",
+              }));
+            }
+            return;
+          }
+
+          if (!posDraftPersistence) {
+            if (posDraftOfflineMirror && bizId && uid) {
+              await saveMirroredCart(bizId, bid, uid, snapshot);
+              updateCartById(cartId, (prev) => ({
+                ...prev,
+                syncStatus: "idle",
+              }));
+            }
+            return;
+          }
+
+          const synced = await syncCartSessionToServer(snapshot, bid, {
+            uiVisible: posDraftsUi || posDraftsEnabled,
+          });
+          const merged = {
+            ...synced,
+            id: snapshot.id,
+            label: snapshot.label,
+            createdAt: snapshot.createdAt,
+          };
+          updateCartById(cartId, () => merged);
+          if (posDraftOfflineMirror && bizId && uid) {
+            await saveMirroredCart(bizId, bid, uid, merged);
+          }
+        })();
+      }, debounceMs);
+    },
+    [
+      posDraftSyncEnabled,
+      posDraftPersistence,
+      posDraftOfflineMirror,
+      online,
+      branchId,
+      business?.id,
+      me?.id,
+      updateCartById,
+      posDraftsUi,
+      posDraftsEnabled,
+    ],
+  );
+
+  useEffect(() => {
+    posDraftHydratedRef.current = false;
+  }, [branchId, business?.id, me?.id]);
+
+  /** Hydrate mirrored + server pending drafts on POS load. */
+  useEffect(() => {
+    if (!posDraftSyncEnabled) return;
+    const bid = branchId.trim();
+    const uid = me?.id?.trim();
+    const bizId = business?.id?.trim();
+    if (!bid || !uid || !bizId) return;
+    if (posDraftHydratedRef.current) return;
+
+    posDraftHydratedRef.current = true;
+    const uiOpts = { uiVisible: posDraftsUi || posDraftsEnabled };
+
+    void (async () => {
+      let localCarts: CartSession[] = [];
+      if (posDraftOfflineMirror && isPosDraftStoreSupported()) {
+        localCarts = await loadMirroredCarts(bizId, bid, uid);
+      }
+
+      if (!online) {
+        if (localCarts.length > 0) {
+          setCarts(mergeHydratedCartSessions(localCarts, [], uiOpts));
+        }
+        return;
+      }
+
+      try {
+        const res = await listPosDrafts({
+          branchId: bid,
+          status: "pending",
+          createdBy: uid,
+        });
+        const summaries = res.drafts ?? [];
+        const fullDrafts =
+          summaries.length > 0
+            ? await Promise.all(
+                summaries.slice(0, MAX_CARTS).map((d) => fetchPosDraft(d.id)),
+              )
+            : [];
+
+        if (localCarts.length > 0 || fullDrafts.length > 0) {
+          let merged = mergeHydratedCartSessions(
+            localCarts,
+            fullDrafts,
+            uiOpts,
+          );
+          if (
+            posDraftPersistence &&
+            localCarts.some((c) => c.lines.length > 0)
+          ) {
+            const replay = await replayMirroredDraftsToServer(merged, bid, uiOpts);
+            merged = merged.map(
+              (c) => replay.carts.find((r) => r.id === c.id) ?? c,
+            );
+            if (replay.hadConflict) {
+              setNotice(
+                "Some sales could not sync — resolve conflicts before checkout.",
+              );
+            }
+          }
+          setCarts(merged);
+          if (posDraftOfflineMirror) {
+            await saveMirroredCarts(bizId, bid, uid, merged);
+          }
+        }
+      } catch {
+        if (localCarts.length > 0) {
+          setCarts(mergeHydratedCartSessions(localCarts, [], uiOpts));
+        }
+      }
+    })();
+  }, [
+    posDraftSyncEnabled,
+    posDraftOfflineMirror,
+    posDraftPersistence,
+    online,
+    branchId,
+    me?.id,
+    business?.id,
+    posDraftsUi,
+    posDraftsEnabled,
+  ]);
+
+  useEffect(() => {
+    if (!posDraftOfflineMirror || !isPosDraftStoreSupported()) return;
+    const bizId = business?.id?.trim();
+    const bid = branchId.trim();
+    const uid = me?.id?.trim();
+    if (!bizId || !bid || !uid) return;
+
+    if (posDraftMirrorTimer.current) {
+      clearTimeout(posDraftMirrorTimer.current);
+    }
+    posDraftMirrorTimer.current = setTimeout(() => {
+      void saveMirroredCarts(bizId, bid, uid, carts);
+    }, 500);
+
+    return () => {
+      if (posDraftMirrorTimer.current) {
+        clearTimeout(posDraftMirrorTimer.current);
+      }
+    };
+  }, [carts, posDraftOfflineMirror, business?.id, branchId, me?.id]);
 
   // Derived helpers that mirror old flat state for the rest of the code
   const lines = activeCart.lines;
@@ -308,6 +544,9 @@ export function QuickSaleWorkspace({
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
+  const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
+  const [conflictBusy, setConflictBusy] = useState(false);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [outboxBusy, setOutboxBusy] = useState(false);
   const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
   const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
@@ -347,14 +586,103 @@ export function QuickSaleWorkspace({
   );
 
   /** Remove the cart used for a completed sale and focus the next empty tab. */
-  const clearCartAfterSale = useCallback((cartIdToClear: string) => {
-    setCarts((prev) => {
-      const rest = prev.filter((c) => c.id !== cartIdToClear);
-      const next = rest.length === 0 ? [createEmptyCartSession()] : rest;
-      setActiveCartId(next[0].id);
-      return next;
-    });
-  }, []);
+  const clearCartAfterSale = useCallback(
+    (cartIdToClear: string) => {
+      const bizId = business?.id?.trim();
+      const bid = branchId.trim();
+      const uid = me?.id?.trim();
+      if (posDraftOfflineMirror && bizId && bid && uid) {
+        void removeMirroredCart(bizId, bid, uid, cartIdToClear);
+      }
+      setCarts((prev) => {
+        const rest = prev.filter((c) => c.id !== cartIdToClear);
+        const next = rest.length === 0 ? [createEmptyCartSession()] : rest;
+        setActiveCartId(next[0].id);
+        return next;
+      });
+    },
+    [posDraftOfflineMirror, business?.id, branchId, me?.id],
+  );
+
+  const openDraftIds = useMemo(
+    () =>
+      carts
+        .map((c) => c.draftId)
+        .filter((id): id is string => id != null && id.length > 0),
+    [carts],
+  );
+
+  const resumePosDraft = useCallback(
+    async (draftId: string) => {
+      const trimmed = draftId.trim();
+      if (!trimmed) return;
+
+      const existing = carts.find((c) => c.draftId === trimmed);
+      if (existing) {
+        setActiveCartId(existing.id);
+        if (existing.ticketNumber != null) {
+          toast.info(`Sale #${existing.ticketNumber} is already open`);
+        }
+        return;
+      }
+
+      const occupiedTabs = carts.filter((c) => c.lines.length > 0).length;
+      if (occupiedTabs >= MAX_CARTS) {
+        toast.error(`Maximum ${MAX_CARTS} sales can be open at once`);
+        return;
+      }
+
+      try {
+        const draft = await fetchPosDraft(trimmed);
+        if (draft.status !== "pending") {
+          toast.error("This sale is no longer pending.");
+          setPendingSalesRefreshKey((k) => k + 1);
+          return;
+        }
+
+        const shell = createEmptyCartSession();
+        const cart = applyPosDraftToCart(shell, draft, {
+          uiVisible: posDraftsUi || posDraftsEnabled,
+        });
+
+        setCarts((prev) => {
+          const nonEmpty = prev.filter((c) => c.lines.length > 0);
+          const empty = prev.filter((c) => c.lines.length === 0);
+          const next = [...nonEmpty, cart];
+          const trailing =
+            next.length < MAX_CARTS
+              ? empty.length > 0
+                ? [empty[0]]
+                : [createEmptyCartSession()]
+              : [];
+          return [...next, ...trailing];
+        });
+        setActiveCartId(cart.id);
+        setPendingSalesRefreshKey((k) => k + 1);
+        toast.success(`Resumed sale #${draft.ticketNumber}`);
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not load pending sale",
+        );
+      }
+    },
+    [carts, posDraftsUi, posDraftsEnabled],
+  );
+
+  /** Deep link: /cashier?resumeDraft={id} */
+  useEffect(() => {
+    const draftId = searchParams.get("resumeDraft")?.trim();
+    if (!draftId || resumeDraftHandledRef.current) return;
+    if (!posDraftPersistence || !online || !branchId.trim()) return;
+    resumeDraftHandledRef.current = true;
+    void resumePosDraft(draftId);
+  }, [
+    searchParams,
+    posDraftPersistence,
+    online,
+    branchId,
+    resumePosDraft,
+  ]);
 
   const dismissCompletedSaleUi = useCallback(() => {
     setLastSale(null);
@@ -541,11 +869,57 @@ export function QuickSaleWorkspace({
   }, [canSell, refreshOutbox]);
 
   useEffect(() => {
-    if (!canSell || !online) {
+    if (!online) {
+      wasOfflineRef.current = true;
       return;
     }
+    if (!canSell) {
+      return;
+    }
+    const reconnected = wasOfflineRef.current;
+    wasOfflineRef.current = false;
+
     let cancelled = false;
     (async () => {
+      if (
+        reconnected &&
+        posDraftOfflineMirror &&
+        posDraftPersistence &&
+        branchId.trim()
+      ) {
+        let snapshot: CartSession[] = [];
+        setCarts((prev) => {
+          snapshot = prev;
+          return prev;
+        });
+        const replay = await replayMirroredDraftsToServer(
+          snapshot,
+          branchId.trim(),
+          { uiVisible: posDraftsUi || posDraftsEnabled },
+        );
+        if (!cancelled) {
+          setCarts((prev) =>
+            prev.map((c) => replay.carts.find((r) => r.id === c.id) ?? c),
+          );
+          if (replay.hadConflict) {
+            setNotice(
+              "Some sales could not sync — resolve conflicts before checkout.",
+            );
+          }
+          const bizId = business?.id?.trim();
+          const uid = me?.id?.trim();
+          if (bizId && uid) {
+            await saveMirroredCarts(bizId, branchId.trim(), uid, replay.carts);
+          }
+        }
+      }
+
+      const draftDrain = await flushPendingDraftCompleteOutbox();
+      if (!cancelled && draftDrain.status === "blocked") {
+        setError(`Queued draft checkout blocked: ${draftDrain.message}`);
+        setNotice("");
+      }
+
       const r = await flushSaleOutbox();
       if (cancelled) {
         return;
@@ -559,7 +933,18 @@ export function QuickSaleWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [canSell, online, refreshOutbox]);
+  }, [
+    canSell,
+    online,
+    refreshOutbox,
+    posDraftOfflineMirror,
+    posDraftPersistence,
+    branchId,
+    business?.id,
+    me?.id,
+    posDraftsUi,
+    posDraftsEnabled,
+  ]);
 
   useEffect(() => {
     const id = lastSale?.customerId?.trim();
@@ -709,6 +1094,12 @@ export function QuickSaleWorkspace({
     if (lines.length === 0 || grandTotal <= 0) {
       return false;
     }
+    if (
+      activeCart.syncStatus === "conflict" ||
+      activeCart.syncStatus === "syncing"
+    ) {
+      return false;
+    }
     if (splitPay) {
       const c = parseMoney(cashSplitStr);
       const m = parseMoney(mpesaSplitStr);
@@ -736,6 +1127,7 @@ export function QuickSaleWorkspace({
   }, [
     lines.length,
     grandTotal,
+    activeCart.syncStatus,
     splitPay,
     cashSplitStr,
     mpesaSplitStr,
@@ -875,8 +1267,16 @@ export function QuickSaleWorkspace({
       });
       setSearch("");
       setHits([]);
+      schedulePosDraftSync(activeCartId, 0);
     },
-    [capCartQuantity, updateActiveCart, lastSale, dismissCompletedSaleUi],
+    [
+      capCartQuantity,
+      updateActiveCart,
+      lastSale,
+      dismissCompletedSaleUi,
+      schedulePosDraftSync,
+      activeCartId,
+    ],
   );
 
   const removeLine = useCallback(
@@ -885,8 +1285,9 @@ export function QuickSaleWorkspace({
         ...cart,
         lines: cart.lines.filter((l) => l.key !== key),
       }));
+      schedulePosDraftSync(activeCartId, 300);
     },
-    [updateActiveCart],
+    [updateActiveCart, schedulePosDraftSync, activeCartId],
   );
 
   const updateLine = useCallback(
@@ -906,8 +1307,9 @@ export function QuickSaleWorkspace({
           return { ...l, quantity: String(capped) };
         }),
       }));
+      schedulePosDraftSync(activeCartId, 300);
     },
-    [capCartQuantity, updateActiveCart],
+    [capCartQuantity, updateActiveCart, schedulePosDraftSync, activeCartId],
   );
 
   const lastStkPrefillCustomerId = useRef<string | null>(null);
@@ -1192,13 +1594,37 @@ export function QuickSaleWorkspace({
       }
       setLoading(true);
       try {
-        await enqueuePendingSale(idem, salePayload);
+        const completeBody = {
+          payments,
+          ...(payMethodNeedsCustomer(payMethod) && selectedCustomer
+            ? { customerId: selectedCustomer.id }
+            : {}),
+          clientSoldAt: salePayload.clientSoldAt,
+          expectedVersion: activeCart.version,
+        };
+
+        const draftId = activeCart.draftId;
+        const ticketNum = activeCart.ticketNumber;
+        if (
+          posDraftPersistence &&
+          draftId &&
+          posDraftOfflineMirror &&
+          isPosDraftStoreSupported()
+        ) {
+          await enqueuePendingDraftComplete(idem, draftId, completeBody);
+        } else {
+          await enqueuePendingSale(idem, salePayload);
+        }
+
         recordTopSellers();
         clearCartAfterSale(soldCartId);
         setVoidNotes("");
         await refreshOutbox();
+        setPendingSalesRefreshKey((k) => k + 1);
         setNotice(
-          `Offline: sale queued on this device with idempotency key ${idem.slice(0, 12)}… It will post when you are online with an open shift.`,
+          draftId && posDraftOfflineMirror
+            ? `Offline: sale #${ticketNum ?? "…"} queued — it will finalize when you are back online with an open shift.`
+            : `Offline: sale queued on this device with idempotency key ${idem.slice(0, 12)}… It will post when you are online with an open shift.`,
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not queue sale.");
@@ -1223,10 +1649,64 @@ export function QuickSaleWorkspace({
     }
 
     try {
-      const result = await tryPostSaleWithRetries(salePayload, idem);
-      if (result.ok) {
-        setLastSale(result.sale);
+      let draftId = activeCart.draftId;
+      let draftVersion = activeCart.version;
+
+      if (posDraftPersistence) {
+        if (!draftId) {
+          const synced = await syncCartSessionToServer(activeCart, bid, {
+            uiVisible: posDraftsUi || posDraftsEnabled,
+          });
+          if (synced.draftId) {
+            draftId = synced.draftId;
+            draftVersion = synced.version;
+            updateCartById(activeCartId, (prev) => ({
+              ...synced,
+              id: prev.id,
+            }));
+          }
+        }
+      }
+
+      const completeBody = {
+        payments,
+        ...(payMethodNeedsCustomer(payMethod) && selectedCustomer
+          ? { customerId: selectedCustomer.id }
+          : {}),
+        clientSoldAt: salePayload.clientSoldAt,
+        expectedVersion: draftVersion,
+      };
+
+      let sale: SaleRecord | null = null;
+      let failMsg = "Sale failed.";
+      let failStatus = 0;
+
+      if (posDraftPersistence && draftId) {
+        const draftResult = await tryCompletePosDraftWithRetries(
+          draftId,
+          completeBody,
+          idem,
+        );
+        if (draftResult.ok) {
+          sale = draftResult.sale;
+        } else {
+          failMsg = draftResult.message;
+          failStatus = draftResult.status;
+        }
+      } else {
+        const postResult = await tryPostSaleWithRetries(salePayload, idem);
+        if (postResult.ok) {
+          sale = postResult.sale;
+        } else {
+          failMsg = postResult.message;
+          failStatus = postResult.status;
+        }
+      }
+
+      if (sale) {
+        setLastSale(sale);
         setInvoiceRefreshKey((k) => k + 1);
+        setPendingSalesRefreshKey((k) => k + 1);
         setLastReceipt(
           buildPosReceiptSnapshot({
             businessName: receiptBusinessName,
@@ -1241,10 +1721,10 @@ export function QuickSaleWorkspace({
             ),
             branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
             servedByName:
-              me?.name?.trim() || result.sale.soldByName?.trim() || null,
+              me?.name?.trim() || sale.soldByName?.trim() || null,
             currency: receiptCurrency,
             cartLines: receiptCartLines,
-            sale: result.sale,
+            sale,
             customerName: receiptCustomerName,
             cashTendered,
             clientSoldAt: salePayload.clientSoldAt ?? undefined,
@@ -1253,8 +1733,12 @@ export function QuickSaleWorkspace({
         setVoidNotes("");
         recordTopSellers();
         clearCartAfterSale(soldCartId);
+        const ticketRef =
+          activeCart.ticketNumber != null && activeCart.ticketNumber > 0
+            ? `#${activeCart.ticketNumber}`
+            : sale.id;
         setNotice(
-          `Sale ${result.sale.id} recorded. Grand total ${grandTotal.toFixed(2)}${business?.currency?.trim() ? ` ${business.currency.trim()}` : ""}.`,
+          `Sale ${ticketRef} recorded. Grand total ${grandTotal.toFixed(2)}${business?.currency?.trim() ? ` ${business.currency.trim()}` : ""}.`,
         );
         await refreshOutbox();
         const drain = await flushSaleOutbox();
@@ -1265,7 +1749,7 @@ export function QuickSaleWorkspace({
         return;
       }
 
-      const msg = result.message || "Sale failed.";
+      const msg = failMsg;
       if (
         payMethod === "customer_wallet" &&
         /wallet|insufficient|balance/i.test(msg)
@@ -1283,9 +1767,9 @@ export function QuickSaleWorkspace({
         return;
       }
 
-      if (result.status === 0 || result.status >= 500) {
+      if (failStatus === 0 || failStatus >= 500) {
         if (!isSaleOutboxSupported()) {
-          setError(result.message);
+          setError(failMsg);
           return;
         }
         try {
@@ -1303,7 +1787,7 @@ export function QuickSaleWorkspace({
         return;
       }
 
-      setError(result.message);
+      setError(failMsg);
     } finally {
       setLoading(false);
     }
@@ -1325,6 +1809,13 @@ export function QuickSaleWorkspace({
     refreshOutbox,
     refreshTopProducts,
     clearCartAfterSale,
+    activeCart,
+    activeCartId,
+    posDraftPersistence,
+    posDraftsUi,
+    posDraftsEnabled,
+    updateCartById,
+    customerPhoneQuery,
   ]);
 
   const onVoidLastSale = useCallback(async () => {
@@ -1404,6 +1895,50 @@ export function QuickSaleWorkspace({
     () => branches.find((b) => b.id === branchId)?.name ?? "",
     [branches, branchId],
   );
+
+  useEffect(() => {
+    setConflictModalOpen(activeCart.syncStatus === "conflict");
+  }, [activeCart.syncStatus]);
+
+  const posDraftOfflineBanner = useMemo(() => {
+    if (online || !posDraftOfflineMirror) return null;
+    if (!carts.some((c) => c.lines.length > 0)) return null;
+    return "Sale will sync when connection returns.";
+  }, [online, posDraftOfflineMirror, carts]);
+
+  const onDraftConflictUseServer = useCallback(async () => {
+    setConflictBusy(true);
+    try {
+      const resolved = await resolveDraftConflictUseServer(activeCart, {
+        uiVisible: posDraftsUi || posDraftsEnabled,
+      });
+      updateActiveCart(() => resolved);
+      setConflictModalOpen(false);
+      toast.success("Using server version");
+    } finally {
+      setConflictBusy(false);
+    }
+  }, [activeCart, updateActiveCart, posDraftsUi, posDraftsEnabled]);
+
+  const onDraftConflictUseMine = useCallback(async () => {
+    const bid = branchId.trim();
+    if (!bid) return;
+    setConflictBusy(true);
+    try {
+      const resolved = await resolveDraftConflictUseMine(activeCart, bid, {
+        uiVisible: posDraftsUi || posDraftsEnabled,
+      });
+      updateActiveCart(() => resolved);
+      if (resolved.syncStatus === "conflict") {
+        toast.error("Still in conflict — try server version or edit lines.");
+      } else {
+        setConflictModalOpen(false);
+        toast.success("Local version synced");
+      }
+    } finally {
+      setConflictBusy(false);
+    }
+  }, [activeCart, branchId, updateActiveCart, posDraftsUi, posDraftsEnabled]);
 
   const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canCloseShift = hasPermission(me?.permissions, Permission.ShiftsClose);
@@ -1516,16 +2051,26 @@ export function QuickSaleWorkspace({
         <span className="text-[10px] font-medium text-muted-foreground">
           {activeBranchName || "Point of sale"}
         </span>
-        <PendingInvoicesPanel
-          onLoadInvoice={(barcode) => setSearch(barcode)}
-          refreshKey={invoiceRefreshKey}
-        />
+        <div className="flex items-center gap-2">
+          {(posDraftsUi || posDraftsEnabled) && (
+            <PendingSalesPanel
+              onResumeDraft={(id) => void resumePosDraft(id)}
+              openDraftIds={openDraftIds}
+              refreshKey={pendingSalesRefreshKey}
+            />
+          )}
+          <PendingInvoicesPanel
+            onLoadInvoice={(barcode) => setSearch(barcode)}
+            refreshKey={invoiceRefreshKey}
+          />
+        </div>
       </div>
       <CashierPosLayout
         pageTitle={heading}
         embeddedInDashboard={!isCashier}
         brandTheme={dialogBrandTheme}
         online={online}
+        offlineBanner={posDraftOfflineBanner}
         currency={currency}
         uiCopy={CASHIER_POS_UI_COPY}
         activeBranchName={activeBranchName}
@@ -1681,6 +2226,19 @@ export function QuickSaleWorkspace({
           ) : null}
         </>
       ) : null}
+      <DraftConflictModal
+        open={conflictModalOpen}
+        ticketLabel={
+          activeCart.ticketNumber != null
+            ? `Sale #${activeCart.ticketNumber}`
+            : activeCart.label
+        }
+        busy={conflictBusy}
+        brandTheme={dialogBrandTheme}
+        onUseServer={() => void onDraftConflictUseServer()}
+        onUseMine={() => void onDraftConflictUseMine()}
+        onDismiss={() => setConflictModalOpen(false)}
+      />
     </>
   );
 }

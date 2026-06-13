@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Save,
   Shield,
+  ShoppingCart,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -41,6 +42,7 @@ import {
   type PatchBusinessPayload,
 } from "@/lib/api";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import { POS_DRAFT_FLAGS } from "@/lib/pos-draft-api";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
 
 const MAX_FEATURED = 12;
@@ -74,6 +76,13 @@ type InventoryForm = {
   showSystemStockToStockManager: boolean;
 };
 
+type PosDraftsForm = {
+  enabled: boolean;
+  uiVisible: boolean;
+  shadowWrites: boolean;
+  offlineMirror: boolean;
+};
+
 const DEFAULT_EDITABLE: EditableBusiness = {
   name: "",
   subscriptionTier: "starter",
@@ -91,6 +100,23 @@ const DEFAULT_STOREFRONT: StorefrontForm = {
 const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
 };
+
+const DEFAULT_POS_DRAFTS: PosDraftsForm = {
+  enabled: false,
+  uiVisible: false,
+  shadowWrites: false,
+  offlineMirror: false,
+};
+
+function posDraftsFromRecord(b: BusinessRecord | null): PosDraftsForm {
+  const ff = b?.featureFlags ?? {};
+  return {
+    enabled: ff[POS_DRAFT_FLAGS.enabled] === true,
+    uiVisible: ff[POS_DRAFT_FLAGS.uiVisible] === true,
+    shadowWrites: ff[POS_DRAFT_FLAGS.shadowWrites] === true,
+    offlineMirror: ff[POS_DRAFT_FLAGS.offlineMirror] === true,
+  };
+}
 
 function defaultCatalogBranchId(
   branches: BranchRecord[],
@@ -139,6 +165,7 @@ function applyBusinessSnapshot(
   editable: EditableBusiness;
   storefront: StorefrontForm;
   inventory: InventoryForm;
+  posDrafts: PosDraftsForm;
 } {
   return {
     editable: {
@@ -148,6 +175,7 @@ function applyBusinessSnapshot(
     },
     storefront: storefrontFromRecord(payload, branchList),
     inventory: inventoryFromRecord(payload),
+    posDrafts: posDraftsFromRecord(payload),
   };
 }
 
@@ -169,6 +197,7 @@ function hintClass() {
 }
 
 export default function BusinessPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { canManageBusinessSettings, refreshSession } = useDashboard();
   const bootstrapBusiness = useSessionBootstrapSnapshot().business;
@@ -178,6 +207,7 @@ export default function BusinessPage() {
   const [storefront, setStorefront] =
     useState<StorefrontForm>(DEFAULT_STOREFRONT);
   const [inventory, setInventory] = useState<InventoryForm>(DEFAULT_INVENTORY);
+  const [posDrafts, setPosDrafts] = useState<PosDraftsForm>(DEFAULT_POS_DRAFTS);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -204,6 +234,7 @@ export default function BusinessPage() {
         setEditable(next.editable);
         setStorefront(next.storefront);
         setInventory(next.inventory);
+        setPosDrafts(next.posDrafts);
       })
       .catch((error) => {
         if (hydratedFromBootstrap.current) {
@@ -230,6 +261,7 @@ export default function BusinessPage() {
       setEditable(next.editable);
       setStorefront(next.storefront);
       setInventory(next.inventory);
+      setPosDrafts(next.posDrafts);
     }
     void load();
   }, [load, bootstrapBusiness]);
@@ -323,9 +355,18 @@ export default function BusinessPage() {
               inventory.showSystemStockToStockManager,
           },
         };
+        body.featureFlags = {
+          posDrafts: {
+            enabled: posDrafts.enabled,
+            uiVisible: posDrafts.uiVisible,
+            shadowWrites: posDrafts.shadowWrites,
+            offlineMirror: posDrafts.offlineMirror,
+          },
+        };
       }
       await updateBusiness(body);
       await refreshSession();
+      router.refresh();
       const next = await fetchBusiness();
       skipDrawerResetAfterSave.current = true;
       setSnapshot(next);
@@ -336,6 +377,7 @@ export default function BusinessPage() {
       });
       setStorefront(storefrontFromRecord(next, branches));
       setInventory(inventoryFromRecord(next));
+      setPosDrafts(posDraftsFromRecord(next));
       setSettingsDrawerOpen(false);
       setFeedback({ kind: "success", text: "Your changes were saved." });
     } catch (error) {
@@ -369,6 +411,7 @@ export default function BusinessPage() {
     });
     setStorefront(storefrontFromRecord(snapshot, branches));
     setInventory(inventoryFromRecord(snapshot));
+    setPosDrafts(posDraftsFromRecord(snapshot));
   }, [snapshot, branches]);
 
   const onSettingsDrawerOpenChange = (open: boolean) => {
@@ -925,6 +968,104 @@ export default function BusinessPage() {
                   </span>
                 </span>
               </label>
+            </FormDrawerFields>
+          ) : null}
+
+          {canManageBusinessSettings ? (
+            <FormDrawerFields
+              legend="Cashier POS drafts"
+              hint="Save in-progress sales on the cashier and review them from Sales → Pending carts."
+            >
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  checked={posDrafts.enabled}
+                  onChange={(event) =>
+                    setPosDrafts((previous) => ({
+                      ...previous,
+                      enabled: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="space-y-1">
+                  <span className="flex items-center gap-2 font-medium">
+                    <ShoppingCart className="size-4 text-muted-foreground" />
+                    Enable POS draft persistence
+                  </span>
+                  <span className={hintClass()}>
+                    Cashier carts sync to the server so staff can resume sales
+                    later. Required for draft save and resume on the register.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  checked={posDrafts.uiVisible}
+                  onChange={(event) =>
+                    setPosDrafts((previous) => ({
+                      ...previous,
+                      uiVisible: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="space-y-1">
+                  <span className="font-medium">Show pending carts in navigation</span>
+                  <span className={hintClass()}>
+                    Adds Sales → Pending carts and the in-register pending panel.
+                    You can enable this even while testing draft sync.
+                  </span>
+                </span>
+              </label>
+              <details className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                <summary className="cursor-pointer text-sm font-medium text-foreground">
+                  Advanced rollout options
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                      checked={posDrafts.shadowWrites}
+                      onChange={(event) =>
+                        setPosDrafts((previous) => ({
+                          ...previous,
+                          shadowWrites: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="space-y-1">
+                      <span className="font-medium">Shadow writes</span>
+                      <span className={hintClass()}>
+                        Log draft payloads without affecting cashier behavior.
+                        For staged rollouts only.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                      checked={posDrafts.offlineMirror}
+                      onChange={(event) =>
+                        setPosDrafts((previous) => ({
+                          ...previous,
+                          offlineMirror: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="space-y-1">
+                      <span className="font-medium">Offline mirror</span>
+                      <span className={hintClass()}>
+                        Keep a local IndexedDB copy when the register goes
+                        offline. Requires draft persistence enabled.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </details>
             </FormDrawerFields>
           ) : null}
         </form>

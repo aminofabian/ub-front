@@ -38,14 +38,14 @@ export function CashierDottedLeader({
   className?: string;
 }) {
   return (
-    <div
+    <span
       className={cn(
         "flex min-h-[1em] min-w-4 flex-1 items-center self-end pb-px",
         className,
       )}
       aria-hidden
     >
-      <div
+      <span
         className={cn(
           "h-0 w-full border-b border-dotted",
           onPrimary
@@ -53,6 +53,6 @@ export function CashierDottedLeader({
             : "border-muted-foreground/35",
         )}
       />
-    </div>
+    </span>
   );
 }

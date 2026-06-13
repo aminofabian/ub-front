@@ -25,6 +25,7 @@ import {
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import {
   GroceryAppBottomNav,
   GROCERY_TAB_BAR_CLEARANCE,
@@ -56,6 +57,18 @@ import {
   type GroceryInvoiceResponse,
   type GroceryTopProduct,
 } from "@/lib/grocery-api";
+import {
+  GROCERY_DRAFT_FLAGS,
+  fetchGroceryDraft,
+  listGroceryDrafts,
+} from "@/lib/grocery-draft-api";
+import {
+  applyGroceryDraftToLines,
+  createGroceryDraftState,
+  issueGroceryDraftFromState,
+  syncGroceryDraftToServer,
+  type GroceryDraftState,
+} from "@/lib/grocery-draft-sync";
 import {
   GroceryInvoiceCart,
   type GroceryCartLine,
@@ -276,6 +289,27 @@ export function GroceryWorkspace() {
 
   // Cart state
   const [lines, setLines] = useState<GroceryCartLine[]>([]);
+  const [draftState, setDraftState] = useState<GroceryDraftState>(
+    createGroceryDraftState(),
+  );
+  const draftSyncTimer = useRef<number | null>(null);
+  const draftHydratedRef = useRef(false);
+  const linesRef = useRef(lines);
+  const draftStateRef = useRef(draftState);
+
+  useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
+
+  useEffect(() => {
+    draftStateRef.current = draftState;
+  }, [draftState]);
+
+  const groceryDraftsEnabled = useFeatureFlag(GROCERY_DRAFT_FLAGS.enabled);
+  const groceryDraftsShadow = useFeatureFlag(GROCERY_DRAFT_FLAGS.shadowWrites);
+  const groceryDraftsUi = useFeatureFlag(GROCERY_DRAFT_FLAGS.uiVisible);
+  const groceryDraftPersistence = groceryDraftsEnabled || groceryDraftsShadow;
+  const showCounterNumber = groceryDraftsUi || groceryDraftsEnabled;
   const [cartPulse, setCartPulse] = useState(0);
   const [recentlyAddedKey, setRecentlyAddedKey] = useState<string | null>(null);
 
@@ -507,8 +541,9 @@ export function GroceryWorkspace() {
         setRecentlyAddedKey(newLine.key);
       }
       setCartPulse((n) => n + 1);
+      scheduleDraftSync();
     },
-    [lines],
+    [lines, scheduleDraftSync],
   );
 
   const updateLine = useCallback(
@@ -522,19 +557,80 @@ export function GroceryWorkspace() {
           return { ...l, unitPrice: Math.max(0, value) };
         }),
       );
+      scheduleDraftSync();
     },
-    [],
+    [scheduleDraftSync],
   );
 
-  const removeLine = useCallback((key: string) => {
-    setLines((prev) => prev.filter((l) => l.key !== key));
-  }, []);
+  const removeLine = useCallback(
+    (key: string) => {
+      const removed = lines.find((l) => l.key === key);
+      setLines((prev) => prev.filter((l) => l.key !== key));
+      if (removed?.serverLineId) {
+        const serverLineId = removed.serverLineId;
+        setDraftState((prev) => ({
+          ...prev,
+          removedServerLineIds: Array.from(
+            new Set([...prev.removedServerLineIds, serverLineId]),
+          ),
+        }));
+      }
+      scheduleDraftSync();
+    },
+    [lines, scheduleDraftSync],
+  );
 
   const clearCart = useCallback(() => {
     setLines([]);
     setGeneratedInvoice(null);
     setError(null);
+    setDraftState(createGroceryDraftState());
   }, []);
+
+  // ── Draft sync ─────────────────────────────────────────────────────
+
+  function scheduleDraftSync(delayMs = 300) {
+    if (!groceryDraftPersistence || !online || !branchId) return;
+    if (draftSyncTimer.current != null) {
+      window.clearTimeout(draftSyncTimer.current);
+    }
+    setDraftState((prev) =>
+      prev.syncStatus === "error" ? prev : { ...prev, syncStatus: "syncing" },
+    );
+    draftSyncTimer.current = window.setTimeout(async () => {
+      const result = await syncGroceryDraftToServer(
+        linesRef.current,
+        draftStateRef.current,
+        branchId,
+      );
+      setLines(result.lines);
+      setDraftState(result.state);
+    }, delayMs);
+  }
+
+  // Hydrate active draft on load when draft persistence is enabled.
+  useEffect(() => {
+    if (!groceryDraftPersistence || !online || !branchId || draftHydratedRef.current) return;
+    draftHydratedRef.current = true;
+    listGroceryDrafts({
+      branchId,
+      status: "building",
+      createdBy: effectiveMe?.id,
+      hoursBack: 48,
+    })
+      .then(async (list) => {
+        if (list.drafts.length === 0) return;
+        const mostRecent = list.drafts[0];
+        if (!mostRecent) return;
+        const draft = await fetchGroceryDraft(mostRecent.id);
+        const applied = applyGroceryDraftToLines(lines, draft);
+        setLines(applied.lines);
+        setDraftState(applied.state);
+      })
+      .catch(() => {
+        // Ignore hydration errors; clerk can continue with a fresh cart.
+      });
+  }, [groceryDraftPersistence, online, branchId, effectiveMe?.id]);
 
   // ── Generate invoice ─────────────────────────────────────────────
 
@@ -558,15 +654,40 @@ export function GroceryWorkspace() {
     setError(null);
 
     try {
-      const invoice = await createGroceryInvoice({
-        branchId: bid,
-        lines: lines.map((l) => ({
-          itemId: l.itemId,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          unitName: l.unitName || undefined,
-        })),
-      });
+      let invoice: GroceryInvoiceResponse;
+
+      if (groceryDraftPersistence) {
+        // Ensure any pending sync completes before issuing.
+        if (draftSyncTimer.current) {
+          window.clearTimeout(draftSyncTimer.current);
+          draftSyncTimer.current = null;
+        }
+        const synced = await syncGroceryDraftToServer(lines, draftState, bid);
+        setLines(synced.lines);
+        setDraftState(synced.state);
+
+        const issueResult = await issueGroceryDraftFromState(
+          synced.lines,
+          synced.state,
+          { expectedVersion: synced.state.version },
+        );
+        if (!issueResult.ok) {
+          throw new Error(issueResult.message);
+        }
+        invoice = issueResult.result.invoice;
+        setDraftState(issueResult.state);
+      } else {
+        invoice = await createGroceryInvoice({
+          branchId: bid,
+          lines: lines.map((l) => ({
+            itemId: l.itemId,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            unitName: l.unitName || undefined,
+          })),
+        });
+      }
+
       setGeneratedInvoice(invoice);
       // Nudge the server-aggregated top-products to refresh so newly
       // popular items climb the list immediately.
@@ -587,7 +708,7 @@ export function GroceryWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, lines]);
+  }, [branchId, lines, groceryDraftPersistence, draftState]);
 
   const onNewInvoice = useCallback(() => {
     clearCart();
@@ -879,6 +1000,8 @@ export function GroceryWorkspace() {
             online={online}
             pulseSignal={cartPulse}
             recentlyAddedKey={recentlyAddedKey}
+            counterNumber={showCounterNumber ? draftState.counterNumber : null}
+            syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
           />
         </aside>
       </div>
@@ -1001,6 +1124,8 @@ export function GroceryWorkspace() {
               recentlyAddedKey={recentlyAddedKey}
               compact
               onClose={() => setShowCartDrawer(false)}
+              counterNumber={showCounterNumber ? draftState.counterNumber : null}
+              syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
             />
           </div>
         </div>

@@ -74,6 +74,8 @@ export type CashierPosLayoutProps = {
   /** Brand CSS variables on the layout root (POS primary colors). */
   brandTheme?: CSSProperties;
   online: boolean;
+  /** Extra offline hint (e.g. draft mirror pending sync). */
+  offlineBanner?: string | null;
   currency: string;
   uiCopy: CashierPosUiCopy;
   activeBranchName: string;
@@ -351,6 +353,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     embeddedInDashboard = false,
     brandTheme,
     online,
+    offlineBanner,
     currency,
     uiCopy,
     activeBranchName,
@@ -555,9 +558,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </p>
           </div>
           {!online ? (
-            <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
-              {uiCopy.offlinePill}
-            </span>
+            <div className="flex max-w-xs shrink-0 flex-col items-end gap-1">
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
+                {uiCopy.offlinePill}
+              </span>
+              {offlineBanner ? (
+                <span className="text-right text-[10px] leading-snug text-amber-800 dark:text-amber-200">
+                  {offlineBanner}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
         {posShiftLinks ? (
