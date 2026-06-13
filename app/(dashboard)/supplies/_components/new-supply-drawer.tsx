@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2,
   PackagePlus,
   Plus,
-  Search,
   Trash2,
   Truck,
 } from "lucide-react";
@@ -15,8 +13,9 @@ import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
-  addSupplyBatchExpense,
+  addItemSupplierLink,
   addPathBLine,
+  addSupplyBatchExpense,
   createPathBSession,
   fetchSellPriceSuggestion,
   fetchSupplierItemLinks,
@@ -28,33 +27,50 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
-import { APP_ROUTES } from "@/lib/config";
+import { isBranchLockedRole } from "@/lib/branch-access";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { YmdDateInput } from "@/components/ymd-date-input";
 
 import { supBtnPrimary } from "../../suppliers/_components/supplier-ui-tokens";
-import { ExtraCostsSection } from "./extra-costs-section";
+import { DeliverySetupSection } from "./delivery-setup-section";
+import {
+  LinkSupplierProductModal,
+  type LinkSupplierProductDraft,
+} from "./add-supply-line-modal";
 import {
   nsdAlert,
-  nsdCardInset,
-  nsdDropdown,
-  nsdFieldLabel,
-  nsdInput,
-  nsdSelect,
+  nsdTableCell,
   nsdTableHead,
+  nsdTableInput,
   nsdTableRow,
   nsdTableRowReady,
-  nsdTextarea,
-  nsdTotalsPanel,
-  nsdVendorChip,
+  nsdTableTh,
   SupplyDrawerSection,
   SupplyEmptyState,
+  SupplyContextStrip,
+  SupplyLinesToolbar,
   SupplyLoadingInline,
   SupplyTableSkeleton,
   SupplyWorkflowRail,
+  nsdTableGroupDivider,
 } from "./new-supply-drawer-ui";
 import { ProductPickCell } from "./product-pick-cell";
+import { SupplyDraftLineCard } from "./supply-draft-line-card";
+import {
+  linkReorderLevel,
+  rowReferenceCost,
+  SupplyCostCell,
+  SupplyLineTotalCell,
+  SupplyQtyCell,
+  SupplyStockAfterCell,
+  SupplyStockCell,
+} from "./supply-line-metric-cells";
+import {
+  SupplyShelfPriceCell,
+  type ShelfPriceHint,
+} from "./supply-shelf-price-cell";
 import { SupplyDrawerSummaryPanel } from "./supply-drawer-summary";
 
 export type SupplyDraftRow = {
@@ -139,40 +155,7 @@ function localDateYmdFromDatetimeLocal(isoLocal: string): string {
   return `${y}-${m}-${day}`;
 }
 
-type RowPricingHint = {
-  loading: boolean;
-  error?: string;
-  currentSellPrice: number | null;
-  suggestedSellPrice: number | null;
-  note: string | null;
-};
-
-function sellPricesMatch(a: number, b: number): boolean {
-  return Math.abs(a - b) < 0.005;
-}
-
-function formatRowPricingHint(
-  hint: RowPricingHint | undefined,
-  canSetSellPrice: boolean,
-): string {
-  const prefix = !canSetSellPrice ? "View only — no shelf-price permission. " : "";
-  const cur = hint?.currentSellPrice;
-  const sug = hint?.suggestedSellPrice;
-  if (cur != null && sug != null && sellPricesMatch(cur, sug)) {
-    return `${prefix}Current ${cur.toFixed(2)}`;
-  }
-  const parts: string[] = [];
-  if (cur != null) {
-    parts.push(`Current ${cur.toFixed(2)}`);
-  }
-  if (sug != null) {
-    parts.push(`Suggested ${sug.toFixed(2)}`);
-  }
-  if (parts.length > 0) {
-    return `${prefix}${parts.join(" · ")}`;
-  }
-  return hint?.note?.trim() ? `${prefix}${hint.note}` : prefix.trim() || "—";
-}
+type RowPricingHint = ShelfPriceHint;
 
 /** Parses `rowPricingDepsKey` segment `itemId:unitStr` for this item. */
 function draftBuyingUnitFromPricingKey(
@@ -224,6 +207,28 @@ function rowBarcode(row: SupplyDraftRow): string {
   return row.item?.barcode?.trim() || "—";
 }
 
+function rowLineSearchHaystack(row: SupplyDraftRow): string {
+  const parts = [
+    rowLabel(row),
+    rowSku(row),
+    rowBarcode(row),
+    rowItemId(row),
+    row.source === "linked" ? row.link?.supplierSku : null,
+  ];
+  return parts
+    .filter((p): p is string => Boolean(p && p !== "—"))
+    .join(" ")
+    .toLowerCase();
+}
+
+function rowMatchesLineSearch(row: SupplyDraftRow, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    return true;
+  }
+  return rowLineSearchHaystack(row).includes(q);
+}
+
 function rowStock(row: SupplyDraftRow): number | null {
   if (row.source === "linked" && row.link?.currentStock != null) {
     const n = Number(row.link.currentStock);
@@ -262,12 +267,15 @@ type NewSupplyDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPosted: () => void;
+  /** Pre-select a vendor when opening from the suppliers page. */
+  initialSupplier?: SupplierRecord | null;
 };
 
 export function NewSupplyDrawer({
   open,
   onOpenChange,
   onPosted,
+  initialSupplier = null,
 }: NewSupplyDrawerProps) {
   const { branches, branchId, setBranchId, branchesLoading, me } =
     useDashboard();
@@ -275,6 +283,11 @@ export function NewSupplyDrawer({
     me?.permissions,
     Permission.PricingSellPriceSet,
   );
+  const canLinkProducts = hasPermission(
+    me?.permissions,
+    Permission.CatalogItemsLinkSuppliers,
+  );
+  const branchLocked = isBranchLockedRole(me?.role?.key);
 
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierHits, setSupplierHits] = useState<SupplierRecord[]>([]);
@@ -303,6 +316,28 @@ export function NewSupplyDrawer({
   const [extras, setExtras] = useState<
     { key: string; category: string; amount: string; desc: string }[]
   >([]);
+  const [addLineOpen, setAddLineOpen] = useState(false);
+  const [linkModalSupplierId, setLinkModalSupplierId] = useState<string | null>(
+    null,
+  );
+  const [lineSearchQuery, setLineSearchQuery] = useState("");
+  const pricingGenRef = useRef(0);
+  const linesSectionRef = useRef<HTMLElement | null>(null);
+  const addLineOpenRef = useRef(false);
+
+  useEffect(() => {
+    addLineOpenRef.current = addLineOpen;
+  }, [addLineOpen]);
+
+  const handleDrawerOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next && addLineOpenRef.current) {
+        return;
+      }
+      onOpenChange(next);
+    },
+    [onOpenChange],
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -348,7 +383,7 @@ export function NewSupplyDrawer({
       );
       if (active.length === 0) {
         setError(
-          "No catalog products are linked to this supplier yet. Link SKUs on the supplier or products screens, or add rows with “Add product”.",
+          "No catalog products are linked to this supplier yet. Use Link product or link SKUs on the supplier profile.",
         );
       }
     } catch (e) {
@@ -373,9 +408,18 @@ export function NewSupplyDrawer({
       setError(null);
       setReceivedAtLocal(defaultReceived);
       setRowPricing({});
+      setLineSearchQuery("");
+      setAddLineOpen(false);
+      setLinkModalSupplierId(null);
+      return;
+    }
+    if (initialSupplier) {
+      setSupplier(initialSupplier);
+      setSupplierQuery("");
+      setSupplierHits([]);
     }
      
-  }, [open, defaultReceived]);
+  }, [open, defaultReceived, initialSupplier]);
 
   useEffect(() => {
      
@@ -386,6 +430,10 @@ export function NewSupplyDrawer({
     }
      
   }, [supplier, loadLinks]);
+
+  useEffect(() => {
+    setLineSearchQuery("");
+  }, [supplier?.id]);
 
   useEffect(() => {
      
@@ -425,12 +473,17 @@ export function NewSupplyDrawer({
     if (!open || !supplier?.id || !branchId.trim()) {
       return;
     }
+    if (!canSetSellPrice) {
+      setRowPricing({});
+      return;
+    }
     const ids = rowItemIdsKey.split(",").filter(Boolean);
     if (ids.length === 0) {
       setRowPricing({});
       return;
     }
     let cancelled = false;
+    const gen = ++pricingGenRef.current;
     const initial: Record<string, RowPricingHint> = {};
     for (const id of ids) {
       initial[id] = {
@@ -455,7 +508,7 @@ export function NewSupplyDrawer({
             branchId,
             draftUnit,
           );
-          if (cancelled) {
+          if (cancelled || pricingGenRef.current !== gen) {
             return;
           }
           const cur = parseMoneyApi(rec.currentSellPrice);
@@ -485,7 +538,7 @@ export function NewSupplyDrawer({
             }),
           );
         } catch {
-          if (cancelled) {
+          if (cancelled || pricingGenRef.current !== gen) {
             return;
           }
           setRowPricing((m) => ({
@@ -504,9 +557,10 @@ export function NewSupplyDrawer({
 
     return () => {
       cancelled = true;
+      pricingGenRef.current += 1;
     };
      
-  }, [open, supplier?.id, branchId, rowItemIdsKey, rowPricingDepsKey]);
+  }, [open, supplier?.id, branchId, rowItemIdsKey, rowPricingDepsKey, canSetSellPrice]);
 
   const estimatedProfit = useMemo(() => {
     let cost = 0;
@@ -566,6 +620,14 @@ export function NewSupplyDrawer({
     return { totalRows: rows.length, withQty, valid };
   }, [rows]);
 
+  const visibleRows = useMemo(() => {
+    const q = lineSearchQuery.trim();
+    if (!q) {
+      return rows;
+    }
+    return rows.filter((row) => rowMatchesLineSearch(row, q));
+  }, [rows, lineSearchQuery]);
+
   const workflowSteps = useMemo(
     () => [
       { id: "supplier", label: "Supplier", done: supplier != null },
@@ -586,20 +648,87 @@ export function NewSupplyDrawer({
   const canPost =
     supplier != null && lineStats.valid > 0 && duplicateIds.length === 0;
 
-  const addAdhocRow = () => {
-    setRows((r) => [
-      ...r,
-      {
-        key: newRowKey(),
-        source: "adhoc",
+  const openLinkModal = () => {
+    const sid = supplier?.id?.trim();
+    if (!sid) {
+      return;
+    }
+    setLinkModalSupplierId(sid);
+    // Defer so the opening click is not treated as an outside dismiss on the nested dialog.
+    window.setTimeout(() => setAddLineOpen(true), 0);
+  };
+
+  const linkProductFromModal = async (draft: LinkSupplierProductDraft) => {
+    const supplierId = draft.supplierId.trim();
+    if (!supplierId) {
+      throw new Error("Select a supplier first.");
+    }
+    if (!canLinkProducts) {
+      throw new Error("You do not have permission to link products to suppliers.");
+    }
+
+    await addItemSupplierLink(draft.item.id, {
+      supplierId,
+      supplierSku: draft.supplierSku,
+      defaultCostPrice: draft.defaultCostPrice,
+    });
+
+    const links = await fetchSupplierItemLinks(supplierId);
+    const link = links.find(
+      (l) => l.itemId === draft.item.id && l.active,
+    );
+    if (!link) {
+      throw new Error("Product linked but catalog row could not be loaded.");
+    }
+
+    const defaultUnit =
+      link.lastCostPrice != null && String(link.lastCostPrice).trim() !== ""
+        ? String(link.lastCostPrice)
+        : link.defaultCostPrice != null &&
+            String(link.defaultCostPrice).trim() !== ""
+          ? String(link.defaultCostPrice)
+          : draft.defaultCostPrice != null
+            ? String(draft.defaultCostPrice)
+            : "";
+
+    setRows((prev) => {
+      const idx = prev.findIndex((row) => rowItemId(row) === draft.item.id);
+      const preserved =
+        idx >= 0
+          ? {
+              qtyStr: prev[idx].qtyStr,
+              sellPriceStr: prev[idx].sellPriceStr,
+              sellPriceTouched: prev[idx].sellPriceTouched,
+              expiry: prev[idx].expiry,
+            }
+          : {
+              qtyStr: "",
+              sellPriceStr: "",
+              sellPriceTouched: false,
+              expiry: "",
+            };
+
+      const linkedRow: SupplyDraftRow = {
+        key: idx >= 0 ? prev[idx].key : newRowKey(),
+        source: "linked",
+        link,
         item: null,
-        qtyStr: "1",
-        unitStr: "",
-        sellPriceStr: "",
-        sellPriceTouched: false,
-        expiry: "",
-      },
-    ]);
+        unitStr: defaultUnit,
+        ...preserved,
+      };
+
+      if (idx >= 0) {
+        return prev.map((row, i) => (i === idx ? linkedRow : row));
+      }
+      return [...prev, linkedRow];
+    });
+
+    window.requestAnimationFrame(() => {
+      linesSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
   };
 
   const removeRow = (key: string) => {
@@ -749,44 +878,42 @@ export function NewSupplyDrawer({
   };
 
   return (
+    <>
     <FormDrawer
       open={open}
       onboardingTarget={ONBOARDING_TARGETS.suppliesDrawer}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleDrawerOpenChange}
       title="New supply"
-      description="Record stock received from a vendor. Follow the steps — supplier, receipt, then line quantities."
-      width="half"
+      width="full"
       appearance="sharp"
-      icon={<PackagePlus className="size-5 text-primary" aria-hidden />}
+      headerDensity="compact"
+      icon={<PackagePlus className="size-3.5 text-primary" aria-hidden />}
       contextLabel="Purchasing"
       banner={error ? <FormDrawerMessageBanner text={error} sharp /> : undefined}
       footer={
-        <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-end gap-4 sm:gap-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Payable total
-              </p>
-              <p className="font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">
+        <div className="flex w-full items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Payable
+              </span>
+              <p className="font-mono text-base font-bold tabular-nums text-foreground">
                 {estimatedProfit.cost.toFixed(2)}
               </p>
             </div>
-            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-              {lineStats.valid} line{lineStats.valid === 1 ? "" : "s"} ready to post
-              {supplier ? ` · ${supplier.name}` : ""}.{" "}
-              <Link
-                className="font-medium text-primary underline-offset-2 hover:underline"
-                href={APP_ROUTES.suppliers}
-              >
-                Supplier links
-              </Link>
+            <p className="truncate text-[10px] text-muted-foreground">
+              {lineStats.valid} of {lineStats.totalRows} lines ready
+              {supplier ? ` · ${supplier.name}` : ""}
+              {canPost ? (
+                <span className="ml-1 font-semibold text-primary">· Ready to post</span>
+              ) : null}
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
+          <div className="flex shrink-0 items-center gap-1.5">
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-lg px-4"
+              className="h-7 rounded-sm px-2.5 text-xs"
               disabled={busy}
               onClick={() => onOpenChange(false)}
             >
@@ -795,7 +922,7 @@ export function NewSupplyDrawer({
             <Button
               type="submit"
               form="new-supply-form"
-              className={supBtnPrimary}
+              className={cn(supBtnPrimary, "h-7 rounded-sm px-2.5 text-xs")}
               disabled={busy || !canPost}
             >
               {busy ? "Posting…" : "Post supply"}
@@ -806,7 +933,7 @@ export function NewSupplyDrawer({
     >
       <form
         id="new-supply-form"
-        className="flex flex-col gap-6 pb-2"
+        className="flex flex-col gap-2 pb-0"
         onSubmit={(e) => {
           e.preventDefault();
           void onSubmit();
@@ -814,180 +941,82 @@ export function NewSupplyDrawer({
       >
         <SupplyWorkflowRail steps={workflowSteps} />
 
-        <div className="grid gap-6">
-          <div className="flex min-w-0 flex-col gap-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SupplyDrawerSection
-                step={1}
-                title="Supplier"
-                hint="Search by name, code, or linked product."
-                className="relative z-30 overflow-visible lg:z-20"
-                bodyClassName="overflow-visible p-4 sm:p-5"
-              >
-                <div className="relative isolate">
-                  <Search
-                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden
-                  />
-                  <input
-                    className={cn(nsdInput, "pl-9")}
-                    placeholder="Search supplier name, code, or product…"
-                    value={supplier ? supplier.name : supplierQuery}
-                    onChange={(e) => {
-                      setSupplier(null);
-                      setSupplierQuery(e.target.value);
-                    }}
-                    disabled={busy}
-                    autoComplete="off"
-                    aria-autocomplete="list"
-                    aria-expanded={!supplier && supplierQuery.trim().length > 0}
-                  />
-            {!supplier && supplierQuery.trim().length > 0 ? (
-              <ul className={nsdDropdown} role="listbox">
-                {supplierLoading ? (
-                  <li
-                    className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground"
-                    role="presentation"
-                  >
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Searching…
-                  </li>
-                ) : supplierHits.length === 0 ? (
-                  <li className="px-3 py-2 text-xs text-muted-foreground" role="presentation">
-                    No match
-                  </li>
-                ) : (
-                  supplierHits.map((s) => (
-                    <li key={s.id} role="option">
-                      <button
-                        type="button"
-                        className="flex w-full flex-col items-start px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50"
-                        onClick={() => {
-                          setSupplier(s);
-                          setSupplierQuery("");
-                          setSupplierHits([]);
-                        }}
-                      >
-                        <span className="font-medium">{s.name}</span>
-                        {s.code ? (
-                          <span className="text-[11px] text-muted-foreground">
-                            {s.code}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            ) : null}
-          </div>
-                {supplier ? (
-                  <div className={nsdVendorChip}>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-primary">
-                        Selected vendor
-                      </p>
-                      <p className="truncate font-semibold text-foreground">
-                        {supplier.name}
-                      </p>
-                      {supplier.code ? (
-                        <p className="text-[11px] text-muted-foreground">{supplier.code}</p>
-                      ) : null}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 shrink-0 rounded-lg text-xs"
-                      disabled={busy}
-                      onClick={() => {
-                        setSupplier(null);
-                        setSupplierQuery("");
-                      }}
-                    >
-                      Change
-                    </Button>
-                  </div>
-                ) : null}
-              </SupplyDrawerSection>
+        <SupplyContextStrip
+          supplierName={supplier?.name ?? null}
+          branchName={selectedBranchName}
+          lineStats={lineStats}
+          payable={estimatedProfit.cost}
+          canPost={canPost}
+        />
 
-              <SupplyDrawerSection
-                step={2}
-                title="Receipt details"
-                hint="Branch, delivery time, and optional references."
-                bodyClassName="p-4 sm:p-5"
-              >
-                <div className={cn(nsdCardInset, "grid gap-4 p-4 sm:grid-cols-2")}>
-          <label className="flex flex-col gap-1.5">
-            <span className={nsdFieldLabel}>Receiving branch</span>
-            <select
-              className={nsdSelect}
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              disabled={busy || branchesLoading || branches.length === 0}
-            >
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className={nsdFieldLabel}>Received at</span>
-            <input
-              type="datetime-local"
-              className={nsdInput}
-              value={receivedAtLocal}
-              onChange={(e) => setReceivedAtLocal(e.target.value)}
-              disabled={busy}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 sm:col-span-2">
-            <span className={nsdFieldLabel}>
-              Supplier document / DN ref (optional)
-            </span>
-            <input
-              className={nsdInput}
-              value={docRef}
-              onChange={(e) => setDocRef(e.target.value)}
-              disabled={busy}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 sm:col-span-2">
-            <span className={nsdFieldLabel}>Notes (optional)</span>
-            <textarea
-              className={nsdTextarea}
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              disabled={busy}
-            />
-          </label>
-                </div>
-              </SupplyDrawerSection>
-            </div>
-
-            {supplier ? (
-              <ExtraCostsSection extras={extras} onChange={setExtras} busy={busy} />
-            ) : null}
-
+        <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(14rem,22%)] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-2">
             <SupplyDrawerSection
-              step={3}
+              step={1}
+              title="Delivery setup"
+              hint="Vendor, receipt time, and optional references — then fill receiving lines below."
+              done={
+                supplier != null &&
+                Boolean(branchId.trim() && receivedAtLocal)
+              }
+              className="relative z-30 overflow-visible lg:z-20"
+              bodyClassName="overflow-visible p-2.5 sm:p-3"
+            >
+              <DeliverySetupSection
+                busy={busy}
+                supplier={supplier}
+                supplierQuery={supplierQuery}
+                supplierHits={supplierHits}
+                supplierLoading={supplierLoading}
+                onSupplierQueryChange={setSupplierQuery}
+                onSelectSupplier={(s) => {
+                  setSupplier(s);
+                  setSupplierQuery("");
+                  setSupplierHits([]);
+                }}
+                onClearSupplier={() => {
+                  setSupplier(null);
+                  setSupplierQuery("");
+                }}
+                branchId={branchId}
+                branches={branches}
+                branchesLoading={branchesLoading}
+                branchLocked={branchLocked}
+                selectedBranchName={selectedBranchName}
+                onBranchChange={setBranchId}
+                receivedAtLocal={receivedAtLocal}
+                onReceivedAtChange={setReceivedAtLocal}
+                docRef={docRef}
+                onDocRefChange={setDocRef}
+                notes={notes}
+                onNotesChange={setNotes}
+                extras={extras}
+                onExtrasChange={setExtras}
+                showExtras={supplier != null}
+              />
+            </SupplyDrawerSection>
+
+            <div ref={linesSectionRef}>
+            <SupplyDrawerSection
+              step={2}
               title="Receiving lines"
-              hint="Buying price × quantity drives payables. Scroll horizontally on small screens."
+              hint="Enter qty and cost per line. Shelf price updates when you post."
+              done={lineStats.valid > 0 && duplicateIds.length === 0}
+              className="overflow-visible"
               action={
+                canLinkProducts ? (
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1 rounded-lg text-xs"
-                  onClick={addAdhocRow}
+                  className="h-7 gap-0.5 rounded-sm px-2 text-[10px]"
+                  onClick={openLinkModal}
                   disabled={busy || !supplier}
                 >
                   <Plus className="size-3.5" aria-hidden />
-                  Add product
+                  Link product
                 </Button>
+                ) : null
               }
               bodyClassName="p-0"
             >
@@ -1006,54 +1035,198 @@ export function NewSupplyDrawer({
                 <SupplyEmptyState
                   icon={PackagePlus}
                   title="No linked products"
-                  description="Link SKUs on the supplier profile, or add products row by row."
+                  description="Link SKUs on the supplier profile, or use Link product to add catalog items."
                   action={
+                    canLinkProducts ? (
                     <Button
                       type="button"
                       size="sm"
                       className="gap-1 rounded-lg"
-                      onClick={addAdhocRow}
-                      disabled={busy}
+                      onClick={openLinkModal}
+                      disabled={busy || !supplier}
                     >
                       <Plus className="size-3.5" aria-hidden />
-                      Add product
+                      Link product
                     </Button>
+                    ) : null
                   }
                 />
               ) : (
                 <>
                   {duplicateIds.length > 0 ? (
-                    <div className={cn(nsdAlert, "m-4 sm:m-5")}>
+                    <div className={cn(nsdAlert, "m-2")}>
                       Duplicate products in the grid — keep one row per SKU.
                     </div>
                   ) : null}
 
-                  <p className="border-b border-border bg-muted/25 px-4 py-2 text-[11px] text-muted-foreground sm:px-5">
-                    {lineStats.valid} of {lineStats.totalRows} lines ready · highlighted rows
-                    have qty and cost
-                  </p>
+                  <SupplyLinesToolbar
+                    searchQuery={lineSearchQuery}
+                    onSearchChange={setLineSearchQuery}
+                    visibleCount={visibleRows.length}
+                    totalCount={rows.length}
+                    readyCount={lineStats.valid}
+                    disabled={busy}
+                  />
 
-                  <div className="overflow-x-auto">
-          <table className="w-full min-w-[72rem] border-collapse text-left text-sm">
+                  {visibleRows.length === 0 ? (
+                    <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                      No lines match &ldquo;{lineSearchQuery.trim()}&rdquo;.
+                    </p>
+                  ) : (
+                  <>
+                  <div className="space-y-2 p-2 lg:hidden">
+                    {visibleRows.map((row) => {
+                      const p = linePayload(row);
+                      const stock = rowStock(row);
+                      const qty = parsePositiveQty(row.qtyStr);
+                      const stockAfter =
+                        stock != null && qty != null ? stock + qty : null;
+                      const iid = rowItemId(row);
+                      const hint = iid ? rowPricing[iid] : undefined;
+                      const unitCost = parseNonNeg(row.unitStr);
+                      const referenceCost =
+                        row.source === "linked" ? rowReferenceCost(row.link) : null;
+                      const reorderLevel =
+                        row.source === "linked" ? linkReorderLevel(row.link) : null;
+                      return (
+                        <SupplyDraftLineCard
+                          key={row.key}
+                          row={row}
+                          label={rowLabel(row)}
+                          barcode={rowBarcode(row)}
+                          busy={busy}
+                          canSetSellPrice={canSetSellPrice}
+                          isReady={p != null}
+                          stock={stock}
+                          stockAfter={stockAfter}
+                          lineTotal={p?.amountMoney ?? null}
+                          qty={qty}
+                          unitCost={unitCost}
+                          referenceCost={referenceCost}
+                          reorderLevel={reorderLevel}
+                          pricingHint={hint}
+                          hasItemId={Boolean(iid)}
+                          branchId={branchId}
+                          onQtyChange={(value) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key ? { ...r, qtyStr: value } : r,
+                              ),
+                            )
+                          }
+                          onUnitChange={(value) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key ? { ...r, unitStr: value } : r,
+                              ),
+                            )
+                          }
+                          onSellPriceChange={(value) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key
+                                  ? {
+                                      ...r,
+                                      sellPriceStr: value,
+                                      sellPriceTouched: true,
+                                    }
+                                  : r,
+                              ),
+                            )
+                          }
+                          onExpiryChange={(value) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key ? { ...r, expiry: value } : r,
+                              ),
+                            )
+                          }
+                          onItemChange={(item) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key
+                                  ? {
+                                      ...r,
+                                      item,
+                                      sellPriceStr: "",
+                                      sellPriceTouched: false,
+                                    }
+                                  : r,
+                              ),
+                            )
+                          }
+                          onRemove={() => removeRow(row.key)}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  <div className="hidden overflow-x-auto lg:block">
+          <table className="w-full min-w-[62rem] border-collapse text-left text-sm">
             <thead className={nsdTableHead}>
-              <tr>
-                <th className="px-3 py-2">Product</th>
-                <th className="px-3 py-2">SKU</th>
-                <th className="px-3 py-2">Barcode</th>
-                <th className="px-3 py-2 text-right">Stock now</th>
-                <th className="px-3 py-2 text-right">Qty in</th>
-                <th className="px-3 py-2 text-right">After</th>
-                <th className="px-3 py-2 text-right">Buying price</th>
-                <th className="px-3 py-2 text-right">Line total</th>
-                <th className="px-3 py-2 min-w-[7.5rem] text-right">
-                  Shelf price
+              <tr className="border-b border-border/50 bg-muted/60 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                <th colSpan={2} className="px-2 py-1 text-left font-semibold">
+                  Product
                 </th>
-                <th className="px-3 py-2">Expiry</th>
-                <th className="px-3 py-2 w-10" />
+                <th
+                  colSpan={3}
+                  className={cn(
+                    nsdTableGroupDivider,
+                    "px-2 py-1 text-center font-semibold",
+                  )}
+                >
+                  Inventory
+                </th>
+                <th
+                  colSpan={2}
+                  className={cn(
+                    nsdTableGroupDivider,
+                    "px-2 py-1 text-center font-semibold",
+                  )}
+                >
+                  Cost
+                </th>
+                <th
+                  className={cn(
+                    nsdTableGroupDivider,
+                    "px-2 py-1 text-center font-semibold",
+                  )}
+                >
+                  Retail
+                </th>
+                <th
+                  className={cn(
+                    nsdTableGroupDivider,
+                    "px-2 py-1 text-left font-semibold",
+                  )}
+                >
+                  Batch
+                </th>
+                <th className="w-7" />
+              </tr>
+              <tr>
+                <th className={cn(nsdTableTh, "min-w-[9rem]")}>Product</th>
+                <th className={cn(nsdTableTh, "min-w-[5rem]")}>Barcode</th>
+                <th className={cn(nsdTableTh, "min-w-[4rem] text-right", nsdTableGroupDivider)}>
+                  Stock
+                </th>
+                <th className={cn(nsdTableTh, "min-w-[4rem] text-right")}>Qty</th>
+                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>After</th>
+                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right", nsdTableGroupDivider)}>
+                  Cost
+                </th>
+                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>Total</th>
+                <th className={cn(nsdTableTh, "min-w-[5.5rem] text-right", nsdTableGroupDivider)}>
+                  Shelf
+                </th>
+                <th className={cn(nsdTableTh, "w-[6.75rem]", nsdTableGroupDivider)}>
+                  Expiry
+                </th>
+                <th className={cn(nsdTableTh, "w-7")} />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => {
+              {visibleRows.map((row) => {
                 const p = linePayload(row);
                 const stock = rowStock(row);
                 const qty = parsePositiveQty(row.qtyStr);
@@ -1062,19 +1235,24 @@ export function NewSupplyDrawer({
                 const iid = rowItemId(row);
                 const hint = iid ? rowPricing[iid] : undefined;
                 const isReady = p != null;
+                const unitCost = parseNonNeg(row.unitStr);
+                const referenceCost =
+                  row.source === "linked" ? rowReferenceCost(row.link) : null;
+                const reorderLevel =
+                  row.source === "linked" ? linkReorderLevel(row.link) : null;
                 return (
                   <tr
                     key={row.key}
                     className={cn(
                       nsdTableRow,
-                      "align-top",
                       isReady && nsdTableRowReady,
                     )}
                   >
-                    <td className="px-3 py-2">
+                    <td className={nsdTableCell}>
                       {row.source === "adhoc" ? (
                         <ProductPickCell
                           sharp
+                          branchId={branchId}
                           item={row.item}
                           disabled={busy}
                           onItemChange={(item) =>
@@ -1093,143 +1271,127 @@ export function NewSupplyDrawer({
                           }
                         />
                       ) : (
-                        <div className="text-sm font-medium leading-snug">
+                        <div
+                          className="max-w-[14rem] truncate text-sm font-medium leading-snug"
+                          title={rowLabel(row)}
+                        >
                           {rowLabel(row)}
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                      {rowSku(row)}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">
+                    <td
+                      className={cn(
+                        nsdTableCell,
+                        "align-top font-mono text-[10px] leading-snug text-muted-foreground break-all",
+                      )}
+                    >
                       {rowBarcode(row)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
-                      {stock != null ? stock.toLocaleString() : "—"}
+                    <td className={cn(nsdTableCell, "min-w-[4rem] align-top", nsdTableGroupDivider)}>
+                      <SupplyStockCell
+                        compact
+                        stock={stock}
+                        reorderLevel={reorderLevel}
+                      />
                     </td>
-                    <td className="px-3 py-2">
-                      <input
-                        className={cn(nsdInput, "w-16 text-right font-mono text-sm")}
+                    <td className={cn(nsdTableCell, "min-w-[4rem] align-top")}>
+                      <SupplyQtyCell
+                        compact
                         value={row.qtyStr}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
-                              r.key === row.key
-                                ? { ...r, qtyStr: e.target.value }
-                                : r,
+                              r.key === row.key ? { ...r, qtyStr: value } : r,
                             ),
                           )
                         }
+                        disabled={busy}
+                        isReady={isReady}
                       />
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-xs tabular-nums text-muted-foreground">
-                      {stockAfter != null ? stockAfter.toLocaleString() : "—"}
+                    <td className={cn(nsdTableCell, "min-w-[4.5rem] align-top")}>
+                      <SupplyStockAfterCell
+                        compact
+                        stock={stock}
+                        stockAfter={stockAfter}
+                        qty={qty}
+                      />
                     </td>
-                    <td className="px-3 py-2">
-                      <input
-                        className={cn(
-                          nsdInput,
-                          "w-24 text-right font-mono text-sm",
-                        )}
+                    <td className={cn(nsdTableCell, "min-w-[4.5rem] align-top", nsdTableGroupDivider)}>
+                      <SupplyCostCell
+                        compact
                         value={row.unitStr}
-                        onChange={(e) =>
+                        onChange={(value) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key ? { ...r, unitStr: value } : r,
+                            ),
+                          )
+                        }
+                        disabled={busy}
+                        referenceCost={referenceCost}
+                      />
+                    </td>
+                    <td className={cn(nsdTableCell, "min-w-[4.5rem] align-top")}>
+                      <SupplyLineTotalCell
+                        compact
+                        total={p?.amountMoney ?? null}
+                        qty={qty}
+                        unitCost={unitCost}
+                        isReady={isReady}
+                      />
+                    </td>
+                    <td className={cn(nsdTableCell, "min-w-[5.5rem] align-top", nsdTableGroupDivider)}>
+                      <SupplyShelfPriceCell
+                        compact
+                        value={row.sellPriceStr}
+                        onChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
                               r.key === row.key
-                                ? { ...r, unitStr: e.target.value }
+                                ? {
+                                    ...r,
+                                    sellPriceStr: value,
+                                    sellPriceTouched: true,
+                                  }
                                 : r,
                             ),
                           )
                         }
-                        aria-label="Buying price per unit"
+                        disabled={busy || !iid}
+                        canSetSellPrice={canSetSellPrice}
+                        hint={hint}
+                        unitStr={row.unitStr}
+                        sellPriceTouched={row.sellPriceTouched}
                       />
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-sm tabular-nums">
-                      {p ? p.amountMoney.toFixed(2) : "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex min-w-[6.5rem] flex-col gap-0.5">
-                        {canSetSellPrice ? (
-                          <input
-                            className={cn(
-                              nsdInput,
-                              "text-right font-mono text-sm",
-                              (() => {
-                                const retail = parseRetailPrice(row.sellPriceStr);
-                                const unit = parseNonNeg(row.unitStr);
-                                return retail != null && unit != null && retail < unit
-                                  ? "text-red-600"
-                                  : "";
-                              })(),
-                            )}
-                            value={row.sellPriceStr}
-                            onChange={(e) =>
-                              setRows((prev) =>
-                                prev.map((r) =>
-                                  r.key === row.key
-                                    ? {
-                                        ...r,
-                                        sellPriceStr: e.target.value,
-                                        sellPriceTouched: true,
-                                      }
-                                    : r,
-                                ),
-                              )
-                            }
-                            disabled={busy || !iid}
-                            aria-label="Shelf retail price"
-                          />
-                        ) : (
-                          <span className="block py-1.5 text-right font-mono text-sm tabular-nums">
-                            {row.sellPriceStr.trim() ? row.sellPriceStr : "—"}
-                          </span>
-                        )}
-                        {hint?.loading ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <Loader2 className="size-3 animate-spin" />
-                            Pricing…
-                          </span>
-                        ) : hint?.error ? (
-                          <span className="text-[10px] text-muted-foreground">
-                            Pricing unavailable
-                          </span>
-                        ) : (
-                          <span className="text-[10px] leading-snug text-muted-foreground">
-                            {formatRowPricingHint(hint, canSetSellPrice)}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="date"
-                        className={cn(
-                          nsdInput,
-                          "min-w-[8.5rem] text-xs",
-                        )}
+                    <td className={cn(nsdTableCell, nsdTableGroupDivider)}>
+                      <YmdDateInput
                         value={row.expiry}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
-                              r.key === row.key
-                                ? { ...r, expiry: e.target.value }
-                                : r,
+                              r.key === row.key ? { ...r, expiry: value } : r,
                             ),
                           )
                         }
+                        disabled={busy}
+                        compact
+                        placeholder="Expiry"
+                        aria-label="Expiry date"
                       />
                     </td>
-                    <td className="px-3 py-2">
+                    <td className={nsdTableCell}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-8 text-destructive hover:bg-destructive/10"
+                        className="size-7 text-destructive hover:bg-destructive/10"
                         disabled={busy}
                         aria-label="Remove row"
                         onClick={() => removeRow(row.key)}
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-3.5" />
                       </Button>
                     </td>
                   </tr>
@@ -1238,51 +1400,16 @@ export function NewSupplyDrawer({
             </tbody>
           </table>
                   </div>
+                  </>
+                  )}
                 </>
               )}
             </SupplyDrawerSection>
-
-            <div className={nsdTotalsPanel}>
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Totals snapshot
-              </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  { label: "Payable", value: estimatedProfit.cost.toFixed(2) },
-                  {
-                    label: "Retail",
-                    value: estimatedProfit.revenue.toFixed(2),
-                    className: "text-emerald-700 dark:text-emerald-300",
-                  },
-                  { label: "Extras", value: extrasTotal.toFixed(2) },
-                  {
-                    label: "Net",
-                    value: (estimatedProfit.profit - extrasTotal).toFixed(2),
-                    className:
-                      estimatedProfit.profit - extrasTotal >= 0
-                        ? "text-emerald-700 dark:text-emerald-300"
-                        : "text-red-600",
-                  },
-                ].map(({ label, value, className }) => (
-                  <div key={label} className="rounded-sm border border-border bg-background px-3 py-2">
-                    <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
-                      {label}
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-0.5 block font-mono text-sm font-bold tabular-nums",
-                        className,
-                      )}
-                    >
-                      {value}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
           <SupplyDrawerSummaryPanel
+            className="hidden md:flex md:sticky md:top-0"
             supplierName={supplier?.name ?? null}
             branchName={selectedBranchName}
             lineStats={lineStats}
@@ -1293,5 +1420,21 @@ export function NewSupplyDrawer({
         </div>
       </form>
     </FormDrawer>
+
+    <LinkSupplierProductModal
+      open={addLineOpen}
+      onOpenChange={(next) => {
+        setAddLineOpen(next);
+        if (!next) {
+          setLinkModalSupplierId(null);
+        }
+      }}
+      branchId={branchId}
+      supplierId={linkModalSupplierId ?? supplier?.id ?? null}
+      supplierName={supplier?.name ?? null}
+      busy={busy}
+      onLink={linkProductFromModal}
+    />
+    </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,21 +10,83 @@ import { fetchItemsPage, type ItemSummaryRecord } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
 
-import { nsdDropdown, nsdInput } from "./new-supply-drawer-ui";
+import { nsdDropdownPanel, nsdInput } from "./new-supply-drawer-ui";
 
 type ProductPickCellProps = {
   item: ItemSummaryRecord | null;
   disabled?: boolean;
   sharp?: boolean;
+  branchId?: string;
+  /** Inline list for modals; portal for tables and overflow containers. */
+  resultsPlacement?: "inline" | "portal";
+  autoFocus?: boolean;
+  /** When set, omits items already linked to this supplier (catalog link picker). */
+  excludeLinkedSupplierId?: string;
   onItemChange: (item: ItemSummaryRecord | null) => void;
 };
+
+type DropdownPos = {
+  top: number;
+  left: number;
+  width: number;
+};
+
+function ProductSearchResults({
+  loading,
+  hits,
+  onPick,
+}: {
+  loading: boolean;
+  hits: ItemSummaryRecord[];
+  onPick: (item: ItemSummaryRecord) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" />
+        Searching…
+      </div>
+    );
+  }
+  if (hits.length === 0) {
+    return (
+      <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
+    );
+  }
+  return (
+    <ul className="py-1" role="listbox">
+      {hits.map((h) => (
+        <li key={h.id} role="option">
+          <button
+            type="button"
+            className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onPick(h)}
+          >
+            <span className="font-medium leading-tight">
+              {itemCatalogDisplayTitle(h)}
+            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {h.sku}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function ProductPickCell({
   item,
   disabled,
   sharp,
+  branchId,
+  resultsPlacement = "portal",
+  autoFocus,
+  excludeLinkedSupplierId,
   onItemChange,
 }: ProductPickCellProps) {
+  const inlineResults = resultsPlacement === "inline";
   const inputClass = sharp
     ? cn(nsdInput, "text-sm", disabled && "opacity-50")
     : cn(dashboardInputClass(disabled), "text-sm");
@@ -31,17 +94,72 @@ export function ProductPickCell({
   const [open, setOpen] = useState(false);
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const pickItem = (h: ItemSummaryRecord) => {
+    onItemChange(h);
+    setOpen(false);
+    setQ("");
+  };
+
+  const updateDropdownPos = () => {
+    const el = searchInputRef.current;
+    if (!el) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    setDropdownPos({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: Math.max(rect.width, 220),
+    });
+  };
 
   useEffect(() => {
+    if (!autoFocus || item) {
+      return;
+    }
+    const id = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [autoFocus, item]);
+
+  useLayoutEffect(() => {
+    if (inlineResults || !open || q.trim().length < 1) {
+      setDropdownPos(null);
+      return;
+    }
+    updateDropdownPos();
+    const onLayout = () => updateDropdownPos();
+    window.addEventListener("resize", onLayout);
+    window.addEventListener("scroll", onLayout, true);
+    return () => {
+      window.removeEventListener("resize", onLayout);
+      window.removeEventListener("scroll", onLayout, true);
+    };
+  }, [inlineResults, open, q]);
+
+  useEffect(() => {
+    if (inlineResults) {
+      return;
+    }
     const onDoc = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) {
-        setOpen(false);
+      const target = e.target as Node;
+      if (
+        wrapRef.current?.contains(target) ||
+        dropdownRef.current?.contains(target)
+      ) {
+        return;
       }
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
+  }, [inlineResults]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +176,15 @@ export function ProductPickCell({
     }
     const id = window.setTimeout(() => {
       setLoading(true);
-      void fetchItemsPage(q.trim(), { catalogScope: "SKUS_ONLY", page: 0, size: 40 })
+      const bid = branchId?.trim();
+      const exSup = excludeLinkedSupplierId?.trim();
+      void fetchItemsPage(q.trim(), {
+        catalogScope: "SKUS_ONLY",
+        page: 0,
+        size: 40,
+        ...(bid ? { branchId: bid } : {}),
+        ...(exSup ? { excludeLinkedSupplierId: exSup } : {}),
+      })
         .then((page) => {
           if (!cancelled) {
             setHits(page.content.filter((r) => !r.groupLabelOnly));
@@ -79,7 +205,7 @@ export function ProductPickCell({
       cancelled = true;
       window.clearTimeout(id);
     };
-  }, [q, open]);
+  }, [q, open, branchId, excludeLinkedSupplierId]);
 
   const onBarcodeEnter = async (raw: string) => {
     const code = raw.trim();
@@ -88,7 +214,15 @@ export function ProductPickCell({
     }
     setLoading(true);
     try {
-      const page = await fetchItemsPage(undefined, { barcode: code, page: 0, size: 10 });
+      const bid = branchId?.trim();
+      const exSup = excludeLinkedSupplierId?.trim();
+      const page = await fetchItemsPage(undefined, {
+        barcode: code,
+        page: 0,
+        size: 10,
+        ...(bid ? { branchId: bid } : {}),
+        ...(exSup ? { excludeLinkedSupplierId: exSup } : {}),
+      });
       const pick = page.content.find((r) => !r.groupLabelOnly) ?? null;
       onItemChange(pick);
       setOpen(false);
@@ -98,11 +232,47 @@ export function ProductPickCell({
     }
   };
 
+  const showResults = open && q.trim().length > 0;
+
+  const resultsPanel = showResults ? (
+    <ProductSearchResults loading={loading} hits={hits} onPick={pickItem} />
+  ) : null;
+
+  const portaledDropdown =
+    !inlineResults &&
+    showResults &&
+    dropdownPos &&
+    typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            className={cn(
+              "fixed z-[400] rounded-sm",
+              nsdDropdownPanel,
+              !sharp && "rounded-lg shadow-lg",
+            )}
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              width: dropdownPos.width,
+            }}
+            role="listbox"
+          >
+            {resultsPanel}
+          </div>,
+          document.body,
+        )
+      : null;
+
   if (item && !open) {
     return (
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="truncate text-sm font-medium text-foreground">{itemCatalogDisplayTitle(item)}</span>
-        <span className="truncate font-mono text-[11px] text-muted-foreground">{item.sku}</span>
+        <span className="truncate text-sm font-medium text-foreground">
+          {itemCatalogDisplayTitle(item)}
+        </span>
+        <span className="truncate font-mono text-[11px] text-muted-foreground">
+          {item.sku}
+        </span>
         <Button
           type="button"
           variant="outline"
@@ -126,6 +296,7 @@ export function ProductPickCell({
       <div className="relative">
         <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
+          ref={searchInputRef}
           className={cn(inputClass, "pl-8")}
           placeholder="Search name / SKU…"
           disabled={disabled}
@@ -135,8 +306,23 @@ export function ProductPickCell({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={showResults}
+          aria-autocomplete="list"
         />
       </div>
+
+      {inlineResults && showResults ? (
+        <div
+          className={cn(
+            "mt-1 max-h-44 overflow-auto rounded-sm border border-border bg-popover shadow-md",
+          )}
+        >
+          {resultsPanel}
+        </div>
+      ) : null}
+
       <input
         className={cn(inputClass, "mt-1.5 font-mono text-xs")}
         placeholder="Barcode — Enter"
@@ -147,44 +333,7 @@ export function ProductPickCell({
           }
         }}
       />
-      {open && q.trim().length > 0 ? (
-        <div
-          className={cn(
-            "absolute z-30 max-h-48 w-full overflow-auto",
-            sharp
-              ? cn(nsdDropdown, "mt-0")
-              : "mt-1 rounded-lg border border-border bg-background shadow-md",
-          )}
-        >
-          {loading ? (
-            <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" />
-              Searching…
-            </div>
-          ) : hits.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
-          ) : (
-            <ul className="py-1">
-              {hits.map((h) => (
-                <li key={h.id}>
-                  <button
-                    type="button"
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
-                    onClick={() => {
-                      onItemChange(h);
-                      setOpen(false);
-                      setQ("");
-                    }}
-                  >
-                    <span className="font-medium leading-tight">{itemCatalogDisplayTitle(h)}</span>
-                    <span className="font-mono text-[11px] text-muted-foreground">{h.sku}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : null}
+      {portaledDropdown}
     </div>
   );
 }

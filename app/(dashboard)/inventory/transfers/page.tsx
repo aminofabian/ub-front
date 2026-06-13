@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRightLeft,
   BarChart3,
@@ -32,6 +32,7 @@ import {
   type BranchRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 type LineDraft = { itemId: string; qty: string };
@@ -126,6 +127,55 @@ export default function InventoryTransfersPage() {
     }
   }, [completeId]);
 
+  const quickLinks = useMemo(
+    () =>
+      filterInventoryQuickLinksForUser(me, [
+        {
+          href: APP_ROUTES.inventoryStock,
+          label: "Stock",
+          desc: "On-hand",
+          icon: Warehouse,
+        },
+        {
+          href: APP_ROUTES.inventoryRestock,
+          label: "Out of stock",
+          desc: "Restock",
+          icon: PackageX,
+        },
+        {
+          href: APP_ROUTES.inventorySupplyBatches,
+          label: "Supply batches",
+          desc: "Cost layers",
+          icon: Layers,
+        },
+        {
+          href: APP_ROUTES.purchasingAddSupplies,
+          label: "Receive supplies",
+          desc: "New delivery",
+          icon: Truck,
+        },
+        {
+          href: APP_ROUTES.inventoryValuation,
+          label: "Valuation",
+          desc: "Extension value",
+          icon: BarChart3,
+        },
+        {
+          href: APP_ROUTES.inventoryStockTake,
+          label: "Stock take",
+          desc: "Counts",
+          icon: ClipboardList,
+        },
+        {
+          href: APP_ROUTES.products,
+          label: "Products",
+          desc: "Item IDs",
+          icon: Package,
+        },
+      ]),
+    [me],
+  );
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -158,53 +208,9 @@ export default function InventoryTransfersPage() {
             title="Stock transfers"
             description="Move stock between branches — create a draft, then complete it."
           />
-          <DashboardQuickLinks
-            compact
-            links={[
-              {
-                href: APP_ROUTES.inventoryStock,
-                label: "Stock",
-                desc: "On-hand",
-                icon: Warehouse,
-              },
-              {
-                href: APP_ROUTES.inventoryRestock,
-                label: "Out of stock",
-                desc: "Restock",
-                icon: PackageX,
-              },
-              {
-                href: APP_ROUTES.inventorySupplyBatches,
-                label: "Supply batches",
-                desc: "Cost layers",
-                icon: Layers,
-              },
-              {
-                href: APP_ROUTES.purchasingAddSupplies,
-                label: "Receive supplies",
-                desc: "New delivery",
-                icon: Truck,
-              },
-              {
-                href: APP_ROUTES.inventoryValuation,
-                label: "Valuation",
-                desc: "Extension value",
-                icon: BarChart3,
-              },
-              {
-                href: APP_ROUTES.inventoryStockTake,
-                label: "Stock take",
-                desc: "Counts",
-                icon: ClipboardList,
-              },
-              {
-                href: APP_ROUTES.products,
-                label: "Products",
-                desc: "Item IDs",
-                icon: Package,
-              },
-            ]}
-          />
+          {quickLinks.length > 0 ? (
+            <DashboardQuickLinks compact links={quickLinks} />
+          ) : null}
         </header>
 
         <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-3">

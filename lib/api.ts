@@ -538,8 +538,14 @@ export type StocktakeSettingsRecord = {
   showSystemStockToStockManager?: boolean;
 };
 
+export type StockLevelsSettingsRecord = {
+  allowStockEditForStockManager?: boolean;
+  allowStockEditForGroceryClerk?: boolean;
+};
+
 export type InventorySettingsRecord = {
   stocktake?: StocktakeSettingsRecord;
+  stockLevels?: StockLevelsSettingsRecord;
 };
 
 export type BusinessRecord = {
@@ -629,8 +635,14 @@ export type StocktakePatchPayload = {
   showSystemStockToStockManager?: boolean;
 };
 
+export type StockLevelsPatchPayload = {
+  allowStockEditForStockManager?: boolean;
+  allowStockEditForGroceryClerk?: boolean;
+};
+
 export type InventoryPatchPayload = {
   stocktake?: StocktakePatchPayload;
+  stockLevels?: StockLevelsPatchPayload;
 };
 
 export type PosDraftsFeatureFlagsPatch = {

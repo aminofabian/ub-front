@@ -22,6 +22,7 @@ import {
 } from "@/lib/api";
 import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { extractPageContent } from "@/lib/page-content";
+import { isBranchLockedRole } from "@/lib/branch-access";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   writeSessionBootstrap,
@@ -216,10 +217,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [isGroceryClerk, assignedItemTypeIds]);
 
   // ── Stock managers, cashiers and grocery clerks are locked to their assigned branch ─────
-  const branchLockedRole =
-    roleKey === "stock_manager" ||
-    roleKey === "cashier" ||
-    roleKey === "grocery_clerk";
+  const branchLockedRole = isBranchLockedRole(roleKey);
 
   const setBranchId = useCallback(
     (id: string) => {

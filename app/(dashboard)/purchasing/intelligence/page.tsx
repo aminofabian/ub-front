@@ -338,7 +338,7 @@ export default function PurchasingIntelligencePage() {
           <DashboardQuickLinks
             links={[
               { href: APP_ROUTES.purchasingApAging, label: "AP aging", desc: "Balances", icon: BarChart3 },
-              { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment", desc: "Cash & alloc", icon: CreditCard },
+              { href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`, label: "Pay open", desc: "Supply balances", icon: CreditCard },
               { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Directory", icon: Truck },
             ]}
           />

@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CreditCard, FileEdit, Package, Receipt } from "lucide-react";
 
 import {
+  DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
@@ -19,6 +20,17 @@ import { cn } from "@/lib/utils";
 import { EditSupplyBillDrawer } from "./_components/edit-supply-bill-drawer";
 import { NewSupplyDrawer } from "./_components/new-supply-drawer";
 import { PaySupplyDrawer } from "./_components/pay-supply-drawer";
+import { SupplyReceiptCard } from "./_components/supply-receipt-card";
+import { SuppliesBillFilterBar } from "./_components/supplies-bill-filter-bar";
+import {
+  filterAndSortSupplyRows,
+  matchesSupplyBillFilter,
+  parseSupplyBillFilter,
+  summarizeSupplyRows,
+  SUPPLY_BILL_FILTERS,
+  supplyBillFilterLabel,
+  type SupplyBillFilterId,
+} from "./_components/supplies-bill-filters";
 import { SuppliesPageHeader } from "./_components/SuppliesPageHeader";
 import {
   formatSupplyMoney,
@@ -30,16 +42,15 @@ import {
   SupLoadingBlock,
 } from "../suppliers/_components/supplier-layout-primitives";
 import {
-  supPageRoot,
   supStatTile,
   supTableHead,
   supTableRow,
-  supWorkspaceInner,
-  supWorkspaceShell,
 } from "../suppliers/_components/supplier-ui-tokens";
 
 export default function SuppliesPage() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const { me, loading, canPathBWrite, canPathBRead, canViewSuppliers, canViewCategories, canViewApAging } =
     useDashboard();
 
@@ -84,22 +95,45 @@ export default function SuppliesPage() {
     }
   }, [searchParams, canOpenNewSupply]);
 
-  const summary = useMemo(() => {
-    let totalInvoiced = 0;
-    let totalPaid = 0;
-    let openBalance = 0;
-    let unpaidCount = 0;
-    for (const r of rows) {
-      totalInvoiced += supplyN(r.grandTotal);
-      totalPaid += supplyN(r.amountPaid);
-      const bal = supplyN(r.balanceOpen);
-      if (bal > 0.009) {
-        openBalance += bal;
-        unpaidCount += 1;
+  const billFilter = parseSupplyBillFilter(
+    searchParams.get("filter"),
+    searchParams.get("unpaid"),
+  );
+
+  const setBillFilter = useCallback(
+    (next: SupplyBillFilterId) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("unpaid");
+      if (next === "all") {
+        params.delete("filter");
+      } else {
+        params.set("filter", next);
       }
+      const q = params.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const displayRows = useMemo(
+    () => filterAndSortSupplyRows(rows, billFilter),
+    [rows, billFilter],
+  );
+
+  const filterCounts = useMemo(() => {
+    const counts: Partial<Record<SupplyBillFilterId, number>> = {};
+    for (const f of SUPPLY_BILL_FILTERS) {
+      counts[f.id] = rows.filter((r) => matchesSupplyBillFilter(r, f.id)).length;
     }
-    return { totalInvoiced, totalPaid, openBalance, unpaidCount, count: rows.length };
+    return counts;
   }, [rows]);
+
+  const summary = useMemo(() => summarizeSupplyRows(rows), [rows]);
+
+  const filteredSummary = useMemo(
+    () => summarizeSupplyRows(displayRows),
+    [displayRows],
+  );
 
   if (loading) {
     return <DashboardLoading label="Loading session…" />;
@@ -127,10 +161,16 @@ export default function SuppliesPage() {
     );
   }
 
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isStockManager = roleKey === "stock_manager";
+  const canShowProcurementLinks = !isStockManager;
+
   return (
-    <div className={cn(supPageRoot, "mx-auto max-w-6xl gap-4 px-3 pb-8 sm:px-4 lg:gap-5")}>
-      <SuppliesPageHeader
+    <div className={cn(DASHBOARD_MAX, "min-w-0 max-w-full overflow-x-hidden")}>
+      <div className="min-w-0 space-y-3">
+        <SuppliesPageHeader
         canViewApAging={canViewApAging}
+        canShowProcurementLinks={canShowProcurementLinks}
         canOpenNewSupply={canOpenNewSupply}
         listLoading={listLoading}
         onRefresh={() => void refresh()}
@@ -139,38 +179,74 @@ export default function SuppliesPage() {
 
       {listError ? <DashboardFeedback kind="error" text={listError} /> : null}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className={supStatTile}>
+      <div
+        className="flex gap-2 overflow-x-auto pb-0.5 sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0"
+        role="group"
+        aria-label="Supply summary"
+      >
+        <button
+          type="button"
+          onClick={() => setBillFilter("all")}
+          className={cn(
+            supStatTile,
+            "min-w-[5.75rem] shrink-0 px-2.5 py-2 text-left transition-colors sm:min-w-0",
+            billFilter === "all"
+              ? "border-primary/40 bg-primary/[0.06] ring-1 ring-primary/25"
+              : "hover:bg-muted/30",
+          )}
+        >
           <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Receipts
+            Total
           </span>
-          <span className="mt-1 block font-heading text-xl font-bold tabular-nums text-foreground">
+          <span className="mt-0.5 block text-base font-bold tabular-nums text-foreground sm:text-xl">
             {summary.count}
           </span>
-        </div>
-        <div className={supStatTile}>
+        </button>
+        <div className={cn(supStatTile, "min-w-[5.75rem] shrink-0 px-2.5 py-2 sm:min-w-0")}>
           <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Invoiced
           </span>
-          <span className="mt-1 block font-mono text-lg font-semibold tabular-nums">
-            {formatSupplyMoney(summary.totalInvoiced)}
+          <span className="mt-0.5 block font-mono text-sm font-semibold tabular-nums sm:text-lg">
+            {formatSupplyMoney(
+              billFilter === "all" ? summary.totalInvoiced : filteredSummary.totalInvoiced,
+            )}
           </span>
         </div>
-        <div className={supStatTile}>
+        <button
+          type="button"
+          onClick={() => setBillFilter("paid")}
+          className={cn(
+            supStatTile,
+            "min-w-[5.75rem] shrink-0 px-2.5 py-2 text-left transition-colors sm:min-w-0",
+            billFilter === "paid"
+              ? "border-primary/40 bg-primary/[0.06] ring-1 ring-primary/25"
+              : "hover:bg-muted/30",
+          )}
+        >
           <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Paid
           </span>
-          <span className="mt-1 block font-mono text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
+          <span className="mt-0.5 block font-mono text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-300 sm:text-lg">
             {formatSupplyMoney(summary.totalPaid)}
           </span>
-        </div>
-        <div className={supStatTile}>
+        </button>
+        <button
+          type="button"
+          onClick={() => setBillFilter("unpaid")}
+          className={cn(
+            supStatTile,
+            "min-w-[5.75rem] shrink-0 px-2.5 py-2 text-left transition-colors sm:min-w-0",
+            billFilter === "unpaid"
+              ? "border-primary/40 bg-primary/[0.06] ring-1 ring-primary/25"
+              : "hover:bg-muted/30",
+          )}
+        >
           <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Open ({summary.unpaidCount})
+            Unpaid ({summary.unpaidCount})
           </span>
           <span
             className={cn(
-              "mt-1 block font-mono text-lg font-semibold tabular-nums",
+              "mt-0.5 block font-mono text-sm font-semibold tabular-nums sm:text-lg",
               summary.openBalance > 0.009
                 ? "text-amber-800 dark:text-amber-200"
                 : "text-foreground",
@@ -178,42 +254,72 @@ export default function SuppliesPage() {
           >
             {formatSupplyMoney(summary.openBalance)}
           </span>
-        </div>
+        </button>
       </div>
 
-      <section className={supWorkspaceShell}>
-        <div className={cn(supWorkspaceInner, "gap-0 p-0 sm:p-0")}>
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/45 bg-gradient-to-r from-muted/35 to-transparent px-4 py-3.5 sm:px-5">
-            <div>
-              <h2 className="font-heading text-sm font-semibold tracking-tight text-foreground">
-                Receipt history
-              </h2>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Pay or open details to reduce open balance. Edit bill adjusts invoice
-                and lines when unpaid.
-              </p>
-            </div>
-            {!listLoading ? (
-              <span className="rounded-md bg-background/80 px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground ring-1 ring-border/50">
-                {rows.length} record{rows.length === 1 ? "" : "s"}
-              </span>
-            ) : null}
+      <section className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/45 bg-muted/25 px-3 py-2.5 sm:px-4">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+              {billFilter === "all" ? "All receipts" : supplyBillFilterLabel(billFilter)}
+            </h2>
+            <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">
+              {billFilter === "all"
+                ? "Unpaid bills first, then newest — use filters to narrow the list."
+                : billFilter === "unpaid"
+                  ? "Open balances — use Pay on each row."
+                  : "Filtered receipt list — newest first."}
+            </p>
           </div>
+          {!listLoading ? (
+            <span className="shrink-0 rounded-md bg-background/80 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground ring-1 ring-border/50">
+              {displayRows.length} shown
+              {billFilter !== "all" && rows.length !== displayRows.length
+                ? ` · ${rows.length} total`
+                : ""}
+            </span>
+          ) : null}
+        </div>
 
-          <div className="overflow-x-auto">
+        <SuppliesBillFilterBar
+          value={billFilter}
+          onChange={setBillFilter}
+          counts={filterCounts}
+          disabled={listLoading}
+        />
+
+        <div className="min-w-0 lg:overflow-x-auto">
             {listLoading && rows.length === 0 ? (
               <SupLoadingBlock label="Loading supplies…" />
-            ) : rows.length === 0 ? (
+            ) : displayRows.length === 0 ? (
               <SupEmptyState
                 icon={Receipt}
-                title="No supplies yet"
+                title={
+                  billFilter === "all"
+                    ? "No supplies yet"
+                    : `No ${supplyBillFilterLabel(billFilter).toLowerCase()} receipts`
+                }
                 description={
-                  canOpenNewSupply
-                    ? "Record your first vendor delivery with New supply — stock and payables post together."
-                    : "Supplies appear here after posted Path B receipts."
+                  billFilter === "unpaid"
+                    ? "All posted supplies are fully paid, or nothing has been received yet."
+                    : billFilter === "all" && canOpenNewSupply
+                      ? "Record your first vendor delivery with New supply — stock and payables post together."
+                      : billFilter === "all"
+                        ? "Supplies appear here after posted Path B receipts."
+                        : "Try a different date range or status filter."
                 }
                 action={
-                  canOpenNewSupply ? (
+                  billFilter !== "all" ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg"
+                      onClick={() => setBillFilter("all")}
+                    >
+                      Show all receipts
+                    </Button>
+                  ) : canOpenNewSupply ? (
                     <Button
                       type="button"
                       size="sm"
@@ -228,102 +334,123 @@ export default function SuppliesPage() {
                 className="m-4 border-0 bg-transparent"
               />
             ) : (
-              <table className="w-full min-w-[64rem] border-collapse text-left text-sm">
-                <thead className={supTableHead}>
-                  <tr>
-                    <th className="px-4 py-3 font-semibold sm:px-5">Supplier</th>
-                    <th className="px-4 py-3 font-semibold sm:px-5">Invoice</th>
-                    <th className="px-4 py-3 text-right font-semibold sm:px-5">Lines</th>
-                    <th className="px-4 py-3 text-right font-semibold sm:px-5">Total</th>
-                    <th className="px-4 py-3 text-right font-semibold sm:px-5">Paid</th>
-                    <th className="px-4 py-3 text-right font-semibold sm:px-5">Balance</th>
-                    <th className="px-4 py-3 font-semibold sm:px-5">Status</th>
-                    <th className="px-4 py-3 font-semibold sm:px-5">Created</th>
-                    <th className="px-4 py-3 text-right sm:px-5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => {
-                    const st = supplyPaymentStatusBadge(r.paymentStatus);
-                    const bal = supplyN(r.balanceOpen);
-                    return (
-                      <tr key={r.supplierInvoiceId} className={supTableRow}>
-                        <td className="px-4 py-3.5 sm:px-5">
-                          <span className="font-medium text-foreground">
-                            {r.supplierName || "—"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground sm:px-5">
-                          {r.invoiceNumber}
-                        </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums sm:px-5">
-                          {r.lineCount}
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-mono tabular-nums sm:px-5">
-                          {formatSupplyMoney(supplyN(r.grandTotal))}
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-mono tabular-nums text-emerald-700 dark:text-emerald-300 sm:px-5">
-                          {formatSupplyMoney(supplyN(r.amountPaid))}
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-mono font-semibold tabular-nums sm:px-5">
-                          {formatSupplyMoney(bal)}
-                        </td>
-                        <td className="px-4 py-3.5 sm:px-5">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                              st.className,
-                            )}
-                          >
-                            {st.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-xs text-muted-foreground sm:px-5">
-                          {new Date(r.createdAt).toLocaleString(undefined, {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
-                        </td>
-                        <td className="px-4 py-3.5 text-right sm:px-5">
-                          <div className="flex flex-wrap justify-end gap-1.5">
-                            {canEditSupplyBill ? (
+              <>
+                <div className="divide-y divide-border/60 lg:hidden">
+                  {displayRows.map((r) => (
+                    <SupplyReceiptCard
+                      key={r.supplierInvoiceId}
+                      row={r}
+                      canEditSupplyBill={canEditSupplyBill}
+                      canPay={canPay}
+                      canOpenReceiptDrawer={canOpenReceiptDrawer}
+                      onManage={() => {
+                        setEditRow(r);
+                        setEditOpen(true);
+                      }}
+                      onPayOrDetails={() => {
+                        setPayRow(r);
+                        setPayOpen(true);
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <table className="hidden w-full min-w-[64rem] border-collapse text-left text-sm lg:table">
+                  <thead className={supTableHead}>
+                    <tr>
+                      <th className="px-4 py-3 font-semibold sm:px-5">Supplier</th>
+                      <th className="px-4 py-3 font-semibold sm:px-5">Invoice</th>
+                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Lines</th>
+                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Total</th>
+                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Paid</th>
+                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Balance</th>
+                      <th className="px-4 py-3 font-semibold sm:px-5">Status</th>
+                      <th className="px-4 py-3 font-semibold sm:px-5">Created</th>
+                      <th className="px-4 py-3 text-right sm:px-5" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayRows.map((r) => {
+                      const st = supplyPaymentStatusBadge(r.paymentStatus);
+                      const bal = supplyN(r.balanceOpen);
+                      return (
+                        <tr key={r.supplierInvoiceId} className={supTableRow}>
+                          <td className="px-4 py-3.5 sm:px-5">
+                            <span className="font-medium text-foreground">
+                              {r.supplierName || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground sm:px-5">
+                            {r.invoiceNumber}
+                          </td>
+                          <td className="px-4 py-3.5 text-right tabular-nums sm:px-5">
+                            {r.lineCount}
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-mono tabular-nums sm:px-5">
+                            {formatSupplyMoney(supplyN(r.grandTotal))}
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-mono tabular-nums text-emerald-700 dark:text-emerald-300 sm:px-5">
+                            {formatSupplyMoney(supplyN(r.amountPaid))}
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-mono font-semibold tabular-nums sm:px-5">
+                            {formatSupplyMoney(bal)}
+                          </td>
+                          <td className="px-4 py-3.5 sm:px-5">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                st.className,
+                              )}
+                            >
+                              {st.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-muted-foreground sm:px-5">
+                            {new Date(r.createdAt).toLocaleString(undefined, {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </td>
+                          <td className="px-4 py-3.5 text-right sm:px-5">
+                            <div className="flex flex-wrap justify-end gap-1.5">
+                              {canEditSupplyBill ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1 rounded-lg text-xs"
+                                  onClick={() => {
+                                    setEditRow(r);
+                                    setEditOpen(true);
+                                  }}
+                                >
+                                  <FileEdit className="size-3.5" aria-hidden />
+                                  Manage
+                                </Button>
+                              ) : null}
                               <Button
                                 type="button"
                                 size="sm"
-                                variant="outline"
+                                variant={bal > 0.009 && canPay ? "default" : "outline"}
                                 className="h-8 gap-1 rounded-lg text-xs"
+                                disabled={!canOpenReceiptDrawer}
                                 onClick={() => {
-                                  setEditRow(r);
-                                  setEditOpen(true);
+                                  setPayRow(r);
+                                  setPayOpen(true);
                                 }}
                               >
-                                <FileEdit className="size-3.5" aria-hidden />
-                                Manage
+                                <CreditCard className="size-3.5" aria-hidden />
+                                {bal > 0.009 && canPay ? "Pay" : "Details"}
                               </Button>
-                            ) : null}
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={bal > 0.009 && canPay ? "default" : "outline"}
-                              className="h-8 gap-1 rounded-lg text-xs"
-                              disabled={!canOpenReceiptDrawer}
-                              onClick={() => {
-                                setPayRow(r);
-                                setPayOpen(true);
-                              }}
-                            >
-                              <CreditCard className="size-3.5" aria-hidden />
-                              {bal > 0.009 && canPay ? "Pay" : "Details"}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </>
             )}
-          </div>
         </div>
       </section>
 
@@ -348,6 +475,7 @@ export default function SuppliesPage() {
         row={editRow}
         onSaved={() => void refresh()}
       />
+      </div>
     </div>
   );
 }

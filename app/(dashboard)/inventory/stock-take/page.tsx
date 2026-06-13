@@ -52,6 +52,7 @@ import {
   type StockTakeLineRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 import { StockTakeSearchResults } from "./_components/StockTakeSearchResults";
 
@@ -532,8 +533,8 @@ export default function StockTakePage() {
     [checklistLines],
   );
 
-  const stockTakeQuickLinks = useMemo(
-    () => [
+  const stockTakeQuickLinks = useMemo(() => {
+    const links = [
       {
         href: APP_ROUTES.inventoryStock,
         label: "Stock",
@@ -590,9 +591,9 @@ export default function StockTakePage() {
               icon: MapPin,
             },
           ]),
-    ],
-    [canApprove, isBranchLockedRole],
-  );
+    ];
+    return filterInventoryQuickLinksForUser(me, links);
+  }, [canApprove, isBranchLockedRole, me]);
 
   // ── Permissions guard
   if (!allowed) {

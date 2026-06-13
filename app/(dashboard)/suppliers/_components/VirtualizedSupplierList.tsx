@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { BookUser, ChevronRight, Loader2, Truck } from "lucide-react";
+import { BookUser, Loader2, Truck } from "lucide-react";
 
 import type { SupplierRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -10,14 +10,19 @@ import { cn } from "@/lib/utils";
 import { SupEmptyState, SupLoadingBlock } from "./supplier-layout-primitives";
 import {
   statusBadgeClass,
+  statusDotClass,
   supDirectoryShell,
   supDirectoryToolbar,
+  supKicker,
   supRowActive,
+  supRowActiveCompact,
   supRowHover,
+  supRowHoverCompact,
   supTableHead,
 } from "./supplier-ui-tokens";
 
-const ROW_PX = 52;
+const ROW_PX_DEFAULT = 52;
+const ROW_PX_COMPACT = 36;
 
 export type VirtualizedSupplierListProps = {
   rows: SupplierRecord[];
@@ -29,7 +34,72 @@ export type VirtualizedSupplierListProps = {
   loadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  compact?: boolean;
 };
+
+function SupplierRowContent({
+  row,
+  active,
+  compact,
+}: {
+  row: SupplierRecord;
+  active: boolean;
+  compact: boolean;
+}) {
+  const code = row.code?.trim();
+
+  if (compact) {
+    return (
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span
+          className={cn("size-1.5 shrink-0 rounded-full", statusDotClass(row.status))}
+          aria-hidden
+        />
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate font-medium tracking-tight",
+            active ? "text-primary" : "text-foreground",
+          )}
+        >
+          {row.name}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span
+        className={cn("size-2 shrink-0 rounded-full", statusDotClass(row.status))}
+        title={row.status}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block truncate font-medium tracking-tight",
+            active ? "text-primary" : "text-foreground",
+          )}
+        >
+          {row.name}
+        </span>
+        {code ? (
+          <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
+            {code}
+          </span>
+        ) : null}
+      </div>
+      <span
+        className={cn(
+          "hidden shrink-0 rounded-lg px-2 py-0.5 text-[11px] font-semibold capitalize sm:inline-flex",
+          statusBadgeClass(row.status),
+        )}
+      >
+        {row.status}
+      </span>
+    </div>
+  );
+}
 
 export function VirtualizedSupplierList({
   rows,
@@ -41,14 +111,16 @@ export function VirtualizedSupplierList({
   loadingMore,
   hasMore,
   onLoadMore,
+  compact = false,
 }: VirtualizedSupplierListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const rowPx = compact ? ROW_PX_COMPACT : ROW_PX_DEFAULT;
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual list
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_PX,
+    estimateSize: () => rowPx,
     overscan: 12,
   });
 
@@ -70,16 +142,39 @@ export function VirtualizedSupplierList({
   }, [hasMore, loadingMore, onLoadMore, rows.length]);
 
   return (
-    <div className={cn(supDirectoryShell, "flex-1")}>
-      <div className={supDirectoryToolbar}>
-        <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-foreground/85">
-          <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/15">
-            <Truck className="size-3.5" aria-hidden />
+    <div
+      className={cn(
+        supDirectoryShell,
+        "min-h-0 flex-1",
+        compact && "rounded-xl",
+      )}
+    >
+      <div
+        className={cn(
+          supDirectoryToolbar,
+          compact ? "gap-2 px-2.5 py-1.5" : "px-3 py-2.5 sm:px-4",
+        )}
+      >
+        <span
+          className={cn(
+            "flex min-w-0 items-center gap-2",
+            compact ? "text-[10px]" : "text-xs sm:text-sm",
+          )}
+        >
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary ring-1 ring-primary/20 shadow-sm">
+            <Truck className={compact ? "size-3" : "size-3.5"} aria-hidden />
           </span>
-          Directory
+          <span className={cn(supKicker, "text-foreground/80")}>Directory</span>
         </span>
         {totalElements > 0 ? (
-          <span className="rounded-md bg-background/80 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground ring-1 ring-border/50">
+          <span
+            className={cn(
+              "shrink-0 rounded-lg bg-background/90 tabular-nums text-muted-foreground ring-1 ring-border/45 shadow-sm",
+              compact
+                ? "px-2 py-0.5 text-[10px]"
+                : "px-2.5 py-1 text-xs sm:text-sm",
+            )}
+          >
             <span className="font-semibold text-foreground">{totalLoaded}</span>
             {totalElements > totalLoaded ? (
               <>
@@ -94,23 +189,26 @@ export function VirtualizedSupplierList({
         ) : null}
       </div>
 
-      <div
-        className={cn(
-          "relative grid min-w-[26rem] shrink-0 grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] gap-2",
-          supTableHead,
-          "px-4 py-2.5",
-        )}
-        role="row"
-      >
-        <span>Name</span>
-        <span className="hidden sm:block">Code</span>
-        <span className="hidden sm:block">Type</span>
-        <span>Status</span>
-      </div>
+      {!compact ? (
+        <div
+          className={cn(
+            supTableHead,
+            "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5",
+          )}
+        >
+          <span>Supplier</span>
+          <span className="hidden sm:inline">Status</span>
+        </div>
+      ) : null}
 
       <div
         ref={parentRef}
-        className="min-h-[min(52vh,22rem)] flex-1 overflow-y-auto overscroll-contain scroll-smooth md:min-h-[24rem] xl:min-h-0"
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth",
+          compact
+            ? "xl:min-h-[8rem]"
+            : "max-lg:max-h-[calc(100dvh-13.5rem)] xl:min-h-[12rem]",
+        )}
         tabIndex={-1}
       >
         {loadingInitial && rows.length === 0 ? (
@@ -120,17 +218,16 @@ export function VirtualizedSupplierList({
             icon={BookUser}
             title="No suppliers match"
             description='Try widening your search or set status to "All statuses".'
-            className="m-4 border-0 bg-transparent"
+            className="m-3 border-0 bg-transparent sm:m-4"
           />
         ) : (
           <div
-            className="relative min-w-[26rem] w-full"
+            className="relative w-full min-w-0"
             style={{ height: virtualizer.getTotalSize() }}
           >
             {virtualizer.getVirtualItems().map((vi) => {
               const row = rows[vi.index];
               const active = selectedId === row.id;
-              const code = row.code?.trim() || "—";
               return (
                 <div
                   key={row.id}
@@ -141,10 +238,18 @@ export function VirtualizedSupplierList({
                   aria-label={`Supplier ${row.name}`}
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "group absolute left-0 top-0 grid min-w-[26rem] w-full grid-cols-[minmax(0,1fr)_4.5rem_5rem_5rem] gap-2 border-b border-border/25 px-4 py-3 text-left text-sm",
-                    "transition-[background-color,box-shadow] duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/35",
-                    active ? supRowActive : supRowHover,
+                    "absolute left-0 top-0 w-full min-w-0 border-b border-border/20 text-left",
+                    compact ? "px-1 py-0.5 text-xs" : "px-0 py-0 text-base",
+                    "transition-[background-color,border-color,box-shadow] duration-150",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30",
+                    active
+                      ? compact
+                        ? supRowActiveCompact
+                        : supRowActive
+                      : compact
+                        ? supRowHoverCompact
+                        : supRowHover,
+                    !compact && "py-1",
                   )}
                   style={{ transform: `translateY(${vi.start}px)` }}
                   onClick={() => onRowClick(row.id)}
@@ -155,47 +260,28 @@ export function VirtualizedSupplierList({
                     }
                   }}
                 >
-                  <span
-                    className={cn(
-                      "min-w-0 truncate font-medium tracking-tight",
-                      active ? "text-primary" : "text-foreground",
-                    )}
-                  >
-                    {row.name}
-                  </span>
-                  <span className="hidden truncate font-mono text-[11px] text-muted-foreground sm:block">
-                    {code}
-                  </span>
-                  <span className="hidden truncate text-xs capitalize text-muted-foreground sm:block">
-                    {row.supplierType}
-                  </span>
-                  <span>
-                    <span
-                      className={cn(
-                        "inline-flex max-w-full truncate rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize",
-                        statusBadgeClass(row.status),
-                      )}
-                    >
-                      {row.status}
-                    </span>
-                  </span>
-                  <ChevronRight
-                    className={cn(
-                      "pointer-events-none absolute right-3 top-1/2 hidden size-3.5 -translate-y-1/2 text-muted-foreground transition-all duration-150 sm:block",
-                      active
-                        ? "translate-x-0 opacity-50"
-                        : "opacity-0 group-hover:translate-x-0.5 group-hover:opacity-40",
-                    )}
-                    aria-hidden
-                  />
+                  <div className={cn(!compact && "px-3 sm:px-4", compact && "py-0.5")}>
+                    <SupplierRowContent row={row} active={active} compact={compact} />
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
         {loadingMore ? (
-          <div className="sticky bottom-0 flex items-center justify-center gap-2 border-t border-border/40 bg-background/95 py-2.5 text-xs font-medium text-muted-foreground backdrop-blur-md">
-            <Loader2 className="size-3.5 animate-spin text-primary/70" aria-hidden />
+          <div
+            className={cn(
+              "sticky bottom-0 flex items-center justify-center gap-1.5 border-t border-border/40 bg-background/95 font-medium text-muted-foreground backdrop-blur-md",
+              compact ? "py-1.5 text-xs" : "gap-2 py-2.5 text-sm",
+            )}
+          >
+            <Loader2
+              className={cn(
+                "animate-spin text-primary/70",
+                compact ? "size-3.5" : "size-4",
+              )}
+              aria-hidden
+            />
             Loading more…
           </div>
         ) : null}

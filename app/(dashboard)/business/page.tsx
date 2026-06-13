@@ -14,6 +14,7 @@ import {
   MapPin,
   Palette,
   ClipboardList,
+  Warehouse,
   Pencil,
   RefreshCw,
   Save,
@@ -74,6 +75,8 @@ type StorefrontForm = {
 
 type InventoryForm = {
   showSystemStockToStockManager: boolean;
+  allowStockEditForStockManager: boolean;
+  allowStockEditForGroceryClerk: boolean;
 };
 
 type PosDraftsForm = {
@@ -99,6 +102,8 @@ const DEFAULT_STOREFRONT: StorefrontForm = {
 
 const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
+  allowStockEditForStockManager: false,
+  allowStockEditForGroceryClerk: false,
 };
 
 const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -152,6 +157,12 @@ function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
   return {
     showSystemStockToStockManager: Boolean(
       b?.inventory?.stocktake?.showSystemStockToStockManager,
+    ),
+    allowStockEditForStockManager: Boolean(
+      b?.inventory?.stockLevels?.allowStockEditForStockManager,
+    ),
+    allowStockEditForGroceryClerk: Boolean(
+      b?.inventory?.stockLevels?.allowStockEditForGroceryClerk,
     ),
   };
 }
@@ -353,6 +364,12 @@ export default function BusinessPage() {
           stocktake: {
             showSystemStockToStockManager:
               inventory.showSystemStockToStockManager,
+          },
+          stockLevels: {
+            allowStockEditForStockManager:
+              inventory.allowStockEditForStockManager,
+            allowStockEditForGroceryClerk:
+              inventory.allowStockEditForGroceryClerk,
           },
         };
         body.featureFlags = {
@@ -965,6 +982,61 @@ export default function BusinessPage() {
                   <span className={hintClass()}>
                     When enabled, stock managers see on-hand quantity in the
                     count modal. Owners and admins always see it.
+                  </span>
+                </span>
+              </label>
+            </FormDrawerFields>
+          ) : null}
+
+          {canManageBusinessSettings ? (
+            <FormDrawerFields
+              legend="Stock levels"
+              hint="Control whether restricted roles can edit on-hand quantities on the Stock page."
+            >
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  checked={inventory.allowStockEditForStockManager}
+                  onChange={(event) =>
+                    setInventory((previous) => ({
+                      ...previous,
+                      allowStockEditForStockManager: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="space-y-1">
+                  <span className="flex items-center gap-2 font-medium">
+                    <Warehouse className="size-4 text-muted-foreground" />
+                    Allow stock managers to edit stock
+                  </span>
+                  <span className={hintClass()}>
+                    When enabled, stock managers can set on-hand quantities
+                    inline on the Stock page. They still cannot edit the
+                    product catalog.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  checked={inventory.allowStockEditForGroceryClerk}
+                  onChange={(event) =>
+                    setInventory((previous) => ({
+                      ...previous,
+                      allowStockEditForGroceryClerk: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="space-y-1">
+                  <span className="flex items-center gap-2 font-medium">
+                    <Warehouse className="size-4 text-muted-foreground" />
+                    Allow grocery clerks to edit stock
+                  </span>
+                  <span className={hintClass()}>
+                    When enabled, grocery clerks can open the Stock page and
+                    set on-hand quantities for their assigned branch.
                   </span>
                 </span>
               </label>

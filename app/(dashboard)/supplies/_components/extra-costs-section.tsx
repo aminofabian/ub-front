@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import {
-  nsdCardInset,
   nsdInput,
   nsdSelect,
-  SupplyDrawerSection,
+  nsdSectionHeader,
+  nsdSectionShell,
 } from "./new-supply-drawer-ui";
 
 export type ExtraRow = {
@@ -25,34 +25,26 @@ interface Props {
   busy: boolean;
 }
 
-export function ExtraCostsSection({ extras, onChange, busy }: Props) {
+export function ExtraCostsBody({
+  extras,
+  onChange,
+  busy,
+}: Props) {
   return (
-    <SupplyDrawerSection
-      title="Extra costs"
-      hint="Transport, handling, customs — allocated to the supply batch after posting."
-      action={
-        <span className="rounded-none border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          {extras.length > 0 ? `${extras.length} added` : "Optional"}
-        </span>
-      }
-      bodyClassName="p-4 sm:p-5"
-    >
+    <>
       {extras.length === 0 ? (
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="py-1 text-center text-[11px] text-muted-foreground">
           No extra costs yet.
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {extras.map((e) => (
             <div
               key={e.key}
-              className={cn(
-                nsdCardInset,
-                "flex flex-wrap items-center gap-2 p-2.5 sm:flex-nowrap",
-              )}
+              className="flex flex-wrap items-center gap-1.5 rounded-sm border border-border bg-muted/20 p-1.5 sm:flex-nowrap"
             >
               <select
-                className={cn(nsdSelect, "h-9 w-full min-w-[7rem] text-xs sm:w-32")}
+                className={cn(nsdSelect, "w-full min-w-[6rem] sm:w-28")}
                 value={e.category}
                 onChange={(ev) =>
                   onChange(
@@ -72,7 +64,7 @@ export function ExtraCostsSection({ extras, onChange, busy }: Props) {
                 <option value="other">Other</option>
               </select>
               <input
-                className={cn(nsdInput, "h-9 w-24 text-right font-mono text-xs tabular-nums")}
+                className={cn(nsdInput, "w-20 text-right font-mono tabular-nums")}
                 placeholder="0.00"
                 value={e.amount}
                 onChange={(ev) =>
@@ -86,7 +78,7 @@ export function ExtraCostsSection({ extras, onChange, busy }: Props) {
                 aria-label="Amount"
               />
               <input
-                className={cn(nsdInput, "h-9 min-w-0 flex-1 text-xs")}
+                className={cn(nsdInput, "min-w-0 flex-1")}
                 placeholder="Description (optional)"
                 value={e.desc}
                 onChange={(ev) =>
@@ -102,7 +94,7 @@ export function ExtraCostsSection({ extras, onChange, busy }: Props) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-9 shrink-0 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10"
+                className="h-8 shrink-0 rounded-sm px-2 text-xs text-destructive hover:bg-destructive/10"
                 disabled={busy}
                 onClick={() => onChange(extras.filter((x) => x.key !== e.key))}
               >
@@ -116,7 +108,7 @@ export function ExtraCostsSection({ extras, onChange, busy }: Props) {
         type="button"
         variant="outline"
         size="sm"
-        className="mt-3 h-8 gap-1 rounded-lg text-xs"
+        className="mt-2 h-8 gap-1 rounded-sm text-xs"
         disabled={busy}
         onClick={() =>
           onChange([
@@ -133,9 +125,43 @@ export function ExtraCostsSection({ extras, onChange, busy }: Props) {
           ])
         }
       >
-        <Plus className="size-3.5" aria-hidden />
+        <Plus className="size-3" aria-hidden />
         Add cost line
       </Button>
-    </SupplyDrawerSection>
+    </>
+  );
+}
+
+export function ExtraCostsSection({ extras, onChange, busy }: Props) {
+  const badge =
+    extras.length > 0 ? `${extras.length} added` : "Optional";
+
+  return (
+    <details
+      className={cn(nsdSectionShell, "group")}
+      open={extras.length > 0}
+    >
+      <summary
+        className={cn(
+          nsdSectionHeader,
+          "cursor-pointer list-none [&::-webkit-details-marker]:hidden",
+        )}
+      >
+        <div className="min-w-0">
+          <p className="text-xs font-semibold tracking-tight text-foreground">
+            Extra costs
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Transport, handling, customs…
+          </p>
+        </div>
+        <span className="shrink-0 rounded-sm border border-border bg-muted/40 px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+          {badge}
+        </span>
+      </summary>
+      <div className="border-t border-border p-1.5">
+        <ExtraCostsBody extras={extras} onChange={onChange} busy={busy} />
+      </div>
+    </details>
   );
 }

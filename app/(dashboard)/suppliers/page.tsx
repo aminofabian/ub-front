@@ -4,8 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
+  ChevronLeft,
   Link2,
+  PackagePlus,
   PencilLine,
+  Receipt,
   RefreshCw,
   Search,
   Truck,
@@ -40,32 +43,31 @@ import {
   type CreateSupplierPayload,
   type SupplierContactRecord,
   type SupplierItemLinkRecord,
+  type SupplierPurchaseHistoryOrderRecord,
   type SupplierRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
+import { SupplierSupplyInvoicePanel } from "./_components/SupplierSupplyInvoicePanel";
 import { SupplierEditColumn } from "./_components/SupplierEditColumn";
 import {
   EMPTY_SUPPLIER_PROFILE,
   SupplierProfileFields,
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
-import { SupDrawerFooter, SupMobileSelectionBar, SupWorkflowRail } from "./_components/supplier-layout-primitives";
+import { SupDrawerFooter, SupMobileSelectionBar } from "./_components/supplier-layout-primitives";
 import { SupplierPageHeader } from "./_components/SupplierPageHeader";
+import { NewSupplyDrawer } from "../supplies/_components/new-supply-drawer";
 import {
   supFieldLabel,
   supFilterRail,
   supInput,
-  supKickerPrimary,
-  supKickerViolet,
-  supPanelBody,
   supPanelBodyFill,
   supPanelHeader,
   supPanelHeaderIcon,
   supPanelShell,
-  supPageRoot,
   supWorkspaceInner,
   supWorkspaceShell,
 } from "./_components/supplier-ui-tokens";
@@ -73,9 +75,17 @@ import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
 export default function SuppliersPage() {
   const searchParams = useSearchParams();
-  const { me, loading } = useDashboard();
+  const {
+    me,
+    loading,
+    canPathBWrite,
+    canViewSuppliers,
+    canViewCategories,
+  } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
+  const canOpenNewSupply =
+    canPathBWrite && canViewSuppliers && canViewCategories;
   const canReadCatalog = hasPermission(
     me?.permissions,
     Permission.CatalogItemsRead,
@@ -118,6 +128,11 @@ export default function SuppliersPage() {
   const [itemLinks, setItemLinks] = useState<SupplierItemLinkRecord[]>([]);
   const [linksBusy, setLinksBusy] = useState(false);
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
+  const [newSupplyOpen, setNewSupplyOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] =
+    useState<SupplierPurchaseHistoryOrderRecord | null>(null);
+  const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
+  const [purchaseHistoryKey, setPurchaseHistoryKey] = useState(0);
   const [isXl, setIsXl] = useState(false);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
@@ -258,8 +273,20 @@ export default function SuppliersPage() {
       setCatalogDrawerOpen(false);
       setProfileEditDrawerOpen(false);
       setAddContactDrawerOpen(false);
+      setSelectedInvoice(null);
+      setInvoiceDrawerOpen(false);
     }
   }, [detail]);
+
+  const handleSelectInvoice = useCallback(
+    (order: SupplierPurchaseHistoryOrderRecord) => {
+      setSelectedInvoice(order);
+      if (!isXl) {
+        setInvoiceDrawerOpen(true);
+      }
+    },
+    [isXl],
+  );
 
   useEffect(() => {
     if (isXl) {
@@ -280,6 +307,8 @@ export default function SuppliersPage() {
   const onSelectSupplier = async (id: string) => {
     selectionRef.current = id;
     setSelectedId(id);
+    setSelectedInvoice(null);
+    setInvoiceDrawerOpen(false);
     setFeedback(null);
     try {
       const [d, c, links] = await Promise.all([
@@ -630,18 +659,25 @@ export default function SuppliersPage() {
   return (
     <div
       className={cn(
-        supPageRoot,
-        "-mx-4 w-[calc(100%+2rem)] gap-4 px-3 pb-6 sm:px-4 md:-mx-6 md:w-[calc(100%+3rem)] md:px-4 lg:gap-5",
+        "mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-3 pb-20",
+        isXl && "h-full min-h-0 max-w-none gap-2 pb-0",
       )}
     >
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4 lg:gap-5">
+      <div
+        className={cn(
+          "relative flex min-w-0 flex-col gap-3",
+          isXl && "min-h-0 flex-1 gap-1",
+        )}
+      >
         <SupplierPageHeader
           canWrite={canWrite}
+          canOpenNewSupply={canOpenNewSupply}
           listLoadingInitial={listLoadingInitial}
           onNewSupplier={() => {
             skipCreateDrawerResetAfterCreate.current = false;
             setCreateDrawerOpen(true);
           }}
+          onNewSupply={() => setNewSupplyOpen(true)}
         />
 
         {feedback ? (
@@ -651,59 +687,98 @@ export default function SuppliersPage() {
           />
         ) : null}
 
-        <div className={cn(supWorkspaceShell, isXl && "min-h-0 flex-1")}>
-          <div className={cn(supWorkspaceInner, isXl && "min-h-0 flex-1 overflow-hidden")}>
-            {isXl ? (
-              <SupWorkflowRail
-                steps={[
-                  { n: 1, label: "Directory" },
-                  { n: 2, label: "Profile" },
-                  { n: 3, label: "Catalog" },
-                ]}
-                activeLabel={detail?.name ?? null}
-              />
-            ) : null}
-
+        <div
+          className={cn(
+            supWorkspaceShell,
+            isXl ? "min-h-0 flex-1" : "shadow-sm",
+          )}
+        >
+          <div
+            className={cn(
+              supWorkspaceInner,
+              isXl && "min-h-0 flex-1 overflow-hidden",
+            )}
+          >
             <div
               className={cn(
-                "grid min-h-0 gap-4 lg:gap-5",
+                "grid min-h-0 gap-3",
                 isXl &&
-                  "min-h-0 flex-1 xl:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:overflow-hidden",
+                  "min-h-0 flex-1 gap-2 xl:grid-cols-[minmax(9rem,11rem)_minmax(13rem,16rem)_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)] xl:items-stretch xl:overflow-hidden",
               )}
             >
               <div
                 className={cn(
-                  "flex min-h-0 min-w-0 flex-col gap-3",
-                  isXl && "overflow-hidden",
+                  "flex min-h-0 min-w-0 flex-col",
+                  isXl ? "gap-2 overflow-hidden" : "gap-3 max-h-[calc(100dvh-11rem)]",
                 )}
               >
-                <div className={supFilterRail}>
-                  <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5">
-                    <span className={dashboardFilterFieldLabelClass()}>Search</span>
+                <div
+                  className={cn(
+                    supFilterRail,
+                    isXl
+                      ? "flex-col items-stretch gap-1.5 rounded-xl px-2 py-1.5"
+                      : "rounded-xl px-3 py-2.5",
+                  )}
+                >
+                  <label
+                    className={cn(
+                      "flex min-w-0 flex-1 flex-col",
+                      isXl ? "gap-0" : "gap-1",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        dashboardFilterFieldLabelClass(),
+                        isXl && "sr-only",
+                      )}
+                    >
+                      Search
+                    </span>
                     <span className="relative">
                       <Search
-                        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/80"
+                        className={cn(
+                          "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground/80",
+                          isXl ? "left-2 size-3" : "left-2.5 size-3.5",
+                        )}
                         aria-hidden
                       />
                       <input
                         id="supplier-directory-search"
                         className={cn(
                           dashboardInputClass(listLoadingInitial),
-                          "h-10 rounded-lg pl-10 transition-shadow focus-visible:shadow-sm",
+                          "rounded-xl bg-background/95 transition-shadow focus-visible:shadow-md focus-visible:ring-primary/20",
+                          isXl
+                            ? "h-9 py-1 pl-7 text-sm"
+                            : "h-11 pl-9 text-base",
                         )}
-                        placeholder="Name or vendor code…"
+                        placeholder="Name or code…"
                         value={listSearch}
                         onChange={(e) => setListSearch(e.target.value)}
                         aria-label="Search suppliers"
                       />
                     </span>
                   </label>
-                  <label className="flex min-w-[8.5rem] flex-col gap-1.5">
-                    <span className={dashboardFilterFieldLabelClass()}>Status</span>
+                  <label
+                    className={cn(
+                      "flex min-w-0 flex-col",
+                      isXl ? "gap-0 xl:w-full" : "gap-1 xl:w-full",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        dashboardFilterFieldLabelClass(),
+                        isXl && "sr-only",
+                      )}
+                    >
+                      Status
+                    </span>
                     <select
                       className={cn(
                         dashboardSelectClass(listLoadingInitial),
-                        "h-10 rounded-lg",
+                        "rounded-xl bg-background/95",
+                        isXl
+                          ? "h-9 px-2 py-1 text-sm"
+                          : "h-11 text-base",
                       )}
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
@@ -719,18 +794,30 @@ export default function SuppliersPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-10 shrink-0 gap-1.5 rounded-lg px-3.5 font-medium"
+                    className={cn(
+                      "shrink-0 rounded-xl font-medium shadow-sm",
+                      isXl
+                        ? "h-9 w-full gap-1 px-2 text-xs"
+                        : "h-11 gap-1.5 px-3 text-sm xl:w-full",
+                    )}
                     disabled={listLoadingInitial}
                     onClick={() => void refreshFullDirectory()}
+                    aria-label={
+                      listLoadingInitial ? "Loading suppliers" : "Refresh supplier list"
+                    }
                   >
                     <RefreshCw
-                      className={cn("size-3.5", listLoadingInitial && "animate-spin")}
+                      className={cn(
+                        isXl ? "size-3" : "size-3.5",
+                        listLoadingInitial && "animate-spin",
+                      )}
                       aria-hidden
                     />
-                    {listLoadingInitial ? "Loading…" : "Refresh"}
+                    {isXl ? (listLoadingInitial ? "…" : "Sync") : listLoadingInitial ? "Loading…" : "Refresh"}
                   </Button>
                 </div>
                 <VirtualizedSupplierList
+              compact={isXl}
               rows={rows}
               selectedId={selectedId}
               totalLoaded={rows.length}
@@ -746,7 +833,7 @@ export default function SuppliersPage() {
                     <Button
                       type="button"
                       size="sm"
-                      className="h-9 min-h-9 flex-1 gap-1.5 rounded-lg shadow-sm"
+                      className="h-10 min-h-10 flex-1 gap-1.5 rounded-xl shadow-sm"
                       onClick={() => setEditDrawerOpen(true)}
                     >
                       <Building2 className="size-3.5" aria-hidden />
@@ -757,11 +844,23 @@ export default function SuppliersPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-9 min-h-9 flex-1 gap-1.5 rounded-lg"
+                        className="h-10 min-h-10 flex-1 gap-1.5 rounded-xl"
                         onClick={() => setCatalogDrawerOpen(true)}
                       >
                         <Link2 className="size-3.5" aria-hidden />
                         Catalog
+                      </Button>
+                    ) : null}
+                    {canOpenNewSupply ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-10 min-h-10 flex-1 gap-1.5 rounded-xl"
+                        onClick={() => setNewSupplyOpen(true)}
+                      >
+                        <PackagePlus className="size-3.5" aria-hidden />
+                        Supply
                       </Button>
                     ) : null}
                   </SupMobileSelectionBar>
@@ -770,25 +869,38 @@ export default function SuppliersPage() {
 
               {isXl ? (
                 <>
-                  <aside className={supPanelShell}>
-                    <div className={supPanelHeader}>
-                      <div className="flex items-center gap-3">
-                        <span className={supPanelHeaderIcon("primary")}>
-                          <Building2 className="size-4" aria-hidden />
+                  <aside
+                    className={cn(
+                      supPanelShell,
+                      "flex min-h-0 flex-col overflow-hidden",
+                    )}
+                  >
+                    <div className={cn(supPanelHeader, "py-2")}>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className={supPanelHeaderIcon()}>
+                          <Building2 className="size-3.5" aria-hidden />
                         </span>
-                        <div className="min-w-0">
-                          <p className={supKickerPrimary}>Profile &amp; contacts</p>
-                          <p className="truncate font-heading text-sm font-semibold tracking-tight text-foreground">
-                            {detail?.name ?? "Select a supplier"}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
+                            {detail?.name ?? "Profile"}
                           </p>
+                          {detail?.code?.trim() ? (
+                            <p className="truncate font-mono text-[11px] leading-none text-muted-foreground">
+                              {detail.code.trim()}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     </div>
-                <div className={supPanelBody}>
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-1.5">
                   <SupplierEditColumn
+                    variant="sidebar"
                     detail={detail}
                     contacts={contacts}
                     canWrite={canWrite}
+                    selectedInvoiceId={selectedInvoice?.supplierInvoiceId ?? null}
+                    onSelectInvoice={handleSelectInvoice}
+                    purchaseHistoryRefreshKey={purchaseHistoryKey}
                     onEditProfile={
                       canWrite
                         ? () => {
@@ -806,34 +918,59 @@ export default function SuppliersPage() {
                   />
                 </div>
               </aside>
-                  <aside className={supPanelShell}>
-                    <div className={supPanelHeader}>
-                      <div className="flex items-center gap-3">
-                        <span className={supPanelHeaderIcon("violet")}>
-                          <Link2 className="size-4" aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                          <p className={supKickerViolet}>Catalog &amp; links</p>
-                          <p className="truncate font-heading text-sm font-semibold tracking-tight text-foreground">
-                            {detail?.name
-                              ? `${detail.name} · SKUs`
-                              : "Select a supplier"}
-                          </p>
-                        </div>
+                  <aside className={cn(supPanelShell, "flex min-h-0 flex-col overflow-hidden")}>
+                    <div className={cn(supPanelHeader, "py-2")}>
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        {selectedInvoice ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 shrink-0 gap-1 rounded-lg px-2 text-xs"
+                              onClick={() => setSelectedInvoice(null)}
+                            >
+                              <ChevronLeft className="size-3.5" aria-hidden />
+                              Back
+                            </Button>
+                            <span className={supPanelHeaderIcon()}>
+                              <Receipt className="size-3.5" aria-hidden />
+                            </span>
+                            <p className="min-w-0 truncate text-sm font-semibold leading-tight text-foreground">
+                              {selectedInvoice.invoiceNumber}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <span className={supPanelHeaderIcon()}>
+                              <Link2 className="size-3.5" aria-hidden />
+                            </span>
+                            <p className="min-w-0 truncate text-sm font-semibold leading-tight text-foreground">
+                              {detail?.name ? `${detail.name} · catalog` : "Catalog"}
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
-                <div className={supPanelBodyFill}>
-                  <SupplierCatalogColumn
-                    detail={detail}
-                    canReadCatalog={canReadCatalog}
-                    canLinkProducts={canLinkProducts}
-                    itemLinks={itemLinks}
-                    linksBusy={linksBusy}
-                    onRemoveLink={onRemoveLink}
-                    onSetPrimaryLink={onSetPrimaryLink}
-                    onLinkCatalogItems={onLinkCatalogItems}
-                    onRefreshLinks={refreshItemLinks}
-                  />
+                <div className={cn(supPanelBodyFill, "p-1.5 sm:p-2")}>
+                  {selectedInvoice ? (
+                    <SupplierSupplyInvoicePanel
+                      invoiceId={selectedInvoice.supplierInvoiceId}
+                      onUpdated={() => setPurchaseHistoryKey((k) => k + 1)}
+                    />
+                  ) : (
+                    <SupplierCatalogColumn
+                      detail={detail}
+                      canReadCatalog={canReadCatalog}
+                      canLinkProducts={canLinkProducts}
+                      itemLinks={itemLinks}
+                      linksBusy={linksBusy}
+                      onRemoveLink={onRemoveLink}
+                      onSetPrimaryLink={onSetPrimaryLink}
+                      onLinkCatalogItems={onLinkCatalogItems}
+                      onRefreshLinks={refreshItemLinks}
+                    />
+                  )}
                 </div>
               </aside>
                 </>
@@ -864,6 +1001,9 @@ export default function SuppliersPage() {
               detail={detail}
               contacts={contacts}
               canWrite={canWrite}
+              selectedInvoiceId={selectedInvoice?.supplierInvoiceId ?? null}
+              onSelectInvoice={handleSelectInvoice}
+              purchaseHistoryRefreshKey={purchaseHistoryKey}
               onEditProfile={
                 canWrite
                   ? () => {
@@ -891,7 +1031,7 @@ export default function SuppliersPage() {
             contextLabel="Catalog"
             icon={
               <Link2
-                className="size-5 text-violet-600 dark:text-violet-400"
+                className="size-5 text-primary"
                 aria-hidden
               />
             }
@@ -913,6 +1053,34 @@ export default function SuppliersPage() {
               onSetPrimaryLink={onSetPrimaryLink}
               onLinkCatalogItems={onLinkCatalogItems}
               onRefreshLinks={refreshItemLinks}
+            />
+          </FormDrawer>
+
+          <FormDrawer
+            open={invoiceDrawerOpen}
+            onOpenChange={(open) => {
+              setInvoiceDrawerOpen(open);
+              if (!open) {
+                setSelectedInvoice(null);
+              }
+            }}
+            title={selectedInvoice?.invoiceNumber ?? "Supply bill"}
+            contextLabel="Purchase"
+            icon={<Receipt className="size-5 text-primary" aria-hidden />}
+            width="wide"
+            footer={
+              <SupDrawerFooter
+                onCancel={() => {
+                  setInvoiceDrawerOpen(false);
+                  setSelectedInvoice(null);
+                }}
+                cancelLabel="Close"
+              />
+            }
+          >
+            <SupplierSupplyInvoicePanel
+              invoiceId={selectedInvoice?.supplierInvoiceId ?? null}
+              onUpdated={() => setPurchaseHistoryKey((k) => k + 1)}
             />
           </FormDrawer>
         </>
@@ -1082,6 +1250,19 @@ export default function SuppliersPage() {
             </FormDrawerFields>
           </form>
         </FormDrawer>
+      ) : null}
+
+      {canOpenNewSupply ? (
+        <NewSupplyDrawer
+          open={newSupplyOpen}
+          onOpenChange={setNewSupplyOpen}
+          onPosted={() => {
+            if (selectedId) {
+              void refreshItemLinks();
+            }
+          }}
+          initialSupplier={detail}
+        />
       ) : null}
     </div>
   );

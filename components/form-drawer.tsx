@@ -31,6 +31,8 @@ export type FormDrawerProps = {
   width?: "default" | "wide" | "large" | "extraWide" | "half" | "full";
   /** Square panels and crisp borders — buttons keep their default radius */
   appearance?: "default" | "sharp";
+  /** Tighter header row — icon, kicker, and title on one line */
+  headerDensity?: "default" | "compact";
   /** When set, marks the drawer panel for onboarding tour spotlight. */
   onboardingTarget?: OnboardingTargetId;
 };
@@ -88,9 +90,11 @@ export function FormDrawer({
   footer,
   width = "default",
   appearance = "default",
+  headerDensity = "default",
   onboardingTarget,
 }: FormDrawerProps) {
   const sharp = appearance === "sharp";
+  const compactHeader = headerDensity === "compact";
   const isFull = width === "full";
   const dash = useOptionalDashboard();
   const brandStops = React.useMemo(
@@ -196,7 +200,12 @@ export function FormDrawer({
           <div className="relative flex min-h-0 flex-1 flex-col pl-[5px]">
             <header
               className={cn(
-                "relative shrink-0 overflow-hidden border-b border-border px-5 py-4 sm:px-6 sm:py-5",
+                "relative shrink-0 overflow-hidden border-b border-border",
+                compactHeader
+                  ? "px-3 py-1.5"
+                  : isFull
+                    ? "px-3 py-2 sm:px-6 sm:py-5"
+                    : "px-5 py-4 sm:px-6 sm:py-5",
                 sharp
                   ? "bg-muted/30 shadow-none"
                   : cn(
@@ -205,7 +214,7 @@ export function FormDrawer({
                     ),
               )}
             >
-              {!sharp ? (
+              {!sharp && !compactHeader ? (
                 <>
                   <div
                     className={cn(
@@ -226,12 +235,70 @@ export function FormDrawer({
                 </>
               ) : null}
 
-              <div className="relative flex items-start justify-between gap-3 sm:gap-4">
-                <div className="flex min-w-0 gap-3 sm:gap-4">
+              <div
+                className={cn(
+                  "relative flex justify-between gap-2",
+                  compactHeader ? "items-center" : "items-start sm:gap-4",
+                )}
+              >
+                {compactHeader ? (
+                  <>
+                    <div className="flex min-w-0 items-center gap-2">
+                      {icon ? (
+                        <span
+                          className={cn(
+                            "flex size-7 shrink-0 items-center justify-center border border-border bg-muted/30",
+                            sharp ? "rounded-none" : "rounded-md",
+                          )}
+                          style={iconChromeStyle}
+                        >
+                          {icon}
+                        </span>
+                      ) : null}
+                      <div className="flex min-w-0 items-center gap-2">
+                        {contextLabel ? (
+                          <>
+                            <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.12em] text-primary">
+                              {contextLabel}
+                            </span>
+                            <span className="text-muted-foreground/40" aria-hidden>
+                              ·
+                            </span>
+                          </>
+                        ) : null}
+                        <Dialog.Title className="truncate font-heading text-sm font-semibold tracking-tight text-foreground">
+                          {title}
+                        </Dialog.Title>
+                      </div>
+                      {description ? (
+                        <Dialog.Description className="sr-only">
+                          {typeof description === "string" ? description : title}
+                        </Dialog.Description>
+                      ) : (
+                        <Dialog.Description className="sr-only">
+                          Form panel. Press Escape to close.
+                        </Dialog.Description>
+                      )}
+                    </div>
+                    <Dialog.Close asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="size-7 shrink-0 rounded-sm border border-border bg-background text-muted-foreground shadow-none hover:bg-muted/70 hover:text-foreground"
+                        aria-label="Close panel"
+                      >
+                        <X className="size-3.5" strokeWidth={2} />
+                      </Button>
+                    </Dialog.Close>
+                  </>
+                ) : (
+                <>
+                <div className="flex min-w-0 gap-2 sm:gap-4">
                   {icon ? (
                     <span
                       className={cn(
-                        "flex size-11 shrink-0 items-center justify-center ring-offset-1 ring-offset-background sm:size-12",
+                        "flex size-9 shrink-0 items-center justify-center ring-offset-1 ring-offset-background max-sm:hidden sm:size-12",
                         sharp ? "rounded-none" : "rounded-2xl",
                         brandStops
                           ? cn(
@@ -256,14 +323,14 @@ export function FormDrawer({
                       {icon}
                     </span>
                   ) : null}
-                  <div className="min-w-0 space-y-2 pt-0.5">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0 space-y-1 pt-0.5 sm:space-y-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       {contextLabel ? (
                         <span
                           className={cn(
                             "inline-flex max-w-full items-center",
                             sharp ? "rounded-none" : "rounded-full",
-                            "border border-border bg-muted/50 px-2.5 py-0.5",
+                            "border border-border bg-muted/50 px-2 py-px sm:px-2.5 sm:py-0.5",
                             !sharp && "border-primary/20 bg-primary/[0.07]",
                             "text-[10px] font-semibold uppercase tracking-[0.12em] text-primary",
                             "shadow-[0_1px_0_0_rgba(255,255,255,0.4)_inset] dark:shadow-none dark:border-primary/25 dark:bg-primary/15",
@@ -273,12 +340,12 @@ export function FormDrawer({
                         </span>
                       ) : null}
                       {description ? (
-                        <span className="text-[10px] font-medium tabular-nums text-muted-foreground/75">
+                        <span className="hidden text-[10px] font-medium tabular-nums text-muted-foreground/75 sm:inline">
                           Esc to close
                         </span>
                       ) : null}
                     </div>
-                    <Dialog.Title className="font-heading text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                    <Dialog.Title className="font-heading text-sm font-semibold tracking-tight text-foreground sm:text-xl">
                       {title}
                     </Dialog.Title>
                     {description ? (
@@ -310,13 +377,16 @@ export function FormDrawer({
                     <X className="size-4" strokeWidth={2} />
                   </Button>
                 </Dialog.Close>
+                </>
+                )}
               </div>
             </header>
 
             {banner ? (
               <div
                 className={cn(
-                  "shrink-0 border-b border-border px-5 py-3.5 sm:px-6",
+                  "shrink-0 border-b border-border",
+                  compactHeader ? "px-3 py-2" : "px-5 py-3.5 sm:px-6",
                   sharp
                     ? "bg-muted/25"
                     : cn(
@@ -332,9 +402,13 @@ export function FormDrawer({
             <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div
                 className={cn(
-                  width === "half"
-                    ? "space-y-4 px-4 pb-6 pt-4 sm:px-5"
-                    : "space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6",
+                  compactHeader && isFull
+                    ? "px-3 pb-2 pt-1.5"
+                    : isFull
+                      ? "space-y-2 px-2.5 pb-3 pt-2 sm:space-y-5 sm:px-6 sm:pb-8 sm:pt-5"
+                      : width === "half"
+                        ? "space-y-4 px-4 pb-6 pt-4 sm:px-5"
+                        : "space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6",
                 )}
               >
                 {children}
@@ -344,7 +418,12 @@ export function FormDrawer({
             {footer ? (
               <footer
                 className={cn(
-                  "relative shrink-0 border-t border-border px-5 py-3.5 sm:px-6 sm:py-4",
+                  "relative shrink-0 border-t border-border",
+                  compactHeader
+                    ? "px-3 py-2"
+                    : isFull
+                      ? "px-2.5 py-2 sm:px-6 sm:py-4"
+                      : "px-5 py-3.5 sm:px-6 sm:py-4",
                   sharp
                     ? "bg-muted/25 shadow-none"
                     : cn(

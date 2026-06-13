@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRightLeft,
   BarChart3,
@@ -28,6 +28,7 @@ import {
   type ReconciliationLineRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -126,6 +127,25 @@ export default function ReconciliationPage() {
     }
   }, [branchId, date]);
 
+  const quickLinks = useMemo(
+    () =>
+      filterInventoryQuickLinksForUser(me, [
+        {
+          href: APP_ROUTES.inventoryStockTake,
+          label: "Stock take",
+          desc: "Count inventory",
+          icon: ClipboardList,
+        },
+        {
+          href: APP_ROUTES.inventoryTransfers,
+          label: "Transfers",
+          desc: "Move stock",
+          icon: ArrowRightLeft,
+        },
+      ]),
+    [me],
+  );
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -152,22 +172,9 @@ export default function ReconciliationPage() {
             title="Reconciliation Report"
             description="Compare morning and evening stocktake sessions to identify daily variances."
           />
-          <DashboardQuickLinks
-            links={[
-              {
-                href: APP_ROUTES.inventoryStockTake,
-                label: "Stock take",
-                desc: "Count inventory",
-                icon: ClipboardList,
-              },
-              {
-                href: APP_ROUTES.inventoryTransfers,
-                label: "Transfers",
-                desc: "Move stock",
-                icon: ArrowRightLeft,
-              },
-            ]}
-          />
+          {quickLinks.length > 0 ? (
+            <DashboardQuickLinks links={quickLinks} />
+          ) : null}
         </header>
 
         {/* Auto-detect form */}

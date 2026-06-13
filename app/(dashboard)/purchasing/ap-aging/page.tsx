@@ -77,7 +77,7 @@ export default function ApAgingPage() {
         <DashboardQuickLinks
           links={[
             { href: APP_ROUTES.purchasingIntelligence, label: "Intelligence", desc: "Spend & risk", icon: LineChart },
-            { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment", desc: "Allocations", icon: CreditCard },
+            { href: `${APP_ROUTES.purchasingAddSupplies}?filter=unpaid`, label: "Pay open", desc: "Supply balances", icon: CreditCard },
             { href: APP_ROUTES.suppliers, label: "Suppliers", desc: "Directory", icon: Truck },
           ]}
         />

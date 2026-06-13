@@ -242,41 +242,71 @@ type TabletBottomNavProps = {
   tabs: readonly TabletBottomTab[];
   activeTabId: string | null;
   onMore: () => void;
+  /** Equal-width grid tabs for kiosk roles with several direct destinations. */
+  layout?: "default" | "compact";
 };
 
 export function TabletBottomNav({
   tabs,
   activeTabId,
   onMore,
+  layout = "default",
 }: TabletBottomNavProps) {
+  const linkTabs = tabs.filter((tab) => tab.id !== "more");
+  const moreTab = tabs.find((tab) => tab.id === "more");
+  const isCompact =
+    layout === "compact" || (linkTabs.length >= 4 && !moreTab);
+  const tabCount = linkTabs.length + (moreTab ? 1 : 0);
+
   return (
     <nav
       aria-label="Main navigation"
-      className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-2 pointer-events-none sm:px-5"
+      className="tablet-bottom-nav fixed inset-x-0 bottom-0 z-40 flex justify-center px-2 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-2 pointer-events-none sm:px-4"
     >
       <div
         className={cn(
-          "tablet-bottom-nav-dock pointer-events-auto flex w-full max-w-[42rem] items-stretch justify-between gap-0.5",
-          "rounded-[1.65rem] border border-white/25 bg-background/75 px-1.5 py-1.5",
+          "tablet-bottom-nav-dock pointer-events-auto w-full",
+          isCompact ? "max-w-[36rem]" : "max-w-[42rem]",
+          "rounded-[1.65rem] border border-white/25 bg-background/75",
           "shadow-[0_12px_48px_-14px_rgba(0,0,0,0.35),0_0_0_1px_rgba(0,0,0,0.04)_inset]",
           "backdrop-blur-2xl backdrop-saturate-[1.8]",
           "dark:border-white/10 dark:bg-background/65",
+          isCompact
+            ? "grid gap-0.5 p-1"
+            : "flex items-stretch justify-between gap-0.5 px-1.5 py-1.5",
         )}
+        style={
+          isCompact
+            ? {
+                gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
+              }
+            : undefined
+        }
       >
-        {tabs.map((tab) => {
+        {linkTabs.map((tab) => {
           const Icon = tab.icon;
-          const isMore = tab.id === "more";
           const isActive = activeTabId === tab.id;
 
-          const inner = (
-            <>
+          return (
+            <Link
+              key={tab.id}
+              href={tab.href ?? "#"}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1 transition-all duration-200",
+                "active:scale-[0.97]",
+                isActive && "tablet-nav-tab-active bg-primary/12 ring-1 ring-primary/20",
+                !isActive && "hover:bg-muted/50",
+              )}
+            >
               <span
                 className={cn(
-                  "relative flex size-9 items-center justify-center rounded-xl transition-all duration-200 sm:size-10",
-                  isActive && "scale-105",
+                  "relative flex items-center justify-center rounded-xl transition-all duration-200",
+                  isCompact ? "size-8 sm:size-9" : "size-9 sm:size-10",
+                  isActive && !isCompact && "scale-105",
                 )}
               >
-                {isActive ? (
+                {isActive && !isCompact ? (
                   <span
                     className="absolute inset-0 rounded-xl bg-primary/15 ring-1 ring-primary/25"
                     aria-hidden
@@ -284,8 +314,9 @@ export function TabletBottomNav({
                 ) : null}
                 <Icon
                   className={cn(
-                    "relative size-[1.15rem] sm:size-5",
-                    isActive ? "text-foreground" : "text-muted-foreground",
+                    "relative",
+                    isCompact ? "size-[1.05rem] sm:size-[1.15rem]" : "size-[1.15rem] sm:size-5",
+                    isActive ? "text-primary" : "text-muted-foreground",
                   )}
                   strokeWidth={isActive ? 2.25 : 2}
                   aria-hidden
@@ -293,49 +324,93 @@ export function TabletBottomNav({
               </span>
               <span
                 className={cn(
-                  "max-w-[4.5rem] truncate text-[9px] font-semibold leading-none sm:text-[10px]",
-                  isActive ? "text-foreground" : "text-muted-foreground",
+                  "w-full truncate text-center font-semibold leading-none",
+                  isCompact
+                    ? "text-[9px] sm:text-[10px]"
+                    : "max-w-[4.5rem] text-[9px] sm:text-[10px]",
+                  isActive ? "text-primary" : "text-muted-foreground",
                 )}
               >
                 {tab.label}
               </span>
-            </>
-          );
-
-          const className = cn(
-            "tablet-nav-tab flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 transition-colors",
-            "active:scale-[0.97]",
-            isActive && "tablet-nav-tab-active",
-          );
-
-          if (isMore) {
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={onMore}
-                aria-label={tab.label}
-                aria-current={isActive ? "page" : undefined}
-                className={className}
-              >
-                {inner}
-              </button>
-            );
-          }
-
-          return (
-            <Link
-              key={tab.id}
-              href={tab.href ?? "#"}
-              aria-current={isActive ? "page" : undefined}
-              className={className}
-            >
-              {inner}
             </Link>
           );
         })}
+
+        {moreTab ? (
+          <CompactMoreTab
+            tab={moreTab}
+            isActive={activeTabId === moreTab.id}
+            isCompact={isCompact}
+            onMore={onMore}
+          />
+        ) : null}
       </div>
     </nav>
+  );
+}
+
+function CompactMoreTab({
+  tab,
+  isActive,
+  isCompact,
+  onMore,
+}: {
+  tab: TabletBottomTab;
+  isActive: boolean;
+  isCompact: boolean;
+  onMore: () => void;
+}) {
+  const Icon = tab.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={onMore}
+      aria-label={tab.label}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "tablet-nav-tab flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1 transition-all duration-200",
+        "active:scale-[0.97]",
+        isActive && "tablet-nav-tab-active bg-primary/12 ring-1 ring-primary/20",
+        !isActive && "hover:bg-muted/50",
+      )}
+    >
+      <span
+        className={cn(
+          "relative flex items-center justify-center rounded-xl transition-all duration-200",
+          isCompact ? "size-8 sm:size-9" : "size-9 sm:size-10",
+          isActive && !isCompact && "scale-105",
+        )}
+      >
+        {isActive && !isCompact ? (
+          <span
+            className="absolute inset-0 rounded-xl bg-primary/15 ring-1 ring-primary/25"
+            aria-hidden
+          />
+        ) : null}
+        <Icon
+          className={cn(
+            "relative",
+            isCompact ? "size-[1.05rem] sm:size-[1.15rem]" : "size-[1.15rem] sm:size-5",
+            isActive ? "text-primary" : "text-muted-foreground",
+          )}
+          strokeWidth={isActive ? 2.25 : 2}
+          aria-hidden
+        />
+      </span>
+      <span
+        className={cn(
+          "w-full truncate text-center font-semibold leading-none",
+          isCompact
+            ? "text-[9px] sm:text-[10px]"
+            : "max-w-[4.5rem] text-[9px] sm:text-[10px]",
+          isActive ? "text-primary" : "text-muted-foreground",
+        )}
+      >
+        {tab.label}
+      </span>
+    </button>
   );
 }
 

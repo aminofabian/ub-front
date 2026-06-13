@@ -23,6 +23,7 @@ export function SupSection({
   children,
   className,
   bodyClassName,
+  compact,
 }: {
   title: string;
   hint?: string;
@@ -30,22 +31,29 @@ export function SupSection({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  compact?: boolean;
 }) {
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-border/55 bg-card/90 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
+        "overflow-hidden border border-border/50 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.05]",
+        compact ? "rounded-xl" : "rounded-2xl",
         className,
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/45 bg-gradient-to-r from-muted/30 to-transparent px-4 py-3.5 sm:px-5">
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-2 border-b border-border/40 bg-gradient-to-r from-primary/[0.04] via-muted/25 to-transparent",
+          compact ? "px-2.5 py-1.5" : "gap-3 px-4 py-3.5 sm:px-5",
+        )}
+      >
         <div className="min-w-0">
-          <h3 className={supSectionTitle}>{title}</h3>
-          {hint ? <p className={supSectionHint}>{hint}</p> : null}
+          <h3 className={cn(supSectionTitle, compact && "text-xs font-semibold")}>{title}</h3>
+          {hint && !compact ? <p className={supSectionHint}>{hint}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn("p-4 sm:p-5", bodyClassName)}>{children}</div>
+      <div className={cn(compact ? "p-1.5" : "p-4 sm:p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -69,10 +77,10 @@ export function SupEmptyState({
         <Icon className="size-7" aria-hidden />
       </div>
       <div className="max-w-sm space-y-1">
-        <p className="text-sm font-semibold tracking-tight text-foreground">
+        <p className="text-base font-semibold tracking-tight text-foreground">
           {title}
         </p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>
@@ -200,16 +208,18 @@ export function SupMobileSelectionBar({
   return (
     <div
       className={cn(
-        "shrink-0 overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card p-3.5 shadow-sm",
-        "ring-1 ring-primary/10 sm:p-4",
+        "shrink-0 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.08] via-card to-card p-4 shadow-md",
+        "ring-1 ring-primary/15 sm:p-4",
       )}
     >
-      <div className="mb-3 flex items-center gap-2.5">
+      <div className="mb-3 flex items-center gap-3">
         <span
-          className="size-2 shrink-0 rounded-full bg-primary shadow-[0_0_10px_-2px] shadow-primary/40"
+          className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/20"
           aria-hidden
-        />
-        <p className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground">
+        >
+          <span className="size-2.5 rounded-full bg-primary shadow-[0_0_8px_-1px] shadow-primary/50" />
+        </span>
+        <p className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
           {name}
         </p>
       </div>

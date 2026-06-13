@@ -81,6 +81,29 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.groceryInvoices]: Receipt,
 };
 
+/** One-word (or short) rail labels — avoids "Stock take" truncating to duplicate "Stock". */
+const RAIL_SHORT_LABEL_BY_HREF: Partial<Record<string, string>> = {
+  [APP_ROUTES.inventoryStock]: "Stock",
+  [APP_ROUTES.inventoryRestock]: "Out",
+  [APP_ROUTES.inventoryStockTake]: "Counts",
+  [APP_ROUTES.inventoryStockTakeReconciliation]: "Recon",
+  [APP_ROUTES.inventorySupplyBatches]: "Batches",
+  [APP_ROUTES.inventoryValuation]: "Value",
+  [APP_ROUTES.inventoryTransfers]: "Moves",
+  [APP_ROUTES.purchasingAddSupplies]: "Receive",
+  [APP_ROUTES.purchasingApAging]: "AP",
+  [APP_ROUTES.purchasingRecordPayment]: "Pay",
+  [APP_ROUTES.salesQuick]: "Sale",
+  [APP_ROUTES.groceryInvoices]: "Invoices",
+};
+
+function railShortLabel(item: DesktopNavItem): string {
+  const mapped = RAIL_SHORT_LABEL_BY_HREF[item.href];
+  if (mapped) return mapped;
+  const first = item.label.trim().split(/\s+/)[0];
+  return first || item.label;
+}
+
 function normalizePath(pathname: string): string {
   return pathname.split("?")[0] ?? pathname;
 }
@@ -390,7 +413,7 @@ export function DesktopNavRail({
     ? sections.flatMap((section) =>
         section.items.map((item) => ({
           ...item,
-          shortLabel: item.label.split(/\s+/).slice(0, 1)[0] ?? item.label,
+          shortLabel: railShortLabel(item),
           icon: iconForItem(item, section.icon),
         })),
       )

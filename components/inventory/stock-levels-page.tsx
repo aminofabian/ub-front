@@ -3,13 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRightLeft,
-  BarChart3,
   Check,
-  ClipboardList,
-  Layers,
   Package,
-  PackageX,
   Pencil,
   RefreshCw,
   Search,
@@ -41,7 +36,11 @@ import {
   type CategoryRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
-import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  canEditStockLevels,
+  canViewStockLevels,
+  inventoryQuickLinksForUser,
+} from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 const MAX_PAGES = 20;
@@ -328,13 +327,17 @@ function StockListSkeleton() {
 }
 
 export function StockLevelsPage() {
-  const { me, branchId: sessionBranchId } = useDashboard();
-  const allowed = hasPermission(me?.permissions, Permission.InventoryRead);
-  const canWrite = hasPermission(me?.permissions, Permission.InventoryWrite);
+  const { me, business, branchId: sessionBranchId } = useDashboard();
+  const allowed = canViewStockLevels(me, business);
+  const canWrite = canEditStockLevels(me, business);
 
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const isBranchLockedRole =
-    roleKey === "stock_manager" || roleKey === "cashier";
+    roleKey === "stock_manager" ||
+    roleKey === "cashier" ||
+    roleKey === "grocery_clerk";
+
+  const quickLinks = useMemo(() => inventoryQuickLinksForUser(me), [me]);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
@@ -628,47 +631,9 @@ export function StockLevelsPage() {
             title="Stock"
             description="On-hand by branch — click a stat to filter."
           />
-          <DashboardQuickLinks
-            compact
-            links={[
-              {
-                href: APP_ROUTES.inventoryRestock,
-                label: "Out of stock",
-                desc: "Restock zeros",
-                icon: PackageX,
-              },
-              {
-                href: APP_ROUTES.inventoryStockTake,
-                label: "Stock take",
-                desc: "Counts",
-                icon: ClipboardList,
-              },
-              {
-                href: APP_ROUTES.inventorySupplyBatches,
-                label: "Supply batches",
-                desc: "Cost layers",
-                icon: Layers,
-              },
-              {
-                href: APP_ROUTES.inventoryValuation,
-                label: "Valuation",
-                desc: "Extension value",
-                icon: BarChart3,
-              },
-              {
-                href: APP_ROUTES.inventoryTransfers,
-                label: "Transfers",
-                desc: "Move stock",
-                icon: ArrowRightLeft,
-              },
-              {
-                href: APP_ROUTES.products,
-                label: "Products",
-                desc: "Catalog",
-                icon: Package,
-              },
-            ]}
-          />
+          {quickLinks.length > 0 ? (
+            <DashboardQuickLinks compact links={quickLinks} />
+          ) : null}
         </header>
 
         <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
@@ -797,7 +762,8 @@ export function StockLevelsPage() {
 
         {!canWrite && rows.length > 0 ? (
           <p className="text-xs text-muted-foreground">
-            View-only — inventory write permission required to edit quantities.
+            View-only — your role cannot edit quantities here. Ask an admin to
+            enable stock editing in Business settings.
           </p>
         ) : null}
 

@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
+  ClipboardList,
   CreditCard,
   LayoutDashboard,
   Lock,
   MapPin,
   Package,
+  PackageX,
   Receipt,
   ScanLine,
   ShoppingBag,
@@ -36,6 +38,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
+import { groceryClerkStockAccessEnabled } from "@/lib/inventory-access";
 import { logoutRemote } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -117,7 +120,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
         label: "Supplier intelligence",
       },
       { href: APP_ROUTES.purchasingApAging, label: "AP aging" },
-      { href: APP_ROUTES.purchasingRecordPayment, label: "Record payment" },
+      { href: APP_ROUTES.purchasingRecordPayment, label: "Pay open" },
     ],
   },
   {
@@ -219,6 +222,7 @@ type NavGate = {
   canManageImports: boolean;
   canViewPaymentGateways: boolean;
   roleKey: string | undefined;
+  groceryClerkStockAccess: boolean;
 };
 
 function featureFlagAllows(
@@ -260,11 +264,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (gate.roleKey === "stock_manager") {
     const allowed: readonly string[] = [
       APP_ROUTES.inventoryStockTake,
-      APP_ROUTES.inventoryStockTakeReconciliation,
       APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryRestock,
-      APP_ROUTES.inventoryValuation,
-      APP_ROUTES.inventoryTransfers,
       APP_ROUTES.purchasingAddSupplies,
     ];
     return allowed.includes(item.href);
@@ -285,10 +286,13 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   // Grocery clerks: generate invoices and look at the ones they created.
   // No cashier, no sales, no other dashboard surfaces.
   if (gate.roleKey === "grocery_clerk") {
-    const allowed: readonly string[] = [
+    const allowed: string[] = [
       APP_ROUTES.grocery,
       APP_ROUTES.groceryInvoices,
     ];
+    if (gate.groceryClerkStockAccess) {
+      allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
+    }
     return allowed.includes(item.href);
   }
 
@@ -358,6 +362,38 @@ type BottomTab = {
   href?: string;
   matchSectionIds: string[];
 };
+
+/** Stock manager: every allowed screen gets its own tab — no burying in More. */
+const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
+  {
+    id: "receive",
+    label: "Receive",
+    icon: Truck,
+    href: APP_ROUTES.purchasingAddSupplies,
+    matchSectionIds: ["procurement"],
+  },
+  {
+    id: "stock-levels",
+    label: "Stock",
+    icon: Warehouse,
+    href: APP_ROUTES.inventoryStock,
+    matchSectionIds: ["inventory"],
+  },
+  {
+    id: "out-of-stock",
+    label: "Out",
+    icon: PackageX,
+    href: APP_ROUTES.inventoryRestock,
+    matchSectionIds: ["inventory"],
+  },
+  {
+    id: "stock-take",
+    label: "Counts",
+    icon: ClipboardList,
+    href: APP_ROUTES.inventoryStockTake,
+    matchSectionIds: ["inventory"],
+  },
+];
 
 const BOTTOM_TABS: readonly BottomTab[] = [
   {
@@ -481,6 +517,7 @@ export function AppShell({ children }: AppShellProps) {
   );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
+  const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
 
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
@@ -509,6 +546,7 @@ export function AppShell({ children }: AppShellProps) {
       canManageImports,
       canViewPaymentGateways,
       roleKey: me?.role?.key?.trim().toLowerCase(),
+      groceryClerkStockAccess,
     };
     return NAV_SECTIONS.map((section) => ({
       ...section,
@@ -540,6 +578,7 @@ export function AppShell({ children }: AppShellProps) {
     canManageImports,
     canViewPaymentGateways,
     me?.role?.key,
+    groceryClerkStockAccess,
   ]);
 
   const activeSectionId = useMemo(() => {
@@ -586,17 +625,7 @@ export function AppShell({ children }: AppShellProps) {
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
     if (roleKey === "stock_manager") {
-      return BOTTOM_TABS.map((tab) =>
-        tab.id === "inventory"
-          ? { ...tab, href: APP_ROUTES.inventoryStockTake }
-          : tab,
-      ).filter(
-        (tab) =>
-          tab.id !== "overview" &&
-          (!tab.href ||
-            tab.href === APP_ROUTES.inventoryStockTake ||
-            tab.id === "more"),
-      );
+      return [...STOCK_MANAGER_BOTTOM_TABS];
     }
     if (roleKey === "cashier") {
       return BOTTOM_TABS.map((tab) => {
@@ -616,7 +645,7 @@ export function AppShell({ children }: AppShellProps) {
     if (roleKey === "grocery_clerk") {
       // Compact, kiosk-friendly tab set surfaced at every viewport size since
       // the sidebar is hidden for grocery clerks (kiosk-nav mode).
-      const groceryClerkTabs: readonly BottomTab[] = [
+      const groceryClerkTabs: BottomTab[] = [
         {
           id: "pos",
           label: "POS",
@@ -631,25 +660,41 @@ export function AppShell({ children }: AppShellProps) {
           href: APP_ROUTES.groceryInvoices,
           matchSectionIds: ["sales"],
         },
-        {
-          id: "more",
-          label: "More",
-          icon: Tags,
-          matchSectionIds: ["org", "payments"],
-        },
       ];
+      if (groceryClerkStockAccessEnabled(business)) {
+        groceryClerkTabs.splice(2, 0, {
+          id: "stock",
+          label: "Stock",
+          icon: Warehouse,
+          href: APP_ROUTES.inventoryStock,
+          matchSectionIds: ["inventory"],
+        });
+      }
+      groceryClerkTabs.push({
+        id: "more",
+        label: "More",
+        icon: Tags,
+        matchSectionIds: ["org", "payments"],
+      });
       return groceryClerkTabs;
     }
     return BOTTOM_TABS;
-  }, [me]);
+  }, [me, business]);
 
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
     for (const tab of visibleBottomTabs) {
-      if (tab.matchSectionIds.includes(activeSectionId ?? "")) return tab.id;
+      if (tab.href && itemIsActive(pathname, tab.href)) {
+        return tab.id;
+      }
+    }
+    for (const tab of visibleBottomTabs) {
+      if (tab.matchSectionIds.includes(activeSectionId ?? "")) {
+        return tab.id;
+      }
     }
     return null;
-  }, [activeSectionId, visibleBottomTabs]);
+  }, [pathname, visibleBottomTabs, activeSectionId]);
 
   // ── Phase 9: multi_branch gate ────────────────────────────────────────
   const multiBranch = mergedFeatureFlags.multi_branch !== false;
@@ -667,8 +712,7 @@ export function AppShell({ children }: AppShellProps) {
       const allowed = [
         APP_ROUTES.inventoryStockTake,
         APP_ROUTES.inventoryStock,
-        APP_ROUTES.inventoryValuation,
-        APP_ROUTES.inventoryTransfers,
+        APP_ROUTES.inventoryRestock,
         APP_ROUTES.purchasingAddSupplies,
       ];
       const isAllowed = allowed.some(
@@ -698,6 +742,9 @@ export function AppShell({ children }: AppShellProps) {
 
     if (roleKey === "grocery_clerk") {
       const allowed = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
+      if (groceryClerkStockAccessEnabled(business)) {
+        allowed.push(APP_ROUTES.inventoryStock, APP_ROUTES.inventoryRestock);
+      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
@@ -706,7 +753,7 @@ export function AppShell({ children }: AppShellProps) {
       }
       return;
     }
-  }, [me, pathname, router]);
+  }, [me, pathname, router, business]);
 
   return (
     <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">
@@ -864,6 +911,11 @@ export function AppShell({ children }: AppShellProps) {
             tabs={visibleBottomTabs}
             activeTabId={activeBottomTabId}
             onMore={() => setMoreOpen(true)}
+            layout={
+              isStockManager && visibleBottomTabs.length >= 4
+                ? "compact"
+                : "default"
+            }
           />
         </div>
 

@@ -30,6 +30,7 @@ import {
   type InventoryValuationResponseRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 function formatMoney(amount: number, currencyCode: string): string {
@@ -139,6 +140,55 @@ export default function InventoryValuationPage() {
     );
   }, [branchFilter, branches]);
 
+  const quickLinks = useMemo(
+    () =>
+      filterInventoryQuickLinksForUser(me, [
+        {
+          href: APP_ROUTES.inventoryStock,
+          label: "Stock",
+          desc: "On-hand",
+          icon: Warehouse,
+        },
+        {
+          href: APP_ROUTES.inventoryRestock,
+          label: "Out of stock",
+          desc: "Restock",
+          icon: PackageX,
+        },
+        {
+          href: APP_ROUTES.inventorySupplyBatches,
+          label: "Supply batches",
+          desc: "Cost layers",
+          icon: Layers,
+        },
+        {
+          href: APP_ROUTES.purchasingAddSupplies,
+          label: "Receive supplies",
+          desc: "New delivery",
+          icon: Truck,
+        },
+        {
+          href: APP_ROUTES.inventoryStockTake,
+          label: "Stock take",
+          desc: "Counts",
+          icon: ClipboardList,
+        },
+        {
+          href: APP_ROUTES.inventoryTransfers,
+          label: "Transfers",
+          desc: "Move stock",
+          icon: ArrowRightLeft,
+        },
+        {
+          href: APP_ROUTES.products,
+          label: "Products",
+          desc: "Catalog",
+          icon: Package,
+        },
+      ]),
+    [me],
+  );
+
   if (!allowed) {
     return (
       <DashboardAccessDenied
@@ -170,53 +220,9 @@ export default function InventoryValuationPage() {
             title="Stock valuation"
             description="Extension value — qty remaining × unit cost per active batch."
           />
-          <DashboardQuickLinks
-            compact
-            links={[
-              {
-                href: APP_ROUTES.inventoryStock,
-                label: "Stock",
-                desc: "On-hand",
-                icon: Warehouse,
-              },
-              {
-                href: APP_ROUTES.inventoryRestock,
-                label: "Out of stock",
-                desc: "Restock",
-                icon: PackageX,
-              },
-              {
-                href: APP_ROUTES.inventorySupplyBatches,
-                label: "Supply batches",
-                desc: "Cost layers",
-                icon: Layers,
-              },
-              {
-                href: APP_ROUTES.purchasingAddSupplies,
-                label: "Receive supplies",
-                desc: "New delivery",
-                icon: Truck,
-              },
-              {
-                href: APP_ROUTES.inventoryStockTake,
-                label: "Stock take",
-                desc: "Counts",
-                icon: ClipboardList,
-              },
-              {
-                href: APP_ROUTES.inventoryTransfers,
-                label: "Transfers",
-                desc: "Move stock",
-                icon: ArrowRightLeft,
-              },
-              {
-                href: APP_ROUTES.products,
-                label: "Products",
-                desc: "Catalog",
-                icon: Package,
-              },
-            ]}
-          />
+          {quickLinks.length > 0 ? (
+            <DashboardQuickLinks compact links={quickLinks} />
+          ) : null}
         </header>
 
         <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">

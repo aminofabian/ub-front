@@ -152,7 +152,7 @@ export function DashboardQuickLinks({
 }) {
   if (compact) {
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex min-w-0 max-w-full flex-wrap gap-2">
         {links.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
