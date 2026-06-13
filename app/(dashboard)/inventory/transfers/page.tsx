@@ -1,14 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BarChart3, ClipboardList, MapPin, Package } from "lucide-react";
+import {
+  ArrowRightLeft,
+  BarChart3,
+  ClipboardList,
+  Layers,
+  Package,
+  PackageX,
+  Plus,
+  Truck,
+  Warehouse,
+  X,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
-  DashboardFeedback,
   DashboardPageHero,
   DashboardQuickLinks,
+  dashboardInputClass,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -20,6 +32,7 @@ import {
   type BranchRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
 
 type LineDraft = { itemId: string; qty: string };
 
@@ -38,20 +51,14 @@ export default function InventoryTransfersPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!allowed) {
-      return;
-    }
+    if (!allowed) return;
     let cancelled = false;
     fetchBranches()
       .then((list) => {
-        if (!cancelled) {
-          setBranches(list.filter((b) => b.active));
-        }
+        if (!cancelled) setBranches(list.filter((b) => b.active));
       })
       .catch(() => {
-        if (!cancelled) {
-          setMessage("Failed to load branches.");
-        }
+        if (!cancelled) setMessage("Failed to load branches.");
       });
     return () => {
       cancelled = true;
@@ -65,7 +72,12 @@ export default function InventoryTransfersPage() {
         itemId: l.itemId.trim(),
         quantity: Number(l.qty),
       }))
-      .filter((l) => l.itemId.length > 0 && Number.isFinite(l.quantity) && l.quantity > 0);
+      .filter(
+        (l) =>
+          l.itemId.length > 0 &&
+          Number.isFinite(l.quantity) &&
+          l.quantity > 0,
+      );
     if (!fromBranchId.trim() || !toBranchId.trim()) {
       setMessage("Choose both branches.");
       return;
@@ -121,160 +133,251 @@ export default function InventoryTransfersPage() {
         description={
           <>
             You need{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">{Permission.InventoryTransfer}</code> to create
-            or complete transfers.
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">
+              {Permission.InventoryTransfer}
+            </code>{" "}
+            to create or complete transfers.
           </>
         }
-        backHref={APP_ROUTES.business}
-        backLabel="Business settings"
+        backHref={APP_ROUTES.inventoryStock}
+        backLabel="Stock"
       />
     );
   }
 
+  const messageIsSuccess = /created|completed|draft/i.test(message);
+
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-8">
-      <header className="space-y-4">
-        <DashboardPageHero
-          icon={MapPin}
-          eyebrow="Inventory"
-          title="Stock transfers"
-          description="Create a draft transfer, then complete it to move stock between branches (same business). Lines use catalog item IDs and decimal quantities."
-        />
-        <DashboardQuickLinks
-          links={[
-            { href: APP_ROUTES.inventoryValuation, label: "Valuation", desc: "Extension value", icon: BarChart3 },
-            { href: APP_ROUTES.inventoryStockTake, label: "Stock take", desc: "Counts", icon: ClipboardList },
-            { href: APP_ROUTES.products, label: "Products", desc: "Item IDs", icon: Package },
-          ]}
-        />
-      </header>
-
-      <div className="space-y-4 rounded-md border bg-muted/20 p-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">From branch</span>
-            <select
-              className="rounded border bg-background px-2 py-1.5"
-              value={fromBranchId}
-              onChange={(e) => setFromBranchId(e.target.value)}
-            >
-              <option value="">—</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">To branch</span>
-            <select
-              className="rounded border bg-background px-2 py-1.5"
-              value={toBranchId}
-              onChange={(e) => setToBranchId(e.target.value)}
-            >
-              <option value="">—</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Notes (optional)</span>
-          <input
-            className="rounded border bg-background px-2 py-1.5"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+      <div className="space-y-4">
+        <header className="space-y-2 border-b border-border/50 pb-4">
+          <DashboardPageHero
+            compact
+            icon={ArrowRightLeft}
+            eyebrow="Inventory"
+            title="Stock transfers"
+            description="Move stock between branches — create a draft, then complete it."
           />
-        </label>
+          <DashboardQuickLinks
+            compact
+            links={[
+              {
+                href: APP_ROUTES.inventoryStock,
+                label: "Stock",
+                desc: "On-hand",
+                icon: Warehouse,
+              },
+              {
+                href: APP_ROUTES.inventoryRestock,
+                label: "Out of stock",
+                desc: "Restock",
+                icon: PackageX,
+              },
+              {
+                href: APP_ROUTES.inventorySupplyBatches,
+                label: "Supply batches",
+                desc: "Cost layers",
+                icon: Layers,
+              },
+              {
+                href: APP_ROUTES.purchasingAddSupplies,
+                label: "Receive supplies",
+                desc: "New delivery",
+                icon: Truck,
+              },
+              {
+                href: APP_ROUTES.inventoryValuation,
+                label: "Valuation",
+                desc: "Extension value",
+                icon: BarChart3,
+              },
+              {
+                href: APP_ROUTES.inventoryStockTake,
+                label: "Stock take",
+                desc: "Counts",
+                icon: ClipboardList,
+              },
+              {
+                href: APP_ROUTES.products,
+                label: "Products",
+                desc: "Item IDs",
+                icon: Package,
+              },
+            ]}
+          />
+        </header>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Lines</p>
-          {lines.map((line, idx) => (
-            <div key={idx} className="flex flex-wrap gap-2">
-              <input
-                placeholder="Item ID (UUID)"
-                className="min-w-[12rem] flex-1 rounded border bg-background px-2 py-1.5 font-mono text-xs"
-                value={line.itemId}
-                onChange={(e) => {
-                  const next = [...lines];
-                  next[idx] = { ...line, itemId: e.target.value };
-                  setLines(next);
-                }}
-              />
-              <input
-                type="text"
-                inputMode="decimal"
-                className="w-28 rounded border bg-background px-2 py-1.5 tabular-nums"
-                value={line.qty}
-                onChange={(e) => {
-                  const next = [...lines];
-                  next[idx] = { ...line, qty: e.target.value };
-                  setLines(next);
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={lines.length <= 1}
-                onClick={() => setLines(lines.filter((_, i) => i !== idx))}
+        <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-3">
+          <p className="text-xs font-semibold text-foreground">Create draft</p>
+
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[11rem]">
+              <span className="text-muted-foreground">From</span>
+              <select
+                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+                value={fromBranchId}
+                onChange={(e) => setFromBranchId(e.target.value)}
+                aria-label="From branch"
               >
-                Remove
-              </Button>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setLines([...lines, { itemId: "", qty: "1" }])}
-          >
-            Add line
-          </Button>
+                <option value="">Select…</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[11rem]">
+              <span className="text-muted-foreground">To</span>
+              <select
+                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+                value={toBranchId}
+                onChange={(e) => setToBranchId(e.target.value)}
+                aria-label="To branch"
+              >
+                <option value="">Select…</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-w-[10rem] flex-[2] flex-col gap-0.5 text-xs">
+              <span className="text-muted-foreground">Notes</span>
+              <input
+                className={cn(dashboardInputClass(), "h-9 py-1.5 text-sm")}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional…"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium text-muted-foreground">
+              Lines · item ID + qty
+            </p>
+            {lines.map((line, idx) => (
+              <div key={idx} className="flex flex-wrap items-center gap-1.5">
+                <input
+                  placeholder="Item ID"
+                  aria-label={`Line ${idx + 1} item ID`}
+                  className={cn(
+                    dashboardInputClass(),
+                    "h-8 min-w-[10rem] flex-1 py-1 font-mono text-xs",
+                  )}
+                  value={line.itemId}
+                  onChange={(e) => {
+                    const next = [...lines];
+                    next[idx] = { ...line, itemId: e.target.value };
+                    setLines(next);
+                  }}
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  aria-label={`Line ${idx + 1} quantity`}
+                  className={cn(
+                    dashboardInputClass(),
+                    "h-8 w-20 py-1 text-right tabular-nums text-sm",
+                  )}
+                  value={line.qty}
+                  onChange={(e) => {
+                    const next = [...lines];
+                    next[idx] = { ...line, qty: e.target.value };
+                    setLines(next);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2"
+                  disabled={lines.length <= 1}
+                  onClick={() => setLines(lines.filter((_, i) => i !== idx))}
+                  aria-label="Remove line"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 text-xs"
+              onClick={() => setLines([...lines, { itemId: "", qty: "1" }])}
+            >
+              <Plus className="size-3.5" />
+              Add line
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2.5">
+            <Button
+              type="button"
+              size="sm"
+              className="h-9"
+              disabled={loading}
+              onClick={() => void onCreate()}
+            >
+              {loading ? "Working…" : "Create draft"}
+            </Button>
+            {lastTransferId ? (
+              <span className="text-[11px] text-muted-foreground">
+                Last ID{" "}
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">
+                  {lastTransferId}
+                </code>
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={loading} onClick={() => onCreate().catch(() => undefined)}>
-            {loading ? "Working…" : "Create draft transfer"}
-          </Button>
+        <div className="rounded-xl border border-border/60 bg-muted/15 p-3">
+          <p className="mb-2 text-xs font-semibold text-foreground">
+            Complete transfer
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[12rem] flex-1 flex-col gap-0.5 text-xs">
+              <span className="text-muted-foreground">Transfer ID</span>
+              <input
+                className={cn(
+                  dashboardInputClass(),
+                  "h-9 py-1.5 font-mono text-xs",
+                )}
+                value={completeId}
+                onChange={(e) => setCompleteId(e.target.value)}
+                placeholder="UUID"
+                aria-label="Transfer ID to complete"
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 shrink-0"
+              disabled={loading}
+              onClick={() => void onComplete()}
+            >
+              Complete
+            </Button>
+          </div>
         </div>
-        {lastTransferId ? (
-          <p className="text-sm text-muted-foreground">
-            Last created transfer ID:{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">{lastTransferId}</code>
+
+        {message ? (
+          <p
+            className={cn(
+              "text-xs",
+              messageIsSuccess
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-destructive",
+            )}
+          >
+            {message}
           </p>
         ) : null}
-      </div>
-
-      <div className="space-y-3 rounded-md border bg-muted/20 p-4">
-        <h3 className="text-sm font-medium">Complete transfer</h3>
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Transfer ID</span>
-            <input
-              className="rounded border bg-background px-2 py-1.5 font-mono text-xs"
-              value={completeId}
-              onChange={(e) => setCompleteId(e.target.value)}
-              placeholder="UUID"
-            />
-          </label>
-          <Button type="button" variant="secondary" disabled={loading} onClick={() => onComplete().catch(() => undefined)}>
-            Complete
-          </Button>
-        </div>
-      </div>
-
-      {message ? (
-        <DashboardFeedback
-          kind={/created|completed|Draft/i.test(message) ? "success" : "error"}
-          text={message}
-        />
-      ) : null}
       </div>
     </div>
   );
