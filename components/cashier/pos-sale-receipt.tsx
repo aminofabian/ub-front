@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,68 @@ type PosSaleReceiptProps = {
   showPrintButton?: boolean;
 };
 
-function hasReceiptFooter(receipt: PosReceiptSnapshot): boolean {
+function receiptLocation(receipt: PosReceiptSnapshot): string | null {
+  const branch = receipt.branchName.trim();
+  if (branch) return branch;
+  const business = receipt.businessName.trim();
+  return business || null;
+}
+
+function receiptClosing(receipt: PosReceiptSnapshot): string {
+  return receipt.branchReceiptMessage?.trim() || "Thank you";
+}
+
+function hasReceiptContact(receipt: PosReceiptSnapshot): boolean {
   return Boolean(
     receipt.branchAddress?.trim() ||
       receipt.branchPhone?.trim() ||
       receipt.branchEmail?.trim() ||
-      receipt.branchWebsite?.trim() ||
-      receipt.servedByName?.trim() ||
-      receipt.branchReceiptMessage?.trim(),
+      receipt.branchWebsite?.trim(),
+  );
+}
+
+function showLineDetail(line: { quantity: number; unitPrice: number; lineTotal: number }): boolean {
+  return line.quantity !== 1 || Math.abs(line.unitPrice - line.lineTotal) > 0.001;
+}
+
+function ReceiptPair({
+  left,
+  right,
+  className,
+}: {
+  left: ReactNode;
+  right: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("pos-receipt-pair flex items-baseline justify-between gap-3", className)}>
+      <div className="pos-receipt-pair-left min-w-0 flex-1">{left}</div>
+      <div className="pos-receipt-pair-right shrink-0 text-right">{right}</div>
+    </div>
+  );
+}
+
+function ReceiptMoney({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  emphasis?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "pos-receipt-money flex w-full items-baseline justify-between gap-3",
+        emphasis && "pos-receipt-money--emphasis",
+      )}
+    >
+      <span className="pos-receipt-money-label min-w-0 flex-1">{label}</span>
+      <span className="pos-receipt-money-value min-w-[3.5rem] shrink-0 text-right tabular-nums">
+        {value}
+      </span>
+    </div>
   );
 }
 
@@ -41,7 +96,12 @@ export function PosSaleReceipt({
   className,
   showPrintButton = true,
 }: PosSaleReceiptProps) {
-  const showFooter = hasReceiptFooter(receipt);
+  const showContact = hasReceiptContact(receipt);
+  const location = receiptLocation(receipt);
+  const closing = receiptClosing(receipt);
+  const showBusinessName = !receipt.logoUrl && Boolean(receipt.businessName.trim());
+  const singlePayment =
+    receipt.payments.length === 1 ? receipt.payments[0] : null;
 
   return (
     <div className={className}>
@@ -69,121 +129,105 @@ export function PosSaleReceipt({
       <article
         id={POS_RECEIPT_PRINT_ROOT_ID}
         className={cn(
-          "pos-receipt-paper mx-auto w-full max-w-[12.5rem] bg-white py-3 text-neutral-900",
-          "border border-border/60 px-2.5 text-[13px] leading-snug shadow-sm",
+          "pos-receipt-paper mx-auto w-full max-w-[12.5rem] bg-white py-2.5 text-neutral-900",
+          "border border-border/60 px-2.5 text-[11px] leading-snug shadow-sm",
           "dark:border-border dark:bg-neutral-950 dark:text-neutral-100",
           "print:max-w-none print:border-0 print:px-0 print:py-0 print:shadow-none",
         )}
         aria-label="Sale receipt"
       >
         {receipt.voided ? (
-          <p className="pos-receipt-voided mb-2 text-center font-bold uppercase tracking-wide">
-            *** VOIDED ***
-          </p>
+          <p className="pos-receipt-voided mb-2 text-center">VOIDED</p>
         ) : null}
 
-        <header className="pos-receipt-header text-center">
+        <header className="pos-receipt-brand text-center">
           {receipt.logoUrl ? (
-            <div className="pos-receipt-logo mb-2 flex justify-center">
+            <div className="pos-receipt-logo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={receipt.logoUrl}
                 alt=""
-                className="pos-receipt-logo-img max-h-12 w-auto max-w-[10rem] object-contain object-center"
+                className="pos-receipt-logo-img mx-auto max-h-10 w-auto max-w-full object-contain"
               />
             </div>
           ) : null}
-          <h4 className="pos-receipt-shop font-bold uppercase leading-tight">
-            {receipt.businessName}
-          </h4>
-          {receipt.branchName ? (
-            <p className="pos-receipt-branch mt-1 font-medium">{receipt.branchName}</p>
+          {showBusinessName ? (
+            <p className="pos-receipt-shop">{receipt.businessName}</p>
           ) : null}
+          {location ? <p className="pos-receipt-location">{location}</p> : null}
         </header>
 
         <hr className="pos-receipt-rule" />
 
-        <div className="pos-receipt-meta text-center">
-          <p className="pos-receipt-sale-id font-bold">#{receipt.saleId.slice(0, 8)}</p>
-          <p>{formatReceiptDate(receipt.soldAt)}</p>
-          {receipt.status ? (
-            <p className="capitalize">{receipt.status.replace(/_/g, " ")}</p>
+        <section className="pos-receipt-meta space-y-1" aria-label="Sale details">
+          <p className="pos-receipt-sale-id font-bold uppercase tracking-wide text-neutral-900 dark:text-neutral-100">
+            #{receipt.saleId.slice(0, 8).toUpperCase()}
+          </p>
+          {receipt.servedByName ? (
+            <ReceiptPair
+              left={<span className="pos-receipt-date">{formatReceiptDate(receipt.soldAt)}</span>}
+              right={<span className="pos-receipt-cashier">Cashier: {receipt.servedByName}</span>}
+            />
+          ) : (
+            <p className="pos-receipt-date">{formatReceiptDate(receipt.soldAt)}</p>
+          )}
+          {receipt.customerName ? (
+            <p className="pos-receipt-customer">Customer: {receipt.customerName}</p>
           ) : null}
-        </div>
-
-        {receipt.customerName ? (
-          <>
-            <hr className="pos-receipt-rule" />
-            <p className="pos-receipt-customer">
-              <span className="font-medium">Customer: </span>
-              {receipt.customerName}
-            </p>
-          </>
-        ) : null}
+        </section>
 
         <hr className="pos-receipt-rule" />
 
-        <ul className="pos-receipt-lines list-none space-y-2.5 p-0">
+        <ul className="pos-receipt-lines space-y-2">
           {receipt.lines.map((line, i) => (
             <li key={`${line.description}-${i}`} className="pos-receipt-line">
-              <p className="pos-receipt-line-name font-semibold leading-snug">
-                {line.description}
-              </p>
-              <p className="pos-receipt-line-row flex justify-between gap-1 tabular-nums">
-                <span className="pos-receipt-line-detail shrink-0">
-                  {line.quantity} x {line.unitPrice.toFixed(2)}
-                </span>
-                <span className="font-bold">{line.lineTotal.toFixed(2)}</span>
-              </p>
+              <ReceiptMoney label={line.description} value={line.lineTotal.toFixed(2)} />
+              {showLineDetail(line) ? (
+                <p className="pos-receipt-line-detail tabular-nums">
+                  {line.quantity} &times; {line.unitPrice.toFixed(2)}
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>
 
         <hr className="pos-receipt-rule" />
 
-        <div className="pos-receipt-payments space-y-1">
-          {receipt.payments.map((p, i) => (
-            <div
-              key={`${p.method}-${i}`}
-              className="pos-receipt-payment-row flex justify-between gap-1 tabular-nums"
-            >
-              <span className="min-w-0 break-words font-medium">
-                {p.label}
-                {p.reference ? ` (${p.reference})` : ""}
-              </span>
-              <span className="shrink-0 font-bold">{p.amount.toFixed(2)}</span>
-            </div>
-          ))}
-        </div>
+        <section className="pos-receipt-totals space-y-1" aria-label="Payment summary">
+          {singlePayment ? (
+            <p className="pos-receipt-payment-method">Paid via {singlePayment.label}</p>
+          ) : (
+            receipt.payments.map((p, i) => (
+              <ReceiptMoney
+                key={`${p.method}-${i}`}
+                label={p.reference ? `${p.label} (${p.reference})` : p.label}
+                value={p.amount.toFixed(2)}
+              />
+            ))
+          )}
+          <ReceiptMoney
+            emphasis
+            label="TOTAL"
+            value={formatReceiptMoney(receipt.grandTotal, receipt.currency)}
+          />
+          {receipt.cashReceived != null ? (
+            <>
+              <ReceiptMoney
+                label="Received"
+                value={formatReceiptMoney(receipt.cashReceived, receipt.currency)}
+              />
+              <ReceiptMoney
+                label="Change"
+                value={formatReceiptMoney(receipt.changeGiven ?? 0, receipt.currency)}
+              />
+            </>
+          ) : null}
+        </section>
 
-        <hr className="pos-receipt-rule pos-receipt-rule-bold" />
-
-        <div className="pos-receipt-grand-total flex justify-between gap-1 tabular-nums font-bold">
-          <span>TOTAL</span>
-          <span>{formatReceiptMoney(receipt.grandTotal, receipt.currency)}</span>
-        </div>
-
-        {receipt.cashReceived != null ? (
-          <div className="pos-receipt-cash-box mt-2 space-y-1.5">
-            <div className="flex justify-between gap-1 tabular-nums">
-              <span className="font-semibold">Received</span>
-              <span className="font-bold">
-                {formatReceiptMoney(receipt.cashReceived, receipt.currency)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-1 tabular-nums">
-              <span className="font-semibold">Change</span>
-              <span className="font-bold">
-                {formatReceiptMoney(receipt.changeGiven ?? 0, receipt.currency)}
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {showFooter ? (
+        {showContact ? (
           <>
-            <hr className="pos-receipt-rule pos-receipt-rule-bold" />
-            <footer className="pos-receipt-footer space-y-0.5 text-center text-[11px] leading-snug">
+            <hr className="pos-receipt-rule" />
+            <footer className="pos-receipt-contact space-y-0.5 text-center" aria-label="Store contact">
               {receipt.branchAddress ? (
                 <p className="pos-receipt-address">{receipt.branchAddress}</p>
               ) : null}
@@ -194,23 +238,13 @@ export function PosSaleReceipt({
                 <p className="pos-receipt-email">{receipt.branchEmail}</p>
               ) : null}
               {receipt.branchWebsite ? (
-                <p className="pos-receipt-website break-all">{receipt.branchWebsite}</p>
-              ) : null}
-              {receipt.servedByName ? (
-                <p className="pos-receipt-served-by mt-1 font-semibold">
-                  Served by: {receipt.servedByName}
-                </p>
-              ) : null}
-              {receipt.branchReceiptMessage ? (
-                <p className="pos-receipt-footer-msg mt-2 leading-snug">
-                  {receipt.branchReceiptMessage}
-                </p>
+                <p className="pos-receipt-website">{receipt.branchWebsite}</p>
               ) : null}
             </footer>
           </>
         ) : null}
 
-        <p className="pos-receipt-thanks mt-3 text-center font-semibold">Thank you</p>
+        <p className="pos-receipt-closing mt-2 text-center">{closing}</p>
       </article>
     </div>
   );
