@@ -2250,6 +2250,8 @@ export type FetchItemsOpts = {
   barcode?: string;
   noBarcode?: boolean;
   includeInactive?: boolean;
+  /** When true, only inactive catalog rows are returned (AND-combines with other attention filters). */
+  inactiveOnly?: boolean;
   /** Sellable SKUs with no open selling price and no bundle price. */
   noPrice?: boolean;
   /** Stocked sellable SKUs with zero on-hand at branchId (requires branchId). */
@@ -2309,6 +2311,9 @@ export async function fetchItemsPage(
   if (opts?.includeInactive) {
     params.set("includeInactive", "true");
   }
+  if (opts?.inactiveOnly) {
+    params.set("inactiveOnly", "true");
+  }
   if (opts?.noPrice) {
     params.set("noPrice", "true");
   }
@@ -2365,6 +2370,7 @@ export async function fetchCatalogListStats(
     | "catalogRowTypes"
     | "noBarcode"
     | "includeInactive"
+    | "inactiveOnly"
     | "noPrice"
     | "zeroStock"
     | "lowStock"

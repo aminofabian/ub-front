@@ -19,8 +19,8 @@ type Props = {
     | "sortedCategories"
     | "filterNoBarcode"
     | "setFilterNoBarcode"
-    | "filterIncludeInactive"
-    | "setFilterIncludeInactive"
+    | "filterInactiveOnly"
+    | "setFilterInactiveOnly"
     | "filterNoPrice"
     | "setFilterNoPrice"
     | "filterZeroStock"
@@ -97,7 +97,7 @@ export function ProductMobileFilterBar({ catalog }: Props) {
           ["No price", catalog.filterNoPrice, () => catalog.setFilterNoPrice((v: boolean) => !v), catalog.catalogStats.missingPrice],
           ["Zero stock", catalog.filterZeroStock, () => catalog.setFilterZeroStock((v: boolean) => !v), catalog.catalogStats.zeroStock],
           ["Low stock", catalog.filterLowStock, () => catalog.setFilterLowStock((v: boolean) => !v), catalog.catalogStats.lowStock],
-          ["+ Inactive", catalog.filterIncludeInactive, () => catalog.setFilterIncludeInactive((v: boolean) => !v), catalog.catalogStats.inactive],
+          ["+ Inactive", catalog.filterInactiveOnly, () => catalog.setFilterInactiveOnly((v: boolean) => !v), catalog.catalogStats.inactive],
         ].map(([label, active, onClick, count]) => (
           <button key={label as string} type="button" onClick={onClick as () => void}
             className={cn("inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] font-medium transition-colors",

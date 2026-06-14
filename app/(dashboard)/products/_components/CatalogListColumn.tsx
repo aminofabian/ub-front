@@ -54,8 +54,7 @@ export function CatalogListColumn({
       !!catalog.filterCategoryId.trim() ||
       catalog.catalogScope !== "ALL" ||
       !!catalog.barcodeExact.trim() ||
-      catalog.filterNoBarcode ||
-      catalog.filterIncludeInactive ||
+      catalog.attentionFiltersActive ||
       catalog.rowTypeFilterActive
     );
   }, [
@@ -63,8 +62,7 @@ export function CatalogListColumn({
     catalog.filterCategoryId,
     catalog.catalogScope,
     catalog.barcodeExact,
-    catalog.filterNoBarcode,
-    catalog.filterIncludeInactive,
+    catalog.attentionFiltersActive,
     catalog.rowTypeFilterActive,
   ]);
 

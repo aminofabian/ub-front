@@ -56,7 +56,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
   const [catalogScope, setCatalogScope] = useState<CatalogListScope>("ALL");
   const [barcodeExact, setBarcodeExact] = useState("");
   const [filterNoBarcode, setFilterNoBarcode] = useState(false);
-  const [filterIncludeInactive, setFilterIncludeInactive] = useState(false);
+  const [filterInactiveOnly, setFilterInactiveOnly] = useState(false);
   const [filterNoPrice, setFilterNoPrice] = useState(false);
   const [filterZeroStock, setFilterZeroStock] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
@@ -98,6 +98,16 @@ export function useCatalogList(catalogBranchId?: string | null) {
   const rowTypeFilterActive =
     rowTypeFilter.size > 0 && rowTypeFilter.size < CATALOG_LIST_DISPLAY_TYPES.length;
 
+  const attentionFiltersActive =
+    filterNoBarcode ||
+    filterInactiveOnly ||
+    filterNoPrice ||
+    filterZeroStock ||
+    filterLowStock;
+
+  const stockFiltersNeedBranch =
+    (filterZeroStock || filterLowStock) && !branchIdForStock;
+
   const listStatsOpts = useMemo(
     () => ({
       categoryId: filterCategoryId.trim() || undefined,
@@ -119,18 +129,19 @@ export function useCatalogList(catalogBranchId?: string | null) {
     () => ({
       ...listStatsOpts,
       noBarcode: filterNoBarcode,
-      includeInactive: filterIncludeInactive,
+      inactiveOnly: filterInactiveOnly,
       noPrice: filterNoPrice,
-      zeroStock: filterZeroStock,
-      lowStock: filterLowStock,
+      zeroStock: filterZeroStock && !!branchIdForStock,
+      lowStock: filterLowStock && !!branchIdForStock,
     }),
     [
       listStatsOpts,
       filterNoBarcode,
-      filterIncludeInactive,
+      filterInactiveOnly,
       filterNoPrice,
       filterZeroStock,
       filterLowStock,
+      branchIdForStock,
     ],
   );
 
@@ -323,7 +334,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
     setCatalogScope("ALL");
     setIncludeCategoryDescendants(true);
     setFilterNoBarcode(false);
-    setFilterIncludeInactive(false);
+    setFilterInactiveOnly(false);
     setFilterNoPrice(false);
     setFilterZeroStock(false);
     setFilterLowStock(false);
@@ -383,6 +394,8 @@ export function useCatalogList(catalogBranchId?: string | null) {
     rowTypeCounts,
     rowTypeFilter,
     rowTypeFilterActive,
+    attentionFiltersActive,
+    stockFiltersNeedBranch,
     toggleRowTypeFilter,
     setRowTypeFilter,
     listTotalElements, listLast, listLoadingInitial, listLoadingMore,
@@ -392,7 +405,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
     catalogScope, setCatalogScope,
     barcodeExact, setBarcodeExact,
     filterNoBarcode, setFilterNoBarcode,
-    filterIncludeInactive, setFilterIncludeInactive,
+    filterInactiveOnly, setFilterInactiveOnly,
     filterNoPrice, setFilterNoPrice,
     filterZeroStock, setFilterZeroStock,
     filterLowStock, setFilterLowStock,

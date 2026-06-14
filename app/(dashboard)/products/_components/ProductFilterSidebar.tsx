@@ -36,14 +36,15 @@ type Props = {
     | "setIncludeCategoryDescendants"
     | "filterNoBarcode"
     | "setFilterNoBarcode"
-    | "filterIncludeInactive"
-    | "setFilterIncludeInactive"
+    | "filterInactiveOnly"
+    | "setFilterInactiveOnly"
     | "filterNoPrice"
     | "setFilterNoPrice"
     | "filterZeroStock"
     | "setFilterZeroStock"
     | "filterLowStock"
     | "setFilterLowStock"
+    | "stockFiltersNeedBranch"
     | "catalogStats"
     | "resetFilters"
   >;
@@ -56,7 +57,7 @@ function hasActiveFilters(catalog: Props["catalog"]): boolean {
     !!catalog.filterCategoryId.trim() ||
     catalog.catalogScope !== "ALL" ||
     catalog.filterNoBarcode ||
-    catalog.filterIncludeInactive ||
+    catalog.filterInactiveOnly ||
     catalog.filterNoPrice ||
     catalog.filterZeroStock ||
     catalog.filterLowStock ||
@@ -181,6 +182,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
 
         <div className="flex flex-col gap-1.5 border-t border-border/60 pt-2">
           <span className={catalogFilterLabelClass}>Needs attention</span>
+          <p className={catalogFilterHintClass}>Combine any — all checked apply together.</p>
           <label className={catalogFilterOptionClass}>
             <input
               type="checkbox"
@@ -233,9 +235,9 @@ export function ProductFilterSidebar({ catalog }: Props) {
             <input
               type="checkbox"
               className={catalogFilterCheckboxClass}
-              checked={catalog.filterIncludeInactive}
+              checked={catalog.filterInactiveOnly}
               onChange={(e) =>
-                catalog.setFilterIncludeInactive(e.target.checked)
+                catalog.setFilterInactiveOnly(e.target.checked)
               }
             />
             <span className="min-w-0 flex-1">Inactive products</span>
@@ -244,6 +246,11 @@ export function ProductFilterSidebar({ catalog }: Props) {
             </span>
           </label>
         </div>
+        {catalog.stockFiltersNeedBranch ? (
+          <p className={catalogFilterHintClass}>
+            Pick a branch in the header to filter by stock.
+          </p>
+        ) : null}
       </form>
     </aside>
   );
