@@ -197,8 +197,9 @@ export function useProductDetail(branchIdForPricing?: string | null) {
   const sortedImages = detail?.images
     ? [...detail.images].sort((a, b) => a.sortOrder - b.sortOrder)
     : [];
-  // Shelf price on the item record; storefront/POS use the pricing module's current selling price.
-  const sellPrice = detail ? toNumber(detail.bundlePrice) : null;
+  const catalogShelfPrice = detail ? toNumber(detail.bundlePrice) : null;
+  /** Branch selling price from pricing module, then catalog bundle price. */
+  const sellPrice = currentSellPrice ?? catalogShelfPrice;
   const primaryLink = supplierLinks.find((l) => l.primary);
   const primaryCost = effectiveSupplierUnitCost(
     primaryLink,

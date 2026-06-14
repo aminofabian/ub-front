@@ -83,11 +83,11 @@ export function detailPanelTone(kind: DetailPanelKind): DetailPanelTone {
 export const detailShellClass = "relative flex flex-col gap-3 pb-[4.75rem] lg:pb-0";
 
 export const detailHeroClass = cn(
-  "relative overflow-hidden rounded-2xl border border-border/55 p-3 shadow-sm ring-1 ring-inset",
+  "relative overflow-hidden border border-border/55 p-3 shadow-sm ring-1 ring-inset",
 );
 
 export const detailSectionClass =
-  "overflow-hidden rounded-xl border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
+  "overflow-hidden border border-border/55 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/50 dark:ring-white/[0.04]";
 
 export const detailSectionHeadClass = cn(
   "flex items-center gap-1.5 border-b border-border/45 px-3 py-2",
@@ -105,7 +105,7 @@ export const detailCollapsibleTriggerClass = cn(
 );
 
 export const detailPackageCardClass = cn(
-  "relative overflow-hidden rounded-xl border border-primary/25 p-3.5 shadow-sm",
+  "relative overflow-hidden border border-primary/25 p-3.5 shadow-sm",
   "bg-gradient-to-br from-primary/[0.09] via-primary/[0.04] to-transparent",
   "ring-1 ring-inset ring-primary/15",
 );

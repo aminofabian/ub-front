@@ -1,14 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  AlignJustify,
-  Info,
-  LayoutList,
-  Loader2,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Loader2, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,9 +9,10 @@ import { cn } from "@/lib/utils";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
 import type { ItemSummaryRecord } from "@/lib/api";
 import {
-  catalogListShellClass,
   catalogListToolbarClass,
   catalogListToolbarMetaClass,
+  catalogListToolbarFilterCheckboxClass,
+  type CatalogListDisplayType,
 } from "./catalog-list-styles";
 import { VirtualizedCatalogBody } from "./VirtualizedCatalogBody";
 
@@ -31,6 +25,16 @@ type Props = {
   bulkDeleteBusy: boolean;
   onBulkDelete: () => void | Promise<void>;
 };
+
+const ROW_TYPE_FILTERS: {
+  id: CatalogListDisplayType;
+  label: string;
+  swatch: string;
+}[] = [
+  { id: "parent", label: "Parents", swatch: "bg-teal-500" },
+  { id: "variant", label: "Variants", swatch: "bg-foreground" },
+  { id: "standalone", label: "Standalones", swatch: "bg-emerald-500" },
+];
 
 export function CatalogListColumn({
   catalog,
@@ -51,7 +55,8 @@ export function CatalogListColumn({
       catalog.catalogScope !== "ALL" ||
       !!catalog.barcodeExact.trim() ||
       catalog.filterNoBarcode ||
-      catalog.filterIncludeInactive
+      catalog.filterIncludeInactive ||
+      catalog.rowTypeFilterActive
     );
   }, [
     catalog.debouncedSearch,
@@ -60,6 +65,7 @@ export function CatalogListColumn({
     catalog.barcodeExact,
     catalog.filterNoBarcode,
     catalog.filterIncludeInactive,
+    catalog.rowTypeFilterActive,
   ]);
 
   const loadedHint =
@@ -68,57 +74,57 @@ export function CatalogListColumn({
       : null;
 
   return (
-    <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-2 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
+    <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-1.5 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
       <div className={catalogListToolbarClass}>
-        <p className={catalogListToolbarMetaClass}>
-          <span className="tabular-nums font-medium text-foreground">
-            {catalog.listTotalElements.toLocaleString()}
-          </span>{" "}
-          in view
-          {loadedHint ? (
-            <span className="text-muted-foreground"> · {loadedHint}</span>
-          ) : null}
-          {filtersActive ? (
-            <span className="text-muted-foreground"> · filtered</span>
-          ) : null}
-        </p>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span
-            className="mr-0.5 hidden items-center gap-1 text-[10px] text-muted-foreground lg:inline-flex"
-            title="Row colors: group · parent · product · variant"
-          >
-            <Info className="size-3" aria-hidden />
-            <span className="sr-only">Row type legend shown on list rows</span>
-          </span>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <p className={catalogListToolbarMetaClass}>
+            <span className="tabular-nums font-medium text-foreground">
+              {catalog.listTotalElements.toLocaleString()}
+            </span>{" "}
+            products
+            {loadedHint ? (
+              <span className="text-muted-foreground"> · {loadedHint}</span>
+            ) : null}
+            {filtersActive ? (
+              <span className="text-muted-foreground"> · filtered</span>
+            ) : null}
+          </p>
           <div
-            className="flex rounded-lg border border-border/55 bg-background/80 p-0.5 shadow-sm"
+            className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-l border-border/40 pl-2"
             role="group"
-            aria-label="List density"
+            aria-label="Filter by row type"
           >
-            <Button
-              type="button"
-              size="sm"
-              variant={
-                catalog.listDensity === "comfortable" ? "secondary" : "ghost"
-              }
-              className="h-8 gap-1 rounded-md px-2.5 text-xs"
-              onClick={() => catalog.setListDensity("comfortable")}
-              aria-pressed={catalog.listDensity === "comfortable"}
-            >
-              <LayoutList className="size-3.5" aria-hidden />
-              <span className="hidden sm:inline">Comfort</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={catalog.listDensity === "dense" ? "secondary" : "ghost"}
-              className="h-8 gap-1 rounded-md px-2.5 text-xs"
-              onClick={() => catalog.setListDensity("dense")}
-              aria-pressed={catalog.listDensity === "dense"}
-            >
-              <AlignJustify className="size-3.5" aria-hidden />
-              <span className="hidden sm:inline">Compact</span>
-            </Button>
+            {ROW_TYPE_FILTERS.map(({ id, label, swatch }) => {
+              const checked = catalog.rowTypeFilter.has(id);
+              const count = catalog.rowTypeCounts[id];
+              return (
+                <label
+                  key={id}
+                  className={cn(
+                    "inline-flex cursor-pointer items-center gap-1.5 text-[10px] text-muted-foreground",
+                    checked && "text-foreground",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className={catalogListToolbarFilterCheckboxClass(id)}
+                    checked={checked}
+                    onChange={() => catalog.toggleRowTypeFilter(id)}
+                    aria-label={`${label}: ${count.toLocaleString()}`}
+                  />
+                  <span className={cn("size-1.5 shrink-0", swatch)} aria-hidden />
+                  <span className="tabular-nums font-semibold text-foreground">
+                    {count.toLocaleString()}
+                  </span>
+                  <span>{label}</span>
+                </label>
+              );
+            })}
+            {loadedHint ? (
+              <span className="text-[10px] text-muted-foreground/80">
+                (loaded)
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -126,20 +132,20 @@ export function CatalogListColumn({
       {hasSelection ? (
         <div
           className={cn(
-            "flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 shadow-sm",
-            "border-primary/25 bg-primary/[0.07] ring-1 ring-inset ring-primary/12",
+            "flex flex-wrap items-center justify-between gap-2 border-y border-r border-border px-2.5 py-1.5",
+            "border-primary/25 bg-primary/[0.07]",
           )}
         >
           <span className="text-xs font-semibold tabular-nums text-foreground">
             {selectionCount} selected
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {canCatalogWrite ? (
               <Button
                 type="button"
                 size="sm"
                 variant="destructive"
-                className="h-8 gap-1 rounded-lg text-xs"
+                className="h-7 gap-1 border px-2 text-xs"
                 disabled={bulkDeleteBusy}
                 onClick={() => void onBulkDelete()}
               >
@@ -155,7 +161,7 @@ export function CatalogListColumn({
               type="button"
               size="sm"
               variant="ghost"
-              className="h-8 gap-1 rounded-lg text-xs"
+              className="h-7 gap-1 rounded-md px-2 text-xs"
               disabled={bulkDeleteBusy}
               onClick={() => catalog.setRowSelection(new Set())}
             >
@@ -168,7 +174,7 @@ export function CatalogListColumn({
 
       <div className="min-h-0 flex-1 overflow-hidden">
         <VirtualizedCatalogBody
-          rows={catalog.listRows}
+          rows={catalog.displayRows}
           categoryById={catalog.categoryById}
           variantIdsByParentId={catalog.variantIdsByParent}
           selectedId={selectedId}

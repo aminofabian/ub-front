@@ -12,6 +12,7 @@ import {
   type ItemSummaryRecord,
   type PatchItemPayload,
 } from "@/lib/api";
+import { isGarbageProductName, normalizeProductDisplayName } from "@/lib/catalog-display";
 import { type QuickEditKey } from "../_types";
 import {
   effectiveOnHand,
@@ -202,9 +203,13 @@ export function useQuickEdit({
   }, [quickEdit, detail, quickStockBranchId]);
 
   const saveQuickProductName = useCallback(() => {
-    const n = quickProductName.trim();
+    const n = normalizeProductDisplayName(quickProductName);
     if (!n) {
       setMessage("Display name is required.");
+      return;
+    }
+    if (isGarbageProductName(n)) {
+      setMessage("Use a real product name — not a UUID or import id.");
       return;
     }
     void runQuickPatch({ name: n }, "Display name updated.");

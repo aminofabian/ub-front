@@ -13,53 +13,147 @@ export type CatalogRowMeta = {
   opensVariantGroup: boolean;
   /** Previous row is this row’s parent (variant continuation). */
   continuesVariantGroup: boolean;
+  /** Last variant row before the next parent / standalone. */
+  endsVariantGroup: boolean;
   /** Starts a new parent / standalone block (gap before this row). */
   startsParentBlock: boolean;
 };
 
 /** Extra vertical space between one parent product and the next. */
 export const CATALOG_PARENT_BLOCK_GAP_PX = {
-  comfortable: 16,
-  dense: 10,
+  comfortable: 0,
+  dense: 0,
+} as const;
+
+/** Gap after a closed variant group. */
+export const CATALOG_VARIANT_GROUP_END_GAP_PX = {
+  comfortable: 0,
+  dense: 0,
 } as const;
 
 export const catalogListShellClass = cn(
   "flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden",
-  "rounded-2xl border border-border/60 bg-card/85 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/90 dark:ring-white/[0.04]",
+  "border-y border-r border-border bg-card",
 );
 
 export const catalogListToolbarClass = cn(
-  "flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border/55",
-  "bg-muted/30 px-3 py-2.5 ring-1 ring-inset ring-black/[0.02] dark:bg-muted/20 dark:ring-white/[0.04]",
+  "flex flex-wrap items-center justify-between gap-2 border-y border-r border-border",
+  "bg-muted/30 px-2.5 py-1.5",
 );
 
 export const catalogListToolbarMetaClass =
   "text-xs text-muted-foreground";
 
 export const catalogListHeaderRowClass = cn(
-  "shrink-0 border-b border-border/50 bg-muted/35 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
-  "dark:bg-muted/25",
+  "shrink-0 bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
 );
 
-/** checkbox · product (+ thumb after name) · stock · category (md+) · chevron */
+/** checkbox · product · stock · sell · category */
 export const catalogListGridClass =
-  "grid w-full min-w-0 max-w-full items-center gap-x-2 gap-y-0 sm:gap-x-2.5 " +
-  "grid-cols-[2rem_minmax(0,1fr)_auto_1rem] " +
-  "md:grid-cols-[2rem_minmax(0,1fr)_4.25rem_8.5rem_1rem]";
+  "grid w-full min-w-0 max-w-full items-stretch gap-0 " +
+  "grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_0px_0px] " +
+  "sm:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_0px] " +
+  "xl:grid-cols-[2.25rem_minmax(0,1fr)_3.25rem_4.25rem_4.5rem]";
 
-export const catalogListProductCellClass =
-  "relative z-[1] flex min-w-0 items-center gap-2";
+const catalogColRowBorder = "border-b border-border";
+const catalogCellPad = "px-3 py-1";
+const catalogMetricPad = "px-1.5 py-1";
 
-/** Checkbox cell — parent flush left, variant indented */
-export function catalogListCheckboxCellClass(isVariant: boolean): string {
+/** Whole-row inset for variant SKUs (checkbox through metrics). */
+export const catalogVariantRowIndentClass = "pl-14";
+
+export const catalogGridCol = {
+  check: cn(
+    "col-start-1 self-stretch",
+    "flex items-center justify-center px-1 py-1",
+  ),
+  product: cn(
+    "col-start-2 min-w-0 self-stretch",
+    catalogColRowBorder,
+    catalogCellPad,
+    "flex items-center",
+  ),
+  stock: cn("col-start-3 self-stretch", catalogColRowBorder),
+  sell: cn(
+    "col-start-4 self-stretch",
+    catalogColRowBorder,
+    "max-sm:invisible max-sm:pointer-events-none",
+  ),
+  category: cn(
+    "col-start-5 self-stretch",
+    catalogColRowBorder,
+    "max-xl:invisible max-xl:pointer-events-none",
+  ),
+} as const;
+
+/** Active-row left accent — pseudo-element so it does not consume a grid column. */
+export function catalogRowAccentClass(
+  tone: CatalogRowTone,
+  active: boolean,
+): string {
+  const beforeBg = tone.accent.replace(/^bg-/, "before:bg-");
   return cn(
-    "relative z-[1] flex w-full items-center",
-    isVariant ? "justify-end pr-0.5 pl-3" : "justify-start",
+    "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-0.5 before:opacity-0 before:transition-opacity",
+    beforeBg,
+    active && "before:opacity-100",
   );
 }
 
+/** Metric column wrapper */
+export const catalogListMetricCellClass = cn(
+  "relative z-[1] flex min-w-0 w-full items-center justify-end self-stretch overflow-hidden",
+  catalogMetricPad,
+);
+
+export const catalogListMetricHeaderClass = cn(
+  catalogListMetricCellClass,
+  "justify-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+);
+
+/** Checkbox cell — variant rows align left inside indented track */
+export function catalogListCheckboxCellClass(isVariant: boolean): string {
+  return cn(
+    "relative z-[1] flex w-full items-center",
+    isVariant ? "justify-start" : "justify-center",
+  );
+}
+
+/** Left rail — disabled; hierarchy is indent + tone only. */
+export function catalogRowHierarchyClass(
+  _meta: Pick<CatalogRowMeta, "kind">,
+  _tone: CatalogRowTone,
+): string {
+  return "";
+}
+
+export function catalogTypeChipClass(
+  kind: CatalogRowKind,
+  variantCount: number,
+): string {
+  if (kind === "group") {
+    return "border border-amber-500/25 bg-amber-500/12 text-amber-900 dark:bg-amber-500/15 dark:text-amber-100";
+  }
+  if (kind === "variant") {
+    return "border border-border bg-muted/50 text-foreground";
+  }
+  if (variantCount > 0) {
+    return "border border-teal-500/25 bg-teal-500/12 text-teal-900 dark:bg-teal-500/15 dark:text-teal-100";
+  }
+  return "border border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:bg-emerald-500/12 dark:text-emerald-100";
+}
+
+export function catalogTypeChipLabel(
+  kind: CatalogRowKind,
+  variantCount: number,
+): string | null {
+  if (kind === "group") return null;
+  if (kind === "variant") return null;
+  if (variantCount > 0) return `Parent · ${variantCount}`;
+  return null;
+}
+
 const catalogListCheckboxBaseClass = cn(
-  "size-3.5 shrink-0 cursor-pointer appearance-none rounded-[4px] border-2 bg-background shadow-sm",
+  "size-3.5 shrink-0 cursor-pointer appearance-none border-2 bg-background",
   "transition-[border-color,background-color] duration-150",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
   "bg-center bg-no-repeat [background-size:0.6rem_0.6rem]",
@@ -75,11 +169,11 @@ export function catalogListCheckboxClass(
   if (kind === "variant") {
     return cn(
       catalogListCheckboxBaseClass,
-      "border-violet-400/45",
-      "checked:border-violet-600 checked:bg-violet-600",
-      "indeterminate:border-violet-600 indeterminate:bg-violet-600",
-      "dark:checked:border-violet-500 dark:checked:bg-violet-500",
-      "dark:indeterminate:border-violet-500 dark:indeterminate:bg-violet-500",
+      "size-3 border-[1.5px] [background-size:0.5rem_0.5rem]",
+      "bg-white dark:bg-background",
+      "border-foreground/35 dark:border-foreground/45",
+      "checked:border-foreground checked:bg-foreground",
+      "indeterminate:border-foreground indeterminate:bg-foreground",
     );
   }
   if (kind === "group") {
@@ -113,9 +207,34 @@ export function catalogListCheckboxClass(
   );
 }
 
-/** Right-align content inside fixed stock / category tracks. */
-export const catalogListMetricCellClass =
-  "relative z-[1] flex w-full min-w-0 items-center justify-end justify-self-end";
+/** Small filter checkbox in catalog toolbar (matches row-type tone). */
+export function catalogListToolbarFilterCheckboxClass(
+  type: CatalogListDisplayType,
+): string {
+  if (type === "parent") {
+    return catalogListCheckboxClass("standalone", 1);
+  }
+  if (type === "variant") {
+    return catalogListCheckboxClass("variant");
+  }
+  return catalogListCheckboxClass("standalone", 0);
+}
+
+export const catalogListProductCellClass =
+  "relative z-[1] flex min-w-0 flex-1 items-center gap-2";
+
+/** Hide cell contents below a breakpoint without removing the grid track. */
+export function catalogListMetricHiddenClass(breakpoint: "sm" | "xl" | "lg"): string {
+  if (breakpoint === "sm") {
+    return "max-sm:invisible max-sm:pointer-events-none";
+  }
+  if (breakpoint === "xl") {
+    return "max-xl:invisible max-xl:pointer-events-none";
+  }
+  return "lg:invisible lg:pointer-events-none";
+}
+
+// catalogListMetricHiddenClass kept for skeleton; grid cols use catalogGridCol visibility.
 
 /** Product photo frame in catalog rows */
 export function catalogListThumbFrameClass(
@@ -123,14 +242,12 @@ export function catalogListThumbFrameClass(
   state?: { active?: boolean; inactive?: boolean },
 ): string {
   return cn(
-    "relative block shrink-0 overflow-hidden border border-border/50 bg-muted/70 shadow-sm",
-    "ring-1 ring-inset ring-black/[0.04] dark:ring-white/[0.06]",
-    "transition-[box-shadow,ring-color,opacity] duration-150",
-    kind === "group" && "size-9 rounded-xl border-amber-500/25",
-    kind === "variant" && "size-7 rounded-md",
-    kind === "standalone" && "size-8 rounded-lg",
-    state?.active &&
-      "z-[1] border-primary/30 ring-2 ring-primary/25 shadow-md dark:ring-primary/30",
+    "relative block shrink-0 overflow-hidden border border-border bg-muted/70",
+    "transition-[border-color,opacity] duration-150",
+    kind === "group" && "size-7 border-amber-500/25",
+    kind === "variant" && "size-5",
+    kind === "standalone" && "size-6",
+    state?.active && "z-[1] border-primary/40",
     state?.inactive && "opacity-55 saturate-[0.65]",
   );
 }
@@ -191,10 +308,9 @@ export function catalogRowInteractionClasses(
   const showBulk = isBulkSelected && !isDetailActive;
 
   return cn(
-    "cursor-pointer transition-[background-color,box-shadow,ring-width,ring-color] duration-150 ease-out",
+    "cursor-pointer transition-colors duration-100 ease-out",
     tone.gradient,
     !isDetailActive && !showBulk && !showChecked && tone.rowHover,
-    !isDetailActive && "hover:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] dark:hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
     showChecked && tone.rowChecked,
     showBulk && tone.rowBulk,
     isDetailActive && tone.rowDetailActive,
@@ -282,6 +398,53 @@ export function buildVariantIdsByParentId(
   return map;
 }
 
+export type CatalogListDisplayType = "parent" | "variant" | "standalone";
+
+/** Toolbar / filter bucket: parent (incl. groups), variant SKU, standalone product. */
+export function catalogListDisplayType(
+  row: ItemSummaryRecord,
+  variantCount: number,
+): CatalogListDisplayType {
+  if (row.variantOfItemId?.trim()) return "variant";
+  if (row.groupLabelOnly === true || variantCount > 0) return "parent";
+  return "standalone";
+}
+
+export function countCatalogRowsByDisplayType(
+  rows: ItemSummaryRecord[],
+): Record<CatalogListDisplayType, number> {
+  const variantIdsByParent = buildVariantIdsByParentId(rows);
+  const counts: Record<CatalogListDisplayType, number> = {
+    parent: 0,
+    variant: 0,
+    standalone: 0,
+  };
+  for (const row of rows) {
+    const variantCount = variantIdsByParent.get(row.id)?.length ?? 0;
+    counts[catalogListDisplayType(row, variantCount)]++;
+  }
+  return counts;
+}
+
+export function filterCatalogRowsByDisplayType(
+  rows: ItemSummaryRecord[],
+  activeTypes: ReadonlySet<CatalogListDisplayType>,
+): ItemSummaryRecord[] {
+  if (activeTypes.size === CATALOG_LIST_DISPLAY_TYPES.length) return rows;
+  if (activeTypes.size === 0) return [];
+  const variantIdsByParent = buildVariantIdsByParentId(rows);
+  return rows.filter((row) => {
+    const variantCount = variantIdsByParent.get(row.id)?.length ?? 0;
+    return activeTypes.has(catalogListDisplayType(row, variantCount));
+  });
+}
+
+export const CATALOG_LIST_DISPLAY_TYPES = [
+  "parent",
+  "variant",
+  "standalone",
+] as const satisfies readonly CatalogListDisplayType[];
+
 /** Parent group label or sellable parent that has option rows beneath it. */
 export function isCatalogParentSelectorRow(
   row: ItemSummaryRecord,
@@ -313,12 +476,17 @@ export function buildCatalogRowMeta(rows: ItemSummaryRecord[]): Map<string, Cata
       prev != null &&
       (prev.id === row.variantOfItemId ||
         (prev.groupLabelOnly === true && prev.id === row.variantOfItemId));
-    const startsParentBlock = i > 0 && kind !== "variant";
+    const endsVariantGroup =
+      kind === "variant" &&
+      (next == null || next.variantOfItemId !== row.variantOfItemId);
+    const startsParentBlock =
+      i > 0 && kind !== "variant" && !continuesVariantGroup;
     meta.set(row.id, {
       kind,
       variantCount,
       opensVariantGroup,
       continuesVariantGroup,
+      endsVariantGroup,
       startsParentBlock,
     });
   }
@@ -337,27 +505,25 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
       muted: "text-amber-800/70 dark:text-amber-300/70",
       gradient: "bg-amber-500/[0.06] dark:bg-amber-500/[0.08]",
       rowHover: "hover:bg-amber-500/10 dark:hover:bg-amber-500/12",
-      rowChecked: "bg-amber-500/12 ring-1 ring-inset ring-amber-500/30",
-      rowBulk: "bg-amber-500/10 ring-1 ring-inset ring-amber-500/25",
-      rowDetailActive:
-        "z-[2] bg-amber-500/14 shadow-sm ring-2 ring-inset ring-amber-500/40 dark:bg-amber-500/18 dark:ring-amber-400/35",
+      rowChecked: "bg-amber-500/12",
+      rowBulk: "bg-amber-500/10",
+      rowDetailActive: "z-[2] bg-amber-500/14",
     };
   }
   if (kind === "variant") {
     return {
       label: "Variant",
       icon: CornerDownRight,
-      accent: "bg-violet-500",
-      accentLight: "bg-violet-500/12 text-violet-900 dark:bg-violet-500/15 dark:text-violet-100",
-      border: "border-violet-500/30",
-      text: "text-violet-950 dark:text-violet-50",
-      muted: "text-violet-800/65 dark:text-violet-300/65",
-      gradient: "bg-violet-500/[0.05] dark:bg-violet-500/[0.07]",
-      rowHover: "hover:bg-violet-500/10 dark:hover:bg-violet-500/12",
-      rowChecked: "bg-violet-500/12 ring-1 ring-inset ring-violet-500/30",
-      rowBulk: "bg-violet-500/10 ring-1 ring-inset ring-violet-400/25",
-      rowDetailActive:
-        "z-[2] bg-violet-500/14 shadow-sm ring-2 ring-inset ring-violet-500/40 dark:bg-violet-500/18 dark:ring-violet-400/35",
+      accent: "bg-foreground",
+      accentLight: "border border-border bg-muted text-foreground",
+      border: "border-border",
+      text: "text-foreground",
+      muted: "text-muted-foreground",
+      gradient: "",
+      rowHover: "hover:bg-muted/30",
+      rowChecked: "bg-muted/40",
+      rowBulk: "bg-muted/35",
+      rowDetailActive: "z-[2] bg-muted/50",
     };
   }
   const parentish = variantCount > 0;
@@ -382,32 +548,34 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
       ? "hover:bg-teal-500/10 dark:hover:bg-teal-500/12"
       : "hover:bg-emerald-500/10 dark:hover:bg-emerald-500/12",
     rowChecked: parentish
-      ? "bg-teal-500/12 ring-1 ring-inset ring-teal-500/30"
-      : "bg-emerald-500/12 ring-1 ring-inset ring-emerald-500/30",
+      ? "bg-teal-500/12"
+      : "bg-emerald-500/12",
     rowBulk: parentish
-      ? "bg-teal-500/10 ring-1 ring-inset ring-teal-500/25"
-      : "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/25",
+      ? "bg-teal-500/10"
+      : "bg-emerald-500/10",
     rowDetailActive: parentish
-      ? "z-[2] bg-teal-500/14 shadow-sm ring-2 ring-inset ring-teal-500/40 dark:bg-teal-500/18 dark:ring-teal-400/35"
-      : "z-[2] bg-emerald-500/14 shadow-sm ring-2 ring-inset ring-emerald-500/40 dark:bg-emerald-500/18 dark:ring-emerald-400/35",
+      ? "z-[2] bg-teal-500/14"
+      : "z-[2] bg-emerald-500/14",
   };
 }
 
 export function catalogRowHeightPx(
   kind: CatalogRowKind,
   density: "comfortable" | "dense",
-  startsParentBlock = false,
+  meta?: Pick<CatalogRowMeta, "startsParentBlock" | "endsVariantGroup">,
 ): number {
-  const gap =
-    startsParentBlock ? CATALOG_PARENT_BLOCK_GAP_PX[density] : 0;
+  const gap = meta?.startsParentBlock ? CATALOG_PARENT_BLOCK_GAP_PX[density] : 0;
+  const groupEndGap = meta?.endsVariantGroup
+    ? CATALOG_VARIANT_GROUP_END_GAP_PX[density]
+    : 0;
   if (density === "dense") {
-    if (kind === "group") return 52 + gap;
-    if (kind === "variant") return 40;
-    return 42 + gap;
+    if (kind === "group") return 40 + gap;
+    if (kind === "variant") return 32 + groupEndGap;
+    return 36 + gap;
   }
-  if (kind === "group") return 64 + gap;
-  if (kind === "variant") return 50;
-  return 52 + gap;
+  if (kind === "group") return 48 + gap;
+  if (kind === "variant") return 40 + groupEndGap;
+  return 44 + gap;
 }
 
 export function catalogStockTone(qty: number | string | null | undefined): {

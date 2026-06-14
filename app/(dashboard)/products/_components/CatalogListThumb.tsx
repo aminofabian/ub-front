@@ -23,9 +23,9 @@ type Props = {
 };
 
 const THUMB_SIZES: Record<CatalogRowKind, string> = {
-  group: "36px",
-  standalone: "32px",
-  variant: "28px",
+  group: "32px",
+  standalone: "28px",
+  variant: "24px",
 };
 
 export function CatalogListThumb({
@@ -63,9 +63,6 @@ export function CatalogListThumb({
         <span
           className={cn(
             catalogListThumbPlaceholderClass,
-            kind === "group" && "rounded-xl",
-            kind === "variant" && "rounded-md",
-            kind === "standalone" && "rounded-lg",
           )}
         >
           {kind === "variant" ? (

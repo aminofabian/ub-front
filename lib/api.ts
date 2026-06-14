@@ -360,6 +360,8 @@ export type ItemSummaryRecord = {
   baseStockQty?: number | string | null;
   brand?: string | null;
   size?: string | null;
+  /** Shelf / bundle price on the item record. */
+  bundlePrice?: number | string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */

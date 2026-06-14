@@ -1,4 +1,9 @@
 import type { ItemSummaryRecord } from "@/lib/api";
+import {
+  CATALOG_FIX_NAME_LABEL,
+  looksLikeUuid,
+  resolveCatalogItemName,
+} from "@/lib/catalog-display";
 
 /** Import / legacy rows sometimes store placeholder text instead of a real option label. */
 const GENERIC_VARIANT_LABELS = new Set(["variant", "option", "variation", "default"]);
@@ -13,14 +18,18 @@ export function isGenericVariantLabel(raw: string | undefined): boolean {
 
 /** Title for POS lists: parent name plus option label when this row is a variant SKU. */
 export function cashierItemPrimaryLabel(row: ItemSummaryRecord): string {
-  const name = row.name?.trim() || "Item";
+  const resolved = resolveCatalogItemName(row);
+  if (resolved.needsNameFix) {
+    return CATALOG_FIX_NAME_LABEL;
+  }
+  const name = resolved.label;
   const option = row.variantName?.trim();
-  if (option && !isGenericVariantLabel(option)) {
+  if (option && !isGenericVariantLabel(option) && !looksLikeUuid(option)) {
     return `${name} · ${option}`;
   }
   if (row.variantOfItemId) {
     const sku = row.sku?.trim();
-    return sku ? `${name} · ${sku}` : name;
+    return sku && !looksLikeUuid(sku) ? `${name} · ${sku}` : name;
   }
   return name;
 }
@@ -30,16 +39,20 @@ export function cashierItemPrimaryLabel(row: ItemSummaryRecord): string {
  * or parent plus SKU when `variantName` is absent or a placeholder (legacy/import rows).
  */
 export function itemCatalogDisplayTitle(row: ItemSummaryRecord): string {
-  const name = row.name?.trim() || "Item";
+  const resolved = resolveCatalogItemName(row);
+  if (resolved.needsNameFix) {
+    return CATALOG_FIX_NAME_LABEL;
+  }
+  const name = resolved.label;
   if (!row.variantOfItemId) {
     return name;
   }
   const option = row.variantName?.trim();
-  if (option && !isGenericVariantLabel(option)) {
+  if (option && !isGenericVariantLabel(option) && !looksLikeUuid(option)) {
     return `${name} · ${option}`;
   }
   const sku = row.sku?.trim();
-  return sku ? `${name} · ${sku}` : name;
+  return sku && !looksLikeUuid(sku) ? `${name} · ${sku}` : name;
 }
 
 /** Barcode-mirror / import-placeholder SKUs — not shown on POS; prefer availability instead. */

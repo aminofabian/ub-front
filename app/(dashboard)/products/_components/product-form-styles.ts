@@ -54,6 +54,12 @@ export const productFormSectionBodyClass = cn(
   "ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]",
 );
 
+/** Collapsible drawer panels — tighter than default section body */
+export const productFormSectionBodyCompactClass = cn(
+  "space-y-2 rounded-lg border border-border/55 bg-background/60 p-2.5",
+  "ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]",
+);
+
 export const productFormSectionToggleClass = cn(
   "group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",

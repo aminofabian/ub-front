@@ -26,6 +26,10 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import {
+  isGarbageProductName,
+  normalizeProductDisplayName,
+} from "@/lib/catalog-display";
+import {
   type ParentDraft,
   type ProductDrawerId,
   type ProductEditDraft,
@@ -327,10 +331,15 @@ export function useProductMutations(d: Dependencies) {
 
       try {
         const isCreatingGroup = parentDraft.productStructure === "group";
+        const displayName = normalizeProductDisplayName(parentDraft.name);
+        if (!displayName || isGarbageProductName(displayName)) {
+          setMessage("Enter a real product name — not a UUID or import id.");
+          return;
+        }
 
         const payload: Parameters<typeof createItem>[0] = isCreatingGroup
           ? {
-              name: parentDraft.name,
+              name: displayName,
               itemTypeId: parentDraft.itemTypeId,
               isSellable: false,
               ...(parentDraft.categoryId.trim()
@@ -347,7 +356,7 @@ export function useProductMutations(d: Dependencies) {
                 : {}),
             }
           : {
-              name: parentDraft.name,
+              name: displayName,
               itemTypeId: parentDraft.itemTypeId,
               ...(parentDraft.sku.trim()
                 ? { sku: parentDraft.sku.trim() }
@@ -437,9 +446,15 @@ export function useProductMutations(d: Dependencies) {
           } else {
             const ucRaw = parentDraft.openingUnitCost.trim();
             const buy = parseNum(parentDraft.buyingPrice, "Buy price");
+            const packQty = Math.max(
+              1,
+              parseNum(parentDraft.bundleQty, "Pack qty", true) ?? 1,
+            );
             const unitCost =
               ucRaw === ""
-                ? (buy ?? 0)
+                ? buy != null
+                  ? buy / packQty
+                  : 0
                 : Number(ucRaw);
             if (!Number.isFinite(unitCost) || unitCost < 0) {
               setMessage("Opening unit cost must be a valid non-negative number.");

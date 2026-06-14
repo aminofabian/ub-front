@@ -334,7 +334,7 @@ export default function ProductsPage() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-2 overflow-x-hidden p-2 sm:p-3 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(0,min(22rem,34vw))] lg:items-stretch lg:gap-4 lg:p-4 2xl:gap-4 2xl:p-4">
+            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-2 overflow-x-hidden p-2 sm:p-3 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(19.5rem,min(27rem,33vw))] lg:items-stretch lg:gap-4 lg:p-4 2xl:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(21rem,min(31.5rem,34.5vw))] 2xl:gap-4 2xl:p-4">
               <ProductFilterSidebar catalog={catalog} />
               <CatalogListColumn
                 catalog={catalog}
@@ -349,14 +349,14 @@ export default function ProductsPage() {
                 onBulkDelete={m.onBulkDeleteSelected}
               />
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border bg-card">
                   {D ? (
                     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:px-3.5 sm:py-3">
                       <ProductDetailPanel {...p} />
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
-                      <div className="flex size-12 items-center justify-center rounded-lg border border-dashed border-border bg-muted/50">
+                      <div className="flex size-12 items-center justify-center border border-dashed border-border bg-muted/50">
                         <MousePointerClick className="size-6 text-muted-foreground" />
                       </div>
                       <p className="text-sm text-muted-foreground">

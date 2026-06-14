@@ -13,6 +13,7 @@ import { type PackageDraft, emptyPackageDraft } from "../_types";
 type Props = {
   /** When false, only the package rows are shown (for modals). */
   showEnableToggle?: boolean;
+  compact?: boolean;
   enabled: boolean;
   onEnabledChange: (v: boolean) => void;
   rows: PackageDraft[];
@@ -44,6 +45,7 @@ function Label({
 
 export function PackageVariantsSection({
   showEnableToggle = true,
+  compact = false,
   enabled,
   onEnabledChange,
   rows,
@@ -72,27 +74,35 @@ export function PackageVariantsSection({
     <div
       className={cn(
         showEnableToggle &&
-          "rounded-2xl border border-border/55 bg-muted/15 p-4 shadow-sm ring-1 ring-black/[0.02]",
+          cn(
+            "rounded-lg border border-border/55 bg-muted/10 p-2.5 shadow-sm ring-1 ring-black/[0.02]",
+            compact && "p-2",
+          ),
         className,
       )}
     >
       {showEnableToggle ? (
-        <label className="flex cursor-pointer items-start gap-3">
+        <label className="flex cursor-pointer items-start gap-2">
           <input
             type="checkbox"
-            className="mt-1 size-4 rounded border-input"
+            className={cn("size-4 rounded border-input", compact ? "mt-0.5" : "mt-1")}
             checked={enabled}
             onChange={(e) => onEnabledChange(e.target.checked)}
           />
           <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Boxes className="size-4 text-primary" />
+            <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Boxes className="size-3.5 text-primary" />
               Sell in different units
             </span>
-            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-              Add selling units (single, tray, crate, …) with their own price and barcode. Stock is
-              shared with this product — e.g. 1 tray = 30 {baseUnitHint}s deducted from the same
-              inventory.
+            <span
+              className={cn(
+                "mt-0.5 block text-muted-foreground",
+                compact ? "text-[11px] leading-snug" : "text-xs leading-relaxed",
+              )}
+            >
+              {compact
+                ? `Selling units share stock with this product (e.g. 1 tray = 30 ${baseUnitHint}s).`
+                : `Add selling units (single, tray, crate, …) with their own price and barcode. Stock is shared with this product — e.g. 1 tray = 30 ${baseUnitHint}s deducted from the same inventory.`}
             </span>
           </span>
         </label>
@@ -101,8 +111,8 @@ export function PackageVariantsSection({
       {showRows ? (
         <div
           className={cn(
-            "space-y-3",
-            showEnableToggle && "mt-4 border-t border-border/40 pt-4",
+            compact ? "space-y-2" : "space-y-3",
+            showEnableToggle && cn("border-t border-border/40 pt-2", compact ? "mt-2" : "mt-4 pt-4"),
           )}
         >
           {rows.map((row, index) => (

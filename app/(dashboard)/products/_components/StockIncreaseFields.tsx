@@ -40,6 +40,8 @@ type Props = {
   hint?: string;
   /** Hide helper copy and cost prefill notes (e.g. new product drawer). */
   minimal?: boolean;
+  /** Hide the unit cost column — parent shows derived cost from pricing instead */
+  hideUnitCostInput?: boolean;
 };
 
 function previewArrow() {
@@ -49,6 +51,11 @@ function previewArrow() {
       aria-hidden
     />
   );
+}
+
+function formatQty(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function PreviewStat({
@@ -93,6 +100,7 @@ export function StockIncreaseFields({
   className,
   hint,
   minimal = false,
+  hideUnitCostInput = false,
 }: Props) {
   const isOpening = mode === "opening";
   const defaultHint = minimal
@@ -124,16 +132,18 @@ export function StockIncreaseFields({
 
   return (
     <div className={cn(productFormSectionClass, className)}>
-      <p className={cn("flex items-center gap-1.5", productFormSectionTitleClass)}>
-        <Building2 className="size-3" aria-hidden />
-        {isOpening ? "Opening stock" : "Add stock"}
-      </p>
+      {!minimal ? (
+        <p className={cn("flex items-center gap-1.5", productFormSectionTitleClass)}>
+          <Building2 className="size-3" aria-hidden />
+          {isOpening ? "Opening stock" : "Add stock"}
+        </p>
+      ) : null}
       {resolvedHint ? (
         <p className="text-[10px] leading-snug text-muted-foreground">
           {resolvedHint}
         </p>
       ) : null}
-      <div className={productFormStackClass}>
+      <div className={cn(minimal ? "flex flex-col gap-2" : productFormStackClass)}>
         <ProductFormField label="Branch" required>
           <select
             className={productFormSelectClass}
@@ -149,7 +159,7 @@ export function StockIncreaseFields({
           </select>
         </ProductFormField>
 
-        <div className={productFormGrid2Class}>
+        <div className={cn(hideUnitCostInput ? "max-w-sm" : productFormGrid2Class)}>
           <ProductFormField
             label={isOpening ? "Opening qty" : "Qty to add"}
             required={!isOpening}
@@ -179,19 +189,19 @@ export function StockIncreaseFields({
                 ) : (
                   <>
                     <PreviewStat
-                      label="Now"
-                      value={formatAmount(onHand ?? 0)}
+                      label="On hand"
+                      value={formatQty(onHand ?? 0)}
                     />
                     {hasAddQty ? (
                       <>
                         {previewArrow()}
                         <PreviewStat
                           label={isOpening ? "After create" : "After"}
-                          value={formatAmount(newOnHand)}
+                          value={formatQty(newOnHand)}
                           strong
                         />
                         <span className={productFormPreviewClass}>
-                          (+{formatAmount(addQty)})
+                          (+{formatQty(addQty)})
                         </span>
                       </>
                     ) : minimal ? null : (
@@ -211,6 +221,7 @@ export function StockIncreaseFields({
             </div>
           </ProductFormField>
 
+          {!hideUnitCostInput ? (
           <ProductFormField
             label={
               unitCostLabel ??
@@ -268,6 +279,7 @@ export function StockIncreaseFields({
               </div>
             ) : null}
           </ProductFormField>
+          ) : null}
         </div>
       </div>
     </div>

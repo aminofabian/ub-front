@@ -28,6 +28,7 @@ import {
   type ItemSummaryRecord,
   type ItemSupplierLinkRecord,
 } from "@/lib/api";
+import { CATALOG_FIX_NAME_LABEL, resolveCatalogItemName } from "@/lib/catalog-display";
 import { type ProductEditDraft, type QuickEditKey } from "../_types";
 import {
   coverImageUrl,
@@ -395,6 +396,7 @@ export function ProductDetailPanel(props: Props) {
       canEdit: boolean;
       highlight?: "success" | "danger" | "default";
       valueClass?: string;
+      isEmpty?: boolean;
       onActivate?: () => void;
       editContent?: React.ReactNode;
     },
@@ -433,14 +435,16 @@ export function ProductDetailPanel(props: Props) {
             className={cn(
               "group/stat mt-0.5 w-full text-left",
               opts.canEdit &&
-                "cursor-pointer rounded-sm transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
               !opts.canEdit && "cursor-default",
             )}
           >
             <p
               className={cn(
                 detailStatValueClass,
-                "text-sm font-semibold",
+                opts.isEmpty
+                  ? "text-xs font-medium text-muted-foreground"
+                  : "text-sm font-semibold",
                 opts.valueClass,
               )}
             >
@@ -459,11 +463,38 @@ export function ProductDetailPanel(props: Props) {
   };
 
   const thumbUrl = coverImageUrl(detail);
-  const titleInitial = (detail.name?.trim() || "?").charAt(0).toUpperCase();
+  const displayName = resolveCatalogItemName(detail);
+  const titleInitial = (
+    displayName.needsNameFix && displayName.label === CATALOG_FIX_NAME_LABEL
+      ? "?"
+      : displayName.label.charAt(0)
+  ).toUpperCase();
   const heroTitle =
     isParentish && variantRows.length > 0
-      ? `${detail.name} (${variantRows.length})`
-      : detail.name;
+      ? `${displayName.label} (${variantRows.length})`
+      : displayName.label;
+  const shelfDisplay =
+    sellPrice != null
+      ? { text: formatAmount(sellPrice), empty: false }
+      : {
+          text:
+            panelKind === "group"
+              ? "Price on variants"
+              : "No sell price set",
+          empty: true,
+        };
+  const costDisplay =
+    primaryCost != null
+      ? { text: formatAmount(primaryCost), empty: false }
+      : { text: "No cost set", empty: true };
+  const marginDisplay =
+    sellPrice == null || sellPrice <= 0
+      ? { text: "No sell price set", empty: true }
+      : primaryCost == null
+        ? { text: "No cost set", empty: true }
+        : marginPct != null
+          ? { text: `${marginPct.toFixed(1)}%`, empty: false }
+          : { text: "—", empty: true };
 
   const KindIcon = panelKind === "variant" ? Layers : Package;
   const kindLabel =
@@ -501,14 +532,14 @@ export function ProductDetailPanel(props: Props) {
           {isParentish && !thumbUrl ? (
             <span
               className={cn(
-                "flex size-12 shrink-0 items-center justify-center rounded-xl border border-dashed text-base font-bold tracking-tight shadow-sm ring-1 ring-black/[0.04] sm:size-14",
+                "flex size-12 shrink-0 items-center justify-center border border-dashed text-base font-bold tracking-tight shadow-sm ring-1 ring-black/[0.04] sm:size-14",
                 panelTone.accentLight,
               )}
             >
               {titleInitial}
             </span>
           ) : (
-            <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.04] sm:size-14">
+            <div className="relative size-12 shrink-0 overflow-hidden border border-border/50 bg-muted shadow-sm ring-1 ring-black/[0.04] sm:size-14">
               {thumbUrl ? (
                 <Image
                   src={thumbUrl}
@@ -531,7 +562,7 @@ export function ProductDetailPanel(props: Props) {
             <div className="flex flex-wrap gap-1">
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                  "inline-flex items-center gap-1 border px-2 py-0.5 text-[10px] font-semibold",
                   panelTone.badge,
                 )}
               >
@@ -539,23 +570,23 @@ export function ProductDetailPanel(props: Props) {
                 {kindLabel}
               </span>
               {detail.active === false && (
-                <span className="inline-flex items-center rounded-full border border-destructive/25 bg-destructive/5 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                <span className="inline-flex items-center border border-destructive/25 bg-destructive/5 px-2 py-0.5 text-[10px] font-medium text-destructive">
                   Inactive
                 </span>
               )}
               {detail.webPublished && (
-                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="inline-flex items-center border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary">
                   Online
                 </span>
               )}
               {isStorefrontFeatured && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200">
+                <span className="inline-flex items-center gap-0.5 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-200">
                   <Star className="size-2.5 fill-current" aria-hidden />
                   Featured
                 </span>
               )}
               {sharedStock && (
-                <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                <span className="inline-flex items-center gap-0.5 border border-primary/25 bg-primary/8 px-2 py-0.5 text-[10px] font-semibold text-primary">
                   <Boxes className="size-2.5" aria-hidden />
                   Package SKU
                 </span>
@@ -565,6 +596,7 @@ export function ProductDetailPanel(props: Props) {
               className={cn(
                 "text-base font-semibold leading-snug tracking-tight text-foreground sm:text-[15px]",
                 isParentish && "capitalize",
+                displayName.needsNameFix && "text-amber-800 dark:text-amber-300",
               )}
             >
               {heroTitle}
@@ -579,12 +611,12 @@ export function ProductDetailPanel(props: Props) {
                 <span className="font-mono opacity-75">{detail.barcode}</span>
               )}
               {detail.brand && (
-                <span className="rounded-md border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
+                <span className="border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
                   {detail.brand}
                 </span>
               )}
               {detail.size && (
-                <span className="rounded-md border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
+                <span className="border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-foreground/85">
                   {detail.size}
                 </span>
               )}
@@ -692,7 +724,7 @@ export function ProductDetailPanel(props: Props) {
       {sharedStock ? (
         <div className={cn(detailPackageCardClass, "border-violet-500/25 ring-violet-500/15")}>
           <div className="flex gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-300">
+            <div className="flex size-11 shrink-0 items-center justify-center bg-violet-500/15 text-violet-600 dark:text-violet-300">
               <Boxes className="size-5" aria-hidden />
             </div>
             <div className="min-w-0 flex-1">
@@ -741,7 +773,7 @@ export function ProductDetailPanel(props: Props) {
       ) : canAddPackageSales ? (
         <div className={detailPackageCardClass}>
           <div className="flex gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <div className="flex size-11 shrink-0 items-center justify-center bg-primary/15 text-primary">
               <Boxes className="size-5" aria-hidden />
             </div>
             <div className="min-w-0 flex-1">
@@ -780,7 +812,7 @@ export function ProductDetailPanel(props: Props) {
           />
           <span className={detailSectionLabelClass}>Commerce</span>
           {stockLow ? (
-            <span className="ml-auto rounded-full border border-destructive/30 bg-destructive/8 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+            <span className="ml-auto border border-destructive/30 bg-destructive/8 px-2 py-0.5 text-[10px] font-semibold text-destructive">
               Low stock
             </span>
           ) : null}
@@ -788,12 +820,13 @@ export function ProductDetailPanel(props: Props) {
         <div className={detailMetricGridClass}>
           {renderPricingStatCell(
             "Shelf",
-            formatAmount(sellPrice),
+            shelfDisplay.text,
             "bundlePrice",
             saveQuickBundlePrice,
             {
               canEdit: canCatalogWrite,
-              valueClass: "font-bold",
+              isEmpty: shelfDisplay.empty,
+              valueClass: shelfDisplay.empty ? undefined : "font-bold",
               editContent: (
                 <>
                   <input
@@ -812,11 +845,12 @@ export function ProductDetailPanel(props: Props) {
           )}
           {renderPricingStatCell(
             "Cost",
-            formatAmount(primaryCost),
+            costDisplay.text,
             "buyingPrice",
             saveQuickBuyingPrice,
             {
               canEdit: canCatalogWrite,
+              isEmpty: costDisplay.empty,
               editContent: (
                 <>
                   <input
@@ -835,17 +869,18 @@ export function ProductDetailPanel(props: Props) {
           )}
           {renderPricingStatCell(
             "Margin",
-            marginPct != null ? `${marginPct.toFixed(1)}%` : "—",
+            marginDisplay.text,
             "margin",
             saveQuickMargin,
             {
               canEdit: canCatalogWrite,
+              isEmpty: marginDisplay.empty,
               highlight:
-                marginPct != null && marginPct > 0
+                !marginDisplay.empty && marginPct != null && marginPct > 0
                   ? "success"
                   : "default",
               valueClass:
-                marginPct != null && marginPct > 0
+                !marginDisplay.empty && marginPct != null && marginPct > 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : undefined,
               editContent: (
@@ -997,7 +1032,7 @@ export function ProductDetailPanel(props: Props) {
       {packagePoolEmpty ? (
         <div
           className={cn(
-            "rounded-xl border px-3 py-2.5 text-xs leading-relaxed",
+            "border px-3 py-2.5 text-xs leading-relaxed",
             "border-amber-500/25 bg-amber-500/[0.06] text-muted-foreground",
           )}
           role="status"
@@ -1060,7 +1095,7 @@ export function ProductDetailPanel(props: Props) {
                   />,
                 )
               ) : (
-                fieldBtn("Name", detail.name, "productName")
+                fieldBtn("Name", displayName.label, "productName")
               )}
               {quickEdit === "sku" ? (
                 inlineEdit(
@@ -1297,12 +1332,12 @@ export function ProductDetailPanel(props: Props) {
                         {link.supplierName}
                       </span>
                       {link.primary && (
-                        <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="shrink-0 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                           Primary
                         </span>
                       )}
                       {!link.active && (
-                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        <span className="shrink-0 bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                           Inactive
                         </span>
                       )}
@@ -1338,7 +1373,7 @@ export function ProductDetailPanel(props: Props) {
               : "SKUs & variants"}
           </span>
           {variantCountLabel ? (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
+            <span className="bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
               {variantCountLabel}
             </span>
           ) : null}
@@ -1381,7 +1416,7 @@ export function ProductDetailPanel(props: Props) {
             ) : null}
             {variantRows.length === 0 ? (
               <div className="flex flex-col items-center gap-3 border-t border-border/40 px-4 py-6 text-center">
-                <div className="flex size-12 items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/30">
+                <div className="flex size-12 items-center justify-center border border-dashed border-border/60 bg-muted/30">
                   <Layers className="size-5 text-muted-foreground/50" aria-hidden />
                 </div>
                 <div className="max-w-[14rem] space-y-1">
@@ -1443,7 +1478,7 @@ export function ProductDetailPanel(props: Props) {
                       }
                     }}
                   >
-                    <div className="relative size-7 shrink-0 overflow-hidden rounded-md border border-border/60 bg-muted">
+                    <div className="relative size-7 shrink-0 overflow-hidden border border-border/60 bg-muted">
                       {vThumb ? (
                         <Image
                           src={vThumb}
@@ -1467,7 +1502,7 @@ export function ProductDetailPanel(props: Props) {
                           {v.name}
                         </p>
                         {v.packageVariant ? (
-                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                          <span className="inline-flex shrink-0 items-center gap-0.5 border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
                             <Boxes className="size-2.5" aria-hidden />
                             Pack
                           </span>

@@ -406,9 +406,11 @@ export function FormDrawer({
                     ? "px-3 pb-2 pt-1.5"
                     : isFull
                       ? "space-y-2 px-2.5 pb-3 pt-2 sm:space-y-5 sm:px-6 sm:pb-8 sm:pt-5"
-                      : width === "half"
-                        ? "space-y-4 px-4 pb-6 pt-4 sm:px-5"
-                        : "space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6",
+                      : compactHeader && !isFull
+                        ? "space-y-2 px-3 pb-4 pt-2"
+                        : width === "half"
+                          ? "space-y-4 px-4 pb-6 pt-4 sm:px-5"
+                          : "space-y-5 px-5 pb-8 pt-5 sm:space-y-6 sm:px-6 sm:pt-6",
                 )}
               >
                 {children}
@@ -461,7 +463,7 @@ export function FormDrawerFields({
       className={cn(
         "relative overflow-hidden rounded-xl border border-border/50 bg-card/80",
         compact
-          ? "space-y-2.5 p-3 shadow-sm"
+          ? "space-y-2 p-2.5 shadow-sm"
           : cn(
               "space-y-3 rounded-2xl bg-gradient-to-br from-card/90 via-background to-muted/15",
               "p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_1px_2px_rgba(0,0,0,0.04)] sm:p-5",
@@ -479,7 +481,7 @@ export function FormDrawerFields({
         className={cn(
           "block w-full px-0.5 font-heading font-semibold uppercase text-muted-foreground",
           compact
-            ? "border-b border-border/40 pb-2 text-[10px] tracking-[0.12em]"
+            ? "border-b border-border/40 pb-1.5 text-[10px] tracking-[0.12em]"
             : "border-b border-border/35 pb-3 text-[11px] tracking-[0.14em]",
         )}
       >
@@ -495,7 +497,7 @@ export function FormDrawerFields({
           {hint}
         </p>
       ) : null}
-      <div className={cn(compact ? "space-y-2.5" : "space-y-3 pl-1 pt-1")}>{children}</div>
+      <div className={cn(compact ? "space-y-2" : "space-y-3 pl-1 pt-1")}>{children}</div>
     </fieldset>
   );
 }

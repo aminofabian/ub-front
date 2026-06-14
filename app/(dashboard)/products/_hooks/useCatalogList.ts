@@ -13,9 +13,13 @@ import {
 } from "@/lib/api";
 import {
   buildVariantIdsByParentId,
+  CATALOG_LIST_DISPLAY_TYPES,
+  countCatalogRowsByDisplayType,
+  filterCatalogRowsByDisplayType,
   isCatalogParentSelectorRow,
   resolveVariantIdsForParent,
   sortCatalogRowsParentFirst,
+  type CatalogListDisplayType,
 } from "../_components/catalog-list-styles";
 
 export function useCatalogList(catalogBranchId?: string | null) {
@@ -42,8 +46,11 @@ export function useCatalogList(catalogBranchId?: string | null) {
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
     Record<string, string[]>
   >({});
-  const [listDensity, setListDensity] = useState<"comfortable" | "dense">("comfortable");
+  const [listDensity, setListDensity] = useState<"comfortable" | "dense">("dense");
   const [message, setMessage] = useState("");
+  const [rowTypeFilter, setRowTypeFilter] = useState<
+    Set<CatalogListDisplayType>
+  >(() => new Set(CATALOG_LIST_DISPLAY_TYPES));
 
   const variantIdsByParent = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -58,6 +65,28 @@ export function useCatalogList(catalogBranchId?: string | null) {
     () => sortCatalogRowsParentFirst(listRows),
     [listRows],
   );
+
+  const rowTypeCounts = useMemo(
+    () => countCatalogRowsByDisplayType(catalogRows),
+    [catalogRows],
+  );
+
+  const displayRows = useMemo(
+    () => filterCatalogRowsByDisplayType(catalogRows, rowTypeFilter),
+    [catalogRows, rowTypeFilter],
+  );
+
+  const rowTypeFilterActive =
+    rowTypeFilter.size > 0 && rowTypeFilter.size < CATALOG_LIST_DISPLAY_TYPES.length;
+
+  const toggleRowTypeFilter = useCallback((type: CatalogListDisplayType) => {
+    setRowTypeFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)),
@@ -132,6 +161,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
           active: row.active,
           webPublished: row.webPublished,
           stockQty: row.stockQty ?? row.currentStock ?? existing.stockQty,
+          bundlePrice: row.bundlePrice ?? existing.bundlePrice,
           packageVariant: row.packageVariant ?? existing.packageVariant,
           packageUnitsPerSale:
             row.packageUnitsPerSale ?? existing.packageUnitsPerSale,
@@ -237,6 +267,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
     setIncludeCategoryDescendants(true);
     setFilterNoBarcode(false);
     setFilterIncludeInactive(false);
+    setRowTypeFilter(new Set(CATALOG_LIST_DISPLAY_TYPES));
     setMessage("");
   }, []);
 
@@ -277,7 +308,13 @@ export function useCatalogList(catalogBranchId?: string | null) {
   return {
     itemTypes, categories, sortedCategories, categoryById,
     listRows: catalogRows,
+    displayRows,
     listRowsRaw: listRows,
+    rowTypeCounts,
+    rowTypeFilter,
+    rowTypeFilterActive,
+    toggleRowTypeFilter,
+    setRowTypeFilter,
     listTotalElements, listLast, listLoadingInitial, listLoadingMore,
     search, setSearch, debouncedSearch, setDebouncedSearch,
     filterCategoryId, setFilterCategoryId,
