@@ -44,6 +44,54 @@ export const catalogListToolbarClass = cn(
 export const catalogListToolbarMetaClass =
   "text-xs text-muted-foreground";
 
+/** Left filter column — shares borders with {@link catalogListShellClass}. */
+export const catalogFilterColumnClass =
+  "hidden min-h-0 w-[12rem] shrink-0 flex-col lg:flex";
+
+export const catalogFilterToolbarClass = cn(
+  "flex shrink-0 items-center justify-between gap-2",
+  "border-y border-l border-r border-border bg-muted/30",
+  "px-2.5 py-1.5",
+);
+
+export const catalogFilterToolbarTitleClass =
+  "text-[10px] font-semibold uppercase tracking-wider text-muted-foreground";
+
+export const catalogFilterBodyClass = cn(
+  "flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overflow-x-hidden",
+  "border-b border-l border-r border-border bg-card px-2.5 py-2",
+);
+
+export const catalogFilterSectionClass = "flex min-w-0 flex-col gap-1";
+
+export const catalogFilterLabelClass =
+  "text-[10px] font-semibold uppercase tracking-wider text-muted-foreground";
+
+export const catalogFilterInputClass = cn(
+  "h-7 w-full min-w-0 border border-border bg-background px-2 text-xs shadow-none",
+  "placeholder:text-muted-foreground/60",
+  "focus-visible:border-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
+  "disabled:cursor-not-allowed disabled:bg-muted/40 disabled:text-muted-foreground",
+);
+
+export const catalogFilterSelectClass = cn(
+  catalogFilterInputClass,
+  "cursor-pointer py-0",
+);
+
+export const catalogFilterHintClass =
+  "text-[10px] leading-snug text-muted-foreground";
+
+export const catalogFilterOptionClass =
+  "flex w-full cursor-pointer items-center gap-1.5 text-[11px] leading-tight text-foreground";
+
+export const catalogFilterOptionCountClass =
+  "ml-auto shrink-0 tabular-nums text-[10px] font-semibold text-muted-foreground";
+
+export const catalogFilterCheckboxClass = cn(
+  "size-3 shrink-0 border border-border accent-foreground",
+);
+
 export const catalogListHeaderRowClass = cn(
   "shrink-0 bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
 );

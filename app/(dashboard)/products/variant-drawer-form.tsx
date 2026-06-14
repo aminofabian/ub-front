@@ -2,33 +2,20 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Barcode,
-  Boxes,
-  ChevronDown,
-  ChevronRight,
-  CircleDollarSign,
-  FileText,
-  Hash,
-  Layers2,
-  Plus,
-  Sparkles,
-  Tag,
-  Trash2,
-  Truck,
-  Upload,
-  X,
-} from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, Plus, Trash2, Upload, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { BarcodeScanner } from "@/components/barcode-scanner";
+import { FormDrawerFields } from "@/components/form-drawer";
 import { cn } from "@/lib/utils";
 import type { BranchRecord, CategoryRecord, SupplierRecord } from "@/lib/api";
 import { type VariantDraft, emptyVariantDraft } from "./_types";
-import { toNumber } from "./_utils";
+import { formatAmount, toNumber } from "./_utils";
 import { StockIncreaseFields } from "./_components/StockIncreaseFields";
 import {
   productFormInputClass,
   productFormLabelClass,
+  productFormSectionBodyCompactClass,
   productFormSelectClass,
   productFormTextareaClass,
 } from "./_components/product-form-styles";
@@ -40,8 +27,9 @@ type Props = {
   setVariantDraftRows: Dispatch<SetStateAction<VariantDraft[]>>;
   addVariantDraftRow: () => void;
   removeVariantDraftRow: (index: number) => void;
-  parentDisplayName: string;
   parentIsProductGroup: boolean;
+  parentCategoryId?: string;
+  parentCategoryName?: string;
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
   suppliersForLink: SupplierRecord[];
@@ -58,17 +46,56 @@ type Props = {
   suggestedNextSku?: string | null;
 };
 
-const cardClass =
-  "rounded-2xl border border-border/50 bg-gradient-to-br from-card/90 via-background to-muted/15 p-4 shadow-sm sm:p-5";
+function icClass(disabled?: boolean) {
+  return cn(
+    productFormInputClass,
+    disabled && "cursor-not-allowed bg-muted/50 text-muted-foreground",
+  );
+}
 
-function SectionToggle({
-  icon: Icon,
+function Label({
+  label,
+  children,
+  className,
+  required,
+}: {
+  label: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  required?: boolean;
+}) {
+  return (
+    <label className={cn("flex flex-col gap-1", productFormLabelClass, className)}>
+      <span className="flex items-center gap-1 normal-case">
+        {label}
+        {required ? <span className="text-destructive">*</span> : null}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function InlineField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className={cn(productFormLabelClass, "w-11 shrink-0 normal-case")}>{label}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+function CompactSectionToggle({
   label,
   expanded,
   onToggle,
   badge,
 }: {
-  icon: React.ElementType;
   label: string;
   expanded: boolean;
   onToggle: () => void;
@@ -78,88 +105,63 @@ function SectionToggle({
     <button
       type="button"
       onClick={onToggle}
-      className={cn(
-        "group flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition",
-        expanded
-          ? "border-primary/20 bg-primary/[0.03] ring-1 ring-primary/10"
-          : "border-border/50 bg-muted/20 hover:border-border hover:bg-muted/30",
-      )}
+      className="flex w-full items-center gap-1.5 rounded-md py-1 text-left text-xs font-medium text-muted-foreground transition hover:bg-muted/30 hover:text-foreground"
     >
-      <div
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition",
-          expanded ? "bg-primary/10" : "bg-muted group-hover:bg-muted/80",
-        )}
-      >
-        <Icon className={cn("size-4", expanded ? "text-primary" : "text-muted-foreground")} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">{label}</span>
-          {badge}
-        </div>
-      </div>
-      <div className="shrink-0 text-muted-foreground">
-        {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-      </div>
+      {expanded ? (
+        <ChevronDown className="size-3.5 shrink-0" aria-hidden />
+      ) : (
+        <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+      )}
+      <span className="min-w-0 flex-1">{label}</span>
+      {badge}
     </button>
   );
 }
 
-/** Title row stacks above controls — never put inputs in the same flex row as the caption (they get zero width). */
-function Label({
-  title,
-  children,
-  required,
-  className,
-}: {
-  title: React.ReactNode;
-  children: React.ReactNode;
-  required?: boolean;
-  className?: string;
-}) {
-  return (
-    <label className={cn("flex flex-col gap-1", className)}>
-      <span className={cn("flex items-center gap-1", productFormLabelClass)}>
-        {title}
-        {required ? <span className="text-destructive">*</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function NumberInput({
-  value,
+function ToggleChip({
+  checked,
   onChange,
-  placeholder,
-  min,
-  step,
+  label,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  min?: string;
-  step?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
 }) {
   return (
-    <input
-      type="number"
-      inputMode="decimal"
-      className={cn(productFormInputClass, "w-full")}
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      min={min}
-      step={step}
-    />
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition",
+        checked
+          ? "border-primary/30 bg-primary/[0.08] text-primary ring-1 ring-primary/10"
+          : "border-border/60 bg-background text-muted-foreground hover:bg-muted/30",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-3 w-3 items-center justify-center rounded-sm border transition",
+          checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
+        )}
+      >
+        {checked ? (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+            <path
+              d="M2 5L4 7L8 3"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        ) : null}
+      </span>
+      {label}
+    </button>
   );
 }
 
-function syncCostsFromBuy(
-  buyRaw: string,
-  prev: VariantDraft,
-): VariantDraft {
+function syncCostsFromBuy(buyRaw: string, prev: VariantDraft): VariantDraft {
   const buy = toNumber(buyRaw);
   if (buy == null) return { ...prev, defaultCostPrice: buyRaw };
   const packQty = Math.max(1, toNumber(prev.bundleQty) ?? 1);
@@ -172,7 +174,7 @@ function syncCostsFromBuy(
   };
 }
 
-function VariantRowPricing({
+function VariantPricingRow({
   draft,
   onPatch,
   currencyCode,
@@ -185,68 +187,72 @@ function VariantRowPricing({
   const buy = toNumber(draft.defaultCostPrice);
   const sell = toNumber(draft.bundlePrice);
   const packQty = Math.max(1, toNumber(draft.bundleQty) ?? 1);
-  const margin =
-    buy != null && sell != null && sell > 0
-      ? (((sell - buy / packQty) / sell) * 100).toFixed(1)
-      : null;
+  const marginInfo = useMemo(() => {
+    if (buy == null || sell == null || sell <= 0) return null;
+    const profit = sell - buy / packQty;
+    const margin = (profit / sell) * 100;
+    return { profit, margin, valid: true as const };
+  }, [buy, sell, packQty]);
+
+  const tone =
+    marginInfo && marginInfo.margin >= 20
+      ? "text-emerald-700 dark:text-emerald-400"
+      : marginInfo && marginInfo.margin >= 10
+        ? "text-amber-700 dark:text-amber-400"
+        : marginInfo
+          ? "text-red-700 dark:text-red-400"
+          : "text-muted-foreground";
 
   return (
-    <div className={cn(cardClass, "p-3 sm:p-4")}>
-      <div className="mb-3 flex items-center gap-2 border-b border-border/35 pb-2">
-        <Tag className="size-4 text-primary" aria-hidden />
-        <span className="font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Pricing
+    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+      <Label required label={`Sell price${cur}`}>
+        <input
+          type="number"
+          inputMode="decimal"
+          className={icClass()}
+          placeholder="0.00"
+          value={draft.bundlePrice}
+          onChange={(e) => onPatch({ bundlePrice: e.target.value })}
+        />
+      </Label>
+      <div
+        className="flex min-w-[4.5rem] flex-col items-center justify-end gap-0.5 rounded-md border border-border/50 bg-muted/15 px-2 py-1.5 sm:min-h-[4.25rem]"
+        aria-live="polite"
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Margin
         </span>
-        {margin != null ? (
-          <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
-            {margin}%
+        <span className={cn("text-base font-bold tabular-nums leading-none", tone)}>
+          {marginInfo ? `${marginInfo.margin.toFixed(0)}%` : "—"}
+        </span>
+        {marginInfo ? (
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            +{currencyCode || "KES"} {formatAmount(marginInfo.profit)}
           </span>
-        ) : null}
+        ) : (
+          <span className="text-[10px] text-muted-foreground/80">per sale</span>
+        )}
       </div>
-      <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Label title="Pack qty">
-            <NumberInput
-              value={draft.bundleQty}
-              onChange={(v) => onPatch({ bundleQty: v })}
-              placeholder="1"
-              min="1"
-              step="1"
-            />
-          </Label>
-          <Label title="Pack label">
-            <input
-              className={productFormInputClass}
-              placeholder="6-pack"
-              value={draft.bundleName}
-              onChange={(e) => onPatch({ bundleName: e.target.value })}
-            />
-          </Label>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Label title={`Sell price${cur}`}>
-            <NumberInput
-              value={draft.bundlePrice}
-              onChange={(v) => onPatch({ bundlePrice: v })}
-              placeholder="0.00"
-            />
-          </Label>
-          <Label title={`Buy price${cur}`}>
-            <NumberInput
-              value={draft.defaultCostPrice}
-              onChange={(v) => onPatch(syncCostsFromBuy(v, draft))}
-              placeholder="0.00"
-            />
-          </Label>
-        </div>
-      </div>
+      <Label label={`Buy price${cur}`}>
+        <input
+          type="number"
+          inputMode="decimal"
+          className={icClass()}
+          placeholder="0.00"
+          value={draft.defaultCostPrice}
+          onChange={(e) => onPatch(syncCostsFromBuy(e.target.value, draft))}
+        />
+      </Label>
     </div>
   );
 }
 
-type RowSectionKey = "stock" | "supplier" | "branchPrice";
+function variantLegend(index: number, variantName: string): string {
+  const name = variantName.trim();
+  return name || `Variant ${index + 1}`;
+}
 
-function VariantRowCard({
+function VariantRowFields({
   row,
   index,
   canRemove,
@@ -255,14 +261,9 @@ function VariantRowCard({
   suggestedNextSku,
   currencyCode,
   branches,
-  suppliersForLink,
-  suppliersLoading,
-  loadSuppliersForLink,
-  canLinkSupplier,
-  canListSuppliers,
-  canSetSellPrice,
   canInventoryWrite,
   parentIsProductGroup,
+  onScanBarcode,
 }: {
   row: VariantDraft;
   index: number;
@@ -272,21 +273,10 @@ function VariantRowCard({
   suggestedNextSku?: string | null;
   currencyCode: string;
   branches: BranchRecord[];
-  suppliersForLink: SupplierRecord[];
-  suppliersLoading: boolean;
-  loadSuppliersForLink: () => void | Promise<void>;
-  canLinkSupplier: boolean;
-  canListSuppliers: boolean;
-  canSetSellPrice: boolean;
   canInventoryWrite: boolean;
   parentIsProductGroup: boolean;
+  onScanBarcode: () => void;
 }) {
-  const [expanded, setExpanded] = useState<Record<RowSectionKey, boolean>>({
-    stock: index === 0,
-    supplier: false,
-    branchPrice: false,
-  });
-
   const costPerUnit = useMemo(() => {
     const buy = toNumber(row.defaultCostPrice);
     const pack = Math.max(1, toNumber(row.bundleQty) ?? 1);
@@ -294,312 +284,163 @@ function VariantRowCard({
     return null;
   }, [row.defaultCostPrice, row.bundleQty]);
 
-  const toggle = (key: RowSectionKey) =>
-    setExpanded((p) => ({ ...p, [key]: !p[key] }));
-
-  const hasSupplier = Boolean(
-    row.supplierId || row.supplierSku || row.defaultCostPrice,
-  );
-
   return (
-    <section className={cn(cardClass, "space-y-4")}>
-      <div className="flex items-center justify-between gap-2 border-b border-border/35 pb-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Sparkles className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <h3 className="text-sm font-semibold text-foreground">Variant {index + 1}</h3>
-        </div>
-        {canRemove ? (
+    <div className="space-y-2">
+      {canRemove ? (
+        <div className="flex justify-end">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 gap-1 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="h-7 gap-1 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={onRemove}
           >
-            <Trash2 className="size-3.5" aria-hidden />
+            <Trash2 className="size-3" aria-hidden />
             Remove
           </Button>
-        ) : null}
-      </div>
-
-      {!parentIsProductGroup ? (
-        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/45 bg-muted/20 px-3 py-2">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 rounded border-input"
-            checked={row.isPackageVariant}
-            onChange={(e) =>
-              onPatch({
-                isPackageVariant: e.target.checked,
-                openingQty: e.target.checked ? "" : row.openingQty,
-              })
-            }
-          />
-          <span className="text-xs leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Package / bundle SKU</span> — sells in
-            packs and deducts stock from the parent product (no separate inventory).
-          </span>
-        </label>
-      ) : null}
-
-      <Label
-        title={row.isPackageVariant ? "Package name" : "Variant name"}
-        required
-      >
-        <input
-          className={cn(productFormInputClass, "text-sm font-medium")}
-          placeholder={row.isPackageVariant ? "Tray of 30" : "Red · 500 ml"}
-          value={row.variantName}
-          onChange={(e) => onPatch({ variantName: e.target.value })}
-          required={index === 0}
-          autoComplete="off"
-        />
-      </Label>
-
-      {row.isPackageVariant ? (
-        <>
-          <Label title="Contains (base units per package)" required>
-            <NumberInput
-              value={row.unitsPerPackage}
-              onChange={(v) => onPatch({ unitsPerPackage: v })}
-              placeholder="30"
-              min="1"
-              step="1"
-            />
-          </Label>
-          {row.unitsPerPackage.trim() && Number(row.unitsPerPackage) > 0 ? (
-            <p className="text-[11px] text-muted-foreground">
-              Selling 1 package deducts{" "}
-              <span className="font-semibold tabular-nums text-foreground">
-                {row.unitsPerPackage}
-              </span>{" "}
-              units from parent stock.
-            </p>
-          ) : null}
-        </>
-      ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Label
-          title={
-            <span className="flex items-center gap-1 normal-case">
-              <Hash className="size-3" aria-hidden />
-              SKU
-            </span>
-          }
-        >
-          <div className="flex gap-2">
-            <input
-              className={cn(productFormInputClass, "min-w-0 flex-1 font-mono text-xs")}
-              placeholder="Auto"
-              value={row.sku}
-              onChange={(e) => onPatch({ sku: e.target.value })}
-            />
-            {index === 0 && suggestedNextSku ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 shrink-0 px-2 text-xs"
-                onClick={() => onPatch({ sku: suggestedNextSku })}
-              >
-                {suggestedNextSku}
-              </Button>
-            ) : null}
-          </div>
-        </Label>
-        <Label
-          title={
-            <span className="flex items-center gap-1 normal-case">
-              <Barcode className="size-3" aria-hidden />
-              Barcode
-            </span>
-          }
-        >
-          <input
-            className={productFormInputClass}
-            placeholder="Scan or type"
-            value={row.barcode}
-            onChange={(e) => onPatch({ barcode: e.target.value })}
-          />
-        </Label>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Label title="Brand">
-          <input
-            className={productFormInputClass}
-            value={row.brand}
-            onChange={(e) => onPatch({ brand: e.target.value })}
-          />
-        </Label>
-        <Label title="Size">
-          <input
-            className={productFormInputClass}
-            value={row.size}
-            onChange={(e) => onPatch({ size: e.target.value })}
-          />
-        </Label>
-      </div>
-
-      <Label title="Display name">
-        <input
-          className={productFormInputClass}
-          placeholder="Optional"
-          value={row.name}
-          onChange={(e) => onPatch({ name: e.target.value })}
-        />
-      </Label>
-
-      {row.isPackageVariant ? (
-        <Label title={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}>
-          <NumberInput
-            value={row.bundlePrice}
-            onChange={(v) => onPatch({ bundlePrice: v })}
-            placeholder="0.00"
-          />
-        </Label>
-      ) : (
-        <VariantRowPricing draft={row} onPatch={onPatch} currencyCode={currencyCode} />
-      )}
-
-      {canInventoryWrite && !row.isPackageVariant ? (
-        <div className="space-y-3">
-          <SectionToggle
-            icon={Boxes}
-            label="Opening stock"
-            expanded={expanded.stock}
-            onToggle={() => toggle("stock")}
-          />
-          {expanded.stock ? (
-            <StockIncreaseFields
-              mode="opening"
-              minimal
-              branches={branches}
-              branchId={row.openingBranchId}
-              onBranchIdChange={(id) => onPatch({ openingBranchId: id })}
-              quantity={row.openingQty}
-              onQuantityChange={(v) => onPatch({ openingQty: v })}
-              unitCost={row.openingUnitCost}
-              onUnitCostChange={(v) => onPatch({ openingUnitCost: v })}
-              currentUnitCost={costPerUnit}
-              className="border-0 bg-transparent p-0 shadow-none ring-0"
-            />
-          ) : null}
         </div>
       ) : null}
 
-      {canLinkSupplier ? (
-        <div className="space-y-3">
-          <SectionToggle
-            icon={Truck}
-            label="Supplier"
-            expanded={expanded.supplier}
-            onToggle={() => toggle("supplier")}
-            badge={
-              hasSupplier ? (
-                <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
-              ) : undefined
+      <FormDrawerFields legend={variantLegend(index, row.variantName)} compact>
+        {!parentIsProductGroup ? (
+          <ToggleChip
+            checked={row.isPackageVariant}
+            onChange={(v) =>
+              onPatch({
+                isPackageVariant: v,
+                openingQty: v ? "" : row.openingQty,
+              })
             }
+            label="Package SKU (deducts parent stock)"
           />
-          {expanded.supplier ? (
-            <div className="space-y-3 rounded-xl border border-border/50 bg-muted/10 p-3">
-              {canListSuppliers && suppliersForLink.length === 0 ? (
+        ) : null}
+
+        <Label
+          required
+          label={row.isPackageVariant ? "Package name" : "Variant name"}
+        >
+          <input
+            className={icClass()}
+            placeholder={row.isPackageVariant ? "Tray of 30" : "500 g · Blue"}
+            value={row.variantName}
+            onChange={(e) => onPatch({ variantName: e.target.value })}
+            required={index === 0}
+            autoComplete="off"
+          />
+        </Label>
+
+        {row.isPackageVariant ? (
+          <>
+            <Label required label="Units per package">
+              <input
+                type="number"
+                inputMode="numeric"
+                className={icClass()}
+                placeholder="30"
+                min={1}
+                value={row.unitsPerPackage}
+                onChange={(e) => onPatch({ unitsPerPackage: e.target.value })}
+              />
+            </Label>
+            <Label label={`Price per package${currencyCode ? ` (${currencyCode})` : ""}`}>
+              <input
+                type="number"
+                inputMode="decimal"
+                className={icClass()}
+                placeholder="0.00"
+                value={row.bundlePrice}
+                onChange={(e) => onPatch({ bundlePrice: e.target.value })}
+              />
+            </Label>
+          </>
+        ) : (
+          <VariantPricingRow draft={row} onPatch={onPatch} currencyCode={currencyCode} />
+        )}
+      </FormDrawerFields>
+
+      <FormDrawerFields legend="Barcode & SKU" compact>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Label label="Barcode">
+            <div className="flex gap-1.5">
+              <input
+                className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
+                placeholder="Scan or type"
+                value={row.barcode}
+                onChange={(e) => onPatch({ barcode: e.target.value })}
+              />
+              <button
+                type="button"
+                onClick={onScanBarcode}
+                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-input/80 bg-background text-muted-foreground shadow-sm hover:bg-muted"
+                aria-label="Scan barcode"
+              >
+                <Camera className="size-3.5" aria-hidden />
+              </button>
+            </div>
+          </Label>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className={productFormLabelClass}>SKU</span>
+            <div className="flex gap-1.5">
+              <input
+                className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
+                placeholder="Auto"
+                value={row.sku}
+                onChange={(e) => onPatch({ sku: e.target.value })}
+              />
+              {index === 0 && suggestedNextSku ? (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={suppliersLoading}
-                  onClick={() => void loadSuppliersForLink()}
+                  className="h-8 shrink-0 px-2 text-[10px]"
+                  onClick={() => onPatch({ sku: suggestedNextSku })}
                 >
-                  {suppliersLoading ? "Loading…" : "Load suppliers"}
+                  {suggestedNextSku}
                 </Button>
               ) : null}
-              <Label title="Supplier">
-                <select
-                  className={productFormSelectClass}
-                  value={
-                    suppliersForLink.some((s) => s.id === row.supplierId)
-                      ? row.supplierId
-                      : ""
-                  }
-                  onChange={(e) => onPatch({ supplierId: e.target.value })}
-                >
-                  <option value="">— None —</option>
-                  {suppliersForLink.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Label title="Supplier SKU">
-                  <input
-                    className={productFormInputClass}
-                    value={row.supplierSku}
-                    onChange={(e) => onPatch({ supplierSku: e.target.value })}
-                  />
-                </Label>
-                <label className="flex items-center gap-2 pt-5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={row.setPrimarySupplier}
-                    onChange={(e) => onPatch({ setPrimarySupplier: e.target.checked })}
-                    className="size-4 rounded border-border"
-                  />
-                  Primary supplier
-                </label>
-              </div>
             </div>
-          ) : null}
+          </div>
         </div>
-      ) : null}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <InlineField label="Brand">
+            <input
+              className={icClass()}
+              placeholder="Optional"
+              value={row.brand}
+              onChange={(e) => onPatch({ brand: e.target.value })}
+            />
+          </InlineField>
+          <InlineField label="Size">
+            <input
+              className={icClass()}
+              placeholder="Optional"
+              value={row.size}
+              onChange={(e) => onPatch({ size: e.target.value })}
+            />
+          </InlineField>
+        </div>
+      </FormDrawerFields>
 
-      {canSetSellPrice ? (
-        <div className="space-y-3">
-          <SectionToggle
-            icon={CircleDollarSign}
-            label="Branch sell price"
-            expanded={expanded.branchPrice}
-            onToggle={() => toggle("branchPrice")}
+      {canInventoryWrite && !row.isPackageVariant ? (
+        <FormDrawerFields legend="Stock" compact>
+          <StockIncreaseFields
+            mode="opening"
+            minimal
+            branches={branches}
+            branchId={row.openingBranchId}
+            onBranchIdChange={(id) => onPatch({ openingBranchId: id })}
+            quantity={row.openingQty}
+            onQuantityChange={(v) => onPatch({ openingQty: v })}
+            unitCost={row.openingUnitCost}
+            onUnitCostChange={(v) => onPatch({ openingUnitCost: v })}
+            currentUnitCost={costPerUnit}
+            unitCostLabel="Unit cost (optional)"
+            unitCostHint="Defaults from buy price"
+            className="space-y-2 border-0 bg-transparent p-0 shadow-none ring-0"
           />
-          {expanded.branchPrice ? (
-            <div className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border/50 bg-muted/10 p-3">
-              <Label title={`Price${currencyCode ? ` (${currencyCode})` : ""}`}>
-                <NumberInput
-                  value={row.sellingPrice}
-                  onChange={(v) => onPatch({ sellingPrice: v })}
-                  placeholder="0.00"
-                />
-              </Label>
-              <Label title="Effective from">
-                <input
-                  type="date"
-                  className={productFormInputClass}
-                  value={row.sellEffectiveFrom}
-                  onChange={(e) => onPatch({ sellEffectiveFrom: e.target.value })}
-                />
-              </Label>
-              <Label title="Branch" className="sm:col-span-2">
-                <select
-                  className={productFormSelectClass}
-                  value={row.sellBranchId}
-                  onChange={(e) => onPatch({ sellBranchId: e.target.value })}
-                >
-                  <option value="">All locations</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            </div>
-          ) : null}
-        </div>
+        </FormDrawerFields>
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -608,8 +449,9 @@ export function VariantDrawerForm({
   setVariantDraftRows,
   addVariantDraftRow,
   removeVariantDraftRow,
-  parentDisplayName,
   parentIsProductGroup,
+  parentCategoryId,
+  parentCategoryName,
   sortedCategories,
   branches,
   suppliersForLink,
@@ -626,7 +468,8 @@ export function VariantDrawerForm({
   suggestedNextSku,
 }: Props) {
   const [extrasRow, setExtrasRow] = useState(0);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [moreExpanded, setMoreExpanded] = useState(false);
+  const [scannerRow, setScannerRow] = useState<number | null>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -644,70 +487,65 @@ export function VariantDrawerForm({
 
   const extrasDraft = variantDraftRows[extrasRow] ?? emptyVariantDraft();
 
-  const hasDetailData = Boolean(
+  const hasMoreData = Boolean(
     extrasDraft.description ||
       extrasDraft.categoryId ||
       extrasDraft.unitType ||
       extrasDraft.minStockLevel ||
       extrasDraft.reorderLevel ||
       extrasDraft.reorderQty ||
+      extrasDraft.supplierId ||
+      extrasDraft.supplierSku ||
+      extrasDraft.sellingPrice ||
+      extrasDraft.sellBranchId ||
       pendingVariantImage,
   );
 
   return (
-    <form id="add-variant-form" className="space-y-5" onSubmit={onSubmit}>
-      <div className="flex gap-3 rounded-xl border border-border/60 bg-gradient-to-br from-muted/30 to-background p-3 shadow-sm">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Layers2 className="size-5" aria-hidden />
+    <form id="add-variant-form" className="space-y-2" onSubmit={onSubmit}>
+      {parentIsProductGroup && parentCategoryId ? (
+        <div className="rounded-md border border-border/50 bg-muted/15 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+          Category:{" "}
+          <span className="font-medium text-foreground">
+            {parentCategoryName || "Group category"}
+          </span>
+          <span className="text-muted-foreground/80"> — applied to new variants</span>
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {parentIsProductGroup ? "Parent group" : "Parent product"}
-          </p>
-          <p className="truncate text-sm font-semibold text-foreground">{parentDisplayName}</p>
-        </div>
-      </div>
+      ) : null}
 
-      <div className="space-y-4">
-        {variantDraftRows.map((row, index) => (
-          <VariantRowCard
-            key={index}
-            row={row}
-            index={index}
-            canRemove={index > 0}
-            onRemove={() => removeVariantDraftRow(index)}
-            onPatch={(partial) => patchRow(index, partial)}
-            suggestedNextSku={suggestedNextSku}
-            currencyCode={currencyCode}
-            branches={branches}
-            suppliersForLink={suppliersForLink}
-            suppliersLoading={suppliersLoading}
-            loadSuppliersForLink={loadSuppliersForLink}
-            canLinkSupplier={canLinkSupplier}
-            canListSuppliers={canListSuppliers}
-            canSetSellPrice={canSetSellPrice}
-            canInventoryWrite={canInventoryWrite}
-            parentIsProductGroup={parentIsProductGroup}
-          />
-        ))}
-      </div>
+      {variantDraftRows.map((row, index) => (
+        <VariantRowFields
+          key={index}
+          row={row}
+          index={index}
+          canRemove={index > 0}
+          onRemove={() => removeVariantDraftRow(index)}
+          onPatch={(partial) => patchRow(index, partial)}
+          suggestedNextSku={suggestedNextSku}
+          currencyCode={currencyCode}
+          branches={branches}
+          canInventoryWrite={canInventoryWrite}
+          parentIsProductGroup={parentIsProductGroup}
+          onScanBarcode={() => setScannerRow(index)}
+        />
+      ))}
 
-      <div className="flex justify-center">
+      <div className="flex justify-center pt-1">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="gap-1.5"
+          className="h-8 gap-1.5 text-xs"
           onClick={addVariantDraftRow}
         >
-          <Plus className="size-4" aria-hidden />
+          <Plus className="size-3.5" aria-hidden />
           Add another variant
         </Button>
       </div>
 
       {variantDraftRows.length > 1 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2">
-          <span className="text-xs text-muted-foreground">Shared fields for</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>More options for</span>
           <select
             className={cn(productFormSelectClass, "h-8 max-w-[12rem] text-xs")}
             value={extrasRow}
@@ -722,128 +560,262 @@ export function VariantDrawerForm({
         </div>
       ) : null}
 
-      <div className="space-y-3">
-        <SectionToggle
-          icon={FileText}
-          label="Details & reorder"
-          expanded={detailsOpen}
-          onToggle={() => setDetailsOpen((o) => !o)}
-          badge={
-            hasDetailData ? (
-              <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
-            ) : undefined
-          }
-        />
-        {detailsOpen ? (
-          <div className={cn(cardClass, "space-y-4")}>
-            <Label title="Description">
-              <textarea
-                className={productFormTextareaClass}
-                placeholder="Optional"
-                value={extrasDraft.description}
-                onChange={(e) => patchRow(extrasRow, { description: e.target.value })}
-              />
-            </Label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Label title="Category">
+      <CompactSectionToggle
+        label="More options"
+        expanded={moreExpanded}
+        onToggle={() => setMoreExpanded((o) => !o)}
+        badge={
+          hasMoreData ? (
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+          ) : undefined
+        }
+      />
+
+      {moreExpanded ? (
+        <div className={cn(productFormSectionBodyCompactClass, "space-y-3")}>
+          {canLinkSupplier ? (
+            <div className="space-y-2">
+              {canListSuppliers && suppliersForLink.length === 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={suppliersLoading}
+                  onClick={() => void loadSuppliersForLink()}
+                >
+                  {suppliersLoading ? "Loading…" : "Load suppliers"}
+                </Button>
+              ) : null}
+              <Label label="Supplier">
+                <select
+                  className={productFormSelectClass}
+                  value={
+                    suppliersForLink.some((s) => s.id === extrasDraft.supplierId)
+                      ? extrasDraft.supplierId
+                      : ""
+                  }
+                  onChange={(e) => patchRow(extrasRow, { supplierId: e.target.value })}
+                >
+                  <option value="">— None —</option>
+                  {suppliersForLink.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Label label="Supplier SKU">
+                  <input
+                    className={icClass()}
+                    value={extrasDraft.supplierSku}
+                    onChange={(e) => patchRow(extrasRow, { supplierSku: e.target.value })}
+                  />
+                </Label>
+                <label className="flex items-center gap-2 pt-5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={extrasDraft.setPrimarySupplier}
+                    onChange={(e) =>
+                      patchRow(extrasRow, { setPrimarySupplier: e.target.checked })
+                    }
+                    className="size-3.5 rounded border-border"
+                  />
+                  Primary supplier
+                </label>
+              </div>
+            </div>
+          ) : null}
+
+          {canSetSellPrice ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Label label={`Branch sell price${currencyCode ? ` (${currencyCode})` : ""}`}>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  className={icClass()}
+                  placeholder="0.00"
+                  value={extrasDraft.sellingPrice}
+                  onChange={(e) => patchRow(extrasRow, { sellingPrice: e.target.value })}
+                />
+              </Label>
+              <Label label="Effective from">
+                <input
+                  type="date"
+                  className={icClass()}
+                  value={extrasDraft.sellEffectiveFrom}
+                  onChange={(e) =>
+                    patchRow(extrasRow, { sellEffectiveFrom: e.target.value })
+                  }
+                />
+              </Label>
+              <Label className="sm:col-span-2" label="Branch">
+                <select
+                  className={productFormSelectClass}
+                  value={extrasDraft.sellBranchId}
+                  onChange={(e) => patchRow(extrasRow, { sellBranchId: e.target.value })}
+                >
+                  <option value="">All locations</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+            </div>
+          ) : null}
+
+          <Label label="Description">
+            <textarea
+              className={productFormTextareaClass}
+              placeholder="Optional"
+              rows={2}
+              value={extrasDraft.description}
+              onChange={(e) => patchRow(extrasRow, { description: e.target.value })}
+            />
+          </Label>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {!parentIsProductGroup || !parentCategoryId ? (
+              <Label label="Category">
                 <select
                   className={productFormSelectClass}
                   value={extrasDraft.categoryId}
                   onChange={(e) => patchRow(extrasRow, { categoryId: e.target.value })}
                 >
-                  <option value="">Parent</option>
+                  <option value="">Same as parent</option>
                   {sortedCategories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
+                      {!c.active ? " (inactive)" : ""}
                     </option>
                   ))}
                 </select>
               </Label>
-              <Label title="Unit">
-                <input
-                  className={productFormInputClass}
-                  placeholder="each"
-                  value={extrasDraft.unitType}
-                  onChange={(e) => patchRow(extrasRow, { unitType: e.target.value })}
-                />
+            ) : (
+              <Label label="Category override">
+                <select
+                  className={productFormSelectClass}
+                  value={extrasDraft.categoryId}
+                  onChange={(e) => patchRow(extrasRow, { categoryId: e.target.value })}
+                >
+                  {sortedCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {!c.active ? " (inactive)" : ""}
+                    </option>
+                  ))}
+                </select>
               </Label>
-            </div>
-
-            <div className="space-y-2">
-              <span className={productFormLabelClass}>Cover photo</span>
-              {extrasRow === 0 || variantDraftRows.length === 1 ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={coverImageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] ?? null;
-                      setPendingVariantImage(file);
-                      if (file) patchRow(0, { imageKey: "" });
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => coverImageInputRef.current?.click()}
-                  >
-                    <Upload className="size-3.5" aria-hidden />
-                    {pendingVariantImage ? "Change" : "Upload"}
-                  </Button>
-                  {pendingVariantImage ? (
-                    <>
-                      <span className="max-w-[10rem] truncate text-xs text-muted-foreground">
-                        {pendingVariantImage.name}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2"
-                        onClick={() => {
-                          setPendingVariantImage(null);
-                          if (coverImageInputRef.current) {
-                            coverImageInputRef.current.value = "";
-                          }
-                        }}
-                      >
-                        <X className="size-3.5" />
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Use variant 1 for cover photo.</p>
-              )}
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Label title="Min stock">
-                <NumberInput
-                  value={extrasDraft.minStockLevel}
-                  onChange={(v) => patchRow(extrasRow, { minStockLevel: v })}
-                />
-              </Label>
-              <Label title="Reorder at">
-                <NumberInput
-                  value={extrasDraft.reorderLevel}
-                  onChange={(v) => patchRow(extrasRow, { reorderLevel: v })}
-                />
-              </Label>
-              <Label title="Reorder qty">
-                <NumberInput
-                  value={extrasDraft.reorderQty}
-                  onChange={(v) => patchRow(extrasRow, { reorderQty: v })}
-                />
-              </Label>
-            </div>
+            )}
+            <Label label="Unit">
+              <input
+                className={icClass()}
+                placeholder="each, kg…"
+                value={extrasDraft.unitType}
+                onChange={(e) => patchRow(extrasRow, { unitType: e.target.value })}
+              />
+            </Label>
           </div>
-        ) : null}
-      </div>
+
+          <div className="space-y-1.5">
+            <span className={productFormLabelClass}>Cover photo</span>
+            {extrasRow === 0 || variantDraftRows.length === 1 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={coverImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setPendingVariantImage(file);
+                    if (file) patchRow(0, { imageKey: "" });
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => coverImageInputRef.current?.click()}
+                >
+                  <Upload className="size-3.5" aria-hidden />
+                  {pendingVariantImage ? "Change" : "Upload"}
+                </Button>
+                {pendingVariantImage ? (
+                  <>
+                    <span className="max-w-[10rem] truncate text-xs text-muted-foreground">
+                      {pendingVariantImage.name}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-1.5"
+                      onClick={() => {
+                        setPendingVariantImage(null);
+                        if (coverImageInputRef.current) {
+                          coverImageInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      <X className="size-3.5" />
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Applies to variant 1 only.</p>
+            )}
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Label label="Min stock">
+              <input
+                type="number"
+                inputMode="decimal"
+                className={icClass()}
+                placeholder="—"
+                value={extrasDraft.minStockLevel}
+                onChange={(e) => patchRow(extrasRow, { minStockLevel: e.target.value })}
+              />
+            </Label>
+            <Label label="Reorder at">
+              <input
+                type="number"
+                inputMode="decimal"
+                className={icClass()}
+                placeholder="—"
+                value={extrasDraft.reorderLevel}
+                onChange={(e) => patchRow(extrasRow, { reorderLevel: e.target.value })}
+              />
+            </Label>
+            <Label label="Reorder qty">
+              <input
+                type="number"
+                inputMode="decimal"
+                className={icClass()}
+                placeholder="—"
+                value={extrasDraft.reorderQty}
+                onChange={(e) => patchRow(extrasRow, { reorderQty: e.target.value })}
+              />
+            </Label>
+          </div>
+        </div>
+      ) : null}
+
+      {scannerRow != null ? (
+        <BarcodeScanner
+          onScan={(barcode) => {
+            patchRow(scannerRow, { barcode });
+            setScannerRow(null);
+          }}
+          onClose={() => setScannerRow(null)}
+        />
+      ) : null}
     </form>
   );
 }

@@ -300,7 +300,11 @@ export function ProductCreateDrawer({
     m.parentDraft.supplierId || m.parentDraft.supplierSku || m.parentDraft.defaultCostPrice,
   );
   const hasDetailData = Boolean(
-    m.parentDraft.description || m.parentDraft.unitType,
+    m.parentDraft.description ||
+      m.parentDraft.unitType ||
+      m.parentDraft.categoryId ||
+      m.parentDraft.brand ||
+      m.parentDraft.size,
   );
   const hasMoreData = Boolean(
     hasSupplierData ||
@@ -476,30 +480,32 @@ export function ProductCreateDrawer({
           </div>
 
           <div className="flex items-start gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              className={cn(
-                "relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background transition hover:border-primary/40",
-                previewUrl ? "border-border/50" : "border-dashed border-border/50",
-              )}
-              aria-label="Upload photo"
-            >
-              {previewUrl ? (
-                <Image
-                  src={previewUrl}
-                  alt=""
-                  width={36}
-                  height={36}
-                  unoptimized
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <Upload className="size-3.5 text-muted-foreground/50" aria-hidden />
-              )}
-            </button>
+            {!isGroup ? (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                className={cn(
+                  "relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background transition hover:border-primary/40",
+                  previewUrl ? "border-border/50" : "border-dashed border-border/50",
+                )}
+                aria-label="Upload photo"
+              >
+                {previewUrl ? (
+                  <Image
+                    src={previewUrl}
+                    alt=""
+                    width={36}
+                    height={36}
+                    unoptimized
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Upload className="size-3.5 text-muted-foreground/50" aria-hidden />
+                )}
+              </button>
+            ) : null}
             <div className="min-w-0 flex-1">
               <Label required className="gap-0.5" label={isGroup ? "Group name" : "Product name"}>
                 <input
@@ -512,7 +518,7 @@ export function ProductCreateDrawer({
                 />
               </Label>
             </div>
-            {m.pendingCreateImage ? (
+            {!isGroup && m.pendingCreateImage ? (
               <button
                 type="button"
                 onClick={() => m.setPendingCreateImage(null)}
@@ -535,7 +541,44 @@ export function ProductCreateDrawer({
             }}
           />
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          {isGroup ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Label required className="gap-0.5" label="Department">
+                <select
+                  className={icClass()}
+                  value={m.parentDraft.itemTypeId}
+                  onChange={(e) =>
+                    m.setParentDraft((p) => ({ ...p, itemTypeId: e.target.value }))
+                  }
+                  required
+                >
+                  {catalog.itemTypes.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+              <Label required className="gap-0.5" label="Category">
+                <select
+                  className={icClass()}
+                  value={m.parentDraft.categoryId}
+                  onChange={(e) =>
+                    m.setParentDraft((p) => ({ ...p, categoryId: e.target.value }))
+                  }
+                  required
+                >
+                  <option value="">— Select category —</option>
+                  {catalog.sortedCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {!c.active ? " (inactive)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+            </div>
+          ) : (
             <Label required className="gap-0.5" label="Department">
               <select
                 className={icClass()}
@@ -552,41 +595,12 @@ export function ProductCreateDrawer({
                 ))}
               </select>
             </Label>
-            <Label className="gap-0.5" label="Category">
-              <select
-                className={icClass()}
-                value={m.parentDraft.categoryId}
-                onChange={(e) => m.setParentDraft((p) => ({ ...p, categoryId: e.target.value }))}
-              >
-                <option value="">— None —</option>
-                {catalog.sortedCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {!c.active ? " (inactive)" : ""}
-                  </option>
-                ))}
-              </select>
-            </Label>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <InlineField label="Brand">
-              <input
-                className={icClass()}
-                placeholder="Optional"
-                value={m.parentDraft.brand}
-                onChange={(e) => m.setParentDraft((p) => ({ ...p, brand: e.target.value }))}
-              />
-            </InlineField>
-            <InlineField label="Size">
-              <input
-                className={icClass()}
-                placeholder="Optional"
-                value={m.parentDraft.size}
-                onChange={(e) => m.setParentDraft((p) => ({ ...p, size: e.target.value }))}
-              />
-            </InlineField>
-          </div>
+          )}
+          {isGroup ? (
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              Variants added under this group inherit its category.
+            </p>
+          ) : null}
         </FormDrawerFields>
 
         {!isGroup ? (
@@ -725,6 +739,59 @@ export function ProductCreateDrawer({
         />
         {moreExpanded ? (
           <div className={cn(productFormSectionBodyCompactClass, "space-y-3")}>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {!isGroup ? (
+                <Label className="gap-0.5" label="Category">
+                  <select
+                    className={icClass()}
+                    value={m.parentDraft.categoryId}
+                    onChange={(e) =>
+                      m.setParentDraft((p) => ({ ...p, categoryId: e.target.value }))
+                    }
+                  >
+                    <option value="">— None —</option>
+                    {catalog.sortedCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {!c.active ? " (inactive)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Label>
+              ) : null}
+              {!isGroup ? (
+                <Label className="gap-0.5" label="Unit">
+                  <input
+                    className={icClass()}
+                    placeholder="each, kg…"
+                    value={m.parentDraft.unitType}
+                    onChange={(e) =>
+                      m.setParentDraft((p) => ({ ...p, unitType: e.target.value }))
+                    }
+                  />
+                </Label>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <InlineField label="Brand">
+                <input
+                  className={icClass()}
+                  placeholder="Optional"
+                  value={m.parentDraft.brand}
+                  onChange={(e) => m.setParentDraft((p) => ({ ...p, brand: e.target.value }))}
+                />
+              </InlineField>
+              <InlineField label="Size">
+                <input
+                  className={icClass()}
+                  placeholder="Optional"
+                  value={m.parentDraft.size}
+                  onChange={(e) => m.setParentDraft((p) => ({ ...p, size: e.target.value }))}
+                />
+              </InlineField>
+            </div>
+
             {!isGroup ? (
               <>
                 {canLinkSupplier ? (
@@ -811,18 +878,6 @@ export function ProductCreateDrawer({
               />
               {descGenError ? (
                 <p className="mt-1 text-xs text-destructive">{descGenError}</p>
-              ) : null}
-              {!isGroup ? (
-                <Label className="mt-2 gap-0.5" label="Unit">
-                  <input
-                    className={icClass()}
-                    placeholder="each, kg…"
-                    value={m.parentDraft.unitType}
-                    onChange={(e) =>
-                      m.setParentDraft((p) => ({ ...p, unitType: e.target.value }))
-                    }
-                  />
-                </Label>
               ) : null}
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiRequestError,
   addItemSupplierLink,
@@ -141,9 +141,24 @@ export function useProductMutations(d: Dependencies) {
   const [packageCreateBusy, setPackageCreateBusy] = useState(false);
   const [changeItemTypeBusy, setChangeItemTypeBusy] = useState(false);
 
+  const defaultBranchId = useMemo(
+    () => headerBranchId.trim() || branches[0]?.id?.trim() || "",
+    [headerBranchId, branches],
+  );
+
   const addVariantDraftRow = useCallback(() => {
     setVariantDraftRows((rows) => {
-      if (rows.length === 0) return [emptyVariantDraft()];
+      if (rows.length === 0) {
+        const draft = emptyVariantDraft();
+        if (!defaultBranchId) return [draft];
+        return [
+          {
+            ...draft,
+            openingBranchId: defaultBranchId,
+            sellBranchId: defaultBranchId,
+          },
+        ];
+      }
       const t = rows[0];
       return [
         ...rows,
@@ -156,7 +171,7 @@ export function useProductMutations(d: Dependencies) {
         },
       ];
     });
-  }, []);
+  }, [defaultBranchId]);
 
   const removeVariantDraftRow = useCallback((index: number) => {
     setVariantDraftRows((rows) => {
@@ -278,28 +293,58 @@ export function useProductMutations(d: Dependencies) {
     setParentDraft((prev) => ({ ...prev, itemTypeId: seedId }));
   }, [itemTypes, dashboardItemTypeId]);
 
-  // ─── seed openingBranchId from header when create drawer is used ───
+  // ─── seed openingBranchId from header / default branch ───
   useEffect(() => {
-    if (!headerBranchId.trim()) return;
+    if (!defaultBranchId) return;
     setParentDraft((prev) =>
       prev.openingBranchId.trim()
         ? prev
-        : { ...prev, openingBranchId: headerBranchId.trim() },
+        : { ...prev, openingBranchId: defaultBranchId },
     );
-  }, [headerBranchId, activeDrawer]);
+  }, [defaultBranchId, activeDrawer]);
 
-  // ─── seed variant draft brand from parent when drawer opens ─────────────
+  // ─── seed variant draft branches when add-variant drawer opens ───
+  useEffect(() => {
+    if (activeDrawer !== "add-variant" || !defaultBranchId) return;
+    setVariantDraftRows((rows) =>
+      rows.map((r) => {
+        const openingBranchId = r.openingBranchId.trim()
+          ? r.openingBranchId
+          : defaultBranchId;
+        const sellBranchId = r.sellBranchId.trim()
+          ? r.sellBranchId
+          : defaultBranchId;
+        if (
+          openingBranchId === r.openingBranchId &&
+          sellBranchId === r.sellBranchId
+        ) {
+          return r;
+        }
+        return { ...r, openingBranchId, sellBranchId };
+      }),
+    );
+  }, [activeDrawer, defaultBranchId]);
+
+  // ─── seed variant draft from parent when drawer opens ─────────────
   useEffect(() => {
     if (activeDrawer !== "add-variant") return;
     const parentBrand = detail?.brand;
-    if (parentBrand) {
-      setVariantDraftRows((rows) =>
-        rows.map((r, i) =>
-          i === 0 && r.brand === "" ? { ...r, brand: parentBrand } : r,
-        ),
-      );
-    }
-  }, [activeDrawer, detail?.brand]);
+    const parentCategoryId =
+      detail?.variantOfItemId?.trim() ? "" : detail?.categoryId?.trim() || "";
+    if (!parentBrand && !parentCategoryId) return;
+    setVariantDraftRows((rows) =>
+      rows.map((r, i) => {
+        let next = r;
+        if (i === 0 && parentBrand && r.brand === "") {
+          next = { ...next, brand: parentBrand };
+        }
+        if (parentCategoryId && r.categoryId === "") {
+          next = { ...next, categoryId: parentCategoryId };
+        }
+        return next;
+      }),
+    );
+  }, [activeDrawer, detail?.brand, detail?.categoryId, detail?.variantOfItemId]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // CREATE PARENT
@@ -334,6 +379,10 @@ export function useProductMutations(d: Dependencies) {
         const displayName = normalizeProductDisplayName(parentDraft.name);
         if (!displayName || isGarbageProductName(displayName)) {
           setMessage("Enter a real product name — not a UUID or import id.");
+          return;
+        }
+        if (isCreatingGroup && !parentDraft.categoryId.trim()) {
+          setMessage("Choose a category for this group — variants will inherit it.");
           return;
         }
 

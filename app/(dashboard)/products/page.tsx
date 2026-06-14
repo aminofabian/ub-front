@@ -178,6 +178,15 @@ export default function ProductsPage() {
     "This product";
   const variantDrawerParentIsGroup =
     !!D && !D.variantOfItemId?.trim() && D.isSellable === false;
+  const variantDrawerParentCategoryId =
+    D && !D.variantOfItemId?.trim() ? D.categoryId?.trim() || "" : "";
+  const variantDrawerParentCategoryName =
+    variantDrawerParentCategoryId
+      ? catalog.sortedCategories.find((c) => c.id === variantDrawerParentCategoryId)
+          ?.name ||
+        D?.categoryName?.trim() ||
+        ""
+      : "";
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;
@@ -319,6 +328,9 @@ export default function ProductsPage() {
         <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-2 2xl:gap-4">
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
+            totalProducts={catalog.listTotalElements}
+            missingBarcodeCount={catalog.catalogStats.missingBarcode}
+            inactiveCount={catalog.catalogStats.inactive}
             onCreateNew={() => setActiveDrawer("create-parent")}
             onAddVariant={
               canCatalogWrite
@@ -334,9 +346,10 @@ export default function ProductsPage() {
               "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             )}
           >
-            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-2 overflow-x-hidden p-2 sm:p-3 lg:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(19.5rem,min(27rem,33vw))] lg:items-stretch lg:gap-4 lg:p-4 2xl:grid-cols-[minmax(0,13.5rem)_minmax(0,1fr)_minmax(21rem,min(31.5rem,34.5vw))] 2xl:gap-4 2xl:p-4">
-              <ProductFilterSidebar catalog={catalog} />
-              <CatalogListColumn
+            <div className="grid min-h-0 min-w-0 max-w-full flex-1 grid-cols-1 gap-2 overflow-x-hidden p-2 sm:p-3 lg:grid-cols-[minmax(0,1fr)_minmax(19.5rem,min(27rem,33vw))] lg:items-stretch lg:gap-4 lg:p-4 2xl:grid-cols-[minmax(0,1fr)_minmax(21rem,min(31.5rem,34.5vw))] 2xl:gap-4 2xl:p-4">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:items-stretch">
+                <ProductFilterSidebar catalog={catalog} />
+                <CatalogListColumn
                 catalog={catalog}
                 selectedId={detail.selectedId}
                 onRowClick={(id) => {
@@ -347,7 +360,8 @@ export default function ProductsPage() {
                 canCatalogWrite={canCatalogWrite}
                 bulkDeleteBusy={m.bulkDeleteBusy}
                 onBulkDelete={m.onBulkDeleteSelected}
-              />
+                />
+              </div>
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border bg-card">
                   {D ? (
@@ -451,6 +465,8 @@ export default function ProductsPage() {
           }
           parentDisplayName={variantDrawerParentName}
           parentIsProductGroup={variantDrawerParentIsGroup}
+          parentCategoryId={variantDrawerParentCategoryId || undefined}
+          parentCategoryName={variantDrawerParentCategoryName || undefined}
           variantCreateSubmitCount={variantCreateSubmitCount}
           sortedCategories={catalog.sortedCategories}
           branches={m.branches}

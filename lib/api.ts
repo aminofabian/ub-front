@@ -2225,10 +2225,25 @@ export type CatalogListScope =
   | "VARIANTS_ONLY"
   | "SKUS_ONLY";
 
+export type CatalogRowType = "PARENT" | "VARIANT" | "STANDALONE";
+
+export type CatalogListStats = {
+  parents: number;
+  variants: number;
+  standalones: number;
+  missingBarcode: number;
+  inactive: number;
+};
+
+/** @deprecated Use CatalogListStats */
+export type CatalogRowTypeCounts = CatalogListStats;
+
 export type FetchItemsOpts = {
   categoryId?: string;
   includeCategoryDescendants?: boolean;
   catalogScope?: CatalogListScope;
+  /** When set (and catalogScope is ALL), limits rows to these structural buckets. */
+  catalogRowTypes?: CatalogRowType[];
   barcode?: string;
   noBarcode?: boolean;
   includeInactive?: boolean;
@@ -2266,6 +2281,9 @@ export async function fetchItemsPage(
   }
   if (opts?.catalogScope && opts.catalogScope !== "ALL") {
     params.set("catalogScope", opts.catalogScope);
+  }
+  for (const rowType of opts?.catalogRowTypes ?? []) {
+    params.append("catalogRowTypes", rowType);
   }
   if (opts?.categoryId?.trim()) {
     params.set("categoryId", opts.categoryId.trim());
@@ -2317,6 +2335,56 @@ export async function fetchItemsPage(
     };
   }
   return { content, ...meta };
+}
+
+export async function fetchCatalogListStats(
+  search: string | undefined,
+  opts?: Omit<
+    FetchItemsOpts,
+    "page" | "size" | "sort" | "catalogRowTypes" | "branchId" | "noBarcode" | "includeInactive"
+  >,
+): Promise<CatalogListStats> {
+  const params = new URLSearchParams();
+  if (search?.trim()) {
+    params.set("search", search.trim());
+  }
+  if (opts?.catalogScope && opts.catalogScope !== "ALL") {
+    params.set("catalogScope", opts.catalogScope);
+  }
+  if (opts?.categoryId?.trim()) {
+    params.set("categoryId", opts.categoryId.trim());
+    if (opts.includeCategoryDescendants) {
+      params.set("includeCategoryDescendants", "true");
+    }
+  }
+  if (opts?.barcode?.trim()) {
+    params.set("barcode", opts.barcode.trim());
+  }
+  if (opts?.itemTypeId?.trim()) {
+    params.set("itemTypeId", opts.itemTypeId.trim());
+  }
+  const exSup = opts?.excludeLinkedSupplierId?.trim();
+  if (exSup) {
+    params.set("excludeLinkedSupplierId", exSup);
+  }
+  const path = `${API_ROUTES.items}/row-type-counts?${params.toString()}`;
+  const raw = await request<Record<string, unknown>>(path);
+  return {
+    parents: Number(raw?.parents ?? 0),
+    variants: Number(raw?.variants ?? 0),
+    standalones: Number(raw?.standalones ?? 0),
+    missingBarcode: Number(raw?.missingBarcode ?? raw?.missing_barcode ?? 0),
+    inactive: Number(raw?.inactive ?? 0),
+  };
+}
+
+/** @deprecated Use fetchCatalogListStats */
+export async function fetchCatalogRowTypeCounts(
+  search: string | undefined,
+  opts?: Omit<FetchItemsOpts, "page" | "size" | "sort" | "catalogRowTypes" | "branchId">,
+): Promise<CatalogListStats> {
+  const { noBarcode: _nb, includeInactive: _ia, ...rest } = opts ?? {};
+  return fetchCatalogListStats(search, rest);
 }
 
 export async function fetchItems(

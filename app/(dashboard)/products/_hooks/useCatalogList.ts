@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiRequestError,
+  fetchCatalogListStats,
   fetchCategories,
   fetchItemsPage,
   fetchItemTypes,
   type CatalogListScope,
+  type CatalogRowType,
   type CategoryRecord,
   type ItemSummaryRecord,
   type ItemTypeRecord,
@@ -14,13 +16,27 @@ import {
 import {
   buildVariantIdsByParentId,
   CATALOG_LIST_DISPLAY_TYPES,
-  countCatalogRowsByDisplayType,
-  filterCatalogRowsByDisplayType,
   isCatalogParentSelectorRow,
   resolveVariantIdsForParent,
   sortCatalogRowsParentFirst,
   type CatalogListDisplayType,
 } from "../_components/catalog-list-styles";
+
+const DISPLAY_TYPE_TO_API: Record<CatalogListDisplayType, CatalogRowType> = {
+  parent: "PARENT",
+  variant: "VARIANT",
+  standalone: "STANDALONE",
+};
+
+function catalogRowTypesForApi(
+  filter: ReadonlySet<CatalogListDisplayType>,
+): CatalogRowType[] | null | undefined {
+  if (filter.size === 0) return null;
+  if (filter.size === CATALOG_LIST_DISPLAY_TYPES.length) return undefined;
+  return CATALOG_LIST_DISPLAY_TYPES.filter((t) => filter.has(t)).map(
+    (t) => DISPLAY_TYPE_TO_API[t],
+  );
+}
 
 export function useCatalogList(catalogBranchId?: string | null) {
   const branchIdForStock = catalogBranchId?.trim() || undefined;
@@ -51,6 +67,13 @@ export function useCatalogList(catalogBranchId?: string | null) {
   const [rowTypeFilter, setRowTypeFilter] = useState<
     Set<CatalogListDisplayType>
   >(() => new Set(CATALOG_LIST_DISPLAY_TYPES));
+  const [catalogStats, setCatalogStats] = useState({
+    parents: 0,
+    variants: 0,
+    standalones: 0,
+    missingBarcode: 0,
+    inactive: 0,
+  });
 
   const variantIdsByParent = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -66,18 +89,33 @@ export function useCatalogList(catalogBranchId?: string | null) {
     [listRows],
   );
 
-  const rowTypeCounts = useMemo(
-    () => countCatalogRowsByDisplayType(catalogRows),
-    [catalogRows],
-  );
-
-  const displayRows = useMemo(
-    () => filterCatalogRowsByDisplayType(catalogRows, rowTypeFilter),
-    [catalogRows, rowTypeFilter],
-  );
-
   const rowTypeFilterActive =
     rowTypeFilter.size > 0 && rowTypeFilter.size < CATALOG_LIST_DISPLAY_TYPES.length;
+
+  const listStatsOpts = useMemo(
+    () => ({
+      categoryId: filterCategoryId.trim() || undefined,
+      includeCategoryDescendants,
+      catalogScope,
+      barcode: barcodeExact.trim() || undefined,
+    }),
+    [
+      filterCategoryId,
+      includeCategoryDescendants,
+      catalogScope,
+      barcodeExact,
+    ],
+  );
+
+  const listFetchOpts = useMemo(
+    () => ({
+      ...listStatsOpts,
+      noBarcode: filterNoBarcode,
+      includeInactive: filterIncludeInactive,
+      branchId: branchIdForStock,
+    }),
+    [listStatsOpts, filterNoBarcode, filterIncludeInactive, branchIdForStock],
+  );
 
   const toggleRowTypeFilter = useCallback((type: CatalogListDisplayType) => {
     setRowTypeFilter((prev) => {
@@ -109,23 +147,28 @@ export function useCatalogList(catalogBranchId?: string | null) {
     setListLoadingInitial(true);
     setMessage("");
     nextPageRef.current = 0;
+    const rowTypes = catalogRowTypesForApi(rowTypeFilter);
     try {
-      const page = await fetchItemsPage(debouncedSearch || undefined, {
-        categoryId: filterCategoryId.trim() || undefined,
-        includeCategoryDescendants,
-        catalogScope,
-        barcode: barcodeExact.trim() || undefined,
-        noBarcode: filterNoBarcode,
-        includeInactive: filterIncludeInactive,
-        branchId: branchIdForStock,
-        page: 0,
-        size: 80,
-      });
-      setListRows(page.content);
-      setListTotalElements(page.totalElements);
-      setListLast(page.last);
-      nextPageRef.current = page.last ? 0 : 1;
-      setRowSelection(new Set());
+      if (rowTypes === null) {
+        setListRows([]);
+        setListTotalElements(0);
+        setListLast(true);
+        setRowSelection(new Set());
+      } else {
+        const page = await fetchItemsPage(debouncedSearch || undefined, {
+          ...listFetchOpts,
+          catalogRowTypes: rowTypes,
+          page: 0,
+          size: 80,
+        });
+        setListRows(page.content);
+        setListTotalElements(page.totalElements);
+        setListLast(page.last);
+        nextPageRef.current = page.last ? 0 : 1;
+        setRowSelection(new Set());
+      }
+      const stats = await fetchCatalogListStats(debouncedSearch || undefined, listStatsOpts);
+      setCatalogStats(stats);
     } catch (error) {
       if (!(error instanceof ApiRequestError)) {
         setMessage(error instanceof Error ? error.message : "Failed to load catalog.");
@@ -133,7 +176,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
     } finally {
       setListLoadingInitial(false);
     }
-  }, [debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive, branchIdForStock]);
+  }, [debouncedSearch, listFetchOpts, listStatsOpts, rowTypeFilter]);
 
   /** Patch one loaded list row in place — keeps scroll position and loaded pages. */
   const syncListRowFromDetail = useCallback(
@@ -175,17 +218,14 @@ export function useCatalogList(catalogBranchId?: string | null) {
 
   const loadMoreCatalog = useCallback(async () => {
     if (listLast || listLoadingMore || listLoadingInitial || nextPageRef.current <= 0) return;
+    const rowTypes = catalogRowTypesForApi(rowTypeFilter);
+    if (rowTypes === null) return;
     setListLoadingMore(true);
     try {
       const pagen = nextPageRef.current;
       const page = await fetchItemsPage(debouncedSearch || undefined, {
-        categoryId: filterCategoryId.trim() || undefined,
-        includeCategoryDescendants,
-        catalogScope,
-        barcode: barcodeExact.trim() || undefined,
-        noBarcode: filterNoBarcode,
-        includeInactive: filterIncludeInactive,
-        branchId: branchIdForStock,
+        ...listFetchOpts,
+        catalogRowTypes: rowTypes,
         page: pagen,
         size: 80,
       });
@@ -199,7 +239,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
     } finally {
       setListLoadingMore(false);
     }
-  }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, filterCategoryId, includeCategoryDescendants, catalogScope, barcodeExact, filterNoBarcode, filterIncludeInactive, branchIdForStock]);
+  }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, listFetchOpts, rowTypeFilter]);
 
   useEffect(() => {
     const fromRows = buildVariantIdsByParentId(listRows);
@@ -305,11 +345,21 @@ export function useCatalogList(catalogBranchId?: string | null) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const rowTypeCounts = useMemo(
+    () => ({
+      parent: catalogStats.parents,
+      variant: catalogStats.variants,
+      standalone: catalogStats.standalones,
+    }),
+    [catalogStats],
+  );
+
   return {
     itemTypes, categories, sortedCategories, categoryById,
     listRows: catalogRows,
-    displayRows,
+    displayRows: catalogRows,
     listRowsRaw: listRows,
+    catalogStats,
     rowTypeCounts,
     rowTypeFilter,
     rowTypeFilterActive,

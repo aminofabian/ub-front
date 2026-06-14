@@ -14,6 +14,8 @@ type Props = {
   banner?: FormDrawerProps["banner"];
   parentDisplayName: string;
   parentIsProductGroup: boolean;
+  parentCategoryId?: string;
+  parentCategoryName?: string;
   variantCreateSubmitCount: number;
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
@@ -45,6 +47,8 @@ export function VariantCreateDrawer({
   banner,
   parentDisplayName,
   parentIsProductGroup,
+  parentCategoryId,
+  parentCategoryName,
   variantCreateSubmitCount,
   sortedCategories,
   branches,
@@ -67,20 +71,18 @@ export function VariantCreateDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title="Add variants to parent"
-      description={
-        parentIsProductGroup
-          ? `Under group “${parentDisplayName}”.`
-          : `Under “${parentDisplayName}”.`
-      }
+      title={`Add variants to ${parentDisplayName}`}
       contextLabel={parentIsProductGroup ? "Parent group" : "Parent product"}
-      icon={<Layers className="size-5 text-primary" aria-hidden />}
+      icon={<Layers className="size-3.5 text-primary" aria-hidden />}
       width="wide"
+      headerDensity="compact"
       footer={
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-1.5">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="h-8 px-2.5 text-xs"
             onClick={onClose}
             disabled={m.variantCreateBusy}
           >
@@ -89,19 +91,20 @@ export function VariantCreateDrawer({
           <Button
             type="submit"
             form="add-variant-form"
+            size="sm"
             disabled={m.variantCreateBusy || variantCreateSubmitCount === 0}
-            className="gap-2"
+            className="h-8 gap-1.5 px-2.5 text-xs"
           >
             {m.variantCreateBusy ? (
               <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 {variantCreateSubmitCount > 1
                   ? `Creating ${variantCreateSubmitCount}…`
                   : "Creating…"}
               </>
             ) : (
               <>
-                <Plus className="size-4" aria-hidden />
+                <Plus className="size-3.5" aria-hidden />
                 {submitLabel}
               </>
             )}
@@ -114,8 +117,9 @@ export function VariantCreateDrawer({
         setVariantDraftRows={m.setVariantDraftRows}
         addVariantDraftRow={m.addVariantDraftRow}
         removeVariantDraftRow={m.removeVariantDraftRow}
-        parentDisplayName={parentDisplayName}
         parentIsProductGroup={parentIsProductGroup}
+        parentCategoryId={parentCategoryId}
+        parentCategoryName={parentCategoryName}
         suggestedNextSku={m.nextAutoSkuHint}
         sortedCategories={sortedCategories}
         branches={branches}

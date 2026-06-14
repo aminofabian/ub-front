@@ -1,11 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import { Filter, Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { filterLabelClass, quickInputClass } from "../_types";
 import type { CatalogListApi } from "../_hooks/useCatalogList";
+import {
+  catalogFilterBodyClass,
+  catalogFilterCheckboxClass,
+  catalogFilterColumnClass,
+  catalogFilterHintClass,
+  catalogFilterInputClass,
+  catalogFilterLabelClass,
+  catalogFilterOptionClass,
+  catalogFilterOptionCountClass,
+  catalogFilterSectionClass,
+  catalogFilterSelectClass,
+  catalogFilterToolbarClass,
+  catalogFilterToolbarTitleClass,
+} from "./catalog-list-styles";
 
 type Props = {
   catalog: Pick<
@@ -13,7 +25,6 @@ type Props = {
     | "search"
     | "setSearch"
     | "debouncedSearch"
-    | "setDebouncedSearch"
     | "barcodeExact"
     | "setBarcodeExact"
     | "filterCategoryId"
@@ -27,12 +38,10 @@ type Props = {
     | "setFilterNoBarcode"
     | "filterIncludeInactive"
     | "setFilterIncludeInactive"
+    | "catalogStats"
     | "resetFilters"
   >;
 };
-
-const fieldClass = "flex w-full min-w-0 flex-col gap-1.5";
-const controlClass = cn(quickInputClass, "w-full min-w-0");
 
 function hasActiveFilters(catalog: Props["catalog"]): boolean {
   return (
@@ -42,163 +51,152 @@ function hasActiveFilters(catalog: Props["catalog"]): boolean {
     catalog.catalogScope !== "ALL" ||
     catalog.filterNoBarcode ||
     catalog.filterIncludeInactive ||
-    (!!catalog.filterCategoryId.trim() &&
-      !catalog.includeCategoryDescendants)
+    (!!catalog.filterCategoryId.trim() && !catalog.includeCategoryDescendants)
   );
 }
 
 export function ProductFilterSidebar({ catalog }: Props) {
   const filtersActive = useMemo(() => hasActiveFilters(catalog), [catalog]);
-  const searchPending =
-    catalog.search.trim() !== catalog.debouncedSearch.trim();
-
-  const applySearchNow = () => {
-    catalog.setDebouncedSearch(catalog.search.trim());
-  };
+  const searchPending = catalog.search.trim() !== catalog.debouncedSearch.trim();
+  const categorySelected = !!catalog.filterCategoryId.trim();
 
   return (
-    <aside
-      className={cn(
-        "hidden min-h-0 min-w-0 w-full max-w-full shrink-0 flex-col lg:flex lg:pr-3",
-      )}
-    >
-      <div className="flex shrink-0 items-center gap-2 border-b border-border/35 pb-2.5 text-foreground">
-        <Filter className="size-4 shrink-0 text-primary" aria-hidden />
-        <h2 className="text-sm font-semibold tracking-tight">Filters</h2>
+    <aside className={catalogFilterColumnClass}>
+      <div className={catalogFilterToolbarClass}>
+        <span className={catalogFilterToolbarTitleClass}>Find</span>
+        {filtersActive ? (
+          <button
+            type="button"
+            onClick={catalog.resetFilters}
+            className="text-[10px] font-medium text-primary hover:underline"
+          >
+            Reset
+          </button>
+        ) : null}
       </div>
+
       <form
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden pt-3 pr-0.5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          applySearchNow();
-        }}
+        className={catalogFilterBodyClass}
+        onSubmit={(e) => e.preventDefault()}
       >
-        <label className={fieldClass}>
-          <span className={filterLabelClass}>Search</span>
+        <label className={catalogFilterSectionClass}>
+          <span className={catalogFilterLabelClass}>Search</span>
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <input
               id="catalog-omni"
-              className={cn(controlClass, "pl-8 pr-8")}
+              className={cn(catalogFilterInputClass, "pl-7 pr-7")}
               value={catalog.search}
               onChange={(e) => catalog.setSearch(e.target.value)}
-              placeholder="Name, SKU, barcode…"
+              placeholder="Name, SKU, barcode"
               aria-label="Search catalog"
             />
             {catalog.search ? (
               <button
                 type="button"
                 onClick={() => catalog.setSearch("")}
-                className="absolute right-1.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label="Clear search"
               >
-                <X className="size-3.5" aria-hidden />
+                <X className="size-3" aria-hidden />
               </button>
             ) : null}
           </div>
-          <span className="text-[10px] leading-snug text-muted-foreground">
-            {searchPending
-              ? "Updating…"
-              : "Press / to focus · updates as you type"}
+          <span className={catalogFilterHintClass}>
+            {searchPending ? "Updating…" : "/ to focus"}
           </span>
         </label>
-        <label className={fieldClass}>
-          <span className={filterLabelClass}>Exact barcode</span>
+
+        <label className={catalogFilterSectionClass}>
+          <span className={catalogFilterLabelClass}>Barcode</span>
           <input
-            className={cn(controlClass, "font-mono text-xs")}
+            className={cn(catalogFilterInputClass, "font-mono")}
             value={catalog.barcodeExact}
             onChange={(e) => catalog.setBarcodeExact(e.target.value)}
-            placeholder="POS lookup"
+            placeholder="Exact POS scan"
+            inputMode="numeric"
+            aria-label="Exact barcode"
           />
         </label>
-        <label className={fieldClass}>
-          <span className={filterLabelClass}>Category</span>
+
+        <div className={catalogFilterSectionClass}>
+          <span className={catalogFilterLabelClass}>Category</span>
           <select
-            className={cn(controlClass, "cursor-pointer")}
+            className={catalogFilterSelectClass}
             value={catalog.filterCategoryId}
             onChange={(e) => catalog.setFilterCategoryId(e.target.value)}
+            aria-label="Category"
           >
-            <option value="">All categories</option>
+            <option value="">All</option>
             {catalog.sortedCategories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
-                {!c.active ? " (inactive)" : ""}
+                {!c.active ? " (off)" : ""}
               </option>
             ))}
           </select>
-        </label>
-        <label className={fieldClass}>
-          <span className={filterLabelClass}>Scope</span>
+          {categorySelected ? (
+            <label className={cn(catalogFilterOptionClass, "mt-0.5")}>
+              <input
+                type="checkbox"
+                className={catalogFilterCheckboxClass}
+                checked={catalog.includeCategoryDescendants}
+                onChange={(e) =>
+                  catalog.setIncludeCategoryDescendants(e.target.checked)
+                }
+              />
+              <span>Include subcategories</span>
+            </label>
+          ) : null}
+        </div>
+
+        <label className={catalogFilterSectionClass}>
+          <span className={catalogFilterLabelClass}>List view</span>
           <select
-            className={cn(controlClass, "cursor-pointer")}
+            className={catalogFilterSelectClass}
             value={catalog.catalogScope}
             onChange={(e) =>
               catalog.setCatalogScope(e.target.value as typeof catalog.catalogScope)
             }
+            aria-label="Catalog list view"
           >
-            <option value="ALL">Full tree</option>
-            <option value="SKUS_ONLY">Sellable SKUs only</option>
-            <option value="PARENTS_ONLY">Group labels only</option>
-            <option value="VARIANTS_ONLY">Variant SKUs only</option>
+            <option value="ALL">All rows</option>
+            <option value="SKUS_ONLY">SKUs only</option>
+            <option value="PARENTS_ONLY">Parents only</option>
+            <option value="VARIANTS_ONLY">Variants only</option>
           </select>
         </label>
-        <div className="flex flex-col gap-2.5 border-t border-border/30 pt-1">
-          <label
-            className={cn(
-              "flex w-full cursor-pointer items-start gap-2.5 text-xs leading-snug text-foreground",
-              !catalog.filterCategoryId.trim() && "cursor-not-allowed opacity-50",
-            )}
-          >
+
+        <div className="flex flex-col gap-1.5 border-t border-border/60 pt-2">
+          <label className={catalogFilterOptionClass}>
             <input
               type="checkbox"
-              className="mt-0.5 size-3.5 shrink-0 rounded border-input"
-              checked={catalog.includeCategoryDescendants}
-              onChange={(e) => catalog.setIncludeCategoryDescendants(e.target.checked)}
-              disabled={!catalog.filterCategoryId.trim()}
-            />
-            <span className="min-w-0">Include subcategories</span>
-          </label>
-          <label className="flex w-full cursor-pointer items-start gap-2.5 text-xs leading-snug text-foreground">
-            <input
-              type="checkbox"
-              className="mt-0.5 size-3.5 shrink-0 rounded border-input"
+              className={catalogFilterCheckboxClass}
               checked={catalog.filterNoBarcode}
               onChange={(e) => catalog.setFilterNoBarcode(e.target.checked)}
             />
-            <span className="min-w-0">Missing barcode</span>
+            <span className="min-w-0 flex-1">Missing barcode</span>
+            <span className={catalogFilterOptionCountClass}>
+              {catalog.catalogStats.missingBarcode.toLocaleString()}
+            </span>
           </label>
-          <label className="flex w-full cursor-pointer items-start gap-2.5 text-xs leading-snug text-foreground">
+          <label className={catalogFilterOptionClass}>
             <input
               type="checkbox"
-              className="mt-0.5 size-3.5 shrink-0 rounded border-input"
+              className={catalogFilterCheckboxClass}
               checked={catalog.filterIncludeInactive}
-              onChange={(e) => catalog.setFilterIncludeInactive(e.target.checked)}
+              onChange={(e) =>
+                catalog.setFilterIncludeInactive(e.target.checked)
+              }
             />
-            <span className="min-w-0">Include inactive</span>
+            <span className="min-w-0 flex-1">Inactive products</span>
+            <span className={catalogFilterOptionCountClass}>
+              {catalog.catalogStats.inactive.toLocaleString()}
+            </span>
           </label>
-        </div>
-        <div className="flex w-full min-w-0 flex-col gap-2 border-t border-border/30 pt-3 sm:flex-row sm:flex-wrap">
-          <Button
-            type="submit"
-            size="sm"
-            className="w-full shrink-0 rounded-lg sm:w-auto sm:flex-1"
-            disabled={!searchPending && !catalog.search.trim()}
-          >
-            Apply search
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="w-full shrink-0 rounded-lg sm:w-auto sm:flex-1"
-            onClick={catalog.resetFilters}
-            disabled={!filtersActive}
-          >
-            Reset
-          </Button>
         </div>
       </form>
     </aside>

@@ -74,7 +74,7 @@ export function CatalogListColumn({
       : null;
 
   return (
-    <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-1.5 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
+    <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
       <div className={catalogListToolbarClass}>
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <p className={catalogListToolbarMetaClass}>
@@ -120,11 +120,6 @@ export function CatalogListColumn({
                 </label>
               );
             })}
-            {loadedHint ? (
-              <span className="text-[10px] text-muted-foreground/80">
-                (loaded)
-              </span>
-            ) : null}
           </div>
         </div>
       </div>
