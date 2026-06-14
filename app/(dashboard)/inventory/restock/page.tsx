@@ -1,18 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PackageX, RefreshCw, Package, ClipboardList, Search, Warehouse, Layers, BarChart3, ArrowRightLeft } from "lucide-react";
+import { Package, PackageX } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
-  DashboardPageHero,
-  DashboardQuickLinks,
+  DashboardFeedback,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
-import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -26,9 +24,11 @@ import { Permission } from "@/lib/permissions";
 import {
   canEditStockLevels,
   canViewStockLevels,
-  filterInventoryQuickLinksForUser,
 } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
+
+import { RestockPageHeader } from "./_components/restock-page-header";
+import { RestockRowItem, type RestockRow } from "./_components/restock-row-item";
 
 /** Stop paging the catalog after this many rows so very large catalogs can't
  *  hang the page. The notice tells the user if the cap was hit. */
@@ -47,97 +47,25 @@ function onHandOf(row: ItemSummaryRecord): number {
   return toNum(row.stockQty) ?? 0;
 }
 
-type RestockRow = {
-  item: ItemSummaryRecord;
-  qty: string;
-  cost: string;
-  saving: boolean;
-};
-
-type RestockRowItemProps = {
-  row: RestockRow;
-  canWrite: boolean;
-  onQtyChange: (value: string) => void;
-  onCostChange: (value: string) => void;
-  onSave: () => void;
-};
-
-function RestockRowItem({
-  row,
-  canWrite,
-  onQtyChange,
-  onCostChange,
-  onSave,
-}: RestockRowItemProps) {
-  const name = row.item.name?.trim() || "Unnamed product";
-  const sku = row.item.sku?.trim();
-  const variant = row.item.variantName?.trim();
-
+function RestockListSkeleton() {
   return (
-    <div className="space-y-2.5 px-3 py-3 sm:px-4">
-      <div className="min-w-0">
-        <p className="break-words text-sm font-medium leading-snug text-foreground">
-          {name}
-          {variant ? (
-            <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-              {variant}
-            </span>
-          ) : null}
-        </p>
-        {sku ? (
-          <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-            {sku}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2">
-        <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-          <span className="text-muted-foreground">Qty</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            className="h-9 w-full min-w-0 rounded-md border border-border bg-background px-2 text-sm tabular-nums disabled:opacity-60"
-            placeholder="0"
-            value={row.qty}
-            disabled={!canWrite || row.saving}
-            onChange={(e) => onQtyChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSave();
-            }}
-            aria-label={`Quantity for ${name}`}
-          />
-        </label>
-        <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-          <span className="text-muted-foreground">Cost</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            className="h-9 w-full min-w-0 rounded-md border border-border bg-background px-2 text-sm tabular-nums disabled:opacity-60"
-            placeholder="opt."
-            value={row.cost}
-            disabled={!canWrite || row.saving}
-            onChange={(e) => onCostChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSave();
-            }}
-            aria-label={`Unit cost for ${name}`}
-          />
-        </label>
-        <Button
-          type="button"
-          size="sm"
-          className="h-9 shrink-0 px-3 text-xs"
-          onClick={onSave}
-          disabled={!canWrite || row.saving || !row.qty.trim()}
+    <div className="overflow-hidden rounded-lg border border-border/60 bg-card">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5 last:border-0 sm:px-3"
         >
-          {row.saving ? "…" : "Save"}
-        </Button>
-      </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+            <div className="h-2 w-20 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="flex gap-1">
+            <div className="h-8 w-[3.25rem] animate-pulse rounded-md bg-muted" />
+            <div className="h-8 w-[3.25rem] animate-pulse rounded-md bg-muted" />
+            <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -150,7 +78,10 @@ export default function InventoryRestockPage() {
 
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const isBranchLockedRole =
-    roleKey === "stock_manager" || roleKey === "cashier";
+    roleKey === "stock_manager" ||
+    roleKey === "cashier" ||
+    roleKey === "grocery_clerk";
+  const canShowQuickLinks = !isBranchLockedRole;
 
   const [branches, setBranches] = useState<BranchRecord[]>(
     dashboardBranches ?? [],
@@ -158,7 +89,8 @@ export default function InventoryRestockPage() {
   const [branchId, setBranchId] = useState("");
   const [rows, setRows] = useState<RestockRow[]>([]);
   const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [messageKind, setMessageKind] = useState<"error" | "warning">("error");
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [capped, setCapped] = useState(false);
@@ -171,7 +103,10 @@ export default function InventoryRestockPage() {
         if (!cancelled) setBranches(list);
       })
       .catch(() => {
-        if (!cancelled) setMessage("Failed to load branches.");
+        if (!cancelled) {
+          setMessageKind("error");
+          setMessage("Failed to load branches.");
+        }
       });
     return () => {
       cancelled = true;
@@ -197,6 +132,7 @@ export default function InventoryRestockPage() {
   const loadOutOfStock = useCallback(async () => {
     const bid = branchId.trim();
     if (!bid) {
+      setMessageKind("warning");
       setMessage(
         isBranchLockedRole
           ? "Your account is not assigned to a branch. Contact your administrator."
@@ -205,7 +141,7 @@ export default function InventoryRestockPage() {
       return;
     }
     setLoading(true);
-    setMessage("");
+    setMessage(null);
     setCapped(false);
     try {
       const found: ItemSummaryRecord[] = [];
@@ -240,10 +176,12 @@ export default function InventoryRestockPage() {
       );
       setLoaded(true);
       if (found.length === 0) {
+        setMessageKind("warning");
         setMessage("Nothing is out of stock at this branch.");
       }
     } catch (e) {
       setRows([]);
+      setMessageKind("error");
       setMessage(
         e instanceof Error ? e.message : "Failed to load products.",
       );
@@ -328,48 +266,21 @@ export default function InventoryRestockPage() {
     });
   }, [rows, search]);
 
-  const quickLinks = useMemo(
-    () =>
-      filterInventoryQuickLinksForUser(me, [
-        {
-          href: APP_ROUTES.inventoryStock,
-          label: "Stock",
-          desc: "On-hand",
-          icon: Warehouse,
-        },
-        {
-          href: APP_ROUTES.inventoryStockTake,
-          label: "Stock take",
-          desc: "Counts",
-          icon: ClipboardList,
-        },
-        {
-          href: APP_ROUTES.inventorySupplyBatches,
-          label: "Supply batches",
-          desc: "Cost layers",
-          icon: Layers,
-        },
-        {
-          href: APP_ROUTES.inventoryValuation,
-          label: "Valuation",
-          desc: "Extension value",
-          icon: BarChart3,
-        },
-        {
-          href: APP_ROUTES.inventoryTransfers,
-          label: "Transfers",
-          desc: "Move stock",
-          icon: ArrowRightLeft,
-        },
-        {
-          href: APP_ROUTES.products,
-          label: "Products",
-          desc: "Catalog",
-          icon: Package,
-        },
-      ]),
-    [me],
-  );
+  const activeBranchName =
+    branches.find((b) => b.id === branchId)?.name?.trim() || "";
+
+  const emptyMessage = useMemo(() => {
+    if (loading) return null;
+    if (!branchId.trim()) {
+      return isBranchLockedRole
+        ? "Your account is not assigned to a branch."
+        : "Choose a branch to see out-of-stock products.";
+    }
+    if (!loaded) return "Loading products…";
+    if (rows.length === 0) return "No out-of-stock products at this branch.";
+    if (search.trim()) return "No products match your search.";
+    return null;
+  }, [loading, branchId, isBranchLockedRole, loaded, rows.length, search]);
 
   if (!canRead) {
     return (
@@ -391,154 +302,134 @@ export default function InventoryRestockPage() {
     );
   }
 
-  const activeBranchName =
-    branches.find((b) => b.id === branchId)?.name?.trim() || "";
-
   return (
-    <div className={cn(DASHBOARD_MAX, "min-w-0 max-w-full overflow-x-hidden")}>
-      <div className="min-w-0 space-y-4">
-        <header className="min-w-0 space-y-2 border-b border-border/50 pb-4">
-          <DashboardPageHero
-            compact
-            icon={PackageX}
-            eyebrow="Inventory"
-            title="Out of stock"
-            description="Zero on-hand at this branch — enter qty and save to restock."
-          />
-          {quickLinks.length > 0 ? (
-            <DashboardQuickLinks compact links={quickLinks} />
-          ) : null}
-        </header>
+    <div
+      className={cn(
+        DASHBOARD_MAX,
+        "min-w-0 max-w-full space-y-2 overflow-x-hidden pb-12",
+      )}
+    >
+      <RestockPageHeader
+        me={me}
+        canShowQuickLinks={canShowQuickLinks}
+        loading={loading}
+        onRefresh={() => void loadOutOfStock()}
+      />
 
-        <div className="min-w-0 space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
-          {(loaded || loading) && branchId ? (
-            <div
-              className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-2.5 py-2"
-              aria-live="polite"
-            >
-              <span className="text-[11px] font-medium text-muted-foreground">
-                Out of stock
-              </span>
-              <span className="text-base font-bold tabular-nums leading-none text-destructive">
-                {rows.length.toLocaleString("en-KE")}
-              </span>
-            </div>
-          ) : null}
+      {/* Toolbar */}
+      <section className="flex min-w-0 flex-wrap items-center gap-2">
+        {(loaded || loading) && branchId ? (
+          <span
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-destructive/25 bg-destructive/5 px-2 py-1 text-[11px] font-medium tabular-nums"
+            aria-live="polite"
+          >
+            <span className="text-muted-foreground">Out</span>
+            <span className="font-bold text-destructive">
+              {rows.length.toLocaleString("en-KE")}
+            </span>
+          </span>
+        ) : null}
 
-          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:items-end">
-            <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-              <span className="text-muted-foreground">Branch</span>
-              <select
-                className={cn(
-                  dashboardSelectClass(),
-                  "h-9 w-full min-w-0 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
-                )}
-                value={branchId}
-                disabled={isBranchLockedRole}
-                onChange={(e) => setBranchId(e.target.value)}
-                aria-label="Branch"
-              >
-                <option value="">Select branch…</option>
-                {branches
-                  .filter((b) => b.active || b.id === branchId)
-                  .filter((b) => !isBranchLockedRole || b.id === me?.branchId)
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
+        {!isBranchLockedRole ? (
+          <select
+            className={cn(
+              dashboardSelectClass(),
+              "h-8 min-w-[7.5rem] max-w-[9rem] shrink-0 py-1 text-xs sm:text-sm",
+            )}
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+            aria-label="Branch"
+          >
+            <option value="">Branch…</option>
+            {branches
+              .filter((b) => b.active || b.id === branchId)
+              .map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+          </select>
+        ) : activeBranchName ? (
+          <span className="shrink-0 truncate text-[11px] text-muted-foreground">
+            {activeBranchName}
+          </span>
+        ) : null}
 
-            <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-              <span className="text-muted-foreground">Search</span>
-              <span className="relative block min-w-0">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="search"
-                  className={cn(
-                    dashboardInputClass(),
-                    "h-9 w-full min-w-0 py-1.5 pl-8 text-sm",
-                  )}
-                  placeholder="Name, SKU, barcode…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Search out-of-stock products"
-                />
-              </span>
-            </label>
+        <input
+          type="search"
+          className={cn(
+            dashboardInputClass(),
+            "h-8 min-w-0 flex-1 py-1 text-xs sm:text-sm",
+          )}
+          placeholder="Search name, SKU…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          disabled={!branchId.trim()}
+          aria-label="Search out-of-stock products"
+        />
+      </section>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 w-full shrink-0 gap-1.5 sm:w-auto sm:justify-self-start"
-              onClick={() => void loadOutOfStock()}
-              disabled={loading || !branchId.trim()}
-            >
-              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
-              {loading ? "…" : "Refresh"}
-            </Button>
-          </div>
+      {message ? (
+        <DashboardFeedback kind={messageKind} text={message} />
+      ) : null}
+      {capped ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Scanned first {MAX_SCAN_PAGES * PAGE_SIZE} products — search for more.
+        </p>
+      ) : null}
+      {!canWrite && rows.length > 0 ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          View-only — enable stock editing in Business settings to restock.
+        </p>
+      ) : null}
+
+      {/* Product list */}
+      {!branchId.trim() ? (
+        <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-6 text-center">
+          <Package className="size-6 text-muted-foreground/40" aria-hidden />
+          <p className="text-xs text-muted-foreground">{emptyMessage}</p>
         </div>
-
-        {message ? (
-          <p className="text-xs text-muted-foreground">{message}</p>
-        ) : null}
-        {capped ? (
-          <p className="text-xs text-muted-foreground">
-            Scanned the first {MAX_SCAN_PAGES * PAGE_SIZE} products — use search
-            to find a specific item.
-          </p>
-        ) : null}
-        {!canWrite && rows.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            View-only — your role cannot restock here. Ask an admin to enable
-            stock editing in Business settings.
-          </p>
-        ) : null}
-
-        <div className="min-w-0 overflow-hidden rounded-xl border border-border/60">
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
-            <h2 className="min-w-0 break-words text-xs font-semibold tracking-tight sm:text-sm">
-              {filteredRows.length.toLocaleString("en-KE")} to restock
-              {activeBranchName ? ` · ${activeBranchName}` : ""}
-            </h2>
-            {search.trim() && filteredRows.length !== rows.length ? (
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {filteredRows.length} of {rows.length} match
-              </span>
-            ) : null}
-          </div>
-
+      ) : loading && !loaded ? (
+        <RestockListSkeleton />
+      ) : (
+        <div className="min-w-0 overflow-hidden rounded-lg border border-border/60">
           {filteredRows.length === 0 ? (
-            <div className="px-3 py-10 text-center text-sm text-muted-foreground sm:px-4">
-              {loading
-                ? "Loading products…"
-                : !loaded
-                  ? "Select a branch and refresh to see out-of-stock products."
-                  : rows.length === 0
-                    ? "No out-of-stock products."
-                    : "No products match your search."}
+            <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-6 text-center">
+              <PackageX
+                className="size-6 text-muted-foreground/40"
+                aria-hidden
+              />
+              <p className="text-xs text-muted-foreground">
+                {emptyMessage ?? "No products to show."}
+              </p>
             </div>
           ) : (
-            <div className="divide-y divide-border/60 bg-card">
-              {filteredRows.map((r) => (
-                <RestockRowItem
-                  key={r.item.id}
-                  row={r}
-                  canWrite={canWrite}
-                  onQtyChange={(value) => setRowField(r.item.id, "qty", value)}
-                  onCostChange={(value) =>
-                    setRowField(r.item.id, "cost", value)
-                  }
-                  onSave={() => void saveRow(r.item.id)}
-                />
-              ))}
-            </div>
+            <>
+              {search.trim() && filteredRows.length !== rows.length ? (
+                <div className="border-b border-border/60 bg-muted/25 px-2.5 py-1 text-[10px] text-muted-foreground sm:px-3">
+                  {filteredRows.length} of {rows.length} match
+                </div>
+              ) : null}
+              <div className="divide-y divide-border/60 bg-card">
+                {filteredRows.map((r) => (
+                  <RestockRowItem
+                    key={r.item.id}
+                    row={r}
+                    canWrite={canWrite}
+                    onQtyChange={(value) =>
+                      setRowField(r.item.id, "qty", value)
+                    }
+                    onCostChange={(value) =>
+                      setRowField(r.item.id, "cost", value)
+                    }
+                    onSave={() => void saveRow(r.item.id)}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
