@@ -172,21 +172,38 @@ export default function ProductsPage() {
   );
 
   const D = detail.detail;
+  const isViewingVariant = !!D?.variantOfItemId?.trim();
   const variantDrawerParentName =
-    (D?.variantOfItemId && detail.variantParentDisplayName?.trim()) ||
+    (isViewingVariant && detail.variantParentDisplayName?.trim()) ||
     D?.name?.trim() ||
     "This product";
   const variantDrawerParentIsGroup =
-    !!D && !D.variantOfItemId?.trim() && D.isSellable === false;
+    isViewingVariant
+      ? detail.variantParentIsGroup
+      : !!D && !D.variantOfItemId?.trim() && D.isSellable === false;
   const variantDrawerParentCategoryId =
-    D && !D.variantOfItemId?.trim() ? D.categoryId?.trim() || "" : "";
-  const variantDrawerParentCategoryName =
-    variantDrawerParentCategoryId
-      ? catalog.sortedCategories.find((c) => c.id === variantDrawerParentCategoryId)
-          ?.name ||
-        D?.categoryName?.trim() ||
-        ""
-      : "";
+    (isViewingVariant
+      ? detail.variantParentCategoryId?.trim()
+      : D && !D.variantOfItemId?.trim()
+        ? D.categoryId?.trim()
+        : "") || "";
+  const variantDrawerParentCategoryName = variantDrawerParentCategoryId
+    ? catalog.sortedCategories.find((c) => c.id === variantDrawerParentCategoryId)
+        ?.name ||
+      D?.categoryName?.trim() ||
+      ""
+    : "";
+  const handleOpenAddVariant = useCallback(() => {
+    const seed = emptyVariantDraft();
+    if (isViewingVariant && D) {
+      seed.brand = D.brand?.trim() || "";
+      seed.unitType = D.unitType?.trim() || "";
+      seed.isPackageVariant = D.packageVariant ?? false;
+      if (D.categoryId?.trim()) seed.categoryId = D.categoryId.trim();
+    }
+    m.setVariantDraftRows([seed]);
+    setActiveDrawer("add-variant");
+  }, [D, isViewingVariant, m]);
   const variantCreateSubmitCount = m.variantDraftRows.filter((r) =>
     r.variantName.trim(),
   ).length;
@@ -308,6 +325,7 @@ export default function ProductsPage() {
     onOpenChangeItemType: canCatalogWrite
       ? () => setChangeItemTypeOpen(true)
       : undefined,
+    onOpenAddVariant: canCatalogWrite ? handleOpenAddVariant : undefined,
     itemTypeLabel:
       catalog.itemTypes.find((t) => t.id === D?.itemTypeId)?.label?.trim() ||
       undefined,
@@ -472,6 +490,11 @@ export default function ProductsPage() {
           parentIsProductGroup={variantDrawerParentIsGroup}
           parentCategoryId={variantDrawerParentCategoryId || undefined}
           parentCategoryName={variantDrawerParentCategoryName || undefined}
+          siblingContextLabel={
+            isViewingVariant
+              ? D?.variantName?.trim() || D?.name?.trim() || undefined
+              : undefined
+          }
           variantCreateSubmitCount={variantCreateSubmitCount}
           sortedCategories={catalog.sortedCategories}
           branches={m.branches}

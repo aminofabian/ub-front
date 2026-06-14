@@ -16,6 +16,8 @@ type Props = {
   parentIsProductGroup: boolean;
   parentCategoryId?: string;
   parentCategoryName?: string;
+  /** When adding a sibling, the currently selected variant label for drawer context. */
+  siblingContextLabel?: string;
   variantCreateSubmitCount: number;
   sortedCategories: CategoryRecord[];
   branches: BranchRecord[];
@@ -49,6 +51,7 @@ export function VariantCreateDrawer({
   parentIsProductGroup,
   parentCategoryId,
   parentCategoryName,
+  siblingContextLabel,
   variantCreateSubmitCount,
   sortedCategories,
   branches,
@@ -59,10 +62,13 @@ export function VariantCreateDrawer({
   canInventoryWrite,
   currencyCode,
 }: Props) {
+  const isSibling = !!siblingContextLabel?.trim();
   const submitLabel =
     variantCreateSubmitCount > 1
       ? `Create ${variantCreateSubmitCount} variants`
-      : "Create variant";
+      : isSibling
+        ? "Create sibling"
+        : "Create variant";
 
   return (
     <FormDrawer
@@ -71,8 +77,18 @@ export function VariantCreateDrawer({
         if (!o) onClose();
       }}
       banner={banner}
-      title={`Add variants to ${parentDisplayName}`}
-      contextLabel={parentIsProductGroup ? "Parent group" : "Parent product"}
+      title={
+        isSibling
+          ? `Add sibling under ${parentDisplayName}`
+          : `Add variants to ${parentDisplayName}`
+      }
+      contextLabel={
+        isSibling
+          ? `Same group as “${siblingContextLabel}”`
+          : parentIsProductGroup
+            ? "Parent group"
+            : "Parent product"
+      }
       icon={<Layers className="size-3.5 text-primary" aria-hidden />}
       width="wide"
       headerDensity="compact"

@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   CircleDollarSign,
+  GitBranchPlus,
   Layers,
   Loader2,
   Package,
@@ -144,6 +145,7 @@ type Props = {
   selectProduct: (id: string | null) => void;
   onOpenPackageSales?: () => void;
   onOpenBaseStock?: () => void;
+  onOpenAddVariant?: () => void;
   /** When provided, the panel shows a "Change department" quick action. */
   onOpenChangeItemType?: () => void;
   /** Human-friendly label of the product's current department (item type). */
@@ -222,6 +224,7 @@ export function ProductDetailPanel(props: Props) {
     selectProduct,
     onOpenPackageSales,
     onOpenBaseStock,
+    onOpenAddVariant,
     onOpenChangeItemType,
     itemTypeLabel,
     isStorefrontFeatured = false,
@@ -239,6 +242,10 @@ export function ProductDetailPanel(props: Props) {
   const [variantsOpen, setVariantsOpen] = useState(true);
 
   const panelKind = detailPanelKind(detail, variantRows.length);
+  const isChildVariant = !!detail.variantOfItemId?.trim();
+  const parentProductId = detail.variantOfItemId?.trim() || null;
+  const openAddVariant =
+    onOpenAddVariant ?? (() => setActiveDrawer("add-variant"));
   const canToggleFeatured =
     canManageFeatured &&
     !!onToggleFeatured &&
@@ -626,12 +633,20 @@ export function ProductDetailPanel(props: Props) {
                 </span>
               )}
             </div>
-            {detail.variantOfItemId && variantParentDisplayName ? (
+            {isChildVariant && variantParentDisplayName && parentProductId ? (
               <p className="text-[11px] leading-snug text-muted-foreground">
-                Variant of{" "}
-                <span className="font-medium text-foreground">
+                One of{" "}
+                <span className="tabular-nums font-medium text-foreground">
+                  {Math.max(variantRows.length, 1)}
+                </span>{" "}
+                SKUs under{" "}
+                <button
+                  type="button"
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                  onClick={() => selectProduct(parentProductId)}
+                >
                   {variantParentDisplayName}
-                </span>
+                </button>
               </p>
             ) : null}
           </div>
@@ -707,15 +722,24 @@ export function ProductDetailPanel(props: Props) {
             {isStorefrontFeatured ? "Remove featured" : "Add to featured"}
           </Button>
         ) : null}
-        {!detail.variantOfItemId && canCatalogWrite ? (
+        {canCatalogWrite ? (
           <Button
             type="button"
             variant="outline"
             className="col-span-2 h-9 gap-1.5 rounded-xl text-xs font-medium shadow-sm sm:col-span-1"
-            onClick={() => setActiveDrawer("add-variant")}
+            onClick={openAddVariant}
+            title={
+              isChildVariant && variantParentDisplayName
+                ? `Add another SKU under ${variantParentDisplayName}`
+                : "Add a variant SKU to this product"
+            }
           >
-            <Layers className="size-3.5" aria-hidden />
-            Add variant
+            {isChildVariant ? (
+              <GitBranchPlus className="size-3.5" aria-hidden />
+            ) : (
+              <Layers className="size-3.5" aria-hidden />
+            )}
+            {isChildVariant ? "Add sibling" : "Add variant"}
           </Button>
         ) : null}
       </div>
@@ -1368,9 +1392,11 @@ export function ProductDetailPanel(props: Props) {
         >
           <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
           <span className={detailSectionLabelClass}>
-            {packageVariants.length > 0 && optionVariants.length === 0
-              ? "Package sizes"
-              : "SKUs & variants"}
+            {isChildVariant
+              ? "Sibling SKUs"
+              : packageVariants.length > 0 && optionVariants.length === 0
+                ? "Package sizes"
+                : "SKUs & variants"}
           </span>
           {variantCountLabel ? (
             <span className="bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
@@ -1387,7 +1413,30 @@ export function ProductDetailPanel(props: Props) {
         </button>
         {variantsOpen ? (
           <>
-            {!detail.variantOfItemId ? (
+            {isChildVariant && variantParentDisplayName ? (
+              <div className="border-t border-border/40 bg-violet-500/[0.04] px-3 py-2">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  More sizes or options for{" "}
+                  <span className="font-medium text-foreground">
+                    {variantParentDisplayName}
+                  </span>
+                  . New siblings share the same parent in your catalog.
+                </p>
+                {canCatalogWrite ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-8 gap-1.5 rounded-lg border-violet-500/25 bg-background text-xs"
+                    onClick={openAddVariant}
+                  >
+                    <GitBranchPlus className="size-3.5" aria-hidden />
+                    Add sibling SKU
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {!isChildVariant ? (
               <div className="flex flex-wrap gap-2 border-t border-border/40 bg-muted/15 px-3 py-2">
                 {canAddPackageSales ? (
                   <Button
@@ -1406,7 +1455,7 @@ export function ProductDetailPanel(props: Props) {
                     size="sm"
                     variant="outline"
                     className="h-8 gap-1 rounded-lg text-xs"
-                    onClick={() => setActiveDrawer("add-variant")}
+                    onClick={openAddVariant}
                   >
                     <PackagePlus className="size-3.5" aria-hidden />
                     Add variant
@@ -1443,7 +1492,7 @@ export function ProductDetailPanel(props: Props) {
                       type="button"
                       variant="outline"
                       className="h-9 flex-1 gap-1.5 rounded-lg text-xs"
-                      onClick={() => setActiveDrawer("add-variant")}
+                      onClick={openAddVariant}
                     >
                       <PackagePlus className="size-3.5" aria-hidden />
                       Variant
@@ -1587,6 +1636,16 @@ export function ProductDetailPanel(props: Props) {
                     </Fragment>
                   );
                 })}
+                {isChildVariant && canCatalogWrite ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-muted/10 px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
+                    onClick={openAddVariant}
+                  >
+                    <GitBranchPlus className="size-3.5 shrink-0" aria-hidden />
+                    Add another option under {variantParentDisplayName ?? "parent"}
+                  </button>
+                ) : null}
               </div>
             )}
           </>

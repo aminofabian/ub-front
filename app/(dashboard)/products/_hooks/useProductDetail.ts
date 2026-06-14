@@ -32,6 +32,10 @@ export function useProductDetail(branchIdForPricing?: string | null) {
   const [variantParentDisplayName, setVariantParentDisplayName] = useState<
     string | null
   >(null);
+  const [variantParentCategoryId, setVariantParentCategoryId] = useState<
+    string | null
+  >(null);
+  const [variantParentIsGroup, setVariantParentIsGroup] = useState(false);
   /** Current selling price resolved by the pricing module (source of truth). */
   const [currentSellPrice, setCurrentSellPrice] = useState<number | null>(null);
 
@@ -83,13 +87,19 @@ export function useProductDetail(branchIdForPricing?: string | null) {
             });
             setParentVariants(parentRow.variants ?? []);
             setVariantParentDisplayName(parentRow.name?.trim() || null);
+            setVariantParentCategoryId(parentRow.categoryId?.trim() || null);
+            setVariantParentIsGroup(parentRow.isSellable === false);
           } catch {
             setParentVariants([]);
             setVariantParentDisplayName(null);
+            setVariantParentCategoryId(null);
+            setVariantParentIsGroup(false);
           }
         } else {
           setParentVariants(null);
           setVariantParentDisplayName(null);
+          setVariantParentCategoryId(null);
+          setVariantParentIsGroup(false);
         }
         try {
           const links = await fetchItemSupplierLinks(id);
@@ -126,6 +136,8 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       setPatchDraft(EMPTY_EDIT_DRAFT);
       setParentVariants(null);
       setVariantParentDisplayName(null);
+      setVariantParentCategoryId(null);
+      setVariantParentIsGroup(false);
       setCurrentSellPrice(null);
       return;
     }
@@ -145,16 +157,22 @@ export function useProductDetail(branchIdForPricing?: string | null) {
             if (!cancelled) {
               setParentVariants(parentRow.variants ?? []);
               setVariantParentDisplayName(parentRow.name?.trim() || null);
+              setVariantParentCategoryId(parentRow.categoryId?.trim() || null);
+              setVariantParentIsGroup(parentRow.isSellable === false);
             }
           } catch {
             if (!cancelled) {
               setParentVariants([]);
               setVariantParentDisplayName(null);
+              setVariantParentCategoryId(null);
+              setVariantParentIsGroup(false);
             }
           }
         } else if (!cancelled) {
           setParentVariants(null);
           setVariantParentDisplayName(null);
+          setVariantParentCategoryId(null);
+          setVariantParentIsGroup(false);
         }
         try {
           const links = await fetchItemSupplierLinks(selectedId);
@@ -223,6 +241,8 @@ export function useProductDetail(branchIdForPricing?: string | null) {
     setParentVariants,
     variantParentDisplayName,
     setVariantParentDisplayName,
+    variantParentCategoryId,
+    variantParentIsGroup,
     variantRows,
     sortedImages,
     sellPrice,
