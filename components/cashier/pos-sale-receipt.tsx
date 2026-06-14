@@ -45,10 +45,6 @@ function hasReceiptContact(receipt: PosReceiptSnapshot): boolean {
   );
 }
 
-function showLineDetail(line: { quantity: number; unitPrice: number; lineTotal: number }): boolean {
-  return line.quantity !== 1 || Math.abs(line.unitPrice - line.lineTotal) > 0.001;
-}
-
 function ReceiptPair({
   left,
   right,
@@ -106,12 +102,11 @@ export function PosSaleReceipt({
   return (
     <div className={className}>
       {showPrintButton ? (
-        <div className="mb-2 flex justify-end print:hidden">
+        <div className="mb-2 print:hidden">
           <Button
             type="button"
-            variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs"
+            className="h-9 w-full gap-2 rounded-sm text-sm font-semibold shadow-sm bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
             onClick={() => {
               if (saleId) {
                 void printPosReceipt(saleId);
@@ -120,7 +115,7 @@ export function PosSaleReceipt({
               }
             }}
           >
-            <Printer className="size-3.5" aria-hidden />
+            <Printer className="size-4" aria-hidden />
             Print receipt
           </Button>
         </div>
@@ -129,9 +124,8 @@ export function PosSaleReceipt({
       <article
         id={POS_RECEIPT_PRINT_ROOT_ID}
         className={cn(
-          "pos-receipt-paper mx-auto w-full max-w-[12.5rem] bg-white py-2.5 text-neutral-900",
-          "border border-border/60 px-2.5 text-[11px] leading-snug shadow-sm",
-          "dark:border-border dark:bg-neutral-950 dark:text-neutral-100",
+          "pos-receipt-paper mx-auto w-full max-w-[12.5rem] bg-white py-2 text-black",
+          "border border-border/60 px-2 text-[11px] leading-snug",
           "print:max-w-none print:border-0 print:px-0 print:py-0 print:shadow-none",
         )}
         aria-label="Sale receipt"
@@ -154,13 +148,22 @@ export function PosSaleReceipt({
           {showBusinessName ? (
             <p className="pos-receipt-shop">{receipt.businessName}</p>
           ) : null}
-          {location ? <p className="pos-receipt-location">{location}</p> : null}
+          {location ? (
+            <p
+              className={cn(
+                "pos-receipt-location",
+                receipt.logoUrl ? "pos-receipt-location--branch" : null,
+              )}
+            >
+              {location}
+            </p>
+          ) : null}
         </header>
 
         <hr className="pos-receipt-rule" />
 
         <section className="pos-receipt-meta space-y-1" aria-label="Sale details">
-          <p className="pos-receipt-sale-id font-bold uppercase tracking-wide text-neutral-900 dark:text-neutral-100">
+          <p className="pos-receipt-sale-id font-bold uppercase tracking-wide text-black">
             #{receipt.saleId.slice(0, 8).toUpperCase()}
           </p>
           {receipt.servedByName ? (
@@ -178,33 +181,43 @@ export function PosSaleReceipt({
 
         <hr className="pos-receipt-rule" />
 
-        <ul className="pos-receipt-lines space-y-2">
-          {receipt.lines.map((line, i) => (
-            <li key={`${line.description}-${i}`} className="pos-receipt-line">
-              <ReceiptMoney label={line.description} value={line.lineTotal.toFixed(2)} />
-              {showLineDetail(line) ? (
-                <p className="pos-receipt-line-detail tabular-nums">
-                  {line.quantity} &times; {line.unitPrice.toFixed(2)}
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <section className="pos-receipt-lines-section" aria-label="Items sold">
+          <div className="pos-receipt-lines-head" aria-hidden>
+            <span>Item</span>
+            <span>Qty</span>
+            <span>Price</span>
+          </div>
+          <ul className="pos-receipt-lines">
+            {receipt.lines.map((line, i) => (
+              <li key={`${line.description}-${i}`} className="pos-receipt-line-row">
+                <span className="pos-receipt-line-item">{line.description}</span>
+                <span className="pos-receipt-line-qty tabular-nums">{line.quantity}</span>
+                <span className="pos-receipt-line-price tabular-nums">
+                  {line.unitPrice.toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <hr className="pos-receipt-rule" />
 
         <section className="pos-receipt-totals space-y-1" aria-label="Payment summary">
           {singlePayment ? (
-            <p className="pos-receipt-payment-method">Paid via {singlePayment.label}</p>
-          ) : (
-            receipt.payments.map((p, i) => (
-              <ReceiptMoney
-                key={`${p.method}-${i}`}
-                label={p.reference ? `${p.label} (${p.reference})` : p.label}
-                value={p.amount.toFixed(2)}
-              />
-            ))
-          )}
+            <p className="pos-receipt-payment-note">
+              Paid via: {singlePayment.label}
+            </p>
+          ) : receipt.payments.length > 0 ? (
+            <p className="pos-receipt-payment-note">
+              Paid via:{" "}
+              {receipt.payments
+                .map((p) => (p.reference ? `${p.label} (${p.reference})` : p.label))
+                .join(" + ")}
+            </p>
+          ) : null}
+
+          <hr className="pos-receipt-rule pos-receipt-rule--totals" aria-hidden />
+
           <ReceiptMoney
             emphasis
             label="TOTAL"
@@ -226,7 +239,7 @@ export function PosSaleReceipt({
 
         {showContact ? (
           <>
-            <hr className="pos-receipt-rule" />
+            <hr className="pos-receipt-rule pos-receipt-rule--dashed" />
             <footer className="pos-receipt-contact space-y-0.5 text-center" aria-label="Store contact">
               {receipt.branchAddress ? (
                 <p className="pos-receipt-address">{receipt.branchAddress}</p>

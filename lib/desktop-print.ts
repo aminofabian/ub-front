@@ -4,8 +4,8 @@ import { apiRequest } from "@/lib/api";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { toast } from "sonner";
 
-/** Thermal roll width used by the POS preview (50 mm). */
-export const DESKTOP_THERMAL_WIDTH_MM = 50;
+/** Default thermal roll width for ESC/POS and browser print (80mm). */
+export const DESKTOP_THERMAL_WIDTH_MM = 80;
 
 /**
  * Print a completed sale on the configured ESC/POS printer (desktop) or fall back

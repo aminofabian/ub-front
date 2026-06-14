@@ -35,29 +35,14 @@ import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { cn } from "@/lib/utils";
 
-const DRAWER_SECTION_TITLE = cn(
-  "text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
-);
+const sectionLabel = "text-[10px] font-semibold uppercase tracking-wide text-muted-foreground";
 
-const drawerSectionShell = cn(
-  "rounded-2xl border border-border/45 bg-muted/[0.035] p-4 shadow-sm ring-1 ring-black/[0.02]",
-  "dark:border-border/50 dark:bg-muted/[0.06] dark:ring-white/[0.03]",
-);
-
-const drawerSectionHeader = cn(
-  "mb-3 flex flex-wrap items-end justify-between gap-2 border-b border-border/35 pb-2.5",
-);
-
-const drawerFieldClass = (extra?: string) =>
+const fieldClass = (extra?: string) =>
   cn(
-    "rounded-lg border border-border/55 bg-background px-2.5 text-sm shadow-sm transition-[border-color,box-shadow]",
-    "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_38%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
+    "rounded-sm border border-border/60 bg-background px-2 text-sm",
+    "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_20%,transparent)]",
     extra,
   );
-
-const drawerInsetPanel = cn(
-  "rounded-xl border border-border/45 bg-gradient-to-b from-muted/25 to-muted/10 p-3 shadow-sm ring-1 ring-black/[0.02] dark:from-muted/15 dark:to-muted/5 dark:ring-white/[0.03]",
-);
 
 type CartLineLike = {
   key: string;
@@ -89,7 +74,6 @@ export type CashierCartDrawerProps = {
   online: boolean;
   currency: string;
   branchSelected: boolean;
-  /** Business brand CSS variables (dialog is portaled). */
   brandTheme: CSSProperties;
 
   lines: CartLineLike[];
@@ -180,19 +164,15 @@ function PayChip({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1.5 text-xs font-semibold tracking-tight transition-[transform,box-shadow,border-color,background-color]",
+        "rounded-sm border px-2 py-1 text-[11px] font-semibold transition-colors",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "active:scale-[0.98]",
         active
-          ? "border-transparent text-[var(--pos-primary-ink)] shadow-md ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] ring-offset-2 ring-offset-background"
-          : "border-border/55 bg-background/90 hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:bg-muted/40",
+          ? "border-transparent text-[var(--pos-primary-ink)]"
+          : "border-border/60 bg-background text-muted-foreground hover:border-border hover:text-foreground",
       )}
       style={
         active
-          ? {
-              backgroundColor: "var(--pos-primary)",
-              borderColor: "transparent",
-            }
+          ? { backgroundColor: "var(--pos-primary)", borderColor: "transparent" }
           : undefined
       }
     >
@@ -278,25 +258,29 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
 
   const customerNeeded = !splitPay && payMethodNeedsCustomer(payMethod);
 
+  const cashChange = (() => {
+    const tender = Number(cashTenderStr.trim());
+    if (!Number.isFinite(tender) || tender < grandTotal) return null;
+    return (tender - grandTotal).toFixed(2);
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="right"
-        overlayClassName="bg-black/[0.12] backdrop-blur-[3px] dark:bg-black/40"
+        overlayClassName="bg-black/20 backdrop-blur-[2px] dark:bg-black/35"
         className={cn(
-          "max-w-[min(100%,22rem)] gap-0 border-border/40 p-0 shadow-2xl sm:max-w-md",
-          "flex flex-col bg-gradient-to-b from-background to-muted/12 dark:to-muted/8",
+          "max-w-[min(100%,20rem)] gap-0 border-border/50 p-0 shadow-xl sm:max-w-[22rem]",
+          "flex flex-col bg-background",
         )}
         style={brandTheme}
         showCloseButton
       >
         {saleComplete ? (
           <>
-            <div className="relative shrink-0 border-b border-border/40 px-5 py-4 print:hidden">
-              <DialogHeader className="min-w-0 pr-10">
-                <DialogTitle className="text-base font-semibold tracking-tight">
-                  Sale complete
-                </DialogTitle>
+            <div className="shrink-0 border-b border-border/50 px-3 py-2.5 print:hidden">
+              <DialogHeader className="min-w-0 pr-8">
+                <DialogTitle className="text-sm font-semibold">Sale complete</DialogTitle>
                 <DialogDescription className="sr-only">
                   Receipt and summary for the completed sale
                 </DialogDescription>
@@ -319,59 +303,41 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
           </>
         ) : (
           <>
-            <div className="relative shrink-0 border-b border-border/40 bg-gradient-to-r from-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] via-muted/20 to-transparent px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.05)] dark:from-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] dark:via-muted/10 dark:shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.05)]">
-              <span
-                className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-[var(--pos-primary)] shadow-[2px_0_14px_color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
-                aria-hidden
-              />
-              <DialogHeader className="min-w-0 space-y-1 pl-3.5 pr-10">
-                <DialogTitle className="flex items-center gap-2.5 text-base font-semibold tracking-tight text-foreground">
-                  <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-[var(--pos-primary)] shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.04]">
-                    <ShoppingBag className="size-3.5" aria-hidden />
-                  </span>
+            <div className="shrink-0 border-b border-border/50 px-3 py-2.5">
+              <DialogHeader className="min-w-0 pr-8">
+                <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <ShoppingBag className="size-3.5 text-[var(--pos-primary)]" aria-hidden />
                   Cart
+                  {lines.length > 0 ? (
+                    <span className="font-normal text-muted-foreground">
+                      · {lines.length} line{lines.length === 1 ? "" : "s"} ·{" "}
+                      {totalItems.toFixed(0)} qty
+                    </span>
+                  ) : null}
                 </DialogTitle>
-                <DialogDescription className="pl-[2.625rem] text-[11px] leading-relaxed text-muted-foreground">
+                <DialogDescription className="sr-only">
                   {lines.length === 0
-                    ? "No items yet — tap a tile or search to add."
-                    : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalItems.toFixed(0)} item${totalItems === 1 ? "" : "s"}`}
+                    ? "Cart is empty"
+                    : `${lines.length} lines, ${totalItems} items`}
                 </DialogDescription>
               </DialogHeader>
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-background via-background/90 to-transparent"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-10 bg-gradient-to-t from-background via-background/90 to-transparent"
-                aria-hidden
-              />
-              <div className="relative z-0 space-y-5 px-5 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="space-y-3 px-3 py-2.5">
                 {lines.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/50 bg-muted/[0.04] py-12 text-center ring-1 ring-black/[0.02] dark:bg-muted/[0.05] dark:ring-white/[0.03]">
-                    <span className="inline-flex size-12 items-center justify-center rounded-xl border border-border/45 bg-background text-muted-foreground shadow-sm">
-                      <ShoppingBag className="size-5 opacity-55" aria-hidden />
-                    </span>
-                    <div className="max-w-[18rem] space-y-1 px-3">
-                      <p className="text-sm font-semibold text-foreground">
-                        Your cart is empty
-                      </p>
-                      <p className="text-[11px] leading-relaxed text-muted-foreground">
-                        Search or tap a top seller to add items.
-                      </p>
-                    </div>
+                  <div className="flex flex-col items-center gap-2 border border-dashed border-border/50 py-10 text-center">
+                    <ShoppingBag className="size-5 text-muted-foreground/50" aria-hidden />
+                    <p className="text-xs text-muted-foreground">
+                      Tap a tile or search to add items
+                    </p>
                   </div>
                 ) : (
-                  <section className="space-y-2.5">
-                    <div className={drawerSectionHeader}>
-                      <h3 className={DRAWER_SECTION_TITLE}>Lines</h3>
-                      <span className="rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                        {lines.length} · {totalItems.toFixed(0)} qty
-                      </span>
+                  <section>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <h3 className={sectionLabel}>Lines</h3>
                     </div>
-                    <ul className="space-y-2">
+                    <ul className="divide-y divide-border/50 border border-border/50 bg-card">
                       {lines.map((line) => {
                         const thumb = itemListThumbnailUrl(line.item);
                         const subtotal = lineSubtotal(line);
@@ -379,144 +345,124 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         const lineTitle = cashierItemPrimaryLabel(line.item);
                         const lineDetail = posSearchItemDetailLine(line.item);
                         return (
-                          <li
-                            key={line.key}
-                            className={cn(
-                              "group relative overflow-hidden rounded-xl border border-border/45 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] transition-[border-color,box-shadow] duration-200",
-                              "dark:ring-white/[0.03]",
-                              "hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md",
-                            )}
-                          >
-                            <span
-                              className="pointer-events-none absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-[var(--pos-primary)] opacity-0 shadow-[0_0_10px_color-mix(in_srgb,var(--pos-primary)_40%,transparent)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-                              aria-hidden
-                            />
-                            <div className="flex items-start gap-2.5">
+                          <li key={line.key} className="px-2 py-1.5">
+                            <div className="flex items-start gap-2">
                               {thumb ? (
-                                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60">
+                                <span className="relative size-9 shrink-0 overflow-hidden border border-border/40 bg-muted/30">
                                   <Image
                                     src={thumb}
                                     alt=""
-                                    width={44}
-                                    height={44}
-                                    className="h-full w-full object-cover"
+                                    width={36}
+                                    height={36}
+                                    className="size-full object-cover"
                                     unoptimized
                                   />
                                 </span>
                               ) : (
                                 <span
-                                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-gradient-to-b from-muted/40 to-muted/60 text-sm font-bold text-muted-foreground"
+                                  className="inline-flex size-9 shrink-0 items-center justify-center border border-border/40 bg-muted/30 text-xs font-bold text-muted-foreground"
                                   aria-hidden
                                 >
-                                  {lineTitle.trim().charAt(0).toUpperCase() ||
-                                    "?"}
+                                  {lineTitle.trim().charAt(0).toUpperCase() || "?"}
                                 </span>
                               )}
-                              <div className="min-w-0 flex-1 pt-0.5">
-                                <p className="line-clamp-2 text-[13px] font-semibold leading-[1.25] tracking-tight text-foreground">
-                                  {lineTitle}
-                                </p>
-                                <p className="mt-0.5 break-all text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  {lineDetail}
-                                </p>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start gap-1">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold leading-snug text-foreground">
+                                      {lineTitle}
+                                    </p>
+                                    {lineDetail ? (
+                                      <p className="text-[10px] leading-snug text-muted-foreground">
+                                        {lineDetail}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  {subtotal > 0 ? (
+                                    <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground">
+                                      {subtotal.toFixed(2)}
+                                    </span>
+                                  ) : null}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
+                                    aria-label="Remove line"
+                                    onClick={() => removeLine(line.key)}
+                                  >
+                                    <Trash2 className="size-3" />
+                                  </Button>
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <div className="flex items-center">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon-sm"
+                                      className="size-6 rounded-sm border-border/60"
+                                      aria-label="Decrease"
+                                      onClick={() =>
+                                        updateLine(
+                                          line.key,
+                                          "quantity",
+                                          String(Math.max(1, qNum - 1)),
+                                        )
+                                      }
+                                    >
+                                      <Minus className="size-2.5" />
+                                    </Button>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      aria-label="Quantity"
+                                      className={fieldClass(
+                                        "mx-0.5 h-6 w-9 rounded-sm py-0 text-center text-xs font-semibold tabular-nums",
+                                      )}
+                                      value={line.quantity}
+                                      onChange={(e) =>
+                                        updateLine(line.key, "quantity", e.target.value)
+                                      }
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon-sm"
+                                      className="size-6 rounded-sm border-border/60"
+                                      aria-label="Increase"
+                                      onClick={() =>
+                                        updateLine(
+                                          line.key,
+                                          "quantity",
+                                          String(qNum + 1),
+                                        )
+                                      }
+                                    >
+                                      <Plus className="size-2.5" />
+                                    </Button>
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">×</span>
+                                  <label className="flex items-center gap-1">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {currency}
+                                    </span>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      aria-label="Unit price"
+                                      placeholder="0"
+                                      className={fieldClass(
+                                        "h-6 w-14 rounded-sm py-0 text-right text-xs font-medium tabular-nums",
+                                      )}
+                                      value={line.unitPrice}
+                                      onChange={(e) =>
+                                        updateLine(line.key, "unitPrice", e.target.value)
+                                      }
+                                    />
+                                  </label>
+                                </div>
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                aria-label="Remove line"
-                                onClick={() => removeLine(line.key)}
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
                             </div>
-
-                            <div className="mt-2.5 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1.5 text-sm">
-                              <span className="text-[11px] font-medium text-muted-foreground">
-                                Qty
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon-sm"
-                                  className="h-7 w-7 border-border/55"
-                                  aria-label="Decrease"
-                                  onClick={() =>
-                                    updateLine(
-                                      line.key,
-                                      "quantity",
-                                      String(Math.max(1, qNum - 1)),
-                                    )
-                                  }
-                                >
-                                  <Minus className="size-3" />
-                                </Button>
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  aria-label="Quantity"
-                                  className={drawerFieldClass(
-                                    "h-7 w-[3.25rem] py-0 text-center text-[13px] font-semibold tabular-nums",
-                                  )}
-                                  value={line.quantity}
-                                  onChange={(e) =>
-                                    updateLine(
-                                      line.key,
-                                      "quantity",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon-sm"
-                                  className="h-7 w-7 border-border/55"
-                                  aria-label="Increase"
-                                  onClick={() =>
-                                    updateLine(
-                                      line.key,
-                                      "quantity",
-                                      String(qNum + 1),
-                                    )
-                                  }
-                                >
-                                  <Plus className="size-3" />
-                                </Button>
-                              </div>
-                              <span className="text-[11px] font-medium text-muted-foreground">
-                                Unit ({currency})
-                              </span>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                aria-label="Unit price"
-                                placeholder="0.00"
-                                className={drawerFieldClass(
-                                  "h-7 w-full max-w-[7.5rem] py-0 pr-2 text-right text-[13px] font-medium tabular-nums",
-                                )}
-                                value={line.unitPrice}
-                                onChange={(e) =>
-                                  updateLine(
-                                    line.key,
-                                    "unitPrice",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            </div>
-                            {subtotal > 0 ? (
-                              <p className="mt-2 flex items-end gap-2 border-t border-border/35 pt-2 text-xs font-medium tabular-nums text-muted-foreground">
-                                <span className="shrink-0">Subtotal</span>
-                                <CashierDottedLeader />
-                                <span className="inline-flex shrink-0 items-baseline gap-0.5">
-                                  <span>{subtotal.toFixed(2)}</span>
-                                  <CashierCurrencySuffix code={currency} />
-                                </span>
-                              </p>
-                            ) : null}
                           </li>
                         );
                       })}
@@ -524,17 +470,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   </section>
                 )}
 
-                <section className={cn(drawerSectionShell, "space-y-3")}>
-                  <div className={drawerSectionHeader}>
-                    <h3 className={DRAWER_SECTION_TITLE}>Payment</h3>
-                    {/* Split cash + M-Pesa relies on the STK Push flow below; */}
-                    {/* desktop SKU is offline and only supports cash + customer-tab tenders here */}
-                    {/* (manual M-Pesa is still reachable via the Pay Invoice flow). */}
+                <section className="space-y-2 border border-border/50 bg-muted/10 p-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className={sectionLabel}>Payment</h3>
                     {!IS_DESKTOP ? (
-                      <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                      <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-muted-foreground">
                         <input
                           type="checkbox"
-                          className="size-3.5 rounded border-border/60 text-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]"
+                          className="size-3 rounded-sm border-border/60"
                           checked={splitPay}
                           disabled={payMethodNeedsCustomer(payMethod)}
                           onChange={(e) => {
@@ -551,14 +494,13 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   </div>
 
                   {!splitPay ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1">
                       <PayChip
                         active={payMethod === "cash"}
                         onClick={() => setPayMethod("cash")}
                       >
                         Cash
                       </PayChip>
-                      {/* M-Pesa chip drives the STK Push prompt below; both are cloud-only. */}
                       {!IS_DESKTOP ? (
                         <PayChip
                           active={payMethod === "mpesa_manual"}
@@ -575,7 +517,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             setPayMethod("customer_credit");
                           }}
                         >
-                          Customer tab
+                          Tab
                         </PayChip>
                       ) : null}
                       {canLookupCustomers ? (
@@ -606,37 +548,32 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {!splitPay && payMethod === "mpesa_manual" ? (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {stkPushStatus === "idle" || stkPushStatus === "failed" ? (
                         <>
                           {stkPushStatus === "failed" ? (
-                            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
-                              ❌ {stkPushError || "STK Push failed"}
+                            <p className="rounded-sm border border-red-200 bg-red-50 px-2 py-1.5 text-[11px] text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                              {stkPushError || "STK Push failed"}
                             </p>
                           ) : null}
-                          <p className="text-[11px] leading-relaxed text-muted-foreground">
-                            Enter the number that should receive the M-Pesa prompt, then send.
-                          </p>
-                          <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
-                            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-1.5">
+                            <label className="flex flex-col gap-0.5 text-[10px] text-muted-foreground">
                               Code
                               <input
                                 type="text"
                                 inputMode="tel"
-                                autoComplete="tel-country-code"
-                                className={drawerFieldClass("h-9 w-full tabular-nums")}
+                                className={fieldClass("h-7 w-full tabular-nums")}
                                 value={stkAreaCode}
                                 onChange={(e) => setStkAreaCode(e.target.value)}
                                 placeholder="+254"
                               />
                             </label>
-                            <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <label className="flex flex-col gap-0.5 text-[10px] text-muted-foreground">
                               M-Pesa phone
                               <input
                                 type="tel"
                                 inputMode="tel"
-                                autoComplete="tel"
-                                className={drawerFieldClass("h-9 w-full tabular-nums")}
+                                className={fieldClass("h-7 w-full tabular-nums")}
                                 value={stkPhone}
                                 onChange={(e) => setStkPhone(e.target.value)}
                                 placeholder="712 345 678"
@@ -644,65 +581,55 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             </label>
                           </div>
                           {stkPhone.trim() && !isStkPhoneValid(stkAreaCode, stkPhone) ? (
-                            <p className="text-[11px] text-destructive">
+                            <p className="text-[10px] text-destructive">
                               Enter a valid Kenyan mobile number.
                             </p>
                           ) : null}
                           <Button
                             type="button"
                             size="sm"
-                            className="h-9 w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                            className="h-7 w-full rounded-sm bg-emerald-600 text-xs text-white hover:bg-emerald-700"
                             disabled={
-                              !online ||
-                              !isStkPhoneValid(stkAreaCode, stkPhone)
+                              !online || !isStkPhoneValid(stkAreaCode, stkPhone)
                             }
                             onClick={() =>
                               onStkPush(buildStkPhoneNumber(stkAreaCode, stkPhone))
                             }
                           >
-                            {stkPushStatus === "failed" ? "Retry M-Pesa prompt" : "📱 Send M-Pesa prompt"}
+                            {stkPushStatus === "failed"
+                              ? "Retry M-Pesa prompt"
+                              : "Send M-Pesa prompt"}
                           </Button>
                         </>
                       ) : stkPushStatus === "sending" ? (
-                        <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                        <p className="rounded-sm border border-blue-200 bg-blue-50 px-2 py-1.5 text-center text-[11px] text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
                           Sending STK Push…
                         </p>
                       ) : stkPushStatus === "sent" ? (
-                        <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
-                          STK sent — waiting for customer to approve on{" "}
+                        <p className="rounded-sm border border-blue-200 bg-blue-50 px-2 py-1.5 text-center text-[11px] text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                          Waiting for approval on{" "}
                           <span className="font-mono font-semibold">
                             {buildStkPhoneNumber(stkAreaCode, stkPhone)}
                           </span>
                         </p>
                       ) : stkPushStatus === "confirmed" ? (
-                        <div
-                          className="space-y-2"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-3 shadow-sm ring-1 ring-emerald-200/80 dark:border-emerald-800 dark:bg-emerald-950/50 dark:ring-emerald-900">
-                            <div className="flex gap-2.5">
-                              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
-                                <Check
-                                  className="size-4"
-                                  strokeWidth={3}
-                                  aria-hidden
-                                />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold text-emerald-950 dark:text-emerald-50">
-                                  M-Pesa payment confirmed
-                                </p>
-                                <p className="mt-0.5 text-[11px] leading-relaxed text-emerald-900/90 dark:text-emerald-100/90">
-                                  {currency} {grandTotal.toFixed(2)} received —
-                                  complete the sale below.
-                                </p>
-                              </div>
+                        <div className="space-y-1.5" role="status" aria-live="polite">
+                          <div className="flex gap-2 rounded-sm border border-emerald-300 bg-emerald-50 px-2 py-1.5 dark:border-emerald-800 dark:bg-emerald-950/50">
+                            <Check
+                              className="mt-0.5 size-3.5 shrink-0 text-emerald-600"
+                              strokeWidth={3}
+                              aria-hidden
+                            />
+                            <div className="min-w-0 text-[11px] text-emerald-950 dark:text-emerald-50">
+                              <p className="font-semibold">M-Pesa confirmed</p>
+                              <p className="text-emerald-900/90 dark:text-emerald-100/90">
+                                {currency} {grandTotal.toFixed(2)} — complete sale below
+                              </p>
                             </div>
                           </div>
                           {mpesaRef.trim() ? (
-                            <p className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center text-[10px] text-muted-foreground">
-                              Ref:{" "}
+                            <p className="text-center text-[10px] text-muted-foreground">
+                              Ref{" "}
                               <span className="font-mono font-semibold text-foreground">
                                 {mpesaRef.trim()}
                               </span>
@@ -714,80 +641,65 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {!splitPay && payMethod === "cash" ? (
-                    <label className="block space-y-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <label className="block space-y-0.5">
+                      <span className="text-[10px] font-medium text-muted-foreground">
                         Amount received ({currency})
                       </span>
                       <input
                         type="text"
                         inputMode="decimal"
-                        className={drawerFieldClass(
-                          "h-9 w-full px-3 text-right tabular-nums",
-                        )}
+                        className={fieldClass("h-8 w-full text-right text-sm font-semibold tabular-nums")}
                         value={cashTenderStr}
                         onChange={(e) => setCashTenderStr(e.target.value)}
                         placeholder="0.00"
                         required
                       />
                       <p className="text-[10px] text-muted-foreground">
-                        {cashTenderStr.trim() ? (
+                        {cashChange != null ? (
                           <>
-                            Change:{" "}
+                            Change{" "}
                             <span className="font-semibold tabular-nums text-foreground">
-                              {(() => {
-                                const tender = Number(cashTenderStr.trim());
-                                if (
-                                  !Number.isFinite(tender) ||
-                                  tender < grandTotal
-                                ) {
-                                  return "—";
-                                }
-                                return (tender - grandTotal).toFixed(2);
-                              })()}
+                              {cashChange}
                             </span>{" "}
                             <CashierCurrencySuffix code={currency} />
                           </>
                         ) : (
-                          "Required — enter cash handed over by the customer."
+                          "Enter cash from customer"
                         )}
                       </p>
                     </label>
                   ) : null}
 
                   {splitPay ? (
-                    <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="space-y-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="space-y-1.5 text-sm">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <label className="space-y-0.5">
+                          <span className="text-[10px] text-muted-foreground">
                             Cash ({currency})
                           </span>
                           <input
                             type="text"
                             inputMode="decimal"
-                            className={drawerFieldClass(
-                              "h-8 w-full px-2 text-right text-sm",
-                            )}
+                            className={fieldClass("h-7 w-full text-right text-xs")}
                             value={cashSplitStr}
                             onChange={(e) => setCashSplitStr(e.target.value)}
                           />
                         </label>
-                        <label className="space-y-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <label className="space-y-0.5">
+                          <span className="text-[10px] text-muted-foreground">
                             M-Pesa ({currency})
                           </span>
                           <input
                             type="text"
                             inputMode="decimal"
-                            className={drawerFieldClass(
-                              "h-8 w-full px-2 text-right text-sm",
-                            )}
+                            className={fieldClass("h-7 w-full text-right text-xs")}
                             value={mpesaSplitStr}
                             onChange={(e) => setMpesaSplitStr(e.target.value)}
                           />
                         </label>
                       </div>
                       <input
-                        className={drawerFieldClass("h-8 w-full px-3 text-sm")}
+                        className={fieldClass("h-7 w-full text-xs")}
                         value={splitMpesaRef}
                         onChange={(e) => setSplitMpesaRef(e.target.value)}
                         placeholder="M-Pesa reference (optional)"
@@ -796,36 +708,26 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {customerNeeded && canLookupCustomers ? (
-                    <div className={cn(drawerInsetPanel, "space-y-3 text-sm")}>
-                      <p className="text-xs text-muted-foreground">
-                        {payMethod === "customer_credit"
-                          ? "Search by phone, then select the customer. The full cart total posts to their tab."
-                          : payMethod === "customer_wallet"
-                            ? `Cart total is paid from the customer's store wallet (${currency}).`
-                            : "Apply loyalty redemption (server enforces caps & point cost)."}
-                      </p>
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-1.5 border-t border-border/40 pt-2 text-sm">
+                      <div className="flex items-center gap-1.5">
                         <input
-                          className={drawerFieldClass(
-                            "h-9 min-w-0 flex-1 px-3",
-                          )}
+                          className={fieldClass("h-7 min-w-0 flex-1 text-xs")}
                           value={customerPhoneQuery}
-                          onChange={(e) =>
-                            setCustomerPhoneQuery(e.target.value)
-                          }
+                          onChange={(e) => setCustomerPhoneQuery(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
                               onSearchCustomers();
                             }
                           }}
-                          placeholder="Phone (2547… or 07…)"
+                          placeholder="Phone 2547… or 07…"
                           disabled={!online}
                         />
                         <Button
                           type="button"
                           variant="secondary"
                           size="sm"
+                          className="h-7 rounded-sm px-2 text-xs"
                           disabled={
                             !online ||
                             customerSearchBusy ||
@@ -841,30 +743,28 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       customerPhoneQuery.trim() &&
                       !isValidCustomerPhone(customerPhoneQuery) ? (
                         <p className="text-[10px] text-destructive">
-                          Enter at least 9 digits (e.g. 254712345678).
+                          Enter at least 9 digits.
                         </p>
                       ) : null}
                       {customerHits.length > 0 ? (
-                        <ul className="max-h-40 space-y-1 overflow-y-auto">
+                        <ul className="max-h-32 space-y-0.5 overflow-y-auto border border-border/50">
                           {customerHits.map((c) => (
                             <li key={c.id}>
                               <button
                                 type="button"
                                 className={cn(
-                                  "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-all",
+                                  "w-full px-2 py-1.5 text-left text-[11px] transition-colors",
                                   selectedCustomer?.id === c.id
-                                    ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_20%,transparent)]"
-                                    : "border-border/45 bg-background/80 hover:border-[color-mix(in_srgb,var(--pos-primary)_18%,var(--border))] hover:bg-muted/30",
+                                    ? "bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] font-medium"
+                                    : "hover:bg-muted/40",
                                 )}
                                 onClick={() => setSelectedCustomer(c)}
                               >
-                                <span className="font-medium text-foreground">
-                                  {c.name}
-                                </span>
-                                <span className="block text-muted-foreground">
+                                {c.name}
+                                <span className="ml-1 text-muted-foreground">
                                   {c.phones.find((p) => p.primary)?.phone ??
                                     c.phones[0]?.phone ??
-                                    "—"}
+                                    ""}
                                 </span>
                               </button>
                             </li>
@@ -875,48 +775,31 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       customerNoPhoneMatch &&
                       !selectedCustomer &&
                       isValidCustomerPhone(customerPhoneQuery) ? (
-                        <div className="space-y-2.5 rounded-lg border border-dashed border-border/55 bg-background/60 p-2.5">
-                          <p className="text-xs text-muted-foreground">
-                            No customers match that phone.
+                        <div className="space-y-1.5 border border-dashed border-border/50 p-2">
+                          <p className="text-[10px] text-muted-foreground">
+                            No match for that phone.
                           </p>
                           {canManageCustomers ? (
                             <>
-                              <p className="text-[10px] text-muted-foreground">
-                                Register them to open a credit tab, then charge
-                                this sale to it.
-                              </p>
-                              <label className="block space-y-1">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                  Name
-                                </span>
-                                <input
-                                  className={drawerFieldClass(
-                                    "h-9 w-full px-3",
-                                  )}
-                                  value={customerRegisterName}
-                                  onChange={(e) =>
-                                    setCustomerRegisterName(e.target.value)
+                              <input
+                                className={fieldClass("h-7 w-full text-xs")}
+                                value={customerRegisterName}
+                                onChange={(e) =>
+                                  setCustomerRegisterName(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    onRegisterCustomer();
                                   }
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault();
-                                      onRegisterCustomer();
-                                    }
-                                  }}
-                                  placeholder="Customer name"
-                                  disabled={!online || customerRegisterBusy}
-                                />
-                              </label>
-                              <p className="text-[10px] text-muted-foreground">
-                                Phone:{" "}
-                                <span className="font-mono text-foreground">
-                                  {customerPhoneQuery.trim()}
-                                </span>
-                              </p>
+                                }}
+                                placeholder="Customer name"
+                                disabled={!online || customerRegisterBusy}
+                              />
                               <Button
                                 type="button"
                                 size="sm"
-                                className="w-full"
+                                className="h-7 w-full rounded-sm text-xs"
                                 disabled={
                                   !online ||
                                   customerRegisterBusy ||
@@ -924,94 +807,63 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 }
                                 onClick={onRegisterCustomer}
                               >
-                                {customerRegisterBusy
-                                  ? "Saving…"
-                                  : "Register & use tab"}
+                                {customerRegisterBusy ? "Saving…" : "Register & use tab"}
                               </Button>
                             </>
-                          ) : (
-                            <p className="text-[10px] text-muted-foreground">
-                              Ask someone with customer management access to add
-                              them from Customers, then search again.
-                            </p>
-                          )}
+                          ) : null}
                         </div>
                       ) : null}
                       {selectedCustomer ? (
-                        <div className="rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] bg-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)] p-2.5 text-xs shadow-sm">
-                          <p>
-                            Selected:{" "}
-                            <span className="font-semibold text-foreground">
-                              {selectedCustomer.name}
-                            </span>
-                          </p>
-                          <p className="flex flex-wrap items-baseline gap-x-1 tabular-nums text-muted-foreground">
-                            <span>Wallet</span>
-                            <span className="inline-flex items-baseline gap-0.5">
-                              <span>
-                                {Number(
-                                  selectedCustomer.credit.walletBalance,
-                                ).toFixed(2)}
-                              </span>
-                              <CashierCurrencySuffix code={currency} />
-                            </span>
-                            <span>
-                              · {selectedCustomer.credit.loyaltyPoints} pts
-                            </span>
-                          </p>
-                        </div>
+                        <p className="text-[11px]">
+                          <span className="font-semibold">{selectedCustomer.name}</span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · wallet{" "}
+                            {Number(selectedCustomer.credit.walletBalance).toFixed(2)}{" "}
+                            {currency}
+                          </span>
+                        </p>
                       ) : null}
                     </div>
                   ) : null}
                 </section>
 
-                <div className="space-y-2">
-                  {outboxCount > 0 ? (
-                    <p className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-3.5 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
-                      {outboxCount} sale(s) waiting to sync.{" "}
-                      <button
-                        type="button"
-                        className="font-medium underline-offset-2 hover:underline disabled:opacity-50"
-                        disabled={outboxBusy || !online}
-                        onClick={onRetryOutbox}
-                      >
-                        {outboxBusy ? "Syncing…" : "Retry now"}
-                      </button>
-                    </p>
-                  ) : null}
-
-                  {notice ? (
-                    <DashboardFeedback kind="success" text={notice} />
-                  ) : null}
-                  {error ? (
-                    <DashboardFeedback kind="error" text={error} />
-                  ) : null}
-                </div>
+                {outboxCount > 0 ? (
+                  <p className="rounded-sm border border-amber-200/60 bg-amber-50/80 px-2 py-1.5 text-[11px] text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100">
+                    {outboxCount} sale(s) waiting to sync.{" "}
+                    <button
+                      type="button"
+                      className="font-medium underline-offset-2 hover:underline disabled:opacity-50"
+                      disabled={outboxBusy || !online}
+                      onClick={onRetryOutbox}
+                    >
+                      {outboxBusy ? "Syncing…" : "Retry"}
+                    </button>
+                  </p>
+                ) : null}
+                {notice ? <DashboardFeedback kind="success" text={notice} /> : null}
+                {error ? <DashboardFeedback kind="error" text={error} /> : null}
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-border/40 bg-gradient-to-t from-muted/20 to-background/98 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_-10px_28px_-14px_rgba(0,0,0,0.08)] backdrop-blur-md dark:from-muted/12 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_-10px_28px_-14px_rgba(0,0,0,0.35)] supports-[backdrop-filter]:bg-background/88">
-              <div className="mb-3.5 rounded-2xl border border-border/45 bg-card/85 px-3.5 py-3 shadow-sm ring-1 ring-black/[0.02] dark:bg-card/55 dark:ring-white/[0.04]">
-                <div className="flex items-end gap-2">
-                  <span className="shrink-0 pb-0.5 text-[11px] font-medium text-muted-foreground">
-                    Total
-                  </span>
-                  <CashierDottedLeader />
-                  <span className="inline-flex shrink-0 items-baseline gap-0.5 text-[1.65rem] font-bold tabular-nums leading-none tracking-tight text-[var(--pos-primary)] sm:text-2xl">
-                    <span>{grandTotal.toFixed(2)}</span>
-                    <CashierCurrencySuffix code={currency} />
-                  </span>
-                </div>
+            <div className="shrink-0 border-t border-border/50 bg-background px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2.5">
+              <div className="mb-2 flex items-end gap-2">
+                <span className="text-[11px] font-medium text-muted-foreground">Total</span>
+                <CashierDottedLeader />
+                <span className="inline-flex shrink-0 items-baseline gap-0.5 text-xl font-bold tabular-nums leading-none text-[var(--pos-primary)]">
+                  <span>{grandTotal.toFixed(2)}</span>
+                  <CashierCurrencySuffix code={currency} />
+                </span>
               </div>
               {!branchSelected ? (
-                <p className="mb-3 rounded-xl border border-amber-200/50 bg-amber-50/90 px-3 py-2 text-[11px] leading-snug text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-                  Pick a branch in the top nav to enable checkout.
+                <p className="mb-2 rounded-sm border border-amber-200/50 bg-amber-50/90 px-2 py-1 text-[10px] text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+                  Pick a branch in the top nav to check out.
                 </p>
               ) : null}
               <Button
                 type="button"
-                size="lg"
-                className="h-12 w-full rounded-xl text-[15px] font-semibold shadow-md transition-[transform,opacity,box-shadow] active:scale-[0.99] bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:bg-[var(--pos-primary)] hover:opacity-[0.92] hover:shadow-lg"
+                size="sm"
+                className="h-9 w-full rounded-sm text-sm font-semibold bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
                 disabled={
                   loading ||
                   lines.length === 0 ||

@@ -1849,12 +1849,78 @@ button:hover .tenant-monogram-shell {
     padding: 0;
 }
 
-#pos-receipt-print .pos-receipt-line + .pos-receipt-line {
-    margin-top: 0.45rem;
+#pos-receipt-print .pos-receipt-lines-head,
+#pos-receipt-print .pos-receipt-line-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2.5rem minmax(4.5rem, max-content);
+    column-gap: 0.5rem;
+    align-items: baseline;
 }
 
-#pos-receipt-print .pos-receipt-line-detail {
-    margin-top: 0.05rem;
+#pos-receipt-print .pos-receipt-lines-head {
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.15rem;
+    border-bottom: 1px solid #000;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#pos-receipt-print .pos-receipt-lines-head span:nth-child(2),
+#pos-receipt-print .pos-receipt-line-qty {
+    text-align: right;
+}
+
+#pos-receipt-print .pos-receipt-lines-head span:nth-child(3),
+#pos-receipt-print .pos-receipt-line-price {
+    justify-self: end;
+    width: 100%;
+    text-align: right;
+}
+
+#pos-receipt-print .pos-receipt-line-row + .pos-receipt-line-row {
+    margin-top: 0.3rem;
+}
+
+#pos-receipt-print .pos-receipt-line-item {
+    min-width: 0;
+    font-weight: 600;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+#pos-receipt-print .pos-receipt-line-qty,
+#pos-receipt-print .pos-receipt-line-price {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+#pos-receipt-print .pos-receipt-location--branch {
+    margin-top: 0.15rem;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: #333;
+}
+
+#pos-receipt-print .pos-receipt-rule--dashed {
+    border-top-style: dashed;
+}
+
+#pos-receipt-print .pos-receipt-rule--totals {
+    margin: 0.3rem 0 0.35rem;
+}
+
+#pos-receipt-print .pos-receipt-payment-note {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: left;
 }
 
 #pos-receipt-print .pos-receipt-totals .pos-receipt-money + .pos-receipt-money {
@@ -1862,7 +1928,7 @@ button:hover .tenant-monogram-shell {
 }
 
 #pos-receipt-print .pos-receipt-totals .pos-receipt-money--emphasis {
-    margin-top: 0.35rem;
+    margin-top: 0;
 }
 
 #pos-receipt-print .pos-receipt-meta > * + * {
@@ -1875,17 +1941,17 @@ button:hover .tenant-monogram-shell {
 
 #pos-receipt-print .pos-receipt-rule {
     border: none;
-    border-top: 1px solid currentColor;
+    border-top: 1px solid #000;
     margin: 0.45rem 0;
     height: 0;
-    opacity: 0.35;
+    opacity: 1;
 }
 
 /* POS receipt print — 80mm thermal roll */
 @media print {
     @page {
         size: 80mm auto;
-        margin: 0;
+        margin: 1.5mm;
     }
 
     html,
@@ -1932,18 +1998,24 @@ button:hover .tenant-monogram-shell {
         max-width: 80mm !important;
         min-width: 0 !important;
         margin: 0 !important;
-        padding: 3mm 3mm 4mm !important;
+        padding: 2mm 2mm 3mm !important;
         border: none !important;
         border-radius: 0 !important;
         box-shadow: none !important;
         background: #fff !important;
         color: #000 !important;
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-        font-size: 9pt !important;
-        font-weight: 500 !important;
+        font-size: 10pt !important;
+        font-weight: 600 !important;
         line-height: 1.35 !important;
         word-wrap: break-word !important;
         overflow-wrap: anywhere !important;
+        -webkit-font-smoothing: none !important;
+    }
+
+    #pos-receipt-print,
+    #pos-receipt-print * {
+        color: #000 !important;
     }
 
     #pos-receipt-print {
@@ -1965,11 +2037,45 @@ button:hover .tenant-monogram-shell {
         margin-top: 2pt !important;
     }
 
+    #pos-receipt-print .pos-receipt-location--branch {
+        font-size: 8pt !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.02em !important;
+        text-transform: none !important;
+        margin-top: 1pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-rule--totals {
+        margin: 2pt 0 3pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-payment-note {
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-lines-head {
+        font-size: 7.5pt !important;
+        font-weight: 700 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-line-item,
+    #pos-receipt-print .pos-receipt-line-qty,
+    #pos-receipt-print .pos-receipt-line-price {
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-rule--dashed {
+        border-top-style: dashed !important;
+    }
+
     #pos-receipt-print .pos-receipt-logo-img {
         display: block !important;
-        max-height: 12mm !important;
+        max-height: 11mm !important;
         max-width: 72mm !important;
         object-fit: contain !important;
+        filter: grayscale(1) contrast(1.35) !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -1982,38 +2088,25 @@ button:hover .tenant-monogram-shell {
         color: #000 !important;
     }
 
-    #pos-receipt-print .pos-receipt-payment-method {
-        font-size: 9pt !important;
-        font-weight: 500 !important;
-        opacity: 0.85 !important;
-    }
-
     #pos-receipt-print .pos-receipt-cashier {
-        font-size: 8.5pt !important;
-        font-weight: 500 !important;
+        font-size: 9pt !important;
+        font-weight: 600 !important;
         white-space: nowrap !important;
     }
 
     #pos-receipt-print .pos-receipt-date,
     #pos-receipt-print .pos-receipt-customer {
-        font-size: 9pt !important;
-        font-weight: 500 !important;
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
     }
 
     #pos-receipt-print .pos-receipt-money-value {
         min-width: 16mm !important;
     }
 
-    #pos-receipt-print .pos-receipt-line-name,
     #pos-receipt-print .pos-receipt-money-label {
         font-size: 9.5pt !important;
         font-weight: 600 !important;
-    }
-
-    #pos-receipt-print .pos-receipt-line-detail {
-        font-size: 8.5pt !important;
-        font-weight: 500 !important;
-        opacity: 0.75 !important;
     }
 
     #pos-receipt-print .pos-receipt-money-value {
@@ -2029,15 +2122,15 @@ button:hover .tenant-monogram-shell {
 
     #pos-receipt-print .pos-receipt-contact,
     #pos-receipt-print .pos-receipt-contact p {
-        font-size: 8.5pt !important;
-        font-weight: 500 !important;
+        font-size: 9pt !important;
+        font-weight: 600 !important;
         line-height: 1.3 !important;
         text-align: center !important;
     }
 
     #pos-receipt-print .pos-receipt-closing {
-        font-size: 9pt !important;
-        font-weight: 600 !important;
+        font-size: 10pt !important;
+        font-weight: 700 !important;
         text-align: center !important;
         margin-top: 5pt !important;
     }
@@ -2052,7 +2145,8 @@ button:hover .tenant-monogram-shell {
 
     #pos-receipt-print .pos-receipt-rule {
         margin: 4pt 0 !important;
-        opacity: 0.4 !important;
+        border-top: 1px solid #000 !important;
+        opacity: 1 !important;
     }
 
     #pos-receipt-print .pos-receipt-brand,
