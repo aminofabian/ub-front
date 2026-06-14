@@ -38,6 +38,12 @@ type Props = {
     | "setFilterNoBarcode"
     | "filterIncludeInactive"
     | "setFilterIncludeInactive"
+    | "filterNoPrice"
+    | "setFilterNoPrice"
+    | "filterZeroStock"
+    | "setFilterZeroStock"
+    | "filterLowStock"
+    | "setFilterLowStock"
     | "catalogStats"
     | "resetFilters"
   >;
@@ -51,6 +57,9 @@ function hasActiveFilters(catalog: Props["catalog"]): boolean {
     catalog.catalogScope !== "ALL" ||
     catalog.filterNoBarcode ||
     catalog.filterIncludeInactive ||
+    catalog.filterNoPrice ||
+    catalog.filterZeroStock ||
+    catalog.filterLowStock ||
     (!!catalog.filterCategoryId.trim() && !catalog.includeCategoryDescendants)
   );
 }
@@ -171,6 +180,7 @@ export function ProductFilterSidebar({ catalog }: Props) {
         </label>
 
         <div className="flex flex-col gap-1.5 border-t border-border/60 pt-2">
+          <span className={catalogFilterLabelClass}>Needs attention</span>
           <label className={catalogFilterOptionClass}>
             <input
               type="checkbox"
@@ -181,6 +191,42 @@ export function ProductFilterSidebar({ catalog }: Props) {
             <span className="min-w-0 flex-1">Missing barcode</span>
             <span className={catalogFilterOptionCountClass}>
               {catalog.catalogStats.missingBarcode.toLocaleString()}
+            </span>
+          </label>
+          <label className={catalogFilterOptionClass}>
+            <input
+              type="checkbox"
+              className={catalogFilterCheckboxClass}
+              checked={catalog.filterNoPrice}
+              onChange={(e) => catalog.setFilterNoPrice(e.target.checked)}
+            />
+            <span className="min-w-0 flex-1">No price</span>
+            <span className={catalogFilterOptionCountClass}>
+              {catalog.catalogStats.missingPrice.toLocaleString()}
+            </span>
+          </label>
+          <label className={catalogFilterOptionClass}>
+            <input
+              type="checkbox"
+              className={catalogFilterCheckboxClass}
+              checked={catalog.filterZeroStock}
+              onChange={(e) => catalog.setFilterZeroStock(e.target.checked)}
+            />
+            <span className="min-w-0 flex-1">Zero stock</span>
+            <span className={catalogFilterOptionCountClass}>
+              {catalog.catalogStats.zeroStock.toLocaleString()}
+            </span>
+          </label>
+          <label className={catalogFilterOptionClass}>
+            <input
+              type="checkbox"
+              className={catalogFilterCheckboxClass}
+              checked={catalog.filterLowStock}
+              onChange={(e) => catalog.setFilterLowStock(e.target.checked)}
+            />
+            <span className="min-w-0 flex-1">Low stock (&lt;10)</span>
+            <span className={catalogFilterOptionCountClass}>
+              {catalog.catalogStats.lowStock.toLocaleString()}
             </span>
           </label>
           <label className={catalogFilterOptionClass}>

@@ -13,11 +13,15 @@ import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+type AttentionStat = {
+  count: number;
+  label: string;
+};
+
 type Props = {
   itemTypeCount: number;
   totalProducts?: number;
-  missingBarcodeCount?: number;
-  inactiveCount?: number;
+  attentionStats?: AttentionStat[];
   onCreateNew: () => void;
   onAddVariant?: () => void;
   canAddVariant?: boolean;
@@ -32,15 +36,13 @@ const relatedLinks = [
 export function ProductHeroHeader({
   itemTypeCount,
   totalProducts,
-  missingBarcodeCount = 0,
-  inactiveCount = 0,
+  attentionStats = [],
   onCreateNew,
   onAddVariant,
   canAddVariant = true,
 }: Props) {
   const canCreate = itemTypeCount > 0;
-  const showAttention =
-    missingBarcodeCount > 0 || inactiveCount > 0;
+  const visibleAttention = attentionStats.filter((s) => s.count > 0);
 
   return (
     <header
@@ -85,27 +87,19 @@ export function ProductHeroHeader({
           </ul>
         </nav>
 
-        {showAttention ? (
+        {visibleAttention.length > 0 ? (
           <p className="text-[10px] leading-snug text-muted-foreground">
-            {missingBarcodeCount > 0 ? (
-              <span>
+            {visibleAttention.map((stat, index) => (
+              <span key={stat.label}>
+                {index > 0 ? (
+                  <span className="mx-1.5 text-border">·</span>
+                ) : null}
                 <span className="tabular-nums font-semibold text-foreground">
-                  {missingBarcodeCount.toLocaleString()}
+                  {stat.count.toLocaleString()}
                 </span>{" "}
-                missing barcode
+                {stat.label}
               </span>
-            ) : null}
-            {missingBarcodeCount > 0 && inactiveCount > 0 ? (
-              <span className="mx-1.5 text-border">·</span>
-            ) : null}
-            {inactiveCount > 0 ? (
-              <span>
-                <span className="tabular-nums font-semibold text-foreground">
-                  {inactiveCount.toLocaleString()}
-                </span>{" "}
-                inactive
-              </span>
-            ) : null}
+            ))}
           </p>
         ) : null}
       </div>

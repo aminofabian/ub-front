@@ -2233,6 +2233,9 @@ export type CatalogListStats = {
   standalones: number;
   missingBarcode: number;
   inactive: number;
+  missingPrice: number;
+  zeroStock: number;
+  lowStock: number;
 };
 
 /** @deprecated Use CatalogListStats */
@@ -2247,6 +2250,12 @@ export type FetchItemsOpts = {
   barcode?: string;
   noBarcode?: boolean;
   includeInactive?: boolean;
+  /** Sellable SKUs with no open selling price and no bundle price. */
+  noPrice?: boolean;
+  /** Stocked sellable SKUs with zero on-hand at branchId (requires branchId). */
+  zeroStock?: boolean;
+  /** Stocked sellable SKUs with fewer than 10 on-hand at branchId (requires branchId). */
+  lowStock?: boolean;
   page?: number;
   size?: number;
   /** When set, `stockQty` on each row is on-hand inventory at this branch (from active batches). */
@@ -2300,6 +2309,15 @@ export async function fetchItemsPage(
   if (opts?.includeInactive) {
     params.set("includeInactive", "true");
   }
+  if (opts?.noPrice) {
+    params.set("noPrice", "true");
+  }
+  if (opts?.zeroStock) {
+    params.set("zeroStock", "true");
+  }
+  if (opts?.lowStock) {
+    params.set("lowStock", "true");
+  }
   if (opts?.itemTypeId?.trim()) {
     params.set("itemTypeId", opts.itemTypeId.trim());
   }
@@ -2341,7 +2359,15 @@ export async function fetchCatalogListStats(
   search: string | undefined,
   opts?: Omit<
     FetchItemsOpts,
-    "page" | "size" | "sort" | "catalogRowTypes" | "branchId" | "noBarcode" | "includeInactive"
+    | "page"
+    | "size"
+    | "sort"
+    | "catalogRowTypes"
+    | "noBarcode"
+    | "includeInactive"
+    | "noPrice"
+    | "zeroStock"
+    | "lowStock"
   >,
 ): Promise<CatalogListStats> {
   const params = new URLSearchParams();
@@ -2367,6 +2393,10 @@ export async function fetchCatalogListStats(
   if (exSup) {
     params.set("excludeLinkedSupplierId", exSup);
   }
+  const stockBr = opts?.branchId?.trim();
+  if (stockBr) {
+    params.set("branchId", stockBr);
+  }
   const path = `${API_ROUTES.items}/row-type-counts?${params.toString()}`;
   const raw = await request<Record<string, unknown>>(path);
   return {
@@ -2375,6 +2405,9 @@ export async function fetchCatalogListStats(
     standalones: Number(raw?.standalones ?? 0),
     missingBarcode: Number(raw?.missingBarcode ?? raw?.missing_barcode ?? 0),
     inactive: Number(raw?.inactive ?? 0),
+    missingPrice: Number(raw?.missingPrice ?? raw?.missing_price ?? 0),
+    zeroStock: Number(raw?.zeroStock ?? raw?.zero_stock ?? 0),
+    lowStock: Number(raw?.lowStock ?? raw?.low_stock ?? 0),
   };
 }
 

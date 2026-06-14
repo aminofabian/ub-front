@@ -329,8 +329,13 @@ export default function ProductsPage() {
           <ProductHeroHeader
             itemTypeCount={catalog.itemTypes.length}
             totalProducts={catalog.listTotalElements}
-            missingBarcodeCount={catalog.catalogStats.missingBarcode}
-            inactiveCount={catalog.catalogStats.inactive}
+            attentionStats={[
+              { count: catalog.catalogStats.missingBarcode, label: "missing barcode" },
+              { count: catalog.catalogStats.missingPrice, label: "no price" },
+              { count: catalog.catalogStats.zeroStock, label: "zero stock" },
+              { count: catalog.catalogStats.lowStock, label: "low stock" },
+              { count: catalog.catalogStats.inactive, label: "inactive" },
+            ]}
             onCreateNew={() => setActiveDrawer("create-parent")}
             onAddVariant={
               canCatalogWrite

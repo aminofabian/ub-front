@@ -57,6 +57,9 @@ export function useCatalogList(catalogBranchId?: string | null) {
   const [barcodeExact, setBarcodeExact] = useState("");
   const [filterNoBarcode, setFilterNoBarcode] = useState(false);
   const [filterIncludeInactive, setFilterIncludeInactive] = useState(false);
+  const [filterNoPrice, setFilterNoPrice] = useState(false);
+  const [filterZeroStock, setFilterZeroStock] = useState(false);
+  const [filterLowStock, setFilterLowStock] = useState(false);
 
   const [rowSelection, setRowSelection] = useState<Set<string>>(() => new Set());
   const [variantIdsByParentId, setVariantIdsByParentId] = useState<
@@ -73,6 +76,9 @@ export function useCatalogList(catalogBranchId?: string | null) {
     standalones: 0,
     missingBarcode: 0,
     inactive: 0,
+    missingPrice: 0,
+    zeroStock: 0,
+    lowStock: 0,
   });
 
   const variantIdsByParent = useMemo(() => {
@@ -98,12 +104,14 @@ export function useCatalogList(catalogBranchId?: string | null) {
       includeCategoryDescendants,
       catalogScope,
       barcode: barcodeExact.trim() || undefined,
+      branchId: branchIdForStock,
     }),
     [
       filterCategoryId,
       includeCategoryDescendants,
       catalogScope,
       barcodeExact,
+      branchIdForStock,
     ],
   );
 
@@ -112,9 +120,18 @@ export function useCatalogList(catalogBranchId?: string | null) {
       ...listStatsOpts,
       noBarcode: filterNoBarcode,
       includeInactive: filterIncludeInactive,
-      branchId: branchIdForStock,
+      noPrice: filterNoPrice,
+      zeroStock: filterZeroStock,
+      lowStock: filterLowStock,
     }),
-    [listStatsOpts, filterNoBarcode, filterIncludeInactive, branchIdForStock],
+    [
+      listStatsOpts,
+      filterNoBarcode,
+      filterIncludeInactive,
+      filterNoPrice,
+      filterZeroStock,
+      filterLowStock,
+    ],
   );
 
   const toggleRowTypeFilter = useCallback((type: CatalogListDisplayType) => {
@@ -307,6 +324,9 @@ export function useCatalogList(catalogBranchId?: string | null) {
     setIncludeCategoryDescendants(true);
     setFilterNoBarcode(false);
     setFilterIncludeInactive(false);
+    setFilterNoPrice(false);
+    setFilterZeroStock(false);
+    setFilterLowStock(false);
     setRowTypeFilter(new Set(CATALOG_LIST_DISPLAY_TYPES));
     setMessage("");
   }, []);
@@ -373,6 +393,9 @@ export function useCatalogList(catalogBranchId?: string | null) {
     barcodeExact, setBarcodeExact,
     filterNoBarcode, setFilterNoBarcode,
     filterIncludeInactive, setFilterIncludeInactive,
+    filterNoPrice, setFilterNoPrice,
+    filterZeroStock, setFilterZeroStock,
+    filterLowStock, setFilterLowStock,
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     listDensity, setListDensity,
     message, setMessage,
