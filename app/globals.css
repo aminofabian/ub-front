@@ -1,0 +1,2191 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: var(--font-geist-mono);
+    /* Display / titles: Cormorant Garamond; body uses DM Sans via font-sans. */
+    --font-heading: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+    --font-serif: var(--font-heading);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Tokens are authored in sRGB (rgb/rgba/hex) rather than oklch() so they parse
+   on legacy browsers (Chrome < 111 on Windows 7/8). Values are the exact sRGB
+   equivalents of the previous oklch tokens; modern rendering is unchanged. */
+:root {
+    --background: rgb(255, 255, 255);
+    --foreground: rgb(10, 10, 10);
+    --card: rgb(255, 255, 255);
+    --card-foreground: rgb(10, 10, 10);
+    --popover: rgb(255, 255, 255);
+    --popover-foreground: rgb(10, 10, 10);
+    --primary: #28a745;
+    --primary-foreground: #ffffff;
+    --primary-hover: #20863b;
+    --secondary: rgb(245, 245, 245);
+    --secondary-foreground: rgb(23, 23, 23);
+    --muted: rgb(245, 245, 245);
+    --muted-foreground: rgb(115, 115, 115);
+    --accent: rgb(245, 245, 245);
+    --accent-foreground: rgb(23, 23, 23);
+    --destructive: rgb(228, 0, 22);
+    --border: rgb(229, 229, 229);
+    --input: rgb(229, 229, 229);
+    --ring: rgba(40, 167, 69, 0.35);
+    --chart-1: #28a745;
+    --chart-2: #20863b;
+    --chart-3: rgb(82, 82, 82);
+    --chart-4: rgb(64, 64, 64);
+    --chart-5: rgb(38, 38, 38);
+    --radius: 0.625rem;
+    --sidebar: rgb(250, 250, 250);
+    --sidebar-foreground: rgb(10, 10, 10);
+    --sidebar-primary: #28a745;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgb(245, 245, 245);
+    --sidebar-accent-foreground: rgb(23, 23, 23);
+    --sidebar-border: rgb(229, 229, 229);
+    --sidebar-ring: rgba(40, 167, 69, 0.35);
+}
+
+.dark {
+    --background: rgb(10, 10, 10);
+    --foreground: rgb(250, 250, 250);
+    --card: rgb(23, 23, 23);
+    --card-foreground: rgb(250, 250, 250);
+    --popover: rgb(23, 23, 23);
+    --popover-foreground: rgb(250, 250, 250);
+    --primary: #28a745;
+    --primary-foreground: #ffffff;
+    --primary-hover: #32b85a;
+    --secondary: rgb(38, 38, 38);
+    --secondary-foreground: rgb(250, 250, 250);
+    --muted: rgb(38, 38, 38);
+    --muted-foreground: rgb(161, 161, 161);
+    --accent: rgb(38, 38, 38);
+    --accent-foreground: rgb(250, 250, 250);
+    --destructive: rgb(255, 101, 104);
+    --border: rgba(255, 255, 255, 0.1);
+    --input: rgba(255, 255, 255, 0.15);
+    --ring: rgba(40, 167, 69, 0.45);
+    --chart-1: #32b85a;
+    --chart-2: #28a745;
+    --chart-3: rgb(82, 82, 82);
+    --chart-4: rgb(64, 64, 64);
+    --chart-5: rgb(38, 38, 38);
+    --sidebar: rgb(23, 23, 23);
+    --sidebar-foreground: rgb(250, 250, 250);
+    --sidebar-primary: #28a745;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgb(38, 38, 38);
+    --sidebar-accent-foreground: rgb(250, 250, 250);
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-ring: rgba(40, 167, 69, 0.45);
+}
+
+/* Legacy fallback (Chrome < 111 / Safari < 16.2, e.g. Windows 7/8).
+   On these browsers Tailwind's `/opacity` utilities cannot use `color-mix()`,
+   so a tinted background (e.g. `bg-destructive/10`) falls back to the SOLID
+   token colour. For the destructive button that means red text on a red fill.
+   Re-establish a readable faint tint here; modern browsers skip this block. */
+@supports not (color: color-mix(in oklab, red, red)) {
+    [data-slot="button"][data-variant="destructive"] {
+        background-color: rgba(228, 0, 22, 0.1);
+        color: rgb(228, 0, 22);
+    }
+    [data-slot="button"][data-variant="destructive"]:hover {
+        background-color: rgba(228, 0, 22, 0.18);
+    }
+    .dark [data-slot="button"][data-variant="destructive"] {
+        background-color: rgba(255, 101, 104, 0.2);
+        color: rgb(255, 101, 104);
+    }
+    .dark [data-slot="button"][data-variant="destructive"]:hover {
+        background-color: rgba(255, 101, 104, 0.3);
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+    html {
+        @apply font-sans;
+    }
+    /* DM Sans for UI copy; Cormorant Garamond for semantic headings (opt out with font-sans). */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-heading;
+    }
+
+    .font-serif,
+    .serif {
+        font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+    }
+}
+
+/* ── Tablet / iPad native-app shell (bottom nav below 2xl) ─────────────── */
+.tablet-app-root:has(.tablet-bottom-nav) {
+    background:
+        radial-gradient(
+            ellipse 120% 80% at 50% -20%,
+            rgba(40, 167, 69, 0.06),
+            transparent 55%
+        ),
+        rgb(245, 245, 245);
+}
+
+.dark .tablet-app-root:has(.tablet-bottom-nav) {
+    background:
+        radial-gradient(
+            ellipse 120% 80% at 50% -20%,
+            rgba(40, 167, 69, 0.08),
+            transparent 55%
+        ),
+        rgb(10, 10, 10);
+}
+
+@media (max-width: 1535px) {
+    .tablet-app-stage {
+        margin: 0.35rem 0.35rem 0;
+        border-radius: 1.35rem 1.35rem 0 0;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: none;
+        background: var(--background);
+        box-shadow:
+            0 -2px 24px -8px rgba(0, 0, 0, 0.08),
+            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    }
+
+    .dark .tablet-app-stage {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow:
+            0 -2px 32px -8px rgba(0, 0, 0, 0.45),
+            0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    }
+}
+
+.tablet-app-main {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+}
+
+.tablet-app-icon-btn {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    transition: background-color 150ms ease;
+}
+
+.tablet-app-icon-btn:hover {
+    background: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+
+.tablet-bottom-nav-dock {
+    animation: tablet-dock-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tablet-dock-rise {
+    from {
+        opacity: 0;
+        transform: translateY(1.25rem) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tablet-nav-tab-active {
+    animation: tablet-tab-pop 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes tablet-tab-pop {
+    0% {
+        transform: scale(0.92);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.tablet-more-sheet {
+    animation: tablet-sheet-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tablet-sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(1.75rem) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tablet-more-aurora {
+    animation: tablet-aurora-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes tablet-aurora-drift {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(4%, -3%) scale(1.06);
+    }
+    100% {
+        transform: translate(-3%, 2%) scale(1.02);
+    }
+}
+
+.tablet-more-avatar-ring {
+    animation: tablet-avatar-glow 4s ease-in-out infinite;
+}
+
+@keyframes tablet-avatar-glow {
+    0%,
+    100% {
+        box-shadow:
+            0 0 0 2px color-mix(in srgb, var(--tablet-accent, #28a745) 35%, transparent),
+            0 8px 24px -6px color-mix(in srgb, var(--tablet-accent, #28a745) 45%, transparent);
+    }
+    50% {
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--tablet-accent, #28a745) 55%, transparent),
+            0 12px 32px -4px color-mix(in srgb, var(--tablet-accent, #28a745) 55%, transparent);
+    }
+}
+
+.tablet-more-section-pill {
+    transition:
+        transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1),
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.tablet-more-section-pill:active {
+    transform: scale(0.96);
+}
+
+.tablet-more-section-pill-active {
+    animation: tablet-pill-pop 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes tablet-pill-pop {
+    0% {
+        transform: scale(0.92);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.tablet-more-link-tile {
+    animation: tablet-tile-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tablet-more-link-tile:nth-child(1) {
+    animation-delay: 0.04s;
+}
+.tablet-more-link-tile:nth-child(2) {
+    animation-delay: 0.07s;
+}
+.tablet-more-link-tile:nth-child(3) {
+    animation-delay: 0.1s;
+}
+.tablet-more-link-tile:nth-child(4) {
+    animation-delay: 0.13s;
+}
+.tablet-more-link-tile:nth-child(5) {
+    animation-delay: 0.16s;
+}
+.tablet-more-link-tile:nth-child(6) {
+    animation-delay: 0.19s;
+}
+.tablet-more-link-tile:nth-child(7) {
+    animation-delay: 0.22s;
+}
+.tablet-more-link-tile:nth-child(8) {
+    animation-delay: 0.25s;
+}
+
+@keyframes tablet-tile-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.65rem) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tablet-launcher-card {
+    animation: tablet-card-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tablet-launcher-card:nth-child(1) {
+    animation-delay: 0.03s;
+}
+.tablet-launcher-card:nth-child(2) {
+    animation-delay: 0.06s;
+}
+.tablet-launcher-card:nth-child(3) {
+    animation-delay: 0.09s;
+}
+.tablet-launcher-card:nth-child(4) {
+    animation-delay: 0.12s;
+}
+.tablet-launcher-card:nth-child(5) {
+    animation-delay: 0.15s;
+}
+.tablet-launcher-card:nth-child(6) {
+    animation-delay: 0.18s;
+}
+
+@keyframes tablet-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tablet-more-sheet,
+    .tablet-more-aurora,
+    .tablet-more-avatar-ring,
+    .tablet-more-section-pill-active,
+    .tablet-more-link-tile,
+    .tablet-launcher-card {
+        animation: none !important;
+    }
+}
+
+/* ── Standalone grocery POS (/grocery) — iPad app frame ─────────────── */
+.grocery-app-root {
+    background: var(--background);
+}
+
+@media (min-width: 768px) {
+    .grocery-app-root {
+        background:
+            radial-gradient(
+                ellipse 120% 80% at 50% -20%,
+                rgba(40, 167, 69, 0.07),
+                transparent 55%
+            ),
+            rgb(245, 245, 245);
+        padding: 0.5rem;
+    }
+
+    .dark .grocery-app-root {
+        background:
+            radial-gradient(
+                ellipse 120% 80% at 50% -20%,
+                rgba(40, 167, 69, 0.1),
+                transparent 55%
+            ),
+            rgb(10, 10, 10);
+    }
+
+    .grocery-app-stage {
+        border-radius: 1.35rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow:
+            0 -2px 24px -8px rgba(0, 0, 0, 0.1),
+            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    }
+
+    .dark .grocery-app-stage {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow:
+            0 -2px 32px -8px rgba(0, 0, 0, 0.45),
+            0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    }
+}
+
+/* Premium storefront animations */
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+}
+
+.animate-shimmer {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes aisle-marquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-aisle-marquee {
+    animation: aisle-marquee var(--aisle-marquee-duration, 60s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-aisle-marquee {
+        animation: none;
+        overflow-x: auto;
+    }
+}
+
+/* ── Kiosk dark landing — staggered entrance ── */
+@keyframes landing-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.landing-page .landing-reveal {
+    animation: landing-reveal 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .landing-reveal-delay-1 {
+    animation-delay: 0.08s;
+}
+
+.landing-page .landing-reveal-delay-2 {
+    animation-delay: 0.16s;
+}
+
+.landing-page .landing-reveal-delay-3 {
+    animation-delay: 0.24s;
+}
+
+.landing-page .landing-reveal-delay-4 {
+    animation-delay: 0.32s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-page .landing-reveal,
+    .landing-page .landing-reveal-delay-1,
+    .landing-page .landing-reveal-delay-2,
+    .landing-page .landing-reveal-delay-3,
+    .landing-page .landing-reveal-delay-4 {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ── Landing hero — creative composition ── */
+@keyframes hero-backdrop-drift {
+    0%,
+    100% {
+        transform: scale(1.05) translate(0, 0);
+    }
+    50% {
+        transform: scale(1.1) translate(-1.5%, 1%);
+    }
+}
+
+@keyframes hero-mesh-drift {
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(3%, -2%) scale(1.05);
+    }
+    66% {
+        transform: translate(-2%, 2%) scale(0.98);
+    }
+}
+
+@keyframes hero-border-shine {
+    0% {
+        --hero-shine-angle: 0deg;
+    }
+    100% {
+        --hero-shine-angle: 360deg;
+    }
+}
+
+@keyframes hero-tag-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes hero-pos-line-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes hero-pos-scan-flash {
+    0% {
+        opacity: 0;
+        background: transparent;
+    }
+    35% {
+        opacity: 1;
+        background: color-mix(in srgb, var(--kiosk-gold) 14%, transparent);
+    }
+    100% {
+        opacity: 0;
+        background: transparent;
+    }
+}
+
+@keyframes hero-pos-total-pop {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes hero-pos-status-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.55;
+    }
+}
+
+@keyframes hero-pos-scan-icon {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+}
+
+@keyframes hero-pos-pay-ready {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--kiosk-gold) 0%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--kiosk-gold) 28%, transparent);
+    }
+}
+
+@keyframes hero-pos-stk-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes hero-pos-phone-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.12);
+        opacity: 1;
+    }
+}
+
+@keyframes hero-pos-stk-dot {
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.35;
+    }
+    40% {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
+}
+
+@keyframes hero-stage-tilt {
+    0%,
+    100% {
+        transform: perspective(1400px) rotateY(-6deg) rotateX(3deg) translateY(0);
+    }
+    50% {
+        transform: perspective(1400px) rotateY(-4deg) rotateX(2deg) translateY(-6px);
+    }
+}
+
+.landing-page .hero-backdrop-drift {
+    animation: hero-backdrop-drift 28s ease-in-out infinite;
+}
+
+.landing-page .hero-mesh-a {
+    animation: hero-mesh-drift 18s ease-in-out infinite;
+}
+
+.landing-page .hero-mesh-b {
+    animation: hero-mesh-drift 24s ease-in-out infinite reverse;
+}
+
+.landing-page .hero-border-glow {
+    background: conic-gradient(
+        from var(--hero-shine-angle, 0deg) at 50% 50%,
+        rgba(40, 167, 69, 0.55),
+        rgba(40, 167, 69, 0.08),
+        transparent 25%,
+        rgba(32, 134, 59, 0.35),
+        rgba(40, 167, 69, 0.55)
+    );
+    animation: hero-border-shine 10s linear infinite;
+}
+
+/* ── Kiosk premium logo ── */
+@property --kiosk-logo-shine-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes kiosk-logo-border-shine {
+    to {
+        --kiosk-logo-shine-angle: 360deg;
+    }
+}
+
+@keyframes kiosk-logo-rule-shimmer {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scaleX(0.92);
+    }
+    50% {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+.landing-page .kiosk-logo-badge-ring {
+    background: conic-gradient(
+        from var(--kiosk-logo-shine-angle, 0deg) at 50% 50%,
+        rgba(50, 200, 90, 0.7),
+        rgba(40, 167, 69, 0.15),
+        transparent 28%,
+        rgba(32, 134, 59, 0.45),
+        rgba(184, 232, 198, 0.5),
+        rgba(50, 200, 90, 0.7)
+    );
+    animation: kiosk-logo-border-shine 14s linear infinite;
+}
+
+.landing-page .kiosk-logo-rule {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--kiosk-gold) 35%,
+        #b8e8c6 50%,
+        var(--kiosk-gold) 65%,
+        transparent 100%
+    );
+    animation: kiosk-logo-rule-shimmer 5s ease-in-out infinite;
+}
+
+.landing-page .kiosk-logo-wordmark {
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.landing-page .kiosk-logo--plain .kiosk-logo-wordmark {
+    text-shadow: none;
+    letter-spacing: 0.12em;
+}
+
+.landing-page .hero-tag {
+    animation: hero-tag-float 6s ease-in-out infinite;
+}
+
+.landing-page .hero-tag-delay {
+    animation-delay: 1.8s;
+}
+
+.landing-page .hero-tag-delay-2 {
+    animation-delay: 3.2s;
+}
+
+.landing-page .hero-pos-line-in {
+    animation: hero-pos-line-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .hero-pos-scan-flash {
+    animation: hero-pos-scan-flash 0.42s ease-out forwards;
+}
+
+.landing-page .hero-pos-total-pop {
+    animation: hero-pos-total-pop 0.35s ease-out;
+}
+
+.landing-page .hero-pos-status-pulse {
+    animation: hero-pos-status-pulse 1.8s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-scan-icon {
+    animation: hero-pos-scan-icon 1.4s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-pay-ready {
+    animation: hero-pos-pay-ready 2.4s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-stk-in {
+    animation: hero-pos-stk-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-page .hero-pos-phone-pulse {
+    animation: hero-pos-phone-pulse 1.5s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-stk-dots span:nth-child(1) {
+    animation: hero-pos-stk-dot 1.2s ease-in-out infinite;
+}
+
+.landing-page .hero-pos-stk-dots span:nth-child(2) {
+    animation: hero-pos-stk-dot 1.2s ease-in-out 0.15s infinite;
+}
+
+.landing-page .hero-pos-stk-dots span:nth-child(3) {
+    animation: hero-pos-stk-dot 1.2s ease-in-out 0.3s infinite;
+}
+
+.landing-page .hero-stage-tilt {
+    animation: hero-stage-tilt 9s ease-in-out infinite;
+    transform-style: preserve-3d;
+}
+
+.landing-page .hero-premium-frame {
+    box-shadow:
+        0 0 0 1px rgba(20, 20, 18, 0.06),
+        0 12px 40px -8px rgba(20, 20, 18, 0.14),
+        0 40px 80px -24px rgba(20, 20, 18, 0.18);
+}
+
+.landing-page .hero-premium-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 767px) {
+    .landing-page .hero-stage-tilt {
+        animation: none;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-page .hero-backdrop-drift,
+    .landing-page .hero-mesh-a,
+    .landing-page .hero-mesh-b,
+    .landing-page .hero-border-glow,
+    .landing-page .hero-tag,
+    .landing-page .hero-pos-line-in,
+    .landing-page .hero-pos-scan-flash,
+    .landing-page .hero-pos-total-pop,
+    .landing-page .hero-pos-status-pulse,
+    .landing-page .hero-pos-scan-icon,
+    .landing-page .hero-pos-pay-ready,
+    .landing-page .hero-pos-stk-in,
+    .landing-page .hero-pos-phone-pulse,
+    .landing-page .hero-pos-stk-dots span,
+    .landing-page .hero-stage-tilt,
+    .landing-page .kiosk-logo-badge-ring,
+    .landing-page .kiosk-logo-rule,
+    .landing-page .landing-footer-ticker,
+    .landing-page .landing-footer-panel-ring,
+    .landing-page .landing-footer-stamp,
+    .landing-page .landing-hero-eyebrow-dot {
+        animation: none;
+    }
+}
+
+/* ── Landing footer — receipt / counter foundation ── */
+@property --footer-panel-shine-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes footer-panel-shine {
+    to {
+        --footer-panel-shine-angle: 360deg;
+    }
+}
+
+@keyframes footer-ticker-scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+@keyframes footer-stamp-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--kiosk-gold) 0%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--kiosk-gold) 12%, transparent);
+    }
+}
+
+.landing-page .landing-footer-glow {
+    background: radial-gradient(
+        ellipse 90% 55% at 50% 0%,
+        color-mix(in srgb, var(--kiosk-gold) 14%, transparent) 0%,
+        transparent 72%
+    );
+}
+
+.landing-page .landing-footer-grid {
+    background-image:
+        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
+    background-size: 52px 52px;
+    mask-image: linear-gradient(to bottom, black 0%, transparent 88%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 88%);
+}
+
+.landing-page .landing-footer-watermark {
+    opacity: 0.035;
+    mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+}
+
+.landing-page .landing-footer-perf {
+    background-color: var(--kiosk-surface);
+    background-image: radial-gradient(
+        circle at 50% 100%,
+        var(--kiosk-bg) 5px,
+        transparent 5.5px
+    );
+    background-size: 14px 14px;
+    background-position: 7px 0;
+}
+
+.landing-page .landing-footer-ticker-wrap {
+    mask-image: linear-gradient(
+        90deg,
+        transparent,
+        black 6%,
+        black 94%,
+        transparent
+    );
+    -webkit-mask-image: linear-gradient(
+        90deg,
+        transparent,
+        black 6%,
+        black 94%,
+        transparent
+    );
+}
+
+.landing-page .landing-footer-ticker {
+    animation: footer-ticker-scroll 42s linear infinite;
+}
+
+.landing-page .landing-footer-panel-ring {
+    background: conic-gradient(
+        from var(--footer-panel-shine-angle, 0deg) at 50% 50%,
+        rgba(40, 167, 69, 0.45),
+        rgba(40, 167, 69, 0.06),
+        transparent 30%,
+        rgba(32, 134, 59, 0.28),
+        rgba(184, 232, 198, 0.35),
+        rgba(40, 167, 69, 0.45)
+    );
+    animation: footer-panel-shine 18s linear infinite;
+    opacity: 0.75;
+}
+
+.landing-page .landing-footer-panel-inner {
+    box-shadow:
+        0 0 0 1px rgba(20, 20, 18, 0.04),
+        0 20px 50px -20px rgba(20, 20, 18, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.landing-page .landing-footer-corner {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.landing-page .landing-footer-corner-tl {
+    top: 1.25rem;
+    left: 1.25rem;
+    border-top: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
+    border-left: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
+}
+
+.landing-page .landing-footer-corner-br {
+    right: 1.25rem;
+    bottom: 1.25rem;
+    border-right: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
+    border-bottom: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 50%, transparent);
+}
+
+.landing-page .landing-footer-col-title::after {
+    content: "";
+    display: block;
+    width: 1.25rem;
+    height: 2px;
+    margin-top: 0.5rem;
+    border-radius: 1px;
+    background: linear-gradient(
+        90deg,
+        var(--kiosk-gold),
+        color-mix(in srgb, var(--kiosk-gold) 20%, transparent)
+    );
+}
+
+.landing-page .landing-footer-chip {
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.landing-page .landing-footer-chip:hover {
+    transform: translateY(-1px);
+    border-color: var(--kiosk-gold-border);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--kiosk-gold) 10%, transparent);
+}
+
+.landing-page .landing-footer-stamp {
+    animation: footer-stamp-glow 4s ease-in-out infinite;
+}
+
+.landing-page .landing-footer-receipt span:nth-child(2) {
+    letter-spacing: 0.28em;
+}
+
+/* ── Tenant dynamic logo ── */
+@property --tenant-logo-shine-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes tenant-logo-border-shine {
+    to {
+        --tenant-logo-shine-angle: 360deg;
+    }
+}
+
+.tenant-logo-ring {
+    background: conic-gradient(
+        from var(--tenant-logo-shine-angle, 0deg) at 50% 50%,
+        color-mix(in srgb, var(--tenant-brand, #28a745) 55%, transparent),
+        color-mix(in srgb, var(--tenant-brand, #28a745) 8%, transparent),
+        transparent 28%,
+        color-mix(in srgb, var(--tenant-brand, #28a745) 32%, transparent),
+        color-mix(in srgb, var(--tenant-brand, #28a745) 45%, transparent)
+    );
+    animation: tenant-logo-border-shine 16s linear infinite;
+}
+
+.tenant-logo-badge-inner {
+    transition:
+        box-shadow 0.3s ease,
+        transform 0.3s ease;
+}
+
+.tenant-logo-badge:hover .tenant-logo-badge-inner,
+.group\/tenant-logo:hover .tenant-logo-badge-inner {
+    box-shadow:
+        0 10px 32px color-mix(in srgb, var(--tenant-brand, #28a745) 14%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.tenant-logo-sidebar-frame {
+    transition: transform 0.25s ease;
+}
+
+.tenant-logo-sidebar-frame:hover {
+    transform: translateY(-1px);
+}
+
+/* ── Tenant monogram — generated ecommerce store logo ── */
+.tenant-monogram-shell {
+    position: relative;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.12));
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.tenant-monogram-svg {
+    overflow: visible;
+}
+
+.tenant-monogram-lockup {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.tenant-monogram-wordmark {
+    letter-spacing: inherit;
+}
+
+a:hover .tenant-monogram-shell,
+button:hover .tenant-monogram-shell {
+    transform: translateY(-1px);
+    filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.14));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tenant-logo-ring {
+        animation: none;
+    }
+
+    .tenant-monogram-shell {
+        transition: none;
+    }
+}
+
+/* ── Palmart landing — scroll-driven section reveals ── */
+@keyframes section-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.landing-page .section-reveal {
+    animation: section-reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-timeline: view();
+    animation-range: entry 8% cover 28%;
+}
+
+/* Fallback for browsers without animation-timeline support */
+@supports not (animation-timeline: view()) {
+    .landing-page .section-reveal {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-page .section-reveal {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ── Subtle floating gradient pulse for decorative blobs ── */
+@keyframes float-pulse {
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.08);
+        opacity: 0.65;
+    }
+}
+
+.landing-page .animate-float-pulse {
+    animation: float-pulse 8s ease-in-out infinite;
+}
+
+/* ── Landing page canvas & section system ── */
+.landing-page .landing-page-canvas {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+        radial-gradient(
+            ellipse 80% 50% at 12% -8%,
+            color-mix(in srgb, var(--kiosk-gold) 9%, transparent),
+            transparent 55%
+        ),
+        radial-gradient(
+            ellipse 60% 40% at 92% 18%,
+            color-mix(in srgb, var(--kiosk-gold) 6%, transparent),
+            transparent 50%
+        ),
+        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
+    background-size:
+        auto,
+        auto,
+        48px 48px,
+        48px 48px;
+    mask-image: linear-gradient(to bottom, black 0%, black 45%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 45%, transparent 100%);
+}
+
+.landing-page main {
+    position: relative;
+    z-index: 1;
+}
+
+.landing-page .landing-section-index {
+    display: inline-flex;
+    min-width: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px solid var(--kiosk-border);
+    background: var(--kiosk-elevated);
+    padding: 0.35rem 0.55rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--kiosk-text-faint);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.landing-page .landing-section-rule {
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        var(--kiosk-gold) 0%,
+        color-mix(in srgb, var(--kiosk-gold) 35%, transparent) 28%,
+        transparent 100%
+    );
+}
+
+.landing-page .landing-section-alt {
+    position: relative;
+}
+
+.landing-page .landing-section-alt::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        color-mix(in srgb, var(--kiosk-gold) 8%, transparent) 1px,
+        transparent 0
+    );
+    background-size: 28px 28px;
+    opacity: 0.35;
+    mask-image: linear-gradient(to bottom, black, transparent 85%);
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+.landing-page .landing-bento-card::before,
+.landing-page .landing-bento-card::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.landing-page .landing-bento-card::before {
+    top: 0.85rem;
+    left: 0.85rem;
+    border-top: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+    border-left: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+}
+
+.landing-page .landing-bento-card::after {
+    right: 0.85rem;
+    bottom: 0.85rem;
+    border-right: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+    border-bottom: 1.5px solid color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+}
+
+.landing-page .landing-bento-card:hover::before,
+.landing-page .landing-bento-card:hover::after {
+    opacity: 1;
+}
+
+.landing-page .landing-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--kiosk-gold-border);
+    background: color-mix(in srgb, var(--kiosk-gold-soft) 80%, var(--kiosk-elevated));
+    padding: 0.4rem 0.85rem 0.4rem 0.55rem;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--kiosk-gold);
+    box-shadow:
+        0 1px 2px rgba(20, 20, 18, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.landing-page .landing-hero-eyebrow-dot {
+    height: 6px;
+    width: 6px;
+    border-radius: 9999px;
+    background: var(--kiosk-gold);
+    box-shadow: 0 0 0 3px var(--kiosk-success-shadow);
+    animation: hero-pos-status-pulse 2s ease-in-out infinite;
+}
+
+.landing-page .landing-hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-right: 1.25rem;
+    border-right: 1px solid var(--kiosk-border-soft);
+}
+
+.landing-page .landing-hero-stat:last-child {
+    border-right: none;
+    padding-right: 0;
+}
+
+.landing-page .landing-hero-stat-value {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--kiosk-text);
+}
+
+.landing-page .landing-hero-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--kiosk-text-faint);
+}
+
+.landing-page .landing-step-card {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid var(--kiosk-border);
+    background: var(--kiosk-elevated);
+    padding: 1.5rem 1.35rem;
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+}
+
+.landing-page .landing-step-card:hover {
+    border-color: var(--kiosk-gold-border);
+    box-shadow: 0 16px 40px -24px var(--kiosk-success-shadow);
+    transform: translateY(-2px);
+}
+
+.landing-page .landing-step-number {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.65rem;
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--kiosk-gold) 18%, var(--kiosk-elevated)),
+        var(--kiosk-elevated)
+    );
+    border: 1px solid var(--kiosk-gold-border);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--kiosk-gold);
+}
+
+@media (min-width: 768px) {
+    .landing-page .landing-steps-rail {
+        position: relative;
+    }
+
+    .landing-page .landing-steps-rail::before {
+        content: "";
+        position: absolute;
+        top: 2.2rem;
+        left: 8%;
+        right: 8%;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            var(--kiosk-border) 12%,
+            var(--kiosk-gold-border) 50%,
+            var(--kiosk-border) 88%,
+            transparent
+        );
+        pointer-events: none;
+    }
+}
+
+.landing-page .landing-trust-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 9999px;
+    border: 1px solid var(--kiosk-border);
+    background: var(--kiosk-elevated);
+    padding: 0.45rem 0.85rem;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--kiosk-text-soft);
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.landing-page .landing-trust-pill:hover {
+    border-color: var(--kiosk-gold-border);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px -8px var(--kiosk-success-shadow);
+}
+
+.landing-page .landing-trust-pill-dot {
+    height: 5px;
+    width: 5px;
+    border-radius: 9999px;
+    background: var(--kiosk-gold);
+    flex-shrink: 0;
+}
+
+.landing-page .landing-stat-tile {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--kiosk-gold-border) 65%, var(--kiosk-border));
+    background: color-mix(in srgb, var(--kiosk-elevated) 88%, transparent);
+    padding: 1.35rem 1.25rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.landing-page .landing-stat-tile::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 1.25rem;
+    right: 1.25rem;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(90deg, transparent, var(--kiosk-gold), transparent);
+    opacity: 0.65;
+}
+
+.landing-page .landing-quote-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.landing-page .landing-quote-card::before {
+    content: "\201C";
+    position: absolute;
+    top: 0.65rem;
+    right: 1rem;
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 4.5rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--kiosk-gold) 14%, transparent);
+    pointer-events: none;
+}
+
+.landing-page .landing-cta-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid var(--kiosk-gold-border);
+    background: color-mix(in srgb, var(--kiosk-gold-surface) 70%, var(--kiosk-elevated));
+    padding: 2.5rem 1.5rem;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+        0 24px 60px -28px var(--kiosk-success-shadow);
+}
+
+@media (min-width: 640px) {
+    .landing-page .landing-cta-panel {
+        padding: 3rem 2.5rem;
+    }
+}
+
+.landing-page .landing-cta-panel::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.5;
+    mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black, transparent);
+    -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black, transparent);
+}
+
+.landing-page .landing-mobile-bento {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--kiosk-elevated) 95%, var(--kiosk-gold-soft)),
+        var(--kiosk-elevated)
+    );
+}
+
+.landing-page .landing-hero-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .landing-page .landing-page-canvas {
+        background-size:
+            auto,
+            auto,
+            32px 32px,
+            32px 32px;
+        opacity: 0.85;
+    }
+
+    .landing-page .landing-hero-eyebrow {
+        display: flex;
+        width: fit-content;
+        max-width: 100%;
+        font-size: 11px;
+        line-height: 1.35;
+        padding: 0.35rem 0.7rem 0.35rem 0.5rem;
+    }
+
+    .landing-page .landing-hero-stat {
+        align-items: center;
+        text-align: center;
+        padding: 0.65rem 0.35rem;
+        border-right: none;
+        border-radius: 0.65rem;
+        background: color-mix(in srgb, var(--kiosk-elevated) 90%, transparent);
+        border: 1px solid var(--kiosk-border-soft);
+    }
+
+    .landing-page .landing-hero-stat-value {
+        font-size: 12px;
+    }
+
+    .landing-page .landing-hero-stat-label {
+        font-size: 9px;
+    }
+
+    .landing-page .landing-section-alt::before {
+        display: none;
+    }
+
+    .landing-page .landing-section-header-meta {
+        gap: 0.5rem;
+    }
+
+    .landing-page .landing-section-index {
+        min-width: 2.25rem;
+        font-size: 10px;
+        padding: 0.3rem 0.45rem;
+    }
+
+    .landing-page .landing-trust-pill {
+        width: 100%;
+        justify-content: flex-start;
+        font-size: 10px;
+        padding: 0.4rem 0.65rem;
+    }
+
+    .landing-page .landing-quote-card::before {
+        font-size: 3rem;
+        top: 0.25rem;
+        right: 0.5rem;
+    }
+
+    .landing-page .landing-bento-card:hover {
+        transform: none;
+    }
+
+    .landing-page .landing-bento-card::before,
+    .landing-page .landing-bento-card::after {
+        display: none;
+    }
+
+    .landing-page .landing-step-card:hover {
+        transform: none;
+    }
+
+    .landing-page .hero-border-glow {
+        animation: none;
+    }
+
+    .landing-page .landing-footer-watermark {
+        font-size: clamp(4rem, 18vw, 7rem);
+    }
+}
+
+/* ── Subtle border glow for feature cards ── */
+@keyframes border-shimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* ── Count-up highlight pulse ── */
+@keyframes number-pop {
+    0% {
+        transform: scale(0.92);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.03);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.landing-page .animate-number-pop {
+    animation: number-pop 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes shop-qty-pop {
+    0% {
+        transform: scale(0.75);
+        opacity: 0.4;
+    }
+    55% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes shop-cart-added-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 45%, transparent);
+    }
+    70% {
+        box-shadow: 0 0 0 10px transparent;
+    }
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.animate-shop-qty-pop {
+    animation: shop-qty-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-shop-cart-added {
+    animation: shop-cart-added-pulse 0.65s ease-out both;
+}
+
+/* ── Grocery POS: cart panel/badge pulse on add ────────────────────── */
+@keyframes pos-cart-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 40%, transparent);
+    }
+    35% {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 8px color-mix(in oklch, var(--primary) 18%, transparent);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.animate-pos-cart-pulse {
+    animation: pos-cart-pulse 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Grocery POS: product tile "in-cart" count badge pop ──────────── */
+/* The badge has `key={cartQty}` on the React side, so every tap remounts it
+   and re-runs this animation — a tiny visual confirmation of each add. */
+@keyframes pos-tile-qty-pop {
+    0% {
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    55% {
+        transform: scale(1.18);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.pos-tile-qty-badge {
+    animation: pos-tile-qty-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    transform-origin: 70% 30%;
+}
+
+/* Running line-total strip — a gentle slide+fade when the total changes so
+   the eye is drawn to the new figure without it screaming. */
+@keyframes pos-tile-line-total-in {
+    0% {
+        transform: translateY(2px);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.pos-tile-line-total {
+    animation: pos-tile-line-total-in 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pos-tile-qty-badge,
+    .pos-tile-line-total {
+        animation: none;
+    }
+}
+
+/* ── Grocery POS: horizontal scroll with snap & no scrollbar ─────── */
+.pos-snap-row {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.pos-snap-row::-webkit-scrollbar {
+    display: none;
+}
+
+.pos-snap-row > * {
+    scroll-snap-align: start;
+}
+
+/* ── Grocery POS: subtle line item slide-in on add ────────────────── */
+@keyframes pos-line-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-pos-line-in {
+    animation: pos-line-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-pos-cart-pulse,
+    .animate-pos-line-in {
+        animation: none;
+    }
+}
+
+/* POS receipt — flex rows for label/value alignment (screen + print) */
+#pos-receipt-print .pos-receipt-sale-id {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #111;
+}
+
+#pos-receipt-print .pos-receipt-pair,
+#pos-receipt-print .pos-receipt-money {
+    width: 100%;
+}
+
+#pos-receipt-print .pos-receipt-money-label {
+    min-width: 0;
+}
+
+#pos-receipt-print .pos-receipt-money-value {
+    min-width: 3.5rem;
+    flex-shrink: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+#pos-receipt-print .pos-receipt-pair-right {
+    text-align: right;
+}
+
+#pos-receipt-print .pos-receipt-lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#pos-receipt-print .pos-receipt-lines-head,
+#pos-receipt-print .pos-receipt-line-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2.5rem minmax(4.5rem, max-content);
+    column-gap: 0.5rem;
+    align-items: baseline;
+}
+
+#pos-receipt-print .pos-receipt-lines-head {
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.15rem;
+    border-bottom: 1px solid #000;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#pos-receipt-print .pos-receipt-lines-head span:nth-child(2),
+#pos-receipt-print .pos-receipt-line-qty {
+    text-align: right;
+}
+
+#pos-receipt-print .pos-receipt-lines-head span:nth-child(3),
+#pos-receipt-print .pos-receipt-line-price {
+    justify-self: end;
+    width: 100%;
+    text-align: right;
+}
+
+#pos-receipt-print .pos-receipt-line-row + .pos-receipt-line-row {
+    margin-top: 0.3rem;
+}
+
+#pos-receipt-print .pos-receipt-line-item {
+    min-width: 0;
+    font-weight: 600;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+#pos-receipt-print .pos-receipt-line-qty,
+#pos-receipt-print .pos-receipt-line-price {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+#pos-receipt-print .pos-receipt-location--branch {
+    margin-top: 0.15rem;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: #333;
+}
+
+#pos-receipt-print .pos-receipt-rule--dashed {
+    border-top-style: dashed;
+}
+
+#pos-receipt-print .pos-receipt-rule--totals {
+    margin: 0.3rem 0 0.35rem;
+}
+
+#pos-receipt-print .pos-receipt-payment-note {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: left;
+}
+
+#pos-receipt-print .pos-receipt-totals .pos-receipt-money + .pos-receipt-money {
+    margin-top: 0.2rem;
+}
+
+#pos-receipt-print .pos-receipt-totals .pos-receipt-money--emphasis {
+    margin-top: 0;
+}
+
+#pos-receipt-print .pos-receipt-meta > * + * {
+    margin-top: 0.2rem;
+}
+
+#pos-receipt-print .pos-receipt-contact > * + * {
+    margin-top: 0.15rem;
+}
+
+#pos-receipt-print .pos-receipt-rule {
+    border: none;
+    border-top: 1px solid #000;
+    margin: 0.45rem 0;
+    height: 0;
+    opacity: 1;
+}
+
+/* POS receipt print — 80mm thermal roll */
+@media print {
+    @page {
+        size: 80mm auto;
+        margin: 1.5mm;
+    }
+
+    html,
+    body {
+        width: 80mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Hide everything that is neither the receipt, its descendants, nor one of
+       its ancestors. This keeps the receipt as the only content in the print
+       flow, so it starts flush at the top with no blank leading pages. */
+    body *:not(:has(#pos-receipt-print)):not(#pos-receipt-print):not(#pos-receipt-print *) {
+        display: none !important;
+    }
+
+    /* Collapse the receipt's ancestor chain (scroll panels, drawers) so it sits
+       flush at the top of the page at full roll width. */
+    body,
+    body :has(#pos-receipt-print) {
+        display: block !important;
+        width: 80mm !important;
+        max-width: 80mm !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        overflow: visible !important;
+        position: static !important;
+        transform: none !important;
+        background: #fff !important;
+        box-shadow: none !important;
+    }
+
+    #pos-receipt-print {
+        box-sizing: border-box !important;
+        width: 80mm !important;
+        max-width: 80mm !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 2mm 2mm 3mm !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        color: #000 !important;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+        font-size: 10pt !important;
+        font-weight: 600 !important;
+        line-height: 1.35 !important;
+        word-wrap: break-word !important;
+        overflow-wrap: anywhere !important;
+        -webkit-font-smoothing: none !important;
+    }
+
+    #pos-receipt-print,
+    #pos-receipt-print * {
+        color: #000 !important;
+    }
+
+    #pos-receipt-print {
+        --receipt-amount: 16mm;
+    }
+
+    #pos-receipt-print .pos-receipt-shop {
+        font-size: 11pt !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        margin-top: 2pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-location {
+        font-size: 9pt !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.04em !important;
+        text-transform: uppercase !important;
+        margin-top: 2pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-location--branch {
+        font-size: 8pt !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.02em !important;
+        text-transform: none !important;
+        margin-top: 1pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-rule--totals {
+        margin: 2pt 0 3pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-payment-note {
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-lines-head {
+        font-size: 7.5pt !important;
+        font-weight: 700 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-line-item,
+    #pos-receipt-print .pos-receipt-line-qty,
+    #pos-receipt-print .pos-receipt-line-price {
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-rule--dashed {
+        border-top-style: dashed !important;
+    }
+
+    #pos-receipt-print .pos-receipt-logo-img {
+        display: block !important;
+        max-height: 11mm !important;
+        max-width: 72mm !important;
+        object-fit: contain !important;
+        filter: grayscale(1) contrast(1.35) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    #pos-receipt-print .pos-receipt-sale-id {
+        font-size: 8.5pt !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+        color: #000 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-cashier {
+        font-size: 9pt !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+    }
+
+    #pos-receipt-print .pos-receipt-date,
+    #pos-receipt-print .pos-receipt-customer {
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-money-value {
+        min-width: 16mm !important;
+    }
+
+    #pos-receipt-print .pos-receipt-money-label {
+        font-size: 9.5pt !important;
+        font-weight: 600 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-money-value {
+        font-size: 9.5pt !important;
+        font-weight: 700 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-money--emphasis .pos-receipt-money-label,
+    #pos-receipt-print .pos-receipt-money--emphasis .pos-receipt-money-value {
+        font-size: 11pt !important;
+        font-weight: 800 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-contact,
+    #pos-receipt-print .pos-receipt-contact p {
+        font-size: 9pt !important;
+        font-weight: 600 !important;
+        line-height: 1.3 !important;
+        text-align: center !important;
+    }
+
+    #pos-receipt-print .pos-receipt-closing {
+        font-size: 10pt !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        margin-top: 5pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-voided {
+        font-size: 10pt !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.08em !important;
+        border: 1px solid #000 !important;
+        padding: 3pt !important;
+    }
+
+    #pos-receipt-print .pos-receipt-rule {
+        margin: 4pt 0 !important;
+        border-top: 1px solid #000 !important;
+        opacity: 1 !important;
+    }
+
+    #pos-receipt-print .pos-receipt-brand,
+    #pos-receipt-print .pos-receipt-meta,
+    #pos-receipt-print .pos-receipt-totals,
+    #pos-receipt-print .pos-receipt-contact {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    }
+}
+
+@keyframes pos-sale-success-pop {
+    0% {
+        transform: scale(0.55);
+        opacity: 0;
+    }
+    65% {
+        transform: scale(1.06);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pos-sale-success-fade-up {
+    0% {
+        transform: translateY(8px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.pos-sale-success-enter {
+    animation: pos-sale-success-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pos-sale-success-enter-delay {
+    animation: pos-sale-success-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}

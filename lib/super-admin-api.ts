@@ -1,0 +1,359 @@
+import { API_ROUTES, APP_ROUTES, apiUrl, getApiBaseUrl } from "@/lib/config";
+import { extractPageContent } from "@/lib/page-content";
+import { getProblemTitle } from "@/lib/problem";
+import {
+  clearSuperAdminSession,
+  getSuperAdminAccessToken,
+  setSuperAdminAccessToken,
+} from "@/lib/super-admin-session";
+
+export type SuperAdminLoginResult = {
+  accessToken: string;
+  superAdminId: string;
+  email: string;
+  name: string;
+};
+
+export type SaBusinessRow = {
+  id: string;
+  name: string;
+  slug: string;
+  currency: string;
+  countryCode: string;
+  timezone: string;
+  active: boolean;
+  subscriptionTier: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaDomainRow = {
+  id: string;
+  businessId: string;
+  domain: string;
+  primary: boolean;
+  active: boolean;
+};
+
+export type SaBusinessUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  status: string;
+  roleKey: string;
+  roleName: string;
+  branchName: string;
+  lastLoginAt: string;
+  createdAt: string;
+};
+
+export type SaBusinessStats = {
+  totalUsers: number;
+  activeUsers: number;
+  totalProducts: number;
+  totalBranches: number;
+  totalSalesToday: number;
+  revenueToday: number;
+  totalSalesThisMonth: number;
+  revenueThisMonth: number;
+  openShifts: number;
+};
+
+function getNetworkErrorMessage(): string {
+  const via =
+    getApiBaseUrl().length > 0
+      ? getApiBaseUrl()
+      : "this app’s origin (configure BACKEND_ORIGIN for the Next.js proxy)";
+  return `Cannot reach API at ${via}. Start the backend, set BACKEND_ORIGIN on Next.js, or set NEXT_PUBLIC_API_BROWSER_DIRECT=true with NEXT_PUBLIC_API_BASE_URL for direct (CORS) API calls.`;
+}
+
+export async function loginSuperAdmin(
+  email: string,
+  password: string,
+): Promise<SuperAdminLoginResult> {
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(API_ROUTES.superAdminAuthLogin), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+  } catch {
+    throw new Error(getNetworkErrorMessage());
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(getProblemTitle(payload));
+  }
+  const data = payload as SuperAdminLoginResult;
+  if (!data.accessToken) {
+    throw new Error("Invalid login response");
+  }
+  setSuperAdminAccessToken(data.accessToken);
+  return data;
+}
+
+export function logoutSuperAdmin(): void {
+  clearSuperAdminSession();
+}
+
+async function saRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getSuperAdminAccessToken();
+  if (!token) {
+    throw new Error("Super-admin session expired. Sign in again.");
+  }
+  const method = (init.method ?? "GET").toUpperCase();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  if (method !== "GET" && method !== "HEAD") {
+    headers["Content-Type"] = "application/json";
+  }
+  if (
+    init.headers &&
+    typeof init.headers === "object" &&
+    !Array.isArray(init.headers)
+  ) {
+    Object.assign(headers, init.headers as Record<string, string>);
+  }
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(path), {
+      ...init,
+      headers,
+    });
+  } catch {
+    throw new Error(getNetworkErrorMessage());
+  }
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
+    throw new Error("Session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload));
+  }
+  if (response.status === 204) {
+    return {} as T;
+  }
+  return (await response.json()) as T;
+}
+
+export async function fetchSaBusinesses(
+  page = 0,
+  size = 50,
+): Promise<SaBusinessRow[]> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+    sort: "createdAt,desc",
+  });
+  const payload = await saRequest<unknown>(
+    `${API_ROUTES.superAdminBusinesses}?${params.toString()}`,
+    { method: "GET" },
+  );
+  return extractPageContent<SaBusinessRow>(payload);
+}
+
+export type CreateSaBusinessPayload = {
+  name: string;
+  slug: string;
+  currency?: string;
+  countryCode?: string;
+  timezone?: string;
+  subscriptionTier?: string;
+  primaryDomain?: string;
+};
+
+export async function createSaBusiness(
+  body: CreateSaBusinessPayload,
+): Promise<SaBusinessRow> {
+  return saRequest<SaBusinessRow>(API_ROUTES.superAdminBusinesses, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export type PatchSaBusinessPayload = {
+  name?: string;
+  subscriptionTier?: string;
+  active?: boolean;
+};
+
+export async function patchSaBusiness(
+  businessId: string,
+  body: PatchSaBusinessPayload,
+): Promise<SaBusinessRow> {
+  return saRequest<SaBusinessRow>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function deleteSaBusiness(businessId: string): Promise<void> {
+  await saRequest<unknown>(`${API_ROUTES.superAdminBusinesses}/${businessId}`, {
+    method: "DELETE",
+  });
+}
+
+// ─── Platform Payment Gateways ──────────────────────────────────────
+
+export type PlatformGatewayRecord = {
+  gatewayType: string;
+  isEnabled: boolean;
+  supplierPayoutSupported: boolean;
+  displayName: string;
+  description: string | null;
+  logoUrl: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PatchPlatformGatewayPayload = {
+  isEnabled: boolean;
+  supplierPayoutSupported?: boolean;
+  displayName: string;
+  description?: string;
+  logoUrl?: string;
+  sortOrder: number;
+};
+
+export async function fetchPlatformGateways(): Promise<
+  PlatformGatewayRecord[]
+> {
+  return saRequest<PlatformGatewayRecord[]>(
+    API_ROUTES.superAdminPlatformPaymentGateways,
+  );
+}
+
+export async function patchPlatformGateway(
+  gatewayType: string,
+  body: PatchPlatformGatewayPayload,
+): Promise<PlatformGatewayRecord> {
+  return saRequest<PlatformGatewayRecord>(
+    `${API_ROUTES.superAdminPlatformPaymentGateways}/${encodeURIComponent(gatewayType)}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function fetchSaDomains(
+  businessId: string,
+): Promise<SaDomainRow[]> {
+  return saRequest<SaDomainRow[]>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/domains`,
+    { method: "GET" },
+  );
+}
+
+export async function addSaDomain(
+  businessId: string,
+  domain: string,
+): Promise<SaDomainRow> {
+  return saRequest<SaDomainRow>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/domains`,
+    {
+      method: "POST",
+      body: JSON.stringify({ domain: domain.trim().toLowerCase() }),
+    },
+  );
+}
+
+export async function setSaPrimaryDomain(
+  businessId: string,
+  domainId: string,
+): Promise<SaDomainRow> {
+  return saRequest<SaDomainRow>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/domains/${domainId}/primary`,
+    { method: "POST" },
+  );
+}
+
+export async function deleteSaDomain(
+  businessId: string,
+  domainId: string,
+): Promise<void> {
+  await saRequest<unknown>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/domains/${domainId}`,
+    { method: "DELETE" },
+  );
+}
+
+export type SuperAdminMe = {
+  superAdminId: string;
+  email: string;
+  name: string;
+};
+
+export async function fetchSuperAdminMe(): Promise<SuperAdminMe> {
+  return saRequest<SuperAdminMe>("/api/v1/super-admin/me", { method: "GET" });
+}
+
+export async function changeSuperAdminPassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await saRequest<unknown>("/api/v1/super-admin/me/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export type PlatformIntegrationsRecord = {
+  hasDeepseekApiKey: boolean;
+  deepseekHost: string;
+  deepseekUrl: string;
+  deepseekModel: string;
+  hasRapidapiWhatsappKey: boolean;
+  envDeepseekConfigured: boolean;
+  envRapidapiWhatsappConfigured: boolean;
+  secretsReadable: boolean;
+  secretsError: string | null;
+  encryptionEphemeral: boolean;
+};
+
+export type UpdatePlatformIntegrationsPayload = {
+  deepseekApiKey?: string | null;
+  deepseekHost?: string | null;
+  deepseekUrl?: string | null;
+  deepseekModel?: string | null;
+  rapidApiWhatsappKey?: string | null;
+};
+
+export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {
+  return saRequest<PlatformIntegrationsRecord>(API_ROUTES.superAdminPlatformIntegrations);
+}
+
+export async function updatePlatformIntegrations(
+  body: UpdatePlatformIntegrationsPayload,
+): Promise<PlatformIntegrationsRecord> {
+  return saRequest<PlatformIntegrationsRecord>(API_ROUTES.superAdminPlatformIntegrations, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchSaBusinessUsers(
+  businessId: string,
+): Promise<SaBusinessUserRow[]> {
+  return saRequest<SaBusinessUserRow[]>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/users`,
+    { method: "GET" },
+  );
+}
+
+export async function fetchSaBusinessStats(
+  businessId: string,
+): Promise<SaBusinessStats> {
+  return saRequest<SaBusinessStats>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/stats`,
+    { method: "GET" },
+  );
+}

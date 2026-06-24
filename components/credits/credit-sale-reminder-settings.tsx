@@ -1,0 +1,366 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { MessageCircle } from "lucide-react";
+
+import {
+  DashboardFeedback,
+  dashboardInputClass,
+  dashboardLabelClass,
+} from "@/components/dashboard-page-ui";
+import { Button } from "@/components/ui/button";
+import {
+  fetchCreditSaleReminderSettings,
+  testCreditSaleReminderSend,
+  updateCreditSaleReminderSettings,
+  type CreditSaleReminderSettingsRecord,
+  type CreditSaleReminderTestResult,
+} from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+type Props = {
+  canEdit: boolean;
+};
+
+export function CreditSaleReminderSettings({ canEdit }: Props) {
+  const [settings, setSettings] = useState<CreditSaleReminderSettingsRecord | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{
+    text: string;
+    kind: "error" | "success";
+  } | null>(null);
+
+  const [enabled, setEnabled] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState("");
+  const [rapidApiKey, setRapidApiKey] = useState("");
+  const [whatsappPhoneId, setWhatsappPhoneId] = useState("");
+  const [whatsappToken, setWhatsappToken] = useState("");
+  const [whatsappVersion, setWhatsappVersion] = useState("v25.0");
+  const [smsProvider, setSmsProvider] = useState("none");
+  const [smsUsername, setSmsUsername] = useState("");
+  const [smsApiKey, setSmsApiKey] = useState("");
+  const [testPhone, setTestPhone] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<CreditSaleReminderTestResult | null>(
+    null,
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const data = await fetchCreditSaleReminderSettings();
+      setSettings(data);
+      setEnabled(data.enabled);
+      setPaymentUrl(data.paymentAccountUrl);
+      setWhatsappPhoneId(data.whatsappMetaPhoneNumberId ?? "");
+      setWhatsappVersion(data.whatsappMetaGraphVersion || "v25.0");
+      setSmsProvider(data.smsProvider || "none");
+      setSmsUsername(data.smsAfricasTalkingUsername ?? "");
+      setRapidApiKey("");
+      setWhatsappToken("");
+      setSmsApiKey("");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not load reminder settings.";
+      setMessage({
+        text:
+          msg.includes("500") || /internal server error/i.test(msg)
+            ? `${msg} Redeploy the backend (Flyway V95–V97) if settings never loaded. If save fails with 500, redeploy the latest API build (API key encryption fix).`
+            : msg,
+        kind: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const formatTestSummary = (r: CreditSaleReminderTestResult): string => {
+    const parts = [
+      `Enabled: ${r.remindersEnabled ? "yes" : "no"}`,
+      `RapidAPI: ${r.rapidApiConfigured ? "yes" : "no"}`,
+      `Meta WA: ${r.metaWhatsAppConfigured ? "yes" : "no"}`,
+      `SMS: ${r.smsConfigured ? "yes" : "no"}`,
+      `Lookup: ${r.whatsAppLookupSkipped ? "skipped" : r.onWhatsApp ? "on WhatsApp" : "not on WhatsApp"} (${r.lookupDetail})`,
+      `Result: ${r.outcome} via ${r.channel} — ${r.detail}`,
+    ];
+    if (r.outcome === "stub") {
+      parts.push(
+        "SMS provider is “none”: nothing is sent to the phone (server log only). Set Africa's Talking or fix WhatsApp.",
+      );
+    }
+    return parts.join("\n");
+  };
+
+  const onTestSend = async () => {
+    if (!canEdit) return;
+    setTesting(true);
+    setTestResult(null);
+    setMessage(null);
+    try {
+      const result = await testCreditSaleReminderSend(testPhone.trim());
+      setTestResult(result);
+      const ok = result.outcome === "sent";
+      setMessage({
+        text: formatTestSummary(result),
+        kind: ok ? "success" : "error",
+      });
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? err.message : "Test send failed.",
+        kind: "error",
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const onSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canEdit) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const body: Parameters<typeof updateCreditSaleReminderSettings>[0] = {
+        enabled,
+        paymentAccountUrl: paymentUrl.trim(),
+        whatsappMetaPhoneNumberId: whatsappPhoneId.trim() || null,
+        whatsappMetaGraphVersion: whatsappVersion.trim() || "v25.0",
+        smsProvider,
+        smsAfricasTalkingUsername:
+          smsProvider === "africas_talking" ? smsUsername.trim() : null,
+      };
+      if (rapidApiKey.trim()) {
+        body.rapidApiKey = rapidApiKey.trim();
+      }
+      if (whatsappToken.trim()) {
+        body.whatsappMetaAccessToken = whatsappToken.trim();
+      }
+      if (smsApiKey.trim()) {
+        body.smsAfricasTalkingApiKey = smsApiKey.trim();
+      }
+      const updated = await updateCreditSaleReminderSettings(body);
+      setSettings(updated);
+      setRapidApiKey("");
+      setWhatsappToken("");
+      setSmsApiKey("");
+      setMessage({ text: "Reminder settings saved.", kind: "success" });
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? err.message : "Save failed.",
+        kind: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+        <p className="text-sm text-muted-foreground">Loading credit tab reminders…</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-primary/[0.03] to-card p-5 shadow-sm sm:p-6">
+      <div className="flex items-start gap-3">
+        <MessageCircle className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-semibold tracking-tight">Credit tab reminders</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            When a customer takes items on credit, send a short payment reminder with
+            your account link. WhatsApp is tried first (RapidAPI lookup + Meta); SMS
+            is the fallback. Sends run on the server after checkout — they do not
+            appear in the browser Network tab except via &quot;Send test&quot; below.
+          </p>
+        </div>
+      </div>
+
+      {message ? (
+        <div className="mt-4">
+          <DashboardFeedback kind={message.kind} text={message.text} />
+        </div>
+      ) : null}
+
+      {settings?.secretsReadError ? (
+        <p className="mt-4 rounded-lg border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+          {settings.secretsReadError}
+        </p>
+      ) : null}
+
+      <form className="mt-5 space-y-4" onSubmit={(e) => void onSave(e)}>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 rounded border-border"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            disabled={!canEdit}
+          />
+          <span>Send reminders after credit (tab) sales</span>
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className={dashboardLabelClass()}>Payment account URL</span>
+          <input
+            className={dashboardInputClass()}
+            value={paymentUrl}
+            onChange={(e) => setPaymentUrl(e.target.value)}
+            placeholder={settings?.suggestedPaymentAccountUrl}
+            required
+            disabled={!canEdit}
+          />
+          <span className="text-xs text-muted-foreground">
+            Shoppers open this link to view their tab and pay (e.g.{" "}
+            <span className="font-mono">{settings?.suggestedPaymentAccountUrl}</span>
+            ).
+          </span>
+        </label>
+
+        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+          <p className="text-sm font-medium">WhatsApp</p>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>RapidAPI key</span>
+            <input
+              type="password"
+              className={dashboardInputClass()}
+              value={rapidApiKey}
+              onChange={(e) => setRapidApiKey(e.target.value)}
+              placeholder={
+                settings?.hasRapidApiKey ? "••••••••  (leave blank to keep)" : "Paste key"
+              }
+              disabled={!canEdit}
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>Meta phone number ID</span>
+            <input
+              className={dashboardInputClass()}
+              value={whatsappPhoneId}
+              onChange={(e) => setWhatsappPhoneId(e.target.value)}
+              placeholder="From Meta Business / Graph API"
+              disabled={!canEdit}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>Meta access token</span>
+            <input
+              type="password"
+              className={dashboardInputClass()}
+              value={whatsappToken}
+              onChange={(e) => setWhatsappToken(e.target.value)}
+              placeholder={
+                settings?.hasWhatsappMetaAccessToken
+                  ? "••••••••  (leave blank to keep)"
+                  : "Paste token"
+              }
+              disabled={!canEdit}
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 sm:max-w-xs">
+            <span className={dashboardLabelClass()}>Graph API version</span>
+            <input
+              className={dashboardInputClass()}
+              value={whatsappVersion}
+              onChange={(e) => setWhatsappVersion(e.target.value)}
+              disabled={!canEdit}
+            />
+          </label>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+          <p className="text-sm font-medium">SMS fallback</p>
+          <label className="flex flex-col gap-1.5 sm:max-w-xs">
+            <span className={dashboardLabelClass()}>Provider</span>
+            <select
+              className={cn(dashboardInputClass(), "h-10")}
+              value={smsProvider}
+              onChange={(e) => setSmsProvider(e.target.value)}
+              disabled={!canEdit}
+            >
+              <option value="none">None (log only in dev)</option>
+              <option value="africas_talking">Africa&apos;s Talking</option>
+            </select>
+          </label>
+          {smsProvider === "africas_talking" ? (
+            <>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>Username</span>
+                <input
+                  className={dashboardInputClass()}
+                  value={smsUsername}
+                  onChange={(e) => setSmsUsername(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>API key</span>
+                <input
+                  type="password"
+                  className={dashboardInputClass()}
+                  value={smsApiKey}
+                  onChange={(e) => setSmsApiKey(e.target.value)}
+                  placeholder={
+                    settings?.hasSmsAfricasTalkingApiKey
+                      ? "••••••••  (leave blank to keep)"
+                      : "Paste key"
+                  }
+                  disabled={!canEdit}
+                  autoComplete="off"
+                />
+              </label>
+            </>
+          ) : null}
+        </div>
+
+        {canEdit ? (
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+              <span className={dashboardLabelClass()}>Test phone</span>
+              <input
+                className={dashboardInputClass()}
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="0712345678"
+                disabled={testing}
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={testing || !testPhone.trim() || !enabled}
+              onClick={() => void onTestSend()}
+            >
+              {testing ? "Sending test…" : "Send test"}
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save reminder settings"}
+            </Button>
+          </div>
+        ) : null}
+
+        {testResult && canEdit ? (
+          <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-border/60 bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+            {formatTestSummary(testResult)}
+          </pre>
+        ) : null}
+
+        {!canEdit ? (
+          <p className="text-xs text-muted-foreground">
+            You need credit settings permission to change these values.
+          </p>
+        ) : null}
+      </form>
+    </section>
+  );
+}

@@ -1,0 +1,481 @@
+@keyframes csFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes csFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes csFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes csSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes csPulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes csScrollX {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes csMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes csCellReveal {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes csShimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+@keyframes csFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.page {
+  --cs-cream: var(--cs-brand-surface-elevated, #f3efe8);
+  --cs-warm-white: var(--cs-brand-surface, #faf8f6);
+  --cs-charcoal: var(--cs-brand-ink, #1a1814);
+  --cs-charcoal-mid: var(--cs-brand-dark-mid, #1c1a17);
+  --cs-warm-gray: var(--cs-brand-ink-muted, #5c574f);
+  --cs-on-dark-muted: var(--cs-brand-on-dark-muted, #c8c2b8);
+  --cs-accent: var(--cs-brand-accent, #0d9488);
+  --cs-accent-light: var(--cs-brand-accent-light, #5eead4);
+  --cs-accent-pale: var(--cs-brand-accent-pale, #ccfbf1);
+  --cs-primary: var(--cs-brand-primary, #0d9488);
+  --cs-primary-deep: var(--cs-brand-primary-deep, #0f766e);
+  --cs-on-primary: var(--cs-brand-on-primary, #ffffff);
+  --cs-on-dark: var(--cs-brand-on-dark, #f5f2ed);
+  --cs-dark: var(--cs-brand-dark, #1a1814);
+  --cs-border: color-mix(in srgb, var(--cs-primary) 22%, transparent);
+  --cs-border-subtle: color-mix(in srgb, var(--cs-charcoal) 8%, transparent);
+
+  font-family: var(--font-dm-sans, "DM Sans"), sans-serif;
+  background: var(--cs-warm-white);
+  color: var(--cs-charcoal);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.page::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.heroPanel {
+  background: var(--cs-warm-white);
+  border-right: 1px solid var(--cs-border-subtle);
+}
+
+.heroGlow {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 0% 15%,
+      color-mix(in srgb, var(--cs-primary) 7%, transparent),
+      transparent 68%
+    ),
+    var(--cs-warm-white);
+}
+
+.heroVisual {
+  background: var(--cs-brand-dark, #121110);
+}
+
+.heroCellOverlay {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cs-brand-dark, #121110) 5%, transparent) 0%,
+    color-mix(in srgb, var(--cs-brand-dark, #121110) 30%, transparent) 40%,
+    color-mix(in srgb, var(--cs-brand-dark, #121110) 92%, transparent) 100%
+  );
+  transition: opacity 0.4s ease;
+}
+
+.heroCell:hover .heroCellOverlay {
+  opacity: 0.92;
+}
+
+.heroCell {
+  animation: csCellReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+
+.heroCell:nth-child(1) {
+  animation-delay: 0.55s;
+}
+.heroCell:nth-child(2) {
+  animation-delay: 0.68s;
+}
+.heroCell:nth-child(3) {
+  animation-delay: 0.81s;
+}
+.heroCell:nth-child(4) {
+  animation-delay: 0.94s;
+}
+
+.heroCellIndex {
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--cs-on-dark) 22%, transparent);
+}
+
+.heroCellLabel {
+  z-index: 2;
+  transform: translateY(0);
+  transition: transform 0.35s ease;
+}
+
+.heroCell:hover .heroCellLabel {
+  transform: translateY(-4px);
+}
+
+.heroCellLabelMuted {
+  color: color-mix(in srgb, var(--cs-on-dark) 58%, transparent);
+}
+
+.heroCellPrice {
+  color: var(--cs-on-dark);
+}
+
+.serif {
+  font-family: var(--font-cormorant), "Cormorant Garamond", serif;
+}
+
+.nav {
+  animation: csFadeDown 0.8s ease forwards;
+}
+
+.heroEyebrow {
+  animation: csFadeUp 0.9s ease 0.3s forwards;
+  opacity: 0;
+}
+
+.heroTitle {
+  animation: csFadeUp 1s ease 0.45s forwards;
+  opacity: 0;
+}
+
+.heroSubtitle {
+  animation: csFadeUp 1s ease 0.55s forwards;
+  opacity: 0;
+}
+
+.heroDesc {
+  animation: csFadeUp 1s ease 0.7s forwards;
+  opacity: 0;
+}
+
+.heroChips {
+  animation: csFadeUp 1s ease 0.78s forwards;
+  opacity: 0;
+}
+
+.heroActions {
+  animation: csFadeUp 1s ease 0.85s forwards;
+  opacity: 0;
+}
+
+.heroCountdown {
+  animation: csFadeUp 1s ease 1s forwards;
+  opacity: 0;
+}
+
+.visualGrid {
+  animation: csFadeIn 1.2s ease 0.6s forwards;
+  opacity: 0;
+}
+
+.floatingTag {
+  animation: csSlideInRight 0.8s ease 1.4s forwards, csFloat 5s ease-in-out 2.2s infinite;
+  opacity: 0;
+  backdrop-filter: blur(12px);
+}
+
+.tagDot {
+  animation: csPulseDot 2s ease infinite;
+}
+
+.marqueeTrack {
+  animation: csMarquee 32s linear infinite;
+  width: max-content;
+}
+
+.marqueeTrack:hover {
+  animation-play-state: paused;
+}
+
+.marqueeItem::after {
+  content: "✦";
+  margin-left: 2.5rem;
+  margin-right: 2.5rem;
+  opacity: 0.45;
+  font-size: 0.55rem;
+  vertical-align: middle;
+}
+
+.heroChip {
+  border: 1px solid var(--cs-border-subtle);
+  background: color-mix(in srgb, var(--cs-warm-white) 80%, var(--cs-primary) 4%);
+  transition:
+    border-color 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.heroChip:hover {
+  border-color: color-mix(in srgb, var(--cs-primary) 35%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--cs-primary) 12%, transparent);
+}
+
+.countdownUnit {
+  border: 1px solid var(--cs-border-subtle);
+  background: color-mix(in srgb, var(--cs-warm-white) 92%, var(--cs-primary) 3%);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--cs-charcoal) 4%, transparent);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.countdownUnit:hover {
+  border-color: color-mix(in srgb, var(--cs-primary) 30%, transparent);
+  transform: translateY(-2px);
+}
+
+.countdownValue {
+  color: var(--cs-primary);
+  background: linear-gradient(
+    120deg,
+    var(--cs-primary) 0%,
+    color-mix(in srgb, var(--cs-accent) 70%, var(--cs-primary)) 50%,
+    var(--cs-primary-deep) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: csShimmer 8s linear infinite;
+}
+
+.btnPrimary {
+  background: var(--cs-primary);
+  color: var(--cs-on-primary);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--cs-primary) 35%, transparent);
+}
+
+.btnPrimary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cs-accent);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+
+.btnPrimary:hover::before {
+  transform: translateX(0);
+}
+
+.btnPrimary:hover {
+  color: var(--cs-on-primary);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--cs-primary) 42%, transparent);
+}
+
+.btnGhost {
+  color: var(--cs-charcoal);
+}
+
+.btnGhost:hover {
+  color: var(--cs-primary);
+}
+
+.sectionRule {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--cs-border-subtle) 20%,
+    color-mix(in srgb, var(--cs-primary) 35%, transparent) 50%,
+    var(--cs-border-subtle) 80%,
+    transparent
+  );
+}
+
+.promiseGrid {
+  display: grid;
+  gap: 1px;
+  background: var(--cs-border-subtle);
+  border: 1px solid var(--cs-border-subtle);
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+
+.promiseCard {
+  background: var(--cs-warm-white);
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s ease,
+    background 0.3s ease;
+}
+
+.promiseCardVisible,
+.promiseItemVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.promiseCard:hover {
+  background: color-mix(in srgb, var(--cs-primary) 5%, var(--cs-warm-white));
+}
+
+.promiseIcon {
+  color: var(--cs-primary);
+  background: color-mix(in srgb, var(--cs-primary) 10%, transparent);
+}
+
+.categoriesStrip {
+  animation: csScrollX 22s linear infinite;
+  width: max-content;
+}
+
+.categoriesStrip:hover {
+  animation-play-state: paused;
+}
+
+.catCard {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.4s ease;
+}
+
+.catCard:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--cs-charcoal) 14%, transparent);
+}
+
+.catCardImage {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.catCard:hover .catCardImage {
+  transform: scale(1.08);
+}
+
+.catCardOverlay {
+  background: linear-gradient(
+    180deg,
+    transparent 30%,
+    color-mix(in srgb, var(--cs-charcoal) 75%, transparent) 100%
+  );
+}
+
+.catName,
+.catCount {
+  position: relative;
+  z-index: 2;
+}
+
+.notifySection {
+  background: linear-gradient(
+    165deg,
+    var(--cs-dark) 0%,
+    color-mix(in srgb, var(--cs-dark) 88%, var(--cs-primary)) 100%
+  );
+}
+
+.notifyGlow {
+  background: radial-gradient(
+    circle at 20% 50%,
+    color-mix(in srgb, var(--cs-primary) 22%, transparent),
+    transparent 55%
+  );
+}
+
+.notifyWatermark {
+  color: color-mix(in srgb, var(--cs-on-dark) 6%, transparent);
+}
+
+.decoRing {
+  border-color: color-mix(in srgb, var(--cs-on-dark) 14%, transparent);
+}
