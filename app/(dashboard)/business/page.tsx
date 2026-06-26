@@ -674,6 +674,32 @@ export default function BusinessPage() {
                     </div>
                   ))}
                 </dl>
+                {canManageBusinessSettings ? (
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                        inventory.allowNegativeStock
+                          ? "bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      <ShoppingCart className="size-3 shrink-0" aria-hidden />
+                      Cashier oversell:{" "}
+                      {inventory.allowNegativeStock ? "Allowed" : "Blocked"}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => {
+                        skipDrawerResetAfterSave.current = false;
+                        setSettingsDrawerOpen(true);
+                      }}
+                    >
+                      Change in Stock levels
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -997,7 +1023,7 @@ export default function BusinessPage() {
           {canManageBusinessSettings ? (
             <FormDrawerFields
               legend="Stock levels"
-              hint="Control whether restricted roles can edit on-hand quantities on the Stock page."
+              hint="Stock page access and whether cashiers can sell when on-hand quantity is zero."
             >
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
                 <input
@@ -1046,14 +1072,6 @@ export default function BusinessPage() {
                   </span>
                 </span>
               </label>
-            </FormDrawerFields>
-          ) : null}
-
-          {canManageBusinessSettings ? (
-            <FormDrawerFields
-              legend="Point of sale"
-              hint="Control how the cashier handles out-of-stock items."
-            >
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
                 <input
                   type="checkbox"
