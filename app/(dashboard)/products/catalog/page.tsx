@@ -43,8 +43,11 @@ import {
   adoptStatusPresentation,
 } from "@/lib/global-catalog-adopt-status";
 import {
+  allocateRenamedSkuAvoiding,
   isImportableAdoptStatus,
+  isSkippablePreviewStatus,
   isSkuConflictStatus,
+  isUnresolvedSkuConflict,
   suggestRenamedSku,
 } from "@/lib/global-catalog-sku-conflict";
 import { toast } from "sonner";
@@ -473,13 +476,187 @@ export default function GlobalCatalogPage() {
     if (!previewResult) {
       return 0;
     }
-    return previewResult.lines.filter(
-      (line) =>
-        isSkuConflictStatus(line.status) &&
-        !skippedProductIds.has(line.globalProductId) &&
-        lineOverrides.get(line.globalProductId)?.onSkuConflict == null,
+    return previewResult.lines.filter((line) =>
+      isUnresolvedSkuConflict(
+        line.status,
+        lineOverrides.get(line.globalProductId)?.onSkuConflict,
+        skippedProductIds.has(line.globalProductId),
+      ),
     ).length;
   }, [previewResult, skippedProductIds, lineOverrides]);
+
+  const unresolvedConflictLines = useMemo(() => {
+    if (!previewResult) {
+      return [];
+    }
+    return previewResult.lines.filter((line) =>
+      isUnresolvedSkuConflict(
+        line.status,
+        lineOverrides.get(line.globalProductId)?.onSkuConflict,
+        skippedProductIds.has(line.globalProductId),
+      ),
+    );
+  }, [previewResult, skippedProductIds, lineOverrides]);
+
+  const duplicateImportLines = useMemo(() => {
+    if (!previewResult) {
+      return [];
+    }
+    return previewResult.lines.filter(
+      (line) =>
+        line.status === "skip_already_imported" &&
+        !skippedProductIds.has(line.globalProductId),
+    );
+  }, [previewResult, skippedProductIds]);
+
+  const skippablePreviewLines = useMemo(() => {
+    if (!previewResult) {
+      return [];
+    }
+    return previewResult.lines.filter(
+      (line) =>
+        isSkippablePreviewStatus(line.status) &&
+        !skippedProductIds.has(line.globalProductId),
+    );
+  }, [previewResult, skippedProductIds]);
+
+  const nonImportableLines = useMemo(() => {
+    if (!previewResult) {
+      return [];
+    }
+    return previewResult.lines.filter(
+      (line) =>
+        !isImportableAdoptStatus(line.status) &&
+        !skippedProductIds.has(line.globalProductId),
+    );
+  }, [previewResult, skippedProductIds]);
+
+  const applyBulkSkip = (productIds: string[]) => {
+    if (productIds.length === 0) {
+      return;
+    }
+    setSkippedProductIds((prev) => {
+      const next = new Set(prev);
+      for (const id of productIds) {
+        next.add(id);
+      }
+      return next;
+    });
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      for (const id of productIds) {
+        const existing = next.get(id) ?? { globalProductId: id };
+        next.set(id, { ...existing, onSkuConflict: "skip" });
+      }
+      return next;
+    });
+  };
+
+  const bulkSkipProductIds = (productIds: string[], label: string) => {
+    if (productIds.length === 0) {
+      return;
+    }
+    applyBulkSkip(productIds);
+    toast.success(`${label} (${productIds.length})`);
+  };
+
+  const bulkSkipSkuConflicts = () => {
+    bulkSkipProductIds(
+      unresolvedConflictLines.map((line) => line.globalProductId),
+      "Skipped SKU conflicts",
+    );
+  };
+
+  const bulkMergeSkuConflicts = () => {
+    const conflicts = unresolvedConflictLines;
+    if (conflicts.length === 0) {
+      return;
+    }
+    setSkippedProductIds((prev) => {
+      const next = new Set(prev);
+      for (const line of conflicts) {
+        next.delete(line.globalProductId);
+      }
+      return next;
+    });
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      for (const line of conflicts) {
+        const existing = next.get(line.globalProductId) ?? {
+          globalProductId: line.globalProductId,
+        };
+        next.set(line.globalProductId, { ...existing, onSkuConflict: "merge" });
+      }
+      return next;
+    });
+    toast.success(`Will merge ${conflicts.length} SKU conflicts`);
+  };
+
+  const bulkRenameSkuConflicts = () => {
+    const conflicts = unresolvedConflictLines;
+    if (conflicts.length === 0) {
+      return;
+    }
+    const taken = new Set<string>();
+    for (const line of conflicts) {
+      const sku = line.sku?.trim();
+      if (sku) {
+        taken.add(sku);
+      }
+    }
+    setSkippedProductIds((prev) => {
+      const next = new Set(prev);
+      for (const line of conflicts) {
+        next.delete(line.globalProductId);
+      }
+      return next;
+    });
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      for (const line of conflicts) {
+        const product = selected.get(line.globalProductId);
+        const existing = next.get(line.globalProductId) ?? {
+          globalProductId: line.globalProductId,
+        };
+        const base =
+          line.sku?.trim() ||
+          existing.sku?.trim() ||
+          product?.skuTemplate?.trim() ||
+          "";
+        const renamed =
+          allocateRenamedSkuAvoiding(base, taken) ?? suggestRenamedSku(base);
+        next.set(line.globalProductId, {
+          ...existing,
+          onSkuConflict: "rename",
+          sku: renamed,
+        });
+      }
+      return next;
+    });
+    toast.success(`Renamed ${conflicts.length} conflicting SKUs`);
+  };
+
+  const bulkSkipDuplicates = () => {
+    bulkSkipProductIds(
+      duplicateImportLines.map((line) => line.globalProductId),
+      "Skipped duplicates",
+    );
+  };
+
+  const bulkSkipAllProblems = () => {
+    bulkSkipProductIds(
+      nonImportableLines.map((line) => line.globalProductId),
+      "Skipped non-importable rows",
+    );
+  };
+
+  const bulkClearSkipped = () => {
+    if (skippedProductIds.size === 0) {
+      return;
+    }
+    setSkippedProductIds(new Set());
+    toast.info("Restored skipped rows");
+  };
 
   const markSkuConflictSkip = (productId: string) => {
     setSkippedProductIds((prev) => new Set(prev).add(productId));
@@ -917,6 +1094,89 @@ export default function GlobalCatalogPage() {
                 </span>
               ) : null}
             </div>
+            {previewResult && !previewLoading ? (
+              <div className="mt-3 space-y-2 rounded-lg border border-border/80 bg-muted/20 p-3">
+                <p className="text-[11px] font-medium text-foreground">
+                  Bulk actions
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {unresolvedConflictLines.length > 0 ? (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={bulkSkipSkuConflicts}
+                      >
+                        Skip {unresolvedConflictLines.length} conflicts
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={bulkRenameSkuConflicts}
+                      >
+                        Rename all conflicts
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={bulkMergeSkuConflicts}
+                      >
+                        Merge all conflicts
+                      </Button>
+                    </>
+                  ) : null}
+                  {duplicateImportLines.length > 0 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={bulkSkipDuplicates}
+                    >
+                      Skip {duplicateImportLines.length} duplicates
+                    </Button>
+                  ) : null}
+                  {nonImportableLines.length > 0 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={bulkSkipAllProblems}
+                    >
+                      Skip all problems ({nonImportableLines.length})
+                    </Button>
+                  ) : null}
+                  {skippedProductIds.size > 0 ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs"
+                      onClick={bulkClearSkipped}
+                    >
+                      Undo skips ({skippedProductIds.size})
+                    </Button>
+                  ) : null}
+                </div>
+                {unresolvedConflictLines.length > 0 ? (
+                  <p className="text-[10px] text-muted-foreground">
+                    Conflicts need a choice: skip (exclude), rename (new SKU), or
+                    merge (link to existing product).
+                  </p>
+                ) : skippablePreviewLines.length > 0 ? (
+                  <p className="text-[10px] text-muted-foreground">
+                    Some rows cannot be imported as-is — skip them or resolve
+                    individually below.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="mt-3 space-y-3">
               {Array.from(selected.values()).map((p) => {
                 const override = lineOverrides.get(p.id);
