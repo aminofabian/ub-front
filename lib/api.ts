@@ -543,6 +543,7 @@ export type StocktakeSettingsRecord = {
 export type StockLevelsSettingsRecord = {
   allowStockEditForStockManager?: boolean;
   allowStockEditForGroceryClerk?: boolean;
+  allowNegativeStock?: boolean;
 };
 
 export type InventorySettingsRecord = {
@@ -640,6 +641,7 @@ export type StocktakePatchPayload = {
 export type StockLevelsPatchPayload = {
   allowStockEditForStockManager?: boolean;
   allowStockEditForGroceryClerk?: boolean;
+  allowNegativeStock?: boolean;
 };
 
 export type InventoryPatchPayload = {

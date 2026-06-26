@@ -77,6 +77,7 @@ type InventoryForm = {
   showSystemStockToStockManager: boolean;
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
+  allowNegativeStock: boolean;
 };
 
 type PosDraftsForm = {
@@ -104,6 +105,7 @@ const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
+  allowNegativeStock: false,
 };
 
 const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -163,6 +165,9 @@ function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     ),
     allowStockEditForGroceryClerk: Boolean(
       b?.inventory?.stockLevels?.allowStockEditForGroceryClerk,
+    ),
+    allowNegativeStock: Boolean(
+      b?.inventory?.stockLevels?.allowNegativeStock,
     ),
   };
 }
@@ -370,6 +375,7 @@ export default function BusinessPage() {
               inventory.allowStockEditForStockManager,
             allowStockEditForGroceryClerk:
               inventory.allowStockEditForGroceryClerk,
+            allowNegativeStock: inventory.allowNegativeStock,
           },
         };
         body.featureFlags = {
@@ -1037,6 +1043,38 @@ export default function BusinessPage() {
                   <span className={hintClass()}>
                     When enabled, grocery clerks can open the Stock page and
                     set on-hand quantities for their assigned branch.
+                  </span>
+                </span>
+              </label>
+            </FormDrawerFields>
+          ) : null}
+
+          {canManageBusinessSettings ? (
+            <FormDrawerFields
+              legend="Point of sale"
+              hint="Control how the cashier handles out-of-stock items."
+            >
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  checked={inventory.allowNegativeStock}
+                  onChange={(event) =>
+                    setInventory((previous) => ({
+                      ...previous,
+                      allowNegativeStock: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="space-y-1">
+                  <span className="flex items-center gap-2 font-medium">
+                    <ShoppingCart className="size-4 text-muted-foreground" />
+                    Allow selling when out of stock
+                  </span>
+                  <span className={hintClass()}>
+                    When enabled, cashiers can complete sales even when on-hand
+                    quantity is zero or below. Stock will go negative until you
+                    receive more inventory.
                   </span>
                 </span>
               </label>

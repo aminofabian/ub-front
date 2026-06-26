@@ -4,6 +4,7 @@ import {
   isPosPackageSellRow,
   mergePosItemStockFromDetail,
   posAvailablePackages,
+  posPackageStockHeadline,
   posSearchItemDetailLine,
 } from "./cashier-item-display";
 import type { ItemSummaryRecord } from "./api";
@@ -79,5 +80,16 @@ describe("pos package stock", () => {
       baseStockQty: 120,
     });
     expect(posAvailablePackages(merged)).toBe(4);
+  });
+
+  it("returns null cap when oversell is allowed and stock is zero", () => {
+    const zeroRow: ItemSummaryRecord = {
+      ...trayRow,
+      baseStockQty: 0,
+      stockQty: 0,
+    };
+    expect(posAvailablePackages(zeroRow)).toBe(0);
+    expect(posAvailablePackages(zeroRow, true)).toBeNull();
+    expect(posPackageStockHeadline(zeroRow, true)).toBe("0 on hand");
   });
 });

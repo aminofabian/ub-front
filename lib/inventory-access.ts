@@ -141,6 +141,12 @@ export function groceryClerkStockAccessEnabled(
   return Boolean(stockLevelsSettings(business)?.allowStockEditForGroceryClerk);
 }
 
+export function allowNegativeStockForSales(
+  business: BusinessRecord | null | undefined,
+): boolean {
+  return Boolean(stockLevelsSettings(business)?.allowNegativeStock);
+}
+
 export function inventoryQuickLinksForUser(
   me: MeResponse | null | undefined,
 ): InventoryQuickLink[] {

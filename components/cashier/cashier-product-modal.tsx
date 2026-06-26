@@ -84,6 +84,8 @@ type CashierProductModalProps = {
   brandTheme: CSSProperties;
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: CashierProductModalSubmit) => void;
+  /** When true, quantity is not capped by on-hand stock. */
+  allowNegativeStock?: boolean;
 };
 
 function formatNum(n: number): string {
@@ -103,6 +105,7 @@ export function CashierProductModal({
   brandTheme,
   onOpenChange,
   onSubmit,
+  allowNegativeStock = false,
 }: CashierProductModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState("");
@@ -160,12 +163,12 @@ export function CashierProductModal({
   const thumb = useMemo(() => (item ? itemListThumbnailUrl(item) : null), [item]);
   const headerTitle = useMemo(() => (item ? cashierItemPrimaryLabel(item) : ""), [item]);
   const headerDetail = useMemo(
-    () => (rowForStock ? posSearchItemDetailLine(rowForStock) : ""),
-    [rowForStock],
+    () => (rowForStock ? posSearchItemDetailLine(rowForStock, allowNegativeStock) : ""),
+    [rowForStock, allowNegativeStock],
   );
   const maxPackages = useMemo(
-    () => (rowForStock ? posAvailablePackages(rowForStock) : null),
-    [rowForStock],
+    () => (rowForStock ? posAvailablePackages(rowForStock, allowNegativeStock) : null),
+    [rowForStock, allowNegativeStock],
   );
   const packageQtyHint = useMemo(
     () => (rowForStock ? posPackageQuantityHint(rowForStock) : null),
@@ -246,7 +249,9 @@ export function CashierProductModal({
                 rowForStock && isPosPackageSellRow(rowForStock)
                   ? headerDetail === "Sold out"
                     ? "text-[11px] font-medium text-destructive"
-                    : "text-[13px] font-semibold tabular-nums tracking-tight text-[var(--pos-primary)]"
+                    : headerDetail === "0 on hand"
+                      ? "text-[11px] font-medium text-amber-600 dark:text-amber-400"
+                      : "text-[13px] font-semibold tabular-nums tracking-tight text-[var(--pos-primary)]"
                   : "text-[11px] font-medium text-muted-foreground",
               )}
             >

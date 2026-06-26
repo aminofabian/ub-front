@@ -185,14 +185,28 @@ function pluralPackageUnit(shortName: string, count: number): string {
  * One-line package availability for POS (modal, search, cart).
  * e.g. "26 trays ready", "Only 2 trays left", "Sold out".
  */
-export function posPackageStockHeadline(row: ItemSummaryRecord): string {
-  const avail = posAvailablePackages(row);
+export function posPackageStockHeadline(
+  row: ItemSummaryRecord,
+  allowNegativeStock = false,
+): string {
   const unit = posPackageShortName(row);
+  if (allowNegativeStock) {
+    const units = posPackageUnitsPerSale(row);
+    if (units != null) {
+      const base = toStockNumber(row.baseStockQty);
+      const fromList = toStockNumber(row.stockQty);
+      const stockBase = base ?? fromList;
+      if (stockBase != null && stockBase <= 0) {
+        return "0 on hand";
+      }
+    }
+  }
+  const avail = posAvailablePackages(row, allowNegativeStock);
   if (avail == null) {
     return "—";
   }
   if (avail === 0) {
-    return "Sold out";
+    return allowNegativeStock ? "0 on hand" : "Sold out";
   }
   if (avail === 1) {
     return `Last ${unit} left`;
@@ -214,7 +228,10 @@ function pluralPackageLabel(label: string, count: number): string {
  * Whole packages available at the branch. Uses base stock ÷ units per package when the API
  * provides {@link ItemSummaryRecord.baseStockQty}; otherwise falls back to {@link stockQty}.
  */
-export function posAvailablePackages(row: ItemSummaryRecord): number | null {
+export function posAvailablePackages(
+  row: ItemSummaryRecord,
+  allowNegativeStock = false,
+): number | null {
   if (!isPosPackageSellRow(row)) {
     return null;
   }
@@ -223,12 +240,22 @@ export function posAvailablePackages(row: ItemSummaryRecord): number | null {
     return null;
   }
   const base = toStockNumber(row.baseStockQty);
-  if (base != null && base >= 0) {
-    return Math.floor(base / units);
+  if (base != null) {
+    if (base <= 0 && allowNegativeStock) {
+      return null;
+    }
+    if (base >= 0) {
+      return Math.floor(base / units);
+    }
   }
   const fromList = toStockNumber(row.stockQty);
-  if (fromList != null && fromList >= 0) {
-    return Math.floor(fromList);
+  if (fromList != null) {
+    if (fromList <= 0 && allowNegativeStock) {
+      return null;
+    }
+    if (fromList >= 0) {
+      return Math.floor(fromList);
+    }
   }
   return null;
 }
@@ -276,11 +303,14 @@ function posAvailabilitySubtitle(stockLabel: string | null, skuLabel: string | n
  * POS search / cart / modal row: on-hand count as "{n} available", optional human SKU. Omits barcode and internal SKUs.
  * When the list was requested without `branchId`, stock is omitted from the API.
  */
-export function posSearchItemDetailLine(row: ItemSummaryRecord): string {
+export function posSearchItemDetailLine(
+  row: ItemSummaryRecord,
+  allowNegativeStock = false,
+): string {
   if (!isPosPackageSellRow(row)) {
     return posAvailabilitySubtitle(formatStockQty(row.stockQty), displaySkuForPos(row));
   }
-  return posPackageStockHeadline(row);
+  return posPackageStockHeadline(row, allowNegativeStock);
 }
 
 /** Top seller tile — same rules; uses optional cached `stockQty` from last add. */

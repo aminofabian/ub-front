@@ -40,6 +40,7 @@ import {
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { parseStkPhoneParts } from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { allowNegativeStockForSales } from "@/lib/inventory-access";
 import {
   countPendingSales,
   enqueuePendingSale,
@@ -194,6 +195,7 @@ export function QuickSaleWorkspace({
   const canVoid =
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
+  const allowNegativeStock = allowNegativeStockForSales(business);
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -1139,11 +1141,12 @@ export function QuickSaleWorkspace({
 
   const capCartQuantity = useCallback(
     (item: ItemSummaryRecord, qty: number) => {
+      if (allowNegativeStock) return qty;
       const max = posAvailablePackages(item);
       if (max == null) return qty;
       return Math.min(max, qty);
     },
-    [],
+    [allowNegativeStock],
   );
 
   // ── Grocery invoice barcode intercept ─────────────────────────
@@ -2124,6 +2127,7 @@ export function QuickSaleWorkspace({
         onCreateCart={createCart}
         onSwitchCart={switchCart}
         onRemoveCart={removeCart}
+        allowNegativeStock={allowNegativeStock}
         cart={{
           lines,
           grandTotal,

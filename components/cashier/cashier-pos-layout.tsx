@@ -128,6 +128,8 @@ export type CashierPosLayoutProps = {
   onCreateCart: () => void;
   onSwitchCart: (id: string) => void;
   onRemoveCart: (id: string) => void;
+  /** When true, cart quantity is not capped by on-hand stock. */
+  allowNegativeStock?: boolean;
 
   cart: Pick<
     CashierCartDrawerProps,
@@ -389,6 +391,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     onCreateCart,
     onSwitchCart,
     onRemoveCart,
+    allowNegativeStock = false,
     cart,
   } = props;
 
@@ -1134,6 +1137,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           if (!o) setPickedItem(null);
         }}
         onSubmit={handleAddFromModal}
+        allowNegativeStock={allowNegativeStock}
       />
 
       <CashierCartDrawer
