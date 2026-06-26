@@ -7,6 +7,7 @@ import {
   Layers,
   LayoutGrid,
   PackagePlus,
+  Library,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ type Props = {
   onCreateNew: () => void;
   onAddVariant?: () => void;
   canAddVariant?: boolean;
+  onAddFromCatalog?: () => void;
+  canAddFromCatalog?: boolean;
 };
 
 const relatedLinks = [
@@ -40,6 +43,8 @@ export function ProductHeroHeader({
   onCreateNew,
   onAddVariant,
   canAddVariant = true,
+  onAddFromCatalog,
+  canAddFromCatalog = true,
 }: Props) {
   const canCreate = itemTypeCount > 0;
   const visibleAttention = attentionStats.filter((s) => s.count > 0);
@@ -116,6 +121,19 @@ export function ProductHeroHeader({
           >
             <Layers className="size-3.5" aria-hidden />
             Add variant
+          </Button>
+        ) : null}
+        {onAddFromCatalog ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canCreate || !canAddFromCatalog}
+            onClick={onAddFromCatalog}
+            className="h-8 gap-1.5 rounded-none border-border px-2.5 text-xs shadow-none"
+          >
+            <Library className="size-3.5" aria-hidden />
+            Add from catalog
           </Button>
         ) : null}
         <Button

@@ -15,6 +15,7 @@ import { createPortal } from "react-dom";
 import { useDashboard } from "@/components/dashboard-provider";
 import { OnboardingQuestionnaire } from "@/components/onboarding/onboarding-questionnaire";
 import { APP_ROUTES } from "@/lib/config";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { applyOnboardingQuestionnaire } from "@/lib/onboarding-questionnaire-apply";
 import {
   QUESTIONNAIRE_STEP_COUNT,
@@ -67,6 +68,7 @@ export function OnboardingQuestionnaireProvider({
 }) {
   const router = useRouter();
   const {
+    me,
     business,
     branches,
     itemTypes,
@@ -75,6 +77,11 @@ export function OnboardingQuestionnaireProvider({
     refreshSession,
     setBranchId,
   } = useDashboard();
+
+  const canGlobalCatalog = hasPermission(
+    me?.permissions,
+    Permission.CatalogGlobalRead,
+  );
 
   const [active, setActive] = useState(false);
   const [step, setStep] = useState(1);
@@ -119,6 +126,15 @@ export function OnboardingQuestionnaireProvider({
     router.replace(APP_ROUTES.overview);
   }, [router]);
 
+  const handleBrowseCatalog = useCallback(() => {
+    setActive(false);
+    router.replace(`${APP_ROUTES.productsCatalog}?from=onboarding`);
+  }, [router]);
+
+  const handleFinishLater = useCallback(() => {
+    finish();
+  }, [finish]);
+
   const handleSkip = useCallback(() => {
     dismissOnboardingQuestionnaire();
     setActive(false);
@@ -138,44 +154,48 @@ export function OnboardingQuestionnaireProvider({
       setAnswers(merged);
       setErrorMessage("");
 
-      if (step < QUESTIONNAIRE_STEP_COUNT) {
+      if (step < 5) {
         const nextStep = step + 1;
         saveQuestionnaireProgress(nextStep, merged);
         setStep(nextStep);
         return;
       }
 
-      if (!isCompleteAnswers(merged)) {
-        setErrorMessage("Please complete all steps before finishing.");
-        return;
-      }
-
-      setSubmitting(true);
-      try {
-        const { firstBranchId } = await applyOnboardingQuestionnaire(merged, {
-          business,
-          branches,
-          itemTypes,
-          logoFile: extras?.logoFile ?? null,
-        });
-        await Promise.all([
-          refreshBranches(),
-          refreshItemTypes(),
-          refreshSession(),
-        ]);
-        if (firstBranchId) {
-          setBranchId(firstBranchId);
+      if (step === 5) {
+        if (!isCompleteAnswers(merged)) {
+          setErrorMessage("Please complete all steps before finishing.");
+          return;
         }
-        completeOnboardingQuestionnaire(merged);
-        finish();
-      } catch (error) {
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not finish setup. Try again.",
-        );
-      } finally {
-        setSubmitting(false);
+
+        setSubmitting(true);
+        try {
+          const { firstBranchId } = await applyOnboardingQuestionnaire(merged, {
+            business,
+            branches,
+            itemTypes,
+            logoFile: extras?.logoFile ?? null,
+          });
+          await Promise.all([
+            refreshBranches(),
+            refreshItemTypes(),
+            refreshSession(),
+          ]);
+          if (firstBranchId) {
+            setBranchId(firstBranchId);
+          }
+          completeOnboardingQuestionnaire(merged);
+          saveQuestionnaireProgress(6, merged);
+          setStep(6);
+        } catch (error) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not finish setup. Try again.",
+          );
+        } finally {
+          setSubmitting(false);
+        }
+        return;
       }
     },
     [
@@ -188,7 +208,6 @@ export function OnboardingQuestionnaireProvider({
       refreshItemTypes,
       refreshSession,
       setBranchId,
-      finish,
     ],
   );
 
@@ -211,6 +230,9 @@ export function OnboardingQuestionnaireProvider({
               }}
               onBack={handleBack}
               onSkip={handleSkip}
+              canBrowseGlobalCatalog={canGlobalCatalog}
+              onBrowseCatalog={handleBrowseCatalog}
+              onFinishLater={handleFinishLater}
             />
           </div>,
           document.body,

@@ -2512,10 +2512,13 @@ function createPayloadWithoutBlankSku<T extends { sku?: string }>(body: T): T {
 export async function createItem(
   payload: CreateItemPayload,
 ): Promise<ItemCreateResponse> {
-  return request<ItemCreateResponse>(API_ROUTES.items, {
+  const created = await request<ItemCreateResponse>(API_ROUTES.items, {
     method: "POST",
     body: createPayloadWithoutBlankSku({ ...payload }),
   });
+  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return created;
 }
 
 export async function fetchSupplierItemLinks(
@@ -2579,6 +2582,8 @@ export async function patchItem(
   body: PatchItemPayload,
 ): Promise<void> {
   await request(`${API_ROUTES.items}/${itemId}`, { method: "PATCH", body });
+  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
 }
 
 export type CloudinarySignature = {
@@ -2713,19 +2718,200 @@ export async function deleteItem(
 ): Promise<void> {
   const q = cascadeVariants ? "?cascadeVariants=true" : "";
   await request(`${API_ROUTES.items}/${itemId}${q}`, { method: "DELETE" });
+  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
 }
 
 export async function createItemVariant(
   parentItemId: string,
   body: CreateVariantPayload,
 ): Promise<ItemCreateResponse> {
-  return request<ItemCreateResponse>(
+  const created = await request<ItemCreateResponse>(
     `${API_ROUTES.items}/${parentItemId}/variants`,
     {
       method: "POST",
       body: createPayloadWithoutBlankSku({ ...body }),
     },
   );
+  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return created;
+}
+
+// --- Global catalog ---------------------------------------------------------
+
+export type GlobalCategoryRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  position: number;
+  tenantCategorySlugHint?: string | null;
+};
+
+export type GlobalProductPackRecord = {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  productCount: number;
+  sortOrder: number;
+};
+
+export type GlobalCatalogMetaRecord = {
+  catalogId: string;
+  catalogName: string;
+  currency: string;
+  categories: GlobalCategoryRecord[];
+  packs: GlobalProductPackRecord[];
+};
+
+export type GlobalProductRecord = {
+  id: string;
+  catalogId: string;
+  globalCategoryId?: string | null;
+  categoryName?: string | null;
+  skuTemplate?: string | null;
+  name: string;
+  brand?: string | null;
+  size?: string | null;
+  description?: string | null;
+  barcode?: string | null;
+  unitType: string;
+  weighed: boolean;
+  sellable: boolean;
+  stocked: boolean;
+  recommendedBuyingPrice?: number | null;
+  recommendedSellingPrice?: number | null;
+  suggestedMarginPct?: number | null;
+  defaultReorderLevel?: number | null;
+  defaultReorderQty?: number | null;
+  defaultMinStockLevel?: number | null;
+  hasExpiry: boolean;
+  expiresAfterDays?: number | null;
+  imageUrl?: string | null;
+  itemTypeKeyHint?: string | null;
+  sortOrder: number;
+  alreadyImported: boolean;
+  adoptedItemId?: string | null;
+};
+
+export type GlobalProductPackDetailRecord = {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  products: GlobalProductRecord[];
+};
+
+export type GlobalCatalogAdoptLine = {
+  globalProductId: string;
+  sku?: string | null;
+  categoryId?: string | null;
+  sellingPrice?: number | null;
+  buyingPrice?: number | null;
+  openingQty?: number | null;
+  openingUnitCost?: number | null;
+  reorderLevel?: number | null;
+  reorderQty?: number | null;
+  minStockLevel?: number | null;
+};
+
+export type GlobalCatalogAdoptResultLine = {
+  globalProductId: string;
+  status: string;
+  itemId?: string | null;
+  sku?: string | null;
+  message?: string | null;
+};
+
+export type GlobalCatalogAdoptResult = {
+  importedCount: number;
+  skippedCount: number;
+  lines: GlobalCatalogAdoptResultLine[];
+};
+
+export async function fetchGlobalCatalogMeta(): Promise<GlobalCatalogMetaRecord> {
+  return request<GlobalCatalogMetaRecord>(`${API_ROUTES.globalCatalog}/meta`);
+}
+
+export async function fetchGlobalCatalogProducts(params?: {
+  categoryId?: string | null;
+  q?: string | null;
+  barcode?: string | null;
+  onlyNotImported?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<ItemsPageResult<GlobalProductRecord>> {
+  const q = new URLSearchParams();
+  if (params?.categoryId) q.set("categoryId", params.categoryId);
+  if (params?.q?.trim()) q.set("q", params.q.trim());
+  if (params?.barcode?.trim()) q.set("barcode", params.barcode.trim());
+  if (params?.onlyNotImported === false) q.set("onlyNotImported", "false");
+  else q.set("onlyNotImported", "true");
+  q.set("page", String(params?.page ?? 0));
+  q.set("size", String(params?.size ?? 50));
+  const payload = await request<unknown>(`${API_ROUTES.globalCatalog}/products?${q}`);
+  const meta = extractSpringPageMeta(payload);
+  return {
+    content: extractPageContent<GlobalProductRecord>(payload),
+    totalElements: meta?.totalElements ?? 0,
+    totalPages: meta?.totalPages ?? 0,
+    number: meta?.number ?? 0,
+    size: meta?.size ?? 0,
+    last: meta?.last ?? true,
+    first: meta?.first ?? true,
+  };
+}
+
+export async function fetchGlobalCatalogProduct(
+  id: string,
+): Promise<GlobalProductRecord> {
+  return request<GlobalProductRecord>(`${API_ROUTES.globalCatalog}/products/${encodeURIComponent(id)}`);
+}
+
+export async function lookupGlobalCatalogProducts(params: {
+  barcode?: string | null;
+  q?: string | null;
+}): Promise<GlobalProductRecord[]> {
+  const q = new URLSearchParams();
+  if (params.barcode?.trim()) q.set("barcode", params.barcode.trim());
+  if (params.q?.trim()) q.set("q", params.q.trim());
+  return request<GlobalProductRecord[]>(`${API_ROUTES.globalCatalog}/lookup?${q}`);
+}
+
+export async function fetchGlobalCatalogPack(
+  id: string,
+  opts?: { onlyNotImported?: boolean },
+): Promise<GlobalProductPackDetailRecord> {
+  const q = new URLSearchParams();
+  if (opts?.onlyNotImported === false) q.set("onlyNotImported", "false");
+  else q.set("onlyNotImported", "true");
+  const query = q.toString();
+  return request<GlobalProductPackDetailRecord>(
+    `${API_ROUTES.globalCatalog}/packs/${encodeURIComponent(id)}?${query}`,
+  );
+}
+
+export async function previewGlobalCatalogAdopt(
+  lines: GlobalCatalogAdoptLine[],
+): Promise<GlobalCatalogAdoptResult> {
+  return request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt/preview`, {
+    method: "POST",
+    body: { lines },
+  });
+}
+
+export async function globalCatalogAdopt(
+  openingBranchId: string,
+  lines: GlobalCatalogAdoptLine[],
+): Promise<GlobalCatalogAdoptResult> {
+  const result = await request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt`, {
+    method: "POST",
+    body: { openingBranchId, lines },
+  });
+  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
 }
 
 export type BatchAllocationLineRecord = {

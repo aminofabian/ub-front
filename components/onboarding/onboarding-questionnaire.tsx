@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Package } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { OnboardingBrandingColorPicker } from "@/components/onboarding/onboarding-branding-color-picker";
@@ -47,6 +47,9 @@ type Props = {
   ) => void;
   onBack: () => void;
   onSkip: () => void;
+  canBrowseGlobalCatalog?: boolean;
+  onBrowseCatalog?: () => void;
+  onFinishLater?: () => void;
 };
 
 function QuestionnaireProgress({ step }: { step: number }) {
@@ -144,6 +147,9 @@ export function OnboardingQuestionnaire({
   onContinue,
   onBack,
   onSkip,
+  canBrowseGlobalCatalog = false,
+  onBrowseCatalog,
+  onFinishLater,
 }: Props) {
   const [branchCount, setBranchCount] = useState<BranchCountChoice | "">(
     initialAnswers.branchCount ?? "",
@@ -696,6 +702,36 @@ export function OnboardingQuestionnaire({
               </div>
             </>
           ) : null}
+
+          {step === 6 ? (
+            <>
+              <h2 className="text-center text-[22px] font-semibold tracking-tight text-[#1F2937]">
+                Stock your shelves
+              </h2>
+              <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
+                Import common products from the shared catalog in minutes — prices,
+                barcodes, and categories included. You can always add your own
+                products later.
+              </p>
+              <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F0FDFA] mx-auto">
+                <Package className="size-8 text-[#0D9488]" aria-hidden />
+              </div>
+              <ul className="mt-6 space-y-2 text-sm text-[#4B5563]">
+                <li className="flex items-start gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-[#0D9488]" aria-hidden />
+                  Browse 2,000+ starter products for Kenyan retail
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-[#0D9488]" aria-hidden />
+                  Pick a starter pack or search by name or barcode
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-[#0D9488]" aria-hidden />
+                  Adjust prices and stock before importing
+                </li>
+              </ul>
+            </>
+          ) : null}
         </div>
 
         {errorMessage ? (
@@ -705,24 +741,53 @@ export function OnboardingQuestionnaire({
         ) : null}
 
         <div className="mt-8 space-y-3">
-          <button
-            type="button"
-            disabled={!canContinue || submitting}
-            onClick={handleContinue}
-            className={cn(
-              "h-12 w-full rounded-xl text-[15px] font-semibold transition active:scale-[0.99]",
-              canContinue && !submitting
-                ? "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]"
-                : "cursor-not-allowed bg-[#E5E7EB] text-white",
-            )}
-          >
-            {submitting
-              ? "Setting up your shop…"
-              : step === QUESTIONNAIRE_STEP_COUNT
-                ? "Finish setup"
-                : "Continue"}
-          </button>
+          {step === 6 ? (
+            <>
+              {canBrowseGlobalCatalog ? (
+                <button
+                  type="button"
+                  onClick={onBrowseCatalog}
+                  className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
+                >
+                  Browse product catalog
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={onFinishLater}
+                className={cn(
+                  "h-12 w-full rounded-xl border text-[15px] font-semibold transition active:scale-[0.99]",
+                  canBrowseGlobalCatalog
+                    ? "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#FAFAFA]"
+                    : "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]",
+                )}
+              >
+                {canBrowseGlobalCatalog
+                  ? "I'll add products later"
+                  : "Continue to dashboard"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={!canContinue || submitting}
+              onClick={handleContinue}
+              className={cn(
+                "h-12 w-full rounded-xl text-[15px] font-semibold transition active:scale-[0.99]",
+                canContinue && !submitting
+                  ? "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]"
+                  : "cursor-not-allowed bg-[#E5E7EB] text-white",
+              )}
+            >
+              {submitting
+                ? "Setting up your shop…"
+                : step === 5
+                  ? "Finish setup"
+                  : "Continue"}
+            </button>
+          )}
 
+          {step === 6 ? null : (
           <div className="flex items-center justify-between text-sm">
             {step > 1 ? (
               <button
@@ -745,6 +810,7 @@ export function OnboardingQuestionnaire({
               Skip for now
             </button>
           </div>
+          )}
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   PackagePlus,
   X,
@@ -31,6 +32,11 @@ import { PackageVariantsSection } from "./PackageVariantsSection";
 import { ProductDescriptionField } from "./ProductDescriptionField";
 import type { ParentDraft } from "../_types";
 import { toNumber } from "../_utils";
+import {
+  lookupGlobalCatalogProducts,
+  type GlobalProductRecord,
+} from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  Types
@@ -58,6 +64,7 @@ type Props = {
   canListSuppliers: boolean;
   currencyCode: string;
   branches: BranchRecord[];
+  canGlobalCatalog?: boolean;
 };
 
 
@@ -223,6 +230,7 @@ export function ProductCreateDrawer({
   canListSuppliers,
   currencyCode,
   branches,
+  canGlobalCatalog = false,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const isGroup = m.parentDraft.productStructure === "group";
@@ -231,6 +239,50 @@ export function ProductCreateDrawer({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [descGenError, setDescGenError] = useState("");
+  const [globalMatch, setGlobalMatch] = useState<GlobalProductRecord | null>(null);
+  const [globalLookupBusy, setGlobalLookupBusy] = useState(false);
+  const lookupTimerRef = useRef<number | null>(null);
+
+  const runGlobalLookup = useCallback(
+    async (barcode?: string, q?: string) => {
+      if (!canGlobalCatalog || isGroup) {
+        setGlobalMatch(null);
+        return;
+      }
+      const trimmedBarcode = barcode?.trim();
+      const trimmedQ = q?.trim();
+      if (!trimmedBarcode && (!trimmedQ || trimmedQ.length < 3)) {
+        setGlobalMatch(null);
+        return;
+      }
+      setGlobalLookupBusy(true);
+      try {
+        const results = await lookupGlobalCatalogProducts({
+          barcode: trimmedBarcode || undefined,
+          q: trimmedQ || undefined,
+        });
+        const match = results.find((row) => !row.alreadyImported) ?? null;
+        setGlobalMatch(match);
+      } catch {
+        setGlobalMatch(null);
+      } finally {
+        setGlobalLookupBusy(false);
+      }
+    },
+    [canGlobalCatalog, isGroup],
+  );
+
+  const scheduleGlobalLookup = useCallback(
+    (barcode?: string, q?: string) => {
+      if (lookupTimerRef.current) {
+        window.clearTimeout(lookupTimerRef.current);
+      }
+      lookupTimerRef.current = window.setTimeout(() => {
+        void runGlobalLookup(barcode, q);
+      }, 400);
+    },
+    [runGlobalLookup],
+  );
 
   /* ── Reset expanded state when drawer opens ── */
   useEffect(() => {
@@ -239,6 +291,7 @@ export function ProductCreateDrawer({
       setKeepOpen(false);
       setScannerOpen(false);
       setDescGenError("");
+      setGlobalMatch(null);
     }
   }, [open]);
 
@@ -257,6 +310,40 @@ export function ProductCreateDrawer({
       return applyDerivedOpeningUnitCost(next);
     },
     [applyDerivedOpeningUnitCost],
+  );
+
+  const applyGlobalMatch = useCallback(
+    (match: GlobalProductRecord) => {
+      m.setParentDraft((prev) => {
+        const next = {
+          ...prev,
+          name: match.name,
+          barcode: match.barcode ?? prev.barcode,
+          sku: match.skuTemplate ?? prev.sku,
+          brand: match.brand ?? prev.brand,
+          size: match.size ?? prev.size,
+          buyingPrice:
+            match.recommendedBuyingPrice != null
+              ? String(match.recommendedBuyingPrice)
+              : prev.buyingPrice,
+          bundlePrice:
+            match.recommendedSellingPrice != null
+              ? String(match.recommendedSellingPrice)
+              : prev.bundlePrice,
+          reorderLevel:
+            match.defaultReorderLevel != null
+              ? String(match.defaultReorderLevel)
+              : prev.reorderLevel,
+          minStockLevel:
+            match.defaultMinStockLevel != null
+              ? String(match.defaultMinStockLevel)
+              : prev.minStockLevel,
+        };
+        return syncCostsFromBuyingPrice(next.buyingPrice, next);
+      });
+      setGlobalMatch(null);
+    },
+    [m, syncCostsFromBuyingPrice],
   );
 
   const marginInfo = useMemo(() => {
@@ -439,6 +526,54 @@ export function ProductCreateDrawer({
           </div>
         )}
 
+        {!isGroup && canGlobalCatalog && (globalMatch || globalLookupBusy) ? (
+          <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
+            {globalLookupBusy && !globalMatch ? (
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Checking global catalog…
+              </p>
+            ) : globalMatch ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-foreground">
+                  Found in catalog library
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {globalMatch.name}
+                  {globalMatch.brand ? ` · ${globalMatch.brand}` : ""}
+                  {globalMatch.size ? ` · ${globalMatch.size}` : ""}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => applyGlobalMatch(globalMatch)}
+                  >
+                    Pre-fill from template
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    asChild
+                  >
+                    <Link href={APP_ROUTES.productsCatalog}>Import from catalog</Link>
+                  </Button>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                    onClick={() => setGlobalMatch(null)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <FormDrawerFields legend="Essentials" compact>
           <div className="inline-flex rounded-md border border-border/60 p-0.5">
             <button
@@ -512,7 +647,11 @@ export function ProductCreateDrawer({
                   className={icClass()}
                   placeholder={isGroup ? "Group name" : "Product name"}
                   value={m.parentDraft.name}
-                  onChange={(e) => m.setParentDraft((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => {
+                    m.setParentDraft((p) => ({ ...p, name: e.target.value }));
+                    scheduleGlobalLookup(m.parentDraft.barcode, e.target.value);
+                  }}
+                  onBlur={() => scheduleGlobalLookup(m.parentDraft.barcode, m.parentDraft.name)}
                   required
                   autoFocus
                 />
@@ -623,8 +762,12 @@ export function ProductCreateDrawer({
                       className={cn(icClass(), "min-w-0 flex-1 font-mono text-xs")}
                       placeholder="Scan or type"
                       value={m.parentDraft.barcode}
-                      onChange={(e) =>
-                        m.setParentDraft((p) => ({ ...p, barcode: e.target.value }))
+                      onChange={(e) => {
+                        m.setParentDraft((p) => ({ ...p, barcode: e.target.value }));
+                        scheduleGlobalLookup(e.target.value, m.parentDraft.name);
+                      }}
+                      onBlur={() =>
+                        scheduleGlobalLookup(m.parentDraft.barcode, m.parentDraft.name)
                       }
                     />
                     <button
@@ -887,6 +1030,7 @@ export function ProductCreateDrawer({
           <BarcodeScanner
             onScan={(barcode) => {
               m.setParentDraft((p) => ({ ...p, barcode }));
+              scheduleGlobalLookup(barcode, m.parentDraft.name);
               setScannerOpen(false);
             }}
             onClose={() => setScannerOpen(false)}

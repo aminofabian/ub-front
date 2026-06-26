@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, MousePointerClick, PackagePlus } from "lucide-react";
 
 import { DashboardNotice } from "@/components/dashboard-page-ui";
@@ -9,6 +9,7 @@ import { FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
+import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   type ProductDrawerId,
@@ -40,6 +41,7 @@ import {
 import { usePosEvents } from "@/hooks/use-pos-events";
 
 export default function ProductsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const {
     me,
@@ -67,6 +69,10 @@ export default function ProductsPage() {
   const canInventoryWrite = hasPermission(
     me?.permissions,
     Permission.InventoryWrite,
+  );
+  const canGlobalCatalog = hasPermission(
+    me?.permissions,
+    Permission.CatalogGlobalRead,
   );
 
   const catalog = useCatalogList(branchId);
@@ -117,6 +123,12 @@ export default function ProductsPage() {
       setActiveDrawer("create-parent");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("action") === "global-catalog" && canGlobalCatalog) {
+      router.replace(APP_ROUTES.productsCatalog);
+    }
+  }, [searchParams, canGlobalCatalog, router]);
 
   const m = useProductMutations({
     selectedId: detail.selectedId,
@@ -360,6 +372,12 @@ export default function ProductsPage() {
                 ? () => setActiveDrawer("pick-variant-parent")
                 : undefined
             }
+            onAddFromCatalog={
+              canGlobalCatalog
+                ? () => router.push(APP_ROUTES.productsCatalog)
+                : undefined
+            }
+            canAddFromCatalog={canGlobalCatalog}
             canAddVariant={canCatalogWrite}
           />
           <ProductMobileFilterBar catalog={catalog} />
@@ -383,6 +401,12 @@ export default function ProductsPage() {
                 canCatalogWrite={canCatalogWrite}
                 bulkDeleteBusy={m.bulkDeleteBusy}
                 onBulkDelete={m.onBulkDeleteSelected}
+                onAddFromCatalog={
+                  canGlobalCatalog
+                    ? () => router.push(APP_ROUTES.productsCatalog)
+                    : undefined
+                }
+                canAddFromCatalog={canGlobalCatalog}
                 />
               </div>
               <div className="hidden min-w-0 max-w-full overflow-x-hidden lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-border/50 lg:pl-3">
@@ -445,6 +469,7 @@ export default function ProductsPage() {
         canListSuppliers={canListSuppliers}
         currencyCode={business?.currency?.trim() || ""}
         branches={branches}
+        canGlobalCatalog={canGlobalCatalog}
       />
 
       <ProductEditDrawer

@@ -11,6 +11,8 @@ export const Permission = {
   CatalogItemsWrite: "catalog.items.write",
   CatalogCategoriesWrite: "catalog.categories.write",
   CatalogItemsLinkSuppliers: "catalog.items.link_suppliers",
+  CatalogGlobalRead: "catalog.global.read",
+  CatalogGlobalAdopt: "catalog.global.adopt",
   PurchasingIntelligenceRead: "purchasing.intelligence.read",
   PurchasingPathBRead: "purchasing.path_b.read",
   PurchasingPathBWrite: "purchasing.path_b.write",

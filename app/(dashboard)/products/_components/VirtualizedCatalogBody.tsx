@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Boxes, Package } from "lucide-react";
+import { Boxes, Package, PackagePlus } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 import { kioskCategoryPillClass } from "@/components/cashier/kiosk-listing-styles";
 import { itemListThumbnailUrl, type CategoryRecord, type ItemSummaryRecord } from "@/lib/api";
@@ -59,6 +61,9 @@ export type VirtualizedCatalogBodyProps = {
   hasMore: boolean;
   onLoadMore: () => void;
   initialLoading: boolean;
+  catalogEmpty?: boolean;
+  onAddFromCatalog?: () => void;
+  canAddFromCatalog?: boolean;
 };
 
 function FixNamePill() {
@@ -139,6 +144,9 @@ export function VirtualizedCatalogBody({
   hasMore,
   onLoadMore,
   initialLoading,
+  catalogEmpty = false,
+  onAddFromCatalog,
+  canAddFromCatalog = false,
 }: VirtualizedCatalogBodyProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
@@ -209,16 +217,33 @@ export function VirtualizedCatalogBody({
         {initialLoading ? (
           <CatalogListSkeleton density={density} />
         ) : rows.length === 0 ? (
-          <div className="mx-3 my-10 flex flex-col items-center gap-2.5 rounded-xl border border-dashed border-border/50 bg-muted/10 px-5 py-8 text-center sm:mx-4">
+          <div className="mx-3 my-10 flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/50 bg-muted/10 px-5 py-8 text-center sm:mx-4">
             <div className="flex size-10 items-center justify-center rounded-lg border border-border/45 bg-background/80">
               <Package className="size-4 text-muted-foreground/45" aria-hidden />
             </div>
-            <div className="max-w-[15rem] space-y-0.5">
-              <p className="text-sm font-semibold text-foreground">No products match</p>
+            <div className="max-w-[18rem] space-y-1">
+              <p className="text-sm font-semibold text-foreground">
+                {catalogEmpty ? "Your catalog is empty" : "No products match"}
+              </p>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Broaden search or reset filters in the sidebar.
+                {catalogEmpty
+                  ? "Get started quickly by importing common products from the shared catalog, or add your first product manually."
+                  : "Broaden search or reset filters in the sidebar."}
               </p>
             </div>
+            {catalogEmpty && canAddFromCatalog && onAddFromCatalog ? (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onAddFromCatalog}
+                >
+                  <PackagePlus className="size-4" aria-hidden />
+                  Add from catalog
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>

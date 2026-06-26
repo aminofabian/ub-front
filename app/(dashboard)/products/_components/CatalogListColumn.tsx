@@ -24,6 +24,8 @@ type Props = {
   canCatalogWrite: boolean;
   bulkDeleteBusy: boolean;
   onBulkDelete: () => void | Promise<void>;
+  onAddFromCatalog?: () => void;
+  canAddFromCatalog?: boolean;
 };
 
 const ROW_TYPE_FILTERS: {
@@ -44,6 +46,8 @@ export function CatalogListColumn({
   canCatalogWrite,
   bulkDeleteBusy,
   onBulkDelete,
+  onAddFromCatalog,
+  canAddFromCatalog = false,
 }: Props) {
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
@@ -180,6 +184,13 @@ export function CatalogListColumn({
           hasMore={!catalog.listLast}
           onLoadMore={catalog.loadMoreCatalog}
           initialLoading={catalog.listLoadingInitial}
+          catalogEmpty={
+            catalog.listTotalElements === 0 &&
+            !catalog.listLoadingInitial &&
+            !filtersActive
+          }
+          onAddFromCatalog={onAddFromCatalog}
+          canAddFromCatalog={canAddFromCatalog}
         />
       </div>
     </div>

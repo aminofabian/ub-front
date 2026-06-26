@@ -20,6 +20,7 @@ export const APP_ROUTES = {
   branches: "/branches",
   users: "/users",
   products: "/products",
+  productsCatalog: "/products/catalog",
   itemTypes: "/item-types",
   categories: "/categories",
   suppliers: "/suppliers",
@@ -103,6 +104,7 @@ export const API_ROUTES = {
   items: "/api/v1/items",
   itemTypes: "/api/v1/item-types",
   categories: "/api/v1/categories",
+  globalCatalog: "/api/v1/global-catalog",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
   superAdminBusinesses: "/api/v1/super-admin/businesses",
   superAdminPlatformPaymentGateways:

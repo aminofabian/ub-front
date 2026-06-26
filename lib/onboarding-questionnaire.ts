@@ -51,7 +51,7 @@ export type OnboardingQuestionnaireState = {
   updatedAt: string;
 };
 
-export const QUESTIONNAIRE_STEP_COUNT = 5;
+export const QUESTIONNAIRE_STEP_COUNT = 6;
 
 export const BRANCH_COUNT_OPTIONS: readonly {
   value: BranchCountChoice;
