@@ -42,6 +42,11 @@ import {
   adoptStatusClassName,
   adoptStatusPresentation,
 } from "@/lib/global-catalog-adopt-status";
+import {
+  isImportableAdoptStatus,
+  isSkuConflictStatus,
+  suggestRenamedSku,
+} from "@/lib/global-catalog-sku-conflict";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -98,6 +103,7 @@ export default function GlobalCatalogPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [adopting, setAdopting] = useState(false);
   const [lineOverrides, setLineOverrides] = useState<Map<string, GlobalCatalogAdoptLine>>(new Map());
+  const [skippedProductIds, setSkippedProductIds] = useState<Set<string>>(new Set());
   const [hideImported, setHideImported] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [tenantCategories, setTenantCategories] = useState<CategoryRecord[]>([]);
@@ -382,6 +388,7 @@ export default function GlobalCatalogPage() {
 
   const clearSelection = () => {
     setSelected(new Map());
+    setSkippedProductIds(new Set());
   };
 
   const updateOverride = (productId: string, patch: Partial<GlobalCatalogAdoptLine>) => {
@@ -394,7 +401,9 @@ export default function GlobalCatalogPage() {
   };
 
   const buildLines = useCallback((): GlobalCatalogAdoptLine[] => {
-    return Array.from(selected.values()).map((p) => {
+    return Array.from(selected.values())
+      .filter((p) => !skippedProductIds.has(p.id))
+      .map((p) => {
       const override = lineOverrides.get(p.id);
       const globalCategory = meta?.categories.find((c) => c.id === p.globalCategoryId);
       const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
@@ -412,9 +421,10 @@ export default function GlobalCatalogPage() {
         reorderLevel: override?.reorderLevel ?? p.defaultReorderLevel ?? undefined,
         reorderQty: override?.reorderQty ?? p.defaultReorderQty ?? undefined,
         minStockLevel: override?.minStockLevel ?? p.defaultMinStockLevel ?? undefined,
+        onSkuConflict: override?.onSkuConflict ?? undefined,
       };
     });
-  }, [selected, lineOverrides, meta?.categories, tenantCategories]);
+  }, [selected, skippedProductIds, lineOverrides, meta?.categories, tenantCategories]);
 
   const runPreview = useCallback(async () => {
     if (selected.size === 0) {
@@ -442,7 +452,7 @@ export default function GlobalCatalogPage() {
       void runPreview();
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [reviewOpen, runPreview, lineOverrides, selected]);
+  }, [reviewOpen, runPreview, lineOverrides, selected, skippedProductIds]);
 
   const previewByProductId = useMemo(() => {
     const map = new Map<string, GlobalCatalogAdoptResult["lines"][number]>();
@@ -453,9 +463,65 @@ export default function GlobalCatalogPage() {
   }, [previewResult]);
 
   const readyImportCount = useMemo(
-    () => previewResult?.lines.filter((line) => line.status === "ready").length ?? selected.size,
-    [previewResult, selected.size],
+    () =>
+      previewResult?.lines.filter((line) => isImportableAdoptStatus(line.status)).length ??
+      buildLines().length,
+    [previewResult, buildLines],
   );
+
+  const unresolvedConflictCount = useMemo(() => {
+    if (!previewResult) {
+      return 0;
+    }
+    return previewResult.lines.filter(
+      (line) =>
+        isSkuConflictStatus(line.status) &&
+        !skippedProductIds.has(line.globalProductId) &&
+        lineOverrides.get(line.globalProductId)?.onSkuConflict == null,
+    ).length;
+  }, [previewResult, skippedProductIds, lineOverrides]);
+
+  const markSkuConflictSkip = (productId: string) => {
+    setSkippedProductIds((prev) => new Set(prev).add(productId));
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(productId) ?? { globalProductId: productId };
+      next.set(productId, { ...existing, onSkuConflict: "skip" });
+      return next;
+    });
+  };
+
+  const markSkuConflictMerge = (productId: string) => {
+    setSkippedProductIds((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(productId) ?? { globalProductId: productId };
+      next.set(productId, { ...existing, onSkuConflict: "merge" });
+      return next;
+    });
+  };
+
+  const markSkuConflictRename = (productId: string, currentSku: string) => {
+    setSkippedProductIds((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(productId) ?? { globalProductId: productId };
+      next.set(productId, {
+        ...existing,
+        onSkuConflict: "rename",
+        sku: suggestRenamedSku(currentSku || existing.sku || ""),
+      });
+      return next;
+    });
+  };
 
   const handlePreview = () => {
     if (selected.size === 0) return;
@@ -472,9 +538,14 @@ export default function GlobalCatalogPage() {
       const lines = buildLines();
       const preview = previewResult ?? (await previewGlobalCatalogAdopt(lines));
       const hasErrors = preview.lines.some((l) => l.status.startsWith("error"));
-      const readyCount = preview.lines.filter((l) => l.status === "ready").length;
+      const readyCount = preview.lines.filter((l) => isImportableAdoptStatus(l.status)).length;
       if (hasErrors) {
         toast.error("Preview has errors. Fix or remove those products.");
+        setPreviewResult(preview);
+        return;
+      }
+      if (unresolvedConflictCount > 0) {
+        toast.error("Resolve SKU conflicts (skip, rename, or merge) before importing.");
         setPreviewResult(preview);
         return;
       }
@@ -483,13 +554,29 @@ export default function GlobalCatalogPage() {
         setPreviewResult(preview);
         return;
       }
+      const stillUnresolved = preview.lines.filter((line) =>
+        isSkuConflictStatus(line.status),
+      ).length;
+      if (stillUnresolved > 0) {
+        toast.error("Resolve SKU conflicts (skip, rename, or merge) before importing.");
+        setPreviewResult(preview);
+        return;
+      }
       const result = await globalCatalogAdopt(defaultBranchId, lines);
-      toast.success(`Imported ${result.importedCount} products`);
+      const importedNew = result.lines.filter((l) => l.status === "imported").length;
+      const mergedCount = result.lines.filter((l) => l.status === "merged").length;
+      toast.success(
+        mergedCount > 0
+          ? `Imported ${importedNew} · linked ${mergedCount} to existing`
+          : `Imported ${result.importedCount} products`,
+      );
       if (result.skippedCount > 0) {
         toast.info(`${result.skippedCount} skipped`);
       }
       setReviewOpen(false);
       setSelected(new Map());
+      setSkippedProductIds(new Set());
+      setLineOverrides(new Map());
       void fetchProducts({
         reset: true,
         page: 0,
@@ -834,9 +921,19 @@ export default function GlobalCatalogPage() {
               {Array.from(selected.values()).map((p) => {
                 const override = lineOverrides.get(p.id);
                 const previewLine = previewByProductId.get(p.id);
+                const isSkipped = skippedProductIds.has(p.id);
                 const status = previewLine
                   ? adoptStatusPresentation(previewLine.status)
-                  : null;
+                  : isSkipped
+                    ? { label: "Skipped", tone: "skip" as const }
+                    : null;
+                const conflictSku =
+                  previewLine?.sku ??
+                  override?.sku ??
+                  p.skuTemplate ??
+                  "";
+                const showConflictActions =
+                  isSkuConflictStatus(previewLine?.status) && !isSkipped;
                 const globalCategory = meta?.categories.find((c) => c.id === p.globalCategoryId);
                 const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
                 const suggestedCategoryId = slugHint
@@ -847,7 +944,7 @@ export default function GlobalCatalogPage() {
                     key={p.id}
                     className={cn(
                       "rounded-lg border p-3",
-                      status?.tone === "skip" && "opacity-70",
+                      (status?.tone === "skip" || isSkipped) && "opacity-70",
                       status?.tone === "error" && "border-destructive/40",
                     )}
                   >
@@ -866,6 +963,77 @@ export default function GlobalCatalogPage() {
                     </div>
                     {previewLine?.message ? (
                       <p className="mt-1 text-[11px] text-muted-foreground">{previewLine.message}</p>
+                    ) : null}
+                    {showConflictActions ? (
+                      <div className="mt-2 space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
+                        <p className="text-[11px] font-medium text-amber-900 dark:text-amber-100">
+                          SKU <span className="font-mono">{conflictSku}</span> is already
+                          in your catalog. Choose what to do:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => markSkuConflictSkip(p.id)}
+                          >
+                            Skip
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() =>
+                              markSkuConflictRename(p.id, conflictSku)
+                            }
+                          >
+                            Rename
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => markSkuConflictMerge(p.id)}
+                          >
+                            Merge
+                          </Button>
+                          {previewLine?.itemId ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 text-xs"
+                              onClick={() =>
+                                router.push(`/products?product=${previewLine.itemId}`)
+                              }
+                            >
+                              View existing
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                    {override?.onSkuConflict === "merge" && !isSkipped ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Will link this catalog item to your existing product
+                        {previewLine?.itemId ? (
+                          <>
+                            {" "}
+                            <button
+                              type="button"
+                              className="font-medium text-primary underline-offset-2 hover:underline"
+                              onClick={() =>
+                                router.push(`/products?product=${previewLine.itemId}`)
+                              }
+                            >
+                              (view)
+                            </button>
+                          </>
+                        ) : null}
+                        .
+                      </p>
                     ) : null}
                     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                       <div>
@@ -956,7 +1124,13 @@ export default function GlobalCatalogPage() {
             </div>
             <Button
               className="mt-4 w-full"
-              disabled={adopting || previewLoading || !canAdopt || readyImportCount === 0}
+              disabled={
+                adopting ||
+                previewLoading ||
+                !canAdopt ||
+                readyImportCount === 0 ||
+                unresolvedConflictCount > 0
+              }
               onClick={handleAdopt}
             >
               {adopting ? (

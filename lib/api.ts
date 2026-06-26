@@ -2816,6 +2816,8 @@ export type GlobalCatalogAdoptLine = {
   reorderLevel?: number | null;
   reorderQty?: number | null;
   minStockLevel?: number | null;
+  /** skip | merge | rename — when preview reports a SKU conflict */
+  onSkuConflict?: "skip" | "merge" | "rename" | null;
 };
 
 export type GlobalCatalogAdoptResultLine = {

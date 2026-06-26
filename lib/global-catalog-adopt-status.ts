@@ -13,6 +13,12 @@ export function adoptStatusPresentation(status: string): {
       return { label: "Already in catalog", tone: "skip" };
     case "skip_sku_conflict":
       return { label: "SKU already in use", tone: "skip" };
+    case "ready_merge":
+      return { label: "Will link to existing", tone: "ready" };
+    case "merged":
+      return { label: "Linked to existing", tone: "ready" };
+    case "error_already_linked":
+      return { label: "Already linked elsewhere", tone: "error" };
     case "skip_barcode_conflict":
       return { label: "Barcode already in use", tone: "skip" };
     case "warn_missing_category":
