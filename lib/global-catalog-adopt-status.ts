@@ -23,6 +23,8 @@ export function adoptStatusPresentation(status: string): {
       return { label: "Barcode already in use", tone: "skip" };
     case "error_data_integrity":
       return { label: "Database constraint blocked import", tone: "error" };
+    case "error_import":
+      return { label: "Import failed", tone: "error" };
     case "warn_missing_category":
       return { label: "No category mapped", tone: "warn" };
     case "warn_missing_supplier":
