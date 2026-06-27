@@ -25,6 +25,7 @@ import { useGlobalCatalogTenantSync } from "@/hooks/use-global-catalog-tenant-sy
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn, formatMoney } from "@/lib/utils";
 import {
+  ApiRequestError,
   type GlobalCatalogAdoptLine,
   type GlobalCatalogAdoptResult,
   type GlobalCategoryRecord,
@@ -732,7 +733,11 @@ export default function GlobalCatalogPage() {
         return;
       }
       const stillUnresolved = preview.lines.filter((line) =>
-        isSkuConflictStatus(line.status),
+        isUnresolvedSkuConflict(
+          line.status,
+          lineOverrides.get(line.globalProductId)?.onSkuConflict,
+          skippedProductIds.has(line.globalProductId),
+        ),
       ).length;
       if (stillUnresolved > 0) {
         toast.error("Resolve SKU conflicts (skip, rename, or merge) before importing.");
@@ -742,6 +747,16 @@ export default function GlobalCatalogPage() {
       const result = await globalCatalogAdopt(defaultBranchId, lines);
       const importedNew = result.lines.filter((l) => l.status === "imported").length;
       const mergedCount = result.lines.filter((l) => l.status === "merged").length;
+      const skuSkipped = result.lines.filter((l) => l.status === "skip_sku_conflict").length;
+      if (importedNew === 0 && mergedCount === 0) {
+        toast.error(
+          skuSkipped > 0
+            ? "Import blocked by SKU conflicts — use skip, rename, or merge in the review dialog."
+            : "No products were imported.",
+        );
+        setPreviewResult(result);
+        return;
+      }
       toast.success(
         mergedCount > 0
           ? `Imported ${importedNew} · linked ${mergedCount} to existing`
@@ -760,8 +775,10 @@ export default function GlobalCatalogPage() {
         categoryId: selectedCategoryId,
         packId: selectedPackId,
       });
-    } catch {
-      toast.error("Adopt failed");
+    } catch (e) {
+      if (!(e instanceof ApiRequestError)) {
+        toast.error("Adopt failed");
+      }
     } finally {
       setAdopting(false);
     }
