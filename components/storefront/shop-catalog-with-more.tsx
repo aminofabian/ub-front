@@ -1,9 +1,11 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
 import { ShopProductGridSkeleton } from "@/components/storefront/shop-product-grid-skeleton";
+import { Button } from "@/components/ui/button";
 import { useStorefrontCatalogSync } from "@/hooks/use-storefront-catalog-sync";
 import { APP_ROUTES, apiUrl } from "@/lib/config";
 import type {
@@ -11,6 +13,17 @@ import type {
   PublicCatalogListPayload,
 } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 24;
+const LOAD_MARGIN = "0px 0px 280px 0px";
+const PREFETCH_MARGIN = "0px 0px 900px 0px";
+const MAX_AUTO_RETRIES = 2;
+
+type PrefetchedPage = {
+  cursor: string;
+  items: PublicCatalogItemCard[];
+  nextCursor: string | null;
+};
 
 export default function ShopCatalogWithMore({
   slug,
@@ -37,12 +50,55 @@ export default function ShopCatalogWithMore({
 }) {
   const [items, setItems] = useState<PublicCatalogItemCard[]>(initialItems);
   const [next, setNext] = useState<string | null>(initialNextCursor);
-  const [totalCount] = useState<number>(initialTotalCount ?? initialItems.length);
+  const [totalCount] = useState<number>(
+    initialTotalCount ?? initialItems.length,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefetchedPage, setPrefetchedPage] = useState<PrefetchedPage | null>(
+    null,
+  );
+  const [retryCount, setRetryCount] = useState(0);
+  const [newFromIndex, setNewFromIndex] = useState(0);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef(items);
+  const nextRef = useRef(next);
   const busyRef = useRef(false);
-  const nextRef = useRef<string | null>(initialNextCursor);
+  const prefetchedRef = useRef(prefetchedPage);
+  const prefetchPromiseRef = useRef<Promise<PublicCatalogListPayload | null> | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
+  const abortCtrlRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    nextRef.current = next;
+  }, [next]);
+
+  useEffect(() => {
+    prefetchedRef.current = prefetchedPage;
+  }, [prefetchedPage]);
+
+  // Reset retry state whenever the filter/search changes (parent remounts via key).
+  useEffect(() => {
+    retryCountRef.current = 0;
+    setRetryCount(0);
+    setError(null);
+  }, [q, categoryId]);
+
+  // Cancel any in-flight prefetch if the component unmounts.
+  useEffect(() => {
+    return () => {
+      abortCtrlRef.current?.abort();
+      if (retryTimerRef.current) {
+        window.clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
 
   useStorefrontCatalogSync({
     slug,
@@ -52,53 +108,170 @@ export default function ShopCatalogWithMore({
     setItems,
   });
 
-  useEffect(() => {
-    nextRef.current = next;
-  }, [next]);
-
-  useEffect(() => {
-    busyRef.current = busy;
-  }, [busy]);
-
-  const loadMore = useCallback(async () => {
-    const cursor = nextRef.current;
-    if (!cursor || busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setError(null);
-    try {
+  const fetchPage = useCallback(
+    async (
+      cursor: string,
+      signal?: AbortSignal,
+    ): Promise<PublicCatalogListPayload | null> => {
       const p = new URLSearchParams();
-      p.set("limit", "24");
+      p.set("limit", String(PAGE_SIZE));
       p.set("cursor", cursor);
       const qt = q?.trim();
       if (qt) p.set("q", qt);
       const cid = categoryId?.trim();
       if (cid) p.set("categoryId", cid);
       const path = `/api/v1/public/businesses/${encodeURIComponent(slug)}/catalog/items?${p}`;
-      const res = await fetch(apiUrl(path), {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) {
-        setError("Could not load more.");
+
+      try {
+        const res = await fetch(apiUrl(path), {
+          headers: { Accept: "application/json" },
+          signal,
+        });
+        if (!res.ok) return null;
+        const payload = (await res.json()) as PublicCatalogListPayload;
+        if (!Array.isArray(payload.items)) {
+          payload.items = [];
+        }
+        return payload;
+      } catch {
+        return null;
+      }
+    },
+    [slug, q, categoryId],
+  );
+
+  const prefetchNext = useCallback(async (): Promise<PublicCatalogListPayload | null> => {
+    const cursor = nextRef.current;
+    if (!cursor) return null;
+
+    const cached = prefetchedRef.current;
+    if (cached?.cursor === cursor) {
+      return {
+        currency,
+        items: cached.items,
+        nextCursor: cached.nextCursor,
+        totalCount,
+      };
+    }
+
+    if (prefetchPromiseRef.current) {
+      return prefetchPromiseRef.current;
+    }
+
+    const promise = (async () => {
+      const ctrl = new AbortController();
+      abortCtrlRef.current = ctrl;
+      try {
+        const payload = await fetchPage(cursor, ctrl.signal);
+        if (
+          payload &&
+          payload.items.length > 0 &&
+          payload.nextCursor !== cursor
+        ) {
+          const page: PrefetchedPage = {
+            cursor,
+            items: payload.items,
+            nextCursor: payload.nextCursor,
+          };
+          prefetchedRef.current = page;
+          setPrefetchedPage(page);
+        }
+        return payload;
+      } finally {
+        abortCtrlRef.current = null;
+      }
+    })();
+
+    prefetchPromiseRef.current = promise;
+    try {
+      return await promise;
+    } finally {
+      prefetchPromiseRef.current = null;
+    }
+  }, [fetchPage, currency, totalCount]);
+
+  // Stable ref so callbacks declared earlier can reach the latest loadMore.
+  const loadMoreRef = useRef<() => Promise<void>>(async () => {});
+
+  const loadMore = useCallback(async () => {
+    const cursor = nextRef.current;
+    if (!cursor || busyRef.current) return;
+
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+
+    if (retryTimerRef.current) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+
+    try {
+      const appendFrom = itemsRef.current.length;
+      let payload: PublicCatalogListPayload | null = null;
+
+      const cached = prefetchedRef.current;
+      if (cached?.cursor === cursor) {
+        payload = {
+          currency,
+          items: cached.items,
+          nextCursor: cached.nextCursor,
+          totalCount,
+        };
+        prefetchedRef.current = null;
+        setPrefetchedPage(null);
+      } else {
+        payload = await prefetchNext();
+      }
+
+      if (!payload) {
+        throw new Error("Could not load more.");
+      }
+
+      // Defensive: stop if the backend keeps returning the same cursor or empty pages.
+      if (payload.items.length === 0 || payload.nextCursor === cursor) {
+        setNext(null);
+        nextRef.current = null;
+      } else {
+        setItems((prev) => [...prev, ...payload.items]);
+        const newCursor = payload.nextCursor ?? null;
+        setNext(newCursor);
+        nextRef.current = newCursor;
+        setNewFromIndex(appendFrom);
+      }
+
+      retryCountRef.current = 0;
+      setRetryCount(0);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
         return;
       }
-      const payload = (await res.json()) as PublicCatalogListPayload;
-      setItems((prev) => [...prev, ...payload.items]);
-      setNext(payload.nextCursor);
-      nextRef.current = payload.nextCursor;
-    } catch {
       setError("Could not load more.");
+      retryCountRef.current += 1;
+      setRetryCount(retryCountRef.current);
+
+      if (retryCountRef.current <= MAX_AUTO_RETRIES) {
+        const delay = 1000 * 2 ** (retryCountRef.current - 1);
+        retryTimerRef.current = window.setTimeout(() => {
+          void loadMoreRef.current();
+        }, delay);
+      }
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [q, categoryId, slug]);
+  }, [currency, totalCount, prefetchNext]);
 
-  const loadMoreRef = useRef(loadMore);
   useEffect(() => {
     loadMoreRef.current = loadMore;
   }, [loadMore]);
 
+  const prefetchRef = useRef(prefetchNext);
+  useEffect(() => {
+    prefetchRef.current = prefetchNext;
+  }, [prefetchNext]);
+
+  // Trigger the actual load when the user gets close to the bottom.
   useEffect(() => {
     if (!next) return;
     const el = sentinelRef.current;
@@ -110,18 +283,41 @@ export default function ShopCatalogWithMore({
           void loadMoreRef.current();
         }
       },
-      {
-        root: null,
-        rootMargin: "0px 0px 152px 0px",
-        threshold: 0,
-      },
+      { root: null, rootMargin: LOAD_MARGIN, threshold: 0 },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
   }, [next]);
 
+  // Look-ahead prefetch so the next page is already cached before they scroll into it.
+  useEffect(() => {
+    if (!next) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void prefetchRef.current();
+        }
+      },
+      { root: null, rootMargin: PREFETCH_MARGIN, threshold: 0 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [next]);
+
+  const handleRetry = useCallback(() => {
+    retryCountRef.current = 0;
+    setRetryCount(0);
+    setError(null);
+    void loadMoreRef.current();
+  }, []);
+
   const filtered = Boolean(q?.trim() || categoryId?.trim());
+  const atEnd = !next && items.length > 0;
 
   return (
     <div className="space-y-4">
@@ -166,10 +362,28 @@ export default function ShopCatalogWithMore({
         clearHref={APP_ROUTES.shop}
         slug={slug}
         accentHex={accentHex}
+        newFromIndex={newFromIndex}
       />
 
       {error ? (
-        <p className="text-center text-xs text-destructive">{error}</p>
+        <div className="flex flex-col items-center gap-2 py-4">
+          <p className="text-center text-xs text-destructive">{error}</p>
+          {retryCount > MAX_AUTO_RETRIES ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              disabled={busy}
+            >
+              <RefreshCw className="mr-1.5 size-3" />
+              Try again
+            </Button>
+          ) : (
+            <p className="text-center text-[11px] text-muted-foreground/60">
+              Retrying…
+            </p>
+          )}
+        </div>
       ) : null}
 
       {busy ? <ShopProductGridSkeleton count={8} /> : null}
@@ -184,10 +398,21 @@ export default function ShopCatalogWithMore({
           aria-live="polite"
         >
           {!busy ? (
-            <span className="sr-only">Scroll for more products</span>
+            <>
+              <span className="sr-only">Scroll for more products</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-[11px] text-muted-foreground/70 hover:text-foreground"
+                onClick={() => void loadMoreRef.current()}
+                disabled={busy}
+              >
+                Load more
+              </Button>
+            </>
           ) : null}
         </div>
-      ) : items.length > 0 ? (
+      ) : atEnd ? (
         <p className="pb-2 text-center text-[11px] text-muted-foreground/40">
           End of catalog
         </p>

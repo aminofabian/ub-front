@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
+import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import { logoutRemote } from "@/lib/api";
 import { clearSessionTokens, getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
@@ -14,10 +15,14 @@ function readSignedIn(): boolean {
 }
 
 export function ShopUtilityBar({
+  slug,
+  storeName,
   primaryHex,
   locationHint,
   className,
 }: {
+  slug: string;
+  storeName?: string;
   primaryHex: string | null;
   locationHint?: string | null;
   className?: string;
@@ -99,6 +104,14 @@ export function ShopUtilityBar({
           <span className="text-white/25 select-none" aria-hidden>
             ·
           </span>
+          {slug.trim() ? (
+            <>
+              <GetTheAppDialog slug={slug} storeName={storeName} />
+              <span className="text-white/25 select-none" aria-hidden>
+                ·
+              </span>
+            </>
+          ) : null}
           {!mounted ? (
             <span className="rounded-md px-2 py-0.5 opacity-60">…</span>
           ) : signedIn ? (

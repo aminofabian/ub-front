@@ -22,6 +22,7 @@ import {
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
+import type { MobilePublishStatus, MyMobileConfigResponse } from "@/lib/public-mobile-config";
 import {
   parseProblem,
   formatApiProblemMessage,
@@ -1923,6 +1924,25 @@ export type DomainRecord = {
 };
 
 const MY_DOMAINS_PATH = "/api/v1/businesses/me/domains";
+const MY_MOBILE_PATH = "/api/v1/businesses/me/mobile";
+
+export async function fetchMyMobileConfig(): Promise<MyMobileConfigResponse> {
+  return request<MyMobileConfigResponse>(MY_MOBILE_PATH);
+}
+
+export async function fetchMyMobilePublishStatus(): Promise<MobilePublishStatus> {
+  return request<MobilePublishStatus>(`${MY_MOBILE_PATH}/publish`);
+}
+
+export async function requestMyMobilePublish(opts?: {
+  app?: string;
+  platform?: string;
+}): Promise<MobilePublishStatus> {
+  return request<MobilePublishStatus>(`${MY_MOBILE_PATH}/publish`, {
+    method: "POST",
+    body: opts ?? {},
+  });
+}
 
 export async function fetchMyDomains(): Promise<DomainRecord[]> {
   return request<DomainRecord[]>(MY_DOMAINS_PATH);

@@ -65,6 +65,7 @@ export default function ShopProductGrid({
   clearHref,
   slug,
   accentHex,
+  newFromIndex,
 }: {
   items: PublicCatalogItemCard[];
   currency: string;
@@ -72,6 +73,7 @@ export default function ShopProductGrid({
   clearHref?: string;
   slug?: string;
   accentHex?: string | null;
+  newFromIndex?: number;
 }) {
   if (items.length === 0) {
     return (
@@ -96,9 +98,12 @@ export default function ShopProductGrid({
     );
   }
 
+  const animateFrom = newFromIndex ?? 0;
+
   return (
     <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-3.5 xl:grid-cols-5">
       {items.map((item, index) => {
+        const isNew = index >= animateFrom;
         const title = item.variantName
           ? `${item.name} · ${item.variantName}`
           : item.name;
@@ -113,8 +118,14 @@ export default function ShopProductGrid({
         return (
           <li
             key={item.id}
-            className="animate-fade-in-up"
-            style={{ animationDelay: `${Math.min(index * 40, 600)}ms` }}
+            className={cn(isNew && "animate-fade-in-up")}
+            style={
+              isNew
+                ? {
+                    animationDelay: `${Math.min((index - animateFrom) * 40, 600)}ms`,
+                  }
+                : undefined
+            }
           >
             <article className={cn(CARD_SHELL, isOutOfStock && "opacity-60")}>
               <Link href={shopItemPathFromCard(item)} className={IMAGE_WELL} aria-label={title}>

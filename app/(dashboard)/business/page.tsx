@@ -20,6 +20,7 @@ import {
   Save,
   Shield,
   ShoppingCart,
+  Smartphone,
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
@@ -456,6 +457,12 @@ export default function BusinessPage() {
       icon: Palette,
     },
     {
+      href: APP_ROUTES.businessMobile,
+      label: "Store app",
+      desc: "Launch mobile storefront",
+      icon: Smartphone,
+    },
+    {
       href: APP_ROUTES.businessDomains,
       label: "Domains",
       desc: "Custom hostnames",
@@ -470,7 +477,7 @@ export default function BusinessPage() {
   ] as const;
 
   const relatedLinks = (
-    <div className="hidden gap-2 sm:grid-cols-3 2xl:grid">
+    <div className="hidden gap-2 sm:grid-cols-2 2xl:grid 2xl:grid-cols-4">
       {businessQuickLinks.map(({ href, label, desc, icon: Icon }) => (
         <Link
           key={href}

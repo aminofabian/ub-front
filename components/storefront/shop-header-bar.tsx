@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
+import { GetTheAppDialog } from "@/components/storefront/get-the-app-dialog";
 import ShopSearchBar from "@/components/storefront/shop-search-bar";
 import { ShopCartTrigger } from "@/components/storefront/shop-cart-trigger";
 import { APP_ROUTES } from "@/lib/config";
@@ -66,6 +67,13 @@ export function ShopHeaderBar({
             />
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-0.5 lg:hidden">
+              {slug ? (
+                <GetTheAppDialog
+                  slug={slug}
+                  storeName={headerTitle}
+                  triggerVariant="icon"
+                />
+              ) : null}
               <Link
                 href={APP_ROUTES.shopAccount}
                 className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"

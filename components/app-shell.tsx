@@ -84,6 +84,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: APP_ROUTES.business, label: "Business settings" },
       { href: APP_ROUTES.businessBranding, label: "Branding" },
+      { href: APP_ROUTES.businessMobile, label: "Store app" },
       { href: APP_ROUTES.businessDomains, label: "Domains" },
       BRANCHES_LINK,
       { href: APP_ROUTES.users, label: "Users" },

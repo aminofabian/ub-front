@@ -34,6 +34,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.analyticsActivity]: "Activity",
     [APP_ROUTES.business]: "Settings",
     [APP_ROUTES.businessBranding]: "Branding",
+    [APP_ROUTES.businessMobile]: "Store app",
     [APP_ROUTES.users]: "Team",
     [APP_ROUTES.branches]: "Branches",
     [APP_ROUTES.paymentsSettings]: "Payments",

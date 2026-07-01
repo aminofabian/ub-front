@@ -123,6 +123,8 @@ export function ShopStorefrontChrome({
       {!compactChrome ? (
         <>
           <ShopUtilityBar
+            slug={slug}
+            storeName={headerTitle}
             primaryHex={primaryHex}
             locationHint={locationHint}
             className="hidden sm:block"
