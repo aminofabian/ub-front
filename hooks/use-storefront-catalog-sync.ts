@@ -63,6 +63,8 @@ export function useStorefrontCatalogSync({
   slug,
   q,
   categoryId,
+  typeId,
+  departmentId,
   items,
   setItems,
   enabled = true,
@@ -71,11 +73,15 @@ export function useStorefrontCatalogSync({
   slug: string;
   q?: string;
   categoryId?: string;
+  typeId?: string;
+  /** @deprecated Use {@link typeId}. */
+  departmentId?: string;
   items: PublicCatalogItemCard[];
   setItems: Dispatch<SetStateAction<PublicCatalogItemCard[]>>;
   enabled?: boolean;
   pollMs?: number;
 }): void {
+  const resolvedTypeId = typeId?.trim() || departmentId?.trim() || undefined;
   const setItemsRef = useRef(setItems);
   const itemsRef = useRef(items);
   setItemsRef.current = setItems;
@@ -101,6 +107,7 @@ export function useStorefrontCatalogSync({
       const patches = await fetchStorefrontItemPricePatches(slug, ids, {
         q,
         categoryId,
+        typeId: resolvedTypeId,
       });
       if (cancelled || patches.size === 0) {
         return;
@@ -123,5 +130,5 @@ export function useStorefrontCatalogSync({
       window.clearInterval(timer);
       unsubscribe();
     };
-  }, [slug, q, categoryId, enabled, pollMs]);
+  }, [slug, q, categoryId, resolvedTypeId, enabled, pollMs]);
 }

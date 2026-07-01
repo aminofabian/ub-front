@@ -1,10 +1,11 @@
 import { headers } from "next/headers";
+import { Suspense } from "react";
 
 import { ShopAisleGrid } from "@/components/storefront/shop-aisle-grid";
 import ShopCatalogWithMore from "@/components/storefront/shop-catalog-with-more";
+import { ShopTypeFilters } from "@/components/storefront/shop-type-filters";
 import { ShopHeroMart } from "@/components/storefront/shop-hero-mart";
 import { ShopSidebarWidgets } from "@/components/storefront/shop-sidebar-widgets";
-import { ShopTrustStrip } from "@/components/storefront/shop-trust-strip";
 import { ShopStorefrontComingSoon } from "@/components/storefront/shop-storefront-coming-soon";
 import { ShopUnavailable } from "@/components/storefront/shop-unavailable";
 import {
@@ -14,6 +15,7 @@ import {
 import {
   fetchPublicCatalogItems,
   fetchPublicCategories,
+  fetchPublicTypes,
   fetchPublicStorefront,
   type PublicCatalogItemCard,
 } from "@/lib/public-storefront";
@@ -25,16 +27,22 @@ function isHexColor(value: string): boolean {
 export async function StorefrontCatalogHome({
   q,
   categoryId,
+  typeId,
+  departmentId,
   categoryHeading,
   categoryPathSlug,
 }: {
   q?: string;
   categoryId?: string;
+  typeId?: string;
+  /** @deprecated Use {@link typeId}. */
+  departmentId?: string;
   /** Human-readable heading when filtering by category (not the raw id). */
   categoryHeading?: string;
   /** Canonical `/shop/c/:slug` segment for links and search form action. */
   categoryPathSlug?: string;
 }) {
+  const resolvedTypeId = typeId?.trim() || departmentId?.trim() || undefined;
   const tenant = await resolveTenantContext();
   const slug = await resolveStorefrontSlug();
 
@@ -54,9 +62,15 @@ export async function StorefrontCatalogHome({
     );
   }
 
-  const [list, categoriesPayload, storefront] = await Promise.all([
-    fetchPublicCatalogItems(slug, { limit: 24, q, categoryId }),
+  const [list, categoriesPayload, typesPayload, storefront] = await Promise.all([
+    fetchPublicCatalogItems(slug, {
+      limit: 24,
+      q,
+      categoryId,
+      typeId: resolvedTypeId,
+    }),
     fetchPublicCategories(slug),
+    fetchPublicTypes(slug),
     fetchPublicStorefront(slug),
   ]);
 
@@ -76,6 +90,14 @@ export async function StorefrontCatalogHome({
   }
 
   const categories = categoriesPayload?.categories ?? [];
+  const types =
+    storefront?.types?.length
+      ? storefront.types
+      : (typesPayload?.types ?? []);
+  const typeHeading =
+    resolvedTypeId && !categoryHeading
+      ? types.find((t) => t.id === resolvedTypeId)?.label?.trim()
+      : undefined;
   const branchHint = storefront?.catalogBranchName;
   const heroTitle =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? "Browse products";
@@ -112,7 +134,9 @@ export async function StorefrontCatalogHome({
               heroBannerUrls={heroBannerUrls}
             />
 
-            <ShopTrustStrip primaryHex={primary} />
+            <Suspense fallback={null}>
+              <ShopTypeFilters types={types} primaryHex={primary} />
+            </Suspense>
 
             <ShopAisleGrid
               categories={categories}
@@ -122,7 +146,7 @@ export async function StorefrontCatalogHome({
 
             <section id="shop-catalog" className="scroll-mt-24">
               <ShopCatalogWithMore
-                key={`${q ?? ""}\0${categoryId ?? ""}\0${categoryPathSlug ?? ""}`}
+                key={`${q ?? ""}\0${categoryId ?? ""}\0${resolvedTypeId ?? ""}\0${categoryPathSlug ?? ""}`}
                 slug={slug}
                 currency={list.currency}
                 initialItems={list.items}
@@ -130,7 +154,8 @@ export async function StorefrontCatalogHome({
                 initialTotalCount={list.totalCount}
                 q={q}
                 categoryId={categoryId}
-                categoryHeading={categoryHeading}
+                typeId={resolvedTypeId}
+                categoryHeading={categoryHeading ?? typeHeading}
                 categoryPathSlug={categoryPathSlug}
                 accentHex={accentHex}
               />

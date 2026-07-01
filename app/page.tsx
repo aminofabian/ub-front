@@ -8,7 +8,7 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveStorefrontSlugFromHost } from "@/lib/storefront-slug";
 
 type PageProps = {
-  searchParams: Promise<{ q?: string; categoryId?: string }>;
+  searchParams: Promise<{ q?: string; categoryId?: string; typeId?: string; departmentId?: string }>;
 };
 
 export default async function HomePage({ searchParams }: PageProps) {
@@ -39,6 +39,9 @@ export default async function HomePage({ searchParams }: PageProps) {
         <StorefrontCatalogHome
           q={sp.q?.trim() || undefined}
           categoryId={legacy || undefined}
+          typeId={
+            sp.typeId?.trim() || sp.departmentId?.trim() || undefined
+          }
         />
       </StorefrontShell>
     );

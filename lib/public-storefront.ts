@@ -27,7 +27,19 @@ export type PublicStorefrontPayload = {
   label: string | null;
   announcement: string | null;
   featured: PublicCatalogItemCard[];
+  /** Catalog item types (departments) with in-stock published counts. */
+  types?: PublicCatalogType[];
 };
+
+export type PublicCatalogType = {
+  id: string;
+  label: string;
+  icon?: string | null;
+  itemCount?: number;
+};
+
+/** @deprecated Use {@link PublicCatalogType}. */
+export type PublicDepartment = PublicCatalogType;
 
 export type PublicItemImage = {
   url: string;
@@ -99,6 +111,10 @@ export type PublicCategory = {
 
 export type PublicCategoryListPayload = {
   categories: PublicCategory[];
+};
+
+export type PublicDepartmentListPayload = {
+  types: PublicCatalogType[];
 };
 
 export type TenantStatus = "ACTIVE" | "SUSPENDED" | "INACTIVE";
@@ -306,6 +322,8 @@ export async function fetchPublicCatalogItems(
     limit?: number;
     q?: string | null;
     categoryId?: string | null;
+    departmentId?: string | null;
+    typeId?: string | null;
   },
 ): Promise<PublicCatalogListPayload | null> {
   const base = backendOrigin();
@@ -331,6 +349,10 @@ export async function fetchPublicCatalogItems(
   const cat = opts?.categoryId?.trim();
   if (cat) {
     u.searchParams.set("categoryId", cat);
+  }
+  const dept = opts?.departmentId?.trim() || opts?.typeId?.trim();
+  if (dept) {
+    u.searchParams.set("typeId", dept);
   }
   try {
     const res = await fetch(u.toString(), STORE_PRICE_FETCH_INIT);
@@ -370,6 +392,39 @@ export async function fetchPublicCategories(
   } catch {
     return null;
   }
+}
+
+export async function fetchPublicTypes(
+  slug: string,
+): Promise<PublicDepartmentListPayload | null> {
+  const base = backendOrigin();
+  const s = sanitizeStorefrontSlug(slug);
+  if (!s) {
+    return null;
+  }
+  const url = `${base}/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/types`;
+  try {
+    const res = await fetch(url, {
+      next: { revalidate: DEFAULT_REVALIDATE_SEC },
+      headers: { Accept: "application/json" },
+    });
+    if (res.status === 404) {
+      return null;
+    }
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json()) as PublicDepartmentListPayload;
+  } catch {
+    return null;
+  }
+}
+
+/** @deprecated Use {@link fetchPublicTypes}. */
+export async function fetchPublicDepartments(
+  slug: string,
+): Promise<PublicDepartmentListPayload | null> {
+  return fetchPublicTypes(slug);
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {

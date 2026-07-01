@@ -16,7 +16,7 @@ import {
 
 type PageProps = {
   params: Promise<{ categorySlug: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; typeId?: string; departmentId?: string }>;
 };
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
@@ -106,7 +106,13 @@ export default async function ShopCategoryBrowsePage({ params, searchParams }: P
   const segmentDecoded = decodeURIComponent(categorySlug.trim());
   if (segmentDecoded !== canonical) {
     const q = sp.q?.trim();
-    redirect(shopCategoryListPath(canonical, q ? { q } : undefined));
+    const typeId = sp.typeId?.trim() || sp.departmentId?.trim();
+    redirect(
+      shopCategoryListPath(canonical, {
+        q: q || undefined,
+        typeId: typeId || undefined,
+      }),
+    );
   }
 
   const q = sp.q?.trim() || undefined;
@@ -115,6 +121,9 @@ export default async function ShopCategoryBrowsePage({ params, searchParams }: P
     <StorefrontCatalogHome
       q={q}
       categoryId={cat.id}
+      typeId={
+        sp.typeId?.trim() || sp.departmentId?.trim() || undefined
+      }
       categoryHeading={cat.name}
       categoryPathSlug={canonical}
     />

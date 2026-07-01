@@ -6,12 +6,17 @@ import { cn } from "@/lib/utils";
 export default function ShopSearchBar({
   defaultQuery,
   categoryId,
+  typeId,
+  departmentId,
   searchActionPath,
   accentHex,
   variant = "default",
 }: {
   defaultQuery?: string;
   categoryId?: string;
+  typeId?: string;
+  /** @deprecated Use {@link typeId}. */
+  departmentId?: string;
   /** When set (e.g. `/shop/c/bakery`), GET search keeps the shopper on that category. */
   searchActionPath?: string;
   /** Tenant primary (#RRGGBB) used for the submit control. */
@@ -21,6 +26,7 @@ export default function ShopSearchBar({
 }) {
   const validAccent =
     accentHex && /^#[0-9a-fA-F]{6}$/.test(accentHex.trim()) ? accentHex.trim() : null;
+  const resolvedTypeId = typeId?.trim() || departmentId?.trim();
   const inputId = variant === "header" ? "shop-header-search-q" : "shop-search-q";
   const formAction = (searchActionPath?.trim() || APP_ROUTES.shop) as string;
 
@@ -50,6 +56,9 @@ export default function ShopSearchBar({
           />
         </div>
         {categoryId ? <input type="hidden" name="categoryId" value={categoryId} /> : null}
+        {resolvedTypeId ? (
+          <input type="hidden" name="typeId" value={resolvedTypeId} />
+        ) : null}
         <button
           type="submit"
           aria-label="Search"
@@ -91,6 +100,9 @@ export default function ShopSearchBar({
         />
       </div>
       {categoryId ? <input type="hidden" name="categoryId" value={categoryId} /> : null}
+      {resolvedTypeId ? (
+        <input type="hidden" name="typeId" value={resolvedTypeId} />
+      ) : null}
       <div className="shrink-0 border-t border-border/60 p-2 sm:border-t-0 sm:p-1.5 sm:pl-0">
         <button
           type="submit"

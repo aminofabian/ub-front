@@ -18,6 +18,8 @@ function SearchFields({ primaryHex }: { primaryHex: string | null }) {
   const q = sp.get("q")?.trim() ?? "";
   const pathSlug = activeStorefrontCategorySlugFromPathname(pathname);
   const categoryId = sp.get("categoryId")?.trim() || undefined;
+  const typeId =
+    sp.get("typeId")?.trim() || sp.get("departmentId")?.trim() || undefined;
   const searchActionPath =
     pathSlug !== "" ? pathname || APP_ROUTES.shop : undefined;
   return (
@@ -25,6 +27,7 @@ function SearchFields({ primaryHex }: { primaryHex: string | null }) {
       variant="header"
       defaultQuery={q || undefined}
       categoryId={pathSlug ? undefined : categoryId}
+      typeId={typeId}
       searchActionPath={searchActionPath}
       accentHex={primaryHex}
     />

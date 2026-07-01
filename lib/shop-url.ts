@@ -62,19 +62,25 @@ export type ShopListQuery = {
   categoryId?: string;
   /** Segment for `/shop/c/:slug` */
   categoryPathSlug?: string;
+  /** Department (item type) filter */
+  typeId?: string;
+  /** @deprecated Use {@link typeId}. */
+  departmentId?: string;
   cursor?: string;
 };
 
 export function shopCategoryListPath(
   categorySlug: string,
-  query?: { q?: string; cursor?: string },
+  query?: { q?: string; cursor?: string; typeId?: string; departmentId?: string },
 ): string {
   const seg = encodeURIComponent(categorySlug.trim());
   const p = new URLSearchParams();
   const q = query?.q?.trim();
   const cursor = query?.cursor?.trim();
+  const typeId = query?.typeId?.trim() || query?.departmentId?.trim();
   if (q) p.set("q", q);
   if (cursor) p.set("cursor", cursor);
+  if (typeId) p.set("typeId", typeId);
   const qs = p.toString();
   return qs
     ? `${SHOP_CATEGORY_PATH_PREFIX}${seg}?${qs}`
@@ -87,17 +93,23 @@ export function shopListPath(query: ShopListQuery): string {
     return shopCategoryListPath(pathSlug, {
       q: query.q,
       cursor: query.cursor,
+      typeId: query.typeId,
+      departmentId: query.departmentId,
     });
   }
   const p = new URLSearchParams();
   const q = query.q?.trim();
   const categoryId = query.categoryId?.trim();
+  const typeId = query.typeId?.trim() || query.departmentId?.trim();
   const cursor = query.cursor?.trim();
   if (q) {
     p.set("q", q);
   }
   if (categoryId) {
     p.set("categoryId", categoryId);
+  }
+  if (typeId) {
+    p.set("typeId", typeId);
   }
   if (cursor) {
     p.set("cursor", cursor);

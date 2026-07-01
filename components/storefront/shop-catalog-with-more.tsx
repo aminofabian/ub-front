@@ -15,8 +15,8 @@ import type {
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 24;
-const LOAD_MARGIN = "0px 0px 280px 0px";
-const PREFETCH_MARGIN = "0px 0px 900px 0px";
+const LOAD_MARGIN = "0px 0px 200px 0px";
+const PREFETCH_MARGIN = "0px 0px 500px 0px";
 const MAX_AUTO_RETRIES = 2;
 
 type PrefetchedPage = {
@@ -24,6 +24,35 @@ type PrefetchedPage = {
   items: PublicCatalogItemCard[];
   nextCursor: string | null;
 };
+
+type PageResult =
+  | { ok: true; payload: PublicCatalogListPayload }
+  | { ok: false; status: number; message: string };
+
+class CatalogLoadError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "CatalogLoadError";
+  }
+}
+
+interface NetworkInformation {
+  saveData?: boolean;
+  effectiveType?: string;
+}
+
+function shouldPrefetch(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const conn = (navigator as Navigator & { connection?: NetworkInformation })
+    .connection;
+  if (!conn) return true;
+  if (conn.saveData) return false;
+  const slow = /(2g|slow-2g)/i.test(conn.effectiveType || "");
+  return !slow;
+}
 
 export default function ShopCatalogWithMore({
   slug,
@@ -33,6 +62,8 @@ export default function ShopCatalogWithMore({
   initialTotalCount,
   q,
   categoryId,
+  typeId,
+  departmentId,
   categoryHeading,
   categoryPathSlug,
   accentHex,
@@ -44,10 +75,14 @@ export default function ShopCatalogWithMore({
   initialTotalCount?: number;
   q?: string;
   categoryId?: string;
+  typeId?: string;
+  /** @deprecated Use {@link typeId}. */
+  departmentId?: string;
   categoryHeading?: string;
   categoryPathSlug?: string;
   accentHex?: string | null;
 }) {
+  const resolvedTypeId = typeId?.trim() || departmentId?.trim() || undefined;
   const [items, setItems] = useState<PublicCatalogItemCard[]>(initialItems);
   const [next, setNext] = useState<string | null>(initialNextCursor);
   const [totalCount] = useState<number>(
@@ -58,15 +93,16 @@ export default function ShopCatalogWithMore({
   const [prefetchedPage, setPrefetchedPage] = useState<PrefetchedPage | null>(
     null,
   );
-  const [retryCount, setRetryCount] = useState(0);
   const [newFromIndex, setNewFromIndex] = useState(0);
+  const [hasScrolled, setHasScrolled] = useState(false);
+  const [willAutoRetry, setWillAutoRetry] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(items);
   const nextRef = useRef(next);
   const busyRef = useRef(false);
   const prefetchedRef = useRef(prefetchedPage);
-  const prefetchPromiseRef = useRef<Promise<PublicCatalogListPayload | null> | null>(null);
+  const prefetchPromiseRef = useRef<Promise<PageResult> | null>(null);
   const retryTimerRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
   const abortCtrlRef = useRef<AbortController | null>(null);
@@ -86,9 +122,9 @@ export default function ShopCatalogWithMore({
   // Reset retry state whenever the filter/search changes (parent remounts via key).
   useEffect(() => {
     retryCountRef.current = 0;
-    setRetryCount(0);
+    setWillAutoRetry(false);
     setError(null);
-  }, [q, categoryId]);
+  }, [q, categoryId, resolvedTypeId]);
 
   // Cancel any in-flight prefetch if the component unmounts.
   useEffect(() => {
@@ -100,19 +136,24 @@ export default function ShopCatalogWithMore({
     };
   }, []);
 
+  // Only warm the next page once the user has actually scrolled.
+  useEffect(() => {
+    const onScroll = () => setHasScrolled(true);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   useStorefrontCatalogSync({
     slug,
     q,
     categoryId,
+    typeId: resolvedTypeId,
     items,
     setItems,
   });
 
   const fetchPage = useCallback(
-    async (
-      cursor: string,
-      signal?: AbortSignal,
-    ): Promise<PublicCatalogListPayload | null> => {
+    async (cursor: string, signal?: AbortSignal): Promise<PageResult> => {
       const p = new URLSearchParams();
       p.set("limit", String(PAGE_SIZE));
       p.set("cursor", cursor);
@@ -120,6 +161,8 @@ export default function ShopCatalogWithMore({
       if (qt) p.set("q", qt);
       const cid = categoryId?.trim();
       if (cid) p.set("categoryId", cid);
+      const tid = resolvedTypeId;
+      if (tid) p.set("departmentId", tid);
       const path = `/api/v1/public/businesses/${encodeURIComponent(slug)}/catalog/items?${p}`;
 
       try {
@@ -127,31 +170,46 @@ export default function ShopCatalogWithMore({
           headers: { Accept: "application/json" },
           signal,
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+          return { ok: false, status: res.status, message: res.statusText };
+        }
         const payload = (await res.json()) as PublicCatalogListPayload;
         if (!Array.isArray(payload.items)) {
           payload.items = [];
         }
-        return payload;
-      } catch {
-        return null;
+        return { ok: true, payload };
+      } catch (err) {
+        return {
+          ok: false,
+          status: 0,
+          message: err instanceof Error ? err.message : "Network error",
+        };
       }
     },
-    [slug, q, categoryId],
+    [slug, q, categoryId, resolvedTypeId],
   );
 
-  const prefetchNext = useCallback(async (): Promise<PublicCatalogListPayload | null> => {
+  const prefetchNext = useCallback(async (): Promise<PageResult> => {
     const cursor = nextRef.current;
-    if (!cursor) return null;
+    if (!cursor) {
+      return { ok: false, status: 0, message: "No next page" };
+    }
 
     const cached = prefetchedRef.current;
     if (cached?.cursor === cursor) {
       return {
-        currency,
-        items: cached.items,
-        nextCursor: cached.nextCursor,
-        totalCount,
+        ok: true,
+        payload: {
+          currency,
+          items: cached.items,
+          nextCursor: cached.nextCursor,
+          totalCount,
+        },
       };
+    }
+
+    if (!shouldPrefetch()) {
+      return { ok: false, status: 0, message: "Prefetch disabled" };
     }
 
     if (prefetchPromiseRef.current) {
@@ -162,21 +220,23 @@ export default function ShopCatalogWithMore({
       const ctrl = new AbortController();
       abortCtrlRef.current = ctrl;
       try {
-        const payload = await fetchPage(cursor, ctrl.signal);
-        if (
-          payload &&
-          payload.items.length > 0 &&
-          payload.nextCursor !== cursor
-        ) {
-          const page: PrefetchedPage = {
-            cursor,
-            items: payload.items,
-            nextCursor: payload.nextCursor,
-          };
-          prefetchedRef.current = page;
-          setPrefetchedPage(page);
+        const result = await fetchPage(cursor, ctrl.signal);
+        if (result.ok) {
+          const payload = result.payload;
+          if (
+            payload.items.length > 0 &&
+            payload.nextCursor !== cursor
+          ) {
+            const page: PrefetchedPage = {
+              cursor,
+              items: payload.items,
+              nextCursor: payload.nextCursor,
+            };
+            prefetchedRef.current = page;
+            setPrefetchedPage(page);
+          }
         }
-        return payload;
+        return result;
       } finally {
         abortCtrlRef.current = null;
       }
@@ -200,6 +260,7 @@ export default function ShopCatalogWithMore({
     busyRef.current = true;
     setBusy(true);
     setError(null);
+    setWillAutoRetry(false);
 
     if (retryTimerRef.current) {
       window.clearTimeout(retryTimerRef.current);
@@ -208,25 +269,32 @@ export default function ShopCatalogWithMore({
 
     try {
       const appendFrom = itemsRef.current.length;
-      let payload: PublicCatalogListPayload | null = null;
+      let result: PageResult;
 
       const cached = prefetchedRef.current;
       if (cached?.cursor === cursor) {
-        payload = {
-          currency,
-          items: cached.items,
-          nextCursor: cached.nextCursor,
-          totalCount,
+        result = {
+          ok: true,
+          payload: {
+            currency,
+            items: cached.items,
+            nextCursor: cached.nextCursor,
+            totalCount,
+          },
         };
         prefetchedRef.current = null;
         setPrefetchedPage(null);
+      } else if (prefetchPromiseRef.current) {
+        result = await prefetchPromiseRef.current;
       } else {
-        payload = await prefetchNext();
+        result = await fetchPage(cursor);
       }
 
-      if (!payload) {
-        throw new Error("Could not load more.");
+      if (!result.ok) {
+        throw new CatalogLoadError(result.message, result.status);
       }
+
+      const payload = result.payload;
 
       // Defensive: stop if the backend keeps returning the same cursor or empty pages.
       if (payload.items.length === 0 || payload.nextCursor === cursor) {
@@ -241,26 +309,52 @@ export default function ShopCatalogWithMore({
       }
 
       retryCountRef.current = 0;
-      setRetryCount(0);
+      setWillAutoRetry(false);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         return;
       }
-      setError("Could not load more.");
-      retryCountRef.current += 1;
-      setRetryCount(retryCountRef.current);
 
-      if (retryCountRef.current <= MAX_AUTO_RETRIES) {
+      let message = "Could not load more.";
+      let status = 0;
+      let isRetryable = true;
+
+      if (err instanceof CatalogLoadError) {
+        status = err.status;
+        if (status === 429) {
+          message = "Too many requests. Please slow down.";
+          isRetryable = false;
+        } else if (status >= 400 && status < 500) {
+          message = err.message || "Could not load products.";
+          isRetryable = false;
+        }
+      }
+
+      console.warn(
+        `[ShopCatalog] page load failed (status ${status || "network"}):`,
+        message,
+        { q, categoryId, cursor: nextRef.current },
+      );
+
+      setError(message);
+
+      if (isRetryable && retryCountRef.current < MAX_AUTO_RETRIES) {
+        retryCountRef.current += 1;
+        setWillAutoRetry(true);
         const delay = 1000 * 2 ** (retryCountRef.current - 1);
         retryTimerRef.current = window.setTimeout(() => {
+          setWillAutoRetry(false);
           void loadMoreRef.current();
         }, delay);
+      } else {
+        retryCountRef.current = MAX_AUTO_RETRIES + 1;
+        setWillAutoRetry(false);
       }
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [currency, totalCount, prefetchNext]);
+  }, [currency, totalCount, fetchPage, q, categoryId]);
 
   useEffect(() => {
     loadMoreRef.current = loadMore;
@@ -292,7 +386,7 @@ export default function ShopCatalogWithMore({
 
   // Look-ahead prefetch so the next page is already cached before they scroll into it.
   useEffect(() => {
-    if (!next) return;
+    if (!next || !hasScrolled || error) return;
     const el = sentinelRef.current;
     if (!el) return;
 
@@ -307,16 +401,18 @@ export default function ShopCatalogWithMore({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [next]);
+  }, [next, hasScrolled, error]);
 
   const handleRetry = useCallback(() => {
     retryCountRef.current = 0;
-    setRetryCount(0);
+    setWillAutoRetry(false);
     setError(null);
     void loadMoreRef.current();
   }, []);
 
-  const filtered = Boolean(q?.trim() || categoryId?.trim());
+  const filtered = Boolean(
+    q?.trim() || categoryId?.trim() || resolvedTypeId,
+  );
   const atEnd = !next && items.length > 0;
 
   return (
@@ -368,7 +464,11 @@ export default function ShopCatalogWithMore({
       {error ? (
         <div className="flex flex-col items-center gap-2 py-4">
           <p className="text-center text-xs text-destructive">{error}</p>
-          {retryCount > MAX_AUTO_RETRIES ? (
+          {willAutoRetry ? (
+            <p className="text-center text-[11px] text-muted-foreground/60">
+              Retrying…
+            </p>
+          ) : (
             <Button
               variant="outline"
               size="sm"
@@ -378,10 +478,6 @@ export default function ShopCatalogWithMore({
               <RefreshCw className="mr-1.5 size-3" />
               Try again
             </Button>
-          ) : (
-            <p className="text-center text-[11px] text-muted-foreground/60">
-              Retrying…
-            </p>
           )}
         </div>
       ) : null}

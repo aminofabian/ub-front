@@ -22,6 +22,8 @@ function catalogItemsPath(
     limit?: number;
     q?: string | null;
     categoryId?: string | null;
+    typeId?: string | null;
+    departmentId?: string | null;
   },
 ): string | null {
   const s = sanitizeStorefrontSlug(slug);
@@ -45,6 +47,10 @@ function catalogItemsPath(
   if (cat) {
     params.set("categoryId", cat);
   }
+  const dept = opts?.typeId?.trim() || opts?.departmentId?.trim();
+  if (dept) {
+    params.set("typeId", dept);
+  }
   const qs = params.toString();
   return `/api/v1/public/businesses/${encodeURIComponent(s)}/catalog/items${qs ? `?${qs}` : ""}`;
 }
@@ -56,6 +62,8 @@ export async function fetchPublicCatalogPageBrowser(
     limit?: number;
     q?: string | null;
     categoryId?: string | null;
+    typeId?: string | null;
+    departmentId?: string | null;
   },
 ): Promise<PublicCatalogListPayload | null> {
   const path = catalogItemsPath(slug, opts);
@@ -298,6 +306,8 @@ export async function fetchStorefrontItemPricePatches(
   opts?: {
     q?: string | null;
     categoryId?: string | null;
+    typeId?: string | null;
+    departmentId?: string | null;
   },
 ): Promise<Map<string, StorefrontItemPricePatch>> {
   const unique = [...new Set(itemIds.map((id) => id.trim()).filter(Boolean))];
@@ -310,6 +320,7 @@ export async function fetchStorefrontItemPricePatches(
     limit: Math.min(Math.max(unique.length, 24), 100),
     q: opts?.q,
     categoryId: opts?.categoryId,
+    typeId: opts?.typeId ?? opts?.departmentId,
   });
   if (page) {
     for (const item of page.items) {
