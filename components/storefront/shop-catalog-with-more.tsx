@@ -15,15 +15,9 @@ import type {
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 24;
-const LOAD_MARGIN = "0px 0px 200px 0px";
-const PREFETCH_MARGIN = "0px 0px 500px 0px";
+const LOAD_MARGIN = "0px 0px 300px 0px";
 const MAX_AUTO_RETRIES = 2;
-
-type PrefetchedPage = {
-  cursor: string;
-  items: PublicCatalogItemCard[];
-  nextCursor: string | null;
-};
+const MIN_REQUEST_INTERVAL_MS = 400;
 
 type PageResult =
   | { ok: true; payload: PublicCatalogListPayload }
@@ -37,21 +31,6 @@ class CatalogLoadError extends Error {
     super(message);
     this.name = "CatalogLoadError";
   }
-}
-
-interface NetworkInformation {
-  saveData?: boolean;
-  effectiveType?: string;
-}
-
-function shouldPrefetch(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const conn = (navigator as Navigator & { connection?: NetworkInformation })
-    .connection;
-  if (!conn) return true;
-  if (conn.saveData) return false;
-  const slow = /(2g|slow-2g)/i.test(conn.effectiveType || "");
-  return !slow;
 }
 
 export default function ShopCatalogWithMore({
@@ -90,22 +69,18 @@ export default function ShopCatalogWithMore({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [prefetchedPage, setPrefetchedPage] = useState<PrefetchedPage | null>(
-    null,
-  );
-  const [newFromIndex, setNewFromIndex] = useState(0);
-  const [hasScrolled, setHasScrolled] = useState(false);
   const [willAutoRetry, setWillAutoRetry] = useState(false);
+  const [newFromIndex, setNewFromIndex] = useState(0);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(items);
   const nextRef = useRef(next);
   const busyRef = useRef(false);
-  const prefetchedRef = useRef(prefetchedPage);
-  const prefetchPromiseRef = useRef<Promise<PageResult> | null>(null);
   const retryTimerRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
+  const lastRequestAtRef = useRef(0);
   const abortCtrlRef = useRef<AbortController | null>(null);
+  const unmountedRef = useRef(false);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -115,10 +90,6 @@ export default function ShopCatalogWithMore({
     nextRef.current = next;
   }, [next]);
 
-  useEffect(() => {
-    prefetchedRef.current = prefetchedPage;
-  }, [prefetchedPage]);
-
   // Reset retry state whenever the filter/search changes (parent remounts via key).
   useEffect(() => {
     retryCountRef.current = 0;
@@ -126,9 +97,11 @@ export default function ShopCatalogWithMore({
     setError(null);
   }, [q, categoryId, resolvedTypeId]);
 
-  // Cancel any in-flight prefetch if the component unmounts.
+  // Cancel any in-flight request if the component unmounts.
   useEffect(() => {
+    unmountedRef.current = false;
     return () => {
+      unmountedRef.current = true;
       abortCtrlRef.current?.abort();
       if (retryTimerRef.current) {
         window.clearTimeout(retryTimerRef.current);
@@ -136,18 +109,11 @@ export default function ShopCatalogWithMore({
     };
   }, []);
 
-  // Only warm the next page once the user has actually scrolled.
-  useEffect(() => {
-    const onScroll = () => setHasScrolled(true);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   useStorefrontCatalogSync({
     slug,
     q,
     categoryId,
-    typeId: resolvedTypeId,
+    departmentId: resolvedTypeId,
     items,
     setItems,
   });
@@ -189,68 +155,6 @@ export default function ShopCatalogWithMore({
     [slug, q, categoryId, resolvedTypeId],
   );
 
-  const prefetchNext = useCallback(async (): Promise<PageResult> => {
-    const cursor = nextRef.current;
-    if (!cursor) {
-      return { ok: false, status: 0, message: "No next page" };
-    }
-
-    const cached = prefetchedRef.current;
-    if (cached?.cursor === cursor) {
-      return {
-        ok: true,
-        payload: {
-          currency,
-          items: cached.items,
-          nextCursor: cached.nextCursor,
-          totalCount,
-        },
-      };
-    }
-
-    if (!shouldPrefetch()) {
-      return { ok: false, status: 0, message: "Prefetch disabled" };
-    }
-
-    if (prefetchPromiseRef.current) {
-      return prefetchPromiseRef.current;
-    }
-
-    const promise = (async () => {
-      const ctrl = new AbortController();
-      abortCtrlRef.current = ctrl;
-      try {
-        const result = await fetchPage(cursor, ctrl.signal);
-        if (result.ok) {
-          const payload = result.payload;
-          if (
-            payload.items.length > 0 &&
-            payload.nextCursor !== cursor
-          ) {
-            const page: PrefetchedPage = {
-              cursor,
-              items: payload.items,
-              nextCursor: payload.nextCursor,
-            };
-            prefetchedRef.current = page;
-            setPrefetchedPage(page);
-          }
-        }
-        return result;
-      } finally {
-        abortCtrlRef.current = null;
-      }
-    })();
-
-    prefetchPromiseRef.current = promise;
-    try {
-      return await promise;
-    } finally {
-      prefetchPromiseRef.current = null;
-    }
-  }, [fetchPage, currency, totalCount]);
-
-  // Stable ref so callbacks declared earlier can reach the latest loadMore.
   const loadMoreRef = useRef<() => Promise<void>>(async () => {});
 
   const loadMore = useCallback(async () => {
@@ -267,28 +171,26 @@ export default function ShopCatalogWithMore({
       retryTimerRef.current = null;
     }
 
+    // Space out requests so a short viewport doesn't fire pages as fast as
+    // the browser can render them.
+    const now = Date.now();
+    const wait = MIN_REQUEST_INTERVAL_MS - (now - lastRequestAtRef.current);
+    if (wait > 0) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, wait));
+    }
+
+    if (unmountedRef.current) {
+      busyRef.current = false;
+      setBusy(false);
+      return;
+    }
+
+    const ctrl = new AbortController();
+    abortCtrlRef.current = ctrl;
+
     try {
       const appendFrom = itemsRef.current.length;
-      let result: PageResult;
-
-      const cached = prefetchedRef.current;
-      if (cached?.cursor === cursor) {
-        result = {
-          ok: true,
-          payload: {
-            currency,
-            items: cached.items,
-            nextCursor: cached.nextCursor,
-            totalCount,
-          },
-        };
-        prefetchedRef.current = null;
-        setPrefetchedPage(null);
-      } else if (prefetchPromiseRef.current) {
-        result = await prefetchPromiseRef.current;
-      } else {
-        result = await fetchPage(cursor);
-      }
+      const result = await fetchPage(cursor, ctrl.signal);
 
       if (!result.ok) {
         throw new CatalogLoadError(result.message, result.status);
@@ -310,6 +212,7 @@ export default function ShopCatalogWithMore({
 
       retryCountRef.current = 0;
       setWillAutoRetry(false);
+      lastRequestAtRef.current = Date.now();
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         return;
@@ -333,7 +236,7 @@ export default function ShopCatalogWithMore({
       console.warn(
         `[ShopCatalog] page load failed (status ${status || "network"}):`,
         message,
-        { q, categoryId, cursor: nextRef.current },
+        { q, categoryId, typeId: resolvedTypeId, cursor: nextRef.current },
       );
 
       setError(message);
@@ -353,19 +256,15 @@ export default function ShopCatalogWithMore({
     } finally {
       busyRef.current = false;
       setBusy(false);
+      abortCtrlRef.current = null;
     }
-  }, [currency, totalCount, fetchPage, q, categoryId]);
+  }, [fetchPage, q, categoryId, resolvedTypeId]);
 
   useEffect(() => {
     loadMoreRef.current = loadMore;
   }, [loadMore]);
 
-  const prefetchRef = useRef(prefetchNext);
-  useEffect(() => {
-    prefetchRef.current = prefetchNext;
-  }, [prefetchNext]);
-
-  // Trigger the actual load when the user gets close to the bottom.
+  // Trigger the next page when the user gets close to the bottom.
   useEffect(() => {
     if (!next) return;
     const el = sentinelRef.current;
@@ -383,25 +282,6 @@ export default function ShopCatalogWithMore({
     observer.observe(el);
     return () => observer.disconnect();
   }, [next]);
-
-  // Look-ahead prefetch so the next page is already cached before they scroll into it.
-  useEffect(() => {
-    if (!next || !hasScrolled || error) return;
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          void prefetchRef.current();
-        }
-      },
-      { root: null, rootMargin: PREFETCH_MARGIN, threshold: 0 },
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [next, hasScrolled, error]);
 
   const handleRetry = useCallback(() => {
     retryCountRef.current = 0;
@@ -424,6 +304,7 @@ export default function ShopCatalogWithMore({
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
               <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
                 {categoryHeading}
+                {departmentId ? " (department filter)" : null}
               </h2>
               {categoryPathSlug ? (
                 <span

@@ -352,7 +352,7 @@ export async function fetchPublicCatalogItems(
   }
   const dept = opts?.departmentId?.trim() || opts?.typeId?.trim();
   if (dept) {
-    u.searchParams.set("typeId", dept);
+    u.searchParams.set("departmentId", dept);
   }
   try {
     const res = await fetch(u.toString(), STORE_PRICE_FETCH_INIT);

@@ -14,7 +14,7 @@ import {
 import type { PublicCatalogItemCard } from "@/lib/public-storefront";
 import { subscribeStorefrontPriceRefresh } from "@/lib/storefront-price-events";
 
-export const STOREFRONT_CATALOG_POLL_MS = 5_000;
+export const STOREFRONT_CATALOG_POLL_MS = 10_000;
 
 function priceChanged(
   current: number | null,
@@ -95,6 +95,9 @@ export function useStorefrontCatalogSync({
     let cancelled = false;
 
     const refresh = async (targetItemIds?: string[]) => {
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
       const snapshot = itemsRef.current;
       const ids =
         targetItemIds && targetItemIds.length > 0
@@ -121,6 +124,13 @@ export function useStorefrontCatalogSync({
     }, pollMs);
     void refresh();
 
+    const onVisible = () => {
+      if (!document.hidden) {
+        void refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     const unsubscribe = subscribeStorefrontPriceRefresh((itemIds) => {
       void refresh(itemIds);
     });
@@ -128,6 +138,7 @@ export function useStorefrontCatalogSync({
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
       unsubscribe();
     };
   }, [slug, q, categoryId, resolvedTypeId, enabled, pollMs]);

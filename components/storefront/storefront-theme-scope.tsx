@@ -32,7 +32,12 @@ export function StorefrontThemeScope({
 
   return (
     <div
-      className={cn("flex min-h-0 flex-1 flex-col", className)}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col",
+        // Sharp storefront chrome; keep radius on real buttons only.
+        "[&_*:not(button):not([role=button]):not([data-slot=button]):not(input[type=submit]):not(input[type=button]):not(.animate-spin)]:!rounded-none",
+        className,
+      )}
       style={themeStyle}
     >
       {children}

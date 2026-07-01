@@ -67,7 +67,7 @@ export async function StorefrontCatalogHome({
       limit: 24,
       q,
       categoryId,
-      typeId: resolvedTypeId,
+      departmentId: resolvedTypeId,
     }),
     fetchPublicCategories(slug),
     fetchPublicTypes(slug),

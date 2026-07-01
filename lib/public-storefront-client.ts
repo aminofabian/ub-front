@@ -300,6 +300,8 @@ export async function fetchPublicItemByBarcodeBrowser(
   }
 }
 
+const MAX_SYNCED_ITEMS = 100;
+
 export async function fetchStorefrontItemPricePatches(
   slug: string,
   itemIds: string[],
@@ -316,15 +318,20 @@ export async function fetchStorefrontItemPricePatches(
     return patches;
   }
 
+  // Only sync the first N loaded items. Catalog items are ordered by id, so
+  // the most recently rendered pages are covered by a single lightweight page
+  // fetch instead of hammering the API with one request per missing item.
+  const capped = unique.slice(0, MAX_SYNCED_ITEMS);
+
   const page = await fetchPublicCatalogPageBrowser(slug, {
-    limit: Math.min(Math.max(unique.length, 24), 100),
+    limit: Math.min(Math.max(capped.length, 24), MAX_SYNCED_ITEMS),
     q: opts?.q,
     categoryId: opts?.categoryId,
     typeId: opts?.typeId ?? opts?.departmentId,
   });
   if (page) {
     for (const item of page.items) {
-      if (unique.includes(item.id)) {
+      if (capped.includes(item.id)) {
         patches.set(item.id, {
           price: item.price,
           qtyOnHand: item.qtyOnHand,
@@ -332,20 +339,6 @@ export async function fetchStorefrontItemPricePatches(
       }
     }
   }
-
-  const missing = unique.filter((id) => !patches.has(id));
-  await Promise.all(
-    missing.map(async (id) => {
-      const detail = await fetchPublicItemDetailBrowser(slug, id);
-      if (!detail) {
-        return;
-      }
-      patches.set(id, {
-        price: detail.price,
-        qtyOnHand: detail.qtyOnHand,
-      });
-    }),
-  );
 
   return patches;
 }
