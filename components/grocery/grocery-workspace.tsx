@@ -717,27 +717,6 @@ export function GroceryWorkspace() {
     setGeneratedInvoice(invoice);
   }, []);
 
-  // ── Draft sync ─────────────────────────────────────────────────────
-
-  function scheduleDraftSync(delayMs = 300) {
-    if (!groceryDraftPersistence || !online || !branchId) return;
-    if (draftSyncTimer.current != null) {
-      window.clearTimeout(draftSyncTimer.current);
-    }
-    setDraftState((prev) =>
-      prev.syncStatus === "error" ? prev : { ...prev, syncStatus: "syncing" },
-    );
-    draftSyncTimer.current = window.setTimeout(async () => {
-      const result = await syncGroceryDraftToServer(
-        linesRef.current,
-        draftStateRef.current,
-        branchId,
-      );
-      setLines(result.lines);
-      setDraftState(result.state);
-    }, delayMs);
-  }
-
   // Hydrate active draft on load when draft persistence is enabled.
   useEffect(() => {
     if (!groceryDraftPersistence || !online || !branchId || draftHydratedRef.current) return;

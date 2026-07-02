@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Eye,
   XCircle,
@@ -202,10 +203,10 @@ function EmptyState({
         track pending pickups, completed sales, and expired drafts.
       </p>
       <Button asChild size="sm" className="mt-5 gap-1.5">
-        <a href="/grocery">
+        <Link href="/grocery">
           Create your first invoice
           <ArrowRight className="size-3.5" />
-        </a>
+        </Link>
       </Button>
     </div>
   );

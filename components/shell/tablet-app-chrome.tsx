@@ -690,16 +690,19 @@ export function TabletMoreSheet({
     [sections, sectionId],
   );
 
-  const currentItem = useMemo(() => {
-    for (const section of sections) {
-      for (const item of section.items) {
-        if (itemIsActive(pathname, item.href)) {
-          return { item, section };
-        }
+  let currentItem: {
+    item: TabletNavSection["items"][number];
+    section: TabletNavSection;
+  } | null = null;
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (itemIsActive(pathname, item.href)) {
+        currentItem = { item, section };
+        break;
       }
     }
-    return null;
-  }, [sections, pathname, itemIsActive]);
+    if (currentItem) break;
+  }
 
   if (!open) return null;
 

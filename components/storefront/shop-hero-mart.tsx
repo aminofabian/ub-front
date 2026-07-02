@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { cn } from "@/lib/utils";
@@ -84,15 +84,15 @@ export function ShopHeroMart({
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  const goNext = useCallback(() => {
+  const goNext = () => {
     if (!banners) return;
     setActiveIndex((prev) => (prev + 1) % banners.length);
-  }, [banners]);
+  };
 
-  const goPrev = useCallback(() => {
+  const goPrev = () => {
     if (!banners) return;
     setActiveIndex((prev) => (prev - 1 + banners.length) % banners.length);
-  }, [banners]);
+  };
 
   useEffect(() => {
     if (!banners || banners.length <= 1) return;

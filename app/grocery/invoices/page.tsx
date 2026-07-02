@@ -358,7 +358,7 @@ export default function GroceryInvoicesPage() {
   }, [drafts, query]);
 
   // ── Actions ──────────────────────────────────────────────────────
-  const onViewInvoice = useCallback(async (id: string) => {
+  const onViewInvoice = async (id: string) => {
     setViewLoading(true);
     setViewingInvoice({ id } as GroceryInvoiceResponse); // open the shell immediately
     try {
@@ -372,29 +372,26 @@ export default function GroceryInvoicesPage() {
     } finally {
       setViewLoading(false);
     }
-  }, []);
+  };
 
-  const onCancelInvoice = useCallback(
-    async (id: string) => {
-      if (!confirm("Cancel this invoice? This cannot be undone.")) return;
-      setCancelling(true);
-      try {
-        await cancelGroceryInvoice(id, {
-          reason: "Cancelled by staff from dashboard",
-        });
-        toast.success("Invoice cancelled");
-        if (viewingInvoice?.id === id) setViewingInvoice(null);
-        void fetchInvoices({ silent: true });
-      } catch (e) {
-        const msg =
-          e instanceof GroceryApiError ? e.message : "Failed to cancel invoice";
-        toast.error(msg);
-      } finally {
-        setCancelling(false);
-      }
-    },
-    [fetchInvoices, viewingInvoice?.id],
-  );
+  const onCancelInvoice = async (id: string) => {
+    if (!confirm("Cancel this invoice? This cannot be undone.")) return;
+    setCancelling(true);
+    try {
+      await cancelGroceryInvoice(id, {
+        reason: "Cancelled by staff from dashboard",
+      });
+      toast.success("Invoice cancelled");
+      if (viewingInvoice?.id === id) setViewingInvoice(null);
+      void fetchInvoices({ silent: true });
+    } catch (e) {
+      const msg =
+        e instanceof GroceryApiError ? e.message : "Failed to cancel invoice";
+      toast.error(msg);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const onCancelDraft = useCallback(
     async (id: string) => {
