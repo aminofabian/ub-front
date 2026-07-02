@@ -835,7 +835,7 @@ export function QuickSaleWorkspace({
       const detail = (e as CustomEvent).detail as { type?: string } | undefined;
       if (!detail?.type) return;
       if (
-        ["created", "paid", "cancelled", "expired", "unlocked"].includes(
+        ["created", "paid", "cancelled", "expired", "unlocked", "locked"].includes(
           detail.type,
         )
       ) {

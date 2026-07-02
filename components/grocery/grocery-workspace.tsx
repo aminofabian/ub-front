@@ -77,6 +77,11 @@ import {
 } from "./grocery-invoice-cart";
 import { GroceryDepartmentRail } from "./grocery-department-rail";
 import { GroceryInvoiceSuccess } from "./grocery-invoice-success";
+import {
+  GroceryCartTabs,
+  GroceryForwardedInvoicesPanel,
+  type GroceryCartPanelTab,
+} from "./grocery-forwarded-invoices-panel";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -345,6 +350,11 @@ export function GroceryWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [generatedInvoice, setGeneratedInvoice] =
     useState<GroceryInvoiceResponse | null>(null);
+  const [forwardedInvoices, setForwardedInvoices] = useState<
+    GroceryInvoiceResponse[]
+  >([]);
+  const [cartPanelTab, setCartPanelTab] =
+    useState<GroceryCartPanelTab>("sale");
 
   // ── Derived ──────────────────────────────────────────────────────
 
@@ -659,11 +669,31 @@ export function GroceryWorkspace() {
     [lines, scheduleDraftSync],
   );
 
-  const clearCart = useCallback(() => {
+  const beginNewSale = useCallback(() => {
+    if (draftSyncTimer.current != null) {
+      window.clearTimeout(draftSyncTimer.current);
+      draftSyncTimer.current = null;
+    }
     setLines([]);
     setGeneratedInvoice(null);
     setError(null);
     setDraftState(createGroceryDraftState());
+    setCartPanelTab("sale");
+  }, []);
+
+  const clearCart = useCallback(() => {
+    beginNewSale();
+  }, [beginNewSale]);
+
+  const dismissForwardedInvoice = useCallback((invoiceId: string) => {
+    setForwardedInvoices((prev) => prev.filter((inv) => inv.id !== invoiceId));
+    setGeneratedInvoice((current) =>
+      current?.id === invoiceId ? null : current,
+    );
+  }, []);
+
+  const viewForwardedInvoice = useCallback((invoice: GroceryInvoiceResponse) => {
+    setGeneratedInvoice(invoice);
   }, []);
 
   // ── Draft sync ─────────────────────────────────────────────────────
@@ -754,7 +784,6 @@ export function GroceryWorkspace() {
           throw new Error(issueResult.message);
         }
         invoice = issueResult.result.invoice;
-        setDraftState(issueResult.state);
       } else {
         invoice = await createGroceryInvoice({
           branchId: bid,
@@ -767,6 +796,17 @@ export function GroceryWorkspace() {
         });
       }
 
+      if (draftSyncTimer.current != null) {
+        window.clearTimeout(draftSyncTimer.current);
+        draftSyncTimer.current = null;
+      }
+      setLines([]);
+      setDraftState(createGroceryDraftState());
+      setForwardedInvoices((prev) => {
+        if (prev.some((inv) => inv.id === invoice.id)) return prev;
+        return [invoice, ...prev];
+      });
+      setCartPanelTab("forwarded");
       setGeneratedInvoice(invoice);
       // Nudge the server-aggregated top-products to refresh so newly
       // popular items climb the list immediately.
@@ -790,10 +830,10 @@ export function GroceryWorkspace() {
   }, [branchId, lines, groceryDraftPersistence, draftState]);
 
   const onNewInvoice = useCallback(() => {
-    clearCart();
+    beginNewSale();
     setSearch("");
     setHits([]);
-  }, [clearCart]);
+  }, [beginNewSale]);
 
   // ── Render ───────────────────────────────────────────────────────
 
@@ -1091,24 +1131,40 @@ export function GroceryWorkspace() {
             "relative pb-[var(--grocery-tab-clearance)]",
           )}
         >
-          <GroceryInvoiceCart
-            lines={lines}
-            onUpdateLine={updateLine}
-            onRemoveLine={removeLine}
-            onGenerate={onGenerate}
-            onClearCart={clearCart}
-            loading={loading}
-            subtotal={subtotal}
-            grandTotal={grandTotal}
-            currency={currency}
-            branchName={activeBranchName}
-            cashierName={cashierName}
-            online={online}
-            pulseSignal={cartPulse}
-            recentlyAddedKey={recentlyAddedKey}
-            counterNumber={showCounterNumber ? draftState.counterNumber : null}
-            syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+          <GroceryCartTabs
+            activeTab={cartPanelTab}
+            onTabChange={setCartPanelTab}
+            forwardedCount={forwardedInvoices.length}
           />
+          {cartPanelTab === "sale" ? (
+            <GroceryInvoiceCart
+              lines={lines}
+              onUpdateLine={updateLine}
+              onRemoveLine={removeLine}
+              onGenerate={onGenerate}
+              onClearCart={clearCart}
+              loading={loading}
+              subtotal={subtotal}
+              grandTotal={grandTotal}
+              currency={currency}
+              branchName={activeBranchName}
+              cashierName={cashierName}
+              online={online}
+              pulseSignal={cartPulse}
+              recentlyAddedKey={recentlyAddedKey}
+              counterNumber={showCounterNumber ? draftState.counterNumber : null}
+              syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+            />
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <GroceryForwardedInvoicesPanel
+              invoices={forwardedInvoices}
+              onDismiss={dismissForwardedInvoice}
+              onViewInvoice={viewForwardedInvoice}
+              currency={currency}
+            />
+            </div>
+          )}
         </aside>
       </div>
 
@@ -1125,7 +1181,10 @@ export function GroceryWorkspace() {
           {!isEmptyCart && (
             <button
               type="button"
-              onClick={() => setShowCartDrawer(true)}
+              onClick={() => {
+                setCartPanelTab("sale");
+                setShowCartDrawer(true);
+              }}
               className="flex h-12 flex-1 items-center gap-3 rounded-lg border border-border bg-card pl-3 pr-3 shadow-sm"
             >
               <span className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -1149,7 +1208,16 @@ export function GroceryWorkspace() {
 
           <button
             type="button"
-            onClick={isEmptyCart ? () => setShowCartDrawer(true) : onGenerate}
+            onClick={
+              isEmptyCart
+                ? () => {
+                    setCartPanelTab(
+                      forwardedInvoices.length > 0 ? "forwarded" : "sale",
+                    );
+                    setShowCartDrawer(true);
+                  }
+                : onGenerate
+            }
             disabled={loading}
             className={cn(
               "flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium sm:px-5",
@@ -1170,7 +1238,14 @@ export function GroceryWorkspace() {
             ) : isEmptyCart ? (
               <>
                 <ShoppingBasket className="size-[18px]" strokeWidth={2.25} />
-                <span>View Cart</span>
+                <span>
+                  {forwardedInvoices.length > 0 ? "Forwarded" : "View Cart"}
+                </span>
+                {forwardedInvoices.length > 0 ? (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold tabular-nums text-primary">
+                    {forwardedInvoices.length}
+                  </span>
+                ) : null}
               </>
             ) : (
               <>
@@ -1213,26 +1288,51 @@ export function GroceryWorkspace() {
               <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-white/15" />
             </div>
 
-            <GroceryInvoiceCart
-              lines={lines}
-              onUpdateLine={updateLine}
-              onRemoveLine={removeLine}
-              onGenerate={onGenerate}
-              onClearCart={clearCart}
-              loading={loading}
-              subtotal={subtotal}
-              grandTotal={grandTotal}
-              currency={currency}
-              branchName={activeBranchName}
-              cashierName={cashierName}
-              online={online}
-              pulseSignal={cartPulse}
-              recentlyAddedKey={recentlyAddedKey}
-              compact
-              onClose={() => setShowCartDrawer(false)}
-              counterNumber={showCounterNumber ? draftState.counterNumber : null}
-              syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+            <GroceryCartTabs
+              activeTab={cartPanelTab}
+              onTabChange={setCartPanelTab}
+              forwardedCount={forwardedInvoices.length}
             />
+            {cartPanelTab === "sale" ? (
+              <GroceryInvoiceCart
+                lines={lines}
+                onUpdateLine={updateLine}
+                onRemoveLine={removeLine}
+                onGenerate={onGenerate}
+                onClearCart={clearCart}
+                loading={loading}
+                subtotal={subtotal}
+                grandTotal={grandTotal}
+                currency={currency}
+                branchName={activeBranchName}
+                cashierName={cashierName}
+                online={online}
+                pulseSignal={cartPulse}
+                recentlyAddedKey={recentlyAddedKey}
+                compact
+                onClose={() => setShowCartDrawer(false)}
+                counterNumber={showCounterNumber ? draftState.counterNumber : null}
+                syncStatus={groceryDraftPersistence ? draftState.syncStatus : "idle"}
+              />
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <GroceryForwardedInvoicesPanel
+                  invoices={forwardedInvoices}
+                  onDismiss={dismissForwardedInvoice}
+                  onViewInvoice={viewForwardedInvoice}
+                  currency={currency}
+                />
+                <div className="border-t border-border px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCartDrawer(false)}
+                    className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-foreground"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
