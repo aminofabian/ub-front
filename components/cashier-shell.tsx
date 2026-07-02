@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
 import { PushNotificationsEnable } from "@/components/push-notifications-enable";
+import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { logoutRemote } from "@/lib/api";
@@ -82,6 +83,7 @@ export function CashierShell({ children }: CashierShellProps) {
               >
                 {online ? "Online" : "Offline"}
               </span>
+              <RealtimeConnectionIndicator />
             </div>
             {branchId ? (
               <span className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">

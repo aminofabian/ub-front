@@ -38,6 +38,10 @@ export type CartSession = {
   splitMpesaRef: string;
   /** Amount customer handed over (cash checkout). */
   cashTenderStr: string;
+  /** Grocery invoice id when this cart was loaded from a GI-* barcode. */
+  groceryInvoiceId?: string;
+  /** Grocery invoice barcode when this cart was loaded from a GI-* barcode. */
+  groceryBarcode?: string;
   /** STK Push status: idle | sending | sent | failed */
   stkPushStatus: string;
   /** Gateway checkout request ID from STK push */

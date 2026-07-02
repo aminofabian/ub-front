@@ -59,9 +59,16 @@ export function PendingInvoicesPanel({
     }
   }, [branchId, online]);
 
+  // Fetch on mount, refreshKey changes, and when opened so the badge count
+  // stays current even while the dropdown is closed.
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices, refreshKey]);
+
+  // Also refresh immediately when the panel opens.
   useEffect(() => {
     if (open) fetchInvoices();
-  }, [open, fetchInvoices, refreshKey]);
+  }, [open, fetchInvoices]);
 
   // Auto-refresh every 30s while panel is open
   useEffect(() => {

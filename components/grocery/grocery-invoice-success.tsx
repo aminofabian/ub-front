@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
   Printer,
@@ -8,8 +8,11 @@ import {
   X,
   Clock,
   ShoppingBasket,
+  Loader2,
 } from "lucide-react";
 import type { GroceryInvoiceResponse } from "@/lib/grocery-api";
+import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
+import { useOptionalRealtime } from "@/components/realtime-provider";
 
 type GroceryInvoiceSuccessProps = {
   invoice: GroceryInvoiceResponse;
@@ -76,6 +79,15 @@ function formatExpiry(iso: string): string {
   }
 }
 
+type InvoiceLifecycle = "created" | "locked" | "paid" | "cancelled" | "expired";
+
+function matchesInvoice(frame: RealtimeFrame, invoice: GroceryInvoiceResponse) {
+  const d = frame.data as Record<string, unknown>;
+  return (
+    d.invoiceId === invoice.id || d.barcodeCode === invoice.barcodeCode
+  );
+}
+
 export function GroceryInvoiceSuccess({
   invoice,
   onNewInvoice,
@@ -87,7 +99,68 @@ export function GroceryInvoiceSuccess({
     [invoice.barcodeCode],
   );
 
+  const realtime = useOptionalRealtime();
+  const [lifecycle, setLifecycle] = useState<InvoiceLifecycle>(
+    invoice.status === "pending_payment" ? "created" : invoice.status,
+  );
+
+  useEffect(() => {
+    const client = getRealtimeClient();
+    const unregister = client.registerListener("grocery-invoice-success", {
+      channels: ["grocery"],
+      onGroceryInvoiceLocked: (frame) => {
+        if (matchesInvoice(frame, invoice)) setLifecycle("locked");
+      },
+      onGroceryInvoicePaid: (frame) => {
+        if (matchesInvoice(frame, invoice)) setLifecycle("paid");
+      },
+      onGroceryInvoiceCancelled: (frame) => {
+        if (matchesInvoice(frame, invoice)) setLifecycle("cancelled");
+      },
+      onGroceryInvoiceExpired: (frame) => {
+        if (matchesInvoice(frame, invoice)) setLifecycle("expired");
+      },
+    });
+    return unregister;
+  }, [invoice]);
+
   const itemCount = invoice.lines.reduce((sum, l) => sum + l.quantity, 0);
+
+  const statusConfig: Record<
+    InvoiceLifecycle,
+    { text: string; icon: ReactNode; tone: string }
+  > = {
+    created: {
+      text:
+        realtime?.connectionState === "connected"
+          ? "Cashier notified — keep this barcode ready"
+          : "Show this barcode at the cashier to complete checkout",
+      icon: null,
+      tone: "text-muted-foreground",
+    },
+    locked: {
+      text: "Cashier is processing this invoice…",
+      icon: <Loader2 className="size-3.5 animate-spin" />,
+      tone: "text-primary",
+    },
+    paid: {
+      text: "Paid ✓",
+      icon: <CheckCircle2 className="size-3.5" />,
+      tone: "text-emerald-600 dark:text-emerald-400",
+    },
+    cancelled: {
+      text: "Invoice cancelled",
+      icon: <X className="size-3.5" />,
+      tone: "text-red-600 dark:text-red-400",
+    },
+    expired: {
+      text: "Invoice expired",
+      icon: <Clock className="size-3.5" />,
+      tone: "text-amber-700 dark:text-amber-400",
+    },
+  };
+
+  const status = statusConfig[lifecycle];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-md animate-in fade-in duration-200">
@@ -120,8 +193,11 @@ export function GroceryInvoiceSuccess({
           <h2 className="text-[24px] font-bold tracking-tight text-foreground">
             Invoice Ready
           </h2>
-          <p className="mt-2 max-w-[18rem] text-[13.5px] leading-relaxed text-muted-foreground">
-            Show this barcode at the cashier to complete checkout
+          <p
+            className={`mt-2 inline-flex max-w-[18rem] items-center justify-center gap-1.5 text-[13.5px] leading-relaxed ${status.tone}`}
+          >
+            {status.icon}
+            {status.text}
           </p>
 
           {/* Barcode */}

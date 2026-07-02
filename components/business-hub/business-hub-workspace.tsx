@@ -7,6 +7,7 @@ import {
   Boxes,
   Package,
   RefreshCw,
+  ScanLine,
   Settings,
   ShoppingCart,
   Store,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { ActionItemsStrip } from "@/components/business-hub/action-items-strip";
 import { BusinessHubEmptyState } from "@/components/business-hub/business-hub-empty-state";
@@ -25,6 +27,7 @@ import { QuickChip } from "@/components/business-hub/quick-chip";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StatCard } from "@/components/business-hub/stat-card";
 import { APP_ROUTES } from "@/lib/config";
+import { isButcherPosEnabled } from "@/lib/butcher-feature";
 import {
   buildActionItems,
   isHubSalesEmpty,
@@ -72,12 +75,17 @@ export function BusinessHubWorkspace() {
     branchId,
     itemTypeId,
     canManageBusinessSettings,
+    canListUsers,
+    canQuickSale,
     canViewAnalytics,
     canViewInventoryValuation,
     canViewSupplyBatches,
     canViewShifts,
     canViewApAging,
   } = useDashboard();
+  const featureFlags = useFeatureFlags();
+  const showButcherCounter =
+    isButcherPosEnabled(featureFlags) && canQuickSale;
 
   const roleKey = me?.role?.key?.trim().toLowerCase();
   const canViewOwnerSummary =
@@ -483,6 +491,16 @@ export function BusinessHubWorkspace() {
           <QuickChip href={APP_ROUTES.analytics} label="Analytics" icon={BarChart3} />
           <QuickChip href="/storefront" label="Storefront" icon={Store} />
           <QuickChip href={APP_ROUTES.customers} label="Customers" icon={Users} />
+          {canListUsers ? (
+            <QuickChip href={APP_ROUTES.users} label="Team" icon={Users} />
+          ) : null}
+          {showButcherCounter ? (
+            <QuickChip
+              href={APP_ROUTES.butcher}
+              label="Butcher counter"
+              icon={ScanLine}
+            />
+          ) : null}
           {canManageBusinessSettings ? (
             <QuickChip
               href={APP_ROUTES.businessSettings}

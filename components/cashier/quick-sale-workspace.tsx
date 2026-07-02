@@ -51,6 +51,8 @@ import {
 import {
   lookupGroceryInvoiceByBarcode,
   lockGroceryInvoice,
+  payGroceryInvoice,
+  unlockGroceryInvoice,
   GroceryApiError,
 } from "@/lib/grocery-api";
 import {
@@ -175,6 +177,7 @@ export function QuickSaleWorkspace({
   );
   const posDraftHydratedRef = useRef(false);
   const resumeDraftHandledRef = useRef(false);
+  const invoiceParamHandledRef = useRef(false);
   const wasOfflineRef = useRef(false);
   const searchParams = useSearchParams();
   // Catalog search/browse is scoped to the header department. There is no
@@ -597,6 +600,10 @@ export function QuickSaleWorkspace({
 
   const removeCart = useCallback(
     (id: string) => {
+      const cartToRemove = carts.find((c) => c.id === id);
+      if (cartToRemove?.groceryInvoiceId && online) {
+        void unlockGroceryInvoice(cartToRemove.groceryInvoiceId);
+      }
       setCarts((prev) => {
         if (prev.length <= 1) return prev; // never remove last
         const filtered = prev.filter((c) => c.id !== id);
@@ -606,7 +613,7 @@ export function QuickSaleWorkspace({
         return filtered;
       });
     },
-    [activeCartId],
+    [activeCartId, carts, online],
   );
 
   /** Remove the cart used for a completed sale and focus the next empty tab. */
@@ -712,6 +719,131 @@ export function QuickSaleWorkspace({
     setLastSale(null);
     setLastReceipt(null);
     setVoidNotes("");
+  }, []);
+
+  /** Load a grocery invoice by GI-* barcode into a new cart tab. */
+  const loadGroceryInvoiceByBarcode = useCallback(
+    async (barcode: string) => {
+      const q = barcode.trim();
+      if (!q || !q.startsWith("GI-") || !online) return;
+
+      const bid = branchId?.trim();
+      if (!bid) return;
+
+      try {
+        const invoice = await lookupGroceryInvoiceByBarcode(q);
+
+        if (invoice.status !== "pending_payment") {
+          const labels: Record<string, string> = {
+            paid: "already been paid",
+            cancelled: "been cancelled",
+            expired: "expired",
+          };
+          toast.error(
+            `This invoice has ${labels[invoice.status] ?? invoice.status}.`,
+            { duration: 5000 },
+          );
+          return;
+        }
+
+        try {
+          await lockGroceryInvoice(invoice.id);
+        } catch (e) {
+          if (e instanceof GroceryApiError && e.status === 409) {
+            toast.error(e.message, { duration: 6000 });
+            return;
+          }
+          throw e;
+        }
+
+        dismissCompletedSaleUi();
+        setNotice("");
+        setError("");
+
+        const invoiceLines = invoice.lines.map((l) => ({
+          key: crypto.randomUUID(),
+          itemId: l.itemId,
+          label: l.itemName,
+          quantity: String(l.quantity),
+          unitPrice: String(l.unitPrice),
+          item: {
+            id: l.itemId,
+            name: l.itemName,
+            sku: "",
+            thumbnailUrl: null,
+          } as ItemSummaryRecord,
+        }));
+
+        setCarts((prev) => {
+          if (prev.length >= MAX_CARTS) {
+            toast.error("Too many carts open. Clear one first.", {
+              duration: 4000,
+            });
+            return prev;
+          }
+          const fresh = createEmptyCartSession();
+          fresh.label = invoice.barcodeCode;
+          fresh.lines = invoiceLines;
+          fresh.groceryInvoiceId = invoice.id;
+          fresh.groceryBarcode = invoice.barcodeCode;
+          setActiveCartId(fresh.id);
+          return [...prev, fresh];
+        });
+
+        setSearch("");
+        setHits([]);
+        toast.success(
+          "Invoice " +
+            invoice.barcodeCode +
+            " loaded \u00b7 " +
+            invoice.lines.length +
+            " items",
+          { duration: 4000 },
+        );
+      } catch (e) {
+        const msg =
+          e instanceof GroceryApiError ? e.message : "Failed to load invoice";
+        toast.error(msg, { duration: 5000 });
+      }
+    },
+    [online, branchId, dismissCompletedSaleUi],
+  );
+
+  /** Deep link: /cashier?invoice={barcode} */
+  useEffect(() => {
+    const barcode = searchParams.get("invoice")?.trim();
+    if (!barcode) {
+      // Reset the guard so a subsequent ?invoice= navigation in the same
+      // session is still handled.
+      invoiceParamHandledRef.current = false;
+      return;
+    }
+    if (invoiceParamHandledRef.current) return;
+    if (!online || !branchId.trim()) return;
+    invoiceParamHandledRef.current = true;
+    void loadGroceryInvoiceByBarcode(barcode);
+
+    // Strip the query param so a reload does not re-trigger the load.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("invoice");
+    window.history.replaceState({}, "", url.toString());
+  }, [searchParams, online, branchId, loadGroceryInvoiceByBarcode]);
+
+  /** Refresh the pending-invoices badge on realtime grocery invoice events. */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { type?: string } | undefined;
+      if (!detail?.type) return;
+      if (
+        ["created", "paid", "cancelled", "expired", "unlocked"].includes(
+          detail.type,
+        )
+      ) {
+        setInvoiceRefreshKey((k) => k + 1);
+      }
+    };
+    window.addEventListener("grocery-invoice-event", handler);
+    return () => window.removeEventListener("grocery-invoice-event", handler);
   }, []);
 
   const refreshOutbox = useCallback(async () => {
@@ -1169,86 +1301,11 @@ export function QuickSaleWorkspace({
 
   // ── Grocery invoice barcode intercept ─────────────────────────
 
-  const loadedInvoiceRef = useRef<Set<string>>(new Set());
-
   useEffect(() => {
     const q = search.trim();
-    if (!q || !q.startsWith("GI-") || !online) return;
-    if (loadedInvoiceRef.current.has(q)) return;
-
-    const bid = branchId?.trim();
-    if (!bid) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const invoice = await lookupGroceryInvoiceByBarcode(q);
-        if (cancelled) return;
-
-        // Lock the invoice
-        try {
-          await lockGroceryInvoice(invoice.id);
-        } catch (e) {
-          if (e instanceof GroceryApiError && e.status === 409) {
-            toast.error(e.message, { duration: 6000 });
-            setSearch("");
-            return;
-          }
-        }
-
-        dismissCompletedSaleUi();
-        setNotice("");
-        setError("");
-
-        // Build cart lines from invoice
-        const invoiceLines = invoice.lines.map((l) => ({
-          key: crypto.randomUUID(),
-          itemId: l.itemId,
-          label: l.itemName,
-          quantity: String(l.quantity),
-          unitPrice: String(l.unitPrice),
-          item: {
-            id: l.itemId,
-            name: l.itemName,
-            sku: "",
-            thumbnailUrl: null,
-          } as ItemSummaryRecord,
-        }));
-
-        // Create a new cart tab for each invoice
-        setCarts((prev) => {
-          if (prev.length >= MAX_CARTS) {
-            toast.error("Too many carts open. Clear one first.", { duration: 4000 });
-            return prev;
-          }
-          const fresh = createEmptyCartSession();
-          fresh.label = invoice.barcodeCode;
-          fresh.lines = invoiceLines;
-          setActiveCartId(fresh.id);
-          return [...prev, fresh];
-        });
-
-        loadedInvoiceRef.current.add(q);
-        setSearch("");
-        setHits([]);
-        toast.success(
-          "Invoice " + invoice.barcodeCode + " loaded \u00b7 " + invoice.lines.length + " items",
-          { duration: 4000 },
-        );
-      } catch (e) {
-        if (cancelled) return;
-        const msg =
-          e instanceof GroceryApiError ? e.message : "Failed to load invoice";
-        toast.error(msg, { duration: 5000 });
-        setSearch("");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [search, online, branchId, setCarts, setActiveCartId, dismissCompletedSaleUi]);
+    if (!q || !q.startsWith("GI-")) return;
+    void loadGroceryInvoiceByBarcode(q);
+  }, [search, loadGroceryInvoiceByBarcode]);
 
 
 
@@ -1615,6 +1672,10 @@ export function QuickSaleWorkspace({
 
     const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
     if (offlineNow) {
+      if (activeCart.groceryInvoiceId) {
+        setError("Grocery invoice payment requires a network connection.");
+        return;
+      }
       if (payMethodNeedsCustomer(payMethod)) {
         setError(
           "Store wallet, loyalty redemption, and customer tab sales cannot be queued offline.",
@@ -1684,6 +1745,124 @@ export function QuickSaleWorkspace({
     }
 
     try {
+      // ── Grocery invoice payment path ─────────────────────────────────
+      if (activeCart.groceryInvoiceId) {
+        const allowedMethods = new Set(["cash", "mpesa_manual"]);
+        const isAllowedMethod = splitPay || allowedMethods.has(payMethod);
+        if (!isAllowedMethod) {
+          setLoading(false);
+          setError(
+            "Grocery invoices can only be paid with cash, M-Pesa, or split.",
+          );
+          return;
+        }
+
+        const groceryPayments = splitPay
+          ? [
+              {
+                method: "cash" as const,
+                amount: parseMoney(cashSplitStr)!,
+              },
+              {
+                method: "mpesa_manual" as const,
+                amount: parseMoney(mpesaSplitStr)!,
+                reference: splitMpesaRef.trim() || undefined,
+              },
+            ]
+          : [
+              {
+                method: payMethod,
+                amount: grandTotal,
+                reference:
+                  payMethod === "mpesa_manual"
+                    ? mpesaRef.trim() || undefined
+                    : undefined,
+              },
+            ];
+
+        try {
+          const result = await payGroceryInvoice(
+            activeCart.groceryInvoiceId,
+            { payments: groceryPayments },
+            idem,
+          );
+
+          const sale: SaleRecord = {
+            id: result.saleId,
+            branchId: bid,
+            shiftId: "",
+            status: result.status,
+            grandTotal,
+            refundedTotal: 0,
+            journalEntryId: "",
+            payments: groceryPayments.map((p) => ({
+              method: p.method,
+              amount: p.amount,
+              reference: p.reference ?? null,
+            })),
+            items: [],
+            soldByName: me?.name?.trim() ?? null,
+          };
+
+          setLastSale(sale);
+          setInvoiceRefreshKey((k) => k + 1);
+          setPendingSalesRefreshKey((k) => k + 1);
+          setLastReceipt(
+            buildPosReceiptSnapshot({
+              businessName: receiptBusinessName,
+              logoUrl: business?.branding?.logoUrl ?? null,
+              branchName: receiptBranchName,
+              branchAddress: receiptBranch?.address?.trim() || null,
+              branchPhone: receiptBranch?.receipt?.phone ?? null,
+              branchEmail: receiptBranch?.receipt?.email ?? null,
+              branchWebsite: resolveReceiptWebsite(
+                receiptBranch?.receipt?.website,
+                business?.primaryDomain,
+              ),
+              branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
+              servedByName:
+                me?.name?.trim() || sale.soldByName?.trim() || null,
+              currency: receiptCurrency,
+              cartLines: receiptCartLines,
+              sale,
+              customerName: receiptCustomerName,
+              cashTendered,
+              clientSoldAt: salePayload.clientSoldAt ?? undefined,
+            }),
+          );
+          setVoidNotes("");
+          recordTopSellers();
+          clearCartAfterSale(soldCartId);
+          setNotice(
+            `Grocery invoice ${activeCart.groceryBarcode ?? ""} paid. Sale ${sale.id} recorded. Grand total ${grandTotal.toFixed(2)}${business?.currency?.trim() ? ` ${business.currency.trim()}` : ""}.`,
+          );
+          await refreshOutbox();
+          const drain = await flushSaleOutbox();
+          await refreshOutbox();
+          if (drain.status === "blocked") {
+            setError(`Earlier queued sale blocked: ${drain.message}`);
+          }
+          return;
+        } catch (e) {
+          setLoading(false);
+          const msg =
+            e instanceof GroceryApiError
+              ? e.message
+              : e instanceof Error
+                ? e.message
+                : "Payment failed";
+          setError(msg);
+          if (activeCart.groceryInvoiceId) {
+            try {
+              await unlockGroceryInvoice(activeCart.groceryInvoiceId);
+            } catch {
+              // ignore — lock expires automatically
+            }
+          }
+          return;
+        }
+      }
+
       let draftId = activeCart.draftId;
       let draftVersion = activeCart.version;
 
@@ -1882,12 +2061,16 @@ export function QuickSaleWorkspace({
   }, [lastSale, canVoid, voidNotes]);
 
   const onStartNewSale = useCallback(() => {
+    const active = carts.find((c) => c.id === activeCartId) ?? carts[0];
+    if (active?.groceryInvoiceId && online) {
+      void unlockGroceryInvoice(active.groceryInvoiceId);
+    }
     dismissCompletedSaleUi();
     setNotice("");
     setError("");
     setCarts((prev) => {
-      const active = prev.find((c) => c.id === activeCartId) ?? prev[0];
-      if (!active?.lines.length) {
+      const activeInPrev = prev.find((c) => c.id === activeCartId) ?? prev[0];
+      if (!activeInPrev?.lines.length) {
         return prev;
       }
       if (prev.length === 1) {
@@ -1899,7 +2082,7 @@ export function QuickSaleWorkspace({
         c.id === activeCartId ? resetCartSessionKeepingTab(c) : c,
       );
     });
-  }, [activeCartId, dismissCompletedSaleUi]);
+  }, [activeCartId, carts, dismissCompletedSaleUi, online]);
 
   const onDownloadReceiptPdf = useCallback(async () => {
     if (!lastSale) {
@@ -2096,7 +2279,7 @@ export function QuickSaleWorkspace({
             />
           )}
           <PendingInvoicesPanel
-            onLoadInvoice={(barcode) => setSearch(barcode)}
+            onLoadInvoice={(barcode) => void loadGroceryInvoiceByBarcode(barcode)}
             refreshKey={invoiceRefreshKey}
           />
         </div>

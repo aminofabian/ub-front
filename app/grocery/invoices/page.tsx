@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
+import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   GroceryInvoicesList,
@@ -468,8 +469,9 @@ export default function GroceryInvoicesPage() {
               ) : (
                 <WifiOff className="size-3" />
               )}
-              {online ? "Live" : "Offline"}
+              {online ? "Online" : "Offline"}
             </span>
+            <RealtimeConnectionIndicator />
             <Button
               variant="outline"
               size="sm"

@@ -20,6 +20,7 @@ import { TenantLogo } from "@/components/brand/tenant-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
+import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { shellPageTitle } from "@/lib/shell-page-titles";
 import { cn } from "@/lib/utils";
 
@@ -467,9 +468,7 @@ function resolveSectionId(
   itemIsActive: (pathname: string, href: string) => boolean,
 ): string {
   return (
-    sections.find((section) =>
-      section.items.some((item) => itemIsActive(pathname, item.href)),
-    )?.id ??
+    resolveActiveNavSectionId(sections, pathname, itemIsActive) ??
     sections[0]?.id ??
     ""
   );

@@ -9,29 +9,12 @@ import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
+import { playCashierChime } from "@/lib/cashier-chime";
 
 const CASHIER_ALERT_TYPES = new Set([
   "storefront.order.placed",
   "storefront.order.paid",
 ]);
-
-function playNewOrderChime() {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.value = 0.08;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-    void ctx.close();
-  } catch {
-    // Audio not available — toast still shows
-  }
-}
 
 function showCashierOrderToast(frame: RealtimeFrame) {
   const data = frame.data as Record<string, unknown>;
@@ -43,7 +26,7 @@ function showCashierOrderToast(frame: RealtimeFrame) {
   const presentation = getNotificationPresentation(data);
   const isNewOrder = notificationType === "storefront.order.placed";
   if (isNewOrder) {
-    playNewOrderChime();
+    playCashierChime("order");
   }
   toast.info(presentation.title || (isNewOrder ? "New web order" : "Order update"), {
     description: presentation.body || "Check online orders for details.",

@@ -22,6 +22,7 @@ import {
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { APP_ROUTES } from "@/lib/config";
+import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
 
 export type DesktopNavItem = {
@@ -364,9 +365,12 @@ export function DesktopNavRail({
     null,
   );
 
-  const activeSection = sections.find((section) =>
-    sectionHasActiveItem(pathname, section.items),
+  const activeSectionId = resolveActiveNavSectionId(
+    sections,
+    pathname,
+    itemIsActive,
   );
+  const activeSection = sections.find((section) => section.id === activeSectionId);
 
   useEffect(() => {
     setOpenFlyoutSectionId(null);
@@ -404,7 +408,7 @@ export function DesktopNavRail({
       return;
     }
 
-    const inSection = activeSection?.id === section.id;
+    const inSection = sectionHasActiveItem(pathname, section.items);
 
     if (!inSection) {
       setOpenFlyoutSectionId(null);

@@ -45,6 +45,7 @@ import { BUTCHER_POS_FEATURE_FLAG, isButcherPosEnabled } from "@/lib/butcher-fea
 import { logoutRemote } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
+import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
 
 const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
@@ -400,13 +401,6 @@ function itemIsActive(pathname: string, href: string): boolean {
   );
 }
 
-function sectionHasActiveItem(
-  pathname: string,
-  items: readonly NavItem[],
-): boolean {
-  return items.some((item) => itemIsActive(pathname, item.href));
-}
-
 type BottomTab = {
   id: string;
   label: string;
@@ -639,12 +633,10 @@ export function AppShell({ children }: AppShellProps) {
     groceryClerkStockAccess,
   ]);
 
-  const activeSectionId = useMemo(() => {
-    for (const s of visibleSections) {
-      if (sectionHasActiveItem(pathname, s.items)) return s.id;
-    }
-    return null;
-  }, [pathname, visibleSections]);
+  const activeSectionId = useMemo(
+    () => resolveActiveNavSectionId(visibleSections, pathname, itemIsActive),
+    [pathname, visibleSections],
+  );
 
   const [moreOpen, setMoreOpen] = useState(false);
 

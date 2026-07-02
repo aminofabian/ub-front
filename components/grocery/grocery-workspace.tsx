@@ -31,6 +31,7 @@ import {
   GROCERY_TAB_BAR_CLEARANCE,
 } from "@/components/grocery/grocery-app-chrome";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
+import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { cn } from "@/lib/utils";
@@ -69,10 +70,12 @@ import {
   syncGroceryDraftToServer,
   type GroceryDraftState,
 } from "@/lib/grocery-draft-sync";
+import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import {
   GroceryInvoiceCart,
   type GroceryCartLine,
 } from "./grocery-invoice-cart";
+import { GroceryDepartmentRail } from "./grocery-department-rail";
 import { GroceryInvoiceSuccess } from "./grocery-invoice-success";
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -274,10 +277,17 @@ export function GroceryWorkspace() {
 
   // Item browser state
   const [search, setSearch] = useState("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<
+    string | null
+  >(null);
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
   const [searchBanner, setSearchBanner] = useState<string | null>(null);
+  const [departmentCatalog, setDepartmentCatalog] = useState<
+    ItemSummaryRecord[]
+  >([]);
+  const [departmentCatalogLoading, setDepartmentCatalogLoading] =
+    useState(false);
   const [topProducts, setTopProducts] = useState<GroceryTopProduct[]>([]);
-  const [topProductsLoading, setTopProductsLoading] = useState(false);
   const [topProductsReloadKey, setTopProductsReloadKey] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
   const [tileShelfPrices, setTileShelfPrices] = useState<
@@ -357,21 +367,94 @@ export function GroceryWorkspace() {
     return branches.find((b) => b.id === branchId)?.name?.trim() ?? "";
   }, [branches, branchId]);
 
+  const showDepartmentRail = itemTypes.length > 1;
+
+  const selectedDepartment = useMemo(() => {
+    if (!selectedDepartmentId) return null;
+    return itemTypes.find((t) => t.id === selectedDepartmentId) ?? null;
+  }, [itemTypes, selectedDepartmentId]);
+
   // Departments (item types) the grocery clerk is allowed to invoice from.
-  // The dashboard provider already trims `itemTypes` to the assigned set for
-  // clerks, so this label is only meaningful when the role is restricted —
-  // otherwise the operator can search the full catalog and we hide the chip.
-  const allowedDepartmentLabel = useMemo(() => {
+  const activeDepartmentLabel = useMemo(() => {
     if (itemTypes.length === 0) return "";
+    if (selectedDepartment) return selectedDepartment.label?.trim() || "";
     if (itemTypes.length === 1) return itemTypes[0].label?.trim() || "";
-    return `${itemTypes.length} departments`;
-  }, [itemTypes]);
+    return ALL_DEPARTMENTS_LABEL;
+  }, [itemTypes, selectedDepartment]);
+
+  // Personal top sellers boost items the clerk invoices often to the top of
+  // the "All departments" browse list. Department-specific views use plain
+  // alphabetical catalog order.
+  const browseCatalog = useMemo(() => {
+    if (selectedDepartmentId || departmentCatalog.length === 0) {
+      return departmentCatalog;
+    }
+    if (topProducts.length === 0) {
+      return departmentCatalog;
+    }
+    const topRank = new Map(
+      topProducts.map((p, index) => [p.id, index] as const),
+    );
+    return [...departmentCatalog].sort((a, b) => {
+      const aRank = topRank.get(a.id);
+      const bRank = topRank.get(b.id);
+      if (aRank != null && bRank != null) return aRank - bRank;
+      if (aRank != null) return -1;
+      if (bRank != null) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [departmentCatalog, selectedDepartmentId, topProducts]);
 
   // ── Effects ──────────────────────────────────────────────────────
 
-  // Server-aggregated top products for this user + branch. The list is
-  // sorted in the backend (invoice count → total quantity → recency) so
-  // it stays stable across reloads.
+  // Browse catalog for the active department filter. "All" omits itemTypeId
+  // so the backend returns every product the clerk may invoice across their
+  // assigned departments.
+  useEffect(() => {
+    if (search.trim()) {
+      setDepartmentCatalog([]);
+      setDepartmentCatalogLoading(false);
+      return;
+    }
+    if (!online) {
+      setDepartmentCatalog([]);
+      setDepartmentCatalogLoading(false);
+      return;
+    }
+    const bid = branchId?.trim();
+    if (!bid) {
+      setDepartmentCatalog([]);
+      return;
+    }
+    let cancelled = false;
+    setDepartmentCatalogLoading(true);
+    const deptId = selectedDepartmentId?.trim();
+    fetchItems(undefined, {
+      branchId: bid,
+      ...(deptId ? { itemTypeId: deptId } : {}),
+      page: 0,
+      size: 50,
+      catalogScope: "SKUS_ONLY",
+      sort: [{ property: "name", direction: "asc" }],
+    })
+      .then((items) => {
+        if (cancelled) return;
+        const sellable = (items ?? []).filter((r) => r.groupLabelOnly !== true);
+        setDepartmentCatalog(sellable);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDepartmentCatalog([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDepartmentCatalogLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [online, branchId, selectedDepartmentId, search]);
+
+  // Server-aggregated top products — used only to rank the "All" browse list.
   useEffect(() => {
     if (!online) return;
     const bid = branchId?.trim();
@@ -380,7 +463,6 @@ export function GroceryWorkspace() {
       return;
     }
     let cancelled = false;
-    setTopProductsLoading(true);
     fetchGroceryTopProducts(bid, 20)
       .then((list) => {
         if (cancelled) return;
@@ -389,9 +471,6 @@ export function GroceryWorkspace() {
       .catch(() => {
         if (cancelled) return;
         setTopProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setTopProductsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -413,11 +492,10 @@ export function GroceryWorkspace() {
     const t = window.setTimeout(() => {
       let cancelled = false;
       const bid = branchId?.trim() || undefined;
-      // No itemTypeId is passed here on purpose: the grocery counter should
-      // search every product the operator is allowed to invoice. For
-      // grocery_clerk users the backend already AND-s in all of their
-      // assigned departments via the role-based filter, so narrowing to a
-      // single dashboard-selected department would just hide valid hits.
+      const deptId = selectedDepartmentId?.trim() || undefined;
+      // When the clerk picks a department on the floating rail we narrow
+      // search to that aisle. With no selection the backend still AND-s in
+      // every department the role is allowed to invoice from.
       //
       // `catalogScope: "SKUS_ONLY"` asks the backend to skip catalog
       // "group label" rows (parent records that exist only to anchor
@@ -429,6 +507,7 @@ export function GroceryWorkspace() {
       // (supplies, stock-take, stock levels) filters its results.
       fetchItems(q, {
         branchId: bid,
+        ...(deptId ? { itemTypeId: deptId } : {}),
         page: 0,
         size: 50,
         catalogScope: "SKUS_ONLY",
@@ -451,7 +530,7 @@ export function GroceryWorkspace() {
       };
     }, 250);
     return () => window.clearTimeout(t);
-  }, [search, branchId, online]);
+  }, [search, branchId, online, selectedDepartmentId]);
 
   useEffect(() => {
     if (!online) {
@@ -459,8 +538,8 @@ export function GroceryWorkspace() {
       return;
     }
     const hitIds = hits.map((h) => h.id);
-    const topIds = topProducts.map((p) => p.id);
-    const ids = Array.from(new Set([...hitIds, ...topIds]));
+    const browseIds = browseCatalog.map((i) => i.id);
+    const ids = Array.from(new Set([...hitIds, ...browseIds]));
     if (ids.length === 0) {
       setTileShelfPrices({});
       return;
@@ -491,7 +570,7 @@ export function GroceryWorkspace() {
     return () => {
       cancelled = true;
     };
-  }, [online, currency, hits, topProducts, branchId]);
+  }, [online, currency, hits, browseCatalog, branchId]);
 
   // Clear "recently added" highlight after animation
   useEffect(() => {
@@ -759,9 +838,9 @@ export function GroceryWorkspace() {
                       : activeBranchName || "Select branch"}
                   </span>
                 </span>
-                {allowedDepartmentLabel ? (
+                {activeDepartmentLabel ? (
                   <span className="inline-flex items-center gap-1 border-l border-border/50 pl-2">
-                    {allowedDepartmentLabel}
+                    {activeDepartmentLabel}
                   </span>
                 ) : null}
                 {cashierName ? (
@@ -793,6 +872,7 @@ export function GroceryWorkspace() {
                 {online ? "Online" : "Offline"}
               </span>
             </span>
+            <RealtimeConnectionIndicator />
           </div>
         </div>
       </header>
@@ -827,8 +907,8 @@ export function GroceryWorkspace() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={
-                    allowedDepartmentLabel
-                      ? `Search ${allowedDepartmentLabel}, scan barcode…`
+                    activeDepartmentLabel
+                      ? `Search ${activeDepartmentLabel}, scan barcode…`
                       : "Search products, scan barcode…"
                   }
                   className="h-full flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
@@ -867,9 +947,36 @@ export function GroceryWorkspace() {
 
           {/* Scrollable Product Area */}
           <div
-            className="relative flex-1 overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4 md:pb-4"
+            className="relative flex min-h-0 flex-1"
             style={{ paddingBottom: `max(1rem, ${GROCERY_TAB_BAR_CLEARANCE})` }}
           >
+            {showDepartmentRail ? (
+              <div className="pointer-events-none absolute left-2 top-1/2 z-20 hidden -translate-y-1/2 sm:block">
+                <GroceryDepartmentRail
+                  departments={itemTypes}
+                  selectedId={selectedDepartmentId}
+                  onSelect={setSelectedDepartmentId}
+                />
+              </div>
+            ) : null}
+
+            <div
+              className={cn(
+                "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4 md:pb-4",
+                showDepartmentRail && "sm:pl-14",
+              )}
+            >
+            {showDepartmentRail ? (
+              <div className="mb-3 sm:hidden">
+                <GroceryDepartmentRail
+                  departments={itemTypes}
+                  selectedId={selectedDepartmentId}
+                  onSelect={setSelectedDepartmentId}
+                  className="w-full max-w-none flex-row flex-wrap justify-start gap-1.5 p-1.5 [&_button]:min-h-9 [&_button]:w-auto [&_button]:min-w-[4.5rem] [&_button]:flex-row [&_button]:px-2.5 [&_button]:py-1.5 [&_button_span]:max-h-none [&_button_span]:text-[10px] [&_button_span]:normal-case [&_button_span]:[writing-mode:horizontal-tb]"
+                />
+              </div>
+            ) : null}
+
             {/* Top fade for scroll cue */}
             <span
               aria-hidden
@@ -914,7 +1021,7 @@ export function GroceryWorkspace() {
               </section>
             )}
 
-            {/* Your Top Sellers (server-aggregated) */}
+            {/* Catalog browse */}
             {showCatalog && (
               <section className="mb-6">
                 {!online ? (
@@ -924,49 +1031,47 @@ export function GroceryWorkspace() {
                       Offline
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Reconnect to load top sellers.
+                      {selectedDepartment
+                        ? `Reconnect to load ${activeDepartmentLabel}.`
+                        : "Reconnect to load products."}
                     </p>
                   </div>
-                ) : topProducts.length === 0 ? (
+                ) : browseCatalog.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
                     <ShoppingBasket className="mb-3 size-8 text-muted-foreground/50" strokeWidth={1.5} />
                     <p className="text-sm font-medium text-foreground">
-                      {topProductsLoading
-                        ? "Loading top sellers…"
-                        : "No top sellers yet"}
+                      {departmentCatalogLoading
+                        ? selectedDepartment
+                          ? `Loading ${activeDepartmentLabel}…`
+                          : "Loading products…"
+                        : selectedDepartment
+                          ? `No products in ${activeDepartmentLabel}`
+                          : "No products available"}
                     </p>
-                    {!topProductsLoading && (
+                    {!departmentCatalogLoading && !selectedDepartment ? (
                       <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-                        Items you invoice will appear here automatically.
+                        Products from your assigned departments will appear here.
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                    {topProducts.map((p) => {
-                      const d = lineDataByItem.get(p.id);
+                    {browseCatalog.map((item) => {
+                      const d = lineDataByItem.get(item.id);
                       return (
-                      <ProductCard
-                        key={p.id}
-                        item={{
-                          id: p.id,
-                          name: p.name,
-                          sku: p.sku ?? "",
-                          thumbnailUrl: p.thumbnailUrl ?? null,
-                        }}
-                        shelfLine={tileShelfLine(online, tileShelfPrices, p.id)}
-                        onPick={() =>
-                          addLine({
-                            id: p.id,
-                            name: p.name,
-                            sku: p.sku ?? "",
-                            thumbnailUrl: p.thumbnailUrl ?? null,
-                          })
-                        }
-                        cartQty={d?.qty ?? 0}
-                        cartLineTotal={d?.total ?? 0}
-                        currency={currency}
-                      />
+                        <ProductCard
+                          key={item.id}
+                          item={item}
+                          shelfLine={tileShelfLine(
+                            online,
+                            tileShelfPrices,
+                            item.id,
+                          )}
+                          onPick={() => addLine(item)}
+                          cartQty={d?.qty ?? 0}
+                          cartLineTotal={d?.total ?? 0}
+                          currency={currency}
+                        />
                       );
                     })}
                   </div>
@@ -974,6 +1079,7 @@ export function GroceryWorkspace() {
               </section>
             )}
 
+            </div>
           </div>
         </div>
 
