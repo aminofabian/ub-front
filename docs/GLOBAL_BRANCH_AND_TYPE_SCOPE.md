@@ -171,7 +171,7 @@ Legend:
 
 | Page / component | Branch | Item type | Status | Notes |
 |---|---|---|---|---|
-| **Overview** (`overview/page.tsx`) | ✅ | ✅ | Implemented | Metrics branch-scoped; catalogue count uses `branchId` + `itemTypeId`; owner summary API remains business-wide |
+| **Business hub** (`business/page.tsx`, was `/overview`) | ✅ | ✅ | Implemented | Default owner landing; KPIs branch-scoped; catalogue count uses `branchId` + `itemTypeId`; owner summary API remains business-wide; `/overview` redirects here |
 | **Sales** (`sales-overview-page.tsx`) | ✅ | ❌ | Implemented | `useSyncBranchFilter` + two-way bind; `allowAll` |
 | **Transactions** | ✅ | ❌ | Implemented | Same as sales overview |
 | **Pending carts** | ✅ | ❌ | Implemented | Uses dashboard `branchId` directly |
@@ -347,7 +347,7 @@ Introduce `global_scope_v2` (tenant feature flag). Pages can opt into new sync b
 - **Done:** Local `prevSessionBranchId` mirrors removed; `useSyncBranchFilter` is the standard pattern.
 - **Kept:** `PosCatalogItemTypeContext` for cashier “All types” override (D5).
 - **N/A:** `global_scope_v2` flag was never added to the codebase.
-- **Done:** `ActiveScopeSubtitle` via `DashboardPageHero showActiveScope` on all major scoped surfaces; custom headers on overview, sales, analytics, restock.
+- **Done:** `ActiveScopeSubtitle` via `DashboardPageHero showActiveScope` on all major scoped surfaces; custom headers on business hub, sales, analytics, restock.
 
 ---
 

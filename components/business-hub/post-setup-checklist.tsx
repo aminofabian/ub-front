@@ -1,0 +1,85 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, BarChart3, ShoppingCart, Users } from "lucide-react";
+
+import { APP_ROUTES } from "@/lib/config";
+import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
+import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
+import { cn } from "@/lib/utils";
+
+export function PostSetupChecklist() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const state = getOnboardingQuestionnaireState();
+    if (state.status !== "completed") {
+      return;
+    }
+    const updated = state.updatedAt ? new Date(state.updatedAt).getTime() : 0;
+    const hoursSince = (Date.now() - updated) / (1000 * 60 * 60);
+    if (hoursSince <= 48) {
+      setShow(true);
+    }
+  }, []);
+
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className={cn("text-sm font-medium", HUB_MUTED)}>
+          Getting started
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShow(false)}
+          className="text-xs font-medium text-[#888888] hover:text-foreground transition-colors"
+        >
+          Dismiss
+        </button>
+      </div>
+      <div className={cn(HUB_SURFACE, "divide-y divide-[#EEEEEE]")}>
+        {[
+          {
+            href: APP_ROUTES.sales,
+            label: "Record your first sale",
+            desc: "Use the cashier or quick sale to process a transaction.",
+            icon: ShoppingCart,
+          },
+          {
+            href: APP_ROUTES.users,
+            label: "Invite your staff",
+            desc: "Add cashiers and managers so your team can help run the shop.",
+            icon: Users,
+          },
+          {
+            href: APP_ROUTES.analytics,
+            label: "Check your reports",
+            desc: "See sales trends, profit margins, and top products.",
+            icon: BarChart3,
+          },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9F6F0]/60"
+          >
+            <item.icon className="size-4 shrink-0 text-[#B08D48]" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-black">{item.label}</p>
+              <p className="text-xs text-[#888888]">{item.desc}</p>
+            </div>
+            <ArrowRight
+              className="ml-auto size-4 shrink-0 text-[#CCCCCC]"
+              aria-hidden
+            />
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

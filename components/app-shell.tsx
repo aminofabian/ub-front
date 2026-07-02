@@ -74,8 +74,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
     shortLabel: "Home",
     blurb: "Pulse of the business",
     icon: LayoutDashboard,
-    entryHref: APP_ROUTES.overview,
-    items: [{ href: APP_ROUTES.overview, label: "Overview" }],
+    entryHref: APP_ROUTES.business,
+    items: [{ href: APP_ROUTES.business, label: "Business" }],
   },
   {
     id: "org",
@@ -85,7 +85,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Building2,
     entryHref: APP_ROUTES.business,
     items: [
-      { href: APP_ROUTES.business, label: "Business settings" },
+      { href: APP_ROUTES.business, label: "Business" },
+      { href: APP_ROUTES.businessSettings, label: "Settings" },
       { href: APP_ROUTES.businessBranding, label: "Branding" },
       { href: APP_ROUTES.businessMobile, label: "Store app" },
       { href: APP_ROUTES.businessDomains, label: "Domains" },
@@ -326,6 +327,9 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   }
 
   if (item.href === APP_ROUTES.overview) return true;
+  if (item.href === APP_ROUTES.business) return true;
+  if (item.href === APP_ROUTES.businessSettings)
+    return gate.canManageBusinessSettings;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
@@ -448,8 +452,8 @@ const BOTTOM_TABS: readonly BottomTab[] = [
     id: "overview",
     label: "Home",
     icon: LayoutDashboard,
-    href: APP_ROUTES.overview,
-    matchSectionIds: ["overview"],
+    href: APP_ROUTES.business,
+    matchSectionIds: ["overview", "org"],
   },
   {
     id: "catalog",
@@ -556,7 +560,7 @@ export function AppShell({ children }: AppShellProps) {
           ? APP_ROUTES.grocery
           : isButcheryOnlyBusiness(business)
             ? APP_ROUTES.butcher
-            : APP_ROUTES.overview;
+            : APP_ROUTES.business;
   const canReadNotifications = hasPermission(
     me?.permissions,
     Permission.ReportsNotificationsRead,

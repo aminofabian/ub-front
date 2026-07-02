@@ -62,4 +62,25 @@ describe("roleLandingRedirect", () => {
       roleLandingRedirect({ role: { key: "grocery_clerk" } }, APP_ROUTES.grocery),
     ).toBeNull();
   });
+
+  it("redirects cashier off /business", () => {
+    expect(
+      roleLandingRedirect({ role: { key: "cashier" } }, APP_ROUTES.business),
+    ).toBe(APP_ROUTES.salesQuick);
+  });
+
+  it("redirects stock manager off /business", () => {
+    expect(
+      roleLandingRedirect(
+        { role: { key: "stock_manager" } },
+        APP_ROUTES.business,
+      ),
+    ).toBe(APP_ROUTES.inventoryStockTake);
+  });
+
+  it("redirects overview bookmarks to business hub", () => {
+    expect(
+      roleLandingRedirect({ role: { key: "owner" } }, APP_ROUTES.overview),
+    ).toBe(APP_ROUTES.business);
+  });
 });

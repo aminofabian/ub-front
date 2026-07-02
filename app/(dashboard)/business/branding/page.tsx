@@ -714,7 +714,7 @@ function LockedNotice() {
           update storefront branding, or open another area you have access to.
         </p>
         <Button asChild className="mt-6" variant="outline">
-          <Link href={APP_ROUTES.business}>Back to business settings</Link>
+          <Link href={APP_ROUTES.business}>Back to business</Link>
         </Button>
       </div>
     </div>
@@ -726,6 +726,12 @@ function RelatedLinks() {
     {
       href: APP_ROUTES.business,
       label: "Business",
+      desc: "Business hub",
+      icon: Building2,
+    },
+    {
+      href: APP_ROUTES.businessSettings,
+      label: "Settings",
       desc: "Core settings & storefront",
       icon: Building2,
     },

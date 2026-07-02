@@ -13,7 +13,7 @@ import { useDesktopLicense } from "./desktop-license-provider";
 /** Pages that stay fully interactive in read-only mode (view reports / renew). */
 const EXEMPT_PATH_PREFIXES: readonly string[] = [
   APP_ROUTES.desktopSettings,
-  APP_ROUTES.overview,
+  APP_ROUTES.business,
   APP_ROUTES.analytics,
   APP_ROUTES.analyticsActivity,
   APP_ROUTES.salesTransactions,

@@ -6,6 +6,18 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 ];
 
+const overviewRedirect = {
+  source: "/overview",
+  destination: "/business",
+  permanent: true,
+} as const;
+
+const overviewRedirectTrailing = {
+  source: "/overview/",
+  destination: "/business/",
+  permanent: true,
+} as const;
+
 /**
  * Desktop / on-premise SKU.
  *
@@ -70,6 +82,9 @@ const cloudOnlyConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [overviewRedirect];
+  },
   async rewrites() {
     return [
       // Next.js route handlers under /api/auth/* must not be proxied to Java.
@@ -107,6 +122,9 @@ const desktopConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_REALTIME_WS_ORIGIN: "",
+  },
+  async redirects() {
+    return [overviewRedirectTrailing];
   },
 };
 

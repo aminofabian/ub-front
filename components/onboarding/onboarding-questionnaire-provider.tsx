@@ -124,7 +124,7 @@ export function OnboardingQuestionnaireProvider({
   const finish = useCallback(() => {
     setActive(false);
     router.replace(
-      isButcheryOnlyBusiness(business) ? APP_ROUTES.butcher : APP_ROUTES.overview,
+      isButcheryOnlyBusiness(business) ? APP_ROUTES.butcher : APP_ROUTES.business,
     );
   }, [router, business]);
 

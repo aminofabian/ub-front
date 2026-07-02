@@ -6,6 +6,7 @@ export function shellPageTitle(pathname: string): string {
 
   const exact: Record<string, string> = {
     [APP_ROUTES.overview]: "Overview",
+    [APP_ROUTES.businessSettings]: "Settings",
     [APP_ROUTES.products]: "Products",
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
@@ -36,7 +37,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.groceryInvoices]: "Invoices",
     [APP_ROUTES.analytics]: "Analytics",
     [APP_ROUTES.analyticsActivity]: "Activity",
-    [APP_ROUTES.business]: "Settings",
+    [APP_ROUTES.business]: "Business",
     [APP_ROUTES.businessBranding]: "Branding",
     [APP_ROUTES.businessMobile]: "Store app",
     [APP_ROUTES.users]: "Team",

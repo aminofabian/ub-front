@@ -551,11 +551,11 @@ export function TransactionsPage() {
           You do not have permission to view transactions.
         </p>
         <Link
-          href={APP_ROUTES.overview}
+          href={APP_ROUTES.business}
           className="mt-6 inline-block text-sm font-medium"
           style={{ color: ACCENT }}
         >
-          Back to overview
+          Back to business
         </Link>
       </div>
     );

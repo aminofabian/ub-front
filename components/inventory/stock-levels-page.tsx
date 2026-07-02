@@ -611,8 +611,8 @@ export function StockLevelsPage() {
       <DashboardAccessDenied
         title="Stock levels"
         description="You need inventory read access to view stock levels."
-        backHref={APP_ROUTES.overview}
-        backLabel="Back to overview"
+        backHref={APP_ROUTES.business}
+        backLabel="Back to business"
       />
     );
   }

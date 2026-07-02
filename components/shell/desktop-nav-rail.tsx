@@ -40,8 +40,8 @@ export type DesktopNavSection = {
 };
 
 const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
-  [APP_ROUTES.overview]: LayoutDashboard,
-  [APP_ROUTES.business]: Building2,
+  [APP_ROUTES.business]: LayoutDashboard,
+  [APP_ROUTES.businessSettings]: Building2,
   [APP_ROUTES.businessBranding]: Building2,
   [APP_ROUTES.businessMobile]: Building2,
   [APP_ROUTES.businessDomains]: Building2,

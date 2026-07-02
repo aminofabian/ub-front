@@ -120,7 +120,7 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
                 className="hidden h-8 text-xs text-[rgb(var(--bp-fg-faint))] hover:bg-[rgb(var(--bp-hover))] hover:text-[rgb(var(--bp-fg))] sm:inline-flex"
                 asChild
               >
-                <Link href={APP_ROUTES.overview}>Dashboard</Link>
+                <Link href={APP_ROUTES.business}>Dashboard</Link>
               </Button>
             ) : null}
 
