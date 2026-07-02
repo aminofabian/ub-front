@@ -212,7 +212,7 @@ export function computePageLeftCardPosition(
   const left = VIEWPORT_MARGIN;
   const cardW = Math.min(card.width, maxCardW);
 
-  let top = Math.max(
+  const top = Math.max(
     VIEWPORT_MARGIN,
     Math.min((vh - cardH) / 2, vh - cardH - VIEWPORT_MARGIN),
   );

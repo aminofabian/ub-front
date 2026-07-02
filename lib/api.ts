@@ -4968,7 +4968,7 @@ export async function tryPostSale(
     }
   };
 
-  let outcome = await execute();
+  const outcome = await execute();
   if (outcome.kind === "network") {
     return { ok: false, status: 0, message: outcome.message };
   }
