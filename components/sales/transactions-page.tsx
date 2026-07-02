@@ -385,9 +385,9 @@ export function TransactionsPage() {
   const onChangeBranch = useCallback(
     (id: string) => {
       setBranchId(id);
-      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+      setHeaderBranchId(id.trim());
     },
-    [branchLocked, setHeaderBranchId],
+    [setHeaderBranchId],
   );
   const [datePreset, setDatePreset] = useState<SalesDatePreset>("today");
   const [customFrom, setCustomFrom] = useState("");
@@ -625,13 +625,16 @@ export function TransactionsPage() {
           onChange={(e) => onChangeBranch(e.target.value)}
           className={cn(dashboardSelectClass(), "sm:w-56")}
           aria-label="Branch"
+          disabled={branchLocked}
         >
           <option value="">All branches</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
+          {branches
+            .filter((b) => !branchLocked || b.id === me?.branchId)
+            .map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
         </select>
       </div>
 

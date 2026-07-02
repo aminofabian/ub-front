@@ -103,7 +103,12 @@ export default function PricingPage() {
 
   const sellFormDirty =
     sellDrawerOpen &&
-    Boolean(sellItemId.trim() || sellPrice.trim() || sellNotes.trim());
+    Boolean(
+      sellItemId.trim() ||
+        sellPrice.trim() ||
+        sellEffectiveFrom.trim() ||
+        sellNotes.trim(),
+    );
   useScopeChangeGuard(
     "pricing-sell",
     sellFormDirty,

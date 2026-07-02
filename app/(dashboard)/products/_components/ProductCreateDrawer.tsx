@@ -40,6 +40,8 @@ import {
   lookupGlobalCatalogProducts,
   type GlobalProductRecord,
 } from "@/lib/api";
+import { useDashboard } from "@/components/dashboard-provider";
+import { isButcheryBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -236,6 +238,8 @@ export function ProductCreateDrawer({
   branches,
   canGlobalCatalog = false,
 }: Props) {
+  const { business } = useDashboard();
+  const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
   const isGroup = m.parentDraft.productStructure === "group";
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -747,7 +751,7 @@ export function ProductCreateDrawer({
           ) : null}
         </FormDrawerFields>
 
-        {!isGroup ? (
+        {!isGroup && showButcherTemplates ? (
           <div className="flex flex-wrap items-center gap-1.5 px-1">
             <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Meat template
@@ -905,6 +909,7 @@ export function ProductCreateDrawer({
                       ...p,
                       isWeighed: v,
                       unitType: v ? p.unitType?.trim() || "kg" : p.unitType,
+                      pluCode: v ? p.pluCode : "",
                     }))
                   }
                   label="Sell by weight"

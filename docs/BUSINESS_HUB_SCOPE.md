@@ -39,7 +39,7 @@ This scope merges the useful parts of `/overview` into `/business`, moves the se
 
 ## 3. Proposed information architecture
 
-```
+```text
 /business                 → Business hub (KPIs, alerts, quick links)
 /business/settings        → Current settings form, moved as-is
 /business/branding        → Unchanged

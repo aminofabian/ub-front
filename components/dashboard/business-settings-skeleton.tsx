@@ -43,7 +43,7 @@ export function BusinessSettingsSkeleton() {
           </header>
         </div>
 
-        <div className="hidden gap-2 sm:grid-cols-2 2xl:grid 2xl:grid-cols-4">
+        <div className="hidden gap-2 2xl:grid 2xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}

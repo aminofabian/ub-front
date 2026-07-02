@@ -14,6 +14,7 @@ import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { roleLandingRedirect } from "@/lib/post-auth-destination";
 import {
   readSessionBootstrap,
+  clearSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
 } from "@/lib/session-bootstrap";
 
@@ -48,6 +49,10 @@ function ButcherRoleRedirects() {
     );
     if (bootMe) {
       apply(bootMe, bootBusiness);
+      clearSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me);
+      if (bootBusiness) {
+        clearSessionBootstrap(SESSION_BOOTSTRAP_KEYS.business);
+      }
       return;
     }
 

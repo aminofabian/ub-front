@@ -510,8 +510,9 @@ export function BusinessSettingsForm({
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm">
                 <input
                   type="checkbox"
-                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                   checked={posDrafts.offlineMirror}
+                  disabled={!posDrafts.enabled}
                   onChange={(event) =>
                     setPosDrafts((previous) => ({
                       ...previous,

@@ -31,6 +31,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
+import { APP_ROUTES } from "@/lib/config";
 import {
   ANALYTICS_PRESET_LABELS,
   type DatePreset,
@@ -281,16 +282,29 @@ type AnalyticsJourneyItem =
   | { kind: "hash"; id: string; label: string }
   | { kind: "route"; href: string; label: string };
 
-const ANALYTICS_JOURNEY: AnalyticsJourneyItem[] = [
-  { kind: "hash", id: "analytics-overview", label: "Metrics" },
-  { kind: "hash", id: "analytics-revenue", label: "Revenue" },
-  { kind: "hash", id: "analytics-stock", label: "Stock" },
-  { kind: "hash", id: "analytics-catalog", label: "Catalog" },
-  { kind: "hash", id: "analytics-signals", label: "Signals" },
-  { kind: "route", href: "/analytics/activity", label: "Activity" },
-];
+function buildAnalyticsJourney(
+  activityHref?: string | null,
+): AnalyticsJourneyItem[] {
+  const items: AnalyticsJourneyItem[] = [
+    { kind: "hash", id: "analytics-overview", label: "Metrics" },
+    { kind: "hash", id: "analytics-revenue", label: "Revenue" },
+    { kind: "hash", id: "analytics-stock", label: "Stock" },
+    { kind: "hash", id: "analytics-catalog", label: "Catalog" },
+    { kind: "hash", id: "analytics-signals", label: "Signals" },
+  ];
+  if (activityHref) {
+    items.push({ kind: "route", href: activityHref, label: "Activity" });
+  }
+  return items;
+}
 
-function AnalyticsJourneyNav({ compact = false }: { compact?: boolean }) {
+function AnalyticsJourneyNav({
+  compact = false,
+  journey,
+}: {
+  compact?: boolean;
+  journey: AnalyticsJourneyItem[];
+}) {
   const linkClass =
     "inline-flex shrink-0 items-center border border-transparent px-2 py-1 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:border-border/80 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background 2xl:px-2.5 2xl:py-1.5 2xl:text-[11px]";
 
@@ -315,7 +329,7 @@ function AnalyticsJourneyNav({ compact = false }: { compact?: boolean }) {
           </>
         ) : null}
         <ul className="flex min-w-0 items-center gap-0.5">
-          {ANALYTICS_JOURNEY.filter((i) => i.kind === "hash").map((item) => (
+          {journey.filter((i) => i.kind === "hash").map((item) => (
             <li key={item.id}>
               <a href={`#${item.id}`} className={linkClass}>
                 {item.label}
@@ -326,7 +340,7 @@ function AnalyticsJourneyNav({ compact = false }: { compact?: boolean }) {
             className="mx-0.5 h-4 w-px shrink-0 self-center bg-border/60"
             aria-hidden
           />
-          {ANALYTICS_JOURNEY.filter((i) => i.kind === "route").map((item) => (
+          {journey.filter((i) => i.kind === "route").map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
@@ -510,8 +524,16 @@ function calcTrend(
 
 /* ─── Main page ──────────────────────────────────────────────────────────── */
 
-export function AnalyticsWorkspace() {
+export function AnalyticsWorkspace({
+  activityHref = APP_ROUTES.analyticsActivity,
+}: {
+  activityHref?: string | null;
+} = {}) {
   const { setBranchId: setHeaderBranchId } = useDashboard();
+  const analyticsJourney = useMemo(
+    () => buildAnalyticsJourney(activityHref),
+    [activityHref],
+  );
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -532,9 +554,9 @@ export function AnalyticsWorkspace() {
     (id: string) => {
       setBranchId(id);
       setAppliedBranchId(id);
-      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+      setHeaderBranchId(id.trim());
     },
-    [branchLocked, setHeaderBranchId],
+    [setHeaderBranchId],
   );
   const [refreshing, setRefreshing] = useState(false);
 
@@ -688,6 +710,20 @@ export function AnalyticsWorkspace() {
             ? expenseRes.map((e) => ({ amount: toNum(e.amount) }))
             : [],
         );
+      } else {
+        setPulse(null);
+        setPl(null);
+        setPrevPl(null);
+        setSalesRegister(null);
+        setPrevSalesRegister(null);
+        setCategoryRevenue([]);
+        setPrevCategoryRevenue([]);
+        setPaymentMethods([]);
+        setStaffPerf([]);
+        setInventoryVal(null);
+        setExpiryPipeline(null);
+        setOwnerSummary(null);
+        setExpenses([]);
       }
     } catch (err) {
       setError(
@@ -781,18 +817,20 @@ export function AnalyticsWorkspace() {
       }
     }
 
-    if (grossMargin < 15) {
-      out.push({
-        icon: AlertTriangle,
-        text: "Gross margin is low. Review pricing or cost structure.",
-        tone: "warn",
-      });
-    } else if (grossMargin > 40) {
-      out.push({
-        icon: TrendingUp,
-        text: "Healthy gross margin. Business is well-positioned.",
-        tone: "good",
-      });
+    if (totalRevenue > 0 || salesCount > 0) {
+      if (grossMargin < 15) {
+        out.push({
+          icon: AlertTriangle,
+          text: "Gross margin is low. Review pricing or cost structure.",
+          tone: "warn",
+        });
+      } else if (grossMargin > 40) {
+        out.push({
+          icon: TrendingUp,
+          text: "Healthy gross margin. Business is well-positioned.",
+          tone: "good",
+        });
+      }
     }
 
     if (expiredQty > 0) {
@@ -849,6 +887,7 @@ export function AnalyticsWorkspace() {
     staffPerf,
     categoryRevenue,
     totalRevenue,
+    salesCount,
   ]);
 
   /* ─── Render ───────────────────────────────────────────────────────────── */
@@ -1000,7 +1039,7 @@ export function AnalyticsWorkspace() {
 
           {/* Custom date row */}
           <div className="border-t border-border/30 2xl:hidden">
-            <AnalyticsJourneyNav compact />
+            <AnalyticsJourneyNav compact journey={analyticsJourney} />
           </div>
 
           {preset === "custom" ? (
@@ -1028,7 +1067,7 @@ export function AnalyticsWorkspace() {
         {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
         <div className="hidden 2xl:block">
-          <AnalyticsJourneyNav />
+          <AnalyticsJourneyNav journey={analyticsJourney} />
         </div>
 
         {/* ── Section 1: Key Metrics ─────────────────────────────── */}

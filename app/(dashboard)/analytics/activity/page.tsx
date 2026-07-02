@@ -111,9 +111,9 @@ export default function AnalyticsActivityPage() {
   const onChangeBranch = useCallback(
     (id: string) => {
       setBranchId(id);
-      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+      setHeaderBranchId(id.trim());
     },
-    [branchLocked, setHeaderBranchId],
+    [setHeaderBranchId],
   );
   const [refreshing, setRefreshing] = useState(false);
   const [recentSales, setRecentSales] = useState<RecentSaleRow[]>([]);
@@ -327,7 +327,8 @@ export default function AnalyticsActivityPage() {
                 <select
                   value={branchId}
                   onChange={(e) => onChangeBranch(e.target.value)}
-                  className="h-7.5 appearance-none rounded-lg border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[11px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+                  disabled={branchLocked}
+                  className="h-7.5 appearance-none rounded-lg border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[11px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="">All branches</option>
                   {branches.map((b) => (

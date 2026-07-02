@@ -174,6 +174,7 @@ export function SupplierCatalogColumn({
   const [editLinkDrawerPackUnit, setEditLinkDrawerPackUnit] = useState("");
   const [editLinkDrawerPackSize, setEditLinkDrawerPackSize] = useState("");
   const [editLinkDrawerBusy, setEditLinkDrawerBusy] = useState(false);
+  const [editLinkDrawerError, setEditLinkDrawerError] = useState<string | null>(null);
 
   const loadGen = useRef(0);
 
@@ -479,11 +480,13 @@ export function SupplierCatalogColumn({
     setEditLinkDrawerPackSize(
       row.packSize != null ? String(row.packSize) : "",
     );
+    setEditLinkDrawerError(null);
     setEditLinkDrawerOpen(true);
   };
 
   const saveEditLinkDrawer = async () => {
     if (!editLinkDrawerRow || editLinkDrawerBusy) return;
+    setEditLinkDrawerError(null);
     setEditLinkDrawerBusy(true);
     try {
       const costRaw = editLinkDrawerCost.trim();
@@ -491,6 +494,7 @@ export function SupplierCatalogColumn({
       if (costRaw.length > 0) {
         const n = Number(costRaw);
         if (!Number.isFinite(n) || n < 0) {
+          setEditLinkDrawerError("Default cost must be a valid non-negative number.");
           return;
         }
         defaultCostPrice = n;
@@ -501,6 +505,7 @@ export function SupplierCatalogColumn({
       if (packSizeRaw.length > 0) {
         const n = Number(packSizeRaw);
         if (!Number.isFinite(n) || n <= 0) {
+          setEditLinkDrawerError("Pack size must be a valid positive number.");
           return;
         }
         packSize = n;
@@ -1065,12 +1070,18 @@ export function SupplierCatalogColumn({
               setEditLinkDrawerCost("");
               setEditLinkDrawerPackUnit("");
               setEditLinkDrawerPackSize("");
+              setEditLinkDrawerError(null);
             }
           }}
           title="Edit supplier link"
           description={`Update supplier SKU, cost, and purchase unit for ${editLinkDrawerRow?.itemName || "this product"}.`}
           contextLabel="Link details"
           icon={<Pencil className="size-5 text-primary" aria-hidden />}
+          banner={
+            editLinkDrawerError ? (
+              <FormDrawerMessageBanner text={editLinkDrawerError} sharp />
+            ) : undefined
+          }
           footer={
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditLinkDrawerOpen(false)}>

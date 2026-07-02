@@ -6,15 +6,22 @@ import {
 } from "@/lib/scope-change-guard";
 
 describe("scope-change-guard", () => {
+  let windowDescriptor: PropertyDescriptor | undefined;
+
   beforeEach(() => {
+    windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
     Object.defineProperty(globalThis, "window", {
       value: { confirm: vi.fn(() => true) },
       configurable: true,
+      writable: true,
     });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    if (windowDescriptor) {
+      Object.defineProperty(globalThis, "window", windowDescriptor);
+    }
   });
 
   it("allows scope change when no guards are active", () => {
@@ -52,12 +59,16 @@ describe("scope-change-guard", () => {
   });
 
   it("unregisters guards on cleanup", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const cleanup = registerScopeGuard({
       id: "transfer-draft",
       message: "Transfer draft open",
       isActive: () => true,
     });
+    expect(confirmScopeChange("branch")).toBe(false);
+    expect(confirm).toHaveBeenCalledTimes(1);
     cleanup();
-    expect(confirmScopeChange("branch", [])).toBe(true);
+    expect(confirmScopeChange("branch")).toBe(true);
+    expect(confirm).toHaveBeenCalledTimes(1);
   });
 });

@@ -49,7 +49,7 @@ export function resolveButcheryOnlyRedirect(
     return APP_ROUTES.butcherAnalytics;
   }
 
-  if (pathname === APP_ROUTES.butcherSuppliers) {
+  if (pathname === APP_ROUTES.suppliers) {
     return APP_ROUTES.butcherSuppliers;
   }
 

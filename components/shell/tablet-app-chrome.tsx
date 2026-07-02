@@ -19,6 +19,7 @@ import {
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
+import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { shellPageTitle } from "@/lib/shell-page-titles";
 import { cn } from "@/lib/utils";
 
@@ -593,7 +594,7 @@ function MoreWorkspaceConsole({
               </option>
             ) : (
               <>
-                <option value="">All departments</option>
+                <option value="">{ALL_DEPARTMENTS_LABEL}</option>
                 {itemTypes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.label}

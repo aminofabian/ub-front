@@ -16,9 +16,7 @@ export function labelToItemTypeKey(label: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
-export const SUGGESTED_STORE_SECTIONS = [
-  "Grocery",
-  "Retail shop",
+const BUTCHERY_STORE_SECTIONS = [
   "Beef",
   "Goat (Chevon)",
   "Mutton",
@@ -33,6 +31,12 @@ export const SUGGESTED_STORE_SECTIONS = [
   "Bones",
   "Minced Meat",
   "Value-added Meat",
+] as const;
+
+export const SUGGESTED_STORE_SECTIONS = [
+  "Grocery",
+  "Retail shop",
+  ...BUTCHERY_STORE_SECTIONS,
   "Fruits",
   "Vegetables",
   "Electronics",
@@ -60,22 +64,7 @@ export const STORE_SECTION_STARTER_KITS: readonly StoreSectionStarterKit[] = [
   {
     id: "butchery",
     label: "Butchery",
-    sections: [
-      "Beef",
-      "Goat (Chevon)",
-      "Mutton",
-      "Chicken",
-      "Pork",
-      "Fish",
-      "Smoked Meat",
-      "Sausages",
-      "Smokies",
-      "Eggs",
-      "Offals",
-      "Bones",
-      "Minced Meat",
-      "Value-added Meat",
-    ],
+    sections: [...BUTCHERY_STORE_SECTIONS],
   },
   {
     id: "mini-mart",

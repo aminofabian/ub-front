@@ -9,12 +9,17 @@ import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
 
+const POST_SETUP_CHECKLIST_DISMISSED_KEY = "post-setup-checklist-dismissed";
+
 export function PostSetupChecklist() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     const state = getOnboardingQuestionnaireState();
     if (state.status !== "completed") {
+      return;
+    }
+    if (localStorage.getItem(POST_SETUP_CHECKLIST_DISMISSED_KEY) === "1") {
       return;
     }
     const updated = state.updatedAt ? new Date(state.updatedAt).getTime() : 0;
@@ -36,7 +41,10 @@ export function PostSetupChecklist() {
         </h2>
         <button
           type="button"
-          onClick={() => setShow(false)}
+          onClick={() => {
+            localStorage.setItem(POST_SETUP_CHECKLIST_DISMISSED_KEY, "1");
+            setShow(false);
+          }}
           className="text-xs font-medium text-[#888888] hover:text-foreground transition-colors"
         >
           Dismiss

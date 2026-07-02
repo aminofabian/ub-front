@@ -330,17 +330,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const id = candidate?.trim();
       if (id && effectiveBranches.some((b) => b.id === id)) {
         if (id !== effectiveBranchId) {
-          if (
-            (persistedBranchInvalid || currentBranchInvalid) &&
-            !staleBranchNoticeShownRef.current
-          ) {
-            staleBranchNoticeShownRef.current = true;
-            const name =
-              effectiveBranches.find((b) => b.id === id)?.name?.trim() ??
-              "another branch";
-            toast.info("Branch selection updated", {
-              description: `Your previous branch is no longer available. Switched to ${name}.`,
-            });
+          if (persistedBranchInvalid || currentBranchInvalid) {
+            if (!staleBranchNoticeShownRef.current) {
+              staleBranchNoticeShownRef.current = true;
+              const name =
+                effectiveBranches.find((b) => b.id === id)?.name?.trim() ??
+                "another branch";
+              toast.info("Branch selection updated", {
+                description: `Your previous branch is no longer available. Switched to ${name}.`,
+              });
+            }
+            writePersistedBranch(effectiveBusiness?.id ?? null, id);
           }
           setBranchIdState(id);
         }
@@ -383,17 +383,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const defaultType = itemTypes.find((t) => t.isDefault);
     const fallback = defaultType?.id ?? itemTypes[0]?.id ?? "";
     if (fallback && fallback !== itemTypeId) {
-      if (
-        (persistedTypeInvalid || currentTypeInvalid) &&
-        !staleItemTypeNoticeShownRef.current
-      ) {
-        staleItemTypeNoticeShownRef.current = true;
-        const label =
-          itemTypes.find((t) => t.id === fallback)?.label?.trim() ??
-          "default department";
-        toast.info("Department selection updated", {
-          description: `Your previous department is no longer available. Switched to ${label}.`,
-        });
+      if (persistedTypeInvalid || currentTypeInvalid) {
+        if (!staleItemTypeNoticeShownRef.current) {
+          staleItemTypeNoticeShownRef.current = true;
+          const label =
+            itemTypes.find((t) => t.id === fallback)?.label?.trim() ??
+            "default department";
+          toast.info("Department selection updated", {
+            description: `Your previous department is no longer available. Switched to ${label}.`,
+          });
+        }
+        writePersistedItemType(effectiveBusiness?.id ?? null, fallback);
       }
       setItemTypeIdState(fallback);
     }

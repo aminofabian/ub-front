@@ -628,11 +628,15 @@ export function OnboardingQuestionnaire({
                 ))}
               </div>
               <div className="pt-2 text-left">
-                <label className="block text-xs font-medium text-[#6B7280]">
+                <label
+                  htmlFor="onboarding-custom-department"
+                  className="block text-xs font-medium text-[#6B7280]"
+                >
                   Add custom department
                 </label>
                 <div className="mt-1.5 flex gap-2">
                   <input
+                    id="onboarding-custom-department"
                     type="text"
                     value={customDepartmentName}
                     onChange={(event) => setCustomDepartmentName(event.target.value)}

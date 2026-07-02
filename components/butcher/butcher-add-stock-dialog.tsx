@@ -249,6 +249,7 @@ export function ButcherAddStockDialog({
   const [busyMode, setBusyMode] = useState<"draft" | "receive" | null>(null);
   const originalServerLineIdsRef = useRef<Set<string>>(new Set());
   const resumeSessionIdRef = useRef<string | null>(null);
+  const pathAReceiveKeysRef = useRef<{ grn?: string; invoice?: string }>({});
 
   const resetForm = useCallback(() => {
     setSupplierId(initialSupplierId?.trim() || "");
@@ -263,6 +264,7 @@ export function ButcherAddStockDialog({
     setLines([emptyLine()]);
     originalServerLineIdsRef.current = new Set();
     resumeSessionIdRef.current = initialSessionId?.trim() || null;
+    pathAReceiveKeysRef.current = {};
   }, [initialSupplierId, initialSessionId]);
 
   const loadItemDetailForRow = useCallback(
@@ -749,6 +751,13 @@ export function ButcherAddStockDialog({
         qtyReceived: parsePurchaseQty(row.qtyStr)!,
       }));
 
+      if (!pathAReceiveKeysRef.current.grn) {
+        pathAReceiveKeysRef.current.grn = nextIdempotencyKey();
+      }
+      if (!pathAReceiveKeysRef.current.invoice) {
+        pathAReceiveKeysRef.current.invoice = nextIdempotencyKey();
+      }
+
       const grnResult = await postPathAGoodsReceipt(
         {
           purchaseOrderId: purchaseOrderId.trim(),
@@ -757,7 +766,7 @@ export function ButcherAddStockDialog({
           notes: notes.trim() || null,
           lines: grnLines,
         },
-        nextIdempotencyKey(),
+        pathAReceiveKeysRef.current.grn,
       );
 
       const invoiceLines = selected.map((row) => {
@@ -778,9 +787,10 @@ export function ButcherAddStockDialog({
           invoiceDate: deliveryDate,
           lines: invoiceLines,
         },
-        nextIdempotencyKey(),
+        pathAReceiveKeysRef.current.invoice,
       );
 
+      pathAReceiveKeysRef.current = {};
       toast.success(`PO ${poNumber ?? ""} received.`.trim());
       onCompleted?.();
       onOpenChange(false);

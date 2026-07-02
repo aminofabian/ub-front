@@ -79,6 +79,11 @@ export default function BusinessSettingsPage() {
   const effectiveSnapshot = snapshot ?? bootstrapBusiness;
   const focusStorefront = searchParams.get("onboarding") === "storefront";
 
+  const branchesRef = useRef<BranchRecord[]>([]);
+  useEffect(() => {
+    branchesRef.current = branches;
+  }, [branches]);
+
   const load = useCallback(() => {
     const timeout = new Promise<never>((_, reject) => {
       window.setTimeout(
@@ -93,7 +98,7 @@ export default function BusinessSettingsPage() {
         setFeedback(null);
         setSnapshot(payload);
         hydratedFromBootstrap.current = true;
-        const next = applyBusinessSnapshot(payload, branches);
+        const next = applyBusinessSnapshot(payload, branchesRef.current);
         setEditable(next.editable);
         setStorefront(next.storefront);
         setInventory(next.inventory);
@@ -113,14 +118,14 @@ export default function BusinessSettingsPage() {
               : "Could not load your business.",
         });
       });
-  }, [branches]);
+  }, []);
 
   useEffect(() => {
     if (bootstrapBusiness) {
       hydratedFromBootstrap.current = true;
       setLoadFailed(false);
       setSnapshot(bootstrapBusiness);
-      const next = applyBusinessSnapshot(bootstrapBusiness, branches);
+      const next = applyBusinessSnapshot(bootstrapBusiness, branchesRef.current);
       setEditable(next.editable);
       setStorefront(next.storefront);
       setInventory(next.inventory);

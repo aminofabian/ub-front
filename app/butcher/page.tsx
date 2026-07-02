@@ -4,7 +4,7 @@ import { ButcherCashierWorkspace } from "@/components/butcher/butcher-cashier-wo
 
 export default function ButcherCashierPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="flex h-dvh items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
       <ButcherCashierWorkspace />
     </Suspense>
   );

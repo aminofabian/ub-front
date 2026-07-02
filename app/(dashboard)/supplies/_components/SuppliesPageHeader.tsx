@@ -23,7 +23,7 @@ export function SuppliesPageHeader({
   canShowProcurementLinks,
   canOpenNewSupply,
   listLoading,
-  branchScopeLabel,
+  branchScopeLabel: _branchScopeLabel,
   onRefresh,
   onNewSupply,
 }: {
@@ -72,14 +72,6 @@ export function SuppliesPageHeader({
         description={
           <span className="hidden text-sm leading-relaxed text-muted-foreground sm:inline">
             Record vendor deliveries and track open payables.
-            {branchScopeLabel ? (
-              <>
-                {" "}
-                <span className="font-medium text-foreground/80">
-                  Branch: {branchScopeLabel}
-                </span>
-              </>
-            ) : null}
           </span>
         }
       />

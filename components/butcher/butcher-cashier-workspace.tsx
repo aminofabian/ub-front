@@ -641,6 +641,8 @@ export function ButcherCashierWorkspace() {
       setError("Add at least one cut.");
       return;
     }
+    let validatedCashAmount: number | null = null;
+    let validatedMpesaAmount: number | null = null;
     if (splitPay) {
       const cashAmount = parseMoney(cashSplitStr);
       const mpesaAmount = parseMoney(mpesaSplitStr);
@@ -655,6 +657,8 @@ export function ButcherCashierWorkspace() {
         );
         return;
       }
+      validatedCashAmount = cashAmount;
+      validatedMpesaAmount = mpesaAmount;
     } else if (payMethod === "cash") {
       const tender = parseMoney(cashTenderStr.trim());
       if (tender == null) {
@@ -684,10 +688,10 @@ export function ButcherCashierWorkspace() {
 
     const payments = splitPay
       ? [
-          { method: "cash" as const, amount: parseMoney(cashSplitStr)! },
+          { method: "cash" as const, amount: validatedCashAmount! },
           {
             method: "mpesa_manual" as const,
-            amount: parseMoney(mpesaSplitStr)!,
+            amount: validatedMpesaAmount!,
             reference: splitMpesaRef.trim() || null,
           },
         ]

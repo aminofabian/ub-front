@@ -47,6 +47,18 @@ export default function ShopAddToCart({
   }, [inCart]);
 
   if (inStoreOnly) {
+    if (compact) {
+      return (
+        <p
+          className={cn(
+            "text-center text-xs font-medium text-sky-800/80 dark:text-sky-300/90",
+            className,
+          )}
+        >
+          Available in store only
+        </p>
+      );
+    }
     return (
       <div
         className={cn(

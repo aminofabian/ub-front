@@ -59,6 +59,12 @@ describe("butchery-only redirects", () => {
       APP_ROUTES.butcherProducts,
     );
   });
+
+  it("redirects dashboard suppliers to butcher suppliers", () => {
+    expect(resolveButcheryOnlyRedirect(APP_ROUTES.suppliers, butcherOnly)).toBe(
+      APP_ROUTES.butcherSuppliers,
+    );
+  });
 });
 
 describe("resolvePostAuthDestination butchery-only", () => {

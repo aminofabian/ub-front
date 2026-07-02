@@ -242,14 +242,14 @@ export function BusinessHubWorkspace() {
 
   const marginFooter = useMemo(() => {
     if (!canViewAnalytics) return undefined;
-    if (isToday && pulse?.grossMarginPct != null) {
+    if (isToday && pulse && pulse.grossMarginPct != null) {
       return `${fmtPct(pulse.grossMarginPct)} margin`;
     }
     if (!isToday && weekPl && revenue > 0) {
       return `${fmtPct((grossProfit / revenue) * 100)} margin`;
     }
     return undefined;
-  }, [canViewAnalytics, isToday, pulse?.grossMarginPct, weekPl, revenue, grossProfit]);
+  }, [canViewAnalytics, isToday, pulse, weekPl, revenue, grossProfit]);
 
   const revenueTrend = fmtTrendPct(revenue, prevRevenue);
   const ordersTrend = fmtTrendPct(orders ?? 0, prevOrders ?? 0);

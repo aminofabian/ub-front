@@ -246,6 +246,7 @@ export default async function ShopItemPage({ params }: PageProps) {
             <ShopAddToCart
               slug={slug}
               itemId={item.id}
+              inStoreOnly={inStoreOnly}
               compact
               className="!mt-0 !border-0 !bg-transparent !p-0"
             />
