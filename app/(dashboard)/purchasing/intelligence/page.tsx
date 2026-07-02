@@ -51,6 +51,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSessionBranch } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchPurchasingIntelligenceDashboard,
@@ -258,6 +259,8 @@ function Insights({ insights }: { insights: PurchasingIntelligenceDashboardRespo
 
 export default function PurchasingIntelligencePage() {
   const { me } = useDashboard();
+  const { branchId: headerBranchId, branchName: headerBranchName } =
+    useSessionBranch();
   const allowed = hasPermission(me?.permissions, Permission.PurchasingIntelligenceRead);
 
   const [from, setFrom] = useState("");
@@ -274,14 +277,19 @@ export default function PurchasingIntelligencePage() {
       const toRaw = range?.to ?? to;
       const fromArg = fromRaw.trim() || undefined;
       const toArg = toRaw.trim() || undefined;
-      const dashboard = await fetchPurchasingIntelligenceDashboard(fromArg, toArg);
+      const branchArg = headerBranchId?.trim() || undefined;
+      const dashboard = await fetchPurchasingIntelligenceDashboard(
+        fromArg,
+        toArg,
+        branchArg,
+      );
       setData(dashboard);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to load reports.");
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, headerBranchId]);
 
   useEffect(() => {
     if (!allowed) return;
@@ -324,6 +332,7 @@ export default function PurchasingIntelligencePage() {
     <div className={DASHBOARD_MAX_WIDE}>
       <section className={DASHBOARD_SECTION_SURFACE}>
         <DashboardPageHero
+          showActiveScope
           icon={LineChart}
           eyebrow="Purchasing"
           title="Supplier intelligence"
@@ -331,6 +340,14 @@ export default function PurchasingIntelligencePage() {
             <>
               Spend analysis, price competitiveness, and supplier risk monitoring. Use quick ranges or set
               custom dates. Leave empty for the last 90 days.
+              {headerBranchName ? (
+                <>
+                  {" "}
+                  <span className="font-medium text-foreground/80">
+                    Branch: {headerBranchName}
+                  </span>
+                </>
+              ) : null}
             </>
           }
         />

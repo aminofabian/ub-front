@@ -15,6 +15,7 @@ export type ProductEditDraft = {
   name?: string;
   sku?: string;
   barcode?: string;
+  pluCode?: string;
   description?: string;
   active?: boolean;
   webPublished?: boolean;
@@ -58,6 +59,7 @@ export type ParentDraft = {
   name: string;
   sku: string;
   barcode: string;
+  pluCode: string;
   itemTypeId: string;
   categoryId: string;
   brand: string;
@@ -104,6 +106,7 @@ export const EMPTY_PARENT: ParentDraft = {
   name: "",
   sku: "",
   barcode: "",
+  pluCode: "",
   itemTypeId: "",
   categoryId: "",
   brand: "",

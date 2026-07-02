@@ -16,6 +16,8 @@ export type PublicCatalogItemCard = {
   qtyOnHand?: number | null;
   /** Latest buying price across all suppliers (most recent effectiveFrom). */
   buyingPrice?: number | null;
+  /** web_cart | in_store_only — weighed butcher cuts are in-store only (P5). */
+  onlinePurchaseMode?: string | null;
 };
 
 export type PublicStorefrontPayload = {
@@ -56,6 +58,7 @@ export type PublicCatalogVariant = {
   imageUrl: string | null;
   price: number | null;
   qtyOnHand?: number | null;
+  onlinePurchaseMode?: string | null;
 };
 
 export type PublicBarcodeLookup = {
@@ -90,7 +93,16 @@ export type PublicCatalogItemDetail = {
   qtyOnHand?: number | null;
   images: PublicItemImage[];
   variants: PublicCatalogVariant[];
+  onlinePurchaseMode?: string | null;
 };
+
+export const STOREFRONT_ONLINE_IN_STORE_ONLY = "in_store_only";
+
+export function isStorefrontInStoreOnly(
+  mode: string | null | undefined,
+): boolean {
+  return (mode ?? "").toLowerCase() === STOREFRONT_ONLINE_IN_STORE_ONLY;
+}
 
 export type PublicCatalogListPayload = {
   currency: string;

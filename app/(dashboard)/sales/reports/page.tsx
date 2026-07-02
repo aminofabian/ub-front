@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Package, Receipt, ShoppingCart } from "lucide-react";
 
 import {
@@ -9,12 +9,20 @@ import {
   DashboardNotice,
   DashboardPageHero,
   DashboardQuickLinks,
+  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSessionBranch, useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
-import { fetchSalesRevenueByCategory, type RevenueByCategoryRow } from "@/lib/api";
+import {
+  fetchBranches,
+  fetchSalesRevenueByCategory,
+  type BranchRecord,
+  type RevenueByCategoryRow,
+} from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -25,8 +33,26 @@ function rowAmount(row: RevenueByCategoryRow): number {
 }
 
 export default function SalesReportsPage() {
-  const { me, business } = useDashboard();
+  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
+  const { branchName: headerBranchName } = useSessionBranch();
   const allowed = hasPermission(me?.permissions, Permission.SalesIntelligenceRead);
+
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [branchId, setBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setBranchId(id);
+      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+    },
+    [branchLocked, setHeaderBranchId],
+  );
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -34,20 +60,37 @@ export default function SalesReportsPage() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<RevenueByCategoryRow[]>([]);
 
+  useEffect(() => {
+    void fetchBranches()
+      .then((list) => setBranches(list.filter((b) => b.active)))
+      .catch(() => setBranches([]));
+  }, []);
+
   const load = useCallback(async () => {
     setMessage("");
     setLoading(true);
     try {
       const fromArg = from.trim() || undefined;
       const toArg = to.trim() || undefined;
-      const data = await fetchSalesRevenueByCategory(fromArg, toArg);
+      const branchArg = branchId.trim() || undefined;
+      const data = await fetchSalesRevenueByCategory(
+        fromArg,
+        toArg,
+        undefined,
+        branchArg,
+      );
       setRows(data);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to load report.");
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, branchId]);
+
+  useEffect(() => {
+    if (!allowed) return;
+    void load();
+  }, [allowed, load]);
 
   if (!allowed) {
     return (
@@ -66,12 +109,16 @@ export default function SalesReportsPage() {
   }
 
   const currency = business?.currency?.trim() ?? "";
+  const branchLabel = branchId
+    ? branches.find((b) => b.id === branchId)?.name?.trim() || headerBranchName
+    : "All branches";
 
   return (
     <div className={DASHBOARD_MAX}>
       <div className="space-y-8">
       <header className="space-y-4">
         <DashboardPageHero
+          showActiveScope
           icon={ShoppingCart}
           eyebrow="Sales"
           title="Sales by category"
@@ -81,6 +128,7 @@ export default function SalesReportsPage() {
               Sale rows use each sale&apos;s date; refunds use the refund date. Leave dates empty for the default
               rolling window (last 90 days ending today).
               {currency ? ` Amounts use business currency (${currency}).` : ""}
+              {branchLabel ? ` Showing: ${branchLabel}.` : ""}
             </>
           }
         />
@@ -119,6 +167,23 @@ export default function SalesReportsPage() {
             value={to}
             onChange={(event) => setTo(event.target.value)}
           />
+        </label>
+        <label className="flex min-w-[10rem] flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Branch</span>
+          <select
+            className={cn(dashboardSelectClass(), "h-9")}
+            value={branchId}
+            disabled={branchLocked}
+            onChange={(e) => onChangeBranch(e.target.value)}
+            aria-label="Branch"
+          >
+            {!branchLocked ? <option value="">All branches</option> : null}
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
         </label>
         <Button type="submit" disabled={loading}>
           {loading ? "Loading…" : "Refresh"}

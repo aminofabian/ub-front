@@ -28,6 +28,10 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.salesReports]: "Sales reports",
     [APP_ROUTES.salesQuick]: "Quick sale",
     [APP_ROUTES.cashier]: "Cashier",
+    [APP_ROUTES.butcher]: "Butcher",
+    [APP_ROUTES.butcherProducts]: "Products",
+    [APP_ROUTES.butcherAnalytics]: "Analytics",
+    [APP_ROUTES.butcherSuppliers]: "Suppliers",
     [APP_ROUTES.grocery]: "Grocery",
     [APP_ROUTES.groceryInvoices]: "Invoices",
     [APP_ROUTES.analytics]: "Analytics",
@@ -53,6 +57,7 @@ export function shellPageTitle(pathname: string): string {
   if (path.startsWith(APP_ROUTES.sales)) return "Sales";
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";
+  if (path.startsWith(APP_ROUTES.butcher)) return "Butcher";
 
   const segment = path.split("/").filter(Boolean).pop();
   if (!segment) return "Home";

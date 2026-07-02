@@ -13,6 +13,12 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.grocery);
   });
 
+  it("sends butcher cashiers to /butcher", () => {
+    expect(
+      resolvePostAuthDestination({ role: { key: "butcher_cashier" } }),
+    ).toBe(APP_ROUTES.butcher);
+  });
+
   it("sends cashiers to quick sale", () => {
     expect(resolvePostAuthDestination({ role: { key: "cashier" } })).toBe(
       APP_ROUTES.salesQuick,

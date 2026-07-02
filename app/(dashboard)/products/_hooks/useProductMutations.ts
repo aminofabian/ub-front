@@ -413,6 +413,9 @@ export function useProductMutations(d: Dependencies) {
               ...(parentDraft.barcode.trim()
                 ? { barcode: parentDraft.barcode.trim() }
                 : {}),
+              ...(parentDraft.pluCode.trim()
+                ? { pluCode: parentDraft.pluCode.trim() }
+                : {}),
               ...(parentDraft.categoryId.trim()
                 ? { categoryId: parentDraft.categoryId.trim() }
                 : {}),
@@ -603,6 +606,7 @@ export function useProductMutations(d: Dependencies) {
         name: patchDraft.name,
         sku: patchDraft.sku,
         barcode: patchDraft.barcode,
+        pluCode: patchDraft.pluCode?.trim() ?? "",
         description: patchDraft.description,
         active: patchDraft.active,
         webPublished: patchDraft.webPublished ?? true,

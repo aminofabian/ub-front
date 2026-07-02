@@ -345,6 +345,7 @@ export function PendingCartsPage() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <DashboardPageHero
           compact
+          showActiveScope
           icon={ShoppingCart}
           eyebrow="Sales & POS"
           title="Pending sales"

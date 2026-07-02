@@ -437,6 +437,7 @@ type TabletMoreSheetProps = {
   itemTypeId: string;
   itemTypesLoading: boolean;
   onItemTypeChange: (id: string) => void;
+  departmentLocked?: boolean;
   onLogout: () => void;
   itemIsActive: (pathname: string, href: string) => boolean;
   /** Cashier / stock manager / grocery: flat link list instead of launcher grid. */
@@ -486,6 +487,7 @@ function MoreWorkspaceConsole({
   itemTypeId,
   itemTypesLoading,
   onItemTypeChange,
+  departmentLocked = false,
 }: {
   accent: string;
   branchName?: string | null;
@@ -499,6 +501,7 @@ function MoreWorkspaceConsole({
   itemTypeId: string;
   itemTypesLoading: boolean;
   onItemTypeChange: (id: string) => void;
+  departmentLocked?: boolean;
 }) {
   const selectClass =
     "w-full appearance-none rounded-xl border border-white/20 bg-background/90 px-3 py-2 pr-8 text-sm font-medium shadow-sm backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50 dark:border-white/10";
@@ -569,6 +572,15 @@ function MoreWorkspaceConsole({
           <label className="mb-1 block text-[10px] font-semibold text-muted-foreground">
             Department
           </label>
+          {departmentLocked ? (
+            <p className="flex items-center gap-2 rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-sm font-medium">
+              <Lock className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">
+                {itemTypes.find((t) => t.id === itemTypeId)?.label ??
+                  "Department"}
+              </span>
+            </p>
+          ) : (
           <select
             className={selectClass}
             value={itemTypeId}
@@ -581,7 +593,7 @@ function MoreWorkspaceConsole({
               </option>
             ) : (
               <>
-                {!itemTypeId ? <option value="">All departments…</option> : null}
+                <option value="">All departments</option>
                 {itemTypes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.label}
@@ -591,6 +603,7 @@ function MoreWorkspaceConsole({
               </>
             )}
           </select>
+          )}
         </div>
       </div>
     </div>
@@ -620,6 +633,7 @@ export function TabletMoreSheet({
   itemTypeId,
   itemTypesLoading,
   onItemTypeChange,
+  departmentLocked = false,
   onLogout,
   itemIsActive,
   compactNav = false,
@@ -795,6 +809,7 @@ export function TabletMoreSheet({
           itemTypeId={itemTypeId}
           itemTypesLoading={itemTypesLoading}
           onItemTypeChange={onItemTypeChange}
+          departmentLocked={departmentLocked}
         />
 
         <div className="relative mt-3 shrink-0">

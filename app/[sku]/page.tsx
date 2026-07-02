@@ -17,6 +17,7 @@ import {
   formatDisplayPrice,
   formatStoreQty,
   hasCatalogPrice,
+  isStorefrontInStoreOnly,
 } from "@/lib/public-storefront";
 import {
   shopItemPathFromCard,
@@ -78,6 +79,7 @@ export default async function ShopItemPage({ params }: PageProps) {
 
   const variantOptions = mergeVariantOptions(item);
   const hasMultipleOptions = variantOptions.length > 1;
+  const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
   const showPrice = hasCatalogPrice(item.price);
   const stockLabel = formatStoreQty(item.qtyOnHand);
   const hero = item.images[0];
@@ -184,8 +186,15 @@ export default async function ShopItemPage({ params }: PageProps) {
                 </p>
               ) : null}
 
-              {showPrice ? (
+              {showPrice && !inStoreOnly ? (
                 <ShopAddToCart slug={slug} itemId={item.id} className="mt-5" />
+              ) : inStoreOnly ? (
+                <ShopAddToCart
+                  slug={slug}
+                  itemId={item.id}
+                  inStoreOnly
+                  className="mt-5"
+                />
               ) : (
                 <div className="mt-5 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
                   {hasMultipleOptions

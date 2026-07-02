@@ -19,6 +19,20 @@ export function labelToItemTypeKey(label: string): string {
 export const SUGGESTED_STORE_SECTIONS = [
   "Grocery",
   "Retail shop",
+  "Beef",
+  "Goat (Chevon)",
+  "Mutton",
+  "Chicken",
+  "Pork",
+  "Fish",
+  "Smoked Meat",
+  "Sausages",
+  "Smokies",
+  "Eggs",
+  "Offals",
+  "Bones",
+  "Minced Meat",
+  "Value-added Meat",
   "Fruits",
   "Vegetables",
   "Electronics",
@@ -43,6 +57,26 @@ export type StoreSectionStarterKit = {
 };
 
 export const STORE_SECTION_STARTER_KITS: readonly StoreSectionStarterKit[] = [
+  {
+    id: "butchery",
+    label: "Butchery",
+    sections: [
+      "Beef",
+      "Goat (Chevon)",
+      "Mutton",
+      "Chicken",
+      "Pork",
+      "Fish",
+      "Smoked Meat",
+      "Sausages",
+      "Smokies",
+      "Eggs",
+      "Offals",
+      "Bones",
+      "Minced Meat",
+      "Value-added Meat",
+    ],
+  },
   {
     id: "mini-mart",
     label: "Mini mart",

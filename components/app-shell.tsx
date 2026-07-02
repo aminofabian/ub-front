@@ -37,8 +37,11 @@ import { useOptionalTenant, useFeatureFlags } from "@/components/providers/tenan
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
+import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
 import { groceryClerkStockAccessEnabled } from "@/lib/inventory-access";
+import { BUTCHER_POS_FEATURE_FLAG, isButcherPosEnabled } from "@/lib/butcher-feature";
 import { logoutRemote } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -191,6 +194,16 @@ const NAV_SECTIONS: readonly NavSection[] = [
       },
       { href: APP_ROUTES.salesQuick, label: "Quick sale" },
       { href: APP_ROUTES.cashier, label: "Cashier (PWA)" },
+      {
+        href: APP_ROUTES.butcher,
+        label: "Butcher counter",
+        featureFlag: BUTCHER_POS_FEATURE_FLAG,
+      },
+      {
+        href: APP_ROUTES.butcherSuppliers,
+        label: "Butcher suppliers",
+        featureFlag: BUTCHER_POS_FEATURE_FLAG,
+      },
       { href: APP_ROUTES.grocery, label: "Grocery counter" },
       { href: APP_ROUTES.groceryInvoices, label: "Grocery invoices" },
     ],
@@ -234,6 +247,9 @@ function featureFlagAllows(
   if (!featureFlags) return false;
   const key = item.featureFlag;
   if (key.startsWith("pos_drafts.") || key.startsWith("grocery_drafts.")) {
+    return featureFlags[key] === true;
+  }
+  if (key === BUTCHER_POS_FEATURE_FLAG) {
     return featureFlags[key] === true;
   }
   return featureFlags[key] !== false;
@@ -282,6 +298,18 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       APP_ROUTES.groceryInvoices,
     ];
     return allowed.includes(item.href);
+  }
+
+  if (gate.roleKey === "butcher_cashier") {
+    const allowed: readonly string[] = [
+      APP_ROUTES.butcher,
+      APP_ROUTES.butcherSuppliers,
+      APP_ROUTES.shifts,
+      APP_ROUTES.purchasingAddSupplies,
+    ];
+    if (!allowed.includes(item.href)) return false;
+    if (item.href === APP_ROUTES.butcherSuppliers) return gate.canViewSuppliers;
+    return true;
   }
 
   // Grocery clerks: generate invoices and look at the ones they created.
@@ -335,13 +363,32 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesQuick) return gate.canQuickSale;
   if (item.href === APP_ROUTES.cashier) return gate.canQuickSale;
-  if (item.href === APP_ROUTES.grocery) return gate.canAccessGrocery;
-  if (item.href === APP_ROUTES.groceryInvoices) return gate.canAccessGrocery;
+  if (item.href === APP_ROUTES.grocery) {
+    if (gate.roleKey === "grocery_clerk") return gate.canAccessGrocery;
+    if (isButcherPosEnabled(gate.featureFlags)) return false;
+    return gate.canAccessGrocery;
+  }
+  if (item.href === APP_ROUTES.groceryInvoices) {
+    if (gate.roleKey === "grocery_clerk") return gate.canAccessGrocery;
+    if (isButcherPosEnabled(gate.featureFlags)) return false;
+    return gate.canAccessGrocery;
+  }
+  if (item.href === APP_ROUTES.butcher) {
+    return isButcherPosEnabled(gate.featureFlags) && gate.canQuickSale;
+  }
+  if (item.href === APP_ROUTES.butcherSuppliers) {
+    return (
+      isButcherPosEnabled(gate.featureFlags) && gate.canViewSuppliers
+    );
+  }
   return featureFlagAllows(item, gate.featureFlags);
 }
 
 function itemIsActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
+  if (href === APP_ROUTES.butcher) {
+    return pathname === APP_ROUTES.butcher;
+  }
   return (
     pathname === href ||
     pathname.startsWith(href + "/") ||
@@ -489,6 +536,8 @@ export function AppShell({ children }: AppShellProps) {
   const isStockManager =
     me?.role?.key?.trim().toLowerCase() === "stock_manager";
   const isCashier = me?.role?.key?.trim().toLowerCase() === "cashier";
+  const isButcherCashier =
+    me?.role?.key?.trim().toLowerCase() === "butcher_cashier";
   const isGroceryClerk =
     me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
   // Tablet / iPad app shell: bottom nav + large-title header for every role
@@ -501,9 +550,13 @@ export function AppShell({ children }: AppShellProps) {
     ? APP_ROUTES.inventoryStockTake
     : isCashier
       ? APP_ROUTES.salesQuick
-      : isGroceryClerk
-        ? APP_ROUTES.grocery
-        : APP_ROUTES.overview;
+      : isButcherCashier
+        ? APP_ROUTES.butcher
+        : isGroceryClerk
+          ? APP_ROUTES.grocery
+          : isButcheryOnlyBusiness(business)
+            ? APP_ROUTES.butcher
+            : APP_ROUTES.overview;
   const canReadNotifications = hasPermission(
     me?.permissions,
     Permission.ReportsNotificationsRead,
@@ -613,15 +666,29 @@ export function AppShell({ children }: AppShellProps) {
         icon: ScanLine,
       });
     }
-    if (canAccessGrocery) {
+    if (canAccessGrocery && !isButcherPosEnabled(mergedFeatureFlags)) {
       links.push({
         href: APP_ROUTES.grocery,
         label: "Grocery",
         icon: Store,
       });
     }
+    if (isButcherPosEnabled(mergedFeatureFlags) && canQuickSale) {
+      links.push({
+        href: APP_ROUTES.butcher,
+        label: "Butcher",
+        icon: ScanLine,
+      });
+    }
+    if (isButcherPosEnabled(mergedFeatureFlags) && canViewSuppliers) {
+      links.push({
+        href: APP_ROUTES.butcherSuppliers,
+        label: "Butcher suppliers",
+        icon: Truck,
+      });
+    }
     return links;
-  }, [canQuickSale, canAccessGrocery]);
+  }, [canQuickSale, canAccessGrocery, canViewSuppliers, mergedFeatureFlags]);
 
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
@@ -642,6 +709,42 @@ export function AppShell({ children }: AppShellProps) {
             tab.href === APP_ROUTES.shifts ||
             tab.id === "more"),
       );
+    }
+    if (roleKey === "butcher_cashier") {
+      const tabs: BottomTab[] = [
+        {
+          id: "counter",
+          label: "Counter",
+          icon: ScanLine,
+          href: APP_ROUTES.butcher,
+          matchSectionIds: ["sales"],
+        },
+      ];
+      if (canViewSuppliers) {
+        tabs.push({
+          id: "suppliers",
+          label: "Suppliers",
+          icon: Truck,
+          href: APP_ROUTES.butcherSuppliers,
+          matchSectionIds: ["sales", "procurement"],
+        });
+      }
+      tabs.push(
+        {
+          id: "ops",
+          label: "Shifts",
+          icon: SlidersHorizontal,
+          href: APP_ROUTES.shifts,
+          matchSectionIds: ["ops"],
+        },
+        {
+          id: "more",
+          label: "More",
+          icon: Tags,
+          matchSectionIds: ["org", "payments", "procurement", "inventory"],
+        },
+      );
+      return tabs;
     }
     if (roleKey === "grocery_clerk") {
       // Compact, kiosk-friendly tab set surfaced at every viewport size since
@@ -680,7 +783,7 @@ export function AppShell({ children }: AppShellProps) {
       return groceryClerkTabs;
     }
     return BOTTOM_TABS;
-  }, [me, business]);
+  }, [me, business, canViewSuppliers]);
 
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
@@ -703,6 +806,7 @@ export function AppShell({ children }: AppShellProps) {
   // ── current selections for header display ─────────────────────────────────
   const currentBranch = branches.find((b) => b.id === branchId);
   const currentItemType = itemTypes.find((t) => t.id === itemTypeId);
+  const departmentLocked = isGroceryClerk && itemTypes.length === 1;
 
   // ── Auto-redirect restricted roles away from unauthorized pages ──────────
   useEffect(() => {
@@ -741,6 +845,22 @@ export function AppShell({ children }: AppShellProps) {
       return;
     }
 
+    if (roleKey === "butcher_cashier") {
+      const allowed = [
+        APP_ROUTES.butcher,
+        APP_ROUTES.butcherSuppliers,
+        APP_ROUTES.shifts,
+        APP_ROUTES.purchasingAddSupplies,
+      ];
+      const isAllowed = allowed.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+      );
+      if (!isAllowed) {
+        router.replace(APP_ROUTES.butcher);
+      }
+      return;
+    }
+
     if (roleKey === "grocery_clerk") {
       const allowed: string[] = [APP_ROUTES.grocery, APP_ROUTES.groceryInvoices];
       if (groceryClerkStockAccessEnabled(business)) {
@@ -768,7 +888,7 @@ export function AppShell({ children }: AppShellProps) {
           faviconUrl={business?.branding?.faviconUrl}
           primaryColor={business?.branding?.primaryColor}
           sections={visibleSections}
-          flat={isStockManager || isCashier || isGroceryClerk}
+          flat={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
         />
       </div>
 
@@ -802,7 +922,7 @@ export function AppShell({ children }: AppShellProps) {
             />
             {canReadNotifications ? <NotificationBell /> : null}
             {/* Phase 9: Branch selector — hidden for stock managers, cashiers and grocery clerks who are locked to their assigned branch */}
-            {isStockManager || isCashier || isGroceryClerk ? (
+            {isStockManager || isCashier || isButcherCashier || isGroceryClerk ? (
               currentBranch ? (
                 <span
                   className="inline-flex items-center gap-1.5 h-8 px-2 text-xs font-medium text-muted-foreground border rounded-md bg-muted/30 cursor-not-allowed"
@@ -846,6 +966,15 @@ export function AppShell({ children }: AppShellProps) {
             ) : null}
 
             {/* Item type selector */}
+            {departmentLocked && currentItemType ? (
+              <span
+                className="inline-flex h-8 max-w-[11rem] items-center gap-1.5 truncate rounded-md border bg-muted/30 px-2 text-xs font-medium text-muted-foreground"
+                title="Department switching is disabled for your role"
+              >
+                <Lock className="size-3 shrink-0" aria-hidden />
+                {currentItemType.label}
+              </span>
+            ) : (
             <select
               className="h-8 max-w-[11rem] rounded-md border bg-background px-2 text-xs font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
               value={itemTypeId}
@@ -859,9 +988,7 @@ export function AppShell({ children }: AppShellProps) {
                 </option>
               ) : (
                 <>
-                  {!itemTypeId ? (
-                    <option value="">Select department…</option>
-                  ) : null}
+                  <option value="">{ALL_DEPARTMENTS_LABEL}</option>
                   {itemTypes.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label}
@@ -871,6 +998,7 @@ export function AppShell({ children }: AppShellProps) {
                 </>
               )}
             </select>
+            )}
 
             <Button variant="outline" onClick={onLogout}>
               Log out
@@ -886,7 +1014,7 @@ export function AppShell({ children }: AppShellProps) {
             faviconUrl={business?.branding?.faviconUrl}
             primaryColor={business?.branding?.primaryColor}
             branchName={currentBranch?.name}
-            departmentName={currentItemType?.label}
+            departmentName={currentItemType?.label ?? ALL_DEPARTMENTS_LABEL}
             userInitial={userInitial}
             canReadNotifications={canReadNotifications}
             posLinks={headerPosLinks}
@@ -934,7 +1062,7 @@ export function AppShell({ children }: AppShellProps) {
             sections={visibleSections}
             pathname={pathname}
             branchName={currentBranch?.name}
-            branchLocked={isStockManager || isCashier || isGroceryClerk}
+            branchLocked={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
             branches={branches}
             branchId={branchId}
             branchesLoading={branchesLoading}
@@ -942,6 +1070,7 @@ export function AppShell({ children }: AppShellProps) {
             showBranchPicker={
               !isStockManager &&
               !isCashier &&
+              !isButcherCashier &&
               !isGroceryClerk &&
               multiBranch
             }
@@ -949,9 +1078,10 @@ export function AppShell({ children }: AppShellProps) {
             itemTypeId={itemTypeId}
             itemTypesLoading={itemTypesLoading}
             onItemTypeChange={setItemTypeId}
+            departmentLocked={departmentLocked}
             onLogout={onLogout}
             itemIsActive={itemIsActive}
-            compactNav={isStockManager || isCashier || isGroceryClerk}
+            compactNav={isStockManager || isCashier || isButcherCashier || isGroceryClerk}
           />
         </div>
       </div>

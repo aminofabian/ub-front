@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { PackageX, RefreshCw } from "lucide-react";
 
 import { DashboardQuickLinks } from "@/components/dashboard-page-ui";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
 import type { MeResponse } from "@/lib/api";
@@ -55,6 +56,7 @@ export function RestockPageHeader({
           Refresh
         </Button>
       </div>
+      <ActiveScopeSubtitle className="text-xs" />
 
       {canShowQuickLinks && quickLinks.length > 0 ? (
         <DashboardQuickLinks compact links={quickLinks} />

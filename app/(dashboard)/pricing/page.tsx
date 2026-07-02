@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CircleDollarSign, Package, Percent, Plus, Tags, Truck } from "lucide-react";
 
 import {
@@ -13,6 +13,8 @@ import {
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -80,6 +82,14 @@ export default function PricingPage() {
   const [suggestion, setSuggestion] = useState<SellPriceSuggestionRecord | null>(null);
   const [sellItemId, setSellItemId] = useState("");
   const [sellBranchId, setSellBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Default the sell-price branch from the global header (empty = all/default).
+  useSyncBranchFilter({
+    value: sellBranchId,
+    setValue: setSellBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
   const [sellPrice, setSellPrice] = useState("");
   const [sellEffectiveFrom, setSellEffectiveFrom] = useState("");
   const [sellNotes, setSellNotes] = useState("");
@@ -90,6 +100,15 @@ export default function PricingPage() {
   const [suggestDrawerOpen, setSuggestDrawerOpen] = useState(false);
   const [rulesTaxDrawerOpen, setRulesTaxDrawerOpen] = useState(false);
   const [sellDrawerOpen, setSellDrawerOpen] = useState(false);
+
+  const sellFormDirty =
+    sellDrawerOpen &&
+    Boolean(sellItemId.trim() || sellPrice.trim() || sellNotes.trim());
+  useScopeChangeGuard(
+    "pricing-sell",
+    sellFormDirty,
+    "You are entering a sell price for a specific branch.",
+  );
 
   useEffect(() => {
     if (!allowed) {
@@ -313,6 +332,7 @@ export default function PricingPage() {
       <header className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <DashboardPageHero
+            showActiveScope
             icon={CircleDollarSign}
             eyebrow="Commercial"
             title="Pricing"

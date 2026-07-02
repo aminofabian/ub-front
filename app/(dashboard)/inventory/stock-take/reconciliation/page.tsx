@@ -19,6 +19,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -83,25 +84,32 @@ export default function ReconciliationPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Follow the global header branch selection (pinned for locked roles).
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
+
   // Load branches
   useEffect(() => {
     let cancelled = false;
     fetchBranches()
       .then((list) => {
-        if (!cancelled) {
-          const active = list.filter((b) => b.active);
-          setBranches(active);
-          if (active.length > 0 && !branchId) {
-            const userBranch = active.find((b) => b.id === me?.branchId);
-            setBranchId(userBranch?.id ?? active[0].id);
-          }
-        }
+        if (!cancelled) setBranches(list.filter((b) => b.active));
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [me?.branchId]);
+  }, []);
+
+  // Fall back to the first branch when the header has no selection.
+  useEffect(() => {
+    if (branchLocked || branchId || branches.length === 0) return;
+    setBranchId(branches[0].id);
+  }, [branchLocked, branchId, branches]);
 
   const onGenerate = useCallback(async () => {
     if (!branchId || !date) {
@@ -167,6 +175,7 @@ export default function ReconciliationPage() {
       <div className="space-y-6">
         <header className="space-y-4">
           <DashboardPageHero
+            showActiveScope
             icon={BarChart3}
             eyebrow="Stock Take"
             title="Reconciliation Report"
@@ -190,16 +199,19 @@ export default function ReconciliationPage() {
                 Branch
               </span>
               <select
-                className="rounded-md border bg-background px-3 py-2 text-sm"
+                className="rounded-md border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
+                disabled={branchLocked}
               >
                 <option value="">Select branch…</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
+                {branches
+                  .filter((b) => !branchLocked || b.id === me?.branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
               </select>
             </label>
             <label className="flex flex-col gap-1.5">

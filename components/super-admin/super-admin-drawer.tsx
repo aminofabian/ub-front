@@ -42,7 +42,7 @@ export function SuperAdminDrawer({
         <Dialog.Content
           className={cn(
             "fixed z-50 flex max-h-[100dvh] flex-col overflow-hidden outline-none",
-            "inset-y-0 right-0 h-[100dvh] w-full border-l border-border/60 bg-background/98 shadow-xl",
+            "inset-y-0 right-0 h-[100dvh] w-full border-l border-border/80 bg-background/98 shadow-xl",
             "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
@@ -73,7 +73,7 @@ export function SuperAdminDrawer({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="shrink-0 rounded-xl border border-border/50"
+                className="shrink-0 rounded-xl border border-border/80"
                 aria-label="Close panel"
               >
                 <X className="size-4" strokeWidth={2} />

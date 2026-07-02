@@ -98,6 +98,7 @@ export function ProductEditDrawer({
   const d = detail.detail;
   const dr = detail.patchDraft;
   const sharedStock = d ? usesSharedPackageStock(d) : false;
+  const isWeighed = d?.isWeighed === true;
   const isVariant = !!d?.variantOfItemId;
 
   const [stockQty, setStockQty] = useState("");
@@ -363,6 +364,26 @@ export function ProductEditDrawer({
                   />
                 </ProductFormField>
               </div>
+              {isWeighed ? (
+                <ProductFormField
+                  label="Scale PLU"
+                  hint="5-digit code on variable-weight labels (e.g. 01234)"
+                >
+                  <input
+                    className={productFormInputMonoClass}
+                    placeholder="01234"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={dr.pluCode ?? ""}
+                    onChange={(e) =>
+                      detail.setPatchDraft((p) => ({
+                        ...p,
+                        pluCode: e.target.value.replace(/\D/g, "").slice(0, 5),
+                      }))
+                    }
+                  />
+                </ProductFormField>
+              ) : null}
               <ProductFormField label="Category">
                 <select
                   className={productFormSelectClass}
@@ -492,7 +513,7 @@ export function ProductEditDrawer({
           {openSections.pricing ? (
             <div className={productFormSectionBodyClass}>
               <div className={productFormGrid2Class}>
-                <ProductFormField label="Shelf price">
+                <ProductFormField label={isWeighed ? "Price per kg" : "Shelf price"}>
                   <input
                     className={productFormInputClass}
                     inputMode="decimal"

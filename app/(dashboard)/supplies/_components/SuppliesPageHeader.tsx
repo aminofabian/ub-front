@@ -23,6 +23,7 @@ export function SuppliesPageHeader({
   canShowProcurementLinks,
   canOpenNewSupply,
   listLoading,
+  branchScopeLabel,
   onRefresh,
   onNewSupply,
 }: {
@@ -31,6 +32,7 @@ export function SuppliesPageHeader({
   canShowProcurementLinks: boolean;
   canOpenNewSupply: boolean;
   listLoading: boolean;
+  branchScopeLabel?: string;
   onRefresh: () => void;
   onNewSupply: () => void;
 }) {
@@ -63,12 +65,21 @@ export function SuppliesPageHeader({
     <header className="min-w-0 space-y-2 border-b border-border/50 pb-3 sm:space-y-3 sm:pb-4">
       <DashboardPageHero
         compact
+        showActiveScope
         icon={Truck}
         eyebrow="Purchasing"
         title="Supplies"
         description={
           <span className="hidden text-sm leading-relaxed text-muted-foreground sm:inline">
             Record vendor deliveries and track open payables.
+            {branchScopeLabel ? (
+              <>
+                {" "}
+                <span className="font-medium text-foreground/80">
+                  Branch: {branchScopeLabel}
+                </span>
+              </>
+            ) : null}
           </span>
         }
       />

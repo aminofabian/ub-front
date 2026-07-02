@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { APP_ROUTES } from "@/lib/config";
 import { getOnboardingQuestionnaireState } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
@@ -374,7 +375,7 @@ function PostSetupChecklist() {
 }
 
 export default function OverviewPage() {
-  const { me, business, branchId } = useDashboard();
+  const { me, business, branchId, itemTypeId } = useDashboard();
   const roleKey = me?.role?.key?.trim().toLowerCase();
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
@@ -411,6 +412,7 @@ export default function OverviewPage() {
           : weekRange.from;
       const chartTo = period === "today" ? toISODate(new Date()) : weekRange.to;
       const branch = branchId || undefined;
+      const type = itemTypeId?.trim() || undefined;
 
       const [
         owner,
@@ -428,7 +430,12 @@ export default function OverviewPage() {
           ? fetchDashboardOwnerSummary().catch(() => null)
           : Promise.resolve(null),
         fetchInventoryValuation(branch).catch(() => null),
-        fetchItemsPage(undefined, { page: 0, size: 1 }).catch(() => null),
+        fetchItemsPage(undefined, {
+          page: 0,
+          size: 1,
+          branchId: branch,
+          itemTypeId: type,
+        }).catch(() => null),
         fetchSalesRegister(chartFrom, chartTo, branch).catch(() => null),
         fetchFinancePulse(activeRange.to, branch).catch(() => null),
         fetchFinancePulse(prevRange.to, branch).catch(() => null),
@@ -469,7 +476,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, canViewOwnerSummary, period]);
+  }, [branchId, itemTypeId, canViewOwnerSummary, period]);
 
   useEffect(() => {
     void load();
@@ -547,6 +554,7 @@ export default function OverviewPage() {
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-black">
             {title}
           </h1>
+          <ActiveScopeSubtitle className={cn("mt-1", OVERVIEW_MUTED)} />
           <p className={cn("mt-1 text-sm", OVERVIEW_MUTED)}>{periodSubtitle}</p>
         </div>
         <PeriodToggle value={period} onChange={setPeriod} />

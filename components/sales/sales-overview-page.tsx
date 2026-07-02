@@ -11,6 +11,8 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
 import { formatDateRangeLabel, presetRange } from "@/lib/analytics-date-range";
 import { fetchBranches, type BranchRecord, type RecentSaleRow } from "@/lib/api";
@@ -204,7 +206,7 @@ function FeedSkeleton() {
 }
 
 export function SalesOverviewPage() {
-  const { me, branchId: sessionBranchId } = useDashboard();
+  const { me, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed =
     hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ||
     hasPermission(me?.permissions, Permission.SalesSell);
@@ -215,6 +217,20 @@ export function SalesOverviewPage() {
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setBranchId(id);
+      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+    },
+    [branchLocked, setHeaderBranchId],
+  );
   const [datePreset, setDatePreset] = useState<SalesDatePreset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -256,12 +272,6 @@ export function SalesOverviewPage() {
       .then(setBranches)
       .catch(() => setBranches([]));
   }, []);
-
-  useEffect(() => {
-    const id = (sessionBranchId ?? "").trim();
-    if (!id) return;
-    if (branches.some((b) => b.id === id)) setBranchId(id);
-  }, [sessionBranchId, branches]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 30_000);
@@ -462,6 +472,7 @@ export function SalesOverviewPage() {
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-black">
             What&apos;s selling
           </h1>
+          <ActiveScopeSubtitle className={cn("mt-1", MUTED)} />
           <p className={cn("mt-1 text-sm", MUTED)}>
             {periodLabel || (datePreset === "custom" ? "Choose dates below." : "")}
             {lastUpdated
@@ -525,7 +536,7 @@ export function SalesOverviewPage() {
         </div>
         <select
           value={branchId}
-          onChange={(e) => setBranchId(e.target.value)}
+          onChange={(e) => onChangeBranch(e.target.value)}
           className={cn(dashboardSelectClass(), "sm:w-56")}
           aria-label="Branch"
         >

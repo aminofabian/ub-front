@@ -12,6 +12,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { CASHIER_POS_UI_COPY } from "@/lib/cashier-pos-copy";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { useFeatureFlag } from "@/components/providers/tenant-provider";
 import {
   fetchCategoryTree,
@@ -84,7 +85,6 @@ import { CashierPosLayout } from "./cashier-pos-layout";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { PendingSalesPanel } from "./pending-sales-panel";
 import { DraftConflictModal } from "./draft-conflict-modal";
-import { usePosCatalogItemType } from "@/components/cashier-shell";
 import {
   CloseShiftModal,
   DrawoutModal,
@@ -156,9 +156,9 @@ export function QuickSaleWorkspace({
     business,
     branches,
     branchId,
-    setBranchId,
     branchesLoading,
     itemTypes,
+    itemTypeId: headerItemTypeId,
   } = useDashboard();
   const online = useOnlineStatus();
   const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
@@ -177,8 +177,10 @@ export function QuickSaleWorkspace({
   const resumeDraftHandledRef = useRef(false);
   const wasOfflineRef = useRef(false);
   const searchParams = useSearchParams();
-  const posCatalog = usePosCatalogItemType();
-  const posItemTypeId = posCatalog?.posItemTypeId?.trim() || null;
+  // Catalog search/browse is scoped to the header department. There is no
+  // local POS override anymore; the duplicate department picker was removed
+  // from the cashier shell.
+  const posItemTypeId = headerItemTypeId?.trim() || null;
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
   const canBrowseCategories = hasPermission(
     me?.permissions,
@@ -223,6 +225,27 @@ export function QuickSaleWorkspace({
     createEmptyCartSession(),
   ]);
   const [activeCartId, setActiveCartId] = useState<string>(carts[0].id);
+
+  // ── Page-level UI state (declared early because cart/draft callbacks reference them)
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [voidLoading, setVoidLoading] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [outboxCount, setOutboxCount] = useState(0);
+  const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
+  const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
+  const [conflictBusy, setConflictBusy] = useState(false);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [outboxBusy, setOutboxBusy] = useState(false);
+  const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
+    null,
+  );
+  const [lastSaleCustomerName, setLastSaleCustomerName] = useState<
+    string | null
+  >(null);
+  const [voidNotes, setVoidNotes] = useState("");
 
   const activeCart = useMemo(
     () => carts.find((c) => c.id === activeCartId) ?? carts[0],
@@ -461,6 +484,24 @@ export function QuickSaleWorkspace({
   const stkAreaCode = activeCart.stkAreaCode;
   const stkPhone = activeCart.stkPhone;
 
+  const cartScopeBranchIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (lines.length === 0) {
+      cartScopeBranchIdRef.current = null;
+      return;
+    }
+    if (!cartScopeBranchIdRef.current) {
+      const bid = branchId.trim();
+      if (bid) cartScopeBranchIdRef.current = bid;
+    }
+  }, [lines.length, branchId]);
+
+  useScopeChangeGuard(
+    "cashier-cart",
+    lines.length > 0,
+    "This cart has items that were added for the current branch.",
+  );
+
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
   const [customerRegisterBusy, setCustomerRegisterBusy] = useState(false);
   const stkConfirmedToastKey = useRef<string | null>(null);
@@ -539,25 +580,6 @@ export function QuickSaleWorkspace({
 
   // ── Cart management ───────────────────────────────────────────────
 
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [voidLoading, setVoidLoading] = useState(false);
-  const [receiptLoading, setReceiptLoading] = useState(false);
-  const [outboxCount, setOutboxCount] = useState(0);
-  const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
-  const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
-  const [conflictBusy, setConflictBusy] = useState(false);
-  const [conflictModalOpen, setConflictModalOpen] = useState(false);
-  const [outboxBusy, setOutboxBusy] = useState(false);
-  const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
-  const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
-    null,
-  );
-  const [lastSaleCustomerName, setLastSaleCustomerName] = useState<
-    string | null
-  >(null);
-  const [voidNotes, setVoidNotes] = useState("");
   const createCart = useCallback(() => {
     setCarts((prev) => {
       if (prev.length >= MAX_CARTS) return prev;
@@ -1076,10 +1098,6 @@ export function QuickSaleWorkspace({
     return itemTypes.find((t) => t.id === posItemTypeId)?.label ?? null;
   }, [posItemTypeId, itemTypes]);
 
-  const clearPosTypeFilter = useCallback(() => {
-    posCatalog?.setPosItemTypeId(null);
-  }, [posCatalog]);
-
   const grandTotal = useMemo(() => {
     let t = 0;
     for (const line of lines) {
@@ -1441,6 +1459,20 @@ export function QuickSaleWorkspace({
       setError("Choose a branch.");
       setNotice("");
       return;
+    }
+    const scopeBranch = cartScopeBranchIdRef.current;
+    if (scopeBranch && scopeBranch !== bid) {
+      const scopeName =
+        branches.find((b) => b.id === scopeBranch)?.name?.trim() ?? scopeBranch;
+      const currentName =
+        branches.find((b) => b.id === bid)?.name?.trim() ?? bid;
+      if (
+        !window.confirm(
+          `This cart was started at ${scopeName} but the current branch is ${currentName}. Complete the sale at ${currentName} anyway?`,
+        )
+      ) {
+        return;
+      }
     }
     if (lines.length === 0) {
       setError("Add at least one line.");
@@ -1817,6 +1849,7 @@ export function QuickSaleWorkspace({
     posDraftPersistence,
     posDraftsUi,
     posDraftsEnabled,
+    posDraftOfflineMirror,
     updateCartById,
     customerPhoneQuery,
   ]);
@@ -2102,7 +2135,6 @@ export function QuickSaleWorkspace({
         categoryBrowseParentId={categoryBrowseParentId}
         typeFilterId={posItemTypeId}
         typeFilterLabel={typeFilterLabel}
-        clearTypeFilter={clearPosTypeFilter}
         posShiftLinks={
           showPosShiftLinks
             ? {

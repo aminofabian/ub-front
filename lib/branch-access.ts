@@ -4,6 +4,9 @@ export function isBranchLockedRole(
 ): boolean {
   const key = roleKey?.trim().toLowerCase() ?? "";
   return (
-    key === "stock_manager" || key === "cashier" || key === "grocery_clerk"
+    key === "stock_manager" ||
+    key === "cashier" ||
+    key === "butcher_cashier" ||
+    key === "grocery_clerk"
   );
 }

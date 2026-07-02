@@ -12,6 +12,7 @@ import {
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -71,22 +72,22 @@ function RestockListSkeleton() {
 }
 
 export default function InventoryRestockPage() {
-  const { me, business, branchId: headerBranchId, branches: dashboardBranches } =
-    useDashboard();
+  const { me, business, branches: dashboardBranches } = useDashboard();
   const canRead = canViewStockLevels(me, business);
   const canWrite = canEditStockLevels(me, business);
-
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const isBranchLockedRole =
-    roleKey === "stock_manager" ||
-    roleKey === "cashier" ||
-    roleKey === "grocery_clerk";
-  const canShowQuickLinks = !isBranchLockedRole;
 
   const [branches, setBranches] = useState<BranchRecord[]>(
     dashboardBranches ?? [],
   );
   const [branchId, setBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Follow the global header branch selection (and stay pinned for locked roles).
+  const { branchLocked: isBranchLockedRole } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
+  const canShowQuickLinks = !isBranchLockedRole;
   const [rows, setRows] = useState<RestockRow[]>([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -113,21 +114,14 @@ export default function InventoryRestockPage() {
     };
   }, [canRead]);
 
-  // Resolve the working branch: assigned branch for locked roles, otherwise the
-  // header branch, otherwise the first active branch.
+  // When the header has no branch yet (non-locked role, nothing persisted),
+  // fall back to the first active branch on this page so it isn't blank.
   useEffect(() => {
-    if (isBranchLockedRole) {
-      setBranchId(me?.branchId?.trim() ?? "");
-      return;
-    }
-    if (branchId) return;
+    if (isBranchLockedRole || branchId || branches.length === 0) return;
     const fallback =
-      headerBranchId?.trim() ||
-      branches.find((b) => b.active)?.id ||
-      branches[0]?.id ||
-      "";
+      branches.find((b) => b.active)?.id || branches[0]?.id || "";
     if (fallback) setBranchId(fallback);
-  }, [isBranchLockedRole, me?.branchId, headerBranchId, branches, branchId]);
+  }, [isBranchLockedRole, branchId, branches]);
 
   const loadOutOfStock = useCallback(async () => {
     const bid = branchId.trim();

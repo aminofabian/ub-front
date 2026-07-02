@@ -21,6 +21,7 @@ import {
   buildPendingSectionCreates,
   labelToItemTypeKey,
 } from "@/lib/item-type-suggestions";
+import { isButcheryBusiness } from "@/lib/business-store-type";
 
 export async function applyOnboardingQuestionnaire(
   answers: OnboardingQuestionnaireAnswers,
@@ -58,6 +59,14 @@ export async function applyOnboardingQuestionnaire(
       storefront: {
         enabled: true,
         catalogBranchId: firstBranchId,
+      },
+    });
+  }
+
+  if (isButcheryBusiness({ onboarding: { answers } })) {
+    await updateBusiness({
+      featureFlags: {
+        butcherPosEnabled: true,
       },
     });
   }
@@ -111,7 +120,7 @@ export async function applyOnboardingQuestionnaire(
     answers: {
       branchCount: answers.branchCount,
       branchLocalities: answers.branchLocalities,
-      storeType: answers.storeType,
+      storeTypes: answers.storeTypes,
       selectedDepartments: answers.selectedDepartments,
       onlineStore: answers.onlineStore,
       displayName: answers.displayName.trim(),

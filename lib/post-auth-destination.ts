@@ -1,5 +1,11 @@
 import { APP_ROUTES } from "@/lib/config";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
+import type { BusinessRecord } from "@/lib/api";
+import {
+  getBusinessStoreTypes,
+  isButcheryOnlyBusiness,
+  type StoreTypeId,
+} from "@/lib/business-store-type";
 
 export type PostAuthMe = {
   role?: { key?: string | null } | null;
@@ -13,6 +19,7 @@ export type PostAuthMe = {
 export function resolvePostAuthDestination(
   me: PostAuthMe | null | undefined,
   requestedNext?: string | null,
+  business?: BusinessRecord | null,
 ): string {
   if (me && isBuyerAccount(me)) {
     return buyerHomePath();
@@ -21,6 +28,9 @@ export function resolvePostAuthDestination(
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   if (roleKey === "grocery_clerk") {
     return APP_ROUTES.grocery;
+  }
+  if (roleKey === "butcher_cashier") {
+    return APP_ROUTES.butcher;
   }
   if (roleKey === "cashier") {
     return APP_ROUTES.salesQuick;
@@ -32,6 +42,10 @@ export function resolvePostAuthDestination(
   const requested = requestedNext?.trim() ?? "";
   if (requested.startsWith("/") && !requested.startsWith("//")) {
     return requested;
+  }
+
+  if (isButcheryOnlyBusiness(business)) {
+    return APP_ROUTES.butcher;
   }
 
   return APP_ROUTES.business;
@@ -47,8 +61,9 @@ export const ROLE_OVERRIDE_LANDING_PATHS = new Set<string>([
 export function roleLandingRedirect(
   me: PostAuthMe | null | undefined,
   pathname: string,
+  business?: BusinessRecord | null,
 ): string | null {
-  const home = resolvePostAuthDestination(me);
+  const home = resolvePostAuthDestination(me, null, business);
   if (home === pathname) {
     return null;
   }
@@ -56,4 +71,28 @@ export function roleLandingRedirect(
     return null;
   }
   return home;
+}
+
+export function formatBusinessStoreTypesLabel(
+  business: BusinessRecord | null | undefined,
+): string {
+  const labels: Record<StoreTypeId, string> = {
+    butchery: "Butchery",
+    "mini-mart": "Mini mart",
+    "full-grocery": "Full grocery",
+    "fresh-market": "Fresh market",
+    "mixed-shop": "Mixed shop",
+  };
+  const types = getBusinessStoreTypes(business);
+  if (types.length === 0) {
+    return "your shop";
+  }
+  const names = types.map((type) => labels[type]);
+  if (names.length === 1) {
+    return names[0]!;
+  }
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]}`;
+  }
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }

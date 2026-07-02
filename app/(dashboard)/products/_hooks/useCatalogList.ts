@@ -38,8 +38,12 @@ function catalogRowTypesForApi(
   );
 }
 
-export function useCatalogList(catalogBranchId?: string | null) {
+export function useCatalogList(
+  catalogBranchId?: string | null,
+  catalogItemTypeId?: string | null,
+) {
   const branchIdForStock = catalogBranchId?.trim() || undefined;
+  const itemTypeIdForList = catalogItemTypeId?.trim() || undefined;
   const [itemTypes, setItemTypes] = useState<ItemTypeRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [listRows, setListRows] = useState<ItemSummaryRecord[]>([]);
@@ -115,6 +119,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
       catalogScope,
       barcode: barcodeExact.trim() || undefined,
       branchId: branchIdForStock,
+      itemTypeId: itemTypeIdForList,
     }),
     [
       filterCategoryId,
@@ -122,6 +127,7 @@ export function useCatalogList(catalogBranchId?: string | null) {
       catalogScope,
       barcodeExact,
       branchIdForStock,
+      itemTypeIdForList,
     ],
   );
 

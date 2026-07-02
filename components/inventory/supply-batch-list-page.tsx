@@ -33,6 +33,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -154,21 +155,18 @@ const WASTAGE_REASONS = [
 
 // ── Component ───────────────────────────────────────────────────────────
 
-const SORTABLE_COLS = [
-  "batchNumber",
-  "batchName",
-  "supplierName",
-  "itemCount",
-  "soldPercentage",
-  "totalCost",
-  "totalRevenue",
-  "totalAssociatedCosts",
-  "totalRemainingQuantity",
-  "status",
-  "receivedAt",
-] as const;
-
-type SortCol = (typeof SORTABLE_COLS)[number];
+type SortCol =
+  | "batchNumber"
+  | "batchName"
+  | "supplierName"
+  | "itemCount"
+  | "soldPercentage"
+  | "totalCost"
+  | "totalRevenue"
+  | "totalAssociatedCosts"
+  | "totalRemainingQuantity"
+  | "status"
+  | "receivedAt";
 
 export function SupplyBatchListPage() {
   const { me } = useDashboard();
@@ -184,6 +182,15 @@ export function SupplyBatchListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Report page: follow the header branch, allowing an empty "All branches" view.
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchFilter,
+    setValue: setBranchFilter,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
 
   // Client-side sort
   const [sortBy, setSortBy] = useState<SortCol>("receivedAt");
@@ -481,6 +488,7 @@ export function SupplyBatchListPage() {
         <header className="space-y-2 border-b border-border/50 pb-4">
           <DashboardPageHero
             compact
+            showActiveScope
             icon={Layers}
             eyebrow="Inventory"
             title="Supply batches"
@@ -590,17 +598,23 @@ export function SupplyBatchListPage() {
             <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
               <span className="text-muted-foreground">Branch</span>
               <select
-                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+                className={cn(
+                  dashboardSelectClass(),
+                  "h-9 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
+                )}
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
+                disabled={branchLocked}
                 aria-label="Branch filter"
               >
                 <option value="">All branches</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
+                {branches
+                  .filter((b) => !branchLocked || b.id === me?.branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
               </select>
             </label>
             <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">

@@ -405,6 +405,7 @@ export type ItemDetailRecord = ItemSummaryRecord & {
   isWeighed?: boolean;
   isSellable?: boolean;
   isStocked?: boolean;
+  pluCode?: string | null;
   packageVariant?: boolean;
   packagingUnitName?: string | null;
   packagingUnitQty?: number | string | null;
@@ -566,6 +567,7 @@ export type BusinessRecord = {
   featureFlags?: Record<string, boolean>;
   profile?: {
     storeType?: string | null;
+    storeTypes?: string[] | null;
   };
   onboarding?: {
     status?: string;
@@ -659,6 +661,7 @@ export type PosDraftsFeatureFlagsPatch = {
 
 export type FeatureFlagsPatchPayload = {
   posDrafts?: PosDraftsFeatureFlagsPatch;
+  butcherPosEnabled?: boolean;
 };
 
 export type PatchBusinessPayload = {
@@ -717,6 +720,8 @@ export type CreateItemPayload = {
   sku?: string;
   itemTypeId: string;
   barcode?: string;
+  /** Scale PLU for variable-weight labels (typically 5 digits). */
+  pluCode?: string;
   description?: string;
   categoryId?: string;
   brand?: string;
@@ -782,6 +787,7 @@ export type PatchItemPayload = {
   name?: string;
   sku?: string;
   barcode?: string;
+  pluCode?: string;
   description?: string;
   active?: boolean;
   webPublished?: boolean;
@@ -813,6 +819,9 @@ export type ItemSupplierLinkRecord = {
   supplierSku?: string | null;
   defaultCostPrice?: number | string | null;
   lastCostPrice?: number | string | null;
+  /** Stock units per one {@link packUnit} from this supplier (e.g. 25 kg per crate). */
+  packSize?: number | string | null;
+  packUnit?: string | null;
   active: boolean;
   version?: number;
   createdAt?: string;
@@ -832,6 +841,8 @@ export type SupplierItemLinkRecord = {
   defaultCostPrice?: number | string | null;
   lastCostPrice?: number | string | null;
   reorderLevel?: number | string | null;
+  packSize?: number | string | null;
+  packUnit?: string | null;
   active: boolean;
   version?: number;
   createdAt?: string;
@@ -1869,7 +1880,9 @@ const MY_ONBOARDING_PATH = "/api/v1/businesses/me/onboarding";
 export type OnboardingAnswersRecord = {
   branchCount?: string;
   branchLocalities?: string[];
+  /** @deprecated Use storeTypes */
   storeType?: string;
+  storeTypes?: string[];
   selectedDepartments?: string[];
   onlineStore?: string;
   displayName?: string;
@@ -2586,6 +2599,8 @@ export async function postItemSupplierLinkSetPrimary(
 export type PatchItemSupplierLinkPayload = {
   supplierSku?: string;
   defaultCostPrice?: number;
+  packSize?: number;
+  packUnit?: string;
 };
 
 export async function patchItemSupplierLink(
@@ -3034,13 +3049,20 @@ export type SingleSourceRiskRow = {
   soleSupplierName: string;
 };
 
-function intelligenceDateQuery(from?: string, to?: string): string {
+function intelligenceDateQuery(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): string {
   const params = new URLSearchParams();
   if (from?.trim()) {
     params.set("from", from.trim());
   }
   if (to?.trim()) {
     params.set("to", to.trim());
+  }
+  if (branchId?.trim()) {
+    params.set("branchId", branchId.trim());
   }
   const q = params.toString();
   return q ? `?${q}` : "";
@@ -3128,9 +3150,10 @@ export type PurchasingIntelligenceDashboardResponse = {
 export async function fetchPurchasingIntelligenceDashboard(
   from?: string,
   to?: string,
+  branchId?: string,
 ): Promise<PurchasingIntelligenceDashboardResponse> {
   return request<PurchasingIntelligenceDashboardResponse>(
-    `/api/v1/purchasing/intelligence/dashboard${intelligenceDateQuery(from, to)}`,
+    `/api/v1/purchasing/intelligence/dashboard${intelligenceDateQuery(from, to, branchId)}`,
   );
 }
 
@@ -3145,11 +3168,13 @@ export async function fetchSalesRevenueByCategory(
   from?: string,
   to?: string,
   categoryId?: string,
+  branchId?: string,
 ): Promise<RevenueByCategoryRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (categoryId?.trim()) params.set("categoryId", categoryId.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
   const qs = params.toString();
   return request<RevenueByCategoryRow[]>(
     `/api/v1/sales/intelligence/revenue-by-category${qs ? `?${qs}` : ""}`,
@@ -4736,9 +4761,33 @@ export async function fetchPendingDrawouts(): Promise<DrawoutRecord[]> {
 export type SalePaymentMethod =
   | "cash"
   | "mpesa_manual"
+  | "card"
   | "customer_credit"
   | "customer_wallet"
   | "loyalty_redeem";
+
+export type VariableWeightBarcodeLookupRecord = {
+  itemId: string;
+  itemName: string;
+  pluCode: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  lineTotal: number | string;
+  embeddedField: "weight" | "price" | string;
+};
+
+export async function fetchVariableWeightBarcode(
+  barcode: string,
+  branchId: string,
+): Promise<VariableWeightBarcodeLookupRecord> {
+  const params = new URLSearchParams({
+    barcode: barcode.trim(),
+    branchId: branchId.trim(),
+  });
+  return request<VariableWeightBarcodeLookupRecord>(
+    `/api/v1/sales/variable-weight-barcode?${params.toString()}`,
+  );
+}
 
 export type PostSaleLinePayload = {
   itemId: string;
@@ -5145,6 +5194,9 @@ export type PostPathBLineBreakdownPayload = {
   wastageQty: number | string;
   /** ISO calendar date `YYYY-MM-DD`; optional batch expiry. */
   expiryDate?: string | null;
+  /** As-entered purchase qty/unit — server validates conversion when present. */
+  purchaseQty?: number | string;
+  purchaseUnit?: string;
 };
 
 export type PostPathBPayload = {
@@ -5152,6 +5204,8 @@ export type PostPathBPayload = {
 };
 
 export type PostPathBResult = {
+  sessionId: string;
+  sessionStatus: string;
   supplierInvoiceId: string;
   invoiceNumber: string;
   journalEntryId: string;
@@ -5159,6 +5213,156 @@ export type PostPathBResult = {
   linesPosted: number;
   supplyBatchId: string;
 };
+
+export type PathBSessionListRowRecord = {
+  id: string;
+  supplierId: string;
+  branchId: string;
+  receivedAt: string;
+  status: string;
+  lineCount: number;
+  totalAmount: number | string;
+};
+
+export type PathAPurchaseOrderListRowRecord = {
+  id: string;
+  supplierId: string;
+  branchId: string;
+  poNumber: string;
+  expectedDate: string;
+  status: string;
+  lineCount: number;
+  totalOrdered: number | string;
+  totalReceived: number | string;
+};
+
+export async function fetchPathBSessions(opts?: {
+  supplierId?: string;
+  status?: string;
+}): Promise<PathBSessionListRowRecord[]> {
+  const params = new URLSearchParams();
+  const supplierId = opts?.supplierId?.trim();
+  const status = opts?.status?.trim();
+  if (supplierId) params.set("supplierId", supplierId);
+  if (status) params.set("status", status);
+  const qs = params.toString();
+  return request<PathBSessionListRowRecord[]>(
+    `${PATH_B_SESSIONS}${qs ? `?${qs}` : ""}`,
+  );
+}
+
+const PATH_A_PURCHASE_ORDERS = "/api/v1/purchasing/path-a/purchase-orders";
+
+export async function fetchPathAPurchaseOrders(opts?: {
+  supplierId?: string;
+  status?: string;
+}): Promise<PathAPurchaseOrderListRowRecord[]> {
+  const params = new URLSearchParams();
+  const supplierId = opts?.supplierId?.trim();
+  const status = opts?.status?.trim();
+  if (supplierId) params.set("supplierId", supplierId);
+  if (status) params.set("status", status);
+  const qs = params.toString();
+  return request<PathAPurchaseOrderListRowRecord[]>(
+    `${PATH_A_PURCHASE_ORDERS}${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export type PathAPurchaseOrderLineRecord = {
+  id: string;
+  sortOrder: number;
+  itemId: string;
+  qtyOrdered: number | string;
+  qtyReceived: number | string;
+  unitEstimatedCost: number | string;
+};
+
+export type PathAPurchaseOrderDetailRecord = {
+  id: string;
+  supplierId: string;
+  branchId: string;
+  poNumber: string;
+  expectedDate: string;
+  status: string;
+  notes: string | null;
+  lines: PathAPurchaseOrderLineRecord[];
+};
+
+export async function fetchPathAPurchaseOrder(
+  purchaseOrderId: string,
+): Promise<PathAPurchaseOrderDetailRecord> {
+  return request<PathAPurchaseOrderDetailRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}`,
+  );
+}
+
+export type PostPathAGoodsReceiptLinePayload = {
+  purchaseOrderLineId: string;
+  qtyReceived: number;
+};
+
+export type PostPathAGoodsReceiptPayload = {
+  purchaseOrderId: string;
+  branchId: string;
+  receivedAt: string;
+  notes?: string | null;
+  lines: PostPathAGoodsReceiptLinePayload[];
+};
+
+export type PostPathAGoodsReceiptResult = {
+  goodsReceiptId: string;
+  grniAmount: number | string;
+  lineCount: number;
+};
+
+const PATH_A_GOODS_RECEIPTS = "/api/v1/purchasing/path-a/goods-receipts";
+
+export async function postPathAGoodsReceipt(
+  body: PostPathAGoodsReceiptPayload,
+  idempotencyKey?: string,
+): Promise<PostPathAGoodsReceiptResult> {
+  return request<PostPathAGoodsReceiptResult>(PATH_A_GOODS_RECEIPTS, {
+    method: "POST",
+    body,
+    idempotencyKey,
+  });
+}
+
+export type PostPathAGrnSupplierInvoiceLinePayload = {
+  itemId: string;
+  qty: number;
+  unitCost: number;
+  lineTotal: number;
+};
+
+export type PostPathAGrnSupplierInvoicePayload = {
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate?: string | null;
+  lines: PostPathAGrnSupplierInvoiceLinePayload[];
+};
+
+export type PostPathAGrnSupplierInvoiceResult = {
+  supplierInvoiceId: string;
+  invoiceNumber: string;
+  journalEntryId: string;
+  grandTotal: number | string;
+};
+
+export async function postPathAGrnSupplierInvoice(
+  goodsReceiptId: string,
+  body: PostPathAGrnSupplierInvoicePayload,
+  idempotencyKey?: string,
+): Promise<PostPathAGrnSupplierInvoiceResult> {
+  return request<PostPathAGrnSupplierInvoiceResult>(
+    `${PATH_A_GOODS_RECEIPTS}/${encodeURIComponent(goodsReceiptId.trim())}/supplier-invoice`,
+    {
+      method: "POST",
+      body,
+      idempotencyKey,
+    },
+  );
+}
 
 export async function createPathBSession(
   body: CreatePathBSessionPayload,
@@ -5232,6 +5436,7 @@ export type PathBSupplyListRowRecord = {
   amountPaid: number | string;
   balanceOpen: number | string;
   paymentStatus: string;
+  branchId?: string | null;
 };
 
 export type SupplyPaymentHistoryRecord = {
@@ -5245,10 +5450,18 @@ export type SupplyPaymentHistoryRecord = {
   notes: string | null;
 };
 
-export async function fetchPathBSupplies(): Promise<
-  PathBSupplyListRowRecord[]
-> {
-  return request<PathBSupplyListRowRecord[]>("/api/v1/purchasing/supplies");
+export async function fetchPathBSupplies(opts?: {
+  branchId?: string | null;
+}): Promise<PathBSupplyListRowRecord[]> {
+  const params = new URLSearchParams();
+  const branchId = opts?.branchId?.trim();
+  if (branchId) {
+    params.set("branchId", branchId);
+  }
+  const qs = params.toString();
+  return request<PathBSupplyListRowRecord[]>(
+    `/api/v1/purchasing/supplies${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export type PathBSupplyInvoiceLineRecord = {

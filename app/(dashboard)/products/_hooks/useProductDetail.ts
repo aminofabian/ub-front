@@ -46,6 +46,7 @@ export function useProductDetail(branchIdForPricing?: string | null) {
       name: row.name,
       sku: row.sku,
       barcode: row.barcode,
+      pluCode: row.pluCode ?? "",
       description: row.description,
       active: row.active ?? true,
       webPublished: row.webPublished ?? true,

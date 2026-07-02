@@ -12,6 +12,7 @@ import {
   formatDisplayPrice,
   formatStoreQty,
   hasCatalogPrice,
+  isStorefrontInStoreOnly,
 } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +115,7 @@ export default function ShopProductGrid({
         const stockLabel = formatStoreQty(item.qtyOnHand);
         const badge = stockBadge(item.qtyOnHand);
         const isOutOfStock = item.qtyOnHand != null && item.qtyOnHand <= 0;
+        const inStoreOnly = isStorefrontInStoreOnly(item.onlinePurchaseMode);
 
         return (
           <li
@@ -151,6 +153,10 @@ export default function ShopProductGrid({
                   >
                     {badge.label}
                   </span>
+                ) : inStoreOnly ? (
+                  <span className="absolute left-2 top-2 z-10 rounded-md border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-semibold leading-none tracking-wide text-sky-900 backdrop-blur-[2px] dark:text-sky-200">
+                    In store
+                  </span>
                 ) : null}
               </Link>
 
@@ -179,7 +185,7 @@ export default function ShopProductGrid({
                   ) : null}
                 </div>
 
-                {slug && !isOutOfStock && hasPrice ? (
+                {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
                   <div className="mt-2">
                     <ShopQuickAddButton
                       slug={slug}
@@ -195,6 +201,10 @@ export default function ShopProductGrid({
                 ) : isOutOfStock ? (
                   <p className="mt-2 text-center text-[10px] font-medium text-muted-foreground/60">
                     Unavailable
+                  </p>
+                ) : inStoreOnly ? (
+                  <p className="mt-2 text-center text-[10px] font-medium text-sky-800/80 dark:text-sky-300/90">
+                    Available in store only
                   </p>
                 ) : null}
               </div>

@@ -78,6 +78,8 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.storefrontWebOrders]: Store,
   [APP_ROUTES.salesQuick]: ScanLine,
   [APP_ROUTES.cashier]: ScanLine,
+  [APP_ROUTES.butcher]: ScanLine,
+  [APP_ROUTES.butcherSuppliers]: Truck,
   [APP_ROUTES.grocery]: Store,
   [APP_ROUTES.groceryInvoices]: Receipt,
 };
@@ -95,6 +97,8 @@ const RAIL_SHORT_LABEL_BY_HREF: Partial<Record<string, string>> = {
   [APP_ROUTES.purchasingApAging]: "AP",
   [APP_ROUTES.purchasingRecordPayment]: "Pay",
   [APP_ROUTES.salesQuick]: "Sale",
+  [APP_ROUTES.butcher]: "Counter",
+  [APP_ROUTES.butcherSuppliers]: "Suppliers",
   [APP_ROUTES.groceryInvoices]: "Invoices",
 };
 
@@ -112,6 +116,9 @@ function normalizePath(pathname: string): string {
 function itemIsActive(pathname: string, href: string): boolean {
   const path = normalizePath(pathname);
   if (href === "/") return path === "/";
+  if (href === APP_ROUTES.butcher) {
+    return path === APP_ROUTES.butcher;
+  }
   return path === href || path.startsWith(`${href}/`) || path.startsWith(`${href}?`);
 }
 

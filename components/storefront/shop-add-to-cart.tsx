@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   slug: string;
   itemId: string;
+  /** Weighed / counter-only SKUs — browseable but not web-cartable. */
+  inStoreOnly?: boolean;
   /** Compact mode for sticky bottom bar — hides the cart label and extra text */
   compact?: boolean;
   className?: string;
@@ -23,6 +25,7 @@ type Props = {
 export default function ShopAddToCart({
   slug,
   itemId,
+  inStoreOnly = false,
   compact,
   className,
 }: Props) {
@@ -42,6 +45,25 @@ export default function ShopAddToCart({
       setPickQty(1);
     }
   }, [inCart]);
+
+  if (inStoreOnly) {
+    return (
+      <div
+        className={cn(
+          "rounded-2xl border border-dashed border-sky-500/30 bg-sky-500/5 px-4 py-4 text-sm text-foreground/90",
+          className,
+        )}
+      >
+        <p className="font-semibold text-sky-900 dark:text-sky-200">
+          Available in store only
+        </p>
+        <p className="mt-1 text-muted-foreground">
+          Weighed cuts and custom portions are sold at the butcher counter. Pre-packed
+          trays and fixed packs can be ordered online.
+        </p>
+      </div>
+    );
+  }
 
   async function add() {
     const id = itemId.trim();

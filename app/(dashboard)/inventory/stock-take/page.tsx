@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSessionItemType, useSyncBranchFilter } from "@/hooks/use-session-scope";
+import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import Link from "next/link";
 import {
   ArrowRightLeft,
@@ -10,7 +12,6 @@ import {
   MapPin,
   Package,
   PackageX,
-  Plus,
   ScanLine,
   Search,
   Warehouse,
@@ -32,7 +33,6 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
-  createItem,
   createItemVariant,
   deleteStockTakeSession,
   fetchActiveStockTakeSession,
@@ -102,7 +102,8 @@ function getLineDisplayName(line: StockTakeLineRecord): string {
 // ── Page ──────────────────────────────────────────────────────────────
 
 export default function StockTakePage() {
-  const { me, business } = useDashboard();
+  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
+  const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const showSystemStockToStockManager = Boolean(
     business?.inventory?.stocktake?.showSystemStockToStockManager,
@@ -111,8 +112,6 @@ export default function StockTakePage() {
     roleKey === "owner" ||
     roleKey === "admin" ||
     (roleKey === "stock_manager" && showSystemStockToStockManager);
-  const isBranchLockedRole =
-    roleKey === "stock_manager" || roleKey === "cashier";
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
   const canApprove = hasPermission(
@@ -135,6 +134,26 @@ export default function StockTakePage() {
   // ── Start session form
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [selBranchId, setSelBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: selBranchId,
+    setValue: setSelBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setSelBranchId(id);
+      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+    },
+    [branchLocked, setHeaderBranchId],
+  );
+
+  useScopeChangeGuard(
+    "stock-take-session",
+    Boolean(session),
+    "An active stock take session is in progress for this branch.",
+  );
+
   const [selSessionType, setSelSessionType] = useState<"morning" | "evening">(
     "morning",
   );
@@ -197,16 +216,6 @@ export default function StockTakePage() {
         if (!cancelled) {
           const active = list.filter((b) => b.active);
           setBranches(active);
-          setSelBranchId((prev) => {
-            if (prev) return prev;
-            if (active.length === 0) return "";
-            if (isBranchLockedRole) {
-              const ub = me?.branchId?.trim();
-              return ub && active.some((b) => b.id === ub) ? ub : "";
-            }
-            const userBranch = active.find((b) => b.id === me?.branchId);
-            return userBranch?.id ?? active[0].id;
-          });
         }
       })
       .catch(() => {});
@@ -223,35 +232,34 @@ export default function StockTakePage() {
       })
       .catch(() => {});
 
-    // Check for active session (uses JWT branch; branch-locked users must have branch_id set)
-    const branchId = me?.branchId?.trim() ?? "";
-    if (branchId) {
-      fetchActiveStockTakeSession(branchId)
-        .then((res) => {
-          if (cancelled) return;
-          if (res.session) {
-            setSession(res.session);
-          }
-          if (res.hasStaleSession) {
-            setHasStaleSession(true);
-            setStaleSessionDate(res.staleSessionDate);
-          }
-        })
-        .catch(() => {});
-    }
-
     return () => {
       cancelled = true;
     };
-  }, [allowed, isBranchLockedRole, me?.branchId, me?.role?.key]);
+  }, [allowed, me?.role?.key]);
 
+  // Reload active session when the selected branch changes.
   useEffect(() => {
-    if (!allowed || !isBranchLockedRole) return;
-    const assigned = me?.branchId?.trim();
-    if (assigned) {
-      setSelBranchId(assigned);
+    if (!allowed) return;
+    const bid = selBranchId.trim();
+    if (!bid) {
+      setSession(null);
+      setHasStaleSession(false);
+      setStaleSessionDate(null);
+      return;
     }
-  }, [allowed, isBranchLockedRole, me?.branchId]);
+    let cancelled = false;
+    fetchActiveStockTakeSession(bid)
+      .then((res) => {
+        if (cancelled) return;
+        setSession(res.session ?? null);
+        setHasStaleSession(res.hasStaleSession ?? false);
+        setStaleSessionDate(res.staleSessionDate ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed, selBranchId]);
 
   // ── Admin: load pending sessions
   useEffect(() => {
@@ -431,7 +439,9 @@ export default function StockTakePage() {
     setLoading(true);
     setMessage("");
     try {
-      const defaultItemTypeId = itemTypes.length > 0 ? itemTypes[0].id : "";
+      const defaultItemTypeId =
+        headerItemTypeId?.trim() ||
+        (itemTypes.length > 0 ? itemTypes[0].id : "");
       let s: StockTakeSessionRecord;
 
       if (createParentId) {
@@ -504,6 +514,7 @@ export default function StockTakePage() {
     createBrand,
     createSize,
     itemTypes,
+    headerItemTypeId,
   ]);
 
   // ── Scanner
@@ -581,7 +592,7 @@ export default function StockTakePage() {
             },
           ]
         : []),
-      ...(isBranchLockedRole
+      ...(branchLocked
         ? []
         : [
             {
@@ -593,7 +604,7 @@ export default function StockTakePage() {
           ]),
     ];
     return filterInventoryQuickLinksForUser(me, links);
-  }, [canApprove, isBranchLockedRole, me]);
+  }, [canApprove, branchLocked, me]);
 
   // ── Permissions guard
   if (!allowed) {
@@ -620,6 +631,7 @@ export default function StockTakePage() {
           <header className="space-y-2 border-b border-border/50 pb-4">
             <DashboardPageHero
               compact
+              showActiveScope
               icon={ClipboardList}
               eyebrow="Inventory"
               title="Stock take"
@@ -635,7 +647,7 @@ export default function StockTakePage() {
             </p>
           ) : null}
 
-          {isBranchLockedRole && !me?.branchId?.trim() ? (
+          {branchLocked && !me?.branchId?.trim() ? (
             <p className="text-xs text-destructive">
               Your account is not assigned to a branch. Contact your administrator.
             </p>
@@ -666,15 +678,15 @@ export default function StockTakePage() {
                       "h-9 py-1.5 text-sm disabled:opacity-60",
                     )}
                     value={selBranchId}
-                    disabled={isBranchLockedRole}
-                    onChange={(e) => setSelBranchId(e.target.value)}
+                    disabled={branchLocked}
+                    onChange={(e) => onChangeBranch(e.target.value)}
                   >
-                    {!isBranchLockedRole ? (
+                    {!branchLocked ? (
                       <option value="">Select branch…</option>
                     ) : null}
                     {branches
                       .filter(
-                        (b) => !isBranchLockedRole || b.id === me?.branchId,
+                        (b) => !branchLocked || b.id === me?.branchId,
                       )
                       .map((b) => (
                         <option key={b.id} value={b.id}>
@@ -698,7 +710,7 @@ export default function StockTakePage() {
                   disabled={
                     loading ||
                     !selBranchId.trim() ||
-                    (isBranchLockedRole && !me?.branchId?.trim())
+                    (branchLocked && !me?.branchId?.trim())
                   }
                   onClick={onStartSession}
                 >
@@ -822,6 +834,7 @@ export default function StockTakePage() {
         <header className="space-y-2 border-b border-border/50 pb-3">
           <DashboardPageHero
             compact
+            showActiveScope
             icon={ClipboardList}
             eyebrow="Inventory"
             title="Stock take"

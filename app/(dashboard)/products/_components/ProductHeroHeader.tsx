@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ export function ProductHeroHeader({
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
+        <ActiveScopeSubtitle className="w-full text-[11px] sm:w-auto" />
         {totalProducts != null ? (
           <p className="text-xs text-muted-foreground">
             <span className="tabular-nums font-semibold text-foreground">
