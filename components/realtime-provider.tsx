@@ -89,11 +89,17 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       },
     });
 
-    client.connect().catch(() => {
-      // REST polling fallback is automatic
-    });
+    // Defer connect so child hooks (grocery, POS, etc.) register first.
+    const connectTimer = window.setTimeout(() => {
+      client.connect().catch(() => {
+        // REST polling fallback is automatic
+      });
+    }, 0);
 
-    return unregister;
+    return () => {
+      window.clearTimeout(connectTimer);
+      unregister();
+    };
   }, [canReadNotifications]);
 
   const markAllRead = useCallback(() => {
