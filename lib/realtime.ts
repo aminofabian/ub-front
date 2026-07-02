@@ -532,6 +532,16 @@ export class RealtimeClient {
         clearTimeout(this.connectTimeoutTimer);
         this.connectTimeoutTimer = null;
       }
+      if (event.code !== 1000) {
+        console.warn(
+          "[realtime] WebSocket closed:",
+          `code=${event.code}`,
+          event.reason ? `reason=${event.reason}` : "",
+          event.code === 1006
+            ? "(abnormal — often 401 invalid ticket, 429 too many tabs, or proxy blocking upgrade)"
+            : "",
+        );
+      }
       if (event.code === 1000) {
         this.setState("disconnected");
         this.startRestPolling();
