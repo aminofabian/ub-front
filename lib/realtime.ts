@@ -292,6 +292,8 @@ export class RealtimeClient {
   private connectPromise: Promise<void> | null = null;
   /** Bumped whenever a socket is torn down so stale onclose handlers are ignored. */
   private wsGeneration = 0;
+  /** Number of consecutive abnormal closures (1006). Fast-fallback to REST polling after a few. */
+  private consecutiveAbnormalClosures = 0;
 
   /** Register a multiplexed listener and merge channels/handlers. */
   registerListener(id: string, listener: RealtimeListenerOptions): () => void {
@@ -336,10 +338,8 @@ export class RealtimeClient {
       }
       this.ticketExpiresAt = this.ticket.expiresAt;
       this.scheduleTicketRefresh();
-      console.debug(
-        "[realtime] Opening WebSocket:",
-        resolveWebSocketUrl(this.ticket),
-      );
+      const wsUrl = resolveWebSocketUrl(this.ticket);
+      console.debug("[realtime] Opening WebSocket:", wsUrl);
       this.openWebSocket();
     } catch (err) {
       console.warn(
@@ -538,24 +538,39 @@ export class RealtimeClient {
           `code=${event.code}`,
           event.reason ? `reason=${event.reason}` : "",
           event.code === 1006
-            ? "(abnormal — often 401 invalid ticket, 429 too many tabs, or proxy blocking upgrade)"
+            ? "(abnormal — often invalid ticket, too many tabs, or proxy blocking upgrade)"
             : "",
         );
       }
       if (event.code === 1000) {
+        this.consecutiveAbnormalClosures = 0;
         this.setState("disconnected");
         this.startRestPolling();
         return;
       }
+      if (event.code === 1006) {
+        this.consecutiveAbnormalClosures += 1;
+        if (this.consecutiveAbnormalClosures >= 3) {
+          console.warn(
+            "[realtime] Repeated abnormal WebSocket closures — falling back to REST polling",
+          );
+          this.setState("disconnected");
+          this.startRestPolling();
+          return;
+        }
+      } else {
+        this.consecutiveAbnormalClosures = 0;
+      }
       if (event.code === 4401) {
+        this.consecutiveAbnormalClosures = 0;
         this.handleReauthAndReconnect();
         return;
       }
       this.attemptReconnect();
     };
 
-    ws.onerror = () => {
-      // onclose will fire after this
+    ws.onerror = (event) => {
+      console.warn("[realtime] WebSocket error:", event.type, wsUrl);
     };
   }
 
