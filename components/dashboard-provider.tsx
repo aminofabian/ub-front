@@ -270,12 +270,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     // a transient failure here does NOT put us back into a loading state.
     refreshSession()
       .catch(() => {
-        if (!bootstrap.me && !me) {
-          setMe(null);
-        }
-        if (!bootstrap.business && !business) {
-          setBusiness(null);
-        }
+        if (!bootstrap.me) setMe(null);
+        if (!bootstrap.business) setBusiness(null);
       })
       .finally(() => {
         if (!hasFullBootstrap) {
