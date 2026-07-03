@@ -100,6 +100,7 @@ const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 const TICKET_REFRESH_MARGIN_MS = 10_000;
 const REST_POLL_INTERVAL_MS = 30_000;
+const CONNECT_TIMEOUT_MS = 20_000;
 
 const TYPE_HANDLER_MAP: Record<string, keyof RealtimeClientOptions> = {
   "notification.created": "onNotification",
@@ -180,6 +181,7 @@ async function mintTicket(channels: string[]): Promise<TicketResponse> {
     }
     return fetch(apiUrl("/api/v1/realtime/tickets"), {
       method: "POST",
+      credentials: "include",
       headers: buildAuthHeaders(tokens.accessToken),
       body: JSON.stringify({ channels }),
     });
@@ -280,12 +282,19 @@ export class RealtimeClient {
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
   private lastPingAt = 0;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private ticketExpiresAt = 0;
   private ticketRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   /** Tracks last-seen notification id to avoid duplicate emissions during REST polling. */
   private lastPollNotificationId: string | null = null;
+  /** Single-flight connect guard — prevents parallel ticket mint + socket opens. */
+  private connectPromise: Promise<void> | null = null;
+  /** Bumped whenever a socket is torn down so stale onclose handlers are ignored. */
+  private wsGeneration = 0;
+  /** Number of consecutive abnormal closures (1006). Fast-fallback to REST polling after a few. */
+  private consecutiveAbnormalClosures = 0;
 
   /** Register a multiplexed listener and merge channels/handlers. */
   registerListener(id: string, listener: RealtimeListenerOptions): () => void {
@@ -299,21 +308,39 @@ export class RealtimeClient {
 
   /** Open the WebSocket connection. Idempotent. */
   async connect(): Promise<void> {
-    if (
-      this.ws &&
-      (this.ws.readyState === WebSocket.OPEN ||
-        this.ws.readyState === WebSocket.CONNECTING)
-    ) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
+    if (this.connectPromise) {
+      return this.connectPromise;
+    }
 
+    this.connectPromise = this.doConnect().finally(() => {
+      this.connectPromise = null;
+    });
+    return this.connectPromise;
+  }
+
+  private async doConnect(): Promise<void> {
+    if (this.ws?.readyState === WebSocket.CONNECTING) {
+      this.teardownWebSocket(1000, "Superseded connect");
+    }
+
+    this.stopRestPolling();
     this.setState("connecting");
     this.clearTimers();
 
     try {
-      this.ticket = await mintTicket(this.channels);
+      const channelsForTicket = [...this.channels].sort();
+      this.ticket = await mintTicket(channelsForTicket);
+      // Child listeners often register while the ticket request is in flight.
+      if (!channelsEqual(channelsForTicket, this.channels)) {
+        this.ticket = await mintTicket(this.channels);
+      }
       this.ticketExpiresAt = this.ticket.expiresAt;
       this.scheduleTicketRefresh();
+      const wsUrl = resolveWebSocketUrl(this.ticket);
+      console.debug("[realtime] Opening WebSocket:", wsUrl);
       this.openWebSocket();
     } catch (err) {
       console.warn(
@@ -330,25 +357,52 @@ export class RealtimeClient {
     this.reconnectAttempt = RECONNECT_MAX_RETRIES;
     this.clearTimers();
     this.stopRestPolling();
-    if (this.ws) {
-      this.ws.close(1000, "Client disconnect");
-      this.ws = null;
-    }
+    this.teardownWebSocket(1000, "Client disconnect");
     this.setState("disconnected");
   }
 
   /** Update allowed channels (requires reconnection). */
   async setChannels(channels: string[]): Promise<void> {
-    const next = [...channels].sort();
-    if (channelsEqual(next, this.channels)) {
+    this.applyChannelChange([...channels].sort(), { forceReconnect: true });
+  }
+
+  private applyChannelChange(
+    nextChannels: string[],
+    opts?: { forceReconnect?: boolean },
+  ): void {
+    const prevChannels = this.channels;
+    const channelsChanged = !channelsEqual(nextChannels, prevChannels);
+    if (!channelsChanged && !opts?.forceReconnect) {
       return;
     }
-    this.channels = next;
-    if (this.ws) {
-      this.ws.close(1000, "Channel set changed");
-      this.ws = null;
+    this.channels = nextChannels;
+
+    if (
+      this.state === "connected" &&
+      this.ws?.readyState === WebSocket.OPEN &&
+      !opts?.forceReconnect
+    ) {
+      for (const channel of nextChannels) {
+        if (!prevChannels.includes(channel)) {
+          this.send({ op: "subscribe", channel });
+        }
+      }
+      return;
     }
-    await this.connect();
+
+    if (
+      this.state === "connecting" ||
+      this.state === "reconnecting" ||
+      (!opts?.forceReconnect && channelsChanged)
+    ) {
+      // onopen subscribes to this.channels — no mid-handshake reconnect storm.
+      return;
+    }
+
+    if (opts?.forceReconnect && this.ws) {
+      this.teardownWebSocket(1000, "Channel set changed");
+      void this.connect();
+    }
   }
 
   private async syncListeners(): Promise<void> {
@@ -399,29 +453,58 @@ export class RealtimeClient {
       };
     }
 
-    const nextChannels = Array.from(channels).sort();
-    const channelsChanged = !channelsEqual(nextChannels, this.channels);
-    this.channels = nextChannels;
     this.handlers = handlers;
-
-    if (
-      channelsChanged &&
-      this.state !== "disconnected" &&
-      this.listeners.size > 0
-    ) {
-      await this.setChannels(nextChannels);
+    if (this.listeners.size === 0) {
+      return;
     }
+
+    const nextChannels = Array.from(channels).sort();
+    this.applyChannelChange(nextChannels);
   }
 
   // ── Internal ──
+
+  private teardownWebSocket(code = 1000, reason = ""): void {
+    const ws = this.ws;
+    if (!ws) return;
+    this.wsGeneration += 1;
+    this.ws = null;
+    ws.onopen = null;
+    ws.onclose = null;
+    ws.onmessage = null;
+    ws.onerror = null;
+    if (this.connectTimeoutTimer) {
+      clearTimeout(this.connectTimeoutTimer);
+      this.connectTimeoutTimer = null;
+    }
+    try {
+      ws.close(code, reason);
+    } catch {
+      // Ignore close errors on already-dead sockets.
+    }
+  }
 
   private openWebSocket(): void {
     if (!this.ticket) return;
 
     const wsUrl = `${resolveWebSocketUrl(this.ticket)}?ticket=${encodeURIComponent(this.ticket.ticket)}`;
-    this.ws = new WebSocket(wsUrl);
+    const generation = ++this.wsGeneration;
+    const ws = new WebSocket(wsUrl);
+    this.ws = ws;
 
-    this.ws.onopen = () => {
+    this.connectTimeoutTimer = setTimeout(() => {
+      if (generation !== this.wsGeneration || this.ws !== ws) return;
+      console.warn("[realtime] WebSocket connect timeout — retrying");
+      this.teardownWebSocket(4001, "Connect timeout");
+      this.attemptReconnect();
+    }, CONNECT_TIMEOUT_MS);
+
+    ws.onopen = () => {
+      if (generation !== this.wsGeneration || this.ws !== ws) return;
+      if (this.connectTimeoutTimer) {
+        clearTimeout(this.connectTimeoutTimer);
+        this.connectTimeoutTimer = null;
+      }
       this.reconnectAttempt = 0;
       this.setState("connected");
       this.lastPingAt = Date.now();
@@ -432,7 +515,8 @@ export class RealtimeClient {
       }
     };
 
-    this.ws.onmessage = (event) => {
+    ws.onmessage = (event) => {
+      if (generation !== this.wsGeneration || this.ws !== ws) return;
       this.lastPingAt = Date.now();
       try {
         const frame = JSON.parse(event.data as string) as RealtimeFrame;
@@ -442,22 +526,52 @@ export class RealtimeClient {
       }
     };
 
-    this.ws.onclose = (event) => {
+    ws.onclose = (event) => {
+      if (generation !== this.wsGeneration || this.ws !== ws) return;
       this.ws = null;
+      if (this.connectTimeoutTimer) {
+        clearTimeout(this.connectTimeoutTimer);
+        this.connectTimeoutTimer = null;
+      }
+      if (event.code !== 1000) {
+        console.warn(
+          "[realtime] WebSocket closed:",
+          `code=${event.code}`,
+          event.reason ? `reason=${event.reason}` : "",
+          event.code === 1006
+            ? "(abnormal — often invalid ticket, too many tabs, or proxy blocking upgrade)"
+            : "",
+        );
+      }
       if (event.code === 1000) {
+        this.consecutiveAbnormalClosures = 0;
         this.setState("disconnected");
         this.startRestPolling();
         return;
       }
+      if (event.code === 1006) {
+        this.consecutiveAbnormalClosures += 1;
+        if (this.consecutiveAbnormalClosures >= 3) {
+          console.warn(
+            "[realtime] Repeated abnormal WebSocket closures — falling back to REST polling",
+          );
+          this.setState("disconnected");
+          this.startRestPolling();
+          return;
+        }
+      } else {
+        this.consecutiveAbnormalClosures = 0;
+      }
       if (event.code === 4401) {
+        this.consecutiveAbnormalClosures = 0;
         this.handleReauthAndReconnect();
         return;
       }
       this.attemptReconnect();
     };
 
-    this.ws.onerror = () => {
-      // onclose will fire after this
+    ws.onerror = (event) => {
+      console.warn("[realtime] WebSocket error:", event.type, wsUrl);
     };
   }
 
@@ -508,6 +622,7 @@ export class RealtimeClient {
       console.warn(
         "[realtime] Max reconnection attempts reached, falling back to REST polling",
       );
+      void logRealtimeDiagnostics();
       this.setState("disconnected");
       this.startRestPolling();
       return;
@@ -599,10 +714,7 @@ export class RealtimeClient {
     this.heartbeatTimer = setInterval(() => {
       if (Date.now() - this.lastPingAt > HEARTBEAT_TIMEOUT_MS) {
         console.warn("[realtime] Heartbeat timeout - reconnecting");
-        if (this.ws) {
-          this.ws.close(4001, "Heartbeat timeout");
-          this.ws = null;
-        }
+        this.teardownWebSocket(4001, "Heartbeat timeout");
         this.attemptReconnect();
       }
     }, 10_000);
@@ -687,6 +799,32 @@ export class RealtimeClient {
       clearTimeout(this.ticketRefreshTimer);
       this.ticketRefreshTimer = null;
     }
+    if (this.connectTimeoutTimer) {
+      clearTimeout(this.connectTimeoutTimer);
+      this.connectTimeoutTimer = null;
+    }
+  }
+}
+
+async function logRealtimeDiagnostics(): Promise<void> {
+  try {
+    const response = await fetch(apiUrl("/api/v1/realtime/status"));
+    if (!response.ok) {
+      console.warn(
+        "[realtime] Diagnostics: status probe returned",
+        response.status,
+        "— backend may need redeploy",
+      );
+      return;
+    }
+    const status = (await response.json()) as Record<string, unknown>;
+    console.warn("[realtime] Diagnostics:", status);
+    const hint = status.hint;
+    if (typeof hint === "string" && hint.length > 0) {
+      console.warn("[realtime]", hint);
+    }
+  } catch {
+    console.warn("[realtime] Diagnostics: could not reach /api/v1/realtime/status");
   }
 }
 

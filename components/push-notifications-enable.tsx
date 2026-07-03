@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BellRing } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getSessionTenantHost, getSessionTenantId, getSessionTokens } from "@/lib/auth";
 import { isWebPushSupported, registerWebPushSubscription, fetchPushConfig } from "@/lib/web-push";
 
 type Props = {
@@ -20,6 +21,12 @@ export function PushNotificationsEnable({ label = "Enable push notifications", c
 
   useEffect(() => {
     setSupported(isWebPushSupported());
+    const tokens = getSessionTokens();
+    const tenantId = getSessionTenantId();
+    const tenantHost = getSessionTenantHost();
+    if (!tokens || (!tenantId && !tenantHost)) {
+      return;
+    }
     void fetchPushConfig().then((cfg) => setAvailable(cfg.enabled && Boolean(cfg.publicKey)));
   }, []);
 

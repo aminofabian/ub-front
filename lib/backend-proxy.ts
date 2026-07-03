@@ -79,6 +79,12 @@ function buildUpstreamHeaders(req: NextRequest): Headers {
     const v = req.headers.get(name);
     if (v) h.set(name, v);
   }
+  // HttpOnly refresh cookie (`ub.refresh`) — required for POST /auth/refresh when
+  // the backend omits refreshToken from JSON (cookie-only mode).
+  const cookie = req.headers.get("cookie");
+  if (cookie) {
+    h.set("cookie", cookie);
+  }
   if (!h.get("x-tenant-host")) {
     const tenantHost = resolveTenantHostHeader(req);
     if (tenantHost) {
@@ -88,11 +94,33 @@ function buildUpstreamHeaders(req: NextRequest): Headers {
   return h;
 }
 
+/**
+ * Strip {@code Domain=} from upstream Set-Cookie so the browser stores the cookie
+ * on the Next.js frontend host (e.g. palmart.co.ke), not the Java API host
+ * (kiosk.zelisline.com) the BFF calls server-side.
+ */
+function rewriteSetCookieForFrontend(setCookie: string): string {
+  return setCookie.replace(/;\s*Domain=[^;]*/gi, "");
+}
+
+function readSetCookieHeaders(from: Headers): string[] {
+  if (typeof from.getSetCookie === "function") {
+    return from.getSetCookie();
+  }
+  const combined = from.get("set-cookie");
+  return combined ? [combined] : [];
+}
+
 function copyUpstreamHeaders(from: Headers, to: NextResponse): void {
+  const setCookies = readSetCookieHeaders(from);
   from.forEach((value, key) => {
-    if (SKIP_OUT_HEADERS.has(key.toLowerCase())) return;
+    const lower = key.toLowerCase();
+    if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
     to.headers.set(key, value);
   });
+  for (const cookie of setCookies) {
+    to.headers.append("Set-Cookie", rewriteSetCookieForFrontend(cookie));
+  }
 }
 
 export async function proxyToBackend(

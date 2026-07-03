@@ -1,9 +1,6 @@
-import { getSessionTokens } from "@/lib/auth";
+import { buildRequestHeaders } from "@/lib/api";
+import { getSessionTenantHost, getSessionTenantId, getSessionTokens } from "@/lib/auth";
 import { apiUrl } from "@/lib/config";
-
-function buildAuthHeaders(accessToken: string): Record<string, string> {
-  return { Authorization: `Bearer ${accessToken}` };
-}
 
 type PushConfig = {
   enabled: boolean;
@@ -27,8 +24,15 @@ export async function fetchPushConfig(): Promise<PushConfig> {
   if (!tokens) {
     return { enabled: false, publicKey: null };
   }
+  // Platform apex (palmart.co.ke) needs X-Tenant-Id; subdomains send X-Tenant-Host.
+  const tenantId = getSessionTenantId();
+  const tenantHost = getSessionTenantHost();
+  if (!tenantId && !tenantHost) {
+    return { enabled: false, publicKey: null };
+  }
   const response = await fetch(apiUrl("/api/v1/me/push/config"), {
-    headers: buildAuthHeaders(tokens.accessToken),
+    credentials: "include",
+    headers: buildRequestHeaders(true, tokens.accessToken),
   });
   if (!response.ok) {
     return { enabled: false, publicKey: null };
@@ -79,10 +83,8 @@ export async function registerWebPushSubscription(): Promise<boolean> {
 
   const response = await fetch(apiUrl("/api/v1/me/device-tokens"), {
     method: "POST",
-    headers: {
-      ...buildAuthHeaders(tokens.accessToken),
-      "Content-Type": "application/json",
-    },
+    credentials: "include",
+    headers: buildRequestHeaders(true, tokens.accessToken, "POST"),
     body: JSON.stringify({
       endpoint,
       p256dh: key.p256dh,
