@@ -1,6 +1,19 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, beforeAll } from "bun:test";
 
 import { buildRequestHeaders, shouldAttemptRefresh } from "@/lib/api";
+
+// Tests that rely on the default tenantHostReader (which calls
+// getSessionTenantHost → window.location.hostname) need a valid
+// window.location in the bun test runner.
+beforeAll(() => {
+  if (typeof window !== "undefined" && !window.location) {
+    Object.defineProperty(window, "location", {
+      value: { hostname: "test.palmart.co.ke", protocol: "https:" },
+      configurable: true,
+      writable: true,
+    });
+  }
+});
 
 describe("api client helpers", () => {
   it("adds Idempotency-Key for mutating methods", () => {
@@ -28,8 +41,15 @@ describe("api client helpers", () => {
 
   it("refreshes for token_expired code or invalid/expired title", () => {
     expect(shouldAttemptRefresh({ code: "token_expired" })).toBe(true);
-    expect(shouldAttemptRefresh({ title: "Invalid or expired access token" })).toBe(true);
-    expect(shouldAttemptRefresh({ code: "token_expired", title: "Invalid or expired access token" })).toBe(true);
+    expect(
+      shouldAttemptRefresh({ title: "Invalid or expired access token" }),
+    ).toBe(true);
+    expect(
+      shouldAttemptRefresh({
+        code: "token_expired",
+        title: "Invalid or expired access token",
+      }),
+    ).toBe(true);
     expect(shouldAttemptRefresh({ code: "permission_denied" })).toBe(false);
     expect(shouldAttemptRefresh({ title: "Forbidden" })).toBe(false);
     expect(shouldAttemptRefresh(undefined)).toBe(false);

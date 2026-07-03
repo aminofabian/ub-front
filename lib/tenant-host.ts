@@ -17,11 +17,16 @@ const CC_SLD = new Set(["co", "com", "org", "net", "gov", "edu", "ac"]);
  */
 export function cookieDomainForHost(hostname: string): string {
   const h = stripLeadingWww(hostname.trim().toLowerCase());
-  if (!h || h === "localhost" || h === "127.0.0.1" || h.endsWith(".localhost")) {
+  if (
+    !h ||
+    h === "localhost" ||
+    h === "127.0.0.1" ||
+    h.endsWith(".localhost")
+  ) {
     return "";
   }
   const parts = h.split(".");
-  if (parts.length >= 4 && CC_SLD.has(parts[parts.length - 2] ?? "")) {
+  if (parts.length >= 3 && CC_SLD.has(parts[parts.length - 2] ?? "")) {
     return `.${parts.slice(-3).join(".")}`;
   }
   if (parts.length >= 2) {
