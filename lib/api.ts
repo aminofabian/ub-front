@@ -161,6 +161,14 @@ async function resolveUnauthorizedResponse(
     }
     // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
     signOutClientAndRedirectToLogin("401 after refresh rejected");
+    throw new ApiRequestError(
+      formatApiProblemMessage(payload),
+      response.status,
+      payload,
+    );
+  }
+  /*
+   * Network/server transient failure during refresh: do NOT sign out.
    * Surfacing the original 401 lets the caller decide (toast, retry, etc.)
    * and lets the next user action attempt refresh again. We may also have
    * lost the single-flight race to a sibling tab that succeeded; in that
