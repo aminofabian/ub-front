@@ -22,7 +22,10 @@ import {
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
-import type { MobilePublishStatus, MyMobileConfigResponse } from "@/lib/public-mobile-config";
+import type {
+  MobilePublishStatus,
+  MyMobileConfigResponse,
+} from "@/lib/public-mobile-config";
 import {
   parseProblem,
   formatApiProblemMessage,
@@ -101,24 +104,40 @@ function signOutClientForProblem(
   return true;
 }
 
-/** On 401: refresh when the access token expired; otherwise sign out and stop the request. */
+/** On 401: always attempt a token refresh first; only sign out when the
+ * refresh token itself is rejected or the problem payload carries an
+ * explicit session-dead signal (e.g. "Session is no longer active").
+ * This prevents transient 401s on non-critical requests (catalog search,
+ * department-scoped lookups) from logging the user out prematurely.
+ */
 async function resolveUnauthorizedResponse(
   response: Response,
   execute: () => Promise<Response>,
   options?: { requiresAuth?: boolean; toast?: boolean },
 ): Promise<Response> {
-  const payload = await response.clone().json().catch(() => ({}));
+  const payload = await response
+    .clone()
+    .json()
+    .catch(() => ({}));
   const problem = parseProblem(payload);
-  if (!shouldAttemptRefresh(problem)) {
-    if (signOutClientForProblem(response.status, payload, options)) {
-      throw new ApiRequestError(
-        formatApiProblemMessage(payload),
-        response.status,
-        payload,
-      );
-    }
-    failRequest(response.status, payload, options);
+
+  // Explicit session-dead signals → sign out immediately (refresh won't help).
+  if (
+    problem?.title === "Session is no longer active" ||
+    problem?.title === "User not found" ||
+    problem?.title === "Account is not active" ||
+    problem?.title === "Account is temporarily locked" ||
+    problem?.title === "Invalid token claims"
+  ) {
+    signOutClientForProblem(response.status, payload, options);
+    throw new ApiRequestError(
+      formatApiProblemMessage(payload),
+      response.status,
+      payload,
+    );
   }
+
+  // For all other 401s (expired tokens, generic auth failures), try a refresh.
   const result = await refreshAccessToken();
   if (result.kind === "ok") {
     return execute();
@@ -1031,7 +1050,11 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 
   // 5xx and 408/429 are server-side hiccups, not auth failures. Treat them
   // as transient and keep the session intact.
-  if (response.status >= 500 || response.status === 408 || response.status === 429) {
+  if (
+    response.status >= 500 ||
+    response.status === 408 ||
+    response.status === 429
+  ) {
     return { kind: "network" };
   }
 
@@ -1128,11 +1151,7 @@ async function request<T>(
     if (suppressToast !== false) {
       notifyHttpErrorToast(formatApiProblemMessage(payload));
     }
-    throw new ApiRequestError(
-      formatApiProblemMessage(payload),
-      423,
-      payload,
-    );
+    throw new ApiRequestError(formatApiProblemMessage(payload), 423, payload);
   }
 
   const execute = async () => {
@@ -1690,10 +1709,13 @@ export async function fetchShopperUnreadNotificationCount(): Promise<number> {
 }
 
 export async function markShopperNotificationRead(id: string): Promise<void> {
-  await request(`${API_ROUTES.shopperNotifications}/${encodeURIComponent(id)}/read`, {
-    method: "POST",
-    requiresAuth: true,
-  });
+  await request(
+    `${API_ROUTES.shopperNotifications}/${encodeURIComponent(id)}/read`,
+    {
+      method: "POST",
+      requiresAuth: true,
+    },
+  );
 }
 
 export async function markAllShopperNotificationsRead(): Promise<void> {
@@ -1715,19 +1737,25 @@ export type NotificationPreferencesProfile = {
 };
 
 export async function fetchNotificationPreferences(): Promise<NotificationPreferencesProfile> {
-  return request<NotificationPreferencesProfile>(API_ROUTES.notificationPreferences, {
-    requiresAuth: true,
-  });
+  return request<NotificationPreferencesProfile>(
+    API_ROUTES.notificationPreferences,
+    {
+      requiresAuth: true,
+    },
+  );
 }
 
 export async function updateNotificationPreferences(
   body: NotificationPreferencesProfile,
 ): Promise<NotificationPreferencesProfile> {
-  return request<NotificationPreferencesProfile>(API_ROUTES.notificationPreferences, {
-    method: "PUT",
-    body,
-    requiresAuth: true,
-  });
+  return request<NotificationPreferencesProfile>(
+    API_ROUTES.notificationPreferences,
+    {
+      method: "PUT",
+      body,
+      requiresAuth: true,
+    },
+  );
 }
 
 export type ShopperNotificationSubscription = {
@@ -1751,11 +1779,14 @@ export async function subscribeShopperNotification(
   itemId: string,
   kind: "BACK_IN_STOCK" | "PRICE_DROP",
 ): Promise<ShopperNotificationSubscription> {
-  return request<ShopperNotificationSubscription>(API_ROUTES.shopperNotificationSubscriptions, {
-    method: "POST",
-    body: { itemId, kind },
-    requiresAuth: true,
-  });
+  return request<ShopperNotificationSubscription>(
+    API_ROUTES.shopperNotificationSubscriptions,
+    {
+      method: "POST",
+      body: { itemId, kind },
+      requiresAuth: true,
+    },
+  );
 }
 
 export async function unsubscribeShopperNotification(
@@ -2455,7 +2486,10 @@ export async function fetchCatalogListStats(
 /** @deprecated Use fetchCatalogListStats */
 export async function fetchCatalogRowTypeCounts(
   search: string | undefined,
-  opts?: Omit<FetchItemsOpts, "page" | "size" | "sort" | "catalogRowTypes" | "branchId">,
+  opts?: Omit<
+    FetchItemsOpts,
+    "page" | "size" | "sort" | "catalogRowTypes" | "branchId"
+  >,
 ): Promise<CatalogListStats> {
   const { noBarcode: _nb, includeInactive: _ia, ...rest } = opts ?? {};
   return fetchCatalogListStats(search, rest);
@@ -2551,7 +2585,8 @@ export async function createItem(
     method: "POST",
     body: createPayloadWithoutBlankSku({ ...payload }),
   });
-  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
   return created;
 }
@@ -2619,7 +2654,8 @@ export async function patchItem(
   body: PatchItemPayload,
 ): Promise<void> {
   await request(`${API_ROUTES.items}/${itemId}`, { method: "PATCH", body });
-  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
 }
 
@@ -2755,7 +2791,8 @@ export async function deleteItem(
 ): Promise<void> {
   const q = cascadeVariants ? "?cascadeVariants=true" : "";
   await request(`${API_ROUTES.items}/${itemId}${q}`, { method: "DELETE" });
-  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
 }
 
@@ -2770,7 +2807,8 @@ export async function createItemVariant(
       body: createPayloadWithoutBlankSku({ ...body }),
     },
   );
-  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
   return created;
 }
@@ -2889,7 +2927,9 @@ export async function fetchGlobalCatalogProducts(params?: {
   else q.set("onlyNotImported", "true");
   q.set("page", String(params?.page ?? 0));
   q.set("size", String(params?.size ?? 50));
-  const payload = await request<unknown>(`${API_ROUTES.globalCatalog}/products?${q}`);
+  const payload = await request<unknown>(
+    `${API_ROUTES.globalCatalog}/products?${q}`,
+  );
   const meta = extractSpringPageMeta(payload);
   return {
     content: extractPageContent<GlobalProductRecord>(payload),
@@ -2905,7 +2945,9 @@ export async function fetchGlobalCatalogProducts(params?: {
 export async function fetchGlobalCatalogProduct(
   id: string,
 ): Promise<GlobalProductRecord> {
-  return request<GlobalProductRecord>(`${API_ROUTES.globalCatalog}/products/${encodeURIComponent(id)}`);
+  return request<GlobalProductRecord>(
+    `${API_ROUTES.globalCatalog}/products/${encodeURIComponent(id)}`,
+  );
 }
 
 export async function lookupGlobalCatalogProducts(params: {
@@ -2915,7 +2957,9 @@ export async function lookupGlobalCatalogProducts(params: {
   const q = new URLSearchParams();
   if (params.barcode?.trim()) q.set("barcode", params.barcode.trim());
   if (params.q?.trim()) q.set("q", params.q.trim());
-  return request<GlobalProductRecord[]>(`${API_ROUTES.globalCatalog}/lookup?${q}`);
+  return request<GlobalProductRecord[]>(
+    `${API_ROUTES.globalCatalog}/lookup?${q}`,
+  );
 }
 
 export async function fetchGlobalCatalogPack(
@@ -2934,21 +2978,28 @@ export async function fetchGlobalCatalogPack(
 export async function previewGlobalCatalogAdopt(
   lines: GlobalCatalogAdoptLine[],
 ): Promise<GlobalCatalogAdoptResult> {
-  return request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt/preview`, {
-    method: "POST",
-    body: { lines },
-  });
+  return request<GlobalCatalogAdoptResult>(
+    `${API_ROUTES.globalCatalog}/adopt/preview`,
+    {
+      method: "POST",
+      body: { lines },
+    },
+  );
 }
 
 export async function globalCatalogAdopt(
   openingBranchId: string,
   lines: GlobalCatalogAdoptLine[],
 ): Promise<GlobalCatalogAdoptResult> {
-  const result = await request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt`, {
-    method: "POST",
-    body: { openingBranchId, lines },
-  });
-  const { notifyTenantCatalogChanged } = await import("@/lib/tenant-catalog-events");
+  const result = await request<GlobalCatalogAdoptResult>(
+    `${API_ROUTES.globalCatalog}/adopt`,
+    {
+      method: "POST",
+      body: { openingBranchId, lines },
+    },
+  );
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
   return result;
 }
@@ -3579,7 +3630,9 @@ export type NotificationCampaign = {
   createdAt?: string;
 };
 
-export async function fetchNotificationCampaigns(): Promise<NotificationCampaign[]> {
+export async function fetchNotificationCampaigns(): Promise<
+  NotificationCampaign[]
+> {
   return request<NotificationCampaign[]>("/api/v1/notification-campaigns");
 }
 
@@ -3599,7 +3652,9 @@ export async function createNotificationCampaign(body: {
   });
 }
 
-export async function runNotificationCampaign(campaignId: string): Promise<NotificationCampaign> {
+export async function runNotificationCampaign(
+  campaignId: string,
+): Promise<NotificationCampaign> {
   return request<NotificationCampaign>(
     `/api/v1/notification-campaigns/${encodeURIComponent(campaignId)}/run`,
     { method: "POST" },
@@ -5584,16 +5639,21 @@ export type UpdateSupplierPayoutSettingsPayload = {
 };
 
 export async function fetchSupplierPayoutSettings(): Promise<SupplierPayoutSettingsRecord> {
-  return request<SupplierPayoutSettingsRecord>("/api/v1/payments/supplier-payout");
+  return request<SupplierPayoutSettingsRecord>(
+    "/api/v1/payments/supplier-payout",
+  );
 }
 
 export async function updateSupplierPayoutSettings(
   body: UpdateSupplierPayoutSettingsPayload,
 ): Promise<SupplierPayoutSettingsRecord> {
-  return request<SupplierPayoutSettingsRecord>("/api/v1/payments/supplier-payout", {
-    method: "PUT",
-    body,
-  });
+  return request<SupplierPayoutSettingsRecord>(
+    "/api/v1/payments/supplier-payout",
+    {
+      method: "PUT",
+      body,
+    },
+  );
 }
 
 export type SupplyKopokopoPayRecord = {

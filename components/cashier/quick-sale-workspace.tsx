@@ -92,7 +92,12 @@ import {
   DrawoutModal,
   OpenShiftModal,
 } from "@/components/shifts/shift-action-modals";
-import { POS_DRAFT_FLAGS, fetchPosDraft, listPosDrafts, tryCompletePosDraftWithRetries } from "@/lib/pos-draft-api";
+import {
+  POS_DRAFT_FLAGS,
+  fetchPosDraft,
+  listPosDrafts,
+  tryCompletePosDraftWithRetries,
+} from "@/lib/pos-draft-api";
 import {
   applyPosDraftToCart,
   mergeHydratedCartSessions,
@@ -180,10 +185,11 @@ export function QuickSaleWorkspace({
   const invoiceParamHandledRef = useRef(false);
   const wasOfflineRef = useRef(false);
   const searchParams = useSearchParams();
-  // Catalog search/browse is scoped to the header department. There is no
-  // local POS override anymore; the duplicate department picker was removed
-  // from the cashier shell.
-  const posItemTypeId = headerItemTypeId?.trim() || null;
+  // Catalog search/browse is scoped to the header department, except for the
+  // cashier POS where we always default to "All departments" so the cashier
+  // can sell across every department without needing to touch the header.
+  const posItemTypeId =
+    variant === "cashier" ? "" : headerItemTypeId?.trim() || null;
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
   const canBrowseCategories = hasPermission(
     me?.permissions,
@@ -415,7 +421,11 @@ export function QuickSaleWorkspace({
             posDraftPersistence &&
             localCarts.some((c) => c.lines.length > 0)
           ) {
-            const replay = await replayMirroredDraftsToServer(merged, bid, uiOpts);
+            const replay = await replayMirroredDraftsToServer(
+              merged,
+              bid,
+              uiOpts,
+            );
             merged = merged.map(
               (c) => replay.carts.find((r) => r.id === c.id) ?? c,
             );
@@ -709,13 +719,7 @@ export function QuickSaleWorkspace({
     if (!posDraftPersistence || !online || !branchId.trim()) return;
     resumeDraftHandledRef.current = true;
     void resumePosDraft(draftId);
-  }, [
-    searchParams,
-    posDraftPersistence,
-    online,
-    branchId,
-    resumePosDraft,
-  ]);
+  }, [searchParams, posDraftPersistence, online, branchId, resumePosDraft]);
 
   const dismissCompletedSaleUi = useCallback(() => {
     setLastSale(null);
@@ -837,9 +841,14 @@ export function QuickSaleWorkspace({
       const detail = (e as CustomEvent).detail as { type?: string } | undefined;
       if (!detail?.type) return;
       if (
-        ["created", "paid", "cancelled", "expired", "unlocked", "locked"].includes(
-          detail.type,
-        )
+        [
+          "created",
+          "paid",
+          "cancelled",
+          "expired",
+          "unlocked",
+          "locked",
+        ].includes(detail.type)
       ) {
         setInvoiceRefreshKey((k) => k + 1);
       }
@@ -1311,8 +1320,6 @@ export function QuickSaleWorkspace({
     if (!q || !q.startsWith("GI-")) return;
     void loadGroceryInvoiceByBarcode(q);
   }, [search, loadGroceryInvoiceByBarcode]);
-
-
 
   const addLine = useCallback(
     (
@@ -1844,8 +1851,7 @@ export function QuickSaleWorkspace({
                 business?.primaryDomain,
               ),
               branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
-              servedByName:
-                me?.name?.trim() || sale.soldByName?.trim() || null,
+              servedByName: me?.name?.trim() || sale.soldByName?.trim() || null,
               currency: receiptCurrency,
               cartLines: receiptCartLines,
               sale,
@@ -1958,8 +1964,7 @@ export function QuickSaleWorkspace({
               business?.primaryDomain,
             ),
             branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
-            servedByName:
-              me?.name?.trim() || sale.soldByName?.trim() || null,
+            servedByName: me?.name?.trim() || sale.soldByName?.trim() || null,
             currency: receiptCurrency,
             cartLines: receiptCartLines,
             sale,
@@ -2303,7 +2308,9 @@ export function QuickSaleWorkspace({
             />
           )}
           <PendingInvoicesPanel
-            onLoadInvoice={(barcode) => void loadGroceryInvoiceByBarcode(barcode)}
+            onLoadInvoice={(barcode) =>
+              void loadGroceryInvoiceByBarcode(barcode)
+            }
             refreshKey={invoiceRefreshKey}
           />
         </div>

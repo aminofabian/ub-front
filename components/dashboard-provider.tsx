@@ -154,6 +154,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const userTouchedItemTypeRef = useRef(false);
   const staleBranchNoticeShownRef = useRef(false);
   const staleItemTypeNoticeShownRef = useRef(false);
+  /** Guards against double-fetch when bootstrap seeds state then triggers a re-run. */
+  const sessionFetchedRef = useRef(false);
 
   const refreshSession = useCallback(async () => {
     const [meData, biz] = await Promise.all([fetchMe(), fetchBusiness()]);
@@ -168,12 +170,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const effectiveMe = me ?? bootstrap.me;
   const effectiveBusiness = business ?? bootstrap.business;
-  const effectiveBranches =
-    branches.length > 0 ? branches : bootstrap.branches;
-  const effectiveBranchId =
-    branchId || bootstrap.me?.branchId?.trim() || "";
-  const effectiveLoading =
-    loading && !bootstrap.me && !bootstrap.business;
+  const effectiveBranches = branches.length > 0 ? branches : bootstrap.branches;
+  const effectiveBranchId = branchId || bootstrap.me?.branchId?.trim() || "";
+  const effectiveLoading = loading && !bootstrap.me && !bootstrap.business;
 
   const refreshBranches = useCallback(async () => {
     setBranchesLoading(true);
@@ -203,9 +202,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     try {
       const list = await fetchItemTypes();
       let visible = list.filter((t) => t.active);
-      // Grocery clerks are restricted to the departments an admin has assigned
-      // them; everyone else sees the full active list.
-      if (isGroceryClerk && assignedItemTypeIds.size > 0) {
+      // When the backend assigns specific department(s) to a user (any role),
+      // filter the visible list to only those departments. A user with no
+      // assignments who is NOT a grocery clerk sees everything; a grocery
+      // clerk with no assignments sees nothing (admin must assign at least one).
+      if (assignedItemTypeIds.size > 0) {
         visible = visible.filter((t) => assignedItemTypeIds.has(t.id));
       } else if (isGroceryClerk) {
         visible = [];
@@ -251,20 +252,36 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (bootstrap.me || bootstrap.business) {
+    if (sessionFetchedRef.current) return;
+    sessionFetchedRef.current = true;
+
+    // Bootstrap data was prefetched server-side during login (or set by a
+    // sibling DashboardProvider on a previous route). Seed state immediately
+    // so the UI never shows a loading skeleton on intra-app navigation.
+    const hasFullBootstrap = Boolean(bootstrap.me && bootstrap.business);
+    if (hasFullBootstrap) {
+      setMe(bootstrap.me!);
+      setBusiness(bootstrap.business!);
       setLoading(false);
     }
 
+    // Always fetch fresh data so role / permission changes are reflected.
+    // When bootstrap already seeded the UI we do this in the background —
+    // a transient failure here does NOT put us back into a loading state.
     refreshSession()
       .catch(() => {
-        if (!bootstrap.me) {
+        if (!bootstrap.me && !me) {
           setMe(null);
         }
-        if (!bootstrap.business) {
+        if (!bootstrap.business && !business) {
           setBusiness(null);
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!hasFullBootstrap) {
+          setLoading(false);
+        }
+      });
   }, [refreshSession, bootstrap.me, bootstrap.business]);
 
   const canQuickSale = hasPermission(
@@ -415,7 +432,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       setItemTypeId,
       itemTypesLoading,
       refreshItemTypes,
-      canListUsers: hasPermission(effectiveMe?.permissions, Permission.UsersList),
+      canListUsers: hasPermission(
+        effectiveMe?.permissions,
+        Permission.UsersList,
+      ),
       canViewCategories: hasPermission(
         effectiveMe?.permissions,
         Permission.CatalogItemsRead,
@@ -490,7 +510,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         hasPermission(effectiveMe?.permissions, Permission.StocktakeApprove),
       canViewPricing:
         hasPermission(effectiveMe?.permissions, Permission.PricingRead) ||
-        hasPermission(effectiveMe?.permissions, Permission.PricingSellPriceSet) ||
+        hasPermission(
+          effectiveMe?.permissions,
+          Permission.PricingSellPriceSet,
+        ) ||
         hasPermission(effectiveMe?.permissions, Permission.PricingRulesManage),
       canViewShifts:
         hasPermission(effectiveMe?.permissions, Permission.ShiftsOpen) ||
