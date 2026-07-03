@@ -87,6 +87,12 @@ describe("isSessionRelatedProblem", () => {
         detail: "Refresh token already rotated",
       }),
     ).toBe(false);
+    expect(
+      isSessionRelatedProblem(401, {
+        title: "Refresh token already rotated",
+        status: 401,
+      }),
+    ).toBe(false);
   });
 
   it("signs out on session idle timeout", () => {

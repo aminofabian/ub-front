@@ -1,6 +1,7 @@
-import { buildRequestHeaders } from "@/lib/api";
+"use client";
+
+import { apiRequest, ApiRequestError } from "@/lib/api";
 import { getSessionTenantHost, getSessionTenantId, getSessionTokens } from "@/lib/auth";
-import { apiUrl } from "@/lib/config";
 
 type PushConfig = {
   enabled: boolean;
@@ -24,25 +25,23 @@ export async function fetchPushConfig(): Promise<PushConfig> {
   if (!tokens) {
     return { enabled: false, publicKey: null };
   }
-  // Platform apex (palmart.co.ke) needs X-Tenant-Id; subdomains send X-Tenant-Host.
   const tenantId = getSessionTenantId();
   const tenantHost = getSessionTenantHost();
   if (!tenantId && !tenantHost) {
     return { enabled: false, publicKey: null };
   }
-  const response = await fetch(apiUrl("/api/v1/me/push/config"), {
-    credentials: "include",
-    headers: buildRequestHeaders(true, tokens.accessToken),
-  });
-  if (!response.ok) {
+  try {
+    const data = await apiRequest<PushConfig>("/api/v1/me/push/config", {
+      toast: false,
+    });
+    return {
+      enabled: Boolean(data.enabled),
+      publicKey: data.publicKey ?? null,
+      fcmEnabled: Boolean(data.fcmEnabled),
+    };
+  } catch {
     return { enabled: false, publicKey: null };
   }
-  const data = (await response.json()) as PushConfig;
-  return {
-    enabled: Boolean(data.enabled),
-    publicKey: data.publicKey ?? null,
-    fcmEnabled: Boolean(data.fcmEnabled),
-  };
 }
 
 export async function registerWebPushSubscription(): Promise<boolean> {
@@ -76,24 +75,28 @@ export async function registerWebPushSubscription(): Promise<boolean> {
     return false;
   }
 
-  const tokens = getSessionTokens();
-  if (!tokens) {
+  if (!getSessionTokens()) {
     return false;
   }
 
-  const response = await fetch(apiUrl("/api/v1/me/device-tokens"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildRequestHeaders(true, tokens.accessToken, "POST"),
-    body: JSON.stringify({
-      endpoint,
-      p256dh: key.p256dh,
-      auth: key.auth,
-      platform: "WEB",
-    }),
-  });
-
-  return response.ok || response.status === 204;
+  try {
+    await apiRequest<void>("/api/v1/me/device-tokens", {
+      method: "POST",
+      toast: false,
+      body: {
+        endpoint,
+        p256dh: key.p256dh,
+        auth: key.auth,
+        platform: "WEB",
+      },
+    });
+    return true;
+  } catch (e) {
+    if (e instanceof ApiRequestError && e.status === 204) {
+      return true;
+    }
+    return false;
+  }
 }
 
 export function isWebPushSupported(): boolean {

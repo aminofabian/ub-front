@@ -1,7 +1,7 @@
 "use client";
 
+import { apiRequest } from "@/lib/api";
 import { getSessionTokens } from "@/lib/auth";
-import { apiUrl } from "@/lib/config";
 
 export type FcmPlatform = "ANDROID" | "IOS";
 
@@ -9,15 +9,17 @@ export async function registerFcmDeviceToken(
   platform: FcmPlatform,
   token: string,
 ): Promise<boolean> {
-  const tokens = getSessionTokens();
-  if (!tokens) {
+  if (!getSessionTokens()) {
     return false;
   }
-  const headers = { Authorization: `Bearer ${tokens.accessToken}` };
-  const response = await fetch(apiUrl("/api/v1/me/device-tokens/fcm"), {
-    method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ platform, token }),
-  });
-  return response.ok;
+  try {
+    await apiRequest<void>("/api/v1/me/device-tokens/fcm", {
+      method: "POST",
+      toast: false,
+      body: { platform, token },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -7,6 +7,7 @@ import {
   syncSessionPresenceCookie,
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
+import { STORAGE_KEYS } from "@/lib/config";
 import { parseAccessTokenClaims } from "@/lib/jwt-client";
 import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
 
@@ -44,6 +45,12 @@ let lastActivityRefresh = 0;
 let consecutiveRefreshRejections = 0;
 
 const MAX_REFRESH_REJECT_BEFORE_LOGOUT = 3;
+
+/** Drop legacy localStorage refresh tokens; httpOnly cookie is authoritative. */
+function clearLegacyRefreshTokenFromStorage(): void {
+  window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  window.sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
+}
 
 function getAccessTokenExpiry(): number | null {
   const tokens = getSessionTokens();
@@ -140,6 +147,7 @@ export function startSessionRefresh(): () => void {
   }
 
   syncSessionPresenceCookie();
+  clearLegacyRefreshTokenFromStorage();
 
   /*
    * Eager refresh on mount.
