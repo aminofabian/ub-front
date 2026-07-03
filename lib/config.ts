@@ -140,11 +140,15 @@ export {
 
 export const ERROR_CODES = {
   tokenExpired: "token_expired",
+  refreshAlreadyRotated: "refresh_already_rotated",
+  sessionIdleExpired: "session_idle_expired",
 } as const;
 
 /** RFC 7807 `title` from the API (e.g. JWT filter) — keep in sync with backend. */
 export const PROBLEM_TITLES = {
   invalidOrExpiredAccessToken: "Invalid or expired access token",
+  refreshAlreadyRotated: "Refresh token already rotated",
+  sessionIdleExpired: "Session idle timeout expired",
 } as const;
 
 const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";

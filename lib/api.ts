@@ -20,6 +20,13 @@ import {
   subscribeToAuthBroadcasts,
 } from "@/lib/auth";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
+import {
+  delay,
+  isRefreshAlreadyRotatedProblem,
+  isSessionIdleExpiredProblem,
+  tryRecoverSessionBeforeSignOut,
+  waitForSiblingTokenUpdate,
+} from "@/lib/session-recovery";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { extractPageContent, extractSpringPageMeta } from "@/lib/page-content";
 import type {
@@ -146,6 +153,12 @@ async function resolveUnauthorizedResponse(
     return execute();
   }
   if (result.kind === "rejected" && options?.requiresAuth !== false) {
+    const recovered = await tryRecoverSessionBeforeSignOut(
+      getSessionTokens()?.accessToken,
+    );
+    if (recovered) {
+      return execute();
+    }
     // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
     signOutClientAndRedirectToLogin();
     throw new ApiRequestError(
@@ -1028,58 +1041,21 @@ export async function refreshAccessToken(): Promise<RefreshOutcome> {
   return inFlightRefresh;
 }
 
-async function performRefreshOnce(): Promise<RefreshOutcome> {
-  const session = getSessionTokens();
+async function postRefreshRequest(): Promise<Response> {
+  /*
+   * Always prefer the httpOnly refresh cookie (credentials: include). Sending a
+   * stale refreshToken from localStorage can trip RFC 6819 reuse detection when
+   * the cookie already holds the rotated successor token.
+   */
+  return fetch(apiUrl(API_ROUTES.refresh), {
+    method: "POST",
+    credentials: AUTH_FETCH_CREDENTIALS,
+    headers: buildRequestHeaders(false, undefined, "POST"),
+    body: JSON.stringify({}),
+  });
+}
 
-  let response: Response;
-  try {
-    const refreshBody =
-      session?.refreshToken != null && session.refreshToken.length > 0
-        ? { refreshToken: session.refreshToken }
-        : {};
-    response = await fetch(apiUrl(API_ROUTES.refresh), {
-      method: "POST",
-      credentials: AUTH_FETCH_CREDENTIALS,
-      headers: buildRequestHeaders(false, undefined, "POST"),
-      body: JSON.stringify(refreshBody),
-    });
-  } catch {
-    // True network failure (offline, DNS, CORS preflight error). Session is
-    // still considered valid - caller will surface a transient error.
-    return { kind: "network" };
-  }
-
-  // 5xx and 408/429 are server-side hiccups, not auth failures. Treat them
-  // as transient and keep the session intact.
-  if (
-    response.status >= 500 ||
-    response.status === 408 ||
-    response.status === 429
-  ) {
-    return { kind: "network" };
-  }
-
-  if (!response.ok) {
-    /*
-     * 400/401/403 etc from /auth/refresh: refresh token is invalid, expired,
-     * or revoked. There is no point retrying with the same token. However, we
-     * still have to handle the case where ANOTHER tab succeeded in refreshing
-     * while we were waiting: a parallel refresh wins, our token becomes the
-     * just-rotated (revoked) one, and the backend (inside the rotation grace
-     * window) returns 401 here. Adopt whatever tokens are now in storage
-     * before declaring the session dead.
-     */
-    const current = getSessionTokens();
-    if (
-      session?.accessToken &&
-      current &&
-      current.accessToken !== session.accessToken
-    ) {
-      return { kind: "ok" };
-    }
-    return { kind: "rejected" };
-  }
-
+async function applyRefreshResponse(response: Response): Promise<RefreshOutcome> {
   let payload: LoginResponse;
   try {
     payload = (await response.json()) as LoginResponse;
@@ -1096,6 +1072,92 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
   });
 
   return { kind: "ok" };
+}
+
+async function performRefreshOnce(): Promise<RefreshOutcome> {
+  const session = getSessionTokens();
+  const baselineAccessToken = session?.accessToken;
+
+  let response: Response;
+  try {
+    response = await postRefreshRequest();
+  } catch {
+    return { kind: "network" };
+  }
+
+  if (
+    response.status >= 500 ||
+    response.status === 408 ||
+    response.status === 429
+  ) {
+    return { kind: "network" };
+  }
+
+  if (response.ok) {
+    return applyRefreshResponse(response);
+  }
+
+  const payload = await response.clone().json().catch(() => ({}));
+
+  const adoptSiblingTokens = (): RefreshOutcome | null => {
+    const current = getSessionTokens();
+    if (
+      baselineAccessToken &&
+      current &&
+      current.accessToken !== baselineAccessToken
+    ) {
+      return { kind: "ok" };
+    }
+    return null;
+  };
+
+  const adopted = adoptSiblingTokens();
+  if (adopted) {
+    return adopted;
+  }
+
+  if (response.status === 401) {
+    if (isSessionIdleExpiredProblem(payload)) {
+      return { kind: "rejected" };
+    }
+
+    if (isRefreshAlreadyRotatedProblem(payload)) {
+      if (await waitForSiblingTokenUpdate(baselineAccessToken)) {
+        return { kind: "ok" };
+      }
+      await delay(150);
+      try {
+        const retry = await postRefreshRequest();
+        if (retry.ok) {
+          return applyRefreshResponse(retry);
+        }
+      } catch {
+        return { kind: "network" };
+      }
+    }
+
+    if (await waitForSiblingTokenUpdate(baselineAccessToken)) {
+      return { kind: "ok" };
+    }
+    if (await restoreClientSessionFromCookie()) {
+      const current = getSessionTokens();
+      if (current && current.accessToken !== baselineAccessToken) {
+        return { kind: "ok" };
+      }
+    }
+
+    await delay(200);
+    try {
+      const retry = await postRefreshRequest();
+      if (retry.ok) {
+        return applyRefreshResponse(retry);
+      }
+    } catch {
+      return { kind: "network" };
+    }
+  }
+
+  return { kind: "rejected" };
 }
 
 /*

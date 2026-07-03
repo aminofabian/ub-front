@@ -79,6 +79,26 @@ describe("isSessionRelatedProblem", () => {
     ).toBe(true);
   });
 
+  it("does not sign out on refresh-already-rotated (benign duplicate)", () => {
+    expect(
+      isSessionRelatedProblem(401, {
+        title: "Unauthorized",
+        status: 401,
+        detail: "Refresh token already rotated",
+      }),
+    ).toBe(false);
+  });
+
+  it("signs out on session idle timeout", () => {
+    expect(
+      isSessionRelatedProblem(401, {
+        title: "Unauthorized",
+        status: 401,
+        detail: "Session idle timeout expired",
+      }),
+    ).toBe(true);
+  });
+
   it("ignores generic permission-denied 403", () => {
     expect(
       isSessionRelatedProblem(403, {

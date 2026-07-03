@@ -20,6 +20,7 @@ import {
   registerRealtimeDisconnect,
 } from "./auth";
 import { refreshAccessToken } from "./api";
+import { tryRecoverSessionBeforeSignOut } from "./session-recovery";
 import {
   apiUrl,
   resolveRealtimeWebSocketBaseUrl,
@@ -670,6 +671,13 @@ export class RealtimeClient {
         return;
       }
       if (outcome.kind === "rejected") {
+        const recovered = await tryRecoverSessionBeforeSignOut(
+          getSessionTokens()?.accessToken,
+        );
+        if (recovered) {
+          this.attemptReconnect();
+          return;
+        }
         signOutClientAndRedirectToLogin();
         return;
       }

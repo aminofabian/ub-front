@@ -167,6 +167,14 @@ export function isSessionRelatedProblem(
   }
 
   if (status === 401) {
+    const problem401 = parseProblem(payload);
+    if (
+      problem401?.title === PROBLEM_TITLES.refreshAlreadyRotated ||
+      problem401?.detail === PROBLEM_TITLES.refreshAlreadyRotated ||
+      problem401?.code === ERROR_CODES.refreshAlreadyRotated
+    ) {
+      return false;
+    }
     return true;
   }
 
@@ -180,6 +188,21 @@ export function isSessionRelatedProblem(
   }
   if (problem.code === ERROR_CODES.tokenExpired) {
     return true;
+  }
+  if (problem.code === ERROR_CODES.sessionIdleExpired) {
+    return true;
+  }
+  if (problem.title === PROBLEM_TITLES.sessionIdleExpired) {
+    return true;
+  }
+  if (problem.detail === PROBLEM_TITLES.sessionIdleExpired) {
+    return true;
+  }
+  if (problem.title === PROBLEM_TITLES.refreshAlreadyRotated) {
+    return false;
+  }
+  if (problem.detail === PROBLEM_TITLES.refreshAlreadyRotated) {
+    return false;
   }
   if (problem.type === UNAUTHORIZED_PROBLEM_TYPE) {
     return true;

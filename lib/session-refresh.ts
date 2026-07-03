@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { parseAccessTokenClaims } from "@/lib/jwt-client";
+import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
 
 /*
  * Background access-token refresh strategy.
@@ -40,6 +41,9 @@ const EAGER_REFRESH_THRESHOLD_MS = 60_000; // on mount: refresh now if <60s left
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let lastActivityRefresh = 0;
+let consecutiveRefreshRejections = 0;
+
+const MAX_REFRESH_REJECT_BEFORE_LOGOUT = 3;
 
 function getAccessTokenExpiry(): number | null {
   const tokens = getSessionTokens();
@@ -69,10 +73,27 @@ async function performRefresh(): Promise<void> {
 
   const outcome = await refreshAccessToken();
   if (outcome.kind === "ok") {
+    consecutiveRefreshRejections = 0;
     scheduleNextRefresh();
     return;
   }
   if (outcome.kind === "rejected") {
+    consecutiveRefreshRejections += 1;
+    const recovered = await tryRecoverSessionBeforeSignOut(
+      tokens.accessToken,
+    );
+    if (recovered) {
+      consecutiveRefreshRejections = 0;
+      scheduleNextRefresh();
+      return;
+    }
+    if (consecutiveRefreshRejections < MAX_REFRESH_REJECT_BEFORE_LOGOUT) {
+      clearRefreshTimer();
+      refreshTimer = setTimeout(() => {
+        void performRefresh();
+      }, 5_000 * consecutiveRefreshRejections);
+      return;
+    }
     signOutClientAndRedirectToLogin();
     return;
   }
