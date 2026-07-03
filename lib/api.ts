@@ -105,10 +105,11 @@ function signOutClientForProblem(
 }
 
 /** On 401: always attempt a token refresh first; only sign out when the
- * refresh token itself is rejected or the problem payload carries an
- * explicit session-dead signal (e.g. "Session is no longer active").
- * This prevents transient 401s on non-critical requests (catalog search,
- * department-scoped lookups) from logging the user out prematurely.
+ * refresh token itself is rejected. Even "Session is no longer active"
+ * (which means the DB session row was revoked — e.g. by refresh-token
+ * replay detection) may be recoverable via the httpOnly refresh cookie.
+ * We only skip the refresh for dead-account signals (user not found,
+ * account locked, etc.) where a refresh CANNOT help.
  */
 async function resolveUnauthorizedResponse(
   response: Response,
@@ -121,9 +122,9 @@ async function resolveUnauthorizedResponse(
     .catch(() => ({}));
   const problem = parseProblem(payload);
 
-  // Explicit session-dead signals → sign out immediately (refresh won't help).
+  // Definitive dead-account signals: the user record itself is gone / locked.
+  // No refresh can recover from these — sign out immediately.
   if (
-    problem?.title === "Session is no longer active" ||
     problem?.title === "User not found" ||
     problem?.title === "Account is not active" ||
     problem?.title === "Account is temporarily locked" ||
@@ -137,7 +138,9 @@ async function resolveUnauthorizedResponse(
     );
   }
 
-  // For all other 401s (expired tokens, generic auth failures), try a refresh.
+  // For everything else — expired tokens, "Session is no longer active",
+  // generic auth failures — try a refresh. The httpOnly cookie (when enabled)
+  // can mint a brand-new session even when the DB row was revoked.
   const result = await refreshAccessToken();
   if (result.kind === "ok") {
     return execute();
@@ -991,9 +994,7 @@ function getNetworkErrorMessage(): string {
  *   attempt should work.
  */
 export type RefreshOutcome =
-  | { kind: "ok" }
-  | { kind: "rejected" }
-  | { kind: "network" };
+  { kind: "ok" } | { kind: "rejected" } | { kind: "network" };
 
 /*
  * Single-flight refresh.
@@ -2286,10 +2287,7 @@ export async function setUserItemTypes(
 }
 
 export type CatalogListScope =
-  | "ALL"
-  | "PARENTS_ONLY"
-  | "VARIANTS_ONLY"
-  | "SKUS_ONLY";
+  "ALL" | "PARENTS_ONLY" | "VARIANTS_ONLY" | "SKUS_ONLY";
 
 export type CatalogRowType = "PARENT" | "VARIANT" | "STANDALONE";
 

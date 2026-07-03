@@ -12,7 +12,6 @@ const UNAUTHORIZED_PROBLEM_TYPE = "urn:problem:unauthorized";
 
 /** JWT filter / refresh / session revocation titles — sign out instead of surfacing a toast. */
 const SESSION_AUTH_TITLES = new Set([
-  "Session is no longer active",
   "User not found",
   "Account is not active",
   "Account is temporarily locked",
