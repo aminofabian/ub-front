@@ -22,6 +22,8 @@ export type CartSession = {
   lastSyncedAt: string | null;
   label: string;
   createdAt: number;
+  /** Server line IDs removed locally that still need DELETE on next sync. */
+  removedServerLineIds: string[];
   lines: CartSessionLine[];
   payMethod: SalePaymentMethod;
   mpesaRef: string;
@@ -91,6 +93,7 @@ export function createEmptyCartSession(): CartSession {
     lastSyncedAt: null,
     label: `Cart ${cartCounter}`,
     createdAt: Date.now(),
+    removedServerLineIds: [],
     lines: [],
     payMethod: "cash",
     mpesaRef: "",

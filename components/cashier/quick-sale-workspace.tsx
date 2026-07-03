@@ -309,12 +309,24 @@ export function QuickSaleWorkspace({
           let snapshot: CartSession | undefined;
           setCarts((prev) => {
             snapshot = prev.find((c) => c.id === cartId);
-            if (!snapshot || snapshot.lines.length === 0) return prev;
+            if (
+              !snapshot ||
+              (snapshot.lines.length === 0 &&
+                (snapshot.removedServerLineIds ?? []).length === 0)
+            ) {
+              return prev;
+            }
             return prev.map((c) =>
               c.id === cartId ? { ...c, syncStatus: "syncing" as const } : c,
             );
           });
-          if (!snapshot || snapshot.lines.length === 0) return;
+          if (
+            !snapshot ||
+            (snapshot.lines.length === 0 &&
+              (snapshot.removedServerLineIds ?? []).length === 0)
+          ) {
+            return;
+          }
 
           if (!online) {
             if (posDraftOfflineMirror && bizId && uid) {
@@ -1390,10 +1402,22 @@ export function QuickSaleWorkspace({
 
   const removeLine = useCallback(
     (key: string) => {
-      updateActiveCart((cart) => ({
-        ...cart,
-        lines: cart.lines.filter((l) => l.key !== key),
-      }));
+      updateActiveCart((cart) => {
+        const removed = cart.lines.find((l) => l.key === key);
+        const nextRemoved = removed?.serverLineId
+          ? Array.from(
+              new Set([
+                ...(cart.removedServerLineIds ?? []),
+                removed.serverLineId,
+              ]),
+            )
+          : (cart.removedServerLineIds ?? []);
+        return {
+          ...cart,
+          lines: cart.lines.filter((l) => l.key !== key),
+          removedServerLineIds: nextRemoved,
+        };
+      });
       schedulePosDraftSync(activeCartId, 300);
     },
     [updateActiveCart, schedulePosDraftSync, activeCartId],
@@ -1897,19 +1921,41 @@ export function QuickSaleWorkspace({
       let draftVersion = activeCart.version;
 
       if (posDraftPersistence) {
-        if (!draftId) {
-          const synced = await syncCartSessionToServer(activeCart, bid, {
-            uiVisible: posDraftsUi || posDraftsEnabled,
-          });
-          if (synced.draftId) {
-            draftId = synced.draftId;
-            draftVersion = synced.version;
-            updateCartById(activeCartId, (prev) => ({
-              ...synced,
-              id: prev.id,
-            }));
-          }
+        const pendingSync = posDraftSyncTimers.current[activeCartId];
+        if (pendingSync) {
+          clearTimeout(pendingSync);
+          delete posDraftSyncTimers.current[activeCartId];
         }
+
+        const synced = await syncCartSessionToServer(activeCart, bid, {
+          uiVisible: posDraftsUi || posDraftsEnabled,
+        });
+        if (synced.syncStatus === "conflict") {
+          setLoading(false);
+          setError(
+            "Sale sync conflict — choose which version to keep before checkout.",
+          );
+          updateCartById(activeCartId, (prev) => ({
+            ...synced,
+            id: prev.id,
+            label: prev.label,
+            createdAt: prev.createdAt,
+          }));
+          return;
+        }
+        if (synced.syncStatus === "error") {
+          setLoading(false);
+          setError("Could not sync sale to the server. Try again.");
+          return;
+        }
+        draftId = synced.draftId;
+        draftVersion = synced.version;
+        updateCartById(activeCartId, (prev) => ({
+          ...synced,
+          id: prev.id,
+          label: prev.label,
+          createdAt: prev.createdAt,
+        }));
       }
 
       const completeBody = {

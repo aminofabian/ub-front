@@ -1,13 +1,7 @@
 "use client";
 
-import { apiUrl } from "@/lib/config";
-import {
-  buildRequestHeaders,
-  type PostSalePaymentPayload,
-  type SaleRecord,
-} from "@/lib/api";
-import { getSessionTokens } from "@/lib/auth";
-import { formatApiProblemMessage } from "@/lib/problem";
+import { apiRequest, ApiRequestError } from "@/lib/api";
+import type { PostSalePaymentPayload, SaleRecord } from "@/lib/api";
 
 export const POS_DRAFT_FLAGS = {
   enabled: "pos_drafts.enabled",
@@ -98,44 +92,28 @@ async function posDraftRequest<T>(
     | "PATCH"
     | "PUT"
     | "DELETE";
-  const session = getSessionTokens();
-  const headers = new Headers(
-    buildRequestHeaders(true, session?.accessToken, method) as Record<
-      string,
-      string
-    >,
-  );
-  if (init.idempotencyKey?.trim()) {
-    headers.set("Idempotency-Key", init.idempotencyKey.trim());
-  }
-  if (init.headers) {
-    const extra = new Headers(init.headers);
-    extra.forEach((value, key) => headers.set(key, value));
-  }
-
-  const { idempotencyKey: _ik, ...rest } = init;
-  const res = await fetch(apiUrl(path), {
-    ...rest,
-    method,
-    headers,
-    credentials: "include",
-  });
-  const text = await res.text();
-  let payload: unknown = null;
-  if (text) {
+  let body: unknown;
+  if (init.body && typeof init.body === "string") {
     try {
-      payload = JSON.parse(text) as unknown;
+      body = JSON.parse(init.body) as unknown;
     } catch {
-      payload = text;
+      body = undefined;
     }
   }
-  if (!res.ok) {
-    const msg =
-      formatApiProblemMessage(payload) ||
-      `Request failed (${res.status})`;
-    throw new PosDraftApiError(msg, res.status, payload);
+
+  try {
+    return await apiRequest<T>(path, {
+      method,
+      body,
+      idempotencyKey: init.idempotencyKey,
+    });
+  } catch (e) {
+    if (e instanceof ApiRequestError) {
+      throw new PosDraftApiError(e.message, e.status, e.payload);
+    }
+    const msg = e instanceof Error ? e.message : "Request failed";
+    throw new PosDraftApiError(msg, 0, null);
   }
-  return payload as T;
 }
 
 export async function createPosDraft(payload: {

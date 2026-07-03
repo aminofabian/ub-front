@@ -8,7 +8,6 @@ import {
 import {
   createPosDraft,
   patchPosDraftLines,
-  putPosDraftLine,
   deletePosDraftLine,
   fetchPosDraft,
   type PosDraftLineInput,
@@ -82,6 +81,7 @@ export function applyPosDraftToCart(
     version: draft.version,
     syncStatus: "idle",
     lastSyncedAt: draft.updatedAt,
+    removedServerLineIds: [],
     label,
     lines,
   };
@@ -89,7 +89,7 @@ export function applyPosDraftToCart(
 
 /**
  * Push local cart state to the server. Creates a draft on first item,
- * then patches/puts individual lines.
+ * deletes removed lines, then patches the remaining lines in one request.
  */
 export async function syncCartSessionToServer(
   cart: CartSession,
@@ -97,12 +97,17 @@ export async function syncCartSessionToServer(
   opts?: { uiVisible?: boolean },
 ): Promise<CartSession> {
   const inputs = linesToInputs(cart);
-  if (inputs.length === 0) {
+  const removedServerLineIds = cart.removedServerLineIds ?? [];
+  const hasRemovedLines = removedServerLineIds.length > 0;
+  if (inputs.length === 0 && !hasRemovedLines) {
     return { ...cart, syncStatus: "idle" };
   }
 
   try {
     if (!cart.draftId) {
+      if (inputs.length === 0) {
+        return { ...cart, syncStatus: "idle", removedServerLineIds: [] };
+      }
       const draft = await createPosDraft({
         branchId,
         clientDraftId: cart.clientDraftId,
@@ -111,58 +116,35 @@ export async function syncCartSessionToServer(
       return applyPosDraftToCart({ ...cart, syncStatus: "syncing" }, draft, opts);
     }
 
+    let workingVersion = cart.version;
     let latest: PosDraftResponse | null = null;
 
-    for (const line of cart.lines) {
-      const q = parseQty(line.quantity);
-      const p = parsePrice(line.unitPrice);
-      if (q == null || p == null) continue;
-
-      if (line.serverLineId) {
-        if (q <= 0) {
-          latest = await deletePosDraftLine(
-            cart.draftId,
-            line.serverLineId,
-            cart.version,
-          );
-        } else {
-          latest = await putPosDraftLine(cart.draftId, line.serverLineId, {
-            quantity: q,
-            unitPrice: p,
-            expectedVersion: cart.version,
-          });
-        }
-      }
+    for (const serverLineId of removedServerLineIds) {
+      latest = await deletePosDraftLine(
+        cart.draftId,
+        serverLineId,
+        workingVersion,
+      );
+      workingVersion = latest.version;
     }
 
-    const missingServerIds = cart.lines.filter((l) => !l.serverLineId);
-    if (missingServerIds.length > 0) {
-      const patchInputs = missingServerIds
-        .map((line) => {
-          const q = parseQty(line.quantity);
-          const p = parsePrice(line.unitPrice);
-          if (q == null || p == null) return null;
-          return {
-            itemId: line.itemId,
-            quantity: q,
-            unitPrice: p,
-          } satisfies PosDraftLineInput;
-        })
-        .filter((x): x is PosDraftLineInput => x != null);
-
-      if (patchInputs.length > 0) {
-        latest = await patchPosDraftLines(cart.draftId, {
-          lines: patchInputs,
-          expectedVersion: latest?.version ?? cart.version,
-        });
-      }
+    if (inputs.length > 0) {
+      latest = await patchPosDraftLines(cart.draftId, {
+        lines: inputs,
+        expectedVersion: workingVersion,
+      });
     }
 
     if (latest) {
       return applyPosDraftToCart(cart, latest, opts);
     }
 
-    return { ...cart, syncStatus: "idle" };
+    return {
+      ...cart,
+      syncStatus: "idle",
+      removedServerLineIds: [],
+      version: workingVersion,
+    };
   } catch (e) {
     if (e instanceof PosDraftApiError && e.status === 409) {
       return { ...cart, syncStatus: "conflict" };
@@ -189,7 +171,9 @@ export async function replayMirroredDraftsToServer(
 
   for (let i = 0; i < next.length; i++) {
     const cart = next[i];
-    if (cart.lines.length === 0) continue;
+    if (cart.lines.length === 0 && (cart.removedServerLineIds ?? []).length === 0) {
+      continue;
+    }
     const synced = await syncCartSessionToServer(cart, branchId, opts);
     next[i] = { ...synced, id: cart.id, label: cart.label, createdAt: cart.createdAt };
     if (synced.syncStatus === "conflict") hadConflict = true;

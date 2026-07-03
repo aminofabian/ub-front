@@ -81,7 +81,13 @@ export async function saveMirroredCart(
   const br = branchId.trim();
   const uid = userId.trim();
   if (!bid || !br || !uid) return;
-  if (cart.lines.length === 0 && !cart.draftId) return;
+  if (
+    cart.lines.length === 0 &&
+    !cart.draftId &&
+    (cart.removedServerLineIds ?? []).length === 0
+  ) {
+    return;
+  }
 
   const row: MirroredCartRow = {
     key: cartRowKey(bid, br, uid, cart.id),
@@ -114,7 +120,12 @@ export async function saveMirroredCarts(
   carts: CartSession[],
 ): Promise<void> {
   if (!isPosDraftStoreSupported()) return;
-  const toSave = carts.filter((c) => c.lines.length > 0 || c.draftId);
+  const toSave = carts.filter(
+    (c) =>
+      c.lines.length > 0 ||
+      c.draftId ||
+      (c.removedServerLineIds ?? []).length > 0,
+  );
   await Promise.all(
     toSave.map((cart) => saveMirroredCart(businessId, branchId, userId, cart)),
   );
