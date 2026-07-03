@@ -22,6 +22,7 @@ import {
   fetchCustomers,
   fetchItems,
   fetchPosStkPushStatus,
+  fetchPosTopProducts,
   fetchSaleReceiptPdf,
   postVoidSale,
   tryPostSaleWithRetries,
@@ -182,11 +183,10 @@ export function QuickSaleWorkspace({
   const invoiceParamHandledRef = useRef(false);
   const wasOfflineRef = useRef(false);
   const searchParams = useSearchParams();
-  // Catalog search/browse is scoped to the header department, except for the
-  // cashier POS where we always default to "All departments" so the cashier
-  // can sell across every department without needing to touch the header.
-  const posItemTypeId =
-    variant === "cashier" ? "" : headerItemTypeId?.trim() || null;
+  // Catalog search/browse is scoped to the header department. On the cashier
+  // POS the header defaults to "All departments" so clerks can sell across every
+  // department without changing scope first.
+  const posItemTypeId = headerItemTypeId?.trim() || null;
   const canSell = hasPermission(me?.permissions, Permission.SalesSell);
   const canBrowseCategories = hasPermission(
     me?.permissions,
@@ -211,6 +211,7 @@ export function QuickSaleWorkspace({
     me?.role?.key?.trim().toLowerCase() === "grocery_clerk";
 
   const [topProducts, setTopProducts] = useState<TopProductRecord[]>([]);
+  const [topProductsLoading, setTopProductsLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [hits, setHits] = useState<ItemSummaryRecord[]>([]);
   const [searchBanner, setSearchBanner] = useState<string | null>(null);
@@ -982,8 +983,43 @@ export function QuickSaleWorkspace({
   ]);
 
   const refreshTopProducts = useCallback(() => {
+    if (variant === "cashier") {
+      const bid = branchId?.trim();
+      if (!online || !bid) {
+        setTopProducts(getTopProducts(business?.id ?? null, 20));
+        setTopProductsLoading(false);
+        return;
+      }
+      setTopProductsLoading(true);
+      void fetchPosTopProducts(bid, {
+        limit: 20,
+        itemTypeId: posItemTypeId ?? undefined,
+      })
+        .then((list) => {
+          setTopProducts(
+            list.map((row) => ({
+              id: row.id,
+              name: row.name,
+              sku: row.sku ?? undefined,
+              thumbnailUrl: row.thumbnailUrl ?? null,
+              count: row.saleCount,
+              qty: Number(row.totalQuantity) || 0,
+              lastUsedAt: row.lastSoldAt
+                ? Date.parse(row.lastSoldAt)
+                : 0,
+            })),
+          );
+        })
+        .catch(() => {
+          setTopProducts(getTopProducts(business?.id ?? null, 20));
+        })
+        .finally(() => {
+          setTopProductsLoading(false);
+        });
+      return;
+    }
     setTopProducts(getTopProducts(business?.id ?? null, 8));
-  }, [business?.id]);
+  }, [variant, business?.id, branchId, online, posItemTypeId]);
 
   const handleStalePosItem = useCallback(
     (itemId: string) => {
@@ -2317,6 +2353,16 @@ export function QuickSaleWorkspace({
         hits={hits}
         searchBanner={searchBanner}
         topProducts={topProducts}
+        topProductsLoading={variant === "cashier" ? topProductsLoading : false}
+        topProductsTitle={
+          variant === "cashier" ? "Top 20 best sellers" : undefined
+        }
+        topProductsSubtitle={
+          variant === "cashier"
+            ? "Ranked by units sold at this branch"
+            : undefined
+        }
+        alwaysShowTopProducts={variant === "cashier"}
         addLine={addLine}
         canBrowseCategories={canBrowseCategories}
         categoryRoots={categoryRoots}

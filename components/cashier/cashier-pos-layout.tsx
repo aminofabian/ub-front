@@ -95,6 +95,11 @@ export type CashierPosLayoutProps = {
   hits: ItemSummaryRecord[];
   searchBanner: string | null;
   topProducts: TopProductRecord[];
+  topProductsLoading?: boolean;
+  topProductsTitle?: string;
+  topProductsSubtitle?: string;
+  /** When true, the top sellers panel is shown even while loading or empty. */
+  alwaysShowTopProducts?: boolean;
   addLine: (
     item: ItemSummaryRecord,
     qty?: number,
@@ -379,6 +384,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     hits,
     searchBanner,
     topProducts,
+    topProductsLoading = false,
+    topProductsTitle = "Top sellers",
+    topProductsSubtitle = "Tap · ranked on this register",
+    alwaysShowTopProducts = false,
     addLine,
     canBrowseCategories,
     visibleCategoryTiles,
@@ -435,7 +444,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const hasSearch =
     search.trim().length > 0 ||
     categoryFilterId != null ||
-    typeFilterId != null;
+    Boolean(typeFilterId?.trim());
   const showCatalog = !hasSearch;
 
   const handlePickItem = (item: ItemSummaryRecord) => {
@@ -925,7 +934,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         </section>
       ) : null}
 
-      {showCatalog && topProducts.length > 0 ? (
+      {showCatalog && (alwaysShowTopProducts || topProducts.length > 0) ? (
         <section
           aria-label="Top selling products"
           className="space-y-2.5 rounded-xl border border-border/50 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:border-border/50 dark:ring-white/[0.03] sm:p-3.5"
@@ -940,31 +949,42 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               </span>
               <div className="min-w-0">
                 <h3 className="text-[13px] font-semibold leading-none tracking-tight sm:text-sm">
-                  Top sellers
+                  {topProductsTitle}
                 </h3>
                 <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
-                  Tap · ranked on this register
+                  {topProductsSubtitle}
                 </p>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
-            {topProducts.map((p) => (
-              <TopSellerTile
-                key={p.id}
-                product={p}
-                shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
-                onPick={() =>
-                  handlePickItem({
-                    id: p.id,
-                    name: p.name,
-                    sku: p.sku ?? "",
-                    thumbnailUrl: p.thumbnailUrl ?? null,
-                  })
-                }
-              />
-            ))}
-          </div>
+          {alwaysShowTopProducts && topProductsLoading ? (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-xs text-muted-foreground sm:py-8">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Loading top sellers…
+            </div>
+          ) : alwaysShowTopProducts && topProducts.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-center text-xs text-muted-foreground sm:py-8">
+              No sales yet — top sellers will appear here after the first sale.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
+              {topProducts.map((p) => (
+                <TopSellerTile
+                  key={p.id}
+                  product={p}
+                  shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
+                  onPick={() =>
+                    handlePickItem({
+                      id: p.id,
+                      name: p.name,
+                      sku: p.sku ?? "",
+                      thumbnailUrl: p.thumbnailUrl ?? null,
+                    })
+                  }
+                />
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 

@@ -4829,6 +4829,40 @@ export type VariableWeightBarcodeLookupRecord = {
   embeddedField: "weight" | "price" | string;
 };
 
+/** One row of the server-aggregated POS top sellers feed (units sold). */
+export type PosTopProductRecord = {
+  id: string;
+  name: string;
+  sku?: string | null;
+  thumbnailUrl?: string | null;
+  saleCount: number;
+  totalQuantity: number | string;
+  lastSoldAt?: string | null;
+};
+
+/**
+ * Server-aggregated top sellers for the POS catalog. Ranked by units sold at
+ * the branch from completed, non-voided sales.
+ *
+ * GET /api/v1/sales/top-products?branchId=...&limit=20
+ */
+export async function fetchPosTopProducts(
+  branchId: string,
+  opts?: { limit?: number; itemTypeId?: string },
+): Promise<PosTopProductRecord[]> {
+  const params = new URLSearchParams();
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const limit = opts?.limit ?? 20;
+  params.set("limit", String(Math.max(1, Math.min(limit, 100))));
+  const typeId = opts?.itemTypeId?.trim();
+  if (typeId) params.set("itemTypeId", typeId);
+  const list = await request<PosTopProductRecord[]>(
+    `/api/v1/sales/top-products?${params.toString()}`,
+    { toast: false },
+  );
+  return Array.isArray(list) ? list : [];
+}
+
 export async function fetchVariableWeightBarcode(
   barcode: string,
   branchId: string,

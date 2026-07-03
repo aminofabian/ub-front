@@ -27,7 +27,7 @@ export default function CashierLayout({ children }: CashierLayoutProps) {
   }, [ready]);
 
   return (
-    <DashboardProvider>
+    <DashboardProvider defaultAllDepartments>
       <RealtimeProvider>
         <CashierOrderAlerts />
         <GroceryNotificationListener />

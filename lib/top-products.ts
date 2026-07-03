@@ -150,7 +150,7 @@ export function recordSaleLines(
 }
 
 /**
- * Return the top products by count, then qty, then recency.
+ * Return the top products by units sold, then count, then recency.
  * Only includes rows with real activity (cart adds / completed sales on this browser).
  * Data lives in localStorage under {@link storageKey}; it is not the server catalog.
  */
@@ -181,7 +181,7 @@ export function getTopProducts(
   const list = Object.values(store.entries).filter((e) => e.count > 0 || e.qty > 0);
   list.sort(
     (a, b) =>
-      b.count - a.count || b.qty - a.qty || b.lastUsedAt - a.lastUsedAt,
+      b.qty - a.qty || b.count - a.count || b.lastUsedAt - a.lastUsedAt,
   );
   return list.slice(0, Math.max(1, limit));
 }

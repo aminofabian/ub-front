@@ -139,7 +139,14 @@ type DashboardContextValue = {
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
-export function DashboardProvider({ children }: { children: React.ReactNode }) {
+export function DashboardProvider({
+  children,
+  defaultAllDepartments = false,
+}: {
+  children: React.ReactNode;
+  /** When true (cashier POS), the header department defaults to "All departments". */
+  defaultAllDepartments?: boolean;
+}) {
   const bootstrap = useSessionBootstrapSnapshot();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [business, setBusiness] = useState<BusinessRecord | null>(null);
@@ -371,6 +378,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   // ── seed itemTypeId ───────────────────────────────────────────────────────
   useEffect(() => {
     if (itemTypes.length === 0) return;
+    if (defaultAllDepartments && !userTouchedItemTypeRef.current) {
+      if (itemTypeId !== "") setItemTypeIdState("");
+      return;
+    }
     if (userTouchedItemTypeRef.current) {
       if (!itemTypeId) return;
       if (itemTypes.some((t) => t.id === itemTypeId)) return;
@@ -410,7 +421,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
       setItemTypeIdState(fallback);
     }
-  }, [itemTypes, effectiveBusiness?.id, itemTypeId]);
+  }, [itemTypes, effectiveBusiness?.id, itemTypeId, defaultAllDepartments]);
 
   const value = useMemo<DashboardContextValue>(
     () => ({
