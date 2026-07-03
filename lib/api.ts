@@ -1171,7 +1171,10 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 if (typeof window !== "undefined") {
   subscribeToAuthBroadcasts((msg) => {
     if (msg.type === "logout") {
-    signOutClientAndRedirectToLogin("cross-tab logout broadcast");
+      signOutClientAndRedirectToLogin("cross-tab logout broadcast");
+    }
+  });
+}
 
 /**
  * Backwards-compatible boolean wrapper around {@link refreshAccessToken}.

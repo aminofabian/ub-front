@@ -663,6 +663,9 @@ export class RealtimeClient {
     try {
       if (!getSessionTokens()) {
         signOutClientAndRedirectToLogin("realtime reauth: no session tokens");
+        return;
+      }
+      const outcome = await refreshAccessToken();
       if (outcome.kind === "ok") {
         this.attemptReconnect();
         return;
@@ -676,6 +679,9 @@ export class RealtimeClient {
           return;
         }
         signOutClientAndRedirectToLogin("realtime reauth: refresh rejected");
+        return;
+      }
+      // network: keep the session, try to reconnect later with current tokens
       this.attemptReconnect();
     } catch {
       this.attemptReconnect();
