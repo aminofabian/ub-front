@@ -181,6 +181,7 @@ async function mintTicket(channels: string[]): Promise<TicketResponse> {
     }
     return fetch(apiUrl("/api/v1/realtime/tickets"), {
       method: "POST",
+      credentials: "include",
       headers: buildAuthHeaders(tokens.accessToken),
       body: JSON.stringify({ channels }),
     });
