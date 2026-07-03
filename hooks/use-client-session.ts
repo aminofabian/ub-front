@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { getSessionTokens } from "@/lib/auth";
+import { getSessionTokens, subscribeToAuthBroadcasts } from "@/lib/auth";
 import {
   readSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -31,8 +31,21 @@ function subscribeToSession(onStoreChange: () => void): () => void {
       onStoreChange();
     }
   };
+  const unsubAuth = subscribeToAuthBroadcasts(() => {
+    onStoreChange();
+  });
   window.addEventListener("storage", onStorage);
-  return () => window.removeEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    unsubAuth();
+  };
+}
+
+function hasAccessTokens(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return Boolean(getSessionTokens());
 }
 
 /** True once the client bundle is active (not during SSR). */
@@ -49,6 +62,15 @@ export function useClientHasSession(): boolean {
   return useSyncExternalStore(
     subscribeToSession,
     hasClientSession,
+    () => false,
+  );
+}
+
+/** True when access tokens are present (ignores bootstrap-only session hints). */
+export function useClientHasAccessTokens(): boolean {
+  return useSyncExternalStore(
+    subscribeToSession,
+    hasAccessTokens,
     () => false,
   );
 }

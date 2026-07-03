@@ -9,9 +9,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 
 import { useOptionalDashboard } from "@/components/dashboard-provider";
-import { getSessionTokens } from "@/lib/auth";
+import { useClientHasAccessTokens } from "@/hooks/use-client-session";
 import { APP_ROUTES } from "@/lib/config";
 import { showPriceChangedToast } from "@/components/price-changed-toast";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -37,6 +38,8 @@ type RealtimeContextValue = {
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const hasAccessTokens = useClientHasAccessTokens();
   const dash = useOptionalDashboard();
   const currency = dash?.business?.currency?.trim() || "KES";
   const branding = dash?.business?.branding ?? null;
@@ -54,15 +57,11 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Never connect on auth pages — no tenant context is available
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname.startsWith(APP_ROUTES.login)
-    ) {
+    if (pathname.startsWith(APP_ROUTES.login)) {
       return;
     }
 
-    const tokens = getSessionTokens();
-    if (!tokens) return;
+    if (!hasAccessTokens) return;
 
     const channels = canReadNotifications
       ? (["notifications", "pos", "grocery"] as const)
@@ -100,7 +99,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       window.clearTimeout(connectTimer);
       unregister();
     };
-  }, [canReadNotifications]);
+  }, [canReadNotifications, hasAccessTokens, pathname]);
 
   const markAllRead = useCallback(() => {
     setNotifications([]);

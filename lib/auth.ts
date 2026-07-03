@@ -118,6 +118,16 @@ export function subscribeToAuthBroadcasts(
 }
 
 function postAuthBroadcast(msg: AuthBroadcastMessage): void {
+  // BroadcastChannel does not echo to the sender in every browser — notify
+  // in-tab subscribers here so hooks like useClientHasAccessTokens react
+  // immediately after setSessionTokens (e.g. post-login client navigation).
+  for (const listener of authListeners) {
+    try {
+      listener(msg);
+    } catch {
+      /* listener errors must not break delivery to others */
+    }
+  }
   const channel = getAuthChannel();
   if (channel) {
     try {

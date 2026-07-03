@@ -300,6 +300,7 @@ export class RealtimeClient {
   registerListener(id: string, listener: RealtimeListenerOptions): () => void {
     this.listeners.set(id, listener);
     void this.syncListeners();
+    listener.onConnectionStateChange?.(this.state);
     return () => {
       this.listeners.delete(id);
       void this.syncListeners();
