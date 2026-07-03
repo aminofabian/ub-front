@@ -24,9 +24,10 @@ import {
 } from "@/lib/api";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
-import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
+import { cashierItemPrimaryLabel, isPosPackageSellRow } from "@/lib/cashier-item-display";
 import {
   formatShelfPriceLabel,
+  shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
 import { usePosEvents } from "@/hooks/use-pos-events";
@@ -94,7 +95,11 @@ export type CashierPosLayoutProps = {
   hits: ItemSummaryRecord[];
   searchBanner: string | null;
   topProducts: TopProductRecord[];
-  addLine: (item: ItemSummaryRecord, qty?: number, unitPrice?: string) => void;
+  addLine: (
+    item: ItemSummaryRecord,
+    qty?: number,
+    unitPrice?: string,
+  ) => boolean;
 
   canBrowseCategories: boolean;
   categoryRoots: CategoryTreeNodeRecord[];
@@ -109,6 +114,9 @@ export type CashierPosLayoutProps = {
   categoryFilterLabel: string | null;
   categoryTreeBusy: boolean;
   categoryBrowseParentId: string | null;
+  /** When true, aisle filter stays active after add-to-cart. */
+  keepAisleFilter?: boolean;
+  onKeepAisleFilterChange?: (keep: boolean) => void;
   /** When set, catalog hits (search / aisle / type-only browse) are limited to this item type. */
   typeFilterId: string | null;
   typeFilterLabel: string | null;
@@ -382,6 +390,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     categoryFilterLabel,
     categoryTreeBusy,
     categoryBrowseParentId,
+    keepAisleFilter = false,
+    onKeepAisleFilterChange,
     typeFilterId,
     typeFilterLabel,
     clearTypeFilter,
@@ -429,15 +439,35 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const showCatalog = !hasSearch;
 
   const handlePickItem = (item: ItemSummaryRecord) => {
+    if (item.groupLabelOnly) {
+      return;
+    }
+    const shelfLine = tileShelfPrices[item.id];
+    const shelfAmount = shelfLine
+      ? shelfPriceToInputString(splitShelfPriceDisplay(shelfLine).amount)
+      : "";
+    const canQuickAdd =
+      Boolean(shelfAmount) && online && !isPosPackageSellRow(item);
+    if (canQuickAdd) {
+      const added = addLine(item, 1, shelfAmount);
+      if (added) {
+        setPulseCart(true);
+        setDrawerOpen(true);
+      }
+      return;
+    }
     setPickedItem(item);
     setModalOpen(true);
   };
 
   const handleAddFromModal = (payload: CashierProductModalSubmit) => {
-    addLine(payload.item, payload.quantity, payload.unitPrice);
+    const added = addLine(payload.item, payload.quantity, payload.unitPrice);
     setModalOpen(false);
     setPickedItem(null);
-    setPulseCart(true);
+    if (added) {
+      setPulseCart(true);
+      setDrawerOpen(true);
+    }
   };
 
   useEffect(() => {
@@ -810,6 +840,17 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               >
                 Clear aisle
               </button>
+              {onKeepAisleFilterChange ? (
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-3.5 rounded border-border accent-[var(--pos-primary)]"
+                    checked={keepAisleFilter}
+                    onChange={(e) => onKeepAisleFilterChange(e.target.checked)}
+                  />
+                  Keep aisle after add
+                </label>
+              ) : null}
             </div>
           ) : null}
           {typeFilterId ? (

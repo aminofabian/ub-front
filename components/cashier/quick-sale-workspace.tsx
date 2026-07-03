@@ -222,6 +222,8 @@ export function QuickSaleWorkspace({
     null,
   );
   const [categoryTreeBusy, setCategoryTreeBusy] = useState(false);
+  /** When false (default), aisle browse clears after a successful add-to-cart. */
+  const [keepAisleFilter, setKeepAisleFilter] = useState(false);
 
   // ── Multi-cart state ──────────────────────────────────────────────
   const [carts, setCarts] = useState<CartSession[]>(() => [
@@ -1165,14 +1167,16 @@ export function QuickSaleWorkspace({
         return;
       }
       fetchItems(q || undefined, {
+        catalogScope: "SKUS_ONLY",
         ...(cat ? { categoryId: cat, includeCategoryDescendants: true } : {}),
         ...(typ ? { itemTypeId: typ } : {}),
         ...(branchId?.trim() ? { branchId: branchId.trim() } : {}),
       })
         .then((items) => {
-          setHits(items);
+          const sellable = items.filter((row) => row.groupLabelOnly !== true);
+          setHits(sellable);
           if (q) {
-            writeCachedItemsSearch(q, items);
+            writeCachedItemsSearch(q, sellable);
           }
           setSearchBanner(null);
         })
@@ -1216,6 +1220,7 @@ export function QuickSaleWorkspace({
   const clearCategoryFilter = useCallback(() => {
     setCategoryFilterId(null);
     setCategoryFilterLabel(null);
+    setCategoryBrowseStack([]);
     setHits([]);
     setSearchBanner(null);
   }, []);
@@ -1310,12 +1315,23 @@ export function QuickSaleWorkspace({
 
 
   const addLine = useCallback(
-    (item: ItemSummaryRecord, qty: number = 1, unitPrice: string = "") => {
+    (
+      item: ItemSummaryRecord,
+      qty: number = 1,
+      unitPrice: string = "",
+    ): boolean => {
+      if (item.groupLabelOnly) {
+        toast.error("Choose a specific product, not the group label.");
+        return false;
+      }
       const safeQty = capCartQuantity(
         item,
         Number.isFinite(qty) && qty > 0 ? qty : 1,
       );
-      if (safeQty <= 0) return;
+      if (safeQty <= 0) {
+        toast.error("This item is out of stock at this branch.");
+        return false;
+      }
       const startingNewSale = lastSale != null;
       if (startingNewSale) {
         dismissCompletedSaleUi();
@@ -1344,8 +1360,13 @@ export function QuickSaleWorkspace({
         };
       });
       setSearch("");
-      setHits([]);
+      if (!keepAisleFilter && categoryFilterId) {
+        clearCategoryFilter();
+      } else if (!categoryFilterId) {
+        setHits([]);
+      }
       schedulePosDraftSync(activeCartId, 0);
+      return true;
     },
     [
       capCartQuantity,
@@ -1354,6 +1375,9 @@ export function QuickSaleWorkspace({
       dismissCompletedSaleUi,
       schedulePosDraftSync,
       activeCartId,
+      keepAisleFilter,
+      categoryFilterId,
+      clearCategoryFilter,
     ],
   );
 
@@ -2316,6 +2340,8 @@ export function QuickSaleWorkspace({
         categoryFilterLabel={categoryFilterLabel}
         categoryTreeBusy={categoryTreeBusy}
         categoryBrowseParentId={categoryBrowseParentId}
+        keepAisleFilter={keepAisleFilter}
+        onKeepAisleFilterChange={setKeepAisleFilter}
         typeFilterId={posItemTypeId}
         typeFilterLabel={typeFilterLabel}
         posShiftLinks={
