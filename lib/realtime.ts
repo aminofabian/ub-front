@@ -621,6 +621,7 @@ export class RealtimeClient {
       console.warn(
         "[realtime] Max reconnection attempts reached, falling back to REST polling",
       );
+      void logRealtimeDiagnostics();
       this.setState("disconnected");
       this.startRestPolling();
       return;
@@ -801,6 +802,28 @@ export class RealtimeClient {
       clearTimeout(this.connectTimeoutTimer);
       this.connectTimeoutTimer = null;
     }
+  }
+}
+
+async function logRealtimeDiagnostics(): Promise<void> {
+  try {
+    const response = await fetch(apiUrl("/api/v1/realtime/status"));
+    if (!response.ok) {
+      console.warn(
+        "[realtime] Diagnostics: status probe returned",
+        response.status,
+        "— backend may need redeploy",
+      );
+      return;
+    }
+    const status = (await response.json()) as Record<string, unknown>;
+    console.warn("[realtime] Diagnostics:", status);
+    const hint = status.hint;
+    if (typeof hint === "string" && hint.length > 0) {
+      console.warn("[realtime]", hint);
+    }
+  } catch {
+    console.warn("[realtime] Diagnostics: could not reach /api/v1/realtime/status");
   }
 }
 
