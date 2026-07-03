@@ -314,6 +314,9 @@ export class RealtimeClient {
     if (this.connectPromise) {
       return this.connectPromise;
     }
+    if (this.ws?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
 
     this.connectPromise = this.doConnect().finally(() => {
       this.connectPromise = null;
@@ -322,10 +325,6 @@ export class RealtimeClient {
   }
 
   private async doConnect(): Promise<void> {
-    if (this.ws?.readyState === WebSocket.CONNECTING) {
-      this.teardownWebSocket(1000, "Superseded connect");
-    }
-
     this.stopRestPolling();
     this.setState("connecting");
     this.clearTimers();
