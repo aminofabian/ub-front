@@ -16,6 +16,8 @@ export const Permission = {
   PurchasingIntelligenceRead: "purchasing.intelligence.read",
   PurchasingPathBRead: "purchasing.path_b.read",
   PurchasingPathBWrite: "purchasing.path_b.write",
+  PurchasingPathARead: "purchasing.path_a.read",
+  PurchasingPathAWrite: "purchasing.path_a.write",
   PurchasingPaymentRead: "purchasing.payment.read",
   PurchasingPaymentWrite: "purchasing.payment.write",
   SuppliersRead: "suppliers.read",

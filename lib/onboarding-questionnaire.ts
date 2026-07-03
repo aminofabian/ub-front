@@ -12,6 +12,7 @@ const STORAGE_KEY = "palmart.onboardingQuestionnaire.v1";
 export type BranchCountChoice = "1" | "2" | "3" | "4" | "5plus";
 
 export type StoreTypeChoice =
+  | "butchery"
   | "mini-mart"
   | "full-grocery"
   | "fresh-market"
@@ -23,7 +24,8 @@ export type OnboardingQuestionnaireAnswers = {
   branchCount: BranchCountChoice;
   /** Area/locality only — formatted as "{name} branch" when saved. */
   branchLocalities: string[];
-  storeType: StoreTypeChoice;
+  /** One or more shop formats, e.g. mini mart plus butchery. */
+  storeTypes: StoreTypeChoice[];
   /** Department labels the tenant chose (item types). */
   selectedDepartments: string[];
   onlineStore: OnlineStoreChoice;
@@ -79,6 +81,11 @@ export const STORE_TYPE_OPTIONS: readonly {
   hint: string;
 }[] = [
   {
+    value: "butchery",
+    label: "Butchery",
+    hint: "Meat, poultry, fish, eggs, and value-added products",
+  },
+  {
     value: "mini-mart",
     label: "Mini mart",
     hint: "Snacks, drinks, and everyday staples",
@@ -125,6 +132,46 @@ export function storeTypeSectionLabels(
   }
   const kit = STORE_SECTION_STARTER_KITS.find((k) => k.id === storeType);
   return kit?.sections ?? [];
+}
+
+/** Merges department suggestions from multiple shop formats, deduped by label. */
+export function storeTypesSectionLabels(
+  storeTypes: readonly StoreTypeChoice[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const storeType of storeTypes) {
+    for (const label of storeTypeSectionLabels(storeType)) {
+      const trimmed = label.trim();
+      const key = trimmed.toLowerCase();
+      if (!trimmed || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      out.push(trimmed);
+    }
+  }
+  return out;
+}
+
+export function formatStoreTypesLabel(
+  storeTypes: readonly StoreTypeChoice[],
+): string {
+  if (storeTypes.length === 0) {
+    return "your shop";
+  }
+  const labels = storeTypes.map(
+    (value) =>
+      STORE_TYPE_OPTIONS.find((option) => option.value === value)?.label ??
+      value,
+  );
+  if (labels.length === 1) {
+    return labels[0]!;
+  }
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
 export function branchCountToNumber(count: BranchCountChoice): number {
@@ -235,13 +282,19 @@ const DEFAULT_STATE: OnboardingQuestionnaireState = {
 function normalizeStoredAnswers(
   raw: Partial<OnboardingQuestionnaireAnswers> & {
     branchNames?: string[];
+    storeType?: StoreTypeChoice;
   },
 ): Partial<OnboardingQuestionnaireAnswers> {
   const out: Partial<OnboardingQuestionnaireAnswers> = { ...raw };
   if (!out.branchLocalities?.length && raw.branchNames?.length) {
     out.branchLocalities = raw.branchNames.map(parseBranchLocality);
   }
-  delete (out as { branchNames?: string[] }).branchNames;
+  if (!out.storeTypes?.length && raw.storeType) {
+    out.storeTypes = [raw.storeType];
+  }
+  delete (out as { branchNames?: string[]; storeType?: StoreTypeChoice })
+    .branchNames;
+  delete (out as { storeType?: StoreTypeChoice }).storeType;
   return out;
 }
 

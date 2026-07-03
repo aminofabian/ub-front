@@ -24,6 +24,8 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -38,11 +40,24 @@ import { cn } from "@/lib/utils";
 type LineDraft = { itemId: string; qty: string };
 
 export default function InventoryTransfersPage() {
-  const { me } = useDashboard();
+  const { me, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.InventoryTransfer);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [fromBranchId, setFromBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked: isBranchLockedRole } = useSyncBranchFilter({
+    value: fromBranchId,
+    setValue: setFromBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
+  const onChangeFromBranch = useCallback(
+    (id: string) => {
+      setFromBranchId(id);
+      if (!isBranchLockedRole && id.trim()) setHeaderBranchId(id.trim());
+    },
+    [isBranchLockedRole, setHeaderBranchId],
+  );
   const [toBranchId, setToBranchId] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([{ itemId: "", qty: "1" }]);
@@ -50,6 +65,19 @@ export default function InventoryTransfersPage() {
   const [completeId, setCompleteId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const transferDraftActive = useMemo(
+    () =>
+      Boolean(toBranchId.trim()) ||
+      Boolean(notes.trim()) ||
+      lines.some((l) => l.itemId.trim()),
+    [lines, notes, toBranchId],
+  );
+  useScopeChangeGuard(
+    "stock-transfer-draft",
+    transferDraftActive,
+    "This transfer draft has unsaved branch or line details.",
+  );
 
   useEffect(() => {
     if (!allowed) return;
@@ -203,6 +231,7 @@ export default function InventoryTransfersPage() {
         <header className="space-y-2 border-b border-border/50 pb-4">
           <DashboardPageHero
             compact
+            showActiveScope
             icon={ArrowRightLeft}
             eyebrow="Inventory"
             title="Stock transfers"
@@ -222,7 +251,7 @@ export default function InventoryTransfersPage() {
               <select
                 className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
                 value={fromBranchId}
-                onChange={(e) => setFromBranchId(e.target.value)}
+                onChange={(e) => onChangeFromBranch(e.target.value)}
                 aria-label="From branch"
               >
                 <option value="">Select…</option>

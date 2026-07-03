@@ -4,7 +4,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ComponentType,
   type ReactNode,
@@ -20,11 +19,13 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import {
   DashboardLoading,
   DashboardFeedback,
   DASHBOARD_MAX_WIDE,
 } from "@/components/dashboard-page-ui";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
 import {
   ANALYTICS_PRESET_LABELS,
@@ -91,8 +92,7 @@ function SectionCard({
 }
 
 export default function AnalyticsActivityPage() {
-  const { branchId: sessionBranchId } = useDashboard();
-  const prevSessionBranchIdRef = useRef<string | undefined>(undefined);
+  const { setBranchId: setHeaderBranchId } = useDashboard();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +101,20 @@ export default function AnalyticsActivityPage() {
   const [customTo, setCustomTo] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setBranchId(id);
+      setHeaderBranchId(id.trim());
+    },
+    [setHeaderBranchId],
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [recentSales, setRecentSales] = useState<RecentSaleRow[]>([]);
   const [saleSearch, setSaleSearch] = useState("");
@@ -132,25 +146,6 @@ export default function AnalyticsActivityPage() {
     }
     return formatDateRangeLabel(dateRange.from, dateRange.to);
   }, [dateRange, preset]);
-
-  useEffect(() => {
-    const id = (sessionBranchId ?? "").trim();
-    const valid = id.length > 0 && branches.some((b) => b.id === id);
-    const prev = prevSessionBranchIdRef.current;
-
-    if (valid) {
-      const initialSync = prev === undefined;
-      const sessionChanged = prev !== undefined && prev !== id;
-      if (initialSync || sessionChanged) {
-        setBranchId(id);
-      }
-      prevSessionBranchIdRef.current = id;
-    } else if (prev === undefined) {
-      prevSessionBranchIdRef.current = id || "";
-    } else {
-      prevSessionBranchIdRef.current = id;
-    }
-  }, [sessionBranchId, branches]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -284,15 +279,18 @@ export default function AnalyticsActivityPage() {
               >
                 <ArrowLeft className="size-[15px]" />
               </Link>
-              <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
-                <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
-                  Activity
-                </span>
-                {activeRangeSummary ? (
-                  <span className="truncate text-[11px] leading-none text-muted-foreground/70">
-                    {activeRangeSummary}
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
+                  <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
+                    Activity
                   </span>
-                ) : null}
+                  {activeRangeSummary ? (
+                    <span className="truncate text-[11px] leading-none text-muted-foreground/70">
+                      {activeRangeSummary}
+                    </span>
+                  ) : null}
+                </div>
+                <ActiveScopeSubtitle className="text-[10px]" />
               </div>
             </div>
 
@@ -328,8 +326,9 @@ export default function AnalyticsActivityPage() {
               <div className="relative">
                 <select
                   value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
-                  className="h-7.5 appearance-none rounded-lg border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[11px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+                  onChange={(e) => onChangeBranch(e.target.value)}
+                  disabled={branchLocked}
+                  className="h-7.5 appearance-none rounded-lg border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[11px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="">All branches</option>
                   {branches.map((b) => (

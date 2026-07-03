@@ -77,7 +77,7 @@ export default function DesktopSettingsPage() {
 
   useEffect(() => {
     if (!IS_DESKTOP) {
-      router.replace(APP_ROUTES.overview);
+      router.replace(APP_ROUTES.business);
     }
   }, [router]);
 

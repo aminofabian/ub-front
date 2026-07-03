@@ -22,6 +22,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
@@ -51,15 +52,29 @@ function moneyValue(v: number | string): number {
 }
 
 export default function InventoryValuationPage() {
-  const { me, business, branchId: sessionBranchId } = useDashboard();
+  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.InventoryRead);
   const currency = business?.currency?.trim() || "KES";
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const isBranchLockedRole =
-    roleKey === "stock_manager" || roleKey === "cashier";
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchFilter, setBranchFilter] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Report page: follow the header branch, allowing an empty "All branches" view.
+  const { branchLocked: isBranchLockedRole } = useSyncBranchFilter({
+    value: branchFilter,
+    setValue: setBranchFilter,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
+  const [appliedBranchId, setAppliedBranchId] = useState("");
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setBranchFilter(id);
+      setAppliedBranchId(id);
+      if (!isBranchLockedRole && id.trim()) setHeaderBranchId(id.trim());
+    },
+    [isBranchLockedRole, setHeaderBranchId],
+  );
   const [data, setData] = useState<InventoryValuationResponseRecord | null>(
     null,
   );
@@ -98,47 +113,58 @@ export default function InventoryValuationPage() {
   }, [allowed]);
 
   useEffect(() => {
-    if (!allowed) return;
-    if (isBranchLockedRole) {
-      const assigned = me?.branchId?.trim();
-      if (assigned) {
-        setBranchFilter(assigned);
-      } else {
-        setBranchFilter("");
-        setMessage(
-          "Your account is not assigned to a branch. Contact your administrator.",
-        );
-      }
-      return;
+    if (!appliedBranchId && branchFilter !== undefined) {
+      setAppliedBranchId(branchFilter);
     }
-    if (branchFilter) return;
-    const fallback = sessionBranchId?.trim();
-    if (fallback && branches.some((b) => b.id === fallback)) {
-      setBranchFilter(fallback);
-    }
-  }, [
-    allowed,
-    isBranchLockedRole,
-    me?.branchId,
-    sessionBranchId,
-    branches,
-    branchFilter,
-  ]);
+  }, [branchFilter, appliedBranchId]);
 
-  useEffect(() => {
-    if (!allowed) return;
-    if (isBranchLockedRole && !me?.branchId?.trim()) return;
-    void runValuationLoad(branchFilter);
-  }, [allowed, branchFilter, isBranchLockedRole, me?.branchId, runValuationLoad]);
-
-  const branchCount = data?.byBranch.length ?? 0;
-
-  const activeBranchName = useMemo(() => {
+  const branchScopeStale = branchFilter !== appliedBranchId;
+  const appliedBranchLabel = useMemo(() => {
+    if (!appliedBranchId) return "All branches";
+    return (
+      branches.find((b) => b.id === appliedBranchId)?.name?.trim() ||
+      appliedBranchId
+    );
+  }, [appliedBranchId, branches]);
+  const pendingBranchLabel = useMemo(() => {
     if (!branchFilter) return "All branches";
     return (
       branches.find((b) => b.id === branchFilter)?.name?.trim() || branchFilter
     );
   }, [branchFilter, branches]);
+
+  // Warn locked-role users who have no assigned branch (sync hook keeps the
+  // filter pinned to their branch otherwise).
+  useEffect(() => {
+    if (!allowed || !isBranchLockedRole) return;
+    if (!me?.branchId?.trim()) {
+      setMessage(
+        "Your account is not assigned to a branch. Contact your administrator.",
+      );
+    }
+  }, [allowed, isBranchLockedRole, me?.branchId]);
+
+  useEffect(() => {
+    if (!allowed) return;
+    if (isBranchLockedRole && !me?.branchId?.trim()) return;
+    void runValuationLoad(appliedBranchId);
+  }, [
+    allowed,
+    appliedBranchId,
+    isBranchLockedRole,
+    me?.branchId,
+    runValuationLoad,
+  ]);
+
+  const branchCount = data?.byBranch.length ?? 0;
+
+  const activeBranchName = useMemo(() => {
+    if (!appliedBranchId) return "All branches";
+    return (
+      branches.find((b) => b.id === appliedBranchId)?.name?.trim() ||
+      appliedBranchId
+    );
+  }, [appliedBranchId, branches]);
 
   const quickLinks = useMemo(
     () =>
@@ -215,6 +241,7 @@ export default function InventoryValuationPage() {
         <header className="space-y-2 border-b border-border/50 pb-4">
           <DashboardPageHero
             compact
+            showActiveScope
             icon={BarChart3}
             eyebrow="Inventory"
             title="Stock valuation"
@@ -226,6 +253,22 @@ export default function InventoryValuationPage() {
         </header>
 
         <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+          {branchScopeStale ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-950 dark:text-amber-100">
+              <span>
+                Branch changed to <strong>{pendingBranchLabel}</strong>. Report
+                still shows <strong>{appliedBranchLabel}</strong>.
+              </span>
+              <button
+                type="button"
+                className="shrink-0 rounded-md border border-amber-600/30 bg-background/80 px-2.5 py-1 text-[11px] font-semibold shadow-sm hover:bg-background"
+                onClick={() => setAppliedBranchId(branchFilter)}
+              >
+                Apply branch
+              </button>
+            </div>
+          ) : null}
+
           {data ? (
             <div className="flex flex-wrap gap-1.5 sm:flex-nowrap">
               <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 px-2.5 py-2 sm:px-3">
@@ -257,7 +300,7 @@ export default function InventoryValuationPage() {
                 )}
                 value={branchFilter}
                 disabled={isBranchLockedRole}
-                onChange={(event) => setBranchFilter(event.target.value)}
+                onChange={(event) => onChangeBranch(event.target.value)}
                 aria-label="Branch filter"
               >
                 {isBranchLockedRole ? null : (
@@ -279,7 +322,7 @@ export default function InventoryValuationPage() {
               size="sm"
               className="h-9 shrink-0 gap-1.5"
               disabled={loading || (isBranchLockedRole && !me?.branchId?.trim())}
-              onClick={() => void runValuationLoad(branchFilter)}
+              onClick={() => void runValuationLoad(appliedBranchId)}
             >
               <RefreshCw
                 className={cn("size-3.5", loading && "animate-spin")}

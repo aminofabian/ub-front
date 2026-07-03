@@ -141,7 +141,7 @@ export async function prefetchSupplyLineDefaults({
   const latestUnit = parseMoney(suggest?.latestUnitCost);
   const catalogCost = parseMoney(detail?.buyingPrice);
 
-  let cost = linkCost.value ?? latestUnit ?? catalogCost;
+  const cost = linkCost.value ?? latestUnit ?? catalogCost;
   let costHint = linkCost.hint;
   if (cost != null && !costHint) {
     if (latestUnit != null && cost === latestUnit) {

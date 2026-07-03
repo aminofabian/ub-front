@@ -26,6 +26,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -1001,8 +1002,6 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
 
 export default function ShiftsPage() {
   const { me } = useDashboard();
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const isBranchLockedRole = roleKey === "stock_manager" || roleKey === "cashier";
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canRead = hasPermission(me?.permissions, Permission.ShiftsRead);
@@ -1022,6 +1021,14 @@ export default function ShiftsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Report page: follow the header branch, allowing an empty "All branches" view.
+  const { branchLocked: isBranchLockedRole } = useSyncBranchFilter({
+    value: branchFilter,
+    setValue: setBranchFilter,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
 
   // Modal state
   const [openModal, setOpenModal] = useState(false);
@@ -1053,14 +1060,6 @@ export default function ShiftsPage() {
       cancelled = true;
     };
   }, [allowed]);
-
-  useEffect(() => {
-    if (!allowed || !isBranchLockedRole) return;
-    const assigned = me?.branchId?.trim();
-    if (assigned) {
-      setBranchFilter(assigned);
-    }
-  }, [allowed, isBranchLockedRole, me?.branchId]);
 
   // Load shifts
   const loadShifts = useCallback(
@@ -1265,6 +1264,7 @@ export default function ShiftsPage() {
       <section className={DASHBOARD_SECTION_SURFACE}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <DashboardPageHero
+            showActiveScope
             icon={Clock}
             eyebrow="Operations"
             title="Shifts"

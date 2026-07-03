@@ -23,6 +23,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter, useSessionItemType } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchAllocationPreview,
@@ -327,21 +328,32 @@ function StockListSkeleton() {
 }
 
 export function StockLevelsPage() {
-  const { me, business, branchId: sessionBranchId } = useDashboard();
+  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
+  const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const allowed = canViewStockLevels(me, business);
   const canWrite = canEditStockLevels(me, business);
-
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const isBranchLockedRole =
-    roleKey === "stock_manager" ||
-    roleKey === "cashier" ||
-    roleKey === "grocery_clerk";
 
   const quickLinks = useMemo(() => inventoryQuickLinksForUser(me), [me]);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [branchId, setBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  // Follow the global header branch selection (pinned for locked roles).
+  const { branchLocked: isBranchLockedRole } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
+  // Two-way binding: changing the branch on this page updates the global header
+  // so the rest of the app follows along.
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setBranchId(id);
+      if (!isBranchLockedRole) setHeaderBranchId(id);
+    },
+    [isBranchLockedRole, setHeaderBranchId],
+  );
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
   const [rows, setRows] = useState<StockRow[]>([]);
@@ -468,28 +480,12 @@ export function StockLevelsPage() {
     });
   }, []);
 
+  // Fall back to the first active branch when the header has no selection.
   useEffect(() => {
-    if (isBranchLockedRole) {
-      setBranchId(me?.branchId?.trim() ?? "");
-      return;
-    }
-    const id = (sessionBranchId ?? "").trim();
-    if (id && branches.some((b) => b.id === id)) {
-      setBranchId(id);
-      return;
-    }
-    if (!branchId && branches.length > 0) {
-      const fallback =
-        branches.find((b) => b.active)?.id ?? branches[0]?.id ?? "";
-      if (fallback) setBranchId(fallback);
-    }
-  }, [
-    isBranchLockedRole,
-    me?.branchId,
-    sessionBranchId,
-    branches,
-    branchId,
-  ]);
+    if (isBranchLockedRole || branchId || branches.length === 0) return;
+    const fallback = branches.find((b) => b.active)?.id ?? branches[0]?.id ?? "";
+    if (fallback) setBranchId(fallback);
+  }, [isBranchLockedRole, branchId, branches]);
 
   const load = useCallback(async () => {
     const branch = branchId.trim();
@@ -525,6 +521,7 @@ export function StockLevelsPage() {
       while (!last && page < MAX_PAGES) {
         const result = await fetchItemsPage(undefined, {
           branchId: branch,
+          itemTypeId: headerItemTypeId?.trim() || undefined,
           catalogScope: "SKUS_ONLY",
           categoryId: selectedCategory || undefined,
           includeCategoryDescendants: Boolean(selectedCategory),
@@ -571,7 +568,7 @@ export function StockLevelsPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, categoryId]);
+  }, [branchId, categoryId, headerItemTypeId]);
 
   useEffect(() => {
     if (!allowed) return;
@@ -614,8 +611,8 @@ export function StockLevelsPage() {
       <DashboardAccessDenied
         title="Stock levels"
         description="You need inventory read access to view stock levels."
-        backHref={APP_ROUTES.overview}
-        backLabel="Back to overview"
+        backHref={APP_ROUTES.business}
+        backLabel="Back to business"
       />
     );
   }
@@ -626,6 +623,7 @@ export function StockLevelsPage() {
         <header className="space-y-2 border-b border-border/50 pb-4">
           <DashboardPageHero
             compact
+            showActiveScope
             icon={Warehouse}
             eyebrow="Inventory"
             title="Stock"
@@ -678,7 +676,7 @@ export function StockLevelsPage() {
               <span className="text-muted-foreground">Branch</span>
               <select
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
+                onChange={(e) => onChangeBranch(e.target.value)}
                 disabled={isBranchLockedRole}
                 className={cn(
                   dashboardSelectClass(),

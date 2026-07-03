@@ -124,6 +124,47 @@
     --sidebar-ring: rgba(40, 167, 69, 0.45);
 }
 
+/* Butcher counter — scoped light/dark tokens (toggle `.dark` on `.butcher-pos`). */
+.butcher-pos,
+.butcher-pos-dialog {
+    --bp-bg: 250 250 250;
+    --bp-surface: 255 255 255;
+    --bp-panel: 245 245 245;
+    --bp-panel-strong: 240 240 240;
+    --bp-border: 212 212 212;
+    --bp-hover: 229 229 229;
+    --bp-fg: 23 23 23;
+    --bp-fg-soft: 38 38 38;
+    --bp-fg-muted: 115 115 115;
+    --bp-fg-faint: 163 163 163;
+    --bp-input: 255 255 255;
+    --bp-ring-offset: 250 250 250;
+    --bp-image: 212 212 212;
+    --bp-gradient-from: 229 229 229;
+    --bp-gradient-to: 212 212 212;
+    --bp-overlay: 250 250 250;
+}
+
+.butcher-pos.dark,
+.butcher-pos-dialog.dark {
+    --bp-bg: 10 10 10;
+    --bp-surface: 23 23 23;
+    --bp-panel: 23 23 23;
+    --bp-panel-strong: 10 10 10;
+    --bp-border: 38 38 38;
+    --bp-hover: 38 38 38;
+    --bp-fg: 245 245 245;
+    --bp-fg-soft: 229 229 229;
+    --bp-fg-muted: 115 115 115;
+    --bp-fg-faint: 163 163 163;
+    --bp-input: 23 23 23;
+    --bp-ring-offset: 10 10 10;
+    --bp-image: 38 38 38;
+    --bp-gradient-from: 38 38 38;
+    --bp-gradient-to: 23 23 23;
+    --bp-overlay: 10 10 10;
+}
+
 /* Legacy fallback (Chrome < 111 / Safari < 16.2, e.g. Windows 7/8).
    On these browsers Tailwind's `/opacity` utilities cannot use `color-mix()`,
    so a tinted background (e.g. `bg-destructive/10`) falls back to the SOLID

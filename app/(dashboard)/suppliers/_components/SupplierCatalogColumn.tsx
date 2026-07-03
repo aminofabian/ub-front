@@ -26,12 +26,12 @@ import { Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { FormDrawer, FormDrawerMessageBanner } from "@/components/form-drawer";
 import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/components/dashboard-provider";
 
 import {
   nsdInput,
   nsdSelect,
   nsdTableHead,
-  nsdTableRow,
   SupplyEmptyState,
   SupplyLoadingInline,
   SupplyTableSkeleton,
@@ -39,14 +39,12 @@ import {
 
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { sortCatalogRowsParentFirst } from "../../products/_components/catalog-list-styles";
-import { SupEmptyState, SupLoadingBlock, SupSection } from "./supplier-layout-primitives";
+import { SupEmptyState, SupSection } from "./supplier-layout-primitives";
 import {
   supChipActive,
   supChipIdle,
   supFieldLabel,
   supInput,
-  supSectionCard,
-  supSelect,
   supTableHead,
   supTableRow,
 } from "./supplier-ui-tokens";
@@ -139,6 +137,11 @@ export function SupplierCatalogColumn({
   ) => Promise<void>;
   onRefreshLinks?: () => void;
 }) {
+  // Scope the product picker to the department chosen in the app header.
+  const { branchId: headerBranchId, itemTypeId: headerItemTypeId } =
+    useDashboard();
+  const scopedBranchId = headerBranchId?.trim() || undefined;
+  const scopedItemTypeId = headerItemTypeId?.trim() || undefined;
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState("");
@@ -168,7 +171,10 @@ export function SupplierCatalogColumn({
   const [editLinkDrawerRow, setEditLinkDrawerRow] = useState<SupplierItemLinkRecord | null>(null);
   const [editLinkDrawerSku, setEditLinkDrawerSku] = useState("");
   const [editLinkDrawerCost, setEditLinkDrawerCost] = useState("");
+  const [editLinkDrawerPackUnit, setEditLinkDrawerPackUnit] = useState("");
+  const [editLinkDrawerPackSize, setEditLinkDrawerPackSize] = useState("");
   const [editLinkDrawerBusy, setEditLinkDrawerBusy] = useState(false);
+  const [editLinkDrawerError, setEditLinkDrawerError] = useState<string | null>(null);
 
   const loadGen = useRef(0);
 
@@ -250,6 +256,8 @@ export function SupplierCatalogColumn({
       catalogScope,
       excludeLinkedSupplierId: supplierId,
       sort: sortsForPreset(sortPreset),
+      ...(scopedBranchId ? { branchId: scopedBranchId } : {}),
+      ...(scopedItemTypeId ? { itemTypeId: scopedItemTypeId } : {}),
     })
       .then((page) => {
         if (gen !== loadGen.current) {
@@ -282,6 +290,8 @@ export function SupplierCatalogColumn({
     categoryIncludeDescendants,
     sortPreset,
     catalogScope,
+    scopedBranchId,
+    scopedItemTypeId,
   ]);
 
   const loadMore = useCallback(async () => {
@@ -301,6 +311,8 @@ export function SupplierCatalogColumn({
         catalogScope,
         excludeLinkedSupplierId: supplierId,
         sort: sortsForPreset(sortPreset),
+        ...(scopedBranchId ? { branchId: scopedBranchId } : {}),
+        ...(scopedItemTypeId ? { itemTypeId: scopedItemTypeId } : {}),
       });
       if (gen !== loadGen.current) {
         return;
@@ -330,6 +342,8 @@ export function SupplierCatalogColumn({
     categoryIncludeDescendants,
     sortPreset,
     catalogScope,
+    scopedBranchId,
+    scopedItemTypeId,
   ]);
 
   const toggleRow = (itemId: string) => {
@@ -462,11 +476,17 @@ export function SupplierCatalogColumn({
     setEditLinkDrawerCost(
       row.defaultCostPrice != null ? String(row.defaultCostPrice) : "",
     );
+    setEditLinkDrawerPackUnit(row.packUnit ?? "");
+    setEditLinkDrawerPackSize(
+      row.packSize != null ? String(row.packSize) : "",
+    );
+    setEditLinkDrawerError(null);
     setEditLinkDrawerOpen(true);
   };
 
   const saveEditLinkDrawer = async () => {
     if (!editLinkDrawerRow || editLinkDrawerBusy) return;
+    setEditLinkDrawerError(null);
     setEditLinkDrawerBusy(true);
     try {
       const costRaw = editLinkDrawerCost.trim();
@@ -474,18 +494,34 @@ export function SupplierCatalogColumn({
       if (costRaw.length > 0) {
         const n = Number(costRaw);
         if (!Number.isFinite(n) || n < 0) {
+          setEditLinkDrawerError("Default cost must be a valid non-negative number.");
           return;
         }
         defaultCostPrice = n;
       }
+      const packUnitRaw = editLinkDrawerPackUnit.trim();
+      const packSizeRaw = editLinkDrawerPackSize.trim();
+      let packSize: number | undefined;
+      if (packSizeRaw.length > 0) {
+        const n = Number(packSizeRaw);
+        if (!Number.isFinite(n) || n <= 0) {
+          setEditLinkDrawerError("Pack size must be a valid positive number.");
+          return;
+        }
+        packSize = n;
+      }
       await patchItemSupplierLink(editLinkDrawerRow.itemId, editLinkDrawerRow.id, {
         supplierSku: editLinkDrawerSku.trim() || undefined,
         defaultCostPrice,
+        packUnit: packUnitRaw || undefined,
+        packSize,
       });
       setEditLinkDrawerOpen(false);
       setEditLinkDrawerRow(null);
       setEditLinkDrawerSku("");
       setEditLinkDrawerCost("");
+      setEditLinkDrawerPackUnit("");
+      setEditLinkDrawerPackSize("");
       onRefreshLinks?.();
     } catch {
       /* feedback from page if wired */
@@ -1032,12 +1068,20 @@ export function SupplierCatalogColumn({
               setEditLinkDrawerRow(null);
               setEditLinkDrawerSku("");
               setEditLinkDrawerCost("");
+              setEditLinkDrawerPackUnit("");
+              setEditLinkDrawerPackSize("");
+              setEditLinkDrawerError(null);
             }
           }}
           title="Edit supplier link"
-          description={`Update supplier SKU and default cost for ${editLinkDrawerRow?.itemName || "this product"}.`}
+          description={`Update supplier SKU, cost, and purchase unit for ${editLinkDrawerRow?.itemName || "this product"}.`}
           contextLabel="Link details"
           icon={<Pencil className="size-5 text-primary" aria-hidden />}
+          banner={
+            editLinkDrawerError ? (
+              <FormDrawerMessageBanner text={editLinkDrawerError} sharp />
+            ) : undefined
+          }
           footer={
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditLinkDrawerOpen(false)}>
@@ -1076,6 +1120,32 @@ export function SupplierCatalogColumn({
               />
             </label>
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={supFieldLabel}>Purchase unit</span>
+              <input
+                className={supInput}
+                value={editLinkDrawerPackUnit}
+                onChange={(e) => setEditLinkDrawerPackUnit(e.target.value)}
+                placeholder="e.g. crate, kg"
+                aria-label="Purchase unit"
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={supFieldLabel}>Stock per unit</span>
+              <input
+                className={cn(supInput, "tabular-nums")}
+                inputMode="decimal"
+                value={editLinkDrawerPackSize}
+                onChange={(e) => setEditLinkDrawerPackSize(e.target.value)}
+                placeholder="e.g. 25 (kg per crate)"
+                aria-label="Stock per purchase unit"
+              />
+            </label>
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            When set, receiving uses this conversion (e.g. 2 crates × 25 kg = 50 kg stock).
+          </p>
         </FormDrawer>
       ) : null}
       <FormDrawer

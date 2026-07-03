@@ -112,7 +112,8 @@ export type CashierPosLayoutProps = {
   /** When set, catalog hits (search / aisle / type-only browse) are limited to this item type. */
   typeFilterId: string | null;
   typeFilterLabel: string | null;
-  clearTypeFilter: () => void;
+  /** Optional local clear action. If omitted, the type badge is read-only (e.g., driven by the global header). */
+  clearTypeFilter?: () => void;
   /** Shift / drawer shortcuts (cashier); opens modals in-place via {@link CashierPosShiftLinksProps.onShortcut}. */
   posShiftLinks: CashierPosShiftLinksProps | null;
 
@@ -816,13 +817,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
                 Type: {typeFilterLabel ?? typeFilterId}
               </span>
-              <button
-                type="button"
-                onClick={clearTypeFilter}
-                className="text-muted-foreground underline-offset-2 hover:underline"
-              >
-                Clear type
-              </button>
+              {clearTypeFilter ? (
+                <button
+                  type="button"
+                  onClick={clearTypeFilter}
+                  className="text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  Clear type
+                </button>
+              ) : null}
             </div>
           ) : null}
         </section>

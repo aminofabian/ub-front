@@ -16,8 +16,10 @@ import {
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { cn } from "@/lib/utils";
 import { formatDateRangeLabel, presetRange } from "@/lib/analytics-date-range";
 import {
@@ -364,7 +366,7 @@ function ListSkeleton() {
 }
 
 export function TransactionsPage() {
-  const { me, branchId: sessionBranchId } = useDashboard();
+  const { me, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.SalesIntelligenceRead);
   const canViewWebOrders = hasPermission(
     me?.permissions,
@@ -373,6 +375,20 @@ export function TransactionsPage() {
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchId] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
+  const onChangeBranch = useCallback(
+    (id: string) => {
+      setBranchId(id);
+      setHeaderBranchId(id.trim());
+    },
+    [setHeaderBranchId],
+  );
   const [datePreset, setDatePreset] = useState<SalesDatePreset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -412,12 +428,6 @@ export function TransactionsPage() {
       .then(setBranches)
       .catch(() => setBranches([]));
   }, []);
-
-  useEffect(() => {
-    const id = (sessionBranchId ?? "").trim();
-    if (!id) return;
-    if (branches.some((b) => b.id === id)) setBranchId(id);
-  }, [sessionBranchId, branches]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 30_000);
@@ -541,11 +551,11 @@ export function TransactionsPage() {
           You do not have permission to view transactions.
         </p>
         <Link
-          href={APP_ROUTES.overview}
+          href={APP_ROUTES.business}
           className="mt-6 inline-block text-sm font-medium"
           style={{ color: ACCENT }}
         >
-          Back to overview
+          Back to business
         </Link>
       </div>
     );
@@ -559,6 +569,7 @@ export function TransactionsPage() {
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-black">
             Transactions
           </h1>
+          <ActiveScopeSubtitle className={cn("mt-1", MUTED)} />
           <p className={cn("mt-1 text-sm", MUTED)}>
             {periodLabel || (datePreset === "custom" ? "Choose dates below." : "")}
             {lastUpdated
@@ -611,16 +622,19 @@ export function TransactionsPage() {
         </div>
         <select
           value={branchId}
-          onChange={(e) => setBranchId(e.target.value)}
+          onChange={(e) => onChangeBranch(e.target.value)}
           className={cn(dashboardSelectClass(), "sm:w-56")}
           aria-label="Branch"
+          disabled={branchLocked}
         >
           <option value="">All branches</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
+          {branches
+            .filter((b) => !branchLocked || b.id === me?.branchId)
+            .map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
         </select>
       </div>
 

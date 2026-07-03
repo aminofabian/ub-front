@@ -18,6 +18,8 @@ type Props = {
     margin: number;
     valid: boolean;
   } | null;
+  /** When true, sell price is per kilogram (butcher weighed items). */
+  isWeighed?: boolean;
 };
 
 function icClass() {
@@ -103,13 +105,16 @@ export function ProductCreatePricingSection({
   syncCostsFromBuyingPrice,
   currencyCode,
   marginInfo,
+  isWeighed = false,
 }: Props) {
   const cur = currencyCode ? ` (${currencyCode})` : "";
+  const sellLabel = isWeighed ? <>Price per kg{cur}</> : <>Sell price{cur}</>;
+  const sellHint = isWeighed ? "Shelf price per kilogram" : "At the till";
 
   return (
     <div className="space-y-2">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
-        <Field label={<>Sell price{cur}</>} required hint="At the till">
+        <Field label={sellLabel} required hint={sellHint}>
           <input
             type="number"
             inputMode="decimal"

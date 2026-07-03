@@ -15,10 +15,10 @@ import { createPortal } from "react-dom";
 import { useDashboard } from "@/components/dashboard-provider";
 import { OnboardingQuestionnaire } from "@/components/onboarding/onboarding-questionnaire";
 import { APP_ROUTES } from "@/lib/config";
+import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { applyOnboardingQuestionnaire } from "@/lib/onboarding-questionnaire-apply";
 import {
-  QUESTIONNAIRE_STEP_COUNT,
   activateOnboardingQuestionnaire,
   completeOnboardingQuestionnaire,
   dismissOnboardingQuestionnaire,
@@ -51,9 +51,9 @@ function isCompleteAnswers(
     Array.isArray(answers.branchLocalities) &&
     answers.branchLocalities.length > 0 &&
     answers.branchLocalities.every((loc) => loc.trim().length > 0) &&
-    Boolean(answers.storeType) &&
+    Array.isArray(answers.storeTypes) &&
+    answers.storeTypes.length > 0 &&
     Array.isArray(answers.selectedDepartments) &&
-    answers.selectedDepartments.length > 0 &&
     Boolean(answers.onlineStore) &&
     Boolean(answers.displayName?.trim()) &&
     Boolean(answers.primaryColor?.trim()) &&
@@ -123,8 +123,10 @@ export function OnboardingQuestionnaireProvider({
 
   const finish = useCallback(() => {
     setActive(false);
-    router.replace(APP_ROUTES.overview);
-  }, [router]);
+    router.replace(
+      isButcheryOnlyBusiness(business) ? APP_ROUTES.butcher : APP_ROUTES.business,
+    );
+  }, [router, business]);
 
   const handleBrowseCatalog = useCallback(() => {
     setActive(false);

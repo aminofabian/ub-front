@@ -31,6 +31,7 @@ export function mergeVariantOptions(
     imageUrl: item.images[0]?.url ?? null,
     price: item.price,
     qtyOnHand: item.qtyOnHand,
+    onlinePurchaseMode: item.onlinePurchaseMode,
   };
   const byId = new Map<string, PublicCatalogVariant>();
   byId.set(current.id, current);

@@ -6,6 +6,18 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 ];
 
+const overviewRedirect = {
+  source: "/overview",
+  destination: "/business",
+  permanent: true,
+} as const;
+
+const overviewRedirectTrailing = {
+  source: "/overview/",
+  destination: "/business/",
+  permanent: true,
+} as const;
+
 /**
  * Desktop / on-premise SKU.
  *
@@ -38,7 +50,12 @@ const BACKEND_ORIGIN = (
   "https://kiosk.zelisline.com"
 ).replace(/\/+$/, "");
 
-/** Baked into the client bundle so WebSockets hit the Java API, not the Next host. */
+/**
+ * Baked into the client bundle so WebSockets hit the Java API directly.
+ * MUST be the Java API origin — Next.js rewrites cannot proxy WebSocket
+ * upgrades. If this equals the Next.js frontend host, the browser will fail
+ * to connect with code 1006 and fall back to REST polling.
+ */
 const REALTIME_WS_ORIGIN = (
   process.env.NEXT_PUBLIC_REALTIME_WS_ORIGIN?.trim() || BACKEND_ORIGIN
 ).replace(/\/+$/, "");
@@ -69,6 +86,9 @@ const cloudOnlyConfig: NextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+  async redirects() {
+    return [overviewRedirect];
   },
   async rewrites() {
     return [
@@ -107,6 +127,9 @@ const desktopConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_REALTIME_WS_ORIGIN: "",
+  },
+  async redirects() {
+    return [overviewRedirectTrailing];
   },
 };
 

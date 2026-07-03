@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Input } from "@/components/ui/input";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
@@ -801,6 +802,7 @@ export default function GlobalCatalogPage() {
           </Button>
           <div>
             <h1 className="text-sm font-semibold">Add products from catalog</h1>
+            <ActiveScopeSubtitle className="text-[11px]" />
             <p className="text-xs text-muted-foreground">
               {meta?.catalogName ?? "Global catalog"}
               {!initialLoading && products.length > 0 ? (

@@ -29,6 +29,7 @@ import {
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
+import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { YmdDateInput } from "@/components/ymd-date-input";
@@ -619,6 +620,21 @@ export function NewSupplyDrawer({
     }
     return { totalRows: rows.length, withQty, valid };
   }, [rows]);
+
+  const hasSupplyDraft = useMemo(() => {
+    if (!open) return false;
+    if (lineStats.valid > 0 || lineStats.withQty > 0) return true;
+    if (supplier) return true;
+    if (notes.trim() || docRef.trim()) return true;
+    if (extras.some((e) => e.amount.trim())) return true;
+    return false;
+  }, [open, lineStats, supplier, notes, docRef, extras]);
+
+  useScopeChangeGuard(
+    "new-supply-drawer",
+    hasSupplyDraft,
+    "A supply receipt draft is open with lines or delivery details.",
+  );
 
   const visibleRows = useMemo(() => {
     const q = lineSearchQuery.trim();

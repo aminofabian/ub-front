@@ -3,7 +3,20 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { playCashierChime } from "@/lib/cashier-chime";
 import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
+
+function dispatchGroceryInvoiceEvent(
+  type: string,
+  data: Record<string, unknown>,
+) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("grocery-invoice-event", {
+      detail: { type, barcode: data.barcodeCode, data },
+    }),
+  );
+}
 
 /**
  * Subscribe to grocery realtime events and show toast notifications.
@@ -14,15 +27,24 @@ export function useGroceryNotifications() {
   const routerRef = useRef(router);
   routerRef.current = router;
   const shownEventIds = useRef<Set<string>>(new Set());
+  const shownInvoiceIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const client = getRealtimeClient();
 
     const handleInvoiceCreated = (data: Record<string, unknown>) => {
+      const invoiceId = String(data.invoiceId ?? "");
       const barcode = String(data.barcodeCode ?? "");
       const total = String(data.grandTotal ?? "");
       const items = String(data.lineCount ?? "");
       const by = String(data.createdByName ?? "Staff");
+
+      // Dedupe by invoice id so WS + REST poll do not double-notify.
+      if (invoiceId && shownInvoiceIds.current.has(invoiceId)) return;
+      if (invoiceId) shownInvoiceIds.current.add(invoiceId);
+
+      playCashierChime("grocery");
+      dispatchGroceryInvoiceEvent("created", data);
 
       toast.success(`New grocery invoice ${barcode}`, {
         description: `${items} items · ${total} · by ${by}`,
@@ -64,6 +86,7 @@ export function useGroceryNotifications() {
 
       onGroceryInvoiceLocked: (frame: RealtimeFrame) => {
         const d = frame.data;
+        dispatchGroceryInvoiceEvent("locked", d);
         const barcode = String(d.barcodeCode ?? "");
         const by = String(d.lockedByName ?? "Another cashier");
         toast.info(`Invoice ${barcode} is being processed`, {
@@ -74,6 +97,7 @@ export function useGroceryNotifications() {
 
       onGroceryInvoicePaid: (frame: RealtimeFrame) => {
         const d = frame.data;
+        dispatchGroceryInvoiceEvent("paid", d);
         const barcode = String(d.barcodeCode ?? "");
         toast.success(`Invoice ${barcode} has been paid`, {
           duration: 5_000,
@@ -82,6 +106,7 @@ export function useGroceryNotifications() {
 
       onGroceryInvoiceCancelled: (frame: RealtimeFrame) => {
         const d = frame.data;
+        dispatchGroceryInvoiceEvent("cancelled", d);
         const barcode = String(d.barcodeCode ?? "");
         toast("Invoice cancelled", {
           description: `${barcode} is no longer available`,
@@ -91,6 +116,7 @@ export function useGroceryNotifications() {
 
       onGroceryInvoiceExpired: (frame: RealtimeFrame) => {
         const d = frame.data;
+        dispatchGroceryInvoiceEvent("expired", d);
         const barcode = String(d.barcodeCode ?? "");
         toast("Invoice expired", {
           description: `${barcode} has expired`,
@@ -98,8 +124,8 @@ export function useGroceryNotifications() {
         });
       },
 
-      onGroceryInvoiceUnlocked: () => {
-        // Silent
+      onGroceryInvoiceUnlocked: (frame: RealtimeFrame) => {
+        dispatchGroceryInvoiceEvent("unlocked", frame.data);
       },
     });
 

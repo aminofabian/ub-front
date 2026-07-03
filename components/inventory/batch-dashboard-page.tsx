@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRightLeft,
   BarChart3,
@@ -29,6 +29,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBatchDashboard,
@@ -89,7 +90,7 @@ const WASTAGE_REASONS = [
 ];
 
 export function BatchDashboardPage() {
-  const { me } = useDashboard();
+  const { me, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.InventoryRead);
   const canWrite = hasPermission(me?.permissions, Permission.InventoryWrite);
 
@@ -112,6 +113,20 @@ export function BatchDashboardPage() {
 
   // Filters
   const [branchFilter, setBranchFilter] = useState("");
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchFilter,
+    setValue: setBranchFilter,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
+  const onChangeBranchFilter = useCallback(
+    (id: string) => {
+      setBranchFilter(id);
+      if (!branchLocked && id.trim()) setHeaderBranchId(id.trim());
+    },
+    [branchLocked, setHeaderBranchId],
+  );
   const [datePreset, setDatePreset] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -435,6 +450,7 @@ export function BatchDashboardPage() {
       <div className="space-y-8">
         <section className={DASHBOARD_SECTION_SURFACE}>
           <DashboardPageHero
+            showActiveScope
             icon={BarChart3}
             eyebrow="Inventory"
             title="Batch Dashboard"
@@ -516,13 +532,16 @@ export function BatchDashboardPage() {
                 <select
                   className={dashboardSelectClass(filtersBusy)}
                   value={branchFilter}
+                  disabled={branchLocked}
                   onChange={(e) => {
-                    setBranchFilter(e.target.value);
+                    onChangeBranchFilter(e.target.value);
                     setPage(0);
                     setSbPage(0);
                   }}
                 >
-                  <option value="">All branches</option>
+                  {!branchLocked ? (
+                    <option value="">All branches</option>
+                  ) : null}
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}

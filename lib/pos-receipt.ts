@@ -43,6 +43,7 @@ export type PosReceiptSnapshot = {
 const PAYMENT_LABELS: Record<string, string> = {
   cash: "Cash",
   mpesa_manual: "M-Pesa",
+  card: "Card",
   customer_credit: "Customer tab",
   customer_wallet: "Wallet",
   loyalty_redeem: "Loyalty",

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -219,6 +220,7 @@ export function DashboardPageHero({
   title,
   description,
   compact = false,
+  showActiveScope = false,
   children,
 }: {
   icon: LucideIcon;
@@ -226,6 +228,8 @@ export function DashboardPageHero({
   title: string;
   description: ReactNode;
   compact?: boolean;
+  /** When true, shows global branch · department under the title (§6.4). */
+  showActiveScope?: boolean;
   /** e.g. {@link DashboardQuickLinks} — rendered below the title block in default mode */
   children?: ReactNode;
 }) {
@@ -243,6 +247,9 @@ export function DashboardPageHero({
             <h1 className="text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
               {title}
             </h1>
+            {showActiveScope ? (
+              <ActiveScopeSubtitle className="mt-0.5 text-xs" />
+            ) : null}
           </div>
         </div>
         {description ? (
@@ -268,6 +275,7 @@ export function DashboardPageHero({
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-[2rem] sm:leading-tight">
             {title}
           </h1>
+          {showActiveScope ? <ActiveScopeSubtitle /> : null}
           {description ? (
             <div className="max-w-prose text-[15px] leading-relaxed text-muted-foreground">
               {description}

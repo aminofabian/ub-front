@@ -167,7 +167,7 @@ export function OnboardingTourCard({
             disabled={branchSetupRequired}
             onClick={() => {
               onNext();
-              router.push(APP_ROUTES.overview);
+              router.push(APP_ROUTES.business);
             }}
           >
             Go to dashboard

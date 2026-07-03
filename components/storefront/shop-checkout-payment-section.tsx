@@ -162,6 +162,36 @@ function OnlineStkSection({
     setPhone(defaultPhone);
   }, [defaultAreaCode, defaultPhone]);
 
+  useEffect(() => {
+    if (methods.length === 0 || (compact && promptDisabled)) {
+      onStkSendActionChange?.(null);
+      return;
+    }
+    if (!actionsInDock || !onStkSendActionChange || !methods[0]) {
+      onStkSendActionChange?.(null);
+      return;
+    }
+    const primaryMethod = methods[0];
+    const phoneValid = isStkPhoneValid(areaCode, phone);
+    const fullPhone = buildStkPhoneNumber(areaCode, phone);
+    onStkSendActionChange({
+      label: busy ? "Sending…" : stkSent ? "Sent" : "Send prompt",
+      disabled: busy || stkSent || !phoneValid || Boolean(promptDisabled),
+      onSend: () => onPay(primaryMethod.configId, fullPhone),
+    });
+  }, [
+    methods,
+    compact,
+    promptDisabled,
+    actionsInDock,
+    onStkSendActionChange,
+    areaCode,
+    phone,
+    busy,
+    stkSent,
+    onPay,
+  ]);
+
   if (methods.length === 0) return null;
 
   // Floating dock: no STK UI until the order exists (saves ~half the dock height)
@@ -170,28 +200,6 @@ function OnlineStkSection({
   const phoneValid = isStkPhoneValid(areaCode, phone);
   const fullPhone = buildStkPhoneNumber(areaCode, phone);
   const primaryMethod = methods[0];
-
-  useEffect(() => {
-    if (!actionsInDock || !onStkSendActionChange || !primaryMethod) {
-      onStkSendActionChange?.(null);
-      return;
-    }
-    onStkSendActionChange({
-      label: busy ? "Sending…" : stkSent ? "Sent" : "Send prompt",
-      disabled: busy || stkSent || !phoneValid || Boolean(promptDisabled),
-      onSend: () => onPay(primaryMethod.configId, fullPhone),
-    });
-  }, [
-    actionsInDock,
-    onStkSendActionChange,
-    primaryMethod,
-    busy,
-    stkSent,
-    phoneValid,
-    promptDisabled,
-    fullPhone,
-    onPay,
-  ]);
 
   return (
     <div

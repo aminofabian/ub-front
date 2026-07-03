@@ -6,6 +6,7 @@ export function shellPageTitle(pathname: string): string {
 
   const exact: Record<string, string> = {
     [APP_ROUTES.overview]: "Overview",
+    [APP_ROUTES.businessSettings]: "Settings",
     [APP_ROUTES.products]: "Products",
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
@@ -28,11 +29,15 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.salesReports]: "Sales reports",
     [APP_ROUTES.salesQuick]: "Quick sale",
     [APP_ROUTES.cashier]: "Cashier",
+    [APP_ROUTES.butcher]: "Butcher",
+    [APP_ROUTES.butcherProducts]: "Products",
+    [APP_ROUTES.butcherAnalytics]: "Analytics",
+    [APP_ROUTES.butcherSuppliers]: "Suppliers",
     [APP_ROUTES.grocery]: "Grocery",
     [APP_ROUTES.groceryInvoices]: "Invoices",
     [APP_ROUTES.analytics]: "Analytics",
     [APP_ROUTES.analyticsActivity]: "Activity",
-    [APP_ROUTES.business]: "Settings",
+    [APP_ROUTES.business]: "Business",
     [APP_ROUTES.businessBranding]: "Branding",
     [APP_ROUTES.businessMobile]: "Store app",
     [APP_ROUTES.users]: "Team",
@@ -53,6 +58,7 @@ export function shellPageTitle(pathname: string): string {
   if (path.startsWith(APP_ROUTES.sales)) return "Sales";
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";
+  if (path.startsWith(APP_ROUTES.butcher)) return "Butcher";
 
   const segment = path.split("/").filter(Boolean).pop();
   if (!segment) return "Home";

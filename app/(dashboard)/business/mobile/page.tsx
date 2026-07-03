@@ -15,6 +15,7 @@ import {
   Palette,
   RefreshCw,
   Rocket,
+  Settings,
   Store,
 } from "lucide-react";
 
@@ -53,7 +54,7 @@ function LockedNotice() {
           <span className="font-mono text-xs">business.manage_settings</span> to launch your mobile store.
         </p>
         <Button asChild className="mt-6" variant="outline">
-          <Link href={APP_ROUTES.business}>Back to business settings</Link>
+          <Link href={APP_ROUTES.business}>Back to business</Link>
         </Button>
       </div>
     </div>
@@ -62,7 +63,8 @@ function LockedNotice() {
 
 function RelatedLinks() {
   const links = [
-    { href: APP_ROUTES.business, label: "Business", desc: "Core settings", icon: Building2 },
+    { href: APP_ROUTES.business, label: "Business", desc: "Business hub", icon: Building2 },
+    { href: APP_ROUTES.businessSettings, label: "Settings", desc: "Core settings", icon: Settings },
     { href: APP_ROUTES.businessBranding, label: "Branding", desc: "Logo & colors", icon: Palette },
     { href: APP_ROUTES.businessDomains, label: "Domains", desc: "Custom hostnames", icon: Globe },
     { href: APP_ROUTES.branches, label: "Branches", desc: "Locations", icon: MapPin },

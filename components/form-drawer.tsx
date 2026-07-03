@@ -153,7 +153,7 @@ export function FormDrawer({
                         // The panel itself must be fully opaque so page text
                         // behind it can never bleed through on browsers
                         // without `backdrop-filter` support.
-                        "border-l border-border/60 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)]",
+                        "border-l border-border/80 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.03),-24px_0_80px_-20px_rgba(0,0,0,0.12)]",
                         "dark:border-border/80 dark:bg-background dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),-24px_0_80px_-24px_rgba(0,0,0,0.45)]",
                       ),
                   "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",

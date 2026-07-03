@@ -89,6 +89,7 @@ export function formatPaymentMethodLabel(method: string): string {
   if (m === "split") return "Split";
   if (m === "cash") return "Cash";
   if (m === "mpesa_manual" || m === "mpesa") return "M-Pesa";
+  if (m === "card") return "Card";
   if (m === "customer_credit") return "Credit";
   if (m === "customer_wallet") return "Wallet";
   if (m === "loyalty_redeem") return "Loyalty";

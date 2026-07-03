@@ -6,6 +6,7 @@ import {
   Filter,
   Loader2,
   MapPin,
+  Package,
   Pencil,
   Palette,
   Save,
@@ -78,6 +79,11 @@ const DEFAULT_DRAFT: UserDraft = {
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
+
+/** Roles whose catalog access is scoped by admin-assigned departments. */
+function roleUsesDepartmentAssignments(roleKey?: string): boolean {
+  return roleKey?.trim().toLowerCase() === "grocery_clerk";
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -333,31 +339,35 @@ function UserDepartmentsControl({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-        Departments:
-      </span>
-      {assigned.length > 0 ? (
-        assigned.map((id) => (
-          <span
-            key={id}
-            className="inline-flex items-center rounded-full border border-border/45 bg-muted/35 px-2 py-0.5 text-[11px] font-medium text-foreground"
-          >
-            {labelById.get(id) ?? id}
+    <div className="flex min-w-[10rem] flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-1">
+        {assigned.length > 0 ? (
+          assigned.map((id) => (
+            <span
+              key={id}
+              className="inline-flex items-center rounded-full border border-border/45 bg-muted/35 px-2 py-0.5 text-[11px] font-medium text-foreground"
+            >
+              {labelById.get(id) ?? id}
+            </span>
+          ))
+        ) : (
+          <span className="text-[11px] text-amber-700 dark:text-amber-300">
+            None assigned — clerk will see no items.
           </span>
-        ))
-      ) : (
-        <span className="text-[11px] text-amber-700 dark:text-amber-300">
-          None assigned — clerk will see no items.
-        </span>
-      )}
+        )}
+      </div>
       {canEdit ? (
-        <InlineIconButton
-          icon={Pencil}
-          label={`Edit departments for ${user.email}`}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
           onClick={onStartEdit}
-          className="size-6"
-        />
+          aria-label={`Assign departments for ${user.email}`}
+        >
+          <Package className="size-3.5" aria-hidden />
+          Assign departments
+        </Button>
       ) : null}
     </div>
   );
@@ -901,7 +911,7 @@ export default function UsersPage() {
             </p>
           ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-left text-sm">
+                <table className="w-full min-w-[880px] text-left text-sm">
                   <thead className="border-b border-border/50 bg-muted/25">
                     <tr>
                       <th
@@ -915,6 +925,12 @@ export default function UsersPage() {
                         className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
                       >
                         Role
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-5 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-6"
+                      >
+                        Departments
                       </th>
                       <th
                         scope="col"
@@ -941,6 +957,19 @@ export default function UsersPage() {
                       const isEditingName = nameEditUserId === user.id;
                       const isEditingRole = roleEditUserId === user.id;
                       const isEditingBranch = branchEditUserId === user.id;
+                      const usesDepartments = roleUsesDepartmentAssignments(
+                        user.role?.key,
+                      );
+                      const pendingRoleId = isEditingRole
+                        ? (roleChange[user.id] ?? user.role?.id ?? "")
+                        : "";
+                      const pendingRoleKey = pendingRoleId
+                        ? roles.find((role) => role.id === pendingRoleId)?.key
+                        : undefined;
+                      const pendingUsesDepartments =
+                        isEditingRole &&
+                        roleUsesDepartmentAssignments(pendingRoleKey) &&
+                        !usesDepartments;
                       const branchName =
                         branchById.get(user.branchId ?? "")?.name ?? "";
                       return (
@@ -1135,39 +1164,55 @@ export default function UsersPage() {
                                     />
                                   ) : null}
                                 </div>
-                                {user.role?.key === "grocery_clerk" ? (
-                                  <UserDepartmentsControl
-                                    user={user}
-                                    itemTypes={itemTypes}
-                                    canEdit={canUpdate}
-                                    isEditing={deptEditUserId === user.id}
-                                    selected={deptChange[user.id]}
-                                    saving={savingDeptId === user.id}
-                                    onStartEdit={() => {
-                                      setDeptEditUserId(user.id);
-                                      setDeptChange((previous) => ({
-                                        ...previous,
-                                        [user.id]: user.itemTypeIds ?? [],
-                                      }));
-                                    }}
-                                    onChangeSelected={(ids) =>
-                                      setDeptChange((previous) => ({
-                                        ...previous,
-                                        [user.id]: ids,
-                                      }))
-                                    }
-                                    onCancel={() => {
-                                      setDeptEditUserId(null);
-                                      setDeptChange((previous) => {
-                                        const next = { ...previous };
-                                        delete next[user.id];
-                                        return next;
-                                      });
-                                    }}
-                                    onSave={() => void onSaveDepartments(user.id)}
-                                  />
-                                ) : null}
                               </div>
+                            )}
+                          </td>
+
+                          {/* DEPARTMENTS */}
+                          <td className="px-5 py-4 align-top sm:px-6">
+                            {usesDepartments ? (
+                              <UserDepartmentsControl
+                                user={user}
+                                itemTypes={itemTypes}
+                                canEdit={canUpdate}
+                                isEditing={deptEditUserId === user.id}
+                                selected={deptChange[user.id]}
+                                saving={savingDeptId === user.id}
+                                onStartEdit={() => {
+                                  setDeptEditUserId(user.id);
+                                  setDeptChange((previous) => ({
+                                    ...previous,
+                                    [user.id]: user.itemTypeIds ?? [],
+                                  }));
+                                }}
+                                onChangeSelected={(ids) =>
+                                  setDeptChange((previous) => ({
+                                    ...previous,
+                                    [user.id]: ids,
+                                  }))
+                                }
+                                onCancel={() => {
+                                  setDeptEditUserId(null);
+                                  setDeptChange((previous) => {
+                                    const next = { ...previous };
+                                    delete next[user.id];
+                                    return next;
+                                  });
+                                }}
+                                onSave={() => void onSaveDepartments(user.id)}
+                              />
+                            ) : pendingUsesDepartments ? (
+                              <span className="text-xs leading-relaxed text-muted-foreground">
+                                Save the Grocery Clerk role first, then assign
+                                departments here.
+                              </span>
+                            ) : (
+                              <span
+                                className="text-xs text-muted-foreground/70"
+                                title="Department scoping applies to Grocery Clerk users"
+                              >
+                                —
+                              </span>
                             )}
                           </td>
 

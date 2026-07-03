@@ -19,7 +19,8 @@ const DialogOverlay = React.forwardRef<
   <RadixDialog.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/45 backdrop-blur-sm",
+      // Slightly lighter scrim improves readability for "light" drawers/modals.
+      "fixed inset-0 z-50 bg-black/35 backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       className,
@@ -39,7 +40,7 @@ const dialogContentVariants = cva(
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 " +
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
         right:
-          "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-[min(100%,28rem)] max-w-full overflow-hidden border-l border-border/60 " +
+          "inset-y-0 right-0 h-[100dvh] max-h-[100dvh] w-[min(100%,28rem)] max-w-full overflow-hidden border-l border-border/80 " +
           // Solid background — older Chromium on Windows 10 (and any setup
           // without `backdrop-filter` support) would otherwise let page text
           // bleed through the panel.
@@ -84,7 +85,7 @@ const DialogContent = React.forwardRef<
       {showCloseButton ? (
         <RadixDialog.Close
           aria-label="Close"
-          className="absolute right-3 top-3 z-50 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="absolute right-3 top-3 z-50 inline-flex size-8 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           <X className="size-4" />
         </RadixDialog.Close>

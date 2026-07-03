@@ -20,7 +20,8 @@ import {
   branchCountToNumber,
   branchLocalityPlaceholder,
   formatBranchDisplayName,
-  storeTypeSectionLabels,
+  storeTypesSectionLabels,
+  formatStoreTypesLabel,
   suggestDisplayName,
   type BranchCountChoice,
   type OnboardingQuestionnaireAnswers,
@@ -157,12 +158,17 @@ export function OnboardingQuestionnaire({
   const [branchLocalities, setBranchLocalities] = useState<string[]>(
     initialAnswers.branchLocalities ?? [],
   );
-  const [storeType, setStoreType] = useState<StoreTypeChoice | "">(
-    initialAnswers.storeType ?? "",
-  );
+  const [storeTypes, setStoreTypes] = useState<StoreTypeChoice[]>(() => {
+    if (initialAnswers.storeTypes?.length) {
+      return [...initialAnswers.storeTypes];
+    }
+    const legacy = (initialAnswers as { storeType?: StoreTypeChoice }).storeType;
+    return legacy ? [legacy] : [];
+  });
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(
     initialAnswers.selectedDepartments ?? [],
   );
+  const [customDepartmentName, setCustomDepartmentName] = useState("");
   const [onlineStore, setOnlineStore] = useState<OnlineStoreChoice | "">(
     initialAnswers.onlineStore ?? "",
   );
@@ -226,11 +232,26 @@ export function OnboardingQuestionnaire({
   }, [branchCount]);
 
   const availableDepartments = useMemo(() => {
-    if (!storeType) {
+    if (storeTypes.length === 0) {
       return [] as string[];
     }
-    return [...storeTypeSectionLabels(storeType)];
-  }, [storeType]);
+    return [...storeTypesSectionLabels(storeTypes)];
+  }, [storeTypes]);
+
+  const visibleDepartments = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const label of [...availableDepartments, ...selectedDepartments]) {
+      const trimmed = label.trim();
+      const key = trimmed.toLowerCase();
+      if (!trimmed || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      out.push(trimmed);
+    }
+    return out;
+  }, [availableDepartments, selectedDepartments]);
 
   useEffect(() => {
     if (branchSlots <= 0) {
@@ -245,33 +266,48 @@ export function OnboardingQuestionnaire({
     });
   }, [branchSlots]);
 
+  const storeTypesKey = storeTypes.join("|");
+  const prevStoreTypesKeyRef = useRef(storeTypesKey);
+
   useEffect(() => {
-    if (step !== 2 || !storeType) {
+    if (step !== 2) {
+      prevStoreTypesKeyRef.current = storeTypesKey;
       return;
     }
+    if (prevStoreTypesKeyRef.current === storeTypesKey) {
+      return;
+    }
+    prevStoreTypesKeyRef.current = storeTypesKey;
     departmentsClearedRef.current = false;
     setSelectedDepartments([]);
-  }, [storeType, step]);
+  }, [storeTypesKey, step]);
 
   useEffect(() => {
     if (step !== 3) {
       departmentsClearedRef.current = false;
       return;
     }
-    if (!storeType || availableDepartments.length === 0) {
+    if (storeTypes.length === 0 || availableDepartments.length === 0) {
       return;
     }
     setSelectedDepartments((prev) => {
       if (departmentsClearedRef.current) {
         return prev;
       }
-      const valid = prev.filter((d) => availableDepartments.includes(d));
-      if (valid.length > 0) {
-        return valid;
+      if (prev.length > 0) {
+        return prev;
       }
       return [...availableDepartments];
     });
-  }, [step, storeType, availableDepartments]);
+  }, [step, storeTypes.length, availableDepartments]);
+
+  const toggleStoreType = (value: StoreTypeChoice) => {
+    setStoreTypes((prev) =>
+      prev.includes(value)
+        ? prev.filter((entry) => entry !== value)
+        : [...prev, value],
+    );
+  };
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -282,9 +318,9 @@ export function OnboardingQuestionnaire({
           branchLocalities.every((loc) => loc.trim().length > 0)
         );
       case 2:
-        return Boolean(storeType);
+        return storeTypes.length > 0;
       case 3:
-        return selectedDepartments.length > 0;
+        return true;
       case 4:
         return Boolean(onlineStore);
       case 5:
@@ -302,22 +338,58 @@ export function OnboardingQuestionnaire({
     branchCount,
     branchLocalities,
     branchSlots,
-    storeType,
-    selectedDepartments,
+    storeTypes,
     onlineStore,
     displayName,
     primaryColor,
+    accentColor,
   ]);
 
-  const toggleDepartment = (label: string) => {
-    setSelectedDepartments((prev) =>
-      prev.includes(label) ? prev.filter((d) => d !== label) : [...prev, label],
+  const isDepartmentSelected = (label: string) =>
+    selectedDepartments.some(
+      (dept) => dept.trim().toLowerCase() === label.trim().toLowerCase(),
     );
+
+  const toggleDepartment = (label: string) => {
+    departmentsClearedRef.current = false;
+    setSelectedDepartments((prev) => {
+      const key = label.trim().toLowerCase();
+      return prev.some((dept) => dept.trim().toLowerCase() === key)
+        ? prev.filter((dept) => dept.trim().toLowerCase() !== key)
+        : [...prev, label];
+    });
+  };
+
+  const addCustomDepartment = () => {
+    const typed = customDepartmentName.trim();
+    const label =
+      availableDepartments.find(
+        (dept) => dept.trim().toLowerCase() === typed.toLowerCase(),
+      ) ?? typed;
+    if (!label) {
+      return;
+    }
+    departmentsClearedRef.current = false;
+    setSelectedDepartments((prev) => {
+      if (prev.some((dept) => dept.trim().toLowerCase() === label.toLowerCase())) {
+        return prev;
+      }
+      return [...prev, label];
+    });
+    setCustomDepartmentName("");
   };
 
   const selectAllDepartments = () => {
     departmentsClearedRef.current = false;
-    setSelectedDepartments([...availableDepartments]);
+    setSelectedDepartments((prev) => {
+      const availableKeys = new Set(
+        availableDepartments.map((dept) => dept.trim().toLowerCase()),
+      );
+      const custom = prev.filter(
+        (dept) => !availableKeys.has(dept.trim().toLowerCase()),
+      );
+      return [...availableDepartments, ...custom];
+    });
   };
 
   const clearDepartments = () => {
@@ -349,14 +421,18 @@ export function OnboardingQuestionnaire({
         });
         break;
       case 2:
-        if (!storeType) return;
+        if (storeTypes.length === 0) return;
         onContinue({
-          storeType,
+          storeTypes: [...storeTypes],
           selectedDepartments: [],
         });
         break;
       case 3:
-        onContinue({ selectedDepartments: [...selectedDepartments] });
+        onContinue({
+          selectedDepartments: selectedDepartments
+            .map((dept) => dept.trim())
+            .filter(Boolean),
+        });
         break;
       case 4:
         if (!onlineStore) return;
@@ -375,8 +451,7 @@ export function OnboardingQuestionnaire({
     }
   };
 
-  const storeTypeLabel =
-    STORE_TYPE_OPTIONS.find((o) => o.value === storeType)?.label ?? "your shop";
+  const storeTypesLabel = formatStoreTypesLabel(storeTypes);
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-y-auto bg-white px-4 py-10">
@@ -491,14 +566,15 @@ export function OnboardingQuestionnaire({
                 What kind of shop is this?
               </h1>
               <p className="text-sm text-[#6B7280]">
+                Select all that apply — a mini mart can also include a butchery.
                 Next you&apos;ll pick which departments to enable.
               </p>
               <div className="space-y-2.5 pt-2 text-left">
                 {STORE_TYPE_OPTIONS.map((opt) => (
                   <OptionButton
                     key={opt.value}
-                    selected={storeType === opt.value}
-                    onClick={() => setStoreType(opt.value)}
+                    selected={storeTypes.includes(opt.value)}
+                    onClick={() => toggleStoreType(opt.value)}
                   >
                     <span className="block font-medium">{opt.label}</span>
                     <span className="mt-0.5 block text-xs text-[#9CA3AF]">
@@ -507,6 +583,11 @@ export function OnboardingQuestionnaire({
                   </OptionButton>
                 ))}
               </div>
+              <p className="text-xs text-[#9CA3AF]">
+                {storeTypes.length === 0
+                  ? "Select at least one shop type to continue."
+                  : `${storeTypes.length} selected`}
+              </p>
             </>
           ) : null}
 
@@ -516,8 +597,8 @@ export function OnboardingQuestionnaire({
                 Choose your departments
               </h1>
               <p className="text-sm text-[#6B7280]">
-                Suggested for a {storeTypeLabel.toLowerCase()}. Uncheck any you
-                don&apos;t need.
+                Suggested for {storeTypesLabel.toLowerCase()}. Pick what you
+                sell now, add your own, or skip this and add departments later.
               </p>
               <div className="flex items-center justify-center gap-3 pt-1 text-xs">
                 <button
@@ -537,18 +618,50 @@ export function OnboardingQuestionnaire({
                 </button>
               </div>
               <div className="flex flex-wrap justify-center gap-2 pt-2 text-left">
-                {availableDepartments.map((dept) => (
+                {visibleDepartments.map((dept) => (
                   <DepartmentChip
                     key={dept}
                     label={dept}
-                    selected={selectedDepartments.includes(dept)}
+                    selected={isDepartmentSelected(dept)}
                     onToggle={() => toggleDepartment(dept)}
                   />
                 ))}
               </div>
+              <div className="pt-2 text-left">
+                <label
+                  htmlFor="onboarding-custom-department"
+                  className="block text-xs font-medium text-[#6B7280]"
+                >
+                  Add custom department
+                </label>
+                <div className="mt-1.5 flex gap-2">
+                  <input
+                    id="onboarding-custom-department"
+                    type="text"
+                    value={customDepartmentName}
+                    onChange={(event) => setCustomDepartmentName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addCustomDepartment();
+                      }
+                    }}
+                    className="h-10 min-w-0 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937] outline-none transition focus:border-[#0D9488] focus:ring-2 focus:ring-[#0D9488]/20"
+                    placeholder="e.g. Deli, Frozen Foods, Ready-to-Eat"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomDepartment}
+                    className="rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm font-medium text-[#374151] transition hover:bg-[#F9FAFB]"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
               <p className="text-xs text-[#9CA3AF]">
-                {selectedDepartments.length} of {availableDepartments.length}{" "}
-                selected
+                {selectedDepartments.length === 0
+                  ? "No departments selected yet. You can continue and add them later."
+                  : `${selectedDepartments.length} selected`}
               </p>
             </>
           ) : null}

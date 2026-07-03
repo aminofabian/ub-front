@@ -22,6 +22,7 @@ import {
 
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { APP_ROUTES } from "@/lib/config";
+import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
 
 export type DesktopNavItem = {
@@ -40,8 +41,8 @@ export type DesktopNavSection = {
 };
 
 const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
-  [APP_ROUTES.overview]: LayoutDashboard,
-  [APP_ROUTES.business]: Building2,
+  [APP_ROUTES.business]: LayoutDashboard,
+  [APP_ROUTES.businessSettings]: Building2,
   [APP_ROUTES.businessBranding]: Building2,
   [APP_ROUTES.businessMobile]: Building2,
   [APP_ROUTES.businessDomains]: Building2,
@@ -78,6 +79,8 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.storefrontWebOrders]: Store,
   [APP_ROUTES.salesQuick]: ScanLine,
   [APP_ROUTES.cashier]: ScanLine,
+  [APP_ROUTES.butcher]: ScanLine,
+  [APP_ROUTES.butcherSuppliers]: Truck,
   [APP_ROUTES.grocery]: Store,
   [APP_ROUTES.groceryInvoices]: Receipt,
 };
@@ -95,6 +98,8 @@ const RAIL_SHORT_LABEL_BY_HREF: Partial<Record<string, string>> = {
   [APP_ROUTES.purchasingApAging]: "AP",
   [APP_ROUTES.purchasingRecordPayment]: "Pay",
   [APP_ROUTES.salesQuick]: "Sale",
+  [APP_ROUTES.butcher]: "Counter",
+  [APP_ROUTES.butcherSuppliers]: "Suppliers",
   [APP_ROUTES.groceryInvoices]: "Invoices",
 };
 
@@ -112,6 +117,9 @@ function normalizePath(pathname: string): string {
 function itemIsActive(pathname: string, href: string): boolean {
   const path = normalizePath(pathname);
   if (href === "/") return path === "/";
+  if (href === APP_ROUTES.butcher) {
+    return path === APP_ROUTES.butcher;
+  }
   return path === href || path.startsWith(`${href}/`) || path.startsWith(`${href}?`);
 }
 
@@ -357,9 +365,12 @@ export function DesktopNavRail({
     null,
   );
 
-  const activeSection = sections.find((section) =>
-    sectionHasActiveItem(pathname, section.items),
+  const activeSectionId = resolveActiveNavSectionId(
+    sections,
+    pathname,
+    itemIsActive,
   );
+  const activeSection = sections.find((section) => section.id === activeSectionId);
 
   useEffect(() => {
     setOpenFlyoutSectionId(null);
@@ -397,7 +408,7 @@ export function DesktopNavRail({
       return;
     }
 
-    const inSection = activeSection?.id === section.id;
+    const inSection = sectionHasActiveItem(pathname, section.items);
 
     if (!inSection) {
       setOpenFlyoutSectionId(null);

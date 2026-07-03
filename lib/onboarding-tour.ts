@@ -88,7 +88,7 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
   },
   {
     id: "storefront",
-    route: APP_ROUTES.business,
+    route: APP_ROUTES.businessSettings,
     target: ONBOARDING_TARGETS.settingsDrawer,
     routeOnboardingParam: "storefront",
     cardAnchor: "page-left",
@@ -98,7 +98,7 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
       "Turn on a web shop so customers can browse and order from you.",
     optional: true,
     instructions: [
-      "Toggle Storefront on in the drawer (look for the highlighted switch).",
+      "Toggle Storefront on in the settings form (look for the highlighted switch).",
       "Pick which branch shows on the web, then click Save.",
       "Only selling in person? Tap Skip step below.",
     ],
@@ -197,7 +197,7 @@ export const ONBOARDING_TOUR_STEPS: readonly OnboardingTourStep[] = [
   },
   {
     id: "complete",
-    route: APP_ROUTES.overview,
+    route: APP_ROUTES.business,
     target: null,
     title: "You're ready!",
     keyMessage:

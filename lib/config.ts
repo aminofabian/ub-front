@@ -14,6 +14,7 @@ export const APP_ROUTES = {
   superAdminPlatformIntegrations: "/super-admin/platform/integrations",
   superAdminPlatformPayments: "/super-admin/payments/platform",
   business: "/business",
+  businessSettings: "/business/settings",
   businessBranding: "/business/branding",
   businessMobile: "/business/mobile",
   businessDomains: "/business/domains",
@@ -49,6 +50,10 @@ export const APP_ROUTES = {
   promoCampaigns: "/business/promotions",
   salesQuick: "/sales/quick",
   cashier: "/cashier",
+  butcher: "/butcher",
+  butcherProducts: "/butcher/products",
+  butcherAnalytics: "/butcher/analytics",
+  butcherSuppliers: "/butcher/suppliers",
   grocery: "/grocery",
   groceryInvoices: "/grocery/invoices",
   shop: "/shop",
@@ -219,27 +224,59 @@ export function apiUrl(path: string): string {
   return normalizedPath;
 }
 
+let realtimeWsOriginWarningLogged = false;
+
+function warnOnce(message: string) {
+  if (realtimeWsOriginWarningLogged) return;
+  realtimeWsOriginWarningLogged = true;
+  console.warn(message);
+}
+
 /**
  * Java API origin used for browser WebSocket connections.
  *
- * <p>Set via {@code NEXT_PUBLIC_REALTIME_WS_ORIGIN} (injected from {@code BACKEND_ORIGIN}
- * at build time in {@code next.config.ts}). Never use the Next.js page host — rewrites
- * do not upgrade WebSockets.
+ * <p>WebSockets cannot be proxied through the Next.js BFF/rewrites, so the
+ * browser must open the socket directly on the Java API origin. In production,
+ * set {@code NEXT_PUBLIC_REALTIME_WS_ORIGIN} to the Java API origin (e.g.
+ * {@code https://api.zelisline.com}), NOT the Next.js frontend origin.
+ *
+ * <p>If the resolved origin happens to share the page host, we still return it
+ * (desktop SKU and some custom proxies serve both from the same origin), but we
+ * log an actionable warning once so deployments with a Vercel/Next.js frontend
+ * in front of a separate backend can diagnose why the upgrade fails.
  */
 function resolveJavaApiOriginForWebSocket(): string {
+  const pageHost =
+    typeof window !== "undefined" ? window.location.host : "";
+
   if (RAW_REALTIME_WS_ORIGIN.length > 0) {
     return RAW_REALTIME_WS_ORIGIN;
   }
+
   const apiBase = normalizeOrigin(RAW_API_BASE_URL);
-  if (apiBase.length > 0 && typeof window !== "undefined") {
+  if (apiBase.length > 0) {
     try {
-      if (new URL(apiBase).host === window.location.host) {
-        return REMOTE_API_ORIGIN;
+      const apiHost = new URL(apiBase).host;
+      if (pageHost && apiHost === pageHost) {
+        warnOnce(
+          "[realtime] NEXT_PUBLIC_API_BASE_URL resolves to the same host as the page. " +
+            "WebSockets cannot be proxied through Next.js rewrites. " +
+            "Set NEXT_PUBLIC_REALTIME_WS_ORIGIN to the Java API origin to avoid connection failures.",
+        );
       }
     } catch {
-      /* use apiBase */
+      /* malformed URL — fall through */
     }
     return apiBase;
+  }
+
+  if (pageHost && new URL(REMOTE_API_ORIGIN).host === pageHost) {
+    warnOnce(
+      "[realtime] The default WebSocket origin matches the page host. " +
+        "If the Next.js frontend is served from this host, WebSocket upgrades will fail " +
+        "because Next.js cannot proxy WebSockets. Set NEXT_PUBLIC_REALTIME_WS_ORIGIN " +
+        "to the Java API origin at build time.",
+    );
   }
   return REMOTE_API_ORIGIN;
 }
@@ -255,6 +292,7 @@ export function resolveRealtimeWebSocketBaseUrl(): string {
   api.protocol = pageIsHttps || api.protocol === "https:" ? "wss:" : "ws:";
   return `${api.origin}/api/v1/realtime`;
 }
+
 
 /** This app in the browser (no trailing slash). Align with APP_PUBLIC_FRONTEND_BASE_URL on the API. */
 export const APP_BASE_URL =

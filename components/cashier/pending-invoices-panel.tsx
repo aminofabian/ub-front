@@ -18,11 +18,44 @@ import {
   listGroceryInvoices,
   type GroceryInvoiceSummaryResponse,
 } from "@/lib/grocery-api";
+import { getRealtimeClient, type RealtimeFrame } from "@/lib/realtime";
 
 type PendingInvoicesPanelProps = {
   onLoadInvoice: (barcode: string) => void;
   refreshKey?: number;
 };
+
+const BACKGROUND_POLL_MS = 15_000;
+
+function summaryFromFrameData(
+  data: Record<string, unknown>,
+): GroceryInvoiceSummaryResponse | null {
+  const id = String(data.invoiceId ?? data.id ?? "");
+  const barcodeCode = String(data.barcodeCode ?? "");
+  if (!id || !barcodeCode) return null;
+
+  return {
+    id,
+    barcodeCode,
+    status: "pending_payment",
+    grandTotal: Number(data.grandTotal ?? 0),
+    lineCount: Number(data.lineCount ?? 0),
+    createdBy: String(data.createdBy ?? ""),
+    createdByName: String(data.createdByName ?? "Staff"),
+    createdAt: String(data.createdAt ?? new Date().toISOString()),
+    expiresAt: String(data.expiresAt ?? new Date().toISOString()),
+  };
+}
+
+function upsertInvoice(
+  list: GroceryInvoiceSummaryResponse[],
+  invoice: GroceryInvoiceSummaryResponse,
+): GroceryInvoiceSummaryResponse[] {
+  const without = list.filter((inv) => inv.id !== invoice.id);
+  return [invoice, ...without].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
 
 export function PendingInvoicesPanel({
   onLoadInvoice,
@@ -33,8 +66,32 @@ export function PendingInvoicesPanel({
   const [open, setOpen] = useState(false);
   const [invoices, setInvoices] = useState<GroceryInvoiceSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [badgePulse, setBadgePulse] = useState(false);
   const knownIds = useRef<Set<string>>(new Set());
-  const firstFetchDone = useRef(false);
+
+  const removeInvoiceById = useCallback((invoiceId: string) => {
+    if (!invoiceId) return;
+    setInvoices((prev) => prev.filter((inv) => inv.id !== invoiceId));
+    knownIds.current.delete(invoiceId);
+  }, []);
+
+  const addInvoiceFromEvent = useCallback(
+    (data: Record<string, unknown>, opts?: { autoOpen?: boolean }) => {
+      const summary = summaryFromFrameData(data);
+      if (!summary) return;
+      if (knownIds.current.has(summary.id)) return;
+      knownIds.current.add(summary.id);
+
+      setInvoices((prev) => upsertInvoice(prev, summary));
+      setBadgePulse(true);
+      window.setTimeout(() => setBadgePulse(false), 2_000);
+
+      if (opts?.autoOpen) {
+        setOpen(true);
+      }
+    },
+    [],
+  );
 
   const fetchInvoices = useCallback(async () => {
     const bid = branchId?.trim();
@@ -44,13 +101,8 @@ export function PendingInvoicesPanel({
       const result = await listGroceryInvoices(bid, "pending_payment");
       const list = result.invoices ?? [];
       setInvoices(list);
-
-      // Seed known IDs on first fetch (no toast — WebSocket handles notifications)
-      if (!firstFetchDone.current) {
-        for (const inv of list) {
-          knownIds.current.add(inv.id);
-        }
-        firstFetchDone.current = true;
+      for (const inv of list) {
+        knownIds.current.add(inv.id);
       }
     } catch {
       // Silently fail — not critical UI
@@ -59,16 +111,79 @@ export function PendingInvoicesPanel({
     }
   }, [branchId, online]);
 
+  // Fetch on mount, refreshKey changes, and when opened.
   useEffect(() => {
-    if (open) fetchInvoices();
-  }, [open, fetchInvoices, refreshKey]);
+    void fetchInvoices();
+  }, [fetchInvoices, refreshKey]);
 
-  // Auto-refresh every 30s while panel is open
   useEffect(() => {
-    if (!open) return;
-    const interval = setInterval(fetchInvoices, 30_000);
-    return () => clearInterval(interval);
+    if (open) void fetchInvoices();
   }, [open, fetchInvoices]);
+
+  // Keep the badge and list fresh even while the dropdown is closed.
+  useEffect(() => {
+    if (!online) return;
+    const interval = window.setInterval(() => {
+      void fetchInvoices();
+    }, BACKGROUND_POLL_MS);
+    return () => window.clearInterval(interval);
+  }, [online, fetchInvoices]);
+
+  // Realtime updates via WebSocket frames.
+  useEffect(() => {
+    const client = getRealtimeClient();
+    const unregister = client.registerListener("pending-invoices-panel", {
+      channels: ["grocery", "notifications"],
+      onGroceryInvoiceCreated: (frame: RealtimeFrame) => {
+        addInvoiceFromEvent(frame.data, { autoOpen: true });
+      },
+      onNotification: (frame: RealtimeFrame) => {
+        const data = frame.data;
+        const type = String(
+          (data as Record<string, unknown>).notificationType ??
+            (data as Record<string, unknown>).type ??
+            "",
+        );
+        if (type !== "grocery.invoice.created") return;
+        const payload =
+          ((data as Record<string, unknown>).payload as
+            | Record<string, unknown>
+            | undefined) ?? (data as Record<string, unknown>);
+        addInvoiceFromEvent(payload, { autoOpen: true });
+      },
+      onGroceryInvoicePaid: (frame) => {
+        removeInvoiceById(String(frame.data.invoiceId ?? ""));
+      },
+      onGroceryInvoiceCancelled: (frame) => {
+        removeInvoiceById(String(frame.data.invoiceId ?? ""));
+      },
+      onGroceryInvoiceExpired: (frame) => {
+        removeInvoiceById(String(frame.data.invoiceId ?? ""));
+      },
+    });
+    return unregister;
+  }, [addInvoiceFromEvent, removeInvoiceById]);
+
+  // Also listen to the shared grocery-invoice-event bus (toast hook path).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        type?: string;
+        data?: Record<string, unknown>;
+      };
+      if (!detail?.type || !detail.data) return;
+
+      if (detail.type === "created") {
+        addInvoiceFromEvent(detail.data, { autoOpen: true });
+        return;
+      }
+      if (["paid", "cancelled", "expired"].includes(detail.type)) {
+        removeInvoiceById(String(detail.data.invoiceId ?? ""));
+      }
+    };
+    window.addEventListener("grocery-invoice-event", handler);
+    return () => window.removeEventListener("grocery-invoice-event", handler);
+  }, [addInvoiceFromEvent, removeInvoiceById]);
 
   const pendingCount = invoices.length;
 
@@ -82,12 +197,18 @@ export function PendingInvoicesPanel({
           open
             ? "bg-primary/10 text-primary"
             : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
+          badgePulse && "ring-2 ring-primary/40 ring-offset-1",
         )}
       >
         <ClipboardList className="size-3.5" />
         <span>Invoices</span>
         {pendingCount > 0 && (
-          <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          <span
+            className={cn(
+              "inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground",
+              badgePulse && "animate-pulse",
+            )}
+          >
             {pendingCount > 9 ? "9+" : pendingCount}
           </span>
         )}
@@ -175,7 +296,7 @@ export function PendingInvoicesPanel({
                 <button
                   type="button"
                   onClick={() => {
-                    fetchInvoices();
+                    void fetchInvoices();
                     toast.success("Invoice list refreshed");
                   }}
                   className="w-full text-center text-[11px] text-muted-foreground hover:text-foreground"

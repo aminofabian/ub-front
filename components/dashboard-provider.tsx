@@ -21,14 +21,15 @@ import {
   type MeResponse,
 } from "@/lib/api";
 import { persistTenantHostAfterAuth } from "@/lib/auth";
-import { extractPageContent } from "@/lib/page-content";
 import { isBranchLockedRole } from "@/lib/branch-access";
+import { confirmScopeChange } from "@/lib/scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
 import {
   writeSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
 } from "@/lib/session-bootstrap";
 import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
+import { toast } from "sonner";
 
 const SELECTED_BRANCH_PREFIX = "palmart:selectedBranch:v1:";
 const SELECTED_ITEM_TYPE_PREFIX = "palmart:selectedItemType:v1:";
@@ -69,11 +70,8 @@ function writePersistedItemType(
 ): void {
   if (typeof window === "undefined") return;
   try {
-    if (itemTypeId) {
-      window.localStorage.setItem(selectedItemTypeKey(businessId), itemTypeId);
-    } else {
-      window.localStorage.removeItem(selectedItemTypeKey(businessId));
-    }
+    // Empty string means "All departments" (D1); always persist so refresh keeps the choice.
+    window.localStorage.setItem(selectedItemTypeKey(businessId), itemTypeId);
   } catch {
     /* ignore */
   }
@@ -117,6 +115,8 @@ type DashboardContextValue = {
   canViewPurchasingIntelligence: boolean;
   canPathBRead: boolean;
   canPathBWrite: boolean;
+  canPathARead: boolean;
+  canPathAWrite: boolean;
   canViewApAging: boolean;
   canViewCustomers: boolean;
   canManageCustomers: boolean;
@@ -152,6 +152,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [itemTypesLoading, setItemTypesLoading] = useState(false);
   const userTouchedBranchRef = useRef(false);
   const userTouchedItemTypeRef = useRef(false);
+  const staleBranchNoticeShownRef = useRef(false);
+  const staleItemTypeNoticeShownRef = useRef(false);
 
   const refreshSession = useCallback(async () => {
     const [meData, biz] = await Promise.all([fetchMe(), fetchBusiness()]);
@@ -224,20 +226,28 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       if (branchLockedRole) {
         return; // branch switching disabled for stock managers and cashiers
       }
+      const next = id.trim();
+      const current = branchId.trim();
+      if (next === current) return;
+      if (!confirmScopeChange("branch")) return;
       userTouchedBranchRef.current = true;
-      setBranchIdState(id);
-      writePersistedBranch(effectiveBusiness?.id ?? null, id);
+      setBranchIdState(next);
+      writePersistedBranch(effectiveBusiness?.id ?? null, next);
     },
-    [effectiveBusiness?.id, branchLockedRole],
+    [effectiveBusiness?.id, branchLockedRole, branchId],
   );
 
   const setItemTypeId = useCallback(
     (id: string) => {
+      const next = id.trim();
+      const current = itemTypeId.trim();
+      if (next === current) return;
+      if (!confirmScopeChange("department")) return;
       userTouchedItemTypeRef.current = true;
-      setItemTypeIdState(id);
-      writePersistedItemType(effectiveBusiness?.id ?? null, id);
+      setItemTypeIdState(next);
+      writePersistedItemType(effectiveBusiness?.id ?? null, next);
     },
-    [effectiveBusiness?.id],
+    [effectiveBusiness?.id, itemTypeId],
   );
 
   useEffect(() => {
@@ -305,6 +315,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       }
     }
     const persisted = readPersistedBranch(effectiveBusiness?.id ?? null);
+    const currentBranchInvalid =
+      Boolean(effectiveBranchId?.trim()) &&
+      !effectiveBranches.some((b) => b.id === effectiveBranchId);
+    const persistedBranchInvalid =
+      Boolean(persisted?.trim()) &&
+      !effectiveBranches.some((b) => b.id === persisted!.trim());
     const candidates = [
       persisted,
       effectiveMe?.branchId,
@@ -314,6 +330,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const id = candidate?.trim();
       if (id && effectiveBranches.some((b) => b.id === id)) {
         if (id !== effectiveBranchId) {
+          if (persistedBranchInvalid || currentBranchInvalid) {
+            if (!staleBranchNoticeShownRef.current) {
+              staleBranchNoticeShownRef.current = true;
+              const name =
+                effectiveBranches.find((b) => b.id === id)?.name?.trim() ??
+                "another branch";
+              toast.info("Branch selection updated", {
+                description: `Your previous branch is no longer available. Switched to ${name}.`,
+              });
+            }
+            writePersistedBranch(effectiveBusiness?.id ?? null, id);
+          }
           setBranchIdState(id);
         }
         return;
@@ -331,19 +359,43 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (itemTypes.length === 0) return;
     if (userTouchedItemTypeRef.current) {
-      if (itemTypeId && itemTypes.some((t) => t.id === itemTypeId)) return;
+      if (!itemTypeId) return;
+      if (itemTypes.some((t) => t.id === itemTypeId)) return;
     }
     const persisted = readPersistedItemType(effectiveBusiness?.id ?? null);
-    const defaultType = itemTypes.find((t) => t.isDefault);
-    const candidates = [persisted, defaultType?.id, itemTypes[0]?.id];
-    for (const candidate of candidates) {
-      const id = candidate?.trim();
-      if (id && itemTypes.some((t) => t.id === id)) {
-        if (id !== itemTypeId) {
-          setItemTypeIdState(id);
-        }
+    const currentTypeInvalid =
+      Boolean(itemTypeId?.trim()) &&
+      !itemTypes.some((t) => t.id === itemTypeId);
+    const persistedTypeInvalid =
+      persisted !== null &&
+      persisted !== "" &&
+      !itemTypes.some((t) => t.id === persisted);
+    if (persisted !== null) {
+      if (persisted === "") {
+        if (itemTypeId !== "") setItemTypeIdState("");
         return;
       }
+      if (itemTypes.some((t) => t.id === persisted)) {
+        if (persisted !== itemTypeId) setItemTypeIdState(persisted);
+        return;
+      }
+    }
+    const defaultType = itemTypes.find((t) => t.isDefault);
+    const fallback = defaultType?.id ?? itemTypes[0]?.id ?? "";
+    if (fallback && fallback !== itemTypeId) {
+      if (persistedTypeInvalid || currentTypeInvalid) {
+        if (!staleItemTypeNoticeShownRef.current) {
+          staleItemTypeNoticeShownRef.current = true;
+          const label =
+            itemTypes.find((t) => t.id === fallback)?.label?.trim() ??
+            "default department";
+          toast.info("Department selection updated", {
+            description: `Your previous department is no longer available. Switched to ${label}.`,
+          });
+        }
+        writePersistedItemType(effectiveBusiness?.id ?? null, fallback);
+      }
+      setItemTypeIdState(fallback);
     }
   }, [itemTypes, effectiveBusiness?.id, itemTypeId]);
 
@@ -387,6 +439,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       canPathBWrite: hasPermission(
         effectiveMe?.permissions,
         Permission.PurchasingPathBWrite,
+      ),
+      canPathARead: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PurchasingPathARead,
+      ),
+      canPathAWrite: hasPermission(
+        effectiveMe?.permissions,
+        Permission.PurchasingPathAWrite,
       ),
       canViewApAging: hasPermission(
         effectiveMe?.permissions,

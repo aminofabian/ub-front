@@ -33,9 +33,15 @@ import { ProductDescriptionField } from "./ProductDescriptionField";
 import type { ParentDraft } from "../_types";
 import { toNumber } from "../_utils";
 import {
+  BUTCHER_PRODUCT_TEMPLATES,
+  matchItemTypeIdForTemplate,
+} from "@/lib/butcher-product-templates";
+import {
   lookupGlobalCatalogProducts,
   type GlobalProductRecord,
 } from "@/lib/api";
+import { useDashboard } from "@/components/dashboard-provider";
+import { isButcheryBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -232,6 +238,8 @@ export function ProductCreateDrawer({
   branches,
   canGlobalCatalog = false,
 }: Props) {
+  const { business } = useDashboard();
+  const showButcherTemplates = isButcheryBusiness(business);
   const fileRef = useRef<HTMLInputElement>(null);
   const isGroup = m.parentDraft.productStructure === "group";
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -429,6 +437,7 @@ export function ProductCreateDrawer({
         name: "",
         sku: "",
         barcode: "",
+        pluCode: "",
         brand: "",
         size: "",
         description: "",
@@ -742,6 +751,35 @@ export function ProductCreateDrawer({
           ) : null}
         </FormDrawerFields>
 
+        {!isGroup && showButcherTemplates ? (
+          <div className="flex flex-wrap items-center gap-1.5 px-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Meat template
+            </span>
+            {BUTCHER_PRODUCT_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-0.5 text-[11px] font-medium text-foreground/90 transition hover:border-primary/40 hover:bg-primary/5"
+                onClick={() => {
+                  const itemTypeId =
+                    matchItemTypeIdForTemplate(catalog.itemTypes, template.itemTypeKeyword) ??
+                    m.parentDraft.itemTypeId;
+                  m.setParentDraft((p) => ({
+                    ...p,
+                    name: p.name.trim() || template.label,
+                    itemTypeId,
+                    isWeighed: template.isWeighed,
+                    unitType: template.unitType,
+                  }));
+                }}
+              >
+                {template.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {!isGroup ? (
           <>
             <FormDrawerFields legend="Pricing" compact>
@@ -751,6 +789,7 @@ export function ProductCreateDrawer({
                 syncCostsFromBuyingPrice={syncCostsFromBuyingPrice}
                 currencyCode={currencyCode}
                 marginInfo={marginInfo}
+                isWeighed={m.parentDraft.isWeighed}
               />
             </FormDrawerFields>
 
@@ -808,6 +847,27 @@ export function ProductCreateDrawer({
                   </div>
                 </div>
               </div>
+              {m.parentDraft.isWeighed ? (
+                <label className={cn("flex flex-col gap-1", productFormLabelClass)}>
+                  <span className="normal-case">Scale PLU</span>
+                  <span className="text-[10px] font-normal normal-case leading-snug text-muted-foreground">
+                    5-digit code on variable-weight labels (e.g. 01234)
+                  </span>
+                  <input
+                    className={cn(icClass(), "font-mono text-xs")}
+                    placeholder="01234"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={m.parentDraft.pluCode}
+                    onChange={(e) =>
+                      m.setParentDraft((p) => ({
+                        ...p,
+                        pluCode: e.target.value.replace(/\D/g, "").slice(0, 5),
+                      }))
+                    }
+                  />
+                </label>
+              ) : null}
             </FormDrawerFields>
 
             <FormDrawerFields legend="Stock" compact>
@@ -844,8 +904,15 @@ export function ProductCreateDrawer({
                 />
                 <ToggleChip
                   checked={m.parentDraft.isWeighed}
-                  onChange={(v) => m.setParentDraft((p) => ({ ...p, isWeighed: v }))}
-                  label="Weighed"
+                  onChange={(v) =>
+                    m.setParentDraft((p) => ({
+                      ...p,
+                      isWeighed: v,
+                      unitType: v ? p.unitType?.trim() || "kg" : p.unitType,
+                      pluCode: v ? p.pluCode : "",
+                    }))
+                  }
+                  label="Sell by weight"
                 />
               </div>
             </FormDrawerFields>

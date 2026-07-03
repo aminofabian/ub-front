@@ -12,6 +12,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useSessionBranch } from "@/hooks/use-session-scope";
 import { fetchPathBSupplies, type PathBSupplyListRowRecord } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -53,6 +54,8 @@ export default function SuppliesPage() {
   const router = useRouter();
   const { me, loading, canPathBWrite, canPathBRead, canViewSuppliers, canViewCategories, canViewApAging } =
     useDashboard();
+  const { branchId: headerBranchId, branchName: headerBranchName } =
+    useSessionBranch();
 
   const canListSupplies = canPathBRead || hasPermission(me?.permissions, Permission.PurchasingPaymentRead);
   const canOpenNewSupply = canPathBWrite && canViewSuppliers && canViewCategories;
@@ -76,14 +79,18 @@ export default function SuppliesPage() {
     setListLoading(true);
     setListError(null);
     try {
-      setRows(await fetchPathBSupplies());
+      setRows(
+        await fetchPathBSupplies({
+          branchId: headerBranchId?.trim() || undefined,
+        }),
+      );
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Could not load supplies.");
       setRows([]);
     } finally {
       setListLoading(false);
     }
-  }, [canListSupplies]);
+  }, [canListSupplies, headerBranchId]);
 
   useEffect(() => {
     void refresh();
@@ -173,6 +180,7 @@ export default function SuppliesPage() {
         canShowProcurementLinks={canShowProcurementLinks}
         canOpenNewSupply={canOpenNewSupply}
         listLoading={listLoading}
+        branchScopeLabel={headerBranchName || undefined}
         onRefresh={() => void refresh()}
         onNewSupply={() => setNewOpen(true)}
       />
