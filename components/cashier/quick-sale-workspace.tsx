@@ -86,7 +86,6 @@ import {
 import { CashierPosLayout } from "./cashier-pos-layout";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { PendingSalesPanel } from "./pending-sales-panel";
-import { DraftConflictModal } from "./draft-conflict-modal";
 import {
   CloseShiftModal,
   DrawoutModal,
@@ -102,8 +101,6 @@ import {
   applyPosDraftToCart,
   mergeHydratedCartSessions,
   replayMirroredDraftsToServer,
-  resolveDraftConflictUseMine,
-  resolveDraftConflictUseServer,
   syncCartSessionToServer,
 } from "@/lib/pos-draft-sync";
 import {
@@ -246,8 +243,6 @@ export function QuickSaleWorkspace({
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
-  const [conflictBusy, setConflictBusy] = useState(false);
-  const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [outboxBusy, setOutboxBusy] = useState(false);
   const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
   const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
@@ -1272,12 +1267,6 @@ export function QuickSaleWorkspace({
     if (lines.length === 0 || grandTotal <= 0) {
       return false;
     }
-    if (
-      activeCart.syncStatus === "conflict" ||
-      activeCart.syncStatus === "syncing"
-    ) {
-      return false;
-    }
     if (splitPay) {
       const c = parseMoney(cashSplitStr);
       const m = parseMoney(mpesaSplitStr);
@@ -1305,7 +1294,6 @@ export function QuickSaleWorkspace({
   }, [
     lines.length,
     grandTotal,
-    activeCart.syncStatus,
     splitPay,
     cashSplitStr,
     mpesaSplitStr,
@@ -1440,9 +1428,8 @@ export function QuickSaleWorkspace({
           return { ...l, quantity: String(capped) };
         }),
       }));
-      schedulePosDraftSync(activeCartId, 300);
     },
-    [capCartQuantity, updateActiveCart, schedulePosDraftSync, activeCartId],
+    [capCartQuantity, updateActiveCart],
   );
 
   const lastStkPrefillCustomerId = useRef<string | null>(null);
@@ -1930,19 +1917,6 @@ export function QuickSaleWorkspace({
         const synced = await syncCartSessionToServer(activeCart, bid, {
           uiVisible: posDraftsUi || posDraftsEnabled,
         });
-        if (synced.syncStatus === "conflict") {
-          setLoading(false);
-          setError(
-            "Sale sync conflict — choose which version to keep before checkout.",
-          );
-          updateCartById(activeCartId, (prev) => ({
-            ...synced,
-            id: prev.id,
-            label: prev.label,
-            createdAt: prev.createdAt,
-          }));
-          return;
-        }
         if (synced.syncStatus === "error") {
           setLoading(false);
           setError("Could not sync sale to the server. Try again.");
@@ -2190,49 +2164,11 @@ export function QuickSaleWorkspace({
     [branches, branchId],
   );
 
-  useEffect(() => {
-    setConflictModalOpen(activeCart.syncStatus === "conflict");
-  }, [activeCart.syncStatus]);
-
   const posDraftOfflineBanner = useMemo(() => {
     if (online || !posDraftOfflineMirror) return null;
     if (!carts.some((c) => c.lines.length > 0)) return null;
     return "Sale will sync when connection returns.";
   }, [online, posDraftOfflineMirror, carts]);
-
-  const onDraftConflictUseServer = useCallback(async () => {
-    setConflictBusy(true);
-    try {
-      const resolved = await resolveDraftConflictUseServer(activeCart, {
-        uiVisible: posDraftsUi || posDraftsEnabled,
-      });
-      updateActiveCart(() => resolved);
-      setConflictModalOpen(false);
-      toast.success("Using server version");
-    } finally {
-      setConflictBusy(false);
-    }
-  }, [activeCart, updateActiveCart, posDraftsUi, posDraftsEnabled]);
-
-  const onDraftConflictUseMine = useCallback(async () => {
-    const bid = branchId.trim();
-    if (!bid) return;
-    setConflictBusy(true);
-    try {
-      const resolved = await resolveDraftConflictUseMine(activeCart, bid, {
-        uiVisible: posDraftsUi || posDraftsEnabled,
-      });
-      updateActiveCart(() => resolved);
-      if (resolved.syncStatus === "conflict") {
-        toast.error("Still in conflict — try server version or edit lines.");
-      } else {
-        setConflictModalOpen(false);
-        toast.success("Local version synced");
-      }
-    } finally {
-      setConflictBusy(false);
-    }
-  }, [activeCart, branchId, updateActiveCart, posDraftsUi, posDraftsEnabled]);
 
   const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canCloseShift = hasPermission(me?.permissions, Permission.ShiftsClose);
@@ -2524,19 +2460,6 @@ export function QuickSaleWorkspace({
           ) : null}
         </>
       ) : null}
-      <DraftConflictModal
-        open={conflictModalOpen}
-        ticketLabel={
-          activeCart.ticketNumber != null
-            ? `Sale #${activeCart.ticketNumber}`
-            : activeCart.label
-        }
-        busy={conflictBusy}
-        brandTheme={dialogBrandTheme}
-        onUseServer={() => void onDraftConflictUseServer()}
-        onUseMine={() => void onDraftConflictUseMine()}
-        onDismiss={() => setConflictModalOpen(false)}
-      />
     </>
   );
 }

@@ -87,6 +87,19 @@ export function applyPosDraftToCart(
   };
 }
 
+/** Refresh optimistic-lock version from server without overwriting local lines. */
+async function refreshCartDraftVersion(cart: CartSession): Promise<CartSession> {
+  if (!cart.draftId) return cart;
+  const draft = await fetchPosDraft(cart.draftId);
+  return {
+    ...cart,
+    draftId: draft.id,
+    ticketNumber: draft.ticketNumber,
+    version: draft.version,
+    lastSyncedAt: draft.updatedAt,
+  };
+}
+
 /**
  * Push local cart state to the server. Creates a draft on first item,
  * deletes removed lines, then patches the remaining lines in one request.
@@ -94,7 +107,7 @@ export function applyPosDraftToCart(
 export async function syncCartSessionToServer(
   cart: CartSession,
   branchId: string,
-  opts?: { uiVisible?: boolean },
+  opts?: { uiVisible?: boolean; retriedAfterConflict?: boolean },
 ): Promise<CartSession> {
   const inputs = linesToInputs(cart);
   const removedServerLineIds = cart.removedServerLineIds ?? [];
@@ -146,8 +159,21 @@ export async function syncCartSessionToServer(
       version: workingVersion,
     };
   } catch (e) {
-    if (e instanceof PosDraftApiError && e.status === 409) {
-      return { ...cart, syncStatus: "conflict" };
+    if (
+      e instanceof PosDraftApiError &&
+      e.status === 409 &&
+      cart.draftId &&
+      !opts?.retriedAfterConflict
+    ) {
+      try {
+        const refreshed = await refreshCartDraftVersion(cart);
+        return syncCartSessionToServer(refreshed, branchId, {
+          ...opts,
+          retriedAfterConflict: true,
+        });
+      } catch {
+        return { ...cart, syncStatus: "idle" };
+      }
     }
     return { ...cart, syncStatus: "error" };
   }
@@ -203,7 +229,7 @@ export async function resolveDraftConflictUseServer(
   }
 }
 
-/** Force-push local lines after refreshing server version. */
+/** Force-push local lines after refreshing server version (use mine). */
 export async function resolveDraftConflictUseMine(
   cart: CartSession,
   branchId: string,
@@ -213,9 +239,8 @@ export async function resolveDraftConflictUseMine(
     return syncCartSessionToServer(cart, branchId, opts);
   }
   try {
-    const draft = await fetchPosDraft(cart.draftId);
-    const withVersion = applyPosDraftToCart(cart, draft, opts);
-    return syncCartSessionToServer(withVersion, branchId, opts);
+    const refreshed = await refreshCartDraftVersion(cart);
+    return syncCartSessionToServer(refreshed, branchId, opts);
   } catch {
     return syncCartSessionToServer(cart, branchId, opts);
   }
