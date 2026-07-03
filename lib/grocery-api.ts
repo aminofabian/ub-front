@@ -1,9 +1,6 @@
 "use client";
 
-import { apiUrl } from "@/lib/config";
-import { buildRequestHeaders } from "@/lib/api";
-import { getSessionTokens } from "@/lib/auth";
-import { formatApiProblemMessage } from "@/lib/problem";
+import { apiRequest, ApiRequestError } from "@/lib/api";
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -131,8 +128,6 @@ export class GroceryApiError extends Error {
 
 // ── Internal helpers ───────────────────────────────────────────────
 
-const IDEMPOTENCY_METHODS = new Set(["POST", "PATCH"]);
-
 function getNetworkErrorMsg(): string {
   return "Cannot reach the server. Check your connection and try again.";
 }
@@ -147,45 +142,24 @@ async function groceryRequest<T>(
   } = {},
 ): Promise<T> {
   const method = options.method ?? "GET";
-  const session = getSessionTokens();
-  const headers = new Headers(
-    buildRequestHeaders(true, session?.accessToken, method) as Record<
-      string,
-      string
-    >,
-  );
 
-  const idem = options.idempotencyKey?.trim();
-  if (idem && IDEMPOTENCY_METHODS.has(method)) {
-    headers.set("Idempotency-Key", idem);
-  }
-
-  let response: Response;
   try {
-    response = await fetch(apiUrl(path), {
+    return await apiRequest<T>(path, {
       method,
-      headers,
-      credentials: "include",
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body: options.body,
+      idempotencyKey: options.idempotencyKey,
+      toast: options.suppressToast ? false : undefined,
     });
-  } catch {
-    throw new GroceryApiError(getNetworkErrorMsg(), 0, null);
-  }
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    const msg = formatApiProblemMessage(payload);
-    if (options.suppressToast !== true) {
+  } catch (e) {
+    if (e instanceof ApiRequestError) {
+      throw new GroceryApiError(e.message, e.status, e.payload);
+    }
+    const msg = e instanceof Error ? e.message : getNetworkErrorMsg();
+    if (options.suppressToast !== true && msg.trim()) {
       toast.error(msg, { duration: 10_000 });
     }
-    throw new GroceryApiError(msg, response.status, payload);
+    throw new GroceryApiError(msg, 0, null);
   }
-
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return (await response.json()) as T;
 }
 
 // ── Public API functions ───────────────────────────────────────────

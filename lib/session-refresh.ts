@@ -94,11 +94,7 @@ async function performRefresh(): Promise<void> {
       }, 5_000 * consecutiveRefreshRejections);
       return;
     }
-    signOutClientAndRedirectToLogin();
-    return;
-  }
-  /*
-   * Network/transient failure: keep the session, retry shortly. We schedule
+    signOutClientAndRedirectToLogin("background refresh rejected after retries"); We schedule
    * a short retry rather than aborting so that intermittent connectivity
    * (which is common on mobile) does not turn into a forced logout.
    */

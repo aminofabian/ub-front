@@ -347,12 +347,18 @@ export function finalizeClientSignOut(): void {
 }
 
 /** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
-export function signOutClientAndRedirectToLogin(): void {
+export function signOutClientAndRedirectToLogin(reason?: string): void {
   if (typeof window === "undefined") {
     return;
   }
   if (signOutInProgress) {
     return;
+  }
+  if (process.env.NODE_ENV === "development") {
+    console.warn(
+      "[auth] signOutClientAndRedirectToLogin",
+      reason ?? "no reason provided",
+    );
   }
   signOutInProgress = true;
   finalizeClientSignOut();

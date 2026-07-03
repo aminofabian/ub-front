@@ -107,7 +107,7 @@ function signOutClientForProblem(
   if (!isSessionRelatedProblem(status, payload, options)) {
     return false;
   }
-  signOutClientAndRedirectToLogin();
+  signOutClientAndRedirectToLogin("session-related API problem");
   return true;
 }
 
@@ -160,15 +160,7 @@ async function resolveUnauthorizedResponse(
       return execute();
     }
     // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
-    signOutClientAndRedirectToLogin();
-    throw new ApiRequestError(
-      formatApiProblemMessage(payload),
-      response.status,
-      payload,
-    );
-  }
-  /*
-   * Network/server transient failure during refresh: do NOT sign out.
+    signOutClientAndRedirectToLogin("401 after refresh rejected");
    * Surfacing the original 401 lets the caller decide (toast, retry, etc.)
    * and lets the next user action attempt refresh again. We may also have
    * lost the single-flight race to a sibling tab that succeeded; in that
@@ -1171,10 +1163,7 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 if (typeof window !== "undefined") {
   subscribeToAuthBroadcasts((msg) => {
     if (msg.type === "logout") {
-      signOutClientAndRedirectToLogin();
-    }
-  });
-}
+    signOutClientAndRedirectToLogin("cross-tab logout broadcast");
 
 /**
  * Backwards-compatible boolean wrapper around {@link refreshAccessToken}.
