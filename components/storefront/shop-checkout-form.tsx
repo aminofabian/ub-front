@@ -22,14 +22,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
+import { CheckoutStepHint } from "@/components/storefront/checkout-step-hint";
 import {
   CHECKOUT_CARD,
   CHECKOUT_CARD_INSET,
   CHECKOUT_CARD_PAD,
   CHECKOUT_DOCK_AMOUNT,
   CHECKOUT_INPUT,
+  CHECKOUT_INPUT_PLAIN,
   CHECKOUT_VARIANT_PILL,
   CHECKOUT_LABEL,
+  CHECKOUT_LABEL_PLAIN,
   CHECKOUT_PRIMARY_BTN,
   CHECKOUT_SECTION_GAP,
   CHECKOUT_SELECT,
@@ -80,13 +83,18 @@ import { cn } from "@/lib/utils";
 import {
   WEB_CART_CHANGED_EVENT,
   clearWebCartHandle,
+  fetchCheckoutState,
   fetchWebCart,
   notifyWebCartChanged,
+  patchCheckoutContact,
+  patchCheckoutDelivery,
   readWebCartHandle,
+  writeGuestCheckoutKey,
   cartIsCheckoutReady,
   cartLinesMissingPrice,
   submitWebCheckout,
   type PublicCheckoutResult,
+  type PublicCheckoutState,
   type PublicWebCart,
 } from "@/lib/web-cart";
 
@@ -274,23 +282,26 @@ function InputField({
   label,
   required,
   hint,
+  variant = "default",
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   hint?: string;
+  variant?: "default" | "plain";
 }) {
+  const isPlain = variant === "plain";
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className={CHECKOUT_LABEL}>
+      <span className={isPlain ? CHECKOUT_LABEL_PLAIN : CHECKOUT_LABEL}>
         {label}
         {required !== false && (
-          <span className="ml-0.5 text-destructive">*</span>
+          <span className="ml-0.5 text-destructive/80">*</span>
         )}
       </span>
       <input
         {...props}
         required={required !== false}
-        className={CHECKOUT_INPUT}
+        className={isPlain ? CHECKOUT_INPUT_PLAIN : CHECKOUT_INPUT}
       />
       {hint ? (
         <span className="text-xs leading-relaxed text-muted-foreground">
@@ -306,24 +317,30 @@ function SelectField({
   required,
   hint,
   children,
+  variant = "default",
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   hint?: string;
   children: React.ReactNode;
+  variant?: "default" | "plain";
 }) {
+  const isPlain = variant === "plain";
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className={CHECKOUT_LABEL}>
+      <span className={isPlain ? CHECKOUT_LABEL_PLAIN : CHECKOUT_LABEL}>
         {label}
         {required !== false && (
-          <span className="ml-0.5 text-destructive">*</span>
+          <span className="ml-0.5 text-destructive/80">*</span>
         )}
       </span>
       <select
         {...props}
         required={required !== false}
-        className={cn(CHECKOUT_SELECT, "disabled:cursor-not-allowed disabled:opacity-50")}
+        className={cn(
+          isPlain ? CHECKOUT_INPUT_PLAIN : CHECKOUT_SELECT,
+          "cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+        )}
       >
         {children}
       </select>
@@ -333,6 +350,21 @@ function SelectField({
         </span>
       ) : null}
     </label>
+  );
+}
+
+function PlainFormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-medium text-foreground">{title}</h3>
+      {children}
+    </section>
   );
 }
 
@@ -377,16 +409,22 @@ export default function ShopCheckoutForm({
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [shippingLocked, setShippingLocked] = useState(false);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [deliveryEditOpen, setDeliveryEditOpen] = useState(false);
   const [addressPrefilled, setAddressPrefilled] = useState(false);
+  const [detailsSubStep, setDetailsSubStep] = useState<"contact" | "delivery">(
+    "contact",
+  );
 
   const prefilled = useRef(false);
+  const serverCheckoutState = useRef(false);
   const termsManuallyChanged = useRef(false);
   const paymentToastShown = useRef(false);
   const [signedIn, setSignedIn] = useState(false);
   const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const [stepBusy, setStepBusy] = useState(false);
   const pendingShippingLock = useRef(false);
   const wasShippingLockedBeforeEdit = useRef(false);
 
@@ -404,19 +442,83 @@ export default function ShopCheckoutForm({
     }
   }, []);
 
-  /** Try to prefill form fields from localStorage + signed-in shopper history. */
+  const applyServerCheckoutState = useCallback((state: PublicCheckoutState) => {
+    const profile = state.profile;
+    if (profile.firstName) setFirstName(profile.firstName);
+    if (profile.lastName) setLastName(profile.lastName);
+    if (profile.email) setCustomerEmail(profile.email);
+    if (profile.areaCode) setAreaCode(profile.areaCode);
+    if (profile.phone) setCustomerPhone(profile.phone);
+    if (profile.whatsApp) setWhatsAppNumber(profile.whatsApp);
+    if (profile.county) setCounty(profile.county);
+    if (profile.subCounty) setSubCounty(profile.subCounty);
+    if (profile.ward) setWard(profile.ward);
+    if (profile.streetAddress) setStreetAddress(profile.streetAddress);
+    if (profile.deliveryNotes) setDeliveryNotes(profile.deliveryNotes);
+
+    if (state.guestKey) {
+      writeGuestCheckoutKey(slug.trim(), state.guestKey);
+    }
+
+    if (state.detailsSubStep === "delivery") {
+      setDetailsSubStep("delivery");
+    } else if (state.detailsSubStep === "contact") {
+      setDetailsSubStep("contact");
+    }
+
+    if (state.completed.contact && state.completed.delivery) {
+      setAddressPrefilled(true);
+      setShippingLocked(true);
+    } else if (state.completed.contact) {
+      setAddressPrefilled(false);
+      setShippingLocked(false);
+      setDetailsSubStep("delivery");
+    }
+  }, [slug]);
+
+  /** Try to prefill form fields from checkout-state API, localStorage, or shopper history. */
   const tryPrefill = useCallback(async () => {
     if (prefilled.current) return;
     prefilled.current = true;
 
-    // 1. Always try localStorage first (fast, works for guests)
+    const s = slug.trim();
+    const handle = readWebCartHandle();
+    if (handle && handle.slug === s && handle.cartId) {
+      try {
+        const state = await fetchCheckoutState(s, handle.cartId);
+        if (state) {
+          serverCheckoutState.current = true;
+          applyServerCheckoutState(state);
+          if (state.authenticated || (state.completed.contact && state.completed.delivery)) {
+            return;
+          }
+          if (state.completed.contact || state.profile.email) {
+            return;
+          }
+        }
+      } catch {
+        /* fall through to legacy prefill */
+      }
+    }
+
+    // Legacy guest prefill from localStorage
     const saved = loadCheckoutPrefill();
     if (saved) {
       if (saved.firstName) setFirstName(saved.firstName);
       if (saved.lastName) setLastName(saved.lastName);
-      if (saved.customerPhone) setCustomerPhone(saved.customerPhone);
-      if (saved.areaCode && saved.areaCode !== "+254")
+      if (saved.customerPhone) {
+        const phone = saved.customerPhone.trim();
+        const codeMatch = phone.match(/^(\+\d{1,4})\s*(.+)/);
+        if (codeMatch) {
+          if (!saved.areaCode || saved.areaCode === "+254")
+            setAreaCode(codeMatch[1]);
+          setCustomerPhone(codeMatch[2]);
+        } else {
+          setCustomerPhone(phone);
+        }
+      } else if (saved.areaCode && saved.areaCode !== "+254") {
         setAreaCode(saved.areaCode);
+      }
       if (saved.streetAddress) setStreetAddress(saved.streetAddress);
       if (saved.county) setCounty(saved.county);
       if (saved.subCounty) setSubCounty(saved.subCounty);
@@ -432,7 +534,7 @@ export default function ShopCheckoutForm({
 
     let loadedAddressFromHistory = false;
 
-    // 2. If signed in, also try shopper API for richer data
+    // Signed-in shoppers without server profile: enrich from account history
     const tokens = getSessionTokens();
     if (!tokens) return;
 
@@ -506,7 +608,7 @@ export default function ShopCheckoutForm({
       setAddressPrefilled(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [applyServerCheckoutState, slug]);
 
   const load = useCallback(async () => {
     const s = slug.trim();
@@ -674,12 +776,17 @@ export default function ShopCheckoutForm({
     customerPhone.trim(),
   );
 
-  const requiredCheckoutFieldsComplete = Boolean(
-    contactFieldsComplete && subCounty && ward && streetAddress.trim(),
+  const deliveryFieldsComplete = Boolean(
+    subCounty && ward && streetAddress.trim(),
   );
 
-  // Use saved delivery/contact from last order — skip the extra "save" step
+  const requiredCheckoutFieldsComplete = Boolean(
+    contactFieldsComplete && deliveryFieldsComplete,
+  );
+
+  // Returning shoppers with saved details start on step 2 (review).
   useEffect(() => {
+    if (serverCheckoutState.current) return;
     if (loading || !cart || !prefilled.current || isEditingShipping) return;
     if (shippingLocked || !requiredCheckoutFieldsComplete) return;
     const saved = loadCheckoutPrefill();
@@ -707,16 +814,21 @@ export default function ShopCheckoutForm({
     addressPrefilled,
   ]);
 
-  const termsAccepted =
-    agreedToTerms ||
-    (requiredCheckoutFieldsComplete && !termsManuallyChanged.current);
+  const termsAccepted = agreedToTerms;
 
   useEffect(() => {
     if (!requiredCheckoutFieldsComplete) {
       termsManuallyChanged.current = false;
+      setAgreedToTerms(false);
       return;
     }
   }, [requiredCheckoutFieldsComplete]);
+
+  useEffect(() => {
+    if (shippingLocked && !termsManuallyChanged.current) {
+      setAgreedToTerms(true);
+    }
+  }, [shippingLocked]);
 
   function handleTermsAgreementChange(checked: boolean) {
     termsManuallyChanged.current = true;
@@ -810,7 +922,7 @@ export default function ShopCheckoutForm({
       <div className={CONFIRMATION_VIEWPORT}>
         <div className={CHECKOUT_STICKY_HEAD}>
           <div className="py-1.5">
-            <CheckoutProgressSteps activeStep={1} compact dense />
+            <CheckoutProgressSteps activeStep={1} focused compact dense />
           </div>
         </div>
         <div className="h-0 min-h-0 flex-1 overflow-y-auto">
@@ -1178,9 +1290,13 @@ export default function ShopCheckoutForm({
 
   const activeCheckoutStep: 1 | 2 | 3 = !shippingLocked
     ? 1
-    : !termsAccepted
+    : !reviewAcknowledged
       ? 2
       : 3;
+
+  const showDetailsStep = activeCheckoutStep === 1;
+  const showReviewStep = activeCheckoutStep === 2;
+  const showConfirmStep = activeCheckoutStep === 3;
 
   const shippingSummary = {
     customerName: `${firstName} ${lastName}`.trim(),
@@ -1243,12 +1359,119 @@ export default function ShopCheckoutForm({
     setSignupModalOpen(true);
   }
 
+  function returnToDetailsStep() {
+    setError(null);
+    setIsEditingShipping(false);
+    setDeliveryEditOpen(false);
+    setAgreedToTerms(false);
+    termsManuallyChanged.current = false;
+    setReviewAcknowledged(false);
+    setShippingLocked(false);
+    setDetailsSubStep("delivery");
+  }
+
+  function proceedToConfirmStep() {
+    if (!termsAccepted) {
+      scrollToCheckoutTerms();
+      return;
+    }
+    setError(null);
+    setReviewAcknowledged(true);
+  }
+
+  function returnToContactSubStep() {
+    setError(null);
+    setDetailsSubStep("contact");
+  }
+
+  async function advanceDetailsStep() {
+    const s = slug.trim();
+    const handle = readWebCartHandle();
+    if (showSavedDeliverySummary || detailsSubStep === "delivery") {
+      if (!shippingComplete) {
+        setError("Please complete all required delivery fields.");
+        return;
+      }
+      if (handle && handle.slug === s) {
+        setStepBusy(true);
+        setError(null);
+        try {
+          const state = await patchCheckoutDelivery(s, handle.cartId, {
+            county,
+            subCounty,
+            ward,
+            streetAddress,
+            deliveryNotes,
+            saveForNextTime: isDefaultAddress,
+          });
+          applyServerCheckoutState(state);
+          lockShippingAndContinue();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not save delivery details.");
+        } finally {
+          setStepBusy(false);
+        }
+        return;
+      }
+      lockShippingAndContinue();
+      return;
+    }
+    if (!contactFieldsComplete) {
+      setError("Please complete all contact fields.");
+      return;
+    }
+    const phone = customerPhone.trim();
+    const codeMatch = phone.match(/^(\+\d{1,4})\s*(.+)/);
+    let phoneValue = customerPhone;
+    let codeValue = areaCode;
+    if (codeMatch) {
+      codeValue = codeMatch[1];
+      phoneValue = codeMatch[2];
+      setAreaCode(codeValue);
+      setCustomerPhone(phoneValue);
+    }
+    if (handle && handle.slug === s) {
+      setStepBusy(true);
+      setError(null);
+      try {
+        const state = await patchCheckoutContact(s, handle.cartId, {
+          firstName,
+          lastName,
+          email: customerEmail,
+          areaCode: codeValue,
+          phone: phoneValue,
+          whatsApp: whatsAppNumber,
+        });
+        applyServerCheckoutState(state);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not save contact details.");
+      } finally {
+        setStepBusy(false);
+      }
+      return;
+    }
+    setError(null);
+    setDetailsSubStep("delivery");
+  }
+
+  function returnToReviewStep() {
+    setError(null);
+    setReviewAcknowledged(false);
+  }
+
   function startEditingShipping() {
     wasShippingLockedBeforeEdit.current = shippingLocked;
     setIsEditingShipping(true);
     setShippingLocked(false);
     setDeliveryEditOpen(true);
     setError(null);
+
+    const phone = customerPhone.trim();
+    const codeMatch = phone.match(/^(\+\d{1,4})\s*(.+)/);
+    if (codeMatch) {
+      setAreaCode(codeMatch[1]);
+      setCustomerPhone(codeMatch[2]);
+    }
   }
 
   function closeDeliveryEditModal() {
@@ -1274,19 +1497,21 @@ export default function ShopCheckoutForm({
     }
   }
 
-  const showShippingForm = !shippingLocked || isEditingShipping;
-  const showReviewOnMobile = shippingLocked && !isEditingShipping;
+  const showShippingForm = showDetailsStep;
   const showSavedDeliverySummary =
     addressPrefilled &&
     requiredCheckoutFieldsComplete &&
     !deliveryEditOpen &&
     !isEditingShipping;
-  const showInlineShippingForm = showShippingForm && !showSavedDeliverySummary;
-  /** Totals live in the dock once delivery is locked — avoid duplicate rows in the summary card */
-  const showTotalInSummary = showShippingForm;
+  const showContactSubStep =
+    showDetailsStep && !showSavedDeliverySummary && detailsSubStep === "contact";
+  const showDeliverySubStep =
+    showDetailsStep && !showSavedDeliverySummary && detailsSubStep === "delivery";
+  /** Totals in the review card — step 2 only */
+  const showTotalInSummary = showReviewStep;
   /** Payment in the dock only on confirm (step 3), not while reviewing cart/terms */
   const showFloatingPayment =
-    shippingLocked &&
+    showConfirmStep &&
     !isEditingShipping &&
     termsAccepted &&
     (paymentOptions.manual.length > 0 || paymentOptions.online.length > 0);
@@ -1298,20 +1523,42 @@ export default function ShopCheckoutForm({
   };
 
   const floatingCheckout = showShippingForm
-    ? {
-        eyebrow: shippingComplete ? "Ready for the next step" : "Delivery details",
-        headline: shippingComplete
-          ? "Tap below to review your order"
-          : "Fill in your delivery info to continue",
-        hint: shippingComplete
-          ? "We'll show your cart and payment options next."
-          : "Name, phone, and delivery location are required.",
-        actionLabel: isEditingShipping ? "Save & review" : "Continue to review",
-        actionDisabled: !shippingComplete,
-        onAction: lockShippingAndContinue,
-        actionType: "button" as const,
-        pulse: shippingComplete,
-      }
+    ? showSavedDeliverySummary
+      ? {
+          eyebrow: "Ready for the next step",
+          headline: "Tap below to review your order",
+          hint: "We'll show your cart and payment options next.",
+          actionLabel: "Continue to review",
+          actionDisabled: false,
+          onAction: lockShippingAndContinue,
+          actionType: "button" as const,
+          pulse: true,
+        }
+      : detailsSubStep === "contact"
+        ? {
+            eyebrow: "Contact details",
+            headline: contactFieldsComplete
+              ? "Tap below to add your delivery address"
+              : "Enter how we can reach you",
+            hint: "Email, name, and phone are required.",
+            actionLabel: "Continue",
+            actionDisabled: !contactFieldsComplete || stepBusy,
+            onAction: () => void advanceDetailsStep(),
+            actionType: "button" as const,
+            pulse: contactFieldsComplete,
+          }
+        : {
+            eyebrow: "Delivery location",
+            headline: shippingComplete
+              ? "Tap below to review your order"
+              : "Where should we deliver?",
+            hint: "Subcounty, ward, and street address are required.",
+            actionLabel: "Continue to review",
+            actionDisabled: !shippingComplete || stepBusy,
+            onAction: () => void advanceDetailsStep(),
+            actionType: "button" as const,
+            pulse: shippingComplete,
+          }
     : busy
       ? {
           eyebrow: "Please wait",
@@ -1322,18 +1569,29 @@ export default function ShopCheckoutForm({
           actionType: "submit" as const,
           pulse: false,
         }
-      : !termsAccepted
+      : showReviewStep && !termsAccepted
         ? {
-            eyebrow: "One more step",
-            headline: "Accept the store terms to finish",
-            hint: "Tap the button below to jump to the terms checkbox.",
+            eyebrow: "Review your order",
+            headline: "Accept the store terms to continue",
+            hint: "Check your items above, then tick the terms checkbox.",
             actionLabel: "Go to terms",
             actionDisabled: false,
             onAction: scrollToCheckoutTerms,
             actionType: "button" as const,
             pulse: false,
           }
-        : {
+        : showReviewStep
+          ? {
+              eyebrow: "Review your order",
+              headline: "Ready when you are",
+              hint: "Check your items above, then continue to payment.",
+              actionLabel: "Continue to payment",
+              actionDisabled: false,
+              onAction: proceedToConfirmStep,
+              actionType: "button" as const,
+              pulse: true,
+            }
+          : {
             eyebrow: "",
             headline: "",
             hint: "",
@@ -1358,19 +1616,80 @@ export default function ShopCheckoutForm({
       >
         <div className={cn("flex items-center gap-1", embedded ? "py-0.5" : "py-1.5")}>
           {!embedded ? (
-            <Link
-              href={APP_ROUTES.shopCart}
+            activeCheckoutStep > 1 ? (
+              <button
+                type="button"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                aria-label={
+                  activeCheckoutStep === 2
+                    ? "Back to delivery details"
+                    : "Back to review"
+                }
+                onClick={
+                  activeCheckoutStep === 2
+                    ? returnToDetailsStep
+                    : returnToReviewStep
+                }
+              >
+                <ChevronLeft className="size-5" aria-hidden />
+              </button>
+            ) : showDeliverySubStep ? (
+              <button
+                type="button"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                aria-label="Back to contact details"
+                onClick={returnToContactSubStep}
+              >
+                <ChevronLeft className="size-5" aria-hidden />
+              </button>
+            ) : (
+              <Link
+                href={APP_ROUTES.shopCart}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                aria-label="Back to cart"
+              >
+                <ChevronLeft className="size-5" aria-hidden />
+              </Link>
+            )
+          ) : activeCheckoutStep > 1 ? (
+            <button
+              type="button"
               className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-              aria-label="Back to cart"
+              aria-label={
+                activeCheckoutStep === 2
+                  ? "Back to delivery details"
+                  : "Back to review"
+              }
+              onClick={
+                activeCheckoutStep === 2
+                  ? returnToDetailsStep
+                  : returnToReviewStep
+              }
             >
               <ChevronLeft className="size-5" aria-hidden />
-            </Link>
+            </button>
+          ) : showDeliverySubStep ? (
+            <button
+              type="button"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              aria-label="Back to contact details"
+              onClick={returnToContactSubStep}
+            >
+              <ChevronLeft className="size-5" aria-hidden />
+            </button>
           ) : null}
           <div className="min-w-0 flex-1 pr-1">
             <CheckoutProgressSteps
               activeStep={activeCheckoutStep}
+              focused
               compact
               dense
+            />
+            <CheckoutStepHint
+              activeStep={activeCheckoutStep}
+              detailsSubStep={detailsSubStep}
+              hasSavedDetails={showSavedDeliverySummary}
+              className="mt-1.5 max-sm:pr-7"
             />
           </div>
         </div>
@@ -1403,18 +1722,11 @@ export default function ShopCheckoutForm({
 
         <div
           className={cn(
-            "grid w-full min-w-0 max-w-full gap-2.5 pb-1.5",
-            embedded
-              ? "grid-cols-1"
-              : "lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-3",
+            "grid w-full min-w-0 max-w-full grid-cols-1 gap-2.5 pb-1.5",
           )}
         >
-        <section
-          className={cn(
-            CHECKOUT_SECTION_GAP,
-            showReviewOnMobile && (embedded ? "hidden" : "max-lg:hidden"),
-          )}
-        >
+        {showDetailsStep ? (
+        <section className={CHECKOUT_SECTION_GAP}>
           {error ? (
             <div className="flex items-start gap-3 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -1422,15 +1734,7 @@ export default function ShopCheckoutForm({
             </div>
           ) : null}
 
-          {shippingLocked && !isEditingShipping ? (
-            <ShopShippingSummaryCard
-              contact={shippingSummary}
-              onEdit={startEditingShipping}
-              className={embedded ? undefined : "hidden lg:block"}
-            />
-          ) : null}
-
-          {showSavedDeliverySummary && !shippingLocked ? (
+          {showSavedDeliverySummary ? (
             <ShopShippingSummaryCard
               contact={shippingSummary}
               onEdit={startEditingShipping}
@@ -1438,7 +1742,7 @@ export default function ShopCheckoutForm({
             />
           ) : null}
 
-          {showInlineShippingForm ? (
+          {showContactSubStep ? (
             <>
           <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
             <SectionHeader
@@ -1472,21 +1776,25 @@ export default function ShopCheckoutForm({
                 onChange={(ev) => setLastName(ev.target.value)}
                 placeholder="Doe"
               />
-              <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
-                <InputField
-                  label="Code"
-                  value={areaCode}
-                  onChange={(ev) => setAreaCode(ev.target.value)}
-                  placeholder="+254"
-                />
-                <InputField
-                  label="Phone number"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  value={customerPhone}
-                  onChange={(ev) => setCustomerPhone(ev.target.value)}
-                  placeholder="712 345 678"
-                />
+              <div className="flex gap-3 sm:col-span-2">
+                <div className="w-[5.5rem] shrink-0 sm:w-28">
+                  <InputField
+                    label="Code"
+                    value={areaCode}
+                    onChange={(ev) => setAreaCode(ev.target.value)}
+                    placeholder="+254"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <InputField
+                    label="Phone number"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    value={customerPhone}
+                    onChange={(ev) => setCustomerPhone(ev.target.value)}
+                    placeholder="712 345 678"
+                  />
+                </div>
               </div>
               <InputField
                 label="WhatsApp"
@@ -1534,7 +1842,11 @@ export default function ShopCheckoutForm({
               </div>
             </div>
           ) : null}
+            </>
+          ) : null}
 
+          {showDeliverySubStep ? (
+            <>
           <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <SectionHeader
@@ -1630,24 +1942,22 @@ export default function ShopCheckoutForm({
             </>
           ) : null}
         </section>
+        ) : null}
 
+        {showReviewStep ? (
         <section
           className={cn(
             "min-w-0 max-w-full",
             CHECKOUT_CARD_PAD,
             CHECKOUT_CARD,
-            !embedded && !showReviewOnMobile && "max-lg:hidden",
-            !embedded && "lg:sticky lg:top-14 lg:overflow-hidden",
           )}
         >
-          {showReviewOnMobile ? (
-            <ShopShippingSummaryCard
-              contact={shippingSummary}
-              onEdit={startEditingShipping}
-              compact
-              className={cn("mb-2.5", !embedded && "lg:hidden")}
-            />
-          ) : null}
+          <ShopShippingSummaryCard
+            contact={shippingSummary}
+            onEdit={startEditingShipping}
+            compact
+            className="mb-2.5"
+          />
 
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1787,22 +2097,6 @@ export default function ShopCheckoutForm({
                 .
               </span>
             </label>
-
-            <Button
-              type="submit"
-              size="lg"
-              disabled={busy || !termsAccepted || !shippingLocked}
-              className="hidden h-11 w-full rounded-xl text-sm font-semibold tracking-wide transition-all disabled:opacity-50"
-            >
-              {busy ? (
-                <span className="flex items-center gap-2">
-                  <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Placing order...
-                </span>
-              ) : (
-                "Place order"
-              )}
-            </Button>
           </div>
 
           <p className="mt-2 hidden items-center justify-center gap-3 text-[10px] font-medium text-muted-foreground sm:flex">
@@ -1817,6 +2111,45 @@ export default function ShopCheckoutForm({
             </span>
           </p>
         </section>
+        ) : null}
+
+        {showConfirmStep ? (
+        <section
+          className={cn(
+            "min-w-0 max-w-full space-y-3",
+            CHECKOUT_CARD_PAD,
+            CHECKOUT_CARD,
+          )}
+        >
+          <ShopShippingSummaryCard
+            contact={shippingSummary}
+            onEdit={startEditingShipping}
+            compact
+          />
+
+          <div className={cn(CHECKOUT_CARD_INSET, "space-y-2 p-3")}>
+            <div className="flex items-center justify-between text-[13px]">
+              <span className="text-muted-foreground">
+                {cart.lines.length} {cart.lines.length === 1 ? "item" : "items"}
+              </span>
+              <Link
+                href={APP_ROUTES.shopCart}
+                className="text-[11px] font-semibold text-primary underline-offset-2 hover:underline"
+              >
+                Edit cart
+              </Link>
+            </div>
+            <div className="flex items-end justify-between border-t border-border/60 pt-3">
+              <span className="text-sm font-semibold text-foreground">Total due</span>
+              <span className={CHECKOUT_SERIF_AMOUNT}>{totalLabel}</span>
+            </div>
+          </div>
+
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Pick a payment method below to finish your order.
+          </p>
+        </section>
+        ) : null}
         </div>
         <CheckoutScrollEndSpacer />
         </div>
@@ -1969,105 +2302,101 @@ export default function ShopCheckoutForm({
         onSave={saveDeliveryEdit}
         saveDisabled={!requiredCheckoutFieldsComplete}
       >
-        <div className={CHECKOUT_SECTION_GAP}>
-          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
-            <SectionHeader
-              icon={<User className="size-3.5" aria-hidden />}
-              title="Contact information"
-              subtitle="Enter the details the store can use to confirm and update your order."
-            />
-
-            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
+        <div className="space-y-6">
+          <PlainFormSection title="Contact">
+            <div className="space-y-3">
+              <InputField
+                variant="plain"
+                label="Email"
+                type="email"
+                autoComplete="email"
+                value={customerEmail}
+                onChange={(ev) => setCustomerEmail(ev.target.value)}
+                placeholder="you@example.com"
+              />
+              <div className="grid grid-cols-2 gap-3">
                 <InputField
-                  label="Email address"
-                  type="email"
-                  autoComplete="email"
-                  value={customerEmail}
-                  onChange={(ev) => setCustomerEmail(ev.target.value)}
-                  placeholder="you@example.com"
+                  variant="plain"
+                  label="First name"
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={(ev) => setFirstName(ev.target.value)}
+                  placeholder="John"
+                />
+                <InputField
+                  variant="plain"
+                  label="Last name"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={(ev) => setLastName(ev.target.value)}
+                  placeholder="Doe"
                 />
               </div>
-              <InputField
-                label="First name"
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(ev) => setFirstName(ev.target.value)}
-                placeholder="John"
-              />
-              <InputField
-                label="Last name"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(ev) => setLastName(ev.target.value)}
-                placeholder="Doe"
-              />
-              <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
-                <InputField
-                  label="Code"
-                  value={areaCode}
-                  onChange={(ev) => setAreaCode(ev.target.value)}
-                  placeholder="+254"
-                />
-                <InputField
-                  label="Phone number"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  value={customerPhone}
-                  onChange={(ev) => setCustomerPhone(ev.target.value)}
-                  placeholder="712 345 678"
-                />
+              <div className="flex gap-3">
+                <div className="w-[5.5rem] shrink-0">
+                  <InputField
+                    variant="plain"
+                    label="Code"
+                    value={areaCode}
+                    onChange={(ev) => setAreaCode(ev.target.value)}
+                    placeholder="+254"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <InputField
+                    variant="plain"
+                    label="Phone"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    value={customerPhone}
+                    onChange={(ev) => setCustomerPhone(ev.target.value)}
+                    placeholder="712 345 678"
+                  />
+                </div>
               </div>
               <InputField
+                variant="plain"
                 label="WhatsApp"
                 required={false}
                 inputMode="tel"
                 value={whatsAppNumber}
                 onChange={(ev) => setWhatsAppNumber(ev.target.value)}
-                placeholder="Same as phone"
-                hint="Optional. Use this if WhatsApp is different from your phone number."
+                placeholder="Optional"
               />
             </div>
-          </div>
+          </PlainFormSection>
 
-          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <SectionHeader
-                icon={<MapPin className="size-3.5" aria-hidden />}
-                title="Delivery location"
-                subtitle="Select your area and add a precise address so the rider can find you quickly."
-              />
-              <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-950">
-                <Truck className="size-3.5" aria-hidden />
-                Supported area only
+          <PlainFormSection title="Delivery">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <SelectField
+                  variant="plain"
+                  label="County"
+                  value={county}
+                  onChange={(ev) => setCounty(ev.target.value)}
+                >
+                  <option value="">Select county</option>
+                  <option value="Nairobi">Nairobi</option>
+                </SelectField>
+                <SelectField
+                  variant="plain"
+                  label="Subcounty"
+                  value={subCounty}
+                  onChange={(ev) => {
+                    setSubCounty(ev.target.value);
+                    setWard("");
+                  }}
+                >
+                  <option value="">Select subcounty</option>
+                  {NAIROBI_SUBCOUNTIES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </SelectField>
               </div>
-            </div>
-
-            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
               <SelectField
-                label="County"
-                value={county}
-                onChange={(ev) => setCounty(ev.target.value)}
-              >
-                <option value="">Select county</option>
-                <option value="Nairobi">Nairobi</option>
-              </SelectField>
-              <SelectField
-                label="Subcounty"
-                value={subCounty}
-                onChange={(ev) => {
-                  setSubCounty(ev.target.value);
-                  setWard("");
-                }}
-              >
-                <option value="">Select subcounty</option>
-                {NAIROBI_SUBCOUNTIES.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField
+                variant="plain"
                 label="Ward"
                 value={ward}
                 onChange={(ev) => setWard(ev.target.value)}
@@ -2083,35 +2412,32 @@ export default function ShopCheckoutForm({
                 ))}
               </SelectField>
               <InputField
-                label="Street Address"
+                variant="plain"
+                label="Street address"
                 value={streetAddress}
                 onChange={(ev) => setStreetAddress(ev.target.value)}
-                placeholder="Apartment, building, street name"
-                hint="Include the building name, apartment number, or nearby landmark."
+                placeholder="Building, apartment, or landmark"
               />
-              <div className="sm:col-span-2">
-                <InputField
-                  label="Delivery notes"
-                  required={false}
-                  value={deliveryNotes}
-                  onChange={(ev) => setDeliveryNotes(ev.target.value)}
-                  placeholder="Landmark, gate code, preferred contact time"
-                />
-              </div>
+              <InputField
+                variant="plain"
+                label="Delivery notes"
+                required={false}
+                value={deliveryNotes}
+                onChange={(ev) => setDeliveryNotes(ev.target.value)}
+                placeholder="Gate code, landmark, etc."
+              />
             </div>
 
-            <label className="mt-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm text-foreground">
+            <label className="mt-1 flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
               <input
                 type="checkbox"
-                className="size-4 rounded border-border text-primary focus:ring-primary/10"
+                className="mt-0.5 size-4 shrink-0 rounded border-border text-primary focus:ring-primary/10"
                 checked={isDefaultAddress}
                 onChange={(ev) => setIsDefaultAddress(ev.target.checked)}
               />
-              <span className="font-medium">
-                Save these delivery details for next time
-              </span>
+              <span>Save for next time</span>
             </label>
-          </div>
+          </PlainFormSection>
         </div>
       </ShopCheckoutDeliveryEditModal>
     </div>

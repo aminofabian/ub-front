@@ -8,11 +8,15 @@ const STEPS = [
   { id: 3, label: "Confirm" },
 ] as const;
 
+export type CheckoutProgressStep = (typeof STEPS)[number]["id"];
+
 type Props = {
   /** 1-based index of the active step during checkout (1–3). Ignored when `complete` is true. */
-  activeStep?: 1 | 2 | 3;
+  activeStep?: CheckoutProgressStep;
   /** When true, all steps show as completed (order placed). */
   complete?: boolean;
+  /** Show only the current step (wizard mode) instead of the full 3-step rail. */
+  focused?: boolean;
   className?: string;
   /** Tighter stepper for mobile checkout */
   compact?: boolean;
@@ -23,10 +27,39 @@ type Props = {
 export function CheckoutProgressSteps({
   activeStep = 1,
   complete = false,
+  focused = false,
   className,
   compact = false,
   dense = false,
 }: Props) {
+  if (focused && !complete) {
+    const step = STEPS.find((s) => s.id === activeStep) ?? STEPS[0];
+    return (
+      <div
+        className={cn("min-w-0", className)}
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-valuenow={activeStep}
+        aria-label={`Checkout step ${activeStep} of ${STEPS.length}: ${step.label}`}
+      >
+        <p className="text-[11px] font-semibold text-foreground">
+          Step {activeStep} of {STEPS.length}
+          <span className="font-normal text-muted-foreground">
+            {" "}
+            · {step.label}
+          </span>
+        </p>
+        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border/70">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+            style={{ width: `${(activeStep / STEPS.length) * 100}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const tight = compact || dense;
   return (
     <ol

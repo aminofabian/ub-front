@@ -163,7 +163,7 @@ function OnlineStkSection({
   }, [defaultAreaCode, defaultPhone]);
 
   useEffect(() => {
-    if (methods.length === 0 || (compact && promptDisabled)) {
+    if (methods.length === 0) {
       onStkSendActionChange?.(null);
       return;
     }
@@ -194,9 +194,6 @@ function OnlineStkSection({
 
   if (methods.length === 0) return null;
 
-  // Floating dock: no STK UI until the order exists (saves ~half the dock height)
-  if (compact && promptDisabled) return null;
-
   const phoneValid = isStkPhoneValid(areaCode, phone);
   const fullPhone = buildStkPhoneNumber(areaCode, phone);
   const primaryMethod = methods[0];
@@ -226,11 +223,17 @@ function OnlineStkSection({
           M-Pesa
         </p>
       )}
+      {promptDisabled ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          {promptDisabledHint ??
+            "Place your order first, then send the M-Pesa prompt to your phone."}
+        </p>
+      ) : null}
       <div
         className={cn(
           "gap-1.5",
           compact
-            ? "flex min-w-0 items-end"
+            ? "flex min-w-0 flex-wrap items-end"
             : "grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
         )}
       >
@@ -391,7 +394,11 @@ export function ShopCheckoutPaymentSection({
         compact={floating}
         amountDue={amountDue}
         promptDisabled={stkPromptDisabled}
-        promptDisabledHint={undefined}
+        promptDisabledHint={
+          stkPromptDisabled
+            ? "Place your order first, then send the M-Pesa prompt to your phone."
+            : undefined
+        }
         actionsInDock={dockActions}
         onStkSendActionChange={onStkSendActionChange}
       />

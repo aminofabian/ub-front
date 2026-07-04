@@ -642,7 +642,7 @@ export function ConfirmationDockActions({
     <ConfirmationFloatingDock ariaLabel="Order actions">
       <div className="space-y-1">
         {paymentSlot ? (
-          <div className="min-w-0 max-w-full overflow-hidden">{paymentSlot}</div>
+          <div className="min-w-0 max-w-full">{paymentSlot}</div>
         ) : null}
         {paymentConfirmed ? (
           <Button

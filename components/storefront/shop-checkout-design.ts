@@ -18,7 +18,13 @@ export const CHECKOUT_VARIANT_PILL =
   "inline-flex max-w-full truncate rounded-md bg-[color-mix(in_srgb,var(--primary)_8%,var(--muted))] px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--primary)_55%,var(--foreground))]";
 
 export const CHECKOUT_INPUT =
-  "h-10 w-full rounded-lg border border-input/70 bg-background/90 px-3 text-[13px] shadow-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/55 focus-visible:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/12";
+  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-[color-mix(in_srgb,var(--foreground)_14%,var(--input))] focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 autofill:shadow-[inset_0_0_0px_1000px_var(--background)] autofill:[-webkit-text-fill-color:var(--foreground)]";
+
+/** Lighter fields for compact surfaces like the delivery edit drawer */
+export const CHECKOUT_INPUT_PLAIN =
+  "h-9 w-full min-w-0 rounded-md border border-border bg-background px-2.5 text-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/20 autofill:shadow-[inset_0_0_0px_1000px_var(--background)] autofill:[-webkit-text-fill-color:var(--foreground)]";
+
+export const CHECKOUT_LABEL_PLAIN = "text-xs font-medium text-foreground/85";
 
 export const CHECKOUT_SELECT = CHECKOUT_INPUT;
 

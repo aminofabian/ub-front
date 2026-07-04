@@ -184,7 +184,10 @@ export function ShopCheckoutSignupModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent
+        className="z-[90] max-w-md gap-0 overflow-hidden p-0 sm:max-w-lg"
+        overlayClassName="z-[89]"
+      >
         <div className="border-b border-border/60 bg-linear-to-br from-primary/8 via-background to-background px-5 pb-4 pt-5 sm:px-6">
           <DialogHeader className="space-y-2 pr-6 text-left">
             <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">

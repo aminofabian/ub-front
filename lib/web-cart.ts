@@ -3,6 +3,7 @@
  */
 
 import { apiUrl } from "./config";
+import { getSessionTokens } from "./auth";
 
 export const WEB_CART_STORAGE_KEY = "ub.webCart.v1";
 export const WEB_CART_CHANGED_EVENT = "ub-web-cart-changed";
@@ -142,6 +143,163 @@ async function readFetchErrorMessage(res: Response): Promise<string> {
   } catch {
     return res.statusText || "Request failed";
   }
+}
+
+function cartCheckoutStateBase(slug: string, cartId: string): string {
+  return `${cartBase(slug)}/${encodeURIComponent(cartId.trim())}/checkout-state`;
+}
+
+const GUEST_CHECKOUT_KEY_STORAGE = "ub.checkoutGuestKey.v1";
+
+type GuestKeyStore = Record<string, string>;
+
+function readGuestKeyStore(): GuestKeyStore {
+  try {
+    const ls = clientStorage();
+    if (!ls) return {};
+    const raw = ls.getItem(GUEST_CHECKOUT_KEY_STORAGE);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as GuestKeyStore;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function readGuestCheckoutKey(slug: string): string | null {
+  const s = slug.trim();
+  if (!s) return null;
+  const key = readGuestKeyStore()[s];
+  return typeof key === "string" && key.trim() ? key.trim() : null;
+}
+
+export function writeGuestCheckoutKey(slug: string, guestKey: string): void {
+  const ls = clientStorage();
+  if (!ls) return;
+  const s = slug.trim();
+  const key = guestKey.trim();
+  if (!s || !key) return;
+  const store = readGuestKeyStore();
+  store[s] = key;
+  ls.setItem(GUEST_CHECKOUT_KEY_STORAGE, JSON.stringify(store));
+}
+
+function checkoutRequestHeaders(slug: string): HeadersInit {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  const token = getSessionTokens()?.accessToken;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const guestKey = readGuestCheckoutKey(slug);
+  if (guestKey) {
+    headers["X-Checkout-Guest-Key"] = guestKey;
+  }
+  return headers;
+}
+
+export type PublicCheckoutProfile = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  areaCode: string;
+  phone: string;
+  whatsApp: string;
+  county: string;
+  subCounty: string;
+  ward: string;
+  streetAddress: string;
+  deliveryNotes: string;
+};
+
+export type PublicCheckoutState = {
+  authenticated: boolean;
+  currentStep: 1 | 2 | 3;
+  detailsSubStep: "contact" | "delivery" | null;
+  completed: {
+    contact: boolean;
+    delivery: boolean;
+  };
+  profile: PublicCheckoutProfile;
+  guestKey?: string | null;
+};
+
+export async function fetchCheckoutState(
+  slug: string,
+  cartId: string,
+): Promise<PublicCheckoutState | null> {
+  const res = await fetch(cartCheckoutStateBase(slug, cartId), {
+    headers: checkoutRequestHeaders(slug),
+  });
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    return null;
+  }
+  return (await res.json()) as PublicCheckoutState;
+}
+
+export async function patchCheckoutContact(
+  slug: string,
+  cartId: string,
+  payload: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    areaCode: string;
+    phone: string;
+    whatsApp?: string;
+  },
+): Promise<PublicCheckoutState> {
+  const res = await fetch(`${cartCheckoutStateBase(slug, cartId)}/contact`, {
+    method: "PATCH",
+    headers: checkoutRequestHeaders(slug),
+    body: JSON.stringify({
+      firstName: payload.firstName.trim(),
+      lastName: payload.lastName.trim(),
+      email: payload.email.trim(),
+      areaCode: payload.areaCode.trim(),
+      phone: payload.phone.trim(),
+      whatsApp: payload.whatsApp?.trim() || "",
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(await readFetchErrorMessage(res));
+  }
+  return (await res.json()) as PublicCheckoutState;
+}
+
+export async function patchCheckoutDelivery(
+  slug: string,
+  cartId: string,
+  payload: {
+    county?: string;
+    subCounty: string;
+    ward: string;
+    streetAddress: string;
+    deliveryNotes?: string;
+    saveForNextTime: boolean;
+  },
+): Promise<PublicCheckoutState> {
+  const res = await fetch(`${cartCheckoutStateBase(slug, cartId)}/delivery`, {
+    method: "PATCH",
+    headers: checkoutRequestHeaders(slug),
+    body: JSON.stringify({
+      county: payload.county?.trim() || "Nairobi",
+      subCounty: payload.subCounty.trim(),
+      ward: payload.ward.trim(),
+      streetAddress: payload.streetAddress.trim(),
+      deliveryNotes: payload.deliveryNotes?.trim() || "",
+      saveForNextTime: payload.saveForNextTime,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(await readFetchErrorMessage(res));
+  }
+  return (await res.json()) as PublicCheckoutState;
 }
 
 export async function submitWebCheckout(

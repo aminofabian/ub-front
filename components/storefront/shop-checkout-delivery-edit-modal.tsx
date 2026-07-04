@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -37,11 +36,8 @@ export function ShopCheckoutDeliveryEditModal({
       >
         <DialogHeader className="border-b border-border/50 px-5 py-4">
           <DialogTitle>Edit delivery details</DialogTitle>
-          <DialogDescription>
-            Update your contact and delivery information for this order.
-          </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 py-5">
           {children}
         </div>
         <DialogFooter className="border-t border-border/50 px-4 py-3">
