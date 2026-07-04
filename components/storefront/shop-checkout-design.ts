@@ -13,6 +13,20 @@ export const CHECKOUT_CARD_INSET =
 export const CHECKOUT_LABEL =
   "text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground";
 
+/** Group label inside a form card */
+export const CHECKOUT_FORM_GROUP_LABEL =
+  "text-xs font-semibold tracking-tight text-foreground";
+
+/** Soft inset for grouped fields */
+export const CHECKOUT_FORM_GROUP =
+  "space-y-3 rounded-xl border border-border/50 bg-muted/15 p-3 sm:p-3.5";
+
+export const CHECKOUT_INPUT_COMPLETE =
+  "border-[color-mix(in_srgb,var(--primary)_28%,var(--input))] bg-[color-mix(in_srgb,var(--primary)_4%,var(--background))]";
+
+export const CHECKOUT_ACCOUNT_NUDGE =
+  "rounded-xl border border-[color-mix(in_srgb,var(--primary)_22%,var(--border))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--primary)_8%,transparent),color-mix(in_srgb,var(--primary)_3%,var(--card)))] p-3.5 sm:p-4";
+
 /** Matches variant chips on checkout line items */
 export const CHECKOUT_VARIANT_PILL =
   "inline-flex max-w-full truncate rounded-md bg-[color-mix(in_srgb,var(--primary)_8%,var(--muted))] px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-[color-mix(in_srgb,var(--primary)_55%,var(--foreground))]";

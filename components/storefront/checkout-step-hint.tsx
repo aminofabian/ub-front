@@ -1,12 +1,19 @@
 "use client";
 
+import {
+  CreditCard,
+  MapPin,
+  Package,
+  Sparkles,
+  User,
+} from "lucide-react";
+
 import type { CheckoutProgressStep } from "@/components/storefront/checkout-progress-steps";
 import { cn } from "@/lib/utils";
 
 type Props = {
   activeStep: CheckoutProgressStep;
   detailsSubStep?: "contact" | "delivery";
-  /** Saved delivery summary is shown instead of the full form */
   hasSavedDetails?: boolean;
   className?: string;
 };
@@ -15,35 +22,64 @@ function stepHint(
   activeStep: CheckoutProgressStep,
   detailsSubStep: "contact" | "delivery",
   hasSavedDetails: boolean,
-): string {
+): { message: string; icon: typeof User } {
   if (activeStep === 1) {
     if (hasSavedDetails) {
-      return "Your saved details are ready. Tap Continue, or Edit to change something.";
+      return {
+        message: "Saved details loaded — tap Continue or Edit if something changed.",
+        icon: Sparkles,
+      };
     }
     if (detailsSubStep === "contact") {
-      return "Enter your contact details, then tap Continue.";
+      return {
+        message: "Start with email and phone so we can confirm your order.",
+        icon: User,
+      };
     }
-    return "Add your delivery address, then tap Continue to review.";
+    return {
+      message: "Pick your area, then add street details for the rider.",
+      icon: MapPin,
+    };
   }
   if (activeStep === 2) {
-    return "Review your cart, then tap Continue to payment below.";
+    return {
+      message: "Check items and total, then continue to payment.",
+      icon: Package,
+    };
   }
-  return "Choose how to pay, then place your order.";
+  return {
+    message: "Choose payment and place your order.",
+    icon: CreditCard,
+  };
 }
 
-/** One-line helper for the active checkout step only. */
+/** Contextual helper for the active checkout step. */
 export function CheckoutStepHint({
   activeStep,
   detailsSubStep = "contact",
   hasSavedDetails = false,
   className,
 }: Props) {
+  const { message, icon: Icon } = stepHint(
+    activeStep,
+    detailsSubStep,
+    hasSavedDetails,
+  );
+
   return (
-    <p
-      className={cn("text-[11px] leading-snug text-muted-foreground", className)}
+    <div
+      className={cn(
+        "flex items-start gap-2 rounded-lg border border-border/50 bg-muted/25 px-2.5 py-2",
+        className,
+      )}
       aria-live="polite"
     >
-      {stepHint(activeStep, detailsSubStep, hasSavedDetails)}
-    </p>
+      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icon className="size-3" aria-hidden />
+      </span>
+      <p className="min-w-0 text-[11px] leading-snug text-muted-foreground">
+        {message}
+      </p>
+    </div>
   );
 }

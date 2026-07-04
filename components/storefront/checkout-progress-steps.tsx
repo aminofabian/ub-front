@@ -34,6 +34,7 @@ export function CheckoutProgressSteps({
 }: Props) {
   if (focused && !complete) {
     const step = STEPS.find((s) => s.id === activeStep) ?? STEPS[0];
+    const pct = Math.round((activeStep / STEPS.length) * 100);
     return (
       <div
         className={cn("min-w-0", className)}
@@ -43,17 +44,22 @@ export function CheckoutProgressSteps({
         aria-valuenow={activeStep}
         aria-label={`Checkout step ${activeStep} of ${STEPS.length}: ${step.label}`}
       >
-        <p className="text-[11px] font-semibold text-foreground">
-          Step {activeStep} of {STEPS.length}
-          <span className="font-normal text-muted-foreground">
-            {" "}
-            · {step.label}
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-[11px] font-semibold text-foreground">
+            Step {activeStep} of {STEPS.length}
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · {step.label}
+            </span>
+          </p>
+          <span className="shrink-0 text-[10px] font-bold tabular-nums text-primary/80">
+            {pct}%
           </span>
-        </p>
-        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border/70">
+        </div>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/60">
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-            style={{ width: `${(activeStep / STEPS.length) * 100}%` }}
+            className="h-full rounded-full bg-linear-to-r from-primary/80 to-primary transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
           />
         </div>
       </div>

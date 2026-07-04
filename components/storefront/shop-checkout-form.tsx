@@ -13,22 +13,29 @@ import {
   PackageCheck,
   ShieldCheck,
   ShoppingBag,
+  Sparkles,
   Truck,
   User,
   Zap,
+  CreditCard,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { CheckoutDetailsSubSteps } from "@/components/storefront/checkout-details-substeps";
 import { CheckoutProgressSteps } from "@/components/storefront/checkout-progress-steps";
 import { CheckoutStepHint } from "@/components/storefront/checkout-step-hint";
 import {
+  CHECKOUT_ACCOUNT_NUDGE,
   CHECKOUT_CARD,
   CHECKOUT_CARD_INSET,
   CHECKOUT_CARD_PAD,
   CHECKOUT_DOCK_AMOUNT,
+  CHECKOUT_FORM_GROUP,
+  CHECKOUT_FORM_GROUP_LABEL,
   CHECKOUT_INPUT,
+  CHECKOUT_INPUT_COMPLETE,
   CHECKOUT_INPUT_PLAIN,
   CHECKOUT_VARIANT_PILL,
   CHECKOUT_LABEL,
@@ -38,6 +45,7 @@ import {
   CHECKOUT_SELECT,
   CHECKOUT_SERIF_AMOUNT,
   CHECKOUT_STICKY_HEAD,
+  formatDeliveryZone,
 } from "@/components/storefront/shop-checkout-design";
 import { CheckoutScrollEndSpacer } from "@/components/storefront/shop-checkout-dock-height";
 import {
@@ -58,9 +66,9 @@ import {
 import {
   dismissCheckoutSignupPrompt,
   isCheckoutSignupDismissed,
-  ShopCheckoutLoginModal,
   ShopCheckoutSignupModal,
 } from "@/components/storefront/shop-checkout-signup-modal";
+import { ShopCheckoutLoginModal } from "@/components/storefront/shop-checkout-login-modal";
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
@@ -246,8 +254,9 @@ function CheckoutFloatingCta({
     return (
       <div
         className={cn(
-          "rounded-lg border border-border/40 bg-card/90 p-2 shadow-sm ring-1 ring-black/[0.03]",
-          pulse && "ring-2 ring-primary/30 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
+          "rounded-xl border border-border/45 bg-card/95 p-2 shadow-sm ring-1 ring-black/[0.03]",
+          pulse &&
+            "ring-2 ring-primary/25 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_30%,transparent)]",
         )}
       >
         {children}
@@ -258,9 +267,9 @@ function CheckoutFloatingCta({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/40 bg-card/90 p-3.5 shadow-sm ring-1 ring-black/[0.03] sm:p-4",
+        "rounded-xl border border-border/45 bg-card/95 p-3.5 shadow-sm ring-1 ring-black/[0.03] sm:p-4",
         pulse &&
-          "ring-2 ring-primary/30 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
+          "ring-2 ring-primary/25 shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_30%,transparent)]",
       )}
     >
       {children}
@@ -268,26 +277,68 @@ function CheckoutFloatingCta({
   );
 }
 
+function FormFieldGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={CHECKOUT_FORM_GROUP}>
+      <div>
+        <p className={CHECKOUT_FORM_GROUP_LABEL}>{title}</p>
+        {description ? (
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function FieldCompleteMark({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary/12 text-primary">
+      <Check className="size-2.5 stroke-[3]" aria-hidden />
+    </span>
+  );
+}
+
 function SectionHeader({
   icon,
   title,
   subtitle,
+  badge,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle?: string;
+  badge?: string;
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/[0.08] text-primary">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/[0.09] text-primary ring-1 ring-primary/10">
         {icon}
       </div>
-      <div className="min-w-0">
-        <h2 className="text-sm font-semibold tracking-tight text-foreground">
-          {title}
-        </h2>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            {title}
+          </h2>
+          {badge ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {badge}
+            </span>
+          ) : null}
+        </div>
         {subtitle ? (
-          <p className="mt-0.5 hidden text-[11px] leading-snug text-muted-foreground sm:block">
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
             {subtitle}
           </p>
         ) : null}
@@ -301,28 +352,44 @@ function InputField({
   required,
   hint,
   variant = "default",
+  complete,
+  className,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   hint?: string;
   variant?: "default" | "plain";
+  complete?: boolean;
 }) {
   const isPlain = variant === "plain";
+  const filled =
+    complete ??
+    Boolean(
+      props.value != null &&
+        String(props.value).trim().length > 0 &&
+        props.value !== props.placeholder,
+    );
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className={isPlain ? CHECKOUT_LABEL_PLAIN : CHECKOUT_LABEL}>
-        {label}
-        {required !== false && (
-          <span className="ml-0.5 text-destructive/80">*</span>
-        )}
+    <label className={cn("flex flex-col gap-1.5 text-sm", className)}>
+      <span className="flex items-center justify-between gap-2">
+        <span className={isPlain ? CHECKOUT_LABEL_PLAIN : CHECKOUT_LABEL}>
+          {label}
+          {required !== false && (
+            <span className="ml-0.5 text-destructive/80">*</span>
+          )}
+        </span>
+        <FieldCompleteMark show={filled} />
       </span>
       <input
         {...props}
         required={required !== false}
-        className={isPlain ? CHECKOUT_INPUT_PLAIN : CHECKOUT_INPUT}
+        className={cn(
+          isPlain ? CHECKOUT_INPUT_PLAIN : CHECKOUT_INPUT,
+          filled && !isPlain && CHECKOUT_INPUT_COMPLETE,
+        )}
       />
       {hint ? (
-        <span className="text-xs leading-relaxed text-muted-foreground">
+        <span className="text-[11px] leading-relaxed text-muted-foreground">
           {hint}
         </span>
       ) : null}
@@ -336,21 +403,30 @@ function SelectField({
   hint,
   children,
   variant = "default",
+  complete,
+  className,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   hint?: string;
   children: React.ReactNode;
   variant?: "default" | "plain";
+  complete?: boolean;
 }) {
   const isPlain = variant === "plain";
+  const filled =
+    complete ??
+    Boolean(props.value != null && String(props.value).trim().length > 0);
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className={isPlain ? CHECKOUT_LABEL_PLAIN : CHECKOUT_LABEL}>
-        {label}
-        {required !== false && (
-          <span className="ml-0.5 text-destructive/80">*</span>
-        )}
+    <label className={cn("flex flex-col gap-1.5 text-sm", className)}>
+      <span className="flex items-center justify-between gap-2">
+        <span className={isPlain ? CHECKOUT_LABEL_PLAIN : CHECKOUT_LABEL}>
+          {label}
+          {required !== false && (
+            <span className="ml-0.5 text-destructive/80">*</span>
+          )}
+        </span>
+        <FieldCompleteMark show={filled} />
       </span>
       <select
         {...props}
@@ -358,12 +434,13 @@ function SelectField({
         className={cn(
           isPlain ? CHECKOUT_INPUT_PLAIN : CHECKOUT_SELECT,
           "cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+          filled && !isPlain && CHECKOUT_INPUT_COMPLETE,
         )}
       >
         {children}
       </select>
       {hint ? (
-        <span className="text-xs leading-relaxed text-muted-foreground">
+        <span className="text-[11px] leading-relaxed text-muted-foreground">
           {hint}
         </span>
       ) : null}
@@ -1732,11 +1809,22 @@ export default function ShopCheckoutForm({
               compact
               dense
             />
+            {showDetailsStep && !showSavedDeliverySummary ? (
+              <CheckoutDetailsSubSteps
+                active={detailsSubStep}
+                contactComplete={contactFieldsComplete}
+                deliveryComplete={deliveryFieldsComplete}
+                onSelect={(step) => {
+                  if (step === "contact") returnToContactSubStep();
+                }}
+                className="mt-2"
+              />
+            ) : null}
             <CheckoutStepHint
               activeStep={activeCheckoutStep}
               detailsSubStep={detailsSubStep}
               hasSavedDetails={showSavedDeliverySummary}
-              className="mt-1.5 max-sm:pr-7"
+              className="mt-2 max-sm:pr-7"
             />
           </div>
         </div>
@@ -1791,15 +1879,41 @@ export default function ShopCheckoutForm({
 
           {showContactSubStep ? (
             <>
-          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
+          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD, "space-y-4")}>
             <SectionHeader
-              icon={<User className="size-3.5" aria-hidden />}
+              icon={<User className="size-4" aria-hidden />}
               title="Contact information"
-              subtitle="Enter the details the store can use to confirm and update your order."
+              subtitle="We'll use this to confirm your order and share delivery updates."
+              badge="1 of 2"
             />
 
-            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
+            <FormFieldGroup
+              title="Who is this for?"
+              description="The name shown on your order and receipt."
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <InputField
+                  label="First name"
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={(ev) => setFirstName(ev.target.value)}
+                  placeholder="John"
+                />
+                <InputField
+                  label="Last name"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={(ev) => setLastName(ev.target.value)}
+                  placeholder="Doe"
+                />
+              </div>
+            </FormFieldGroup>
+
+            <FormFieldGroup
+              title="How we reach you"
+              description="Email and phone are required for checkout."
+            >
+              <div className="space-y-3">
                 <InputField
                   label="Email address"
                   type="email"
@@ -1808,84 +1922,79 @@ export default function ShopCheckoutForm({
                   onChange={(ev) => setCustomerEmail(ev.target.value)}
                   placeholder="you@example.com"
                 />
-              </div>
-              <InputField
-                label="First name"
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(ev) => setFirstName(ev.target.value)}
-                placeholder="John"
-              />
-              <InputField
-                label="Last name"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(ev) => setLastName(ev.target.value)}
-                placeholder="Doe"
-              />
-              <div className="flex gap-3 sm:col-span-2">
-                <div className="w-[5.5rem] shrink-0 sm:w-28">
-                  <InputField
-                    label="Code"
-                    value={areaCode}
-                    onChange={(ev) => setAreaCode(ev.target.value)}
-                    placeholder="+254"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <InputField
-                    label="Phone number"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    value={customerPhone}
-                    onChange={(ev) => setCustomerPhone(ev.target.value)}
-                    placeholder="712 345 678"
-                  />
+                <div className="flex gap-2.5">
+                  <div className="w-[4.75rem] shrink-0 sm:w-[5.5rem]">
+                    <InputField
+                      label="Code"
+                      value={areaCode}
+                      onChange={(ev) => setAreaCode(ev.target.value)}
+                      placeholder="+254"
+                      inputMode="tel"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <InputField
+                      label="Phone number"
+                      autoComplete="tel"
+                      inputMode="tel"
+                      value={customerPhone}
+                      onChange={(ev) => setCustomerPhone(ev.target.value)}
+                      placeholder="712 345 678"
+                    />
+                  </div>
                 </div>
               </div>
-              <InputField
-                label="WhatsApp"
-                required={false}
-                inputMode="tel"
-                value={whatsAppNumber}
-                onChange={(ev) => setWhatsAppNumber(ev.target.value)}
-                placeholder="Same as phone"
-                hint="Optional. Use this if WhatsApp is different from your phone number."
-              />
-            </div>
+            </FormFieldGroup>
+
+            <InputField
+              label="WhatsApp"
+              required={false}
+              inputMode="tel"
+              value={whatsAppNumber}
+              onChange={(ev) => setWhatsAppNumber(ev.target.value)}
+              placeholder="Same as phone — optional"
+              hint="Only if different from your phone number."
+            />
           </div>
 
           {contactFieldsComplete && !signedIn ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-3 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  Track this order next time
-                </p>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Create a free account with {customerEmail.trim()} — we&apos;ll
-                  use the name and phone you entered. Only choose a password.
-                </p>
-              </div>
-              <div className="mt-3 flex shrink-0 flex-wrap gap-2 sm:mt-0">
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-9 rounded-xl px-4 text-xs font-semibold"
-                  onClick={openCheckoutSignupModal}
-                >
-                  Create account
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 rounded-xl px-3 text-xs text-muted-foreground"
-                  onClick={() => {
-                    dismissCheckoutSignupPrompt();
-                  }}
-                >
-                  Not now
-                </Button>
+            <div className={CHECKOUT_ACCOUNT_NUDGE}>
+              <div className="flex gap-3 sm:items-center sm:justify-between">
+                <div className="flex min-w-0 gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                    <Sparkles className="size-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Save details for next time
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      Use {customerEmail.trim()} to track orders and skip
+                      retyping your address.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex shrink-0 flex-wrap gap-2 sm:mt-0">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-9 rounded-xl px-4 text-xs font-semibold shadow-sm"
+                    onClick={() => void openCheckoutSignupModal()}
+                  >
+                    Save my details
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 rounded-xl px-3 text-xs text-muted-foreground"
+                    onClick={() => {
+                      dismissCheckoutSignupPrompt();
+                    }}
+                  >
+                    Not now
+                  </Button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -1894,85 +2003,108 @@ export default function ShopCheckoutForm({
 
           {showDeliverySubStep ? (
             <>
-          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD)}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className={cn(CHECKOUT_CARD, CHECKOUT_CARD_PAD, "space-y-4")}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <SectionHeader
-                icon={<MapPin className="size-3.5" aria-hidden />}
+                icon={<MapPin className="size-4" aria-hidden />}
                 title="Delivery location"
-                subtitle="Select your area and add a precise address so the rider can find you quickly."
+                subtitle="Help the rider find you — start with your area, then street details."
+                badge="2 of 2"
               />
-              <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-950">
+              <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-[10px] font-semibold text-emerald-900">
                 <Truck className="size-3.5" aria-hidden />
-                Supported area only
+                Nairobi delivery
               </div>
             </div>
 
-            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-              <SelectField
-                label="County"
-                value={county}
-                onChange={(ev) => setCounty(ev.target.value)}
-              >
-                <option value="">Select county</option>
-                <option value="Nairobi">Nairobi</option>
-              </SelectField>
-              <SelectField
-                label="Subcounty"
-                value={subCounty}
-                onChange={(ev) => {
-                  setSubCounty(ev.target.value);
-                  setWard("");
-                }}
-              >
-                <option value="">Select subcounty</option>
-                {NAIROBI_SUBCOUNTIES.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
+            {formatDeliveryZone(ward, subCounty, county) ? (
+              <div className="flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-2">
+                <MapPin className="size-3.5 shrink-0 text-primary" aria-hidden />
+                <p className="min-w-0 truncate text-xs font-medium text-foreground">
+                  {formatDeliveryZone(ward, subCounty, county)}
+                </p>
+              </div>
+            ) : null}
+
+            <FormFieldGroup
+              title="Your area"
+              description="County → subcounty → ward"
+            >
+              <div className="grid gap-3 sm:grid-cols-3">
+                <SelectField
+                  label="County"
+                  value={county}
+                  onChange={(ev) => setCounty(ev.target.value)}
+                >
+                  <option value="">Select county</option>
+                  <option value="Nairobi">Nairobi</option>
+                </SelectField>
+                <SelectField
+                  label="Subcounty"
+                  value={subCounty}
+                  onChange={(ev) => {
+                    setSubCounty(ev.target.value);
+                    setWard("");
+                  }}
+                >
+                  <option value="">Select subcounty</option>
+                  {NAIROBI_SUBCOUNTIES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField
+                  label="Ward"
+                  value={ward}
+                  onChange={(ev) => setWard(ev.target.value)}
+                  disabled={!subCounty}
+                >
+                  <option value="">
+                    {subCounty ? "Select ward" : "Pick subcounty first"}
                   </option>
-                ))}
-              </SelectField>
-              <SelectField
-                label="Ward"
-                value={ward}
-                onChange={(ev) => setWard(ev.target.value)}
-                disabled={!subCounty}
-              >
-                <option value="">
-                  {subCounty ? "Select ward" : "Select subcounty first"}
-                </option>
-                {wardOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </SelectField>
-              <InputField
-                label="Street Address"
-                value={streetAddress}
-                onChange={(ev) => setStreetAddress(ev.target.value)}
-                placeholder="Apartment, building, street name"
-                hint="Include the building name, apartment number, or nearby landmark."
-              />
-              <div className="sm:col-span-2">
+                  {wardOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            </FormFieldGroup>
+
+            <FormFieldGroup
+              title="Street details"
+              description="Building, apartment, or landmark the rider can spot."
+            >
+              <div className="space-y-3">
+                <InputField
+                  label="Street address"
+                  value={streetAddress}
+                  onChange={(ev) => setStreetAddress(ev.target.value)}
+                  placeholder="e.g. Sunrise Apartments, Block B"
+                />
                 <InputField
                   label="Delivery notes"
                   required={false}
                   value={deliveryNotes}
                   onChange={(ev) => setDeliveryNotes(ev.target.value)}
-                  placeholder="Landmark, gate code, preferred contact time"
+                  placeholder="Gate code, floor, preferred call time"
                 />
               </div>
-            </div>
+            </FormFieldGroup>
 
-            <label className="mt-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-sm text-foreground">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-3.5 py-3 text-sm text-foreground transition-colors hover:bg-muted/30">
               <input
                 type="checkbox"
-                className="size-4 rounded border-border text-primary focus:ring-primary/10"
+                className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
                 checked={isDefaultAddress}
                 onChange={(ev) => setIsDefaultAddress(ev.target.checked)}
               />
-              <span className="font-medium">
-                Save these delivery details for next time
+              <span>
+                <span className="font-medium">Save for next checkout</span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                  Skip retyping contact and delivery on your next order.
+                </span>
               </span>
             </label>
           </div>
@@ -1994,28 +2126,24 @@ export default function ShopCheckoutForm({
         {showReviewStep ? (
         <section
           className={cn(
-            "min-w-0 max-w-full",
+            "min-w-0 max-w-full space-y-3",
             CHECKOUT_CARD_PAD,
             CHECKOUT_CARD,
           )}
         >
+          <SectionHeader
+            icon={<PackageCheck className="size-4" aria-hidden />}
+            title="Review your order"
+            subtitle={`${cart.lines.length} ${cart.lines.length === 1 ? "item" : "items"} · confirm details before payment`}
+          />
+
           <ShopShippingSummaryCard
             contact={shippingSummary}
             onEdit={startEditingShipping}
             compact
-            className="mb-2.5"
           />
 
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                Review your order
-              </h3>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                {cart.lines.length} {cart.lines.length === 1 ? "item" : "items"}{" "}
-                in your cart
-              </p>
-            </div>
+          <div className="flex items-center justify-end">
             <Link
               href={APP_ROUTES.shopCart}
               className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
@@ -2168,6 +2296,12 @@ export default function ShopCheckoutForm({
             CHECKOUT_CARD,
           )}
         >
+          <SectionHeader
+            icon={<CreditCard className="size-4" aria-hidden />}
+            title="Payment"
+            subtitle="Almost done — review total and choose how to pay."
+          />
+
           <ShopShippingSummaryCard
             contact={shippingSummary}
             onEdit={startEditingShipping}
@@ -2192,8 +2326,9 @@ export default function ShopCheckoutForm({
             </div>
           </div>
 
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Pick a payment method below to finish your order.
+          <p className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-[11px] leading-snug text-muted-foreground">
+            Payment options are in the bar below. Place your order first, then
+            send the M-Pesa prompt if paying on your phone.
           </p>
         </section>
         ) : null}
@@ -2277,22 +2412,60 @@ export default function ShopCheckoutForm({
                 </div>
               ) : (
                 <>
-                  {floatingCheckout.eyebrow ? (
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
-                      {floatingCheckout.eyebrow}
-                    </p>
-                  ) : null}
-                  {floatingCheckout.headline ? (
-                    <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
-                      {floatingCheckout.headline}
-                    </p>
-                  ) : null}
-                  {floatingCheckout.hint ? (
-                    <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                      {floatingCheckout.hint}
-                    </p>
-                  ) : null}
-                  <div className="mt-2 flex items-end gap-2 border-t border-border/50 pt-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {floatingCheckout.eyebrow ? (
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
+                          {floatingCheckout.eyebrow}
+                        </p>
+                      ) : null}
+                      {floatingCheckout.headline ? (
+                        <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
+                          {floatingCheckout.headline}
+                        </p>
+                      ) : null}
+                      {floatingCheckout.hint ? (
+                        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                          {floatingCheckout.hint}
+                        </p>
+                      ) : null}
+                    </div>
+                    {detailsSubStep === "contact" && showShippingForm ? (
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
+                          contactFieldsComplete
+                            ? "bg-primary/12 text-primary"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {[
+                          customerEmail.trim(),
+                          firstName.trim(),
+                          lastName.trim(),
+                          customerPhone.trim(),
+                        ].filter(Boolean).length}
+                        /4
+                      </span>
+                    ) : detailsSubStep === "delivery" && showShippingForm ? (
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
+                          shippingComplete
+                            ? "bg-primary/12 text-primary"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {[
+                          subCounty,
+                          ward,
+                          streetAddress.trim(),
+                        ].filter(Boolean).length}
+                        /3
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 flex items-end gap-2 border-t border-border/50 pt-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                         Cart total
@@ -2302,12 +2475,21 @@ export default function ShopCheckoutForm({
                     <Button
                       type="button"
                       size="lg"
-                      disabled={floatingCheckout.actionDisabled}
+                      disabled={floatingCheckout.actionDisabled || stepBusy}
                       className={cn(CHECKOUT_PRIMARY_BTN, "shrink-0 gap-1.5 px-5 text-sm")}
                       onClick={floatingCheckout.onAction}
                     >
-                      {floatingCheckout.actionLabel}
-                      <ArrowRight className="size-4" aria-hidden />
+                      {stepBusy ? (
+                        <>
+                          <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          Checking…
+                        </>
+                      ) : (
+                        <>
+                          {floatingCheckout.actionLabel}
+                          <ArrowRight className="size-4" aria-hidden />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </>
