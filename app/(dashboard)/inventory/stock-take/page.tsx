@@ -53,7 +53,7 @@ import {
   type StockTakeLineRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
+import { filterInventoryQuickLinksForUser, canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 import { StockTakeSearchResults } from "./_components/StockTakeSearchResults";
 
@@ -106,13 +106,7 @@ export default function StockTakePage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  const showSystemStockToStockManager = Boolean(
-    business?.inventory?.stocktake?.showSystemStockToStockManager,
-  );
-  const canSeeSystemStock =
-    roleKey === "owner" ||
-    roleKey === "admin" ||
-    (roleKey === "stock_manager" && showSystemStockToStockManager);
+  const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
   const canApprove = hasPermission(

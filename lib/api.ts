@@ -4502,6 +4502,7 @@ export type DailyAuditLineRecord = {
   status: string;
   submittedAt: string | null;
   sortOrder: number;
+  systemStock?: number | string | null;
 };
 
 export type DailyAuditSessionRecord = {

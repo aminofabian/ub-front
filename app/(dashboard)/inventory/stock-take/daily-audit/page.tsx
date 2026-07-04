@@ -36,6 +36,7 @@ import {
   type DailyAuditTodayRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
 type SessionType = "morning" | "evening";
@@ -50,9 +51,10 @@ function sortedLines(session: DailyAuditSessionRecord): DailyAuditLineRecord[] {
 }
 
 export default function DailyAuditPage() {
-  const { me } = useDashboard();
+  const { me, business } = useDashboard();
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
+  const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
 
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -387,6 +389,11 @@ export default function DailyAuditPage() {
                 {currentLine.unitType ? (
                   <span className="rounded-full bg-muted px-2 py-1">
                     {currentLine.unitType}
+                  </span>
+                ) : null}
+                {canSeeSystemStock && currentLine.systemStock != null ? (
+                  <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
+                    System {String(currentLine.systemStock)}
                   </span>
                 ) : null}
               </div>

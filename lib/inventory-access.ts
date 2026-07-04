@@ -148,6 +148,23 @@ export function allowNegativeStockForSales(
   return Boolean(stockLevelsSettings(business)?.allowNegativeStock);
 }
 
+export function canStockManagerSeeSystemStockDuringCount(
+  me: MeResponse | null | undefined,
+  business: BusinessRecord | null | undefined,
+): boolean {
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  if (roleKey === "owner" || roleKey === "admin") {
+    return true;
+  }
+  if (hasPermission(me?.permissions, Permission.StocktakeApprove)) {
+    return true;
+  }
+  if (roleKey === "stock_manager") {
+    return Boolean(business?.inventory?.stocktake?.showSystemStockToStockManager);
+  }
+  return false;
+}
+
 export function inventoryQuickLinksForUser(
   me: MeResponse | null | undefined,
 ): InventoryQuickLink[] {

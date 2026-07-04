@@ -346,8 +346,9 @@ export function BusinessSettingsForm({
                 Show system stock to stock managers
               </span>
               <span className={hintClass()}>
-                When enabled, stock managers see on-hand quantity in the count
-                modal. Owners and admins always see it.
+                When enabled, stock managers see on-hand system quantity during
+                general stock take and daily audit counting. Owners and admins
+                always see it. Daily audit review stays admin-only.
               </span>
             </span>
           </label>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BarChart3,
   Boxes,
+  ClipboardCheck,
   Package,
   RefreshCw,
   ScanLine,
@@ -44,6 +45,7 @@ import {
 } from "@/lib/business-hub/formatters";
 import type { Period } from "@/lib/business-hub/types";
 import { cn } from "@/lib/utils";
+import { hasPermission, Permission } from "@/lib/permissions";
 import {
   addDays,
   presetRange,
@@ -88,6 +90,10 @@ export function BusinessHubWorkspace() {
     isButcherPosEnabled(featureFlags) && canQuickSale;
 
   const roleKey = me?.role?.key?.trim().toLowerCase();
+  const canApproveStockTake = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
   const canViewOwnerSummary =
     roleKey !== "stock_manager" && roleKey !== "cashier";
 
@@ -488,6 +494,13 @@ export function BusinessHubWorkspace() {
           />
           <QuickChip href={APP_ROUTES.products} label="Catalogue" icon={Package} />
           <QuickChip href={APP_ROUTES.inventoryStock} label="Inventory" icon={Boxes} />
+          {canApproveStockTake ? (
+            <QuickChip
+              href={APP_ROUTES.inventoryStockTakeDailyAuditReview}
+              label="Audit review"
+              icon={ClipboardCheck}
+            />
+          ) : null}
           <QuickChip href={APP_ROUTES.analytics} label="Analytics" icon={BarChart3} />
           <QuickChip href="/storefront" label="Storefront" icon={Store} />
           <QuickChip href={APP_ROUTES.customers} label="Customers" icon={Users} />

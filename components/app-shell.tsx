@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   LayoutDashboard,
@@ -95,6 +96,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.users, label: "Users" },
       { href: APP_ROUTES.businessImport, label: "Data import" },
       { href: APP_ROUTES.promoCampaigns, label: "Promotions" },
+      {
+        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
+        label: "Daily audit review",
+      },
       { href: APP_ROUTES.desktopSettings, label: "Desktop & LAN" },
     ],
   },
@@ -137,20 +142,17 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Warehouse,
     entryHref: APP_ROUTES.inventoryStock,
     items: [
+      { href: APP_ROUTES.inventoryStockTakeDailyAudit, label: "Daily audit" },
+      {
+        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
+        label: "Audit review",
+      },
+      { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
       { href: APP_ROUTES.inventorySupplyBatches, label: "Supply batches" },
       { href: APP_ROUTES.inventoryStock, label: "Stock" },
       { href: APP_ROUTES.inventoryRestock, label: "Out of stock" },
       { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
-      { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
-      {
-        href: APP_ROUTES.inventoryStockTakeDailyAudit,
-        label: "Daily audit",
-      },
-      {
-        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
-        label: "Audit review",
-      },
       {
         href: APP_ROUTES.inventoryStockTakeInvestigations,
         label: "Investigations",
@@ -347,6 +349,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canManageBusinessSettings;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;
+  if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
+    return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.categories) return gate.canViewCategories;
   if (item.href === APP_ROUTES.purchasingIntelligence)
     return gate.canViewPurchasingIntelligence;
@@ -452,6 +456,13 @@ const STOCK_MANAGER_BOTTOM_TABS: readonly BottomTab[] = [
     label: "Out",
     icon: PackageX,
     href: APP_ROUTES.inventoryRestock,
+    matchSectionIds: ["inventory"],
+  },
+  {
+    id: "daily-audit",
+    label: "Audit",
+    icon: ClipboardCheck,
+    href: APP_ROUTES.inventoryStockTakeDailyAudit,
     matchSectionIds: ["inventory"],
   },
   {
@@ -840,6 +851,7 @@ export function AppShell({ children }: AppShellProps) {
     if (roleKey === "stock_manager") {
       const allowed = [
         APP_ROUTES.inventoryStockTake,
+        APP_ROUTES.inventoryStockTakeDailyAudit,
         APP_ROUTES.inventoryStock,
         APP_ROUTES.inventoryRestock,
         APP_ROUTES.purchasingAddSupplies,
