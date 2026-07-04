@@ -237,6 +237,7 @@ type StatusBannerProps = {
   hasOnlinePay: boolean;
   hasManualPay: boolean;
   stkSent: boolean;
+  payOnDelivery?: boolean;
 };
 
 export function OrderPaymentStatusBanner({
@@ -247,6 +248,7 @@ export function OrderPaymentStatusBanner({
   hasOnlinePay,
   hasManualPay,
   stkSent,
+  payOnDelivery = false,
 }: StatusBannerProps) {
   if (paymentConfirmed) {
     return (
@@ -306,6 +308,40 @@ export function OrderPaymentStatusBanner({
             </p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (payOnDelivery) {
+    return (
+      <div
+        className="relative overflow-hidden rounded-xl border border-emerald-200/80 bg-linear-to-r from-emerald-50/90 via-background to-transparent px-3 py-2.5"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+              <Check className="size-3.5" strokeWidth={3} aria-hidden />
+            </span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800/90">
+                Pay on delivery
+              </p>
+              <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
+                {total}
+              </p>
+            </div>
+          </div>
+          <OrderPaymentStatusBadge
+            paymentConfirmed={false}
+            paymentFailed={false}
+            size="sm"
+          />
+        </div>
+        <p className="relative mt-1.5 text-[10px] leading-snug text-muted-foreground">
+          Order confirmed. Pay cash or M-Pesa to the rider when your delivery arrives.
+        </p>
       </div>
     );
   }

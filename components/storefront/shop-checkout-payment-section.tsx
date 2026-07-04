@@ -1,5 +1,6 @@
 "use client";
 
+import { Banknote, Check, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +10,7 @@ export type StkDockSendAction = {
   disabled: boolean;
   onSend: () => void;
 };
+
 import type {
   PublicOnlinePaymentMethod,
   PublicPaymentInstruction,
@@ -16,21 +18,23 @@ import type {
 import {
   CHECKOUT_INPUT,
   CHECKOUT_LABEL,
+  CHECKOUT_MPESA_FEATURED,
+  CHECKOUT_PAY_SECONDARY,
   CHECKOUT_PAYMENT_PANEL,
 } from "@/components/storefront/shop-checkout-design";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import { cn } from "@/lib/utils";
 
+export type CheckoutPaymentMethod = "mpesa" | "pay_on_delivery";
+
 function PaymentSectionHeading({
   title,
   amountDue,
   compact,
-  tone = "primary",
 }: {
   title: string;
   amountDue?: string | null;
   compact?: boolean;
-  tone?: "primary";
 }) {
   const showAmount = amountDue && !compact;
 
@@ -123,6 +127,101 @@ function ManualInstructionCard({
   );
 }
 
+function PaymentMethodOption({
+  selected,
+  onSelect,
+  title,
+  description,
+  icon,
+  badge,
+  featured,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  badge?: string;
+  featured?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        featured ? CHECKOUT_MPESA_FEATURED : CHECKOUT_PAY_SECONDARY,
+        selected && !featured && "border-primary/35 bg-primary/[0.04] ring-1 ring-primary/15",
+        !selected && featured && "opacity-90",
+      )}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cn(
+          "flex w-full items-start gap-3 p-3.5 text-left sm:p-4",
+          featured && "pb-0",
+        )}
+        aria-pressed={selected}
+      >
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl",
+            featured
+              ? "bg-[#00a651]/15 text-[#007a3d]"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "font-semibold tracking-tight",
+                featured ? "text-sm text-foreground" : "text-[13px] text-foreground",
+              )}
+            >
+              {title}
+            </span>
+            {badge ? (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em]",
+                  featured
+                    ? "bg-[#00a651]/15 text-[#007a3d]"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                {featured ? <Sparkles className="size-2.5" aria-hidden /> : null}
+                {badge}
+              </span>
+            ) : null}
+          </span>
+          <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+            {description}
+          </span>
+        </span>
+        <span
+          className={cn(
+            "mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+            selected
+              ? "border-primary bg-primary text-white"
+              : "border-border bg-background",
+          )}
+          aria-hidden
+        >
+          {selected ? <Check className="size-3 stroke-[3]" /> : null}
+        </span>
+      </button>
+      {selected && children ? (
+        <div className={cn(featured ? "px-3.5 pb-3.5 pt-2 sm:px-4 sm:pb-4" : "px-3.5 pb-3.5")}>
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type OnlineStkProps = {
   methods: PublicOnlinePaymentMethod[];
   defaultAreaCode: string;
@@ -132,14 +231,14 @@ type OnlineStkProps = {
   stkSent: boolean;
   onPay: (configId: string, phoneNumber: string) => void;
   compact?: boolean;
+  featured?: boolean;
   promptDisabled?: boolean;
   promptDisabledHint?: string;
-  /** Hide send button; parent renders it in the dock action row */
   actionsInDock?: boolean;
   onStkSendActionChange?: (action: StkDockSendAction | null) => void;
 };
 
-function OnlineStkSection({
+function OnlineStkFields({
   methods,
   defaultAreaCode,
   defaultPhone,
@@ -148,12 +247,12 @@ function OnlineStkSection({
   stkSent,
   onPay,
   compact,
+  featured,
   promptDisabled,
   promptDisabledHint,
-  amountDue,
   actionsInDock,
   onStkSendActionChange,
-}: OnlineStkProps & { amountDue?: string | null }) {
+}: OnlineStkProps) {
   const [areaCode, setAreaCode] = useState(defaultAreaCode);
   const [phone, setPhone] = useState(defaultPhone);
 
@@ -181,7 +280,6 @@ function OnlineStkSection({
     });
   }, [
     methods,
-    compact,
     promptDisabled,
     actionsInDock,
     onStkSendActionChange,
@@ -199,39 +297,21 @@ function OnlineStkSection({
   const primaryMethod = methods[0];
 
   return (
-    <div
-      className={cn(
-        "min-w-0 max-w-full rounded-xl border border-[color-mix(in_srgb,var(--primary)_18%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_5%,var(--card))] ring-1 ring-[color-mix(in_srgb,var(--primary)_8%,transparent)]",
-        compact ? "space-y-1.5 p-1.5" : "space-y-3 p-4",
-      )}
-    >
-      {!compact ? (
-        <>
-          <PaymentSectionHeading
-            title="Pay with M-Pesa on your phone"
-            amountDue={amountDue}
-            compact={false}
-            tone="primary"
-          />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Enter the number that should receive the M-Pesa prompt, then tap send. Approve the
-            request on that phone to complete payment.
-          </p>
-        </>
-      ) : (
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90">
-          M-Pesa
-        </p>
-      )}
+    <div className={cn("space-y-2", featured && "rounded-lg bg-background/60 p-2.5 ring-1 ring-[#00a651]/10")}>
       {promptDisabled ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+          <Zap className="mt-0.5 size-3 shrink-0 text-[#00a651]" aria-hidden />
           {promptDisabledHint ??
-            "Place your order first, then send the M-Pesa prompt to your phone."}
+            "Place your order first, then tap Send prompt to pay on your phone."}
         </p>
-      ) : null}
+      ) : (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Enter the number that receives the M-Pesa prompt, then approve on your phone.
+        </p>
+      )}
       <div
         className={cn(
-          "gap-1.5",
+          "gap-2",
           compact
             ? "flex min-w-0 flex-wrap items-end"
             : "grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)]",
@@ -248,7 +328,7 @@ function OnlineStkSection({
             type="text"
             inputMode="tel"
             autoComplete="tel-country-code"
-            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "")}
+            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "", featured && "border-[#00a651]/25")}
             value={areaCode}
             onChange={(e) => setAreaCode(e.target.value)}
             placeholder="+254"
@@ -256,57 +336,50 @@ function OnlineStkSection({
           />
         </label>
         <label className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className={CHECKOUT_LABEL}>Phone</span>
+          <span className={CHECKOUT_LABEL}>M-Pesa phone</span>
           <input
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "")}
+            className={cn(CHECKOUT_INPUT, compact ? "h-9 px-2" : "", featured && "border-[#00a651]/25")}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="712 345 678"
             disabled={busy || stkSent}
           />
         </label>
-        {compact && !actionsInDock
-          ? methods.map((m) => (
-              <Button
-                key={m.configId}
-                type="button"
-                size="sm"
-                className="h-9 shrink-0 rounded-xl px-3 text-xs font-semibold shadow-sm"
-                disabled={busy || stkSent || !phoneValid || promptDisabled}
-                onClick={() => onPay(m.configId, fullPhone)}
-              >
-                {busy ? "Sending…" : stkSent ? "Sent" : "Send prompt"}
-              </Button>
-            ))
-          : null}
+        {compact && !actionsInDock ? (
+          <Button
+            type="button"
+            size="sm"
+            className="h-9 shrink-0 rounded-xl bg-[#00a651] px-3 text-xs font-bold text-white shadow-md hover:bg-[#008f47]"
+            disabled={busy || stkSent || !phoneValid || promptDisabled}
+            onClick={() => onPay(primaryMethod.configId, fullPhone)}
+          >
+            {busy ? "Sending…" : stkSent ? "Sent ✓" : "Send prompt"}
+          </Button>
+        ) : null}
       </div>
       {!phoneValid && phone.trim() ? (
         <p className="text-[11px] text-destructive">Invalid number</p>
       ) : null}
-      {!compact && !actionsInDock
-        ? methods.map((m) => (
-            <Button
-              key={m.configId}
-              type="button"
-              size="sm"
-              className="h-9 w-full rounded-lg text-xs font-semibold sm:w-auto sm:self-end"
-              disabled={busy || stkSent || !phoneValid || promptDisabled}
-              onClick={() => onPay(m.configId, fullPhone)}
-            >
-              {busy ? "Sending…" : stkSent ? "Prompt sent" : "Send prompt"}
-            </Button>
-          ))
-        : null}
+      {!compact && !actionsInDock ? (
+        <Button
+          type="button"
+          size="sm"
+          className="h-10 w-full rounded-xl bg-[#00a651] text-sm font-bold text-white shadow-md hover:bg-[#008f47] sm:w-auto sm:px-6"
+          disabled={busy || stkSent || !phoneValid || promptDisabled}
+          onClick={() => onPay(primaryMethod.configId, fullPhone)}
+        >
+          {busy ? "Sending…" : stkSent ? "Prompt sent ✓" : "Send M-Pesa prompt"}
+        </Button>
+      ) : null}
       {stkMessage ? (
         <p
-          className={
-            stkSent
-              ? "text-xs font-medium text-primary"
-              : "text-xs text-destructive"
-          }
+          className={cn(
+            "text-xs font-medium",
+            stkSent ? "text-[#007a3d]" : "text-destructive",
+          )}
         >
           {stkMessage}
         </p>
@@ -329,94 +402,172 @@ export function ShopCheckoutPaymentSection({
   amountDue,
   actionsInDock,
   onStkSendActionChange,
+  selectedMethod = "mpesa",
+  onSelectMethod,
+  payOnDeliveryAvailable = true,
 }: {
   manual: PublicPaymentInstruction[];
   online: PublicOnlinePaymentMethod[];
-  /** Prefill for M-Pesa prompt (usually checkout contact phone). */
   defaultAreaCode?: string;
   defaultPhone?: string;
   stkBusy?: boolean;
   stkMessage?: string | null;
   stkSent?: boolean;
   onStkPay?: (configId: string, phoneNumber: string) => void;
-  /** When false, STK send stays disabled until the order exists */
   orderPlaced?: boolean;
-  /** Compact layout for the floating checkout stack */
   variant?: "default" | "floating";
-  /** Shown beside payment headings (e.g. "How to pay") */
   amountDue?: string | null;
-  /** Move M-Pesa send button into the dock action row (confirmation mobile) */
   actionsInDock?: boolean;
   onStkSendActionChange?: (action: StkDockSendAction | null) => void;
+  selectedMethod?: CheckoutPaymentMethod;
+  onSelectMethod?: (method: CheckoutPaymentMethod) => void;
+  payOnDeliveryAvailable?: boolean;
 }) {
   const hasManual = manual.length > 0;
   const hasOnline = online.length > 0;
   const floating = variant === "floating";
-  if (!hasManual && !hasOnline) return null;
+  const showMethodPicker = Boolean(onSelectMethod) && payOnDeliveryAvailable;
+  const mpesaSelected = selectedMethod === "mpesa";
+  const codSelected = selectedMethod === "pay_on_delivery";
+
+  if (!hasManual && !hasOnline && !payOnDeliveryAvailable) return null;
 
   const stkPromptDisabled = hasOnline && !orderPlaced;
-  const showManualFirst = floating && orderPlaced && hasManual;
   const dockActions = Boolean(actionsInDock && orderPlaced && floating);
 
-  const manualBlock = hasManual ? (
-    <div
-      className={cn(
-        floating
-          ? cn("px-2 py-1.5", CHECKOUT_PAYMENT_PANEL)
-          : cn("space-y-2.5 p-4", CHECKOUT_PAYMENT_PANEL),
-      )}
-    >
-      {!floating ? (
-        <PaymentSectionHeading
-          title={
-            hasOnline && onStkPay ? "Or pay manually" : "How to pay"
-          }
-          amountDue={amountDue}
-          compact={false}
-        />
-      ) : null}
-      {manual.map((pi) => (
-        <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
-      ))}
-    </div>
-  ) : null;
+  const manualBlock =
+    hasManual && paymentMethod !== "pay_on_delivery" ? (
+      <div
+        className={cn(
+          floating
+            ? cn("px-2 py-1.5", CHECKOUT_PAYMENT_PANEL)
+            : cn("space-y-2.5 p-4", CHECKOUT_PAYMENT_PANEL),
+        )}
+      >
+        {!floating ? (
+          <PaymentSectionHeading title="Or pay manually" amountDue={amountDue} compact={false} />
+        ) : null}
+        {manual.map((pi) => (
+          <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
+        ))}
+      </div>
+    ) : null;
 
-  const onlineBlock =
-    hasOnline && onStkPay ? (
-      <OnlineStkSection
-        methods={online}
-        defaultAreaCode={defaultAreaCode}
-        defaultPhone={defaultPhone}
-        busy={stkBusy ?? false}
-        stkMessage={stkMessage ?? null}
-        stkSent={stkSent ?? false}
-        onPay={onStkPay}
-        compact={floating}
-        amountDue={amountDue}
-        promptDisabled={stkPromptDisabled}
-        promptDisabledHint={
-          stkPromptDisabled
-            ? "Place your order first, then send the M-Pesa prompt to your phone."
-            : undefined
-        }
-        actionsInDock={dockActions}
-        onStkSendActionChange={onStkSendActionChange}
-      />
+  const mpesaBlock =
+    hasOnline && onStkPay && mpesaSelected ? (
+      showMethodPicker ? (
+        <PaymentMethodOption
+          selected={mpesaSelected}
+          onSelect={() => onSelectMethod?.("mpesa")}
+          title="M-Pesa on your phone"
+          description="Instant STK prompt — fastest way to pay and confirm your order."
+          icon={<Smartphone className="size-5" aria-hidden />}
+          badge="Recommended"
+          featured
+        >
+          <OnlineStkFields
+            methods={online}
+            defaultAreaCode={defaultAreaCode}
+            defaultPhone={defaultPhone}
+            busy={stkBusy ?? false}
+            stkMessage={stkMessage ?? null}
+            stkSent={stkSent ?? false}
+            onPay={onStkPay}
+            compact={floating}
+            featured
+            promptDisabled={stkPromptDisabled}
+            promptDisabledHint={
+              stkPromptDisabled
+                ? "Place your order first, then tap Send prompt to pay on your phone."
+                : undefined
+            }
+            actionsInDock={dockActions}
+            onStkSendActionChange={onStkSendActionChange}
+          />
+        </PaymentMethodOption>
+      ) : (
+        <div className={cn(CHECKOUT_MPESA_FEATURED, "space-y-3 p-4")}>
+          {!floating ? (
+            <>
+              <PaymentSectionHeading
+                title="Pay with M-Pesa"
+                amountDue={amountDue}
+                compact={false}
+              />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Enter the number that should receive the M-Pesa prompt, then tap send.
+              </p>
+            </>
+          ) : (
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#007a3d]">
+              M-Pesa · Recommended
+            </p>
+          )}
+          <OnlineStkFields
+            methods={online}
+            defaultAreaCode={defaultAreaCode}
+            defaultPhone={defaultPhone}
+            busy={stkBusy ?? false}
+            stkMessage={stkMessage ?? null}
+            stkSent={stkSent ?? false}
+            onPay={onStkPay}
+            compact={floating}
+            featured
+            promptDisabled={stkPromptDisabled}
+            promptDisabledHint={
+              stkPromptDisabled
+                ? "Place your order first, then send the M-Pesa prompt to your phone."
+                : undefined
+            }
+            actionsInDock={dockActions}
+            onStkSendActionChange={onStkSendActionChange}
+          />
+        </div>
+      )
+    ) : null;
+
+  const codBlock =
+    showMethodPicker && payOnDeliveryAvailable ? (
+      <PaymentMethodOption
+        selected={codSelected}
+        onSelect={() => onSelectMethod?.("pay_on_delivery")}
+        title="Pay on delivery"
+        description="Pay cash or M-Pesa to the rider when your order arrives."
+        icon={<Truck className="size-4" aria-hidden />}
+      >
+        <p className="flex items-start gap-2 rounded-lg bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+          <Banknote className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          Have the exact amount ready. Your order is confirmed once you place it — no
+          upfront payment needed.
+        </p>
+      </PaymentMethodOption>
     ) : null;
 
   return (
-    <div className={cn("min-w-0 max-w-full", floating ? "space-y-1.5" : "space-y-3")}>
-      {showManualFirst ? (
+    <div className={cn("min-w-0 max-w-full", floating ? "space-y-2" : "space-y-3")}>
+      {showMethodPicker ? (
         <>
-          {manualBlock}
-          {onlineBlock}
+          {mpesaBlock}
+          {codBlock}
         </>
       ) : (
         <>
-          {onlineBlock}
+          {mpesaBlock}
+          {codSelected && payOnDeliveryAvailable ? (
+            <div className={cn(CHECKOUT_PAY_SECONDARY, "flex items-start gap-2.5 p-3.5")}>
+              <Truck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                You chose <span className="font-semibold text-foreground">pay on delivery</span>.
+                Pay the rider when your order arrives.
+              </p>
+            </div>
+          ) : null}
           {manualBlock}
         </>
       )}
+      {showMethodPicker && hasManual && paymentMethod !== "pay_on_delivery"
+        ? manualBlock
+        : null}
     </div>
   );
 }

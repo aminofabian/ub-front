@@ -74,6 +74,14 @@ export const CHECKOUT_SECTION_INSET =
 export const CHECKOUT_PAYMENT_PANEL =
   "rounded-lg border border-[color-mix(in_srgb,var(--primary)_18%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))]";
 
+/** Featured M-Pesa card — primary payment option at checkout */
+export const CHECKOUT_MPESA_FEATURED =
+  "relative overflow-hidden rounded-xl border-2 border-[color-mix(in_srgb,#00a651_35%,var(--primary))] bg-[linear-gradient(145deg,color-mix(in_srgb,#00a651_12%,var(--card)),color-mix(in_srgb,var(--primary)_6%,var(--card)))] shadow-[0_4px_24px_-6px_color-mix(in_srgb,#00a651_28%,transparent)] ring-1 ring-[color-mix(in_srgb,#00a651_18%,transparent)]";
+
+/** Secondary pay-on-delivery option */
+export const CHECKOUT_PAY_SECONDARY =
+  "rounded-xl border border-border/60 bg-muted/15 transition-colors hover:bg-muted/25";
+
 export const CHECKOUT_CARD =
   "rounded-xl border border-[color-mix(in_srgb,var(--primary)_12%,var(--border))] bg-card/95 shadow-[0_1px_2px_color-mix(in_srgb,var(--primary)_8%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--primary)_6%,transparent)]";
 

@@ -47,6 +47,12 @@ function stepHint(
       icon: Package,
     };
   }
+  if (activeStep === 3) {
+    return {
+      message: "M-Pesa is recommended — or choose pay on delivery.",
+      icon: CreditCard,
+    };
+  }
   return {
     message: "Choose payment and place your order.",
     icon: CreditCard,

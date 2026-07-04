@@ -71,6 +71,7 @@ import {
 import { ShopCheckoutLoginModal } from "@/components/storefront/shop-checkout-login-modal";
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
+import type { CheckoutPaymentMethod } from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -505,6 +506,9 @@ export default function ShopCheckoutForm({
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("mpesa");
+  const [orderPaymentMethod, setOrderPaymentMethod] =
+    useState<CheckoutPaymentMethod | null>(null);
   const [shippingLocked, setShippingLocked] = useState(false);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [deliveryEditOpen, setDeliveryEditOpen] = useState(false);
@@ -828,6 +832,13 @@ export default function ShopCheckoutForm({
 
   const hasOnlinePay = paymentOptions.online.length > 0;
   const hasManualPay = paymentOptions.manual.length > 0;
+  const payOnDeliveryAvailable = true;
+
+  useEffect(() => {
+    if (!hasOnlinePay && !hasManualPay) {
+      setPaymentMethod("pay_on_delivery");
+    }
+  }, [hasOnlinePay, hasManualPay]);
 
   async function handleConfirmPaymentSent() {
     if (!done?.orderId) {
@@ -951,6 +962,7 @@ export default function ShopCheckoutForm({
         customerPhone: `${areaCode} ${customerPhone}`.trim(),
         customerEmail: customerEmail.trim() || undefined,
         notes: [
+          paymentMethod === "pay_on_delivery" ? "Payment: Pay on delivery" : "",
           streetAddress.trim() ? `Street: ${streetAddress.trim()}` : "",
           county.trim() ? `County: ${county.trim()}` : "",
           subCounty.trim() ? `Subcounty: ${subCounty.trim()}` : "",
@@ -1008,6 +1020,7 @@ export default function ShopCheckoutForm({
       setStkSent(false);
       setStkMessage(null);
       paymentToastShown.current = false;
+      setOrderPaymentMethod(paymentMethod);
       setDone(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed.");
@@ -1057,7 +1070,11 @@ export default function ShopCheckoutForm({
   const awaitingOnlinePayment =
     Boolean(done) &&
     !paymentConfirmed &&
-    paymentOptions.online.length > 0;
+    paymentOptions.online.length > 0 &&
+    orderPaymentMethod === "mpesa";
+
+  const payOnDeliveryOrder =
+    Boolean(done) && orderPaymentMethod === "pay_on_delivery";
 
   // ── Success (manual-only or already paid) ──
   if (done && !awaitingOnlinePayment) {
@@ -1103,6 +1120,7 @@ export default function ShopCheckoutForm({
               hasOnlinePay={hasOnlinePay}
               hasManualPay={hasManualPay}
               stkSent={stkSent}
+              payOnDelivery={payOnDeliveryOrder}
             />
             <OrderMetaStrip
               items={[
@@ -1191,7 +1209,7 @@ export default function ShopCheckoutForm({
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
           paymentSlot={
-            !paymentConfirmed && (hasManualPay || hasOnlinePay) ? (
+            !paymentConfirmed && hasOnlinePay ? (
               <ShopCheckoutPaymentSection
                 variant="floating"
                 manual={paymentOptions.manual}
@@ -1203,6 +1221,8 @@ export default function ShopCheckoutForm({
                 stkSent={stkSent}
                 onStkPay={handleStkPay}
                 orderPlaced
+                selectedMethod="mpesa"
+                amountDue={totalLabel}
               />
             ) : undefined
           }
@@ -1296,6 +1316,8 @@ export default function ShopCheckoutForm({
               stkSent={stkSent}
               onStkPay={handleStkPay}
               orderPlaced
+              selectedMethod="mpesa"
+              amountDue={placedTotal}
             />
           }
         />
@@ -1633,12 +1655,6 @@ export default function ShopCheckoutForm({
     showDetailsStep && !showSavedDeliverySummary && detailsSubStep === "delivery";
   /** Totals in the review card — step 2 only */
   const showTotalInSummary = showReviewStep;
-  /** Payment in the dock only on confirm (step 3), not while reviewing cart/terms */
-  const showFloatingPayment =
-    showConfirmStep &&
-    !isEditingShipping &&
-    termsAccepted &&
-    (paymentOptions.manual.length > 0 || paymentOptions.online.length > 0);
 
   const scrollToCheckoutTerms = () => {
     document
@@ -1716,10 +1732,17 @@ export default function ShopCheckoutForm({
               pulse: true,
             }
           : {
-            eyebrow: "",
-            headline: "",
-            hint: "",
-            actionLabel: "Complete purchase",
+            eyebrow: paymentMethod === "mpesa" ? "Pay with M-Pesa" : "Pay on delivery",
+            headline:
+              paymentMethod === "mpesa"
+                ? "Place order, then send the prompt"
+                : "Place your order — pay when it arrives",
+            hint:
+              paymentMethod === "mpesa"
+                ? "M-Pesa is selected below. Approve the prompt on your phone after ordering."
+                : "No upfront payment. Have cash or M-Pesa ready for the rider.",
+            actionLabel:
+              paymentMethod === "mpesa" ? "Place order & pay" : "Place order",
             actionDisabled: false,
             actionType: "submit" as const,
             pulse: true,
@@ -2326,10 +2349,22 @@ export default function ShopCheckoutForm({
             </div>
           </div>
 
-          <p className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-[11px] leading-snug text-muted-foreground">
-            Payment options are in the bar below. Place your order first, then
-            send the M-Pesa prompt if paying on your phone.
-          </p>
+          {hasOnlinePay || payOnDeliveryAvailable ? (
+            <ShopCheckoutPaymentSection
+              manual={paymentOptions.manual}
+              online={paymentOptions.online}
+              defaultAreaCode={areaCode}
+              defaultPhone={customerPhone}
+              amountDue={totalLabel}
+              selectedMethod={paymentMethod}
+              onSelectMethod={setPaymentMethod}
+              payOnDeliveryAvailable={payOnDeliveryAvailable}
+              onStkPay={
+                paymentOptions.online.length > 0 ? handleStkPay : undefined
+              }
+              orderPlaced={false}
+            />
+          ) : null}
         </section>
         ) : null}
         </div>
@@ -2342,23 +2377,6 @@ export default function ShopCheckoutForm({
           ariaLabel="Checkout actions"
         >
           <div className="space-y-1">
-            {showFloatingPayment ? (
-              <ShopCheckoutPaymentSection
-                variant="floating"
-                manual={paymentOptions.manual}
-                online={paymentOptions.online}
-                defaultAreaCode={areaCode}
-                defaultPhone={customerPhone}
-                stkBusy={stkBusy}
-                stkMessage={stkMessage}
-                stkSent={stkSent}
-                onStkPay={
-                  paymentOptions.online.length > 0 ? handleStkPay : undefined
-                }
-                orderPlaced={Boolean(done)}
-              />
-            ) : null}
-
             <CheckoutFloatingCta
               pulse={floatingCheckout.pulse}
               minimal={!showShippingForm}
