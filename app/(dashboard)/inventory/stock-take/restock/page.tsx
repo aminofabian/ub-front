@@ -65,6 +65,8 @@ export default function StockTakeRestockReviewPage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [draftPrices, setDraftPrices] = useState<Record<string, string>>({});
   const [draftQty, setDraftQty] = useState<Record<string, string>>({});
+  const [createPurchaseOrders, setCreatePurchaseOrders] = useState(false);
+  const [sendPurchaseOrders, setSendPurchaseOrders] = useState(false);
 
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -164,7 +166,10 @@ export default function StockTakeRestockReviewPage() {
     setActionId("generate");
     setError(null);
     try {
-      await postStockTakeRestockGenerateOrder(branchId, date);
+      await postStockTakeRestockGenerateOrder(branchId, date, {
+        createPathAPurchaseOrders: createPurchaseOrders,
+        sendPurchaseOrders: createPurchaseOrders && sendPurchaseOrders,
+      });
       await loadReview();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not generate orders");
@@ -259,7 +264,7 @@ export default function StockTakeRestockReviewPage() {
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-4">
         <Button
           variant="outline"
           disabled={actionId === "generate" || status !== "approved"}
@@ -270,6 +275,29 @@ export default function StockTakeRestockReviewPage() {
           ) : null}
           Generate supplier orders
         </Button>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={createPurchaseOrders}
+            onChange={(e) => {
+              setCreatePurchaseOrders(e.target.checked);
+              if (!e.target.checked) setSendPurchaseOrders(false);
+            }}
+            disabled={status !== "approved"}
+          />
+          Also create Path A purchase orders
+        </label>
+        {createPurchaseOrders ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={sendPurchaseOrders}
+              onChange={(e) => setSendPurchaseOrders(e.target.checked)}
+              disabled={status !== "approved"}
+            />
+            Send POs immediately
+          </label>
+        ) : null}
       </div>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}

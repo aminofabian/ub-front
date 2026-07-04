@@ -4746,6 +4746,14 @@ export type RestockOrderSummaryRecord = {
   supplierSubtotal: number | string | null;
   status: StockTakeRestockItemStatus;
   orderDraftedAt: string | null;
+  purchaseOrderId: string | null;
+};
+
+export type ConvertRestockOrderRecord = {
+  orderNumber: string;
+  purchaseOrderId: string;
+  poNumber: string;
+  status: StockTakeRestockItemStatus;
 };
 
 export async function fetchDailyAuditRestockSupplierOptions(
@@ -4836,6 +4844,7 @@ export async function postStockTakeRestockGenerateOrder(
     itemIds?: string[];
     adminNotes?: string | null;
     createPathAPurchaseOrders?: boolean;
+    sendPurchaseOrders?: boolean;
   },
 ): Promise<{ orders: RestockOrderSummaryRecord[] }> {
   const params = new URLSearchParams({ branchId });
@@ -4860,6 +4869,25 @@ export async function fetchStockTakeRestockOrders(params?: {
   const suffix = qs.toString();
   return request<RestockOrderSummaryRecord[]>(
     `/api/v1/inventory/stock-take/restock-items/orders${suffix ? `?${suffix}` : ""}`,
+  );
+}
+
+export async function fetchStockTakeRestockOrderPdf(orderNumber: string): Promise<Blob> {
+  return requestBinary(
+    `/api/v1/inventory/stock-take/restock-items/orders/${encodeURIComponent(orderNumber.trim())}/pdf`,
+  );
+}
+
+export async function postStockTakeRestockConvertToPo(
+  orderNumber: string,
+  body?: {
+    adminNotes?: string | null;
+    sendPurchaseOrder?: boolean;
+  },
+): Promise<ConvertRestockOrderRecord> {
+  return request<ConvertRestockOrderRecord>(
+    `/api/v1/inventory/stock-take/restock-items/orders/${encodeURIComponent(orderNumber.trim())}/convert-to-po`,
+    { method: "POST", body: JSON.stringify(body ?? {}) },
   );
 }
 
@@ -5874,6 +5902,42 @@ export async function fetchPathAPurchaseOrder(
 ): Promise<PathAPurchaseOrderDetailRecord> {
   return request<PathAPurchaseOrderDetailRecord>(
     `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}`,
+  );
+}
+
+export async function postPathAPurchaseOrder(body: {
+  supplierId: string;
+  branchId: string;
+  expectedDate?: string | null;
+  poNumber?: string | null;
+  notes?: string | null;
+}): Promise<PathAPurchaseOrderDetailRecord> {
+  return request<PathAPurchaseOrderDetailRecord>(PATH_A_PURCHASE_ORDERS, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function postPathAPurchaseOrderLine(
+  purchaseOrderId: string,
+  body: {
+    itemId: string;
+    qtyOrdered: number | string;
+    unitEstimatedCost: number | string;
+  },
+): Promise<PathAPurchaseOrderLineRecord> {
+  return request<PathAPurchaseOrderLineRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/lines`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function postPathAPurchaseOrderSend(
+  purchaseOrderId: string,
+): Promise<PathAPurchaseOrderDetailRecord> {
+  return request<PathAPurchaseOrderDetailRecord>(
+    `${PATH_A_PURCHASE_ORDERS}/${encodeURIComponent(purchaseOrderId.trim())}/send`,
+    { method: "POST" },
   );
 }
 

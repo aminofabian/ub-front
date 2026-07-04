@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Truck } from "lucide-react";
+import { ArrowLeft, Download, FileText, Loader2, Truck } from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchStockTakeRestockOrderPdf,
   fetchStockTakeRestockOrders,
+  postStockTakeRestockConvertToPo,
   postStockTakeRestockMarkOrdered,
   postStockTakeRestockMarkReceived,
   type RestockOrderSummaryRecord,
@@ -26,6 +28,15 @@ function num(v: number | string | null | undefined): string {
   if (v == null) return "—";
   const n = typeof v === "number" ? v : parseFloat(String(v));
   return Number.isFinite(n) ? n.toLocaleString() : String(v);
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function StockTakeRestockOrdersPage() {
@@ -56,17 +67,24 @@ export default function StockTakeRestockOrdersPage() {
 
   const runAction = async (
     orderNumber: string,
-    action: "ordered" | "received",
+    action: "ordered" | "received" | "pdf" | "convert",
   ) => {
     setActionId(orderNumber);
     setError(null);
     try {
-      if (action === "ordered") {
+      if (action === "pdf") {
+        const blob = await fetchStockTakeRestockOrderPdf(orderNumber);
+        downloadBlob(blob, `restock-order-${orderNumber}.pdf`);
+      } else if (action === "convert") {
+        await postStockTakeRestockConvertToPo(orderNumber, { sendPurchaseOrder: true });
+        await loadOrders();
+      } else if (action === "ordered") {
         await postStockTakeRestockMarkOrdered(orderNumber);
+        await loadOrders();
       } else {
         await postStockTakeRestockMarkReceived(orderNumber);
+        await loadOrders();
       }
-      await loadOrders();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed");
     } finally {
@@ -128,9 +146,38 @@ export default function StockTakeRestockOrdersPage() {
                       Drafted {new Date(order.orderDraftedAt).toLocaleString()}
                     </p>
                   ) : null}
+                  {order.purchaseOrderId ? (
+                    <p className="text-xs text-muted-foreground">
+                      Path A PO linked · {order.purchaseOrderId}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {order.status === "order_drafted" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actionId === order.orderNumber}
+                    onClick={() => void runAction(order.orderNumber, "pdf")}
+                  >
+                    {actionId === order.orderNumber ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-1 h-4 w-4" />
+                    )}
+                    PDF
+                  </Button>
+                  {order.status === "order_drafted" && !order.purchaseOrderId ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionId === order.orderNumber}
+                      onClick={() => void runAction(order.orderNumber, "convert")}
+                    >
+                      <FileText className="mr-1 h-4 w-4" />
+                      Convert to PO
+                    </Button>
+                  ) : null}
+                  {order.status === "order_drafted" && order.purchaseOrderId ? (
                     <Button
                       size="sm"
                       disabled={actionId === order.orderNumber}
