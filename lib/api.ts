@@ -858,6 +858,7 @@ export type ItemSupplierLinkRecord = {
   packSize?: number | string | null;
   packUnit?: string | null;
   active: boolean;
+  lastPurchaseAt?: string | null;
   version?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -4660,6 +4661,219 @@ export async function fetchDailyAuditInvestigations(params?: {
   const suffix = qs.toString();
   return request<DailyAuditInvestigationRecord[]>(
     `/api/v1/inventory/stock-take/daily-audits/investigations${suffix ? `?${suffix}` : ""}`,
+  );
+}
+
+export type StockTakeRestockItemStatus =
+  | "pending"
+  | "approved"
+  | "order_drafted"
+  | "ordered"
+  | "received"
+  | "rejected";
+
+export type StockTakeRestockSupplierOptionRecord = {
+  supplierId: string;
+  supplierName: string;
+  primary: boolean;
+  defaultCostPrice: number | string | null;
+  lastCostPrice: number | string | null;
+  buyingPrice: number | string | null;
+  packSize: number | string | null;
+  packUnit: string | null;
+  lastPurchaseAt: string | null;
+};
+
+export type StockTakeRestockItemRecord = {
+  id: string;
+  businessId: string;
+  branchId: string;
+  dailyAuditId: string | null;
+  stockTakeSessionId: string;
+  stockTakeLineId: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  supplierId: string;
+  supplierName: string;
+  suggestedQty: number | string;
+  buyingPrice: number | string | null;
+  supplierPackSize: number | string | null;
+  supplierPackUnit: string | null;
+  lineTotal: number | string | null;
+  addedById: string;
+  addedByName: string;
+  addedAt: string;
+  notes: string | null;
+  status: StockTakeRestockItemStatus;
+  rejectionReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  purchaseOrderId: string | null;
+  orderNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StockTakeRestockSupplierGroupRecord = {
+  supplierId: string;
+  supplierName: string;
+  supplierPhone: string | null;
+  supplierEmail: string | null;
+  supplierLocation: string | null;
+  items: StockTakeRestockItemRecord[];
+  supplierSubtotal: number | string | null;
+};
+
+export type StockTakeRestockReviewRecord = {
+  branchId: string | null;
+  dailyAuditId: string | null;
+  auditDate: string | null;
+  status: StockTakeRestockItemStatus | "all";
+  groups: StockTakeRestockSupplierGroupRecord[];
+};
+
+export type StockTakeRestockSupplierOptionsRecord = {
+  options: StockTakeRestockSupplierOptionRecord[];
+  pendingSuggestion: StockTakeRestockItemRecord | null;
+};
+
+export type RestockOrderSummaryRecord = {
+  orderNumber: string;
+  supplierId: string;
+  supplierName: string;
+  itemCount: number;
+  supplierSubtotal: number | string | null;
+  status: StockTakeRestockItemStatus;
+  orderDraftedAt: string | null;
+};
+
+export async function fetchDailyAuditRestockSupplierOptions(
+  sessionId: string,
+  lineId: string,
+): Promise<StockTakeRestockSupplierOptionsRecord> {
+  return request<StockTakeRestockSupplierOptionsRecord>(
+    `/api/v1/inventory/stock-take/restock-items/daily-audit/sessions/${encodeURIComponent(sessionId)}/lines/${encodeURIComponent(lineId)}/supplier-options`,
+  );
+}
+
+export async function postDailyAuditRestock(
+  sessionId: string,
+  body: {
+    lineId: string;
+    supplierId: string;
+    suggestedQty: number | string;
+    note?: string | null;
+  },
+): Promise<StockTakeRestockItemRecord> {
+  return request<StockTakeRestockItemRecord>(
+    `/api/v1/inventory/stock-take/restock-items/daily-audit/sessions/${encodeURIComponent(sessionId)}`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function fetchStockTakeRestockReview(
+  branchId: string,
+  auditDate?: string,
+  status?: string,
+  supplierId?: string,
+): Promise<StockTakeRestockReviewRecord> {
+  const params = new URLSearchParams({ branchId });
+  if (auditDate?.trim()) params.set("auditDate", auditDate.trim());
+  if (status?.trim()) params.set("status", status.trim());
+  if (supplierId?.trim()) params.set("supplierId", supplierId.trim());
+  return request<StockTakeRestockReviewRecord>(
+    `/api/v1/inventory/stock-take/restock-items/review?${params}`,
+  );
+}
+
+export async function patchStockTakeRestockItem(
+  restockItemId: string,
+  body: {
+    supplierId?: string;
+    suggestedQty?: number | string;
+    buyingPrice?: number | string | null;
+    notes?: string | null;
+  },
+): Promise<StockTakeRestockItemRecord> {
+  return request<StockTakeRestockItemRecord>(
+    `/api/v1/inventory/stock-take/restock-items/${encodeURIComponent(restockItemId)}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function postStockTakeRestockApprove(
+  restockItemId: string,
+): Promise<StockTakeRestockItemRecord> {
+  return request<StockTakeRestockItemRecord>(
+    `/api/v1/inventory/stock-take/restock-items/${encodeURIComponent(restockItemId)}/approve`,
+    { method: "POST" },
+  );
+}
+
+export async function postStockTakeRestockReject(
+  restockItemId: string,
+  reason: string,
+): Promise<StockTakeRestockItemRecord> {
+  return request<StockTakeRestockItemRecord>(
+    `/api/v1/inventory/stock-take/restock-items/${encodeURIComponent(restockItemId)}/reject`,
+    { method: "POST", body: JSON.stringify({ reason }) },
+  );
+}
+
+export async function deleteStockTakeRestockItem(restockItemId: string): Promise<void> {
+  await request<void>(
+    `/api/v1/inventory/stock-take/restock-items/${encodeURIComponent(restockItemId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function postStockTakeRestockGenerateOrder(
+  branchId: string,
+  auditDate?: string,
+  body?: {
+    supplierIds?: string[];
+    itemIds?: string[];
+    adminNotes?: string | null;
+    createPathAPurchaseOrders?: boolean;
+  },
+): Promise<{ orders: RestockOrderSummaryRecord[] }> {
+  const params = new URLSearchParams({ branchId });
+  if (auditDate?.trim()) params.set("auditDate", auditDate.trim());
+  return request<{ orders: RestockOrderSummaryRecord[] }>(
+    `/api/v1/inventory/stock-take/restock-items/generate-order?${params}`,
+    { method: "POST", body: JSON.stringify(body ?? {}) },
+  );
+}
+
+export async function fetchStockTakeRestockOrders(params?: {
+  from?: string;
+  to?: string;
+  supplierId?: string;
+  status?: string;
+}): Promise<RestockOrderSummaryRecord[]> {
+  const qs = new URLSearchParams();
+  if (params?.from?.trim()) qs.set("from", params.from.trim());
+  if (params?.to?.trim()) qs.set("to", params.to.trim());
+  if (params?.supplierId?.trim()) qs.set("supplierId", params.supplierId.trim());
+  if (params?.status?.trim()) qs.set("status", params.status.trim());
+  const suffix = qs.toString();
+  return request<RestockOrderSummaryRecord[]>(
+    `/api/v1/inventory/stock-take/restock-items/orders${suffix ? `?${suffix}` : ""}`,
+  );
+}
+
+export async function postStockTakeRestockMarkOrdered(orderId: string): Promise<void> {
+  await request<void>(
+    `/api/v1/inventory/stock-take/restock-items/orders/${encodeURIComponent(orderId)}/mark-ordered`,
+    { method: "POST" },
+  );
+}
+
+export async function postStockTakeRestockMarkReceived(orderId: string): Promise<void> {
+  await request<void>(
+    `/api/v1/inventory/stock-take/restock-items/orders/${encodeURIComponent(orderId)}/mark-received`,
+    { method: "POST" },
   );
 }
 

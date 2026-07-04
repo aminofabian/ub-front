@@ -25,6 +25,7 @@ import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
+  fetchDailyAuditRestockSupplierOptions,
   fetchDailyAuditSession,
   fetchDailyAuditToday,
   patchDailyAuditLine,
@@ -34,10 +35,13 @@ import {
   type DailyAuditLineRecord,
   type DailyAuditSessionRecord,
   type DailyAuditTodayRecord,
+  type StockTakeRestockItemRecord,
+  type StockTakeRestockSupplierOptionRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
+import { RestockDrawer } from "../_components/RestockDrawer";
 
 type SessionType = "morning" | "evening";
 
@@ -68,6 +72,13 @@ export default function DailyAuditPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [restockOpen, setRestockOpen] = useState(false);
+  const [restockLoading, setRestockLoading] = useState(false);
+  const [restockOptions, setRestockOptions] = useState<
+    StockTakeRestockSupplierOptionRecord[]
+  >([]);
+  const [pendingRestock, setPendingRestock] =
+    useState<StockTakeRestockItemRecord | null>(null);
 
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -139,6 +150,33 @@ export default function DailyAuditPage() {
     setCountInput(parseQty(currentLine.countedQty));
     setNoteInput(currentLine.note ?? "");
   }, [currentLine?.lineId]);
+
+  useEffect(() => {
+    if (!session || !currentLine || !canRun) {
+      setRestockOptions([]);
+      setPendingRestock(null);
+      return;
+    }
+    let cancelled = false;
+    setRestockLoading(true);
+    fetchDailyAuditRestockSupplierOptions(session.sessionId, currentLine.lineId)
+      .then((data) => {
+        if (cancelled) return;
+        setRestockOptions(data.options);
+        setPendingRestock(data.pendingSuggestion);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setRestockOptions([]);
+        setPendingRestock(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRestockLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.sessionId, currentLine?.lineId, canRun]);
 
   const persistProgress = useCallback(
     async (index: number) => {
@@ -426,6 +464,44 @@ export default function DailyAuditPage() {
           </label>
 
           {canRun ? (
+            <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+              <p className="font-medium">Restock recommendation</p>
+              {restockLoading ? (
+                <p className="mt-2 flex items-center text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Checking supplier links…
+                </p>
+              ) : restockOptions.length === 0 ? (
+                <p className="mt-2 text-muted-foreground">
+                  No supplier linked to this product.
+                </p>
+              ) : pendingRestock ? (
+                <button
+                  type="button"
+                  className="mt-2 w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-left hover:bg-primary/10"
+                  onClick={() => setRestockOpen(true)}
+                >
+                  <span className="font-medium text-primary">
+                    Added to restock list
+                  </span>
+                  <span className="mt-1 block text-muted-foreground">
+                    {pendingRestock.supplierName} · Qty {String(pendingRestock.suggestedQty)}
+                  </span>
+                </button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => setRestockOpen(true)}
+                >
+                  Add to restock list
+                </Button>
+              )}
+            </div>
+          ) : null}
+
+          {canRun ? (
             <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background/95 p-4 backdrop-blur">
               <div className={cn(DASHBOARD_MAX, "mx-auto flex gap-2")}>
                 <Button
@@ -464,6 +540,19 @@ export default function DailyAuditPage() {
             {session.submittedCount} of {session.totalCount} counts saved.
           </p>
         </div>
+      ) : null}
+
+      {session && currentLine ? (
+        <RestockDrawer
+          open={restockOpen}
+          onOpenChange={setRestockOpen}
+          sessionId={session.sessionId}
+          lineId={currentLine.lineId}
+          itemName={currentLine.itemName}
+          options={restockOptions}
+          pendingSuggestion={pendingRestock}
+          onSaved={setPendingRestock}
+        />
       ) : null}
     </div>
   );
