@@ -68,6 +68,7 @@ import {
   fetchShopperAccountOverview,
   fetchShopperPickupOrderDetail,
 } from "@/lib/api";
+import { useClientHasSession } from "@/hooks/use-client-session";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
@@ -80,6 +81,10 @@ import {
   initiatePublicWebOrderStkPush,
 } from "@/lib/public-storefront-client";
 import { cn } from "@/lib/utils";
+import {
+  readSessionBootstrap,
+  SESSION_BOOTSTRAP_KEYS,
+} from "@/lib/session-bootstrap";
 import {
   WEB_CART_CHANGED_EVENT,
   clearWebCartHandle,
@@ -115,6 +120,17 @@ type CheckoutOrderReceipt = {
     deliveryNotes: string;
   };
 };
+
+function shopperIsSignedIn(serverAuthenticated = false): boolean {
+  if (typeof window === "undefined") {
+    return serverAuthenticated;
+  }
+  return (
+    getSessionTokens() != null ||
+    Boolean(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me)) ||
+    serverAuthenticated
+  );
+}
 
 const NAIROBI_SUBCOUNTY_WARDS: Record<string, string[]> = {
   Roysambu: ["Githurai", "Kahawa West", "Zimmerman", "Roysambu", "Kahawa"],
@@ -420,13 +436,16 @@ export default function ShopCheckoutForm({
 
   const prefilled = useRef(false);
   const serverCheckoutState = useRef(false);
+  const serverAuthenticatedRef = useRef(false);
   const termsManuallyChanged = useRef(false);
   const paymentToastShown = useRef(false);
-  const [signedIn, setSignedIn] = useState(false);
   const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const [serverAuthenticated, setServerAuthenticated] = useState(false);
   const [stepBusy, setStepBusy] = useState(false);
   const pendingShippingLock = useRef(false);
   const wasShippingLockedBeforeEdit = useRef(false);
+  const hasClientSession = useClientHasSession();
+  const signedIn = hasClientSession || serverAuthenticated;
 
   const notifyPaymentConfirmed = useCallback(() => {
     setPaymentConfirmed(true);
@@ -458,6 +477,11 @@ export default function ShopCheckoutForm({
 
     if (state.guestKey) {
       writeGuestCheckoutKey(slug.trim(), state.guestKey);
+    }
+
+    if (state.authenticated) {
+      serverAuthenticatedRef.current = true;
+      setServerAuthenticated(true);
     }
 
     if (state.detailsSubStep === "delivery") {
@@ -637,10 +661,6 @@ export default function ShopCheckoutForm({
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    setSignedIn(getSessionTokens() != null);
-  }, []);
 
   useEffect(() => {
     const onChange = () => void load();
@@ -1343,7 +1363,7 @@ export default function ShopCheckoutForm({
       return;
     }
     if (
-      !signedIn &&
+      !shopperIsSignedIn(serverAuthenticatedRef.current) &&
       contactFieldsComplete &&
       !isCheckoutSignupDismissed()
     ) {
@@ -2278,7 +2298,8 @@ export default function ShopCheckoutForm({
         lastName={lastName}
         phoneDisplay={`${areaCode} ${customerPhone}`.trim()}
         onSignedIn={() => {
-          setSignedIn(true);
+          serverAuthenticatedRef.current = true;
+          setServerAuthenticated(true);
           if (pendingShippingLock.current) {
             applyShippingLock();
           }
