@@ -2,27 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  ClipboardCheck,
+  ChevronLeft,
   Loader2,
+  PackagePlus,
 } from "lucide-react";
 
 import {
-  DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
-  DashboardPageHero,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
-import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchDailyAuditRestockSupplierOptions,
@@ -92,8 +88,6 @@ export default function DailyAuditPage() {
     [session],
   );
   const currentLine = lines[currentIndex] ?? null;
-  const progressLabel =
-    lines.length > 0 ? `${currentIndex + 1} of ${lines.length}` : "0 of 0";
 
   const loadToday = useCallback(async () => {
     if (!branchId) return;
@@ -293,52 +287,39 @@ export default function DailyAuditPage() {
   }
 
   return (
-    <div className={cn(DASHBOARD_MAX, "mx-auto space-y-4 px-4 pb-24 pt-4")}>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link
-          href={APP_ROUTES.inventoryStockTake}
-          className="inline-flex items-center gap-1 hover:text-foreground"
+    <div className="mx-auto w-full max-w-lg space-y-2.5 pb-16">
+      <div className="flex flex-wrap items-end gap-2">
+        {!branchLocked ? (
+          <label className="flex min-w-[8rem] flex-1 flex-col gap-0.5">
+            <span className="text-[11px] text-muted-foreground">Branch</span>
+            <select
+              className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+            >
+              <option value="">Branch…</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label
+          className={cn(
+            "flex flex-col gap-0.5",
+            branchLocked ? "min-w-0 flex-1" : "min-w-[7rem] flex-1",
+          )}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Stock take
-        </Link>
-      </div>
-
-      <DashboardPageHero
-        icon={ClipboardCheck}
-        eyebrow="Stock Take"
-        title="Daily audit"
-        description="Count 25 random products sold yesterday. System stock is hidden during counting."
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1 text-sm">
-          <span className="text-muted-foreground">Branch</span>
+          <span className="text-[11px] text-muted-foreground">Session</span>
           <select
-            className={dashboardSelectClass(branchLocked)}
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            disabled={branchLocked}
-          >
-            <option value="">Select branch</option>
-            {branches
-              .filter((b) => !branchLocked || b.id === branchId)
-              .map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span className="text-muted-foreground">Session</span>
-          <select
-            className={dashboardSelectClass()}
+            className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
             value={sessionType}
             onChange={(e) => setSessionType(e.target.value as SessionType)}
           >
-            <option value="morning">Morning count</option>
-            <option value="evening">Evening count</option>
+            <option value="morning">Morning</option>
+            <option value="evening">Evening</option>
           </select>
         </label>
       </div>
@@ -346,40 +327,43 @@ export default function DailyAuditPage() {
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Loading today&apos;s audit…
+        <div className="flex items-center justify-center py-10 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : !today ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No daily audit for today. The list is built from products sold yesterday
-          at this branch.
+        <div className="rounded-xl border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+          No audit today
         </div>
       ) : !session && canRun ? (
-        <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
-          <p className="text-sm text-muted-foreground">
-            {today.itemCount} products ready for {sessionType} count.
+        <div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
+          <p className="text-sm tabular-nums text-muted-foreground">
+            <span className="font-semibold text-foreground">{today.itemCount}</span>{" "}
+            items
           </p>
-          <Button className="mt-4" onClick={() => void startSession()} disabled={saving}>
+          <Button
+            size="sm"
+            className="h-9 shrink-0"
+            onClick={() => void startSession()}
+            disabled={saving}
+          >
             {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Starting…
-              </>
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              "Start counting"
+              "Start"
             )}
           </Button>
         </div>
       ) : session && currentLine ? (
         <>
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-foreground">{progressLabel}</span>
+          <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+            <span className="font-medium">
+              {currentIndex + 1}/{lines.length}
+            </span>
             <span className="text-muted-foreground">
               {session.submittedCount}/{session.totalCount} saved
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="h-1 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all"
               style={{
@@ -388,134 +372,132 @@ export default function DailyAuditPage() {
             />
           </div>
 
-          <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="relative aspect-square max-h-64 w-full bg-muted">
+          <article className="flex gap-2.5 rounded-xl border bg-card p-2.5 shadow-sm">
+            <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-muted">
               {currentLine.imageUrl ? (
                 <Image
                   src={currentLine.imageUrl}
-                  alt={currentLine.itemName}
+                  alt=""
                   fill
-                  className="object-contain p-4"
+                  className="object-contain p-1"
                   unoptimized
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  No image
+                <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                  —
                 </div>
               )}
             </div>
-            <div className="space-y-2 p-4">
-              <h2 className="text-lg font-semibold leading-tight">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <h2 className="line-clamp-2 text-sm font-semibold leading-snug">
                 {currentLine.itemName}
               </h2>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {currentLine.itemSku ? (
-                  <span className="rounded-full bg-muted px-2 py-1">
-                    SKU {currentLine.itemSku}
-                  </span>
-                ) : null}
-                {currentLine.barcode ? (
-                  <span className="rounded-full bg-muted px-2 py-1">
-                    {currentLine.barcode}
-                  </span>
-                ) : null}
-                {currentLine.categoryName ? (
-                  <span className="rounded-full bg-muted px-2 py-1">
-                    {currentLine.categoryName}
-                  </span>
-                ) : null}
-                {currentLine.unitType ? (
-                  <span className="rounded-full bg-muted px-2 py-1">
-                    {currentLine.unitType}
-                  </span>
-                ) : null}
-                {canSeeSystemStock && currentLine.systemStock != null ? (
-                  <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
-                    System {String(currentLine.systemStock)}
-                  </span>
-                ) : null}
-              </div>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {[
+                  currentLine.itemSku,
+                  currentLine.barcode,
+                  currentLine.categoryName,
+                  currentLine.unitType,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              {canSeeSystemStock && currentLine.systemStock != null ? (
+                <p className="text-[11px] font-medium text-primary">
+                  System {String(currentLine.systemStock)}
+                </p>
+              ) : null}
             </div>
           </article>
 
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium">Physical count</span>
+          <label className="grid gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">
+              Count
+            </span>
             <input
               type="number"
               min={0}
               step="any"
               inputMode="decimal"
-              className={cn(dashboardInputClass(), "text-lg")}
+              className={cn(
+                dashboardInputClass(),
+                "h-12 text-center text-2xl font-semibold tabular-nums",
+              )}
               value={countInput}
               onChange={(e) => setCountInput(e.target.value)}
               disabled={!canRun}
+              placeholder="0"
             />
           </label>
 
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium">Notes (optional)</span>
-            <textarea
-              className={cn(dashboardInputClass(), "min-h-[72px] resize-y")}
+          <label className="grid gap-1">
+            <span className="text-[11px] font-medium text-muted-foreground">
+              Note
+            </span>
+            <input
+              type="text"
+              className={cn(dashboardInputClass(), "h-9 text-sm")}
               value={noteInput}
               onChange={(e) => setNoteInput(e.target.value)}
               disabled={!canRun}
-              placeholder="Shelf condition, location, etc."
+              placeholder="Optional"
             />
           </label>
 
           {canRun ? (
-            <div className="rounded-xl border bg-muted/20 p-4 text-sm">
-              <p className="font-medium">Restock recommendation</p>
+            <div>
               {restockLoading ? (
-                <p className="mt-2 flex items-center text-muted-foreground">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Checking supplier links…
-                </p>
-              ) : restockOptions.length === 0 ? (
-                <p className="mt-2 text-muted-foreground">
-                  No supplier linked to this product.
-                </p>
-              ) : pendingRestock ? (
+                <div className="flex items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Checking suppliers…
+                </div>
+              ) : restockOptions.length === 0 ? null : pendingRestock ? (
                 <button
                   type="button"
-                  className="mt-2 w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-left hover:bg-primary/10"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-2 text-left text-xs hover:bg-primary/10"
                   onClick={() => setRestockOpen(true)}
                 >
-                  <span className="font-medium text-primary">
-                    Added to restock list
+                  <span className="flex items-center gap-1.5 font-medium text-primary">
+                    <PackagePlus className="h-3.5 w-3.5 shrink-0" />
+                    On restock list
                   </span>
-                  <span className="mt-1 block text-muted-foreground">
-                    {pendingRestock.supplierName} · Qty {String(pendingRestock.suggestedQty)}
+                  <span className="truncate text-muted-foreground">
+                    {pendingRestock.supplierName} · {String(pendingRestock.suggestedQty)}
                   </span>
                 </button>
               ) : (
                 <Button
                   type="button"
                   variant="outline"
-                  className="mt-2"
+                  size="sm"
+                  className="h-9 w-full text-xs"
                   onClick={() => setRestockOpen(true)}
                 >
-                  Add to restock list
+                  <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
+                  Add to restock
                 </Button>
               )}
             </div>
           ) : null}
 
           {canRun ? (
-            <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background/95 p-4 backdrop-blur">
-              <div className={cn(DASHBOARD_MAX, "mx-auto flex gap-2")}>
+            <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 border-t bg-background/95 px-3 py-2 backdrop-blur">
+              <div className="mx-auto flex w-full max-w-lg gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  size="sm"
+                  className="h-10 flex-1"
                   disabled={currentIndex === 0 || saving}
                   onClick={() => void goPrevious()}
                 >
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only">Previous</span>
                 </Button>
                 <Button
                   type="button"
-                  className="flex-[2]"
+                  size="sm"
+                  className="h-10 flex-[3]"
                   disabled={saving}
                   onClick={() => void goNext()}
                 >
@@ -523,8 +505,8 @@ export default function DailyAuditPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      Save &amp; next
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      Next
+                      <ArrowRight className="ml-1.5 h-4 w-4" />
                     </>
                   )}
                 </Button>
@@ -533,12 +515,14 @@ export default function DailyAuditPage() {
           ) : null}
         </>
       ) : session ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
-          <p className="mt-2 font-medium">All items visited</p>
-          <p className="text-sm text-muted-foreground">
-            {session.submittedCount} of {session.totalCount} counts saved.
-          </p>
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+          <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
+          <div className="min-w-0 text-sm">
+            <p className="font-medium">Done</p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {session.submittedCount}/{session.totalCount} saved
+            </p>
+          </div>
         </div>
       ) : null}
 
