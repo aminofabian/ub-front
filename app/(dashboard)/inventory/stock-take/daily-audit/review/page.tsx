@@ -52,7 +52,12 @@ export default function DailyAuditReviewPage() {
   const [actionItemId, setActionItemId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
 
-  useSyncBranchFilter(branchId, setBranchId);
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
 
   const matched = useMemo(
     () => review?.lines.filter((l) => l.matches).length ?? 0,
@@ -84,6 +89,11 @@ export default function DailyAuditReviewPage() {
   }, []);
 
   useEffect(() => {
+    if (branchLocked || branchId || branches.length === 0) return;
+    setBranchId(branches[0]!.id);
+  }, [branchLocked, branchId, branches]);
+
+  useEffect(() => {
     if (branchId && canApprove) void loadReview();
   }, [branchId, date, canApprove, loadReview]);
 
@@ -110,7 +120,10 @@ export default function DailyAuditReviewPage() {
 
   if (!canApprove) {
     return (
-      <DashboardAccessDenied message="Only admins can review daily audit counts." />
+      <DashboardAccessDenied
+        title="Daily audit review"
+        description="Only admins can review daily audit counts."
+      />
     );
   }
 
@@ -125,21 +138,25 @@ export default function DailyAuditReviewPage() {
       </Link>
 
       <DashboardPageHero
+        icon={ShieldAlert}
+        eyebrow="Stock Take"
         title="Daily audit review"
         description="Compare physical counts with system stock. Approve matches or escalate mismatches."
-        icon={ShieldAlert}
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-muted-foreground">Branch</span>
           <select
-            className={dashboardSelectClass}
+            className={dashboardSelectClass(branchLocked)}
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
+            disabled={branchLocked}
           >
             <option value="">Select branch</option>
-            {branches.map((b) => (
+            {branches
+              .filter((b) => !branchLocked || b.id === branchId)
+              .map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
@@ -150,7 +167,7 @@ export default function DailyAuditReviewPage() {
           <span className="text-muted-foreground">Audit date</span>
           <input
             type="date"
-            className={dashboardInputClass}
+            className={dashboardInputClass()}
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -162,7 +179,7 @@ export default function DailyAuditReviewPage() {
         </div>
       </div>
 
-      {error ? <DashboardFeedback variant="error" message={error} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       {review ? (
         <div className="grid gap-3 sm:grid-cols-3">
@@ -262,7 +279,7 @@ export default function DailyAuditReviewPage() {
                     </div>
                   </div>
                   <textarea
-                    className={cn(dashboardInputClass, "min-h-[56px] text-sm")}
+                    className={cn(dashboardInputClass(), "min-h-[56px] text-sm")}
                     placeholder="Admin notes"
                     value={adminNotes[line.itemId] ?? line.reviewNotes ?? ""}
                     onChange={(e) =>

@@ -71,7 +71,12 @@ export default function DailyAuditPage() {
   const [error, setError] = useState<string | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useSyncBranchFilter(branchId, setBranchId);
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+  });
 
   const lines = useMemo(
     () => (session ? sortedLines(session) : []),
@@ -121,6 +126,11 @@ export default function DailyAuditPage() {
       .then(setBranches)
       .catch(() => setBranches([]));
   }, []);
+
+  useEffect(() => {
+    if (branchLocked || branchId || branches.length === 0) return;
+    setBranchId(branches[0]!.id);
+  }, [branchLocked, branchId, branches]);
 
   useEffect(() => {
     if (branchId && (canRun || canRead)) void loadToday();
@@ -240,7 +250,10 @@ export default function DailyAuditPage() {
 
   if (!canRun && !canRead) {
     return (
-      <DashboardAccessDenied message="You need stock take access to view daily audits." />
+      <DashboardAccessDenied
+        title="Daily audit"
+        description="You need stock take access to view daily audits."
+      />
     );
   }
 
@@ -257,21 +270,25 @@ export default function DailyAuditPage() {
       </div>
 
       <DashboardPageHero
+        icon={ClipboardCheck}
+        eyebrow="Stock Take"
         title="Daily audit"
         description="Count 25 random products sold yesterday. System stock is hidden during counting."
-        icon={ClipboardCheck}
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm">
           <span className="text-muted-foreground">Branch</span>
           <select
-            className={dashboardSelectClass}
+            className={dashboardSelectClass(branchLocked)}
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
+            disabled={branchLocked}
           >
             <option value="">Select branch</option>
-            {branches.map((b) => (
+            {branches
+              .filter((b) => !branchLocked || b.id === branchId)
+              .map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
@@ -281,7 +298,7 @@ export default function DailyAuditPage() {
         <label className="grid gap-1 text-sm">
           <span className="text-muted-foreground">Session</span>
           <select
-            className={dashboardSelectClass}
+            className={dashboardSelectClass()}
             value={sessionType}
             onChange={(e) => setSessionType(e.target.value as SessionType)}
           >
@@ -291,7 +308,7 @@ export default function DailyAuditPage() {
         </label>
       </div>
 
-      {error ? <DashboardFeedback variant="error" message={error} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -388,7 +405,7 @@ export default function DailyAuditPage() {
               min={0}
               step="any"
               inputMode="decimal"
-              className={cn(dashboardInputClass, "text-lg")}
+              className={cn(dashboardInputClass(), "text-lg")}
               value={countInput}
               onChange={(e) => setCountInput(e.target.value)}
               disabled={!canRun}
@@ -398,7 +415,7 @@ export default function DailyAuditPage() {
           <label className="grid gap-1 text-sm">
             <span className="font-medium">Notes (optional)</span>
             <textarea
-              className={cn(dashboardInputClass, "min-h-[72px] resize-y")}
+              className={cn(dashboardInputClass(), "min-h-[72px] resize-y")}
               value={noteInput}
               onChange={(e) => setNoteInput(e.target.value)}
               disabled={!canRun}

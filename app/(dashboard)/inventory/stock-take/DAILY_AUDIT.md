@@ -223,7 +223,7 @@ daily_audit_id     -- FK when source = daily_audit
 current_line_index -- optional resume pointer for wizard
 ```
 
-Morning/evening sessions for daily audit reference the same `daily_audit_id` and load the same `item_ids`.
+Morning/evening sessions for daily audit reference the same `daily_audit_id` and load the same manifest items.
 
 ### `StockTakeLine` (extend review fields)
 

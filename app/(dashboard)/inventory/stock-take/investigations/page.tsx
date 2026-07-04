@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
 
@@ -43,7 +43,13 @@ export default function DailyAuditInvestigationsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useSyncBranchFilter(branchId, setBranchId);
+  const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
+  const { branchLocked } = useSyncBranchFilter({
+    value: branchId,
+    setValue: setBranchId,
+    availableIds: branches.length > 0 ? branchIds : undefined,
+    allowAll: true,
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,7 +82,10 @@ export default function DailyAuditInvestigationsPage() {
 
   if (!canApprove) {
     return (
-      <DashboardAccessDenied message="Only admins can view investigation reports." />
+      <DashboardAccessDenied
+        title="Investigations"
+        description="Only admins can view investigation reports."
+      />
     );
   }
 
@@ -91,21 +100,25 @@ export default function DailyAuditInvestigationsPage() {
       </Link>
 
       <DashboardPageHero
+        icon={ShieldAlert}
+        eyebrow="Stock Take"
         title="Investigations"
         description="Escalated daily audit items requiring follow-up."
-        icon={ShieldAlert}
       />
 
       <div className="grid gap-3 sm:grid-cols-4">
         <label className="grid gap-1 text-sm">
           <span className="text-muted-foreground">Branch</span>
           <select
-            className={dashboardSelectClass}
+            className={dashboardSelectClass(branchLocked)}
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
+            disabled={branchLocked}
           >
             <option value="">All branches</option>
-            {branches.map((b) => (
+            {branches
+              .filter((b) => !branchLocked || b.id === branchId)
+              .map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
@@ -116,7 +129,7 @@ export default function DailyAuditInvestigationsPage() {
           <span className="text-muted-foreground">From</span>
           <input
             type="date"
-            className={dashboardInputClass}
+            className={dashboardInputClass()}
             value={from}
             onChange={(e) => setFrom(e.target.value)}
           />
@@ -125,7 +138,7 @@ export default function DailyAuditInvestigationsPage() {
           <span className="text-muted-foreground">To</span>
           <input
             type="date"
-            className={dashboardInputClass}
+            className={dashboardInputClass()}
             value={to}
             onChange={(e) => setTo(e.target.value)}
           />
@@ -137,7 +150,7 @@ export default function DailyAuditInvestigationsPage() {
         </div>
       </div>
 
-      {error ? <DashboardFeedback variant="error" message={error} /> : null}
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       {loading ? (
         <div className="flex justify-center py-12">
