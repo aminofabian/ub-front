@@ -4455,6 +4455,213 @@ export async function postRejectStockAdjustment(
   );
 }
 
+// ── Daily stock audit (random 25) ─────────────────────────────────────
+
+export type DailyAuditItemSummary = {
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  barcode: string | null;
+  categoryName: string | null;
+  unitType: string | null;
+  imageUrl: string | null;
+  sortOrder: number;
+};
+
+export type DailyAuditSessionSummary = {
+  sessionId: string;
+  sessionType: string;
+  status: string;
+  currentLineIndex: number;
+  submittedCount: number;
+  totalCount: number;
+};
+
+export type DailyAuditTodayRecord = {
+  auditId: string;
+  auditDate: string;
+  branchId: string;
+  itemCount: number;
+  generatedAt: string;
+  items: DailyAuditItemSummary[];
+  morningSession: DailyAuditSessionSummary | null;
+  eveningSession: DailyAuditSessionSummary | null;
+};
+
+export type DailyAuditLineRecord = {
+  lineId: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  barcode: string | null;
+  categoryName: string | null;
+  unitType: string | null;
+  imageUrl: string | null;
+  countedQty: number | string | null;
+  note: string | null;
+  status: string;
+  submittedAt: string | null;
+  sortOrder: number;
+};
+
+export type DailyAuditSessionRecord = {
+  sessionId: string;
+  auditId: string;
+  auditDate: string;
+  branchId: string;
+  sessionType: string;
+  status: string;
+  currentLineIndex: number;
+  totalCount: number;
+  submittedCount: number;
+  lines: DailyAuditLineRecord[];
+};
+
+export type DailyAuditReviewLineRecord = {
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  barcode: string | null;
+  categoryName: string | null;
+  unitType: string | null;
+  imageUrl: string | null;
+  morningCount: number | string | null;
+  eveningCount: number | string | null;
+  systemStock: number | string | null;
+  expectedStock: number | string | null;
+  variance: number | string | null;
+  matches: boolean;
+  reviewStatus: string;
+  reviewNotes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  sortOrder: number;
+};
+
+export type DailyAuditReviewRecord = {
+  auditId: string;
+  auditDate: string;
+  branchId: string;
+  itemCount: number;
+  lines: DailyAuditReviewLineRecord[];
+};
+
+export type DailyAuditInvestigationRecord = {
+  auditId: string;
+  auditDate: string;
+  branchId: string;
+  itemId: string;
+  itemName: string;
+  itemSku: string | null;
+  morningCount: number | string | null;
+  eveningCount: number | string | null;
+  systemStock: number | string | null;
+  expectedStock: number | string | null;
+  variance: number | string | null;
+  reviewNotes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+};
+
+export async function fetchDailyAuditToday(
+  branchId: string,
+  auditDate?: string,
+): Promise<DailyAuditTodayRecord> {
+  const params = new URLSearchParams({ branchId });
+  if (auditDate?.trim()) params.set("auditDate", auditDate.trim());
+  return request<DailyAuditTodayRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/today?${params}`,
+  );
+}
+
+export async function postDailyAuditSession(body: {
+  branchId: string;
+  sessionType: "morning" | "evening";
+  auditDate?: string;
+}): Promise<DailyAuditSessionRecord> {
+  return request<DailyAuditSessionRecord>(
+    "/api/v1/inventory/stock-take/daily-audits/sessions",
+    { method: "POST", body },
+  );
+}
+
+export async function fetchDailyAuditSession(
+  sessionId: string,
+): Promise<DailyAuditSessionRecord> {
+  return request<DailyAuditSessionRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/sessions/${encodeURIComponent(sessionId)}`,
+  );
+}
+
+export async function patchDailyAuditLine(
+  sessionId: string,
+  lineId: string,
+  body: { countedQty: number | string; note?: string | null },
+): Promise<DailyAuditSessionRecord> {
+  return request<DailyAuditSessionRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/sessions/${encodeURIComponent(sessionId)}/lines/${encodeURIComponent(lineId)}`,
+    { method: "PATCH", body },
+  );
+}
+
+export async function patchDailyAuditProgress(
+  sessionId: string,
+  currentLineIndex: number,
+): Promise<DailyAuditSessionRecord> {
+  return request<DailyAuditSessionRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/sessions/${encodeURIComponent(sessionId)}/progress`,
+    { method: "PATCH", body: { currentLineIndex } },
+  );
+}
+
+export async function fetchDailyAuditReview(
+  branchId: string,
+  auditDate?: string,
+): Promise<DailyAuditReviewRecord> {
+  const params = new URLSearchParams({ branchId });
+  if (auditDate?.trim()) params.set("auditDate", auditDate.trim());
+  return request<DailyAuditReviewRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/review?${params}`,
+  );
+}
+
+export async function postDailyAuditApprove(
+  auditId: string,
+  itemId: string,
+  notes?: string | null,
+): Promise<DailyAuditReviewRecord> {
+  return request<DailyAuditReviewRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/${encodeURIComponent(auditId)}/items/${encodeURIComponent(itemId)}/approve`,
+    { method: "POST", body: notes?.trim() ? { notes: notes.trim() } : {} },
+  );
+}
+
+export async function postDailyAuditEscalate(
+  auditId: string,
+  itemId: string,
+  notes?: string | null,
+): Promise<DailyAuditReviewRecord> {
+  return request<DailyAuditReviewRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/${encodeURIComponent(auditId)}/items/${encodeURIComponent(itemId)}/escalate`,
+    { method: "POST", body: notes?.trim() ? { notes: notes.trim() } : {} },
+  );
+}
+
+export async function fetchDailyAuditInvestigations(params?: {
+  branchId?: string;
+  from?: string;
+  to?: string;
+}): Promise<DailyAuditInvestigationRecord[]> {
+  const qs = new URLSearchParams();
+  if (params?.branchId?.trim()) qs.set("branchId", params.branchId.trim());
+  if (params?.from?.trim()) qs.set("from", params.from.trim());
+  if (params?.to?.trim()) qs.set("to", params.to.trim());
+  const suffix = qs.toString();
+  return request<DailyAuditInvestigationRecord[]>(
+    `/api/v1/inventory/stock-take/daily-audits/investigations${suffix ? `?${suffix}` : ""}`,
+  );
+}
+
 export type SellPriceSuggestionRecord = {
   latestUnitCost: number | string | null;
   marginPercent: number | string | null;

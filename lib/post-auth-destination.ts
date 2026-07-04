@@ -36,7 +36,7 @@ export function resolvePostAuthDestination(
     return APP_ROUTES.salesQuick;
   }
   if (roleKey === "stock_manager") {
-    return APP_ROUTES.inventoryStockTake;
+    return APP_ROUTES.inventoryStockTakeDailyAudit;
   }
 
   const requested = requestedNext?.trim() ?? "";

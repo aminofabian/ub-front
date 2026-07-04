@@ -25,6 +25,12 @@ describe("resolvePostAuthDestination", () => {
     );
   });
 
+  it("sends stock managers to daily audit", () => {
+    expect(
+      resolvePostAuthDestination({ role: { key: "stock_manager" } }),
+    ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
+  });
+
   it("prefers role over requested next", () => {
     expect(
       resolvePostAuthDestination(
@@ -75,7 +81,7 @@ describe("roleLandingRedirect", () => {
         { role: { key: "stock_manager" } },
         APP_ROUTES.business,
       ),
-    ).toBe(APP_ROUTES.inventoryStockTake);
+    ).toBe(APP_ROUTES.inventoryStockTakeDailyAudit);
   });
 
   it("redirects overview bookmarks to business hub", () => {

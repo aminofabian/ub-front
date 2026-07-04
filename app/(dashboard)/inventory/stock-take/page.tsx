@@ -16,6 +16,7 @@ import {
   Search,
   Warehouse,
   CheckCircle2,
+  ClipboardCheck,
   Clock,
   Trash2,
 } from "lucide-react";
@@ -582,6 +583,28 @@ export default function StockTakePage() {
         desc: "Catalog",
         icon: Package,
       },
+      {
+        href: APP_ROUTES.inventoryStockTakeDailyAudit,
+        label: "Daily audit",
+        desc: "Random 25",
+        icon: ClipboardCheck,
+      },
+      ...(canApprove
+        ? [
+            {
+              href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
+              label: "Audit review",
+              desc: "Verify counts",
+              icon: CheckCircle2,
+            },
+            {
+              href: APP_ROUTES.inventoryStockTakeInvestigations,
+              label: "Investigations",
+              desc: "Escalated items",
+              icon: ClipboardList,
+            },
+          ]
+        : []),
       ...(canApprove
         ? [
             {

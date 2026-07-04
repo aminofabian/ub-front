@@ -144,6 +144,18 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
       {
+        href: APP_ROUTES.inventoryStockTakeDailyAudit,
+        label: "Daily audit",
+      },
+      {
+        href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
+        label: "Audit review",
+      },
+      {
+        href: APP_ROUTES.inventoryStockTakeInvestigations,
+        label: "Investigations",
+      },
+      {
         href: APP_ROUTES.inventoryStockTakeReconciliation,
         label: "Reconciliation",
       },
@@ -227,6 +239,7 @@ type NavGate = {
   canViewInventoryTransfers: boolean;
   canViewSupplyBatches: boolean;
   canViewStockTake: boolean;
+  canApproveStockTake: boolean;
   canViewPricing: boolean;
   canViewShifts: boolean;
   canViewAnalytics: boolean;
@@ -283,6 +296,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (gate.roleKey === "stock_manager") {
     const allowed: readonly string[] = [
       APP_ROUTES.inventoryStockTake,
+      APP_ROUTES.inventoryStockTakeDailyAudit,
       APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryRestock,
       APP_ROUTES.purchasingAddSupplies,
@@ -354,6 +368,14 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.inventorySupplyBatches)
     return gate.canViewSupplyBatches;
   if (item.href === APP_ROUTES.inventoryStockTake) return gate.canViewStockTake;
+  if (item.href === APP_ROUTES.inventoryStockTakeDailyAudit)
+    return gate.canViewStockTake;
+  if (item.href === APP_ROUTES.inventoryStockTakeDailyAuditReview)
+    return gate.canApproveStockTake;
+  if (item.href === APP_ROUTES.inventoryStockTakeInvestigations)
+    return gate.canApproveStockTake;
+  if (item.href === APP_ROUTES.inventoryStockTakeReconciliation)
+    return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
@@ -545,7 +567,7 @@ export function AppShell({ children }: AppShellProps) {
   const tabletChromeVisible = "2xl:hidden";
   const mainContentPadding = "p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] 2xl:p-6 2xl:pb-6";
   const homeHref = isStockManager
-    ? APP_ROUTES.inventoryStockTake
+    ? APP_ROUTES.inventoryStockTakeDailyAudit
     : isCashier
       ? APP_ROUTES.salesQuick
       : isButcherCashier
@@ -567,6 +589,10 @@ export function AppShell({ children }: AppShellProps) {
     me?.permissions,
     Permission.PosDraftsRead,
   );
+  const canApproveStockTake = hasPermission(
+    me?.permissions,
+    Permission.StocktakeApprove,
+  );
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
   const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
@@ -587,6 +613,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewInventoryTransfers,
       canViewSupplyBatches,
       canViewStockTake,
+      canApproveStockTake,
       canViewPricing,
       canViewShifts,
       canViewAnalytics,
@@ -619,6 +646,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewInventoryTransfers,
     canViewSupplyBatches,
     canViewStockTake,
+    canApproveStockTake,
     canViewPricing,
     canViewShifts,
     canViewAnalytics,
