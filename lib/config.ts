@@ -90,6 +90,7 @@ export const API_ROUTES = {
   loginPin: "/api/v1/auth/login-pin",
   loginBranches: "/api/v1/auth/branches",
   register: "/api/v1/auth/register",
+  emailLookup: "/api/v1/auth/email-lookup",
   verifyEmail: "/api/v1/auth/verify-email",
   resendVerification: "/api/v1/auth/resend-verification",
   passwordForgot: "/api/v1/auth/password/forgot",

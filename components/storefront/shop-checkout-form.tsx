@@ -58,6 +58,7 @@ import {
 import {
   dismissCheckoutSignupPrompt,
   isCheckoutSignupDismissed,
+  ShopCheckoutLoginModal,
   ShopCheckoutSignupModal,
 } from "@/components/storefront/shop-checkout-signup-modal";
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
@@ -67,6 +68,7 @@ import { Button } from "@/components/ui/button";
 import {
   fetchShopperAccountOverview,
   fetchShopperPickupOrderDetail,
+  lookupAuthEmail,
 } from "@/lib/api";
 import { useClientHasSession } from "@/hooks/use-client-session";
 import { getSessionTokens } from "@/lib/auth";
@@ -440,6 +442,7 @@ export default function ShopCheckoutForm({
   const termsManuallyChanged = useRef(false);
   const paymentToastShown = useRef(false);
   const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [serverAuthenticated, setServerAuthenticated] = useState(false);
   const [stepBusy, setStepBusy] = useState(false);
   const pendingShippingLock = useRef(false);
@@ -1357,7 +1360,33 @@ export default function ShopCheckoutForm({
     pendingShippingLock.current = false;
   }
 
-  function lockShippingAndContinue() {
+  async function openCheckoutAccountModal(pendingLock: boolean) {
+    pendingShippingLock.current = pendingLock;
+    const email = customerEmail.trim();
+    if (!email) {
+      setSignupModalOpen(true);
+      return;
+    }
+    setStepBusy(true);
+    setError(null);
+    try {
+      const { registered } = await lookupAuthEmail(email);
+      if (registered) {
+        setSignupModalOpen(false);
+        setLoginModalOpen(true);
+      } else {
+        setLoginModalOpen(false);
+        setSignupModalOpen(true);
+      }
+    } catch {
+      setLoginModalOpen(false);
+      setSignupModalOpen(true);
+    } finally {
+      setStepBusy(false);
+    }
+  }
+
+  async function lockShippingAndContinue() {
     if (!shippingComplete) {
       setError("Please complete all required delivery fields.");
       return;
@@ -1367,16 +1396,14 @@ export default function ShopCheckoutForm({
       contactFieldsComplete &&
       !isCheckoutSignupDismissed()
     ) {
-      pendingShippingLock.current = true;
-      setSignupModalOpen(true);
+      await openCheckoutAccountModal(true);
       return;
     }
     applyShippingLock();
   }
 
   function openCheckoutSignupModal() {
-    pendingShippingLock.current = false;
-    setSignupModalOpen(true);
+    void openCheckoutAccountModal(false);
   }
 
   function returnToDetailsStep() {
@@ -1425,7 +1452,7 @@ export default function ShopCheckoutForm({
             saveForNextTime: isDefaultAddress,
           });
           applyServerCheckoutState(state);
-          lockShippingAndContinue();
+          void lockShippingAndContinue();
         } catch (err) {
           setError(err instanceof Error ? err.message : "Could not save delivery details.");
         } finally {
@@ -1433,7 +1460,7 @@ export default function ShopCheckoutForm({
         }
         return;
       }
-      lockShippingAndContinue();
+      void lockShippingAndContinue();
       return;
     }
     if (!contactFieldsComplete) {
@@ -1550,7 +1577,7 @@ export default function ShopCheckoutForm({
           hint: "We'll show your cart and payment options next.",
           actionLabel: "Continue to review",
           actionDisabled: false,
-          onAction: lockShippingAndContinue,
+          onAction: () => void lockShippingAndContinue(),
           actionType: "button" as const,
           pulse: true,
         }
@@ -1954,7 +1981,7 @@ export default function ShopCheckoutForm({
             type="button"
             size="lg"
             className="hidden h-11 w-full rounded-xl text-sm font-semibold"
-            onClick={lockShippingAndContinue}
+            onClick={() => void lockShippingAndContinue()}
             disabled={!shippingComplete}
           >
             {isEditingShipping ? "Use these details" : "Continue to review"}
@@ -2293,6 +2320,27 @@ export default function ShopCheckoutForm({
       <ShopCheckoutSignupModal
         open={signupModalOpen}
         onOpenChange={setSignupModalOpen}
+        email={customerEmail}
+        firstName={firstName}
+        lastName={lastName}
+        phoneDisplay={`${areaCode} ${customerPhone}`.trim()}
+        onSignedIn={() => {
+          serverAuthenticatedRef.current = true;
+          setServerAuthenticated(true);
+          if (pendingShippingLock.current) {
+            applyShippingLock();
+          }
+        }}
+        onContinueAsGuest={() => {
+          if (pendingShippingLock.current) {
+            applyShippingLock();
+          }
+        }}
+      />
+
+      <ShopCheckoutLoginModal
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
         email={customerEmail}
         firstName={firstName}
         lastName={lastName}

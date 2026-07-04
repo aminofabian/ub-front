@@ -1565,6 +1565,16 @@ export async function registerAccount(
   });
 }
 
+export async function lookupAuthEmail(
+  email: string,
+): Promise<{ registered: boolean }> {
+  return request<{ registered: boolean }>(API_ROUTES.emailLookup, {
+    method: "POST",
+    body: { email: email.trim() },
+    requiresAuth: false,
+  });
+}
+
 export async function verifyEmailAddress(
   token: string,
   options?: { toast?: boolean },
