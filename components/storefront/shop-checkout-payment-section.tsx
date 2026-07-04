@@ -436,7 +436,7 @@ export function ShopCheckoutPaymentSection({
   const dockActions = Boolean(actionsInDock && orderPlaced && floating);
 
   const manualBlock =
-    hasManual && paymentMethod !== "pay_on_delivery" ? (
+    hasManual && selectedMethod !== "pay_on_delivery" ? (
       <div
         className={cn(
           floating
@@ -565,7 +565,7 @@ export function ShopCheckoutPaymentSection({
           {manualBlock}
         </>
       )}
-      {showMethodPicker && hasManual && paymentMethod !== "pay_on_delivery"
+      {showMethodPicker && hasManual && selectedMethod !== "pay_on_delivery"
         ? manualBlock
         : null}
     </div>

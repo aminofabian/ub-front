@@ -1222,7 +1222,7 @@ export default function ShopCheckoutForm({
                 onStkPay={handleStkPay}
                 orderPlaced
                 selectedMethod="mpesa"
-                amountDue={totalLabel}
+                amountDue={total}
               />
             ) : undefined
           }
