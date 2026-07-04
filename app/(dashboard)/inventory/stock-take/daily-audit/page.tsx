@@ -40,10 +40,6 @@ import { cn } from "@/lib/utils";
 
 type SessionType = "morning" | "evening";
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function parseQty(v: number | string | null | undefined): string {
   if (v == null) return "";
   return String(v);
@@ -91,7 +87,7 @@ export default function DailyAuditPage() {
     setError(null);
     setLoading(true);
     try {
-      const manifest = await fetchDailyAuditToday(branchId, todayStr());
+      const manifest = await fetchDailyAuditToday(branchId);
       setToday(manifest);
       const summary =
         sessionType === "morning"
@@ -225,7 +221,6 @@ export default function DailyAuditPage() {
       const created = await postDailyAuditSession({
         branchId,
         sessionType,
-        auditDate: todayStr(),
       });
       setSession(created);
       setCurrentIndex(0);
@@ -317,8 +312,8 @@ export default function DailyAuditPage() {
         </div>
       ) : !today ? (
         <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No daily audit list for today yet. The system generates one each
-          morning from products sold yesterday.
+          No daily audit for today. The list is built from products sold yesterday
+          at this branch.
         </div>
       ) : !session && canRun ? (
         <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
