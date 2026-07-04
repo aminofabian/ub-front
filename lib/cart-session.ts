@@ -81,6 +81,48 @@ export function resetCartSessionKeepingTab(cart: CartSession): CartSession {
   };
 }
 
+/** Keep the highlighted tab when it still exists; otherwise pick an empty cart. */
+export function pickActiveCartId(
+  carts: CartSession[],
+  currentId: string | null | undefined,
+): string {
+  const current = currentId?.trim();
+  if (current && carts.some((c) => c.id === current)) {
+    return current;
+  }
+  const empty = carts.find((c) => c.lines.length === 0);
+  if (empty) {
+    return empty.id;
+  }
+  if (carts[0]) {
+    return carts[0].id;
+  }
+  return createEmptyCartSession().id;
+}
+
+/**
+ * Ensure a cart tab exists for add-to-cart when none is selected (stale id)
+ * or when every open tab already has lines.
+ */
+export function resolveCartTargetForAdd(
+  carts: CartSession[],
+  activeCartId: string,
+): { carts: CartSession[]; targetId: string } {
+  const trimmed = activeCartId.trim();
+  if (trimmed && carts.some((c) => c.id === trimmed)) {
+    return { carts, targetId: trimmed };
+  }
+  const empty = carts.find((c) => c.lines.length === 0);
+  if (empty) {
+    return { carts, targetId: empty.id };
+  }
+  if (carts.length >= MAX_CARTS) {
+    return { carts, targetId: carts[0]!.id };
+  }
+  const fresh = createEmptyCartSession();
+  return { carts: [...carts, fresh], targetId: fresh.id };
+}
+
 export function createEmptyCartSession(): CartSession {
   cartCounter += 1;
   return {

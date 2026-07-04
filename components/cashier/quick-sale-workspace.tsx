@@ -68,7 +68,9 @@ import {
 } from "@/lib/cashier-item-display";
 import {
   createEmptyCartSession,
+  pickActiveCartId,
   resetCartSessionKeepingTab,
+  resolveCartTargetForAdd,
   cartSessionLabel,
   cartSessionItemCount,
   cartSessionGrandTotal,
@@ -255,9 +257,18 @@ export function QuickSaleWorkspace({
   const [voidNotes, setVoidNotes] = useState("");
 
   const activeCart = useMemo(
-    () => carts.find((c) => c.id === activeCartId) ?? carts[0],
+    () =>
+      carts.find((c) => c.id === activeCartId) ??
+      carts.find((c) => c.lines.length === 0) ??
+      carts[0] ??
+      createEmptyCartSession(),
     [carts, activeCartId],
   );
+
+  /** Repair stale tab selection after draft hydration or cart list changes. */
+  useEffect(() => {
+    setActiveCartId((current) => pickActiveCartId(carts, current));
+  }, [carts]);
 
   /** Update the active cart in-place within the carts array. */
   const updateActiveCart = useCallback(
@@ -400,7 +411,9 @@ export function QuickSaleWorkspace({
 
       if (!online) {
         if (localCarts.length > 0) {
-          setCarts(mergeHydratedCartSessions(localCarts, [], uiOpts));
+          const merged = mergeHydratedCartSessions(localCarts, [], uiOpts);
+          setCarts(merged);
+          setActiveCartId((current) => pickActiveCartId(merged, current));
         }
         return;
       }
@@ -444,13 +457,16 @@ export function QuickSaleWorkspace({
             }
           }
           setCarts(merged);
+          setActiveCartId((current) => pickActiveCartId(merged, current));
           if (posDraftOfflineMirror) {
             await saveMirroredCarts(bizId, bid, uid, merged);
           }
         }
       } catch {
         if (localCarts.length > 0) {
-          setCarts(mergeHydratedCartSessions(localCarts, [], uiOpts));
+          const merged = mergeHydratedCartSessions(localCarts, [], uiOpts);
+          setCarts(merged);
+          setActiveCartId((current) => pickActiveCartId(merged, current));
         }
       }
     })();
@@ -1390,30 +1406,41 @@ export function QuickSaleWorkspace({
         unitPrice: unitPrice ?? "",
         item,
       };
-      updateActiveCart((cart) => {
-        if (startingNewSale) {
+      let targetCartId = activeCartId;
+      setCarts((prev) => {
+        const { carts: nextCarts, targetId } = resolveCartTargetForAdd(
+          prev,
+          activeCartId,
+        );
+        targetCartId = targetId;
+        return nextCarts.map((cart) => {
+          if (cart.id !== targetId) return cart;
+          if (startingNewSale) {
+            return {
+              ...resetCartSessionKeepingTab(cart),
+              lines: [newLine],
+            };
+          }
           return {
-            ...resetCartSessionKeepingTab(cart),
-            lines: [newLine],
+            ...cart,
+            lines: [...cart.lines, newLine],
           };
-        }
-        return {
-          ...cart,
-          lines: [...cart.lines, newLine],
-        };
+        });
       });
+      if (targetCartId !== activeCartId) {
+        setActiveCartId(targetCartId);
+      }
       setSearch("");
       if (!keepAisleFilter && categoryFilterId) {
         clearCategoryFilter();
       } else if (!categoryFilterId) {
         setHits([]);
       }
-      schedulePosDraftSync(activeCartId, 0);
+      schedulePosDraftSync(targetCartId, 0);
       return true;
     },
     [
       capCartQuantity,
-      updateActiveCart,
       lastSale,
       dismissCompletedSaleUi,
       schedulePosDraftSync,
