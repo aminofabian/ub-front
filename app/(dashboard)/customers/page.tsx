@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Building2, LayoutGrid, Package, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Building2, LayoutGrid, Package, Receipt, Users } from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -22,12 +22,18 @@ import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-rem
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
 
 export default function CustomersPage() {
-  const { loading, canViewCustomers, canManageCustomers, canManageCreditSettings } =
-    useDashboard();
+  const {
+    loading,
+    canViewCustomers,
+    canManageCustomers,
+    canManageCreditSettings,
+    canReviewPaymentClaims,
+  } = useDashboard();
   const [rows, setRows] = useState<CustomerRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [phoneFilter, setPhoneFilter] = useState("");
   const [activePhoneQuery, setActivePhoneQuery] = useState<string | undefined>(undefined);
+  const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -70,6 +76,17 @@ export default function CustomersPage() {
     const next = phoneFilter.trim();
     setActivePhoneQuery(next.length > 0 ? next : undefined);
   };
+
+  const visibleRows = useMemo(() => {
+    if (!outstandingOnly) return rows;
+    return rows.filter((row) => Number(row.credit.balanceOwed) > 0);
+  }, [rows, outstandingOnly]);
+
+  const totalOwed = useMemo(
+    () =>
+      rows.reduce((sum, row) => sum + Number(row.credit.balanceOwed ?? 0), 0),
+    [rows],
+  );
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,12 +136,22 @@ export default function CustomersPage() {
       <header className="space-y-4">
         <DashboardPageHero
           icon={Users}
-          eyebrow="Relationships"
-          title="Customers"
-          description="Directory for credit, wallet, and loyalty. Search by phone for POS attach and quick lookup."
+          eyebrow="Credit & tabs"
+          title="Credit customers"
+          description="Everyone on tab, prepaid wallet, or loyalty. See who owes what and open a customer for their full statement."
         />
         <DashboardQuickLinks
           links={[
+            ...(canReviewPaymentClaims
+              ? [
+                  {
+                    href: APP_ROUTES.creditsPaymentClaims,
+                    label: "Payment claims",
+                    desc: "Review submissions",
+                    icon: Receipt,
+                  },
+                ]
+              : []),
             { href: APP_ROUTES.products, label: "Products", desc: "Catalog", icon: Package },
             { href: APP_ROUTES.categories, label: "Categories", desc: "Aisles", icon: LayoutGrid },
             { href: APP_ROUTES.business, label: "Business", desc: "Workspace", icon: Building2 },
@@ -140,7 +167,14 @@ export default function CustomersPage() {
 
       <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold tracking-tight">Find customers</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Filter the list by phone digits, then apply.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Filter by phone, or show only customers who still owe on tab.
+          {rows.length > 0 ? (
+            <span className="ml-1 font-medium text-foreground">
+              Total outstanding: {totalOwed.toLocaleString("en-KE", { style: "currency", currency: "KES" })}
+            </span>
+          ) : null}
+        </p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5 sm:max-w-xs">
             <span className={dashboardLabelClass()}>Phone filter</span>
@@ -151,6 +185,15 @@ export default function CustomersPage() {
               onChange={(e) => setPhoneFilter(e.target.value)}
               aria-label="Filter customers by phone"
             />
+          </label>
+          <label className="flex items-center gap-2 pb-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={outstandingOnly}
+              onChange={(e) => setOutstandingOnly(e.target.checked)}
+              className="size-4 rounded border-input"
+            />
+            Outstanding tab only
           </label>
           <Button type="button" variant="secondary" onClick={() => applyFilter()} disabled={listLoading}>
             {listLoading ? "Loading…" : "Apply filter"}
@@ -200,7 +243,7 @@ export default function CustomersPage() {
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
         <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
           <h2 className="text-sm font-semibold">Directory</h2>
-          <p className="text-xs text-muted-foreground">{rows.length} in this view</p>
+          <p className="text-xs text-muted-foreground">{visibleRows.length} in this view</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[36rem] text-left text-sm">
@@ -213,7 +256,7 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => {
+              {visibleRows.map((row) => {
                 const phoneLabel =
                   row.phones.length > 0
                     ? row.phones
@@ -225,7 +268,7 @@ export default function CustomersPage() {
                     <td className="px-4 py-3 sm:px-5">
                       <Link
                         className="font-medium text-primary hover:underline"
-                        href={`/customers/${encodeURIComponent(row.id)}`}
+                        href={`${APP_ROUTES.customers}/${encodeURIComponent(row.id)}`}
                       >
                         {row.name}
                       </Link>
@@ -239,9 +282,11 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
-        {!listLoading && rows.length === 0 ? (
+        {!listLoading && visibleRows.length === 0 ? (
           <p className="border-t border-border/60 px-5 py-8 text-center text-sm text-muted-foreground">
-            No customers match this view.
+            {outstandingOnly
+              ? "No customers with an outstanding tab balance."
+              : "No customers match this view."}
           </p>
         ) : null}
       </section>

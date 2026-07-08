@@ -121,6 +121,7 @@ type DashboardContextValue = {
   canViewCustomers: boolean;
   canManageCustomers: boolean;
   canManageCreditSettings: boolean;
+  canReviewPaymentClaims: boolean;
   canViewSuppliers: boolean;
   canRecordSupplierPayment: boolean;
   canViewInventoryValuation: boolean;
@@ -494,6 +495,10 @@ export function DashboardProvider({
       canManageCreditSettings: hasPermission(
         effectiveMe?.permissions,
         Permission.CreditsSettingsWrite,
+      ),
+      canReviewPaymentClaims: hasPermission(
+        effectiveMe?.permissions,
+        Permission.CreditsClaimsReview,
       ),
       canRecordSupplierPayment: hasPermission(
         effectiveMe?.permissions,

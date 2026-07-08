@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { approvePaymentClaim, listSubmittedPaymentClaims, type PublicPaymentClaimRecord } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
+import {
+  approvePaymentClaim,
+  listSubmittedPaymentClaims,
+  type PublicPaymentClaimRecord,
+} from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 
 function fmtInstant(raw: string): string {

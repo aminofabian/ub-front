@@ -11,7 +11,8 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
     [APP_ROUTES.suppliers]: "Suppliers",
-    [APP_ROUTES.customers]: "Customers",
+    [APP_ROUTES.customers]: "Credit customers",
+    [APP_ROUTES.creditsPaymentClaims]: "Payment claims",
     [APP_ROUTES.inventoryStock]: "Stock",
     [APP_ROUTES.inventoryRestock]: "Out of stock",
     [APP_ROUTES.inventoryValuation]: "Valuation",
@@ -64,6 +65,8 @@ export function shellPageTitle(pathname: string): string {
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";
   if (path.startsWith(APP_ROUTES.butcher)) return "Butcher";
+  if (path.startsWith("/credits")) return "Credit";
+  if (path.startsWith(APP_ROUTES.customers)) return "Credit customers";
 
   const segment = path.split("/").filter(Boolean).pop();
   if (!segment) return "Home";

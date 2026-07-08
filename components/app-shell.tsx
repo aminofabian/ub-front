@@ -19,6 +19,7 @@ import {
   Store,
   Tags,
   Truck,
+  Wallet,
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
@@ -189,6 +190,18 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [{ href: APP_ROUTES.paymentsSettings, label: "Gateway settings" }],
   },
   {
+    id: "credits",
+    title: "Credit & tabs",
+    shortLabel: "Credit",
+    blurb: "Customers on tab, wallets, and payment claims",
+    icon: Wallet,
+    entryHref: APP_ROUTES.customers,
+    items: [
+      { href: APP_ROUTES.customers, label: "Credit customers" },
+      { href: APP_ROUTES.creditsPaymentClaims, label: "Payment claims" },
+    ],
+  },
+  {
     id: "sales",
     title: "Sales & POS",
     shortLabel: "Sales",
@@ -196,7 +209,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: ShoppingBag,
     entryHref: APP_ROUTES.sales,
     items: [
-      { href: APP_ROUTES.customers, label: "Customers" },
       { href: APP_ROUTES.sales, label: "Sales" },
       { href: APP_ROUTES.salesTransactions, label: "Transactions" },
       {
@@ -240,6 +252,7 @@ type NavGate = {
   canViewApAging: boolean;
   canViewSuppliers: boolean;
   canViewCustomers: boolean;
+  canReviewPaymentClaims: boolean;
   canRecordSupplierPayment: boolean;
   canViewInventoryValuation: boolean;
   canViewInventoryTransfers: boolean;
@@ -363,6 +376,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.purchasingApAging) return gate.canViewApAging;
   if (item.href === APP_ROUTES.suppliers) return gate.canViewSuppliers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
+  if (item.href === APP_ROUTES.creditsPaymentClaims)
+    return gate.canReviewPaymentClaims;
   if (item.href === APP_ROUTES.purchasingRecordPayment)
     return gate.canRecordSupplierPayment;
   if (item.href === APP_ROUTES.inventoryStock)
@@ -548,6 +563,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewApAging,
     canViewSuppliers,
     canViewCustomers,
+    canReviewPaymentClaims,
     canRecordSupplierPayment,
     canViewInventoryValuation,
     canViewInventoryTransfers,
@@ -627,6 +643,7 @@ export function AppShell({ children }: AppShellProps) {
       canViewApAging,
       canViewSuppliers,
       canViewCustomers,
+      canReviewPaymentClaims,
       canRecordSupplierPayment,
       canViewInventoryValuation,
       canViewInventoryTransfers,
@@ -660,6 +677,7 @@ export function AppShell({ children }: AppShellProps) {
     canViewApAging,
     canViewSuppliers,
     canViewCustomers,
+    canReviewPaymentClaims,
     canRecordSupplierPayment,
     canViewInventoryValuation,
     canViewInventoryTransfers,

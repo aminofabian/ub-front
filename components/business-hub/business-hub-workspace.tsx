@@ -84,6 +84,7 @@ export function BusinessHubWorkspace() {
     canViewSupplyBatches,
     canViewShifts,
     canViewApAging,
+    canViewCustomers,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const showButcherCounter =
@@ -503,7 +504,13 @@ export function BusinessHubWorkspace() {
           ) : null}
           <QuickChip href={APP_ROUTES.analytics} label="Analytics" icon={BarChart3} />
           <QuickChip href="/storefront" label="Storefront" icon={Store} />
-          <QuickChip href={APP_ROUTES.customers} label="Customers" icon={Users} />
+          {canViewCustomers ? (
+            <QuickChip
+              href={APP_ROUTES.customers}
+              label="Credit customers"
+              icon={Users}
+            />
+          ) : null}
           {canListUsers ? (
             <QuickChip href={APP_ROUTES.users} label="Team" icon={Users} />
           ) : null}
