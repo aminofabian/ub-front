@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { hasPermission, Permission } from "@/lib/permissions";
 import {
   listGroceryInvoices,
   type GroceryInvoiceSummaryResponse,
@@ -61,8 +62,12 @@ export function PendingInvoicesPanel({
   onLoadInvoice,
   refreshKey = 0,
 }: PendingInvoicesPanelProps) {
-  const { branchId } = useDashboard();
+  const { branchId, me } = useDashboard();
   const online = useOnlineStatus();
+  const canListInvoices = hasPermission(
+    me?.permissions,
+    Permission.GroceryInvoicesRead,
+  );
   const [open, setOpen] = useState(false);
   const [invoices, setInvoices] = useState<GroceryInvoiceSummaryResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,10 +100,12 @@ export function PendingInvoicesPanel({
 
   const fetchInvoices = useCallback(async () => {
     const bid = branchId?.trim();
-    if (!bid || !online) return;
+    if (!bid || !online || !canListInvoices) return;
     setLoading(true);
     try {
-      const result = await listGroceryInvoices(bid, "pending_payment");
+      const result = await listGroceryInvoices(bid, "pending_payment", {
+        suppressToast: true,
+      });
       const list = result.invoices ?? [];
       setInvoices(list);
       for (const inv of list) {
@@ -109,7 +116,7 @@ export function PendingInvoicesPanel({
     } finally {
       setLoading(false);
     }
-  }, [branchId, online]);
+  }, [branchId, online, canListInvoices]);
 
   // Fetch on mount, refreshKey changes, and when opened.
   useEffect(() => {
@@ -186,6 +193,10 @@ export function PendingInvoicesPanel({
   }, [addInvoiceFromEvent, removeInvoiceById]);
 
   const pendingCount = invoices.length;
+
+  if (!canListInvoices) {
+    return null;
+  }
 
   return (
     <div className="relative">

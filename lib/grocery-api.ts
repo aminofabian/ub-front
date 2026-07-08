@@ -186,6 +186,7 @@ export async function createGroceryInvoice(
 export async function listGroceryInvoices(
   branchId: string,
   status?: GroceryInvoiceStatus,
+  options?: { suppressToast?: boolean },
 ): Promise<GroceryInvoiceListResponse> {
   const params = new URLSearchParams();
   params.set("branchId", branchId);
@@ -194,6 +195,7 @@ export async function listGroceryInvoices(
   }
   return groceryRequest<GroceryInvoiceListResponse>(
     `${GROCERY_BASE}?${params.toString()}`,
+    { suppressToast: options?.suppressToast },
   );
 }
 
