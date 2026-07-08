@@ -19,6 +19,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
+import { WhatsAppTestPanel } from "@/components/credits/whatsapp-test-panel";
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
 
 export default function CustomersPage() {
@@ -163,6 +164,10 @@ export default function CustomersPage() {
 
       {canViewCustomers ? (
         <CreditSaleReminderSettings canEdit={canManageCreditSettings} />
+      ) : null}
+
+      {canViewCustomers ? (
+        <WhatsAppTestPanel canSend={canManageCreditSettings} />
       ) : null}
 
       <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
