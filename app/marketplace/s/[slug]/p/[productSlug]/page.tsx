@@ -11,13 +11,13 @@ import {
   marketplaceSupplierSlugIsCanonical,
 } from "@/lib/marketplace-url";
 
-import { MarketplaceOrderWorkspace } from "../../../_components/marketplace-order-panel";
+import { MarketplaceOrderWorkspace } from "../../../../_components/marketplace-order-panel";
 import {
   MarketplaceProductJsonLd,
   MarketplaceSeoSummary,
   marketplaceProductTitle,
-} from "../../../_components/marketplace-json-ld";
-import { MarketplacePageFrame } from "../../../_components/marketplace-page-frame";
+} from "../../../../_components/marketplace-json-ld";
+import { MarketplacePageFrame } from "../../../../_components/marketplace-page-frame";
 
 type PageProps = {
   params: Promise<{ slug: string; productSlug: string }>;
