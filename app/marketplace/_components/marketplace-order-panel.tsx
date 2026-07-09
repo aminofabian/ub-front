@@ -2,14 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import {
   ArrowLeft,
+  CreditCard,
   FileDown,
   Loader2,
+  Mail,
   MapPin,
+  MessageCircle,
   Minus,
   Package,
+  Phone,
   Plus,
   ShoppingCart,
 } from "lucide-react";
@@ -21,10 +25,12 @@ import type {
   MarketplaceSupplierDetail,
 } from "@/lib/marketplace-api";
 import { cn, formatMoney } from "@/lib/utils";
+import { formatPaymentMethodLabel } from "@/lib/sale-payment-filter";
 
 import {
   buildMarketplaceOrderPdf,
   buildWhatsAppOrderUrl,
+  normalizeWhatsAppPhone,
   shareOrDownloadOrderPdf,
 } from "../_lib/marketplace-order-pdf";
 import { mktBtn, mktBtnGhost } from "./marketplace-ui";
@@ -350,6 +356,8 @@ export function MarketplaceOrderWorkspace({
         </section>
       )}
 
+      <SupplierContactSection detail={detail} />
+
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="font-heading text-lg font-semibold tracking-tight">
@@ -412,6 +420,190 @@ export function MarketplaceOrderWorkspace({
         </button>
       </div>
     </div>
+  );
+}
+
+function SupplierContactSection({ detail }: { detail: MarketplaceSupplierDetail }) {
+  const locations = [
+    ...(detail.location ? [detail.location] : []),
+    ...detail.locations.filter((l) => l && l !== detail.location),
+  ];
+  const paymentLabel = detail.paymentMethodPreferred
+    ? formatPaymentMethodLabel(detail.paymentMethodPreferred)
+    : null;
+  const payoutLabel =
+    detail.payoutType && detail.payoutPhone
+      ? `${formatPaymentMethodLabel(detail.payoutType)} · ${detail.payoutPhone}`
+      : detail.payoutPhone;
+
+  const extraContacts = detail.contacts.filter((c) => {
+    const phoneMatch =
+      c.phone && detail.contactPhone && c.phone.replace(/\D/g, "") === detail.contactPhone.replace(/\D/g, "");
+    const emailMatch =
+      c.email &&
+      detail.contactEmail &&
+      c.email.toLowerCase() === detail.contactEmail.toLowerCase();
+    return !(c.primaryContact && (phoneMatch || emailMatch));
+  });
+
+  const hasContacts =
+    detail.contactPhone ||
+    detail.contactEmail ||
+    extraContacts.some((c) => c.phone || c.email || c.name);
+  const hasPayment = paymentLabel || detail.paymentDetails || payoutLabel;
+  const hasMeta =
+    hasContacts ||
+    hasPayment ||
+    locations.length > 0 ||
+    detail.listedBy ||
+    detail.creditTermsDays != null;
+
+  if (!hasMeta) return null;
+
+  return (
+    <section className="border border-border/55 bg-muted/5 p-4">
+      <h2 className="font-heading text-sm font-semibold tracking-tight">
+        Supplier contact
+      </h2>
+
+      <dl className="mt-3 space-y-2.5 text-sm">
+        {detail.contactPhone ? (
+          <ContactRow
+            icon={Phone}
+            label="Phone"
+            value={
+              <PhoneLink phone={detail.contactPhone} showWhatsApp />
+            }
+          />
+        ) : null}
+        {detail.contactEmail ? (
+          <ContactRow
+            icon={Mail}
+            label="Email"
+            value={
+              <a
+                href={`mailto:${detail.contactEmail}`}
+                className="text-foreground underline underline-offset-2 hover:text-foreground/80"
+              >
+                {detail.contactEmail}
+              </a>
+            }
+          />
+        ) : null}
+
+        {extraContacts.map((contact, index) => (
+          <div
+            key={`${contact.name ?? "contact"}-${contact.phone ?? contact.email ?? index}`}
+            className="border-t border-border/40 pt-2.5"
+          >
+            {contact.name || contact.roleLabel ? (
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                {[contact.name, contact.roleLabel].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
+            {contact.phone ? (
+              <p className="flex items-center gap-2">
+                <Phone className="size-3.5 shrink-0 text-muted-foreground" />
+                <PhoneLink phone={contact.phone} showWhatsApp />
+              </p>
+            ) : null}
+            {contact.email ? (
+              <p className="mt-1 flex items-center gap-2">
+                <Mail className="size-3.5 shrink-0 text-muted-foreground" />
+                <a
+                  href={`mailto:${contact.email}`}
+                  className="text-foreground underline underline-offset-2 hover:text-foreground/80"
+                >
+                  {contact.email}
+                </a>
+              </p>
+            ) : null}
+          </div>
+        ))}
+
+        {paymentLabel ? (
+          <ContactRow icon={CreditCard} label="Payment" value={paymentLabel} />
+        ) : null}
+        {detail.paymentDetails ? (
+          <ContactRow
+            icon={CreditCard}
+            label="Payment details"
+            value={detail.paymentDetails}
+          />
+        ) : null}
+        {payoutLabel && payoutLabel !== detail.paymentDetails ? (
+          <ContactRow icon={CreditCard} label="Payout" value={payoutLabel} />
+        ) : null}
+        {locations.length > 0 ? (
+          <ContactRow
+            icon={MapPin}
+            label="Location"
+            value={locations.join(" · ")}
+          />
+        ) : null}
+        {detail.creditTermsDays != null ? (
+          <ContactRow
+            icon={CreditCard}
+            label="Credit terms"
+            value={`${detail.creditTermsDays} day${detail.creditTermsDays === 1 ? "" : "s"}`}
+          />
+        ) : null}
+        {detail.listedBy ? (
+          <ContactRow label="Listed by" value={detail.listedBy} />
+        ) : null}
+      </dl>
+    </section>
+  );
+}
+
+function ContactRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon?: ComponentType<{ className?: string }>;
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 sm:grid-cols-[108px_minmax(0,1fr)] sm:gap-3">
+      <dt className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {Icon ? <Icon className="size-3.5" /> : null}
+        {label}
+      </dt>
+      <dd className="min-w-0 text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+function PhoneLink({
+  phone,
+  showWhatsApp = false,
+}: {
+  phone: string;
+  showWhatsApp?: boolean;
+}) {
+  const wa = normalizeWhatsAppPhone(phone);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+      <a
+        href={`tel:${phone.replace(/\s/g, "")}`}
+        className="text-foreground underline underline-offset-2 hover:text-foreground/80"
+      >
+        {phone}
+      </a>
+      {showWhatsApp && wa ? (
+        <a
+          href={`https://wa.me/${wa}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          <MessageCircle className="size-3.5" />
+          WhatsApp
+        </a>
+      ) : null}
+    </span>
   );
 }
 
