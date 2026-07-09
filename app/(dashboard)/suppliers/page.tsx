@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   ChevronLeft,
@@ -55,8 +55,10 @@ import { SupplierEditColumn } from "./_components/SupplierEditColumn";
 import {
   EMPTY_SUPPLIER_PROFILE,
   SupplierProfileFields,
+  supplierRecordToProfileDraft,
   type SupplierProfileDraft,
 } from "./_components/supplier-profile-shared";
+import { NewSupplierForm } from "./_components/NewSupplierForm";
 import { SupDrawerFooter, SupMobileSelectionBar } from "./_components/supplier-layout-primitives";
 import { SupplierPageHeader } from "./_components/SupplierPageHeader";
 import { NewSupplyDrawer } from "../supplies/_components/new-supply-drawer";
@@ -74,6 +76,7 @@ import {
 import { VirtualizedSupplierList } from "./_components/VirtualizedSupplierList";
 
 export default function SuppliersPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const {
     me,
@@ -81,6 +84,7 @@ export default function SuppliersPage() {
     canPathBWrite,
     canViewSuppliers,
     canViewCategories,
+    canViewMarketplace,
   } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
@@ -322,25 +326,7 @@ export default function SuppliersPage() {
       setDetail(d);
       setContacts(c);
       setItemLinks(links);
-      setPatchDraft({
-        name: d.name,
-        code: d.code ?? "",
-        supplierType: d.supplierType,
-        status: d.status,
-        notes: d.notes ?? "",
-        vatPin: d.vatPin ?? "",
-        taxExempt: Boolean(d.taxExempt),
-        creditTermsDays:
-          d.creditTermsDays != null ? String(d.creditTermsDays) : "",
-        creditLimit:
-          d.creditLimit != null && Number.isFinite(Number(d.creditLimit))
-            ? String(d.creditLimit)
-            : "",
-        paymentMethodPreferred: d.paymentMethodPreferred ?? "",
-        paymentDetails: d.paymentDetails ?? "",
-        payoutType: d.payoutType ?? "manual",
-        payoutPhone: d.payoutPhone ?? "",
-      });
+      setPatchDraft(supplierRecordToProfileDraft(d));
     } catch (error) {
       if (selectionRef.current === id) {
         setDetail(null);
@@ -413,6 +399,17 @@ export default function SuppliersPage() {
           : {}),
       };
       const created = await createSupplier(body);
+      const contactPhone = createDraft.contactPhone.trim();
+      const contactEmail = createDraft.contactEmail.trim();
+      const contactName = createDraft.contactName.trim();
+      if (contactPhone || contactEmail || contactName) {
+        await createSupplierContact(created.id, {
+          name: contactName || createDraft.name.trim(),
+          phone: contactPhone || undefined,
+          email: contactEmail || undefined,
+          primaryContact: true,
+        });
+      }
       setCreateDraft({ ...EMPTY_SUPPLIER_PROFILE });
       await refreshList();
       await onSelectSupplier(created.id);
@@ -480,25 +477,7 @@ export default function SuppliersPage() {
             : null,
       });
       setDetail(next);
-      setPatchDraft({
-        name: next.name,
-        code: next.code ?? "",
-        supplierType: next.supplierType,
-        status: next.status,
-        notes: next.notes ?? "",
-        vatPin: next.vatPin ?? "",
-        taxExempt: Boolean(next.taxExempt),
-        creditTermsDays:
-          next.creditTermsDays != null ? String(next.creditTermsDays) : "",
-        creditLimit:
-          next.creditLimit != null && Number.isFinite(Number(next.creditLimit))
-            ? String(next.creditLimit)
-            : "",
-        paymentMethodPreferred: next.paymentMethodPreferred ?? "",
-        paymentDetails: next.paymentDetails ?? "",
-        payoutType: next.payoutType ?? "manual",
-        payoutPhone: next.payoutPhone ?? "",
-      });
+      setPatchDraft(supplierRecordToProfileDraft(next));
       await refreshList();
       setProfileEditDrawerOpen(false);
       setFeedback({ text: "Supplier updated.", kind: "success" });
@@ -1220,14 +1199,14 @@ export default function SuppliersPage() {
           onboardingTarget={ONBOARDING_TARGETS.supplierDrawer}
           onOpenChange={onCreateDrawerOpenChange}
           title="New supplier"
-          description="Only name is required. You can set commercial and payment fields at create time or later under Edit profile."
+          description="Connect a marketplace vendor for catalogue import and portal POs, or create a private supplier record below."
           contextLabel="Purchasing"
           icon={<Truck className="size-5 text-primary" aria-hidden />}
           width="wide"
           footer={
             <SupDrawerFooter
               onCancel={() => onCreateDrawerOpenChange(false)}
-              submitLabel="Create supplier"
+              submitLabel={canViewMarketplace ? "Create private supplier" : "Create supplier"}
               submitForm="new-supplier-form"
             />
           }
@@ -1239,13 +1218,18 @@ export default function SuppliersPage() {
           >
             <FormDrawerFields
               legend="New supplier"
-              hint="Name is required; everything else can be completed after create."
+              hint="Marketplace suppliers are connected, not re-created. Private suppliers need only a name."
             >
-              <SupplierProfileFields
+              <NewSupplierForm
                 draft={createDraft}
                 onDraftChange={(partial) =>
                   setCreateDraft((d) => ({ ...d, ...partial }))
                 }
+                canViewMarketplace={canViewMarketplace}
+                onBrowseMarketplace={() => {
+                  setCreateDrawerOpen(false);
+                  router.push(APP_ROUTES.marketplace);
+                }}
               />
             </FormDrawerFields>
           </form>

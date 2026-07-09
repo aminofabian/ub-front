@@ -26,6 +26,12 @@ export const APP_ROUTES = {
   itemTypes: "/item-types",
   categories: "/categories",
   suppliers: "/suppliers",
+  marketplace: "/marketplace",
+  supplierPortalLogin: "/supplier-portal/login",
+  supplierPortalOverview: "/supplier-portal/overview",
+  supplierPortalProfile: "/supplier-portal/profile",
+  supplierPortalCatalog: "/supplier-portal/catalog",
+  supplierPortalOrders: "/supplier-portal/orders",
   customers: "/customers",
   creditsPaymentClaims: "/credits/payment-claims",
   purchasingIntelligence: "/purchasing/intelligence",
@@ -118,6 +124,12 @@ export const API_ROUTES = {
   itemTypes: "/api/v1/item-types",
   categories: "/api/v1/categories",
   globalCatalog: "/api/v1/global-catalog",
+  publicMarketplace: "/api/v1/public/marketplace",
+  marketplace: "/api/v1/marketplace",
+  supplierPortalAuthLogin: "/api/v1/supplier-portal/auth/login",
+  supplierPortalProfile: "/api/v1/supplier-portal/profile",
+  supplierPortalProducts: "/api/v1/supplier-portal/products",
+  supplierPortalOrders: "/api/v1/supplier-portal/orders",
   superAdminAuthLogin: "/api/v1/super-admin/auth/login",
   superAdminBusinesses: "/api/v1/super-admin/businesses",
   superAdminPlatformPaymentGateways:
@@ -138,6 +150,7 @@ export const STORAGE_KEYS = {
   tenantHost: "ub.tenantHost",
   tenantId: "ub.tenantId",
   superAdminAccessToken: "ub.sa.accessToken",
+  supplierPortalAccessToken: "ub.sp.accessToken",
 } as const;
 
 export {

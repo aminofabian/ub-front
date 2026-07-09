@@ -22,6 +22,8 @@ export const Permission = {
   PurchasingPaymentWrite: "purchasing.payment.write",
   SuppliersRead: "suppliers.read",
   SuppliersWrite: "suppliers.write",
+  MarketplaceSuppliersRead: "marketplace.suppliers.read",
+  MarketplaceSuppliersConnect: "marketplace.suppliers.connect",
   InventoryRead: "inventory.read",
   InventoryWrite: "inventory.write",
   InventoryTransfer: "inventory.transfer",

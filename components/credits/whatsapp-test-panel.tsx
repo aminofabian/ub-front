@@ -33,6 +33,15 @@ function formatSummary(r: CreditSaleReminderTestResult): string {
     } (${r.lookupDetail})`,
     `Result: ${r.outcome} via ${r.channel} — ${r.detail}`,
   ];
+  if (/http_401|http_403/i.test(r.detail)) {
+    parts.push(
+      "Meta rejected the access token (401/403). In Credit tab reminders, paste a fresh permanent token from Meta Business Manager → WhatsApp → API setup, confirm the phone number ID matches that app, save, then retry.",
+    );
+  } else if (r.outcome === "failed" && r.channel === "whatsapp") {
+    parts.push(
+      "WhatsApp did not deliver. Free-form text only works if the recipient messaged your business number in the last 24 hours; otherwise use an approved template.",
+    );
+  }
   return parts.join("\n");
 }
 

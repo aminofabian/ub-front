@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { cn } from "@/lib/utils";
 
 import {
@@ -27,6 +29,10 @@ export type SupplierProfileDraft = {
   paymentDetails: string;
   payoutType: string;
   payoutPhone: string;
+  /** Create flow only — used for duplicate check and optional primary contact. */
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
 };
 
 export const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
@@ -43,14 +49,62 @@ export const EMPTY_SUPPLIER_PROFILE: SupplierProfileDraft = {
   paymentDetails: "",
   payoutType: "manual",
   payoutPhone: "",
+  contactName: "",
+  contactPhone: "",
+  contactEmail: "",
 };
+
+/** Map API supplier row to editable profile draft (edit flows ignore contact fields). */
+export function supplierRecordToProfileDraft(supplier: {
+  name: string;
+  code?: string | null;
+  supplierType: string;
+  status: string;
+  notes?: string | null;
+  vatPin?: string | null;
+  taxExempt?: boolean | null;
+  creditTermsDays?: number | null;
+  creditLimit?: number | string | null;
+  paymentMethodPreferred?: string | null;
+  paymentDetails?: string | null;
+  payoutType?: string | null;
+  payoutPhone?: string | null;
+}): SupplierProfileDraft {
+  return {
+    name: supplier.name,
+    code: supplier.code ?? "",
+    supplierType: supplier.supplierType,
+    status: supplier.status,
+    notes: supplier.notes ?? "",
+    vatPin: supplier.vatPin ?? "",
+    taxExempt: Boolean(supplier.taxExempt),
+    creditTermsDays:
+      supplier.creditTermsDays != null ? String(supplier.creditTermsDays) : "",
+    creditLimit:
+      supplier.creditLimit != null && Number.isFinite(Number(supplier.creditLimit))
+        ? String(supplier.creditLimit)
+        : "",
+    paymentMethodPreferred: supplier.paymentMethodPreferred ?? "",
+    paymentDetails: supplier.paymentDetails ?? "",
+    payoutType: supplier.payoutType ?? "manual",
+    payoutPhone: supplier.payoutPhone ?? "",
+    contactName: "",
+    contactPhone: "",
+    contactEmail: "",
+  };
+}
 
 export function SupplierProfileFields({
   draft,
   onDraftChange,
+  mode = "full",
+  slotAfterIdentity,
 }: {
   draft: SupplierProfileDraft;
   onDraftChange: (partial: Partial<SupplierProfileDraft>) => void;
+  /** full = edit drawer; create = new supplier with contact + dedup-friendly layout */
+  mode?: "full" | "create";
+  slotAfterIdentity?: ReactNode;
 }) {
   return (
     <div className="space-y-8">
@@ -74,6 +128,42 @@ export function SupplierProfileFields({
               required
             />
           </label>
+          {mode === "create" ? (
+            <>
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                <span className={supFieldLabel}>Primary contact phone</span>
+                <input
+                  className={supInput}
+                  value={draft.contactPhone}
+                  onChange={(e) => onDraftChange({ contactPhone: e.target.value })}
+                  placeholder="For duplicate check & PO follow-up"
+                  inputMode="tel"
+                  maxLength={32}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                <span className={supFieldLabel}>Primary contact email</span>
+                <input
+                  className={supInput}
+                  type="email"
+                  value={draft.contactEmail}
+                  onChange={(e) => onDraftChange({ contactEmail: e.target.value })}
+                  placeholder="orders@supplier.co.ke"
+                  maxLength={255}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
+                <span className={supFieldLabel}>Contact person</span>
+                <input
+                  className={supInput}
+                  value={draft.contactName}
+                  onChange={(e) => onDraftChange({ contactName: e.target.value })}
+                  placeholder="Optional — saved as primary contact after create"
+                  maxLength={255}
+                />
+              </label>
+            </>
+          ) : null}
           <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
             <span className={supFieldLabel}>Vendor code</span>
             <input
@@ -125,6 +215,8 @@ export function SupplierProfileFields({
         </div>
       </section>
 
+      {slotAfterIdentity}
+
       <section className="space-y-4 border-t border-border/45 pt-8">
         <div>
           <p className={supKicker}>Commercial &amp; payments</p>
@@ -140,7 +232,7 @@ export function SupplierProfileFields({
               value={draft.vatPin}
               onChange={(e) => onDraftChange({ vatPin: e.target.value })}
               maxLength={64}
-              placeholder="Optional"
+              placeholder={mode === "create" ? "Helps match existing vendors" : "Optional"}
             />
           </label>
           <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/50 bg-background/80 px-3 py-2.5 sm:mt-5">

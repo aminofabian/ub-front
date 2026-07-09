@@ -11,6 +11,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",
     [APP_ROUTES.suppliers]: "Suppliers",
+    [APP_ROUTES.marketplace]: "Marketplace",
     [APP_ROUTES.customers]: "Credit customers",
     [APP_ROUTES.creditsPaymentClaims]: "Payment claims",
     [APP_ROUTES.inventoryStock]: "Stock",
