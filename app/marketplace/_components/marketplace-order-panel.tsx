@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Check,
+  Copy,
   FileDown,
   Loader2,
   MapPin,
@@ -40,6 +42,19 @@ function hueFromId(id: string): number {
     hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   }
   return hash % 360;
+}
+
+function isJunkLocation(value: string): boolean {
+  return /^(optional|n\/a|na|none|-)$/i.test(value.trim());
+}
+
+async function copyText(value: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error(`Could not copy ${label.toLowerCase()}`);
+  }
 }
 
 function ProductImage({
@@ -91,15 +106,17 @@ function ProductImage({
 function QtyControl({
   qty,
   onChange,
+  compact = false,
 }: {
   qty: number;
   onChange: (qty: number) => void;
+  compact?: boolean;
 }) {
   if (qty <= 0) {
     return (
       <button
         type="button"
-        className={cn(mktBtnGhost, "h-9 px-3 text-xs")}
+        className={cn(mktBtnGhost, compact ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-xs")}
         onClick={(e) => {
           e.stopPropagation();
           onChange(1);
@@ -117,18 +134,29 @@ function QtyControl({
     >
       <button
         type="button"
-        className="flex size-9 items-center justify-center hover:bg-muted"
+        className={cn(
+          "flex items-center justify-center hover:bg-muted",
+          compact ? "size-8" : "size-9",
+        )}
         onClick={() => onChange(qty - 1)}
         aria-label="Decrease quantity"
       >
         <Minus className="size-3.5" />
       </button>
-      <span className="min-w-8 text-center text-sm font-semibold tabular-nums">
+      <span
+        className={cn(
+          "text-center text-sm font-semibold tabular-nums",
+          compact ? "min-w-7" : "min-w-8",
+        )}
+      >
         {qty}
       </span>
       <button
         type="button"
-        className="flex size-9 items-center justify-center hover:bg-muted"
+        className={cn(
+          "flex items-center justify-center hover:bg-muted",
+          compact ? "size-8" : "size-9",
+        )}
         onClick={() => onChange(qty + 1)}
         aria-label="Increase quantity"
       >
@@ -159,11 +187,15 @@ export function MarketplaceOrderWorkspace({
   );
   const [sendingOrder, setSendingOrder] = useState(false);
 
-  const setQty = (productId: string, qty: number) => {
+  const setQty = (productId: string, qty: number, announce = false) => {
     setCart((prev) => {
       const next = { ...prev };
+      const prevQty = prev[productId] ?? 0;
       if (qty <= 0) delete next[productId];
       else next[productId] = qty;
+      if (announce && prevQty === 0 && qty > 0) {
+        queueMicrotask(() => toast.message("Added to order"));
+      }
       return next;
     });
   };
@@ -193,6 +225,12 @@ export function MarketplaceOrderWorkspace({
     ? APP_ROUTES.marketplaceSupplier(detail.slug)
     : APP_ROUTES.marketplace;
 
+  const areaLabel = [detail.location, ...detail.locations]
+    .map((l) => l?.trim())
+    .filter((l): l is string => Boolean(l) && !isJunkLocation(l))
+    .filter((l, i, arr) => arr.indexOf(l) === i)
+    .join(" · ");
+
   const sendOrder = async () => {
     if (cartLines.length === 0) {
       toast.error("Add at least one product to the order.");
@@ -212,7 +250,7 @@ export function MarketplaceOrderWorkspace({
       const blob = buildMarketplaceOrderPdf({
         supplierName: detail.name,
         supplierPhone: detail.contactPhone,
-        location: detail.location,
+        location: areaLabel || detail.location,
         listedBy: detail.listedBy,
         lines,
       });
@@ -230,7 +268,7 @@ export function MarketplaceOrderWorkspace({
         mode === "shared"
           ? "Order shared — pick WhatsApp to send the PDF."
           : wa
-            ? "PDF downloaded and WhatsApp opened with your order text."
+            ? "PDF downloaded and WhatsApp opened with your order."
             : "PDF downloaded. Attach it in WhatsApp to the supplier.",
       );
     } catch (error) {
@@ -252,19 +290,15 @@ export function MarketplaceOrderWorkspace({
           <ArrowLeft className="size-4" />
           Marketplace
         </Link>
-        <div className="min-w-0 text-right">
-          <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {detail.name}
-            {detail.products.length
-              ? ` · ${detail.products.length} products`
-              : ""}
-          </p>
-        </div>
+        <p className="truncate text-xs text-muted-foreground">
+          {detail.name}
+          {detail.products.length ? ` · ${detail.products.length} products` : ""}
+        </p>
       </div>
 
       {selected ? (
         <section className="border border-border/55 bg-muted/10 p-3 sm:p-4">
-          <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
+          <div className="grid gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
             <ProductImage
               src={selected.imageUrl}
               alt={selected.name}
@@ -273,69 +307,60 @@ export function MarketplaceOrderWorkspace({
               iconClassName="size-6 opacity-50"
             />
             <div className="min-w-0">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  {selected.categoryName ? (
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      {selected.categoryName}
-                    </p>
-                  ) : null}
-                  <h1 className="font-heading text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
-                    {selected.name}
-                  </h1>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {[selected.barcode, selected.sku].filter(Boolean).join(" · ") ||
-                      "—"}
-                    {" · "}
-                    <Link href={supplierHref} className="underline underline-offset-2">
-                      {detail.name}
-                    </Link>
-                    {detail.location ? ` · ${detail.location}` : ""}
-                  </p>
-                </div>
+              {selected.categoryName ? (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  {selected.categoryName}
+                </p>
+              ) : null}
+              <h1 className="font-heading text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
+                {selected.name}
+              </h1>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <Link href={supplierHref} className="underline underline-offset-2">
+                  {detail.name}
+                </Link>
+                {areaLabel ? ` · ${areaLabel}` : ""}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <p className="font-heading text-xl font-semibold tabular-nums sm:text-2xl">
+                  {selected.unitPrice != null
+                    ? formatMoney(selected.unitPrice, selected.currency ?? "KES")
+                    : "Ask price"}
+                </p>
                 <QtyControl
                   qty={cart[selected.id] ?? 0}
-                  onChange={(qty) => setQty(selected.id, qty)}
+                  onChange={(qty) => setQty(selected.id, qty, true)}
                 />
               </div>
-              <p className="mt-2 font-heading text-xl font-semibold tabular-nums sm:text-2xl">
-                {selected.unitPrice != null
-                  ? formatMoney(selected.unitPrice, selected.currency ?? "KES")
-                  : "Ask price"}
-              </p>
             </div>
           </div>
         </section>
       ) : (
-        <section className="border border-border/55 bg-muted/10 p-5">
+        <section className="border border-border/55 bg-muted/10 p-4">
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             {detail.name}
           </h1>
-          {detail.location ? (
-            <p className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground">
+          {areaLabel ? (
+            <p className="mt-1.5 inline-flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="size-3.5" />
-              {detail.location}
+              {areaLabel}
             </p>
           ) : null}
           {detail.description ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {detail.description}
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{detail.description}</p>
           ) : null}
         </section>
       )}
 
-      <SupplierContactSection detail={detail} />
+      <SupplierContactSection detail={detail} areaLabel={areaLabel} />
 
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-heading text-lg font-semibold tracking-tight">
-            {selected
-              ? `More from ${detail.name}`
-              : `Products from ${detail.name}`}
+          <h2 className="text-sm font-semibold tracking-tight">
+            {selected ? `More from ${detail.name}` : `Products from ${detail.name}`}
           </h2>
           <span className="text-xs text-muted-foreground">
-            {detail.products.length} linked
+            {(selected ? otherProducts : detail.products).length}
           </span>
         </div>
         {(selected ? otherProducts : detail.products).length === 0 ? (
@@ -345,25 +370,25 @@ export function MarketplaceOrderWorkspace({
               : "No linked products yet."}
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {(selected ? otherProducts : detail.products).map((product) => (
               <CatalogueOrderRow
                 key={product.id}
                 product={product}
                 supplierSlug={detail.slug}
                 qty={cart[product.id] ?? 0}
-                onSetQty={(qty) => setQty(product.id, qty)}
+                onSetQty={(qty) => setQty(product.id, qty, true)}
               />
             ))}
           </ul>
         )}
       </section>
 
-      <div className="sticky bottom-0 space-y-3 border border-border/60 bg-card p-4">
+      <div className="sticky bottom-0 space-y-2 border border-border/60 bg-card p-3 sm:p-4">
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="inline-flex items-center gap-1.5 text-muted-foreground">
             <ShoppingCart className="size-3.5" />
-            {cartLines.length} line{cartLines.length === 1 ? "" : "s"}
+            {cartLines.length} item{cartLines.length === 1 ? "" : "s"}
           </span>
           <span className="font-heading text-lg font-semibold tabular-nums">
             {formatMoney(cartTotal, cartCurrency)}
@@ -383,34 +408,30 @@ export function MarketplaceOrderWorkspace({
           ) : (
             <>
               <FileDown className="size-4" />
-              PDF + WhatsApp order
+              Download PDF & open WhatsApp
             </>
           )}
         </button>
+        <p className="text-center text-[11px] text-muted-foreground">
+          Downloads an order sheet, then opens WhatsApp with the supplier.
+        </p>
       </div>
     </div>
   );
 }
 
-function SupplierContactSection({ detail }: { detail: MarketplaceSupplierDetail }) {
-  const locations = [
-    ...new Set(
-      [detail.location, ...detail.locations]
-        .map((l) => l?.trim())
-        .filter(
-          (l): l is string =>
-            Boolean(l) &&
-            !/^(optional|n\/a|na|none|-)$/i.test(l),
-        ),
-    ),
-  ];
-
+function SupplierContactSection({
+  detail,
+  areaLabel,
+}: {
+  detail: MarketplaceSupplierDetail;
+  areaLabel: string;
+}) {
   const paymentLabel = detail.paymentMethodPreferred
     ? formatPaymentMethodLabel(detail.paymentMethodPreferred)
     : null;
-  const paymentLine = [paymentLabel, detail.paymentDetails?.trim()]
-    .filter(Boolean)
-    .join(" · ");
+  const paymentDetails = detail.paymentDetails?.trim() || null;
+  const paymentCopyValue = [paymentLabel, paymentDetails].filter(Boolean).join(" · ");
 
   const payoutLine =
     detail.payoutType && detail.payoutPhone
@@ -436,7 +457,8 @@ function SupplierContactSection({ detail }: { detail: MarketplaceSupplierDetail 
     });
   };
 
-  const primary = detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
+  const primary =
+    detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
   if (primary) {
     addContact(
       [primary.name, primary.roleLabel].filter(Boolean).join(" · ") || "Contact",
@@ -456,76 +478,97 @@ function SupplierContactSection({ detail }: { detail: MarketplaceSupplierDetail 
     );
   }
 
-  const metaLines = [
-    locations.length ? { label: "Area", value: locations.join(" · ") } : null,
-    detail.listedBy ? { label: "Listed by", value: detail.listedBy } : null,
-    detail.creditTermsDays != null
-      ? {
-          label: "Credit",
-          value: `${detail.creditTermsDays} day${detail.creditTermsDays === 1 ? "" : "s"}`,
-        }
-      : null,
-  ].filter((row): row is { label: string; value: string } => Boolean(row));
-
   if (
     contactLines.length === 0 &&
-    !paymentLine &&
+    !paymentCopyValue &&
     !payoutLine &&
-    metaLines.length === 0
+    !areaLabel &&
+    !detail.listedBy
   ) {
     return null;
   }
 
   return (
     <section className="border border-border/55 bg-muted/5 px-3 py-3 sm:px-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        Supplier
-      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="min-w-0 space-y-2">
+          {contactLines.map((line) => (
+            <div key={`${line.label}-${line.phone ?? line.email}`} className="text-sm">
+              <p className="text-[11px] text-muted-foreground">{line.label}</p>
+              {line.phone ? (
+                <PhoneLink phone={line.phone} showWhatsApp className="text-sm" />
+              ) : null}
+              {line.email ? (
+                <a
+                  href={`mailto:${line.email}`}
+                  className="block text-sm underline underline-offset-2"
+                >
+                  {line.email}
+                </a>
+              ) : null}
+            </div>
+          ))}
+          {areaLabel ? (
+            <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3" />
+              {areaLabel}
+            </p>
+          ) : null}
+        </div>
 
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        {contactLines.length ? (
-          <div className="min-w-0 space-y-1.5">
-            {contactLines.map((line) => (
-              <div key={`${line.label}-${line.phone ?? line.email}`} className="text-sm">
-                <p className="text-[11px] text-muted-foreground">{line.label}</p>
-                {line.phone ? (
-                  <PhoneLink phone={line.phone} showWhatsApp className="text-sm" />
-                ) : null}
-                {line.email ? (
-                  <a
-                    href={`mailto:${line.email}`}
-                    className="block text-sm underline underline-offset-2"
-                  >
-                    {line.email}
-                  </a>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="min-w-0 space-y-1.5 text-sm">
-          {paymentLine ? (
+        <div className="min-w-0 space-y-2 text-sm">
+          {paymentCopyValue ? (
             <div>
-              <p className="text-[11px] text-muted-foreground">Payment</p>
-              <p className="leading-snug">{paymentLine}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Payment</p>
+                <CopyButton value={paymentCopyValue} label="Payment details" />
+              </div>
+              {paymentLabel ? (
+                <p className="font-medium leading-snug">{paymentLabel}</p>
+              ) : null}
+              {paymentDetails ? (
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                  {paymentDetails}
+                </p>
+              ) : null}
             </div>
           ) : null}
-          {payoutLine && payoutLine !== paymentLine ? (
+          {payoutLine && payoutLine !== paymentCopyValue ? (
             <div>
-              <p className="text-[11px] text-muted-foreground">Payout</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Payout</p>
+                <CopyButton value={payoutLine} label="Payout details" />
+              </div>
               <p className="leading-snug">{payoutLine}</p>
             </div>
           ) : null}
-          {metaLines.map((row) => (
-            <div key={row.label}>
-              <p className="text-[11px] text-muted-foreground">{row.label}</p>
-              <p className="leading-snug">{row.value}</p>
-            </div>
-          ))}
+          {detail.listedBy ? (
+            <p className="text-xs text-muted-foreground">
+              Listed by {detail.listedBy}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>
+  );
+}
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+      onClick={() => {
+        void copyText(value, label).then(() => {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+    >
+      {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 
@@ -580,14 +623,14 @@ function CatalogueOrderRow({
       : null;
 
   return (
-    <div className="flex items-start gap-2.5 border border-border/50 bg-muted/10 p-2">
+    <div className="flex items-center gap-2.5 border border-border/50 bg-muted/10 p-2">
       {href ? (
         <Link href={href} className="shrink-0">
           <ProductImage
             src={product.imageUrl}
             alt={product.name}
             hue={hue}
-            className="size-14 border border-border/40"
+            className="size-12 border border-border/40"
             iconClassName="size-4 opacity-50"
           />
         </Link>
@@ -596,30 +639,28 @@ function CatalogueOrderRow({
           src={product.imageUrl}
           alt={product.name}
           hue={hue}
-          className="size-14 border border-border/40"
+          className="size-12 border border-border/40"
           iconClassName="size-4 opacity-50"
         />
       )}
       <div className="min-w-0 flex-1">
         {href ? (
-          <Link href={href} className="block truncate text-sm font-medium hover:underline">
+          <Link
+            href={href}
+            className="block truncate text-sm font-medium hover:underline"
+          >
             {product.name}
           </Link>
         ) : (
           <p className="truncate text-sm font-medium">{product.name}</p>
         )}
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
-          {[product.barcode, product.sku].filter(Boolean).join(" · ") || "—"}
+        <p className="mt-0.5 text-sm font-semibold tabular-nums">
+          {product.unitPrice != null
+            ? formatMoney(product.unitPrice, product.currency ?? "KES")
+            : "Ask"}
         </p>
-        {product.unitPrice != null ? (
-          <p className="mt-1 text-sm font-semibold tabular-nums">
-            {formatMoney(product.unitPrice, product.currency ?? "KES")}
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-muted-foreground">Ask</p>
-        )}
       </div>
-      <QtyControl qty={qty} onChange={onSetQty} />
+      <QtyControl qty={qty} onChange={onSetQty} compact />
     </div>
   );
 }
