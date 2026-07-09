@@ -32,6 +32,7 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   connectMarketplaceSupplier,
   fetchMarketplaceSupplierDetail,
+  listMarketplaceLocations,
   searchMarketplaceProducts,
   searchMarketplaceSuppliers,
   type MarketplaceCatalogProductPreview,
@@ -135,6 +136,8 @@ function PublicMarketplacePageInner() {
   const [tab, setTab] = useState<SearchTab>("products");
   const [searchInput, setSearchInput] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeLocation, setActiveLocation] = useState<string | null>(null);
+  const [locations, setLocations] = useState<string[]>([]);
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState<MarketplaceSupplierSearchRow[]>([]);
@@ -180,18 +183,34 @@ function PublicMarketplacePageInner() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void listMarketplaceLocations()
+      .then((rows) => {
+        if (!cancelled) setLocations(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setLocations([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const loadResults = useCallback(async () => {
     setLoading(true);
     try {
       if (tab === "suppliers") {
         const page = await searchMarketplaceSuppliers({
           q: debouncedSearch,
+          location: activeLocation ?? undefined,
           size: 60,
         });
         setSuppliers(page.content);
       } else {
         const page = await searchMarketplaceProducts({
           q: debouncedSearch,
+          location: activeLocation ?? undefined,
           size: 60,
         });
         setProducts(page.content);
@@ -201,7 +220,7 @@ function PublicMarketplacePageInner() {
     } finally {
       setLoading(false);
     }
-  }, [tab, debouncedSearch]);
+  }, [tab, debouncedSearch, activeLocation]);
 
   useEffect(() => {
     void loadResults();
@@ -310,7 +329,24 @@ function PublicMarketplacePageInner() {
 
   const resultCount =
     tab === "suppliers" ? visibleSuppliers.length : visibleProducts.length;
-  const hasQuery = Boolean(debouncedSearch.trim() || activeTag);
+  const hasQuery = Boolean(
+    debouncedSearch.trim() || activeTag || activeLocation,
+  );
+  const locationChips = useMemo(() => {
+    const fromApi = locations;
+    const fromResults =
+      tab === "products"
+        ? products.flatMap((p) => p.locations ?? (p.location ? [p.location] : []))
+        : suppliers.flatMap(
+            (s) => s.locations ?? (s.location ? [s.location] : []),
+          );
+    const merged = new Set<string>();
+    for (const loc of [...fromApi, ...fromResults]) {
+      const key = loc?.trim();
+      if (key) merged.add(key);
+    }
+    return [...merged].sort((a, b) => a.localeCompare(b)).slice(0, 16);
+  }, [locations, products, suppliers, tab]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(120%_80%_at_50%_-10%,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_55%),linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--muted)_35%,var(--background)))]">
@@ -349,9 +385,9 @@ function PublicMarketplacePageInner() {
                   Products linked to real suppliers
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Browse catalogue items businesses already buy — with photos,
-                  contacts, and how each vendor gets paid. Sign in to add a
-                  supplier to your directory.
+                  Browse buying prices and locations for products businesses
+                  already source — then filter by area and add a supplier to
+                  your directory.
                 </p>
               </div>
 
@@ -435,22 +471,59 @@ function PublicMarketplacePageInner() {
                       </button>
                     ))
                   : null}
-
-                {categoryTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={cn(mktChip, activeTag === tag && mktChipActive)}
-                    onClick={() =>
-                      setActiveTag((current) =>
-                        current === tag ? null : tag,
-                      )
-                    }
-                  >
-                    {tag}
-                  </button>
-                ))}
               </div>
+
+              {locationChips.length ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <MapPin className="size-3" />
+                    Location
+                  </span>
+                  <button
+                    type="button"
+                    className={cn(mktChip, !activeLocation && mktChipActive)}
+                    onClick={() => setActiveLocation(null)}
+                  >
+                    All areas
+                  </button>
+                  {locationChips.map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      className={cn(
+                        mktChip,
+                        activeLocation === loc && mktChipActive,
+                      )}
+                      onClick={() =>
+                        setActiveLocation((current) =>
+                          current === loc ? null : loc,
+                        )
+                      }
+                    >
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {categoryTags.length ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {categoryTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={cn(mktChip, activeTag === tag && mktChipActive)}
+                      onClick={() =>
+                        setActiveTag((current) =>
+                          current === tag ? null : tag,
+                        )
+                      }
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -469,8 +542,12 @@ function PublicMarketplacePageInner() {
               </p>
               <p className="text-xs text-muted-foreground">
                 {tab === "products"
-                  ? "Only items actively linked to a supplier appear here."
-                  : "Open a vendor for contacts, payment details, and catalogue."}
+                  ? activeLocation
+                    ? `Showing buying prices near ${activeLocation}.`
+                    : "Buying prices from supplier links. Filter by location above."
+                  : activeLocation
+                    ? `Suppliers listed near ${activeLocation}.`
+                    : "Open a vendor for contacts, payment details, and catalogue."}
               </p>
             </div>
           </div>
@@ -500,6 +577,7 @@ function PublicMarketplacePageInner() {
                     onClear={() => {
                       setSearchInput("");
                       setActiveTag(null);
+                      setActiveLocation(null);
                     }}
                     showClear={hasQuery}
                   />
@@ -520,12 +598,13 @@ function PublicMarketplacePageInner() {
                   title={hasQuery ? "No suppliers match" : "No suppliers yet"}
                   hint={
                     hasQuery
-                      ? "Try another name, category, or clear filters."
+                      ? "Try another name, location, or clear filters."
                       : "Active suppliers with linked products from business directories will show up here."
                   }
                   onClear={() => {
                     setSearchInput("");
                     setActiveTag(null);
+                    setActiveLocation(null);
                   }}
                   showClear={hasQuery}
                 />
@@ -667,6 +746,15 @@ function SupplierTile({
               .filter(Boolean)
               .join(" · ") || "Supplier"}
           </p>
+          {row.location ? (
+            <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3 shrink-0" />
+              {row.location}
+              {(row.locations?.length ?? 0) > 1
+                ? ` +${(row.locations?.length ?? 1) - 1}`
+                : ""}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-1 text-[11px] text-muted-foreground">
@@ -742,6 +830,12 @@ function ProductTile({
             {row.supplierName}
             {row.supplierType ? ` · ${row.supplierType}` : ""}
           </p>
+          {row.location ? (
+            <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{row.location}</span>
+            </p>
+          ) : null}
         </div>
         <div className="mt-auto flex items-end justify-between gap-2">
           <div className="min-w-0 text-[11px] text-muted-foreground">
@@ -754,13 +848,20 @@ function ProductTile({
               </p>
             ) : null}
           </div>
-          {row.unitPrice != null ? (
-            <p className="shrink-0 font-heading text-lg font-semibold tracking-tight">
-              {formatMoney(row.unitPrice, row.currency ?? "KES")}
-            </p>
-          ) : (
-            <p className="shrink-0 text-xs text-muted-foreground">Ask price</p>
-          )}
+          <div className="shrink-0 text-right">
+            {row.unitPrice != null ? (
+              <>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Buying
+                </p>
+                <p className="font-heading text-lg font-semibold tracking-tight tabular-nums">
+                  {formatMoney(row.unitPrice, row.currency ?? "KES")}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Ask price</p>
+            )}
+          </div>
         </div>
       </div>
     </button>
@@ -877,12 +978,19 @@ function SupplierStorefront({
                 .filter(Boolean)
                 .join(" · ")}
             </p>
-            {detail.deliveryRegions?.length ? (
+            {detail.location || detail.locations?.length ? (
               <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/80">
                 <MapPin className="size-3.5" />
-                Delivers to {detail.deliveryRegions.slice(0, 3).join(", ")}
-                {detail.deliveryRegions.length > 3
-                  ? ` +${detail.deliveryRegions.length - 3}`
+                {(detail.locations?.length
+                  ? detail.locations
+                  : detail.location
+                    ? [detail.location]
+                    : []
+                )
+                  .slice(0, 3)
+                  .join(", ")}
+                {(detail.locations?.length ?? 0) > 3
+                  ? ` +${(detail.locations?.length ?? 0) - 3}`
                   : ""}
               </p>
             ) : null}
@@ -1153,9 +1261,14 @@ function CatalogueRow({ product }: { product: MarketplaceCatalogProductPreview }
       </div>
       <div className="shrink-0 text-right">
         {product.unitPrice != null ? (
-          <p className="text-sm font-semibold tabular-nums">
-            {formatMoney(product.unitPrice, product.currency ?? "KES")}
-          </p>
+          <>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Buying
+            </p>
+            <p className="text-sm font-semibold tabular-nums">
+              {formatMoney(product.unitPrice, product.currency ?? "KES")}
+            </p>
+          </>
         ) : (
           <p className="text-xs text-muted-foreground">Ask</p>
         )}

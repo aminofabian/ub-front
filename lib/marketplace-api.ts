@@ -18,6 +18,8 @@ export type MarketplaceSupplierSearchRow = {
   description: string | null;
   supplierType: string | null;
   listedBy: string | null;
+  location: string | null;
+  locations: string[];
   productCount: number;
   contactName: string | null;
   contactPhone: string | null;
@@ -38,6 +40,8 @@ export type MarketplaceProductSearchRow = {
   supplierId: string;
   supplierName: string;
   supplierType: string | null;
+  location: string | null;
+  locations: string[];
   packSize: number | null;
   packUnit: string | null;
   minOrderQty: number | null;
@@ -60,6 +64,8 @@ export type MarketplaceSupplierDetail = {
   description: string | null;
   supplierType: string | null;
   listedBy: string | null;
+  location: string | null;
+  locations: string[];
   status: string;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -288,6 +294,7 @@ function toPageResult<T>(raw: unknown, size: number): ItemsPageResult<T> {
 
 export async function searchMarketplaceSuppliers(opts?: {
   q?: string;
+  location?: string;
   page?: number;
   size?: number;
 }): Promise<ItemsPageResult<MarketplaceSupplierSearchRow>> {
@@ -297,14 +304,27 @@ export async function searchMarketplaceSuppliers(opts?: {
   if (opts?.q?.trim()) {
     params.set("q", opts.q.trim());
   }
+  if (opts?.location?.trim()) {
+    params.set("location", opts.location.trim());
+  }
   const raw = await publicFetch<unknown>(
     `${API_ROUTES.publicMarketplace}/suppliers/search?${params}`,
   );
   return toPageResult<MarketplaceSupplierSearchRow>(raw, opts?.size ?? 40);
 }
 
+export async function listMarketplaceLocations(): Promise<string[]> {
+  const raw = await publicFetch<unknown>(
+    `${API_ROUTES.publicMarketplace}/locations`,
+  );
+  return Array.isArray(raw)
+    ? raw.filter((v): v is string => typeof v === "string" && Boolean(v.trim()))
+    : [];
+}
+
 export async function searchMarketplaceProducts(opts?: {
   q?: string;
+  location?: string;
   page?: number;
   size?: number;
 }): Promise<ItemsPageResult<MarketplaceProductSearchRow>> {
@@ -313,6 +333,9 @@ export async function searchMarketplaceProducts(opts?: {
   params.set("size", String(opts?.size ?? 40));
   if (opts?.q?.trim()) {
     params.set("q", opts.q.trim());
+  }
+  if (opts?.location?.trim()) {
+    params.set("location", opts.location.trim());
   }
   const raw = await publicFetch<unknown>(
     `${API_ROUTES.publicMarketplace}/products/search?${params}`,
