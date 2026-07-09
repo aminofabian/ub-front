@@ -2,18 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
-  CreditCard,
   FileDown,
   Loader2,
-  Mail,
   MapPin,
   MessageCircle,
   Minus,
   Package,
-  Phone,
   Plus,
   ShoppingCart,
 } from "lucide-react";
@@ -246,7 +243,7 @@ export function MarketplaceOrderWorkspace({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[920px] flex-col gap-5 px-4 py-6 sm:px-6">
+    <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3 px-4 py-5 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
         <Link
           href={APP_ROUTES.marketplace}
@@ -266,58 +263,46 @@ export function MarketplaceOrderWorkspace({
       </div>
 
       {selected ? (
-        <section className="space-y-3 border border-border/55 bg-muted/10 p-4">
-          <div className="grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
+        <section className="border border-border/55 bg-muted/10 p-3 sm:p-4">
+          <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
             <ProductImage
               src={selected.imageUrl}
               alt={selected.name}
               hue={hueFromId(selected.id)}
               className="aspect-square border border-border/50"
-              iconClassName="size-7 opacity-50"
+              iconClassName="size-6 opacity-50"
             />
             <div className="min-w-0">
-              {selected.categoryName ? (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  {selected.categoryName}
-                </p>
-              ) : null}
-              <h1 className="font-heading text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
-                {selected.name}
-              </h1>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {[selected.barcode, selected.sku].filter(Boolean).join(" · ") ||
-                  "—"}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                From{" "}
-                <Link href={supplierHref} className="underline underline-offset-2">
-                  {detail.name}
-                </Link>
-                {detail.location ? ` · ${detail.location}` : ""}
-              </p>
-              <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  {selected.unitPrice != null ? (
-                    <>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                        Buying price
-                      </p>
-                      <p className="font-heading text-2xl font-semibold tabular-nums">
-                        {formatMoney(
-                          selected.unitPrice,
-                          selected.currency ?? "KES",
-                        )}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Ask price</p>
-                  )}
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  {selected.categoryName ? (
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {selected.categoryName}
+                    </p>
+                  ) : null}
+                  <h1 className="font-heading text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
+                    {selected.name}
+                  </h1>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {[selected.barcode, selected.sku].filter(Boolean).join(" · ") ||
+                      "—"}
+                    {" · "}
+                    <Link href={supplierHref} className="underline underline-offset-2">
+                      {detail.name}
+                    </Link>
+                    {detail.location ? ` · ${detail.location}` : ""}
+                  </p>
                 </div>
                 <QtyControl
                   qty={cart[selected.id] ?? 0}
                   onChange={(qty) => setQty(selected.id, qty)}
                 />
               </div>
+              <p className="mt-2 font-heading text-xl font-semibold tabular-nums sm:text-2xl">
+                {selected.unitPrice != null
+                  ? formatMoney(selected.unitPrice, selected.currency ?? "KES")
+                  : "Ask price"}
+              </p>
             </div>
           </div>
         </section>
@@ -409,170 +394,156 @@ export function MarketplaceOrderWorkspace({
 
 function SupplierContactSection({ detail }: { detail: MarketplaceSupplierDetail }) {
   const locations = [
-    ...(detail.location ? [detail.location] : []),
-    ...detail.locations.filter((l) => l && l !== detail.location),
+    ...new Set(
+      [detail.location, ...detail.locations]
+        .map((l) => l?.trim())
+        .filter(
+          (l): l is string =>
+            Boolean(l) &&
+            !/^(optional|n\/a|na|none|-)$/i.test(l),
+        ),
+    ),
   ];
+
   const paymentLabel = detail.paymentMethodPreferred
     ? formatPaymentMethodLabel(detail.paymentMethodPreferred)
     : null;
-  const payoutLabel =
+  const paymentLine = [paymentLabel, detail.paymentDetails?.trim()]
+    .filter(Boolean)
+    .join(" · ");
+
+  const payoutLine =
     detail.payoutType && detail.payoutPhone
-      ? `${formatPaymentMethodLabel(detail.payoutType)} · ${detail.payoutPhone}`
-      : detail.payoutPhone;
+      ? `${formatPaymentMethodLabel(detail.payoutType)} ${detail.payoutPhone}`
+      : detail.payoutPhone?.trim() || null;
 
-  const extraContacts = detail.contacts.filter((c) => {
-    const phoneMatch =
-      c.phone && detail.contactPhone && c.phone.replace(/\D/g, "") === detail.contactPhone.replace(/\D/g, "");
-    const emailMatch =
-      c.email &&
-      detail.contactEmail &&
-      c.email.toLowerCase() === detail.contactEmail.toLowerCase();
-    return !(c.primaryContact && (phoneMatch || emailMatch));
-  });
+  const seenPhones = new Set<string>();
+  const contactLines: { label: string; phone?: string; email?: string }[] = [];
 
-  const hasContacts =
-    detail.contactPhone ||
-    detail.contactEmail ||
-    extraContacts.some((c) => c.phone || c.email || c.name);
-  const hasPayment = paymentLabel || detail.paymentDetails || payoutLabel;
-  const hasMeta =
-    hasContacts ||
-    hasPayment ||
-    locations.length > 0 ||
-    detail.listedBy ||
-    detail.creditTermsDays != null;
+  const addContact = (
+    label: string,
+    phone?: string | null,
+    email?: string | null,
+  ) => {
+    const digits = phone?.replace(/\D/g, "") ?? "";
+    if (digits && seenPhones.has(digits)) return;
+    if (digits) seenPhones.add(digits);
+    if (!phone?.trim() && !email?.trim()) return;
+    contactLines.push({
+      label,
+      phone: phone?.trim() || undefined,
+      email: email?.trim() || undefined,
+    });
+  };
 
-  if (!hasMeta) return null;
+  const primary = detail.contacts.find((c) => c.primaryContact) ?? detail.contacts[0];
+  if (primary) {
+    addContact(
+      [primary.name, primary.roleLabel].filter(Boolean).join(" · ") || "Contact",
+      primary.phone ?? detail.contactPhone,
+      primary.email ?? detail.contactEmail,
+    );
+  } else {
+    addContact("Contact", detail.contactPhone, detail.contactEmail);
+  }
+
+  for (const c of detail.contacts) {
+    if (c === primary) continue;
+    addContact(
+      [c.name, c.roleLabel].filter(Boolean).join(" · ") || "Contact",
+      c.phone,
+      c.email,
+    );
+  }
+
+  const metaLines = [
+    locations.length ? { label: "Area", value: locations.join(" · ") } : null,
+    detail.listedBy ? { label: "Listed by", value: detail.listedBy } : null,
+    detail.creditTermsDays != null
+      ? {
+          label: "Credit",
+          value: `${detail.creditTermsDays} day${detail.creditTermsDays === 1 ? "" : "s"}`,
+        }
+      : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row));
+
+  if (
+    contactLines.length === 0 &&
+    !paymentLine &&
+    !payoutLine &&
+    metaLines.length === 0
+  ) {
+    return null;
+  }
 
   return (
-    <section className="border border-border/55 bg-muted/5 p-4">
-      <h2 className="font-heading text-sm font-semibold tracking-tight">
-        Supplier contact
-      </h2>
+    <section className="border border-border/55 bg-muted/5 px-3 py-3 sm:px-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        Supplier
+      </p>
 
-      <dl className="mt-3 space-y-2.5 text-sm">
-        {detail.contactPhone ? (
-          <ContactRow
-            icon={Phone}
-            label="Phone"
-            value={
-              <PhoneLink phone={detail.contactPhone} showWhatsApp />
-            }
-          />
-        ) : null}
-        {detail.contactEmail ? (
-          <ContactRow
-            icon={Mail}
-            label="Email"
-            value={
-              <a
-                href={`mailto:${detail.contactEmail}`}
-                className="text-foreground underline underline-offset-2 hover:text-foreground/80"
-              >
-                {detail.contactEmail}
-              </a>
-            }
-          />
-        ) : null}
-
-        {extraContacts.map((contact, index) => (
-          <div
-            key={`${contact.name ?? "contact"}-${contact.phone ?? contact.email ?? index}`}
-            className="border-t border-border/40 pt-2.5"
-          >
-            {contact.name || contact.roleLabel ? (
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                {[contact.name, contact.roleLabel].filter(Boolean).join(" · ")}
-              </p>
-            ) : null}
-            {contact.phone ? (
-              <p className="flex items-center gap-2">
-                <Phone className="size-3.5 shrink-0 text-muted-foreground" />
-                <PhoneLink phone={contact.phone} showWhatsApp />
-              </p>
-            ) : null}
-            {contact.email ? (
-              <p className="mt-1 flex items-center gap-2">
-                <Mail className="size-3.5 shrink-0 text-muted-foreground" />
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="text-foreground underline underline-offset-2 hover:text-foreground/80"
-                >
-                  {contact.email}
-                </a>
-              </p>
-            ) : null}
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        {contactLines.length ? (
+          <div className="min-w-0 space-y-1.5">
+            {contactLines.map((line) => (
+              <div key={`${line.label}-${line.phone ?? line.email}`} className="text-sm">
+                <p className="text-[11px] text-muted-foreground">{line.label}</p>
+                {line.phone ? (
+                  <PhoneLink phone={line.phone} showWhatsApp className="text-sm" />
+                ) : null}
+                {line.email ? (
+                  <a
+                    href={`mailto:${line.email}`}
+                    className="block text-sm underline underline-offset-2"
+                  >
+                    {line.email}
+                  </a>
+                ) : null}
+              </div>
+            ))}
           </div>
-        ))}
+        ) : null}
 
-        {paymentLabel ? (
-          <ContactRow icon={CreditCard} label="Payment" value={paymentLabel} />
-        ) : null}
-        {detail.paymentDetails ? (
-          <ContactRow
-            icon={CreditCard}
-            label="Payment details"
-            value={detail.paymentDetails}
-          />
-        ) : null}
-        {payoutLabel && payoutLabel !== detail.paymentDetails ? (
-          <ContactRow icon={CreditCard} label="Payout" value={payoutLabel} />
-        ) : null}
-        {locations.length > 0 ? (
-          <ContactRow
-            icon={MapPin}
-            label="Location"
-            value={locations.join(" · ")}
-          />
-        ) : null}
-        {detail.creditTermsDays != null ? (
-          <ContactRow
-            icon={CreditCard}
-            label="Credit terms"
-            value={`${detail.creditTermsDays} day${detail.creditTermsDays === 1 ? "" : "s"}`}
-          />
-        ) : null}
-        {detail.listedBy ? (
-          <ContactRow label="Listed by" value={detail.listedBy} />
-        ) : null}
-      </dl>
+        <div className="min-w-0 space-y-1.5 text-sm">
+          {paymentLine ? (
+            <div>
+              <p className="text-[11px] text-muted-foreground">Payment</p>
+              <p className="leading-snug">{paymentLine}</p>
+            </div>
+          ) : null}
+          {payoutLine && payoutLine !== paymentLine ? (
+            <div>
+              <p className="text-[11px] text-muted-foreground">Payout</p>
+              <p className="leading-snug">{payoutLine}</p>
+            </div>
+          ) : null}
+          {metaLines.map((row) => (
+            <div key={row.label}>
+              <p className="text-[11px] text-muted-foreground">{row.label}</p>
+              <p className="leading-snug">{row.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
-  );
-}
-
-function ContactRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon?: ComponentType<{ className?: string }>;
-  label: string;
-  value: ReactNode;
-}) {
-  return (
-    <div className="grid gap-1 sm:grid-cols-[108px_minmax(0,1fr)] sm:gap-3">
-      <dt className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {Icon ? <Icon className="size-3.5" /> : null}
-        {label}
-      </dt>
-      <dd className="min-w-0 text-foreground">{value}</dd>
-    </div>
   );
 }
 
 function PhoneLink({
   phone,
   showWhatsApp = false,
+  className,
 }: {
   phone: string;
   showWhatsApp?: boolean;
+  className?: string;
 }) {
   const wa = normalizeWhatsAppPhone(phone);
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-0.5", className)}>
       <a
         href={`tel:${phone.replace(/\s/g, "")}`}
-        className="text-foreground underline underline-offset-2 hover:text-foreground/80"
+        className="underline underline-offset-2 hover:text-foreground/80"
       >
         {phone}
       </a>
@@ -581,9 +552,9 @@ function PhoneLink({
           href={`https://wa.me/${wa}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
-          <MessageCircle className="size-3.5" />
+          <MessageCircle className="size-3" />
           WhatsApp
         </a>
       ) : null}
