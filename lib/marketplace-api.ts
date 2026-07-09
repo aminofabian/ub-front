@@ -40,6 +40,7 @@ export type MarketplaceProductSearchRow = {
   supplierId: string;
   supplierName: string;
   supplierType: string | null;
+  supplierProductCount: number;
   location: string | null;
   locations: string[];
   packSize: number | null;
