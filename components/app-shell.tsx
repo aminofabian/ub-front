@@ -377,7 +377,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canAddSupplies;
   if (item.href === APP_ROUTES.purchasingApAging) return gate.canViewApAging;
   if (item.href === APP_ROUTES.suppliers) return gate.canViewSuppliers;
-  if (item.href === APP_ROUTES.marketplace) return gate.canViewMarketplace;
+  // Public marketplace directory — visible to anyone who can manage suppliers.
+  if (item.href === APP_ROUTES.marketplace) return gate.canViewSuppliers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;

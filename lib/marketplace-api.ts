@@ -296,8 +296,8 @@ export async function searchMarketplaceProducts(opts?: {
 export async function fetchMarketplaceSupplierDetail(
   supplierId: string,
 ): Promise<MarketplaceSupplierDetail> {
-  return tenantFetch<MarketplaceSupplierDetail>(
-    `${API_ROUTES.marketplace}/suppliers/${supplierId}`,
+  return publicFetch<MarketplaceSupplierDetail>(
+    `${API_ROUTES.publicMarketplace}/suppliers/${supplierId}`,
   );
 }
 
