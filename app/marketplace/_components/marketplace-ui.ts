@@ -3,15 +3,15 @@ export const mktPage =
 
 export const mktHero =
   "relative overflow-hidden border border-border/60 bg-card " +
-  "bg-[linear-gradient(180deg,color-mix(in_oklch,var(--muted)_45%,var(--card)),var(--card))]";
+  "bg-[linear-gradient(180deg,color-mix(in_oklch,var(--muted)_35%,var(--card)),var(--card))]";
 
 export const mktHeroPattern =
-  "pointer-events-none absolute inset-0 opacity-[0.28] " +
+  "pointer-events-none absolute inset-0 opacity-[0.2] " +
   "bg-[linear-gradient(to_right,color-mix(in_oklch,var(--foreground)_7%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--foreground)_7%,transparent)_1px,transparent_1px)] " +
-  "bg-[size:24px_24px] [mask-image:linear-gradient(180deg,black,transparent)]";
+  "bg-[size:20px_20px] [mask-image:linear-gradient(180deg,black,transparent)]";
 
 export const mktSearch =
-  "h-12 w-full border border-border/70 bg-background pl-11 pr-4 text-base " +
+  "h-10 w-full min-w-0 border border-border/70 bg-background pl-10 pr-9 text-sm " +
   "placeholder:text-muted-foreground/50 " +
   "focus-visible:border-foreground/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20";
 
@@ -26,8 +26,8 @@ export const mktTileMedia =
   "relative flex h-28 items-end overflow-hidden px-4 pb-3";
 
 export const mktChip =
-  "inline-flex items-center border border-border/60 bg-background px-2.5 py-1 " +
-  "text-[11px] font-medium tracking-wide text-muted-foreground";
+  "inline-flex shrink-0 items-center border border-border/60 bg-background px-2 py-0.5 " +
+  "text-[10px] font-medium text-muted-foreground";
 
 export const mktChipActive =
   "border-foreground bg-foreground text-background";

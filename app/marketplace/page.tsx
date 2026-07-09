@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Loader2,
   MapPin,
@@ -236,51 +236,20 @@ function PublicMarketplacePageInner() {
       </header>
 
       <main className={cn(mktPage, "px-4 py-5 sm:px-6 sm:py-7")}>
-        <div className="flex min-h-0 flex-1 flex-col gap-5 pb-8">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 pb-8">
           <section className={mktHero}>
             <div className={mktHeroPattern} aria-hidden />
-            <div className="relative space-y-5 px-5 py-6 sm:px-8 sm:py-8">
-              <div className="max-w-2xl space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-                  Public marketplace
-                </p>
-                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  Source products. Order by WhatsApp.
-                </h1>
-                <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Open a product to view supplier contact details and their
-                  linked catalogue — then build a quantity list and send a PDF
-                  over WhatsApp.
-                </p>
-              </div>
-
-              <div className="relative max-w-2xl">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  className={mktSearch}
-                  placeholder={
-                    tab === "products"
-                      ? "Search products, barcodes, SKUs…"
-                      : "Search suppliers…"
-                  }
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  autoFocus
-                />
-                {searchInput ? (
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground"
-                    onClick={() => setSearchInput("")}
-                    aria-label="Clear search"
-                  >
-                    <X className="size-4" />
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex border border-border/60 bg-background p-0.5">
+            <div className="relative space-y-3 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+                    Source products. Order by WhatsApp.
+                  </h1>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Search catalogue · filter by area · PDF order to supplier
+                  </p>
+                </div>
+                <div className="flex shrink-0 border border-border/60 bg-background p-0.5">
                   {(
                     [
                       { id: "products" as const, label: "Products", icon: Package },
@@ -294,7 +263,7 @@ function PublicMarketplacePageInner() {
                         key={item.id}
                         type="button"
                         className={cn(
-                          "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition",
+                          "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition",
                           active
                             ? "bg-foreground text-background"
                             : "text-muted-foreground hover:text-foreground",
@@ -304,19 +273,49 @@ function PublicMarketplacePageInner() {
                           setActiveTag(null);
                         }}
                       >
-                        <Icon className="size-3.5" />
+                        <Icon className="size-3" />
                         {item.label}
                       </button>
                     );
                   })}
                 </div>
+              </div>
 
-                {!searchInput && tab === "products"
-                  ? QUICK_PROMPTS.map((prompt) => (
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className={mktSearch}
+                  placeholder={
+                    tab === "products"
+                      ? "Products, barcodes, SKUs…"
+                      : "Suppliers…"
+                  }
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  autoFocus
+                />
+                {searchInput ? (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => setSearchInput("")}
+                    aria-label="Clear search"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                ) : null}
+              </div>
+
+              {!searchInput && tab === "products" ? (
+                <p className="text-[11px] text-muted-foreground">
+                  <span className="font-medium text-foreground/70">Popular</span>
+                  {": "}
+                  {QUICK_PROMPTS.map((prompt, i) => (
+                    <span key={prompt}>
+                      {i > 0 ? " · " : null}
                       <button
-                        key={prompt}
                         type="button"
-                        className={mktChip}
+                        className="underline-offset-2 hover:text-foreground hover:underline"
                         onClick={() => {
                           setSearchInput(prompt);
                           setTab("products");
@@ -324,83 +323,103 @@ function PublicMarketplacePageInner() {
                       >
                         {prompt}
                       </button>
-                    ))
-                  : null}
-              </div>
-
-              {locationChips.length ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    <MapPin className="size-3" />
-                    Location
-                  </span>
-                  <button
-                    type="button"
-                    className={cn(mktChip, !activeLocation && mktChipActive)}
-                    onClick={() => setActiveLocation(null)}
-                  >
-                    All areas
-                  </button>
-                  {locationChips.map((loc) => (
-                    <button
-                      key={loc}
-                      type="button"
-                      className={cn(
-                        mktChip,
-                        activeLocation === loc && mktChipActive,
-                      )}
-                      onClick={() =>
-                        setActiveLocation((current) =>
-                          current === loc ? null : loc,
-                        )
-                      }
-                    >
-                      {loc}
-                    </button>
+                    </span>
                   ))}
-                </div>
+                </p>
               ) : null}
 
-              {categoryTags.length ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {categoryTags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className={cn(mktChip, activeTag === tag && mktChipActive)}
-                      onClick={() =>
-                        setActiveTag((current) =>
-                          current === tag ? null : tag,
-                        )
-                      }
-                    >
-                      {tag}
-                    </button>
-                  ))}
+              {locationChips.length || categoryTags.length ? (
+                <div className="flex flex-col gap-2 border-t border-border/50 pt-2.5">
+                  {locationChips.length ? (
+                    <FilterRow label="Area" icon={MapPin}>
+                      <button
+                        type="button"
+                        className={cn(mktChip, !activeLocation && mktChipActive)}
+                        onClick={() => setActiveLocation(null)}
+                      >
+                        All
+                      </button>
+                      {locationChips.map((loc) => (
+                        <button
+                          key={loc}
+                          type="button"
+                          className={cn(
+                            mktChip,
+                            activeLocation === loc && mktChipActive,
+                          )}
+                          onClick={() =>
+                            setActiveLocation((current) =>
+                              current === loc ? null : loc,
+                            )
+                          }
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </FilterRow>
+                  ) : null}
+                  {categoryTags.length ? (
+                    <FilterRow label={tab === "products" ? "Category" : "Tags"}>
+                      {activeTag ? (
+                        <button
+                          type="button"
+                          className={cn(mktChip, mktChipActive)}
+                          onClick={() => setActiveTag(null)}
+                        >
+                          {activeTag} ×
+                        </button>
+                      ) : null}
+                      {categoryTags
+                        .filter((tag) => tag !== activeTag)
+                        .map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={mktChip}
+                            onClick={() => setActiveTag(tag)}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                    </FilterRow>
+                  ) : null}
                 </div>
               ) : null}
             </div>
           </section>
 
-          <div className="flex flex-wrap items-end justify-between gap-2 px-0.5">
-            <div>
-              <p className="font-heading text-xl font-semibold tracking-tight">
-                {loading
-                  ? "Loading catalogue…"
-                  : tab === "products"
-                    ? hasQuery
-                      ? `${resultCount} product${resultCount === 1 ? "" : "s"}`
-                      : "Supplier-linked products"
-                    : hasQuery
-                      ? `${resultCount} supplier${resultCount === 1 ? "" : "s"}`
-                      : "Suppliers with linked products"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {tab === "products"
-                  ? "Click a product to open its public page and that supplier’s catalogue."
-                  : "Click a supplier to open their public marketplace page."}
-              </p>
-            </div>
+          <div className="flex items-center justify-between gap-2 px-0.5">
+            <p className="text-sm font-medium">
+              {loading ? (
+                <span className="text-muted-foreground">Loading…</span>
+              ) : (
+                <>
+                  <span className="font-heading text-lg font-semibold tabular-nums">
+                    {resultCount}
+                  </span>
+                  <span className="ml-1.5 text-muted-foreground">
+                    {tab === "products"
+                      ? `product${resultCount === 1 ? "" : "s"}`
+                      : `supplier${resultCount === 1 ? "" : "s"}`}
+                    {activeLocation ? ` · ${activeLocation}` : ""}
+                    {activeTag ? ` · ${activeTag}` : ""}
+                  </span>
+                </>
+              )}
+            </p>
+            {hasQuery && !loading ? (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                onClick={() => {
+                  setSearchInput("");
+                  setActiveTag(null);
+                  setActiveLocation(null);
+                }}
+              >
+                Clear filters
+              </button>
+            ) : null}
           </div>
 
           <section className="min-h-0">
@@ -454,6 +473,26 @@ function PublicMarketplacePageInner() {
           </section>
         </div>
       </main>
+    </div>
+  );
+}
+
+function FilterRow({
+  label,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  icon?: typeof MapPin;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-2 sm:items-center">
+      <span className="inline-flex w-16 shrink-0 items-center gap-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:pt-0">
+        {Icon ? <Icon className="size-3" /> : null}
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">{children}</div>
     </div>
   );
 }
