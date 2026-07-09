@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -187,6 +187,12 @@ export function MarketplaceOrderWorkspace({
   );
   const [sendingOrder, setSendingOrder] = useState(false);
 
+  // Opening a product page starts a fresh order with only that product.
+  // Related rows stay at Add (0) until the buyer chooses them.
+  useEffect(() => {
+    setCart(selected ? { [selected.id]: 1 } : {});
+  }, [selected?.id]);
+
   const setQty = (productId: string, qty: number, announce = false) => {
     setCart((prev) => {
       const next = { ...prev };
@@ -206,6 +212,11 @@ export function MarketplaceOrderWorkspace({
         .filter((p) => (cart[p.id] ?? 0) > 0)
         .map((p) => ({ product: p, qty: cart[p.id] ?? 0 })),
     [cart, detail.products],
+  );
+
+  const cartUnits = useMemo(
+    () => cartLines.reduce((sum, line) => sum + line.qty, 0),
+    [cartLines],
   );
 
   const cartTotal = useMemo(
@@ -230,6 +241,9 @@ export function MarketplaceOrderWorkspace({
     .filter((l): l is string => typeof l === "string" && l.length > 0 && !isJunkLocation(l))
     .filter((l, i, arr) => arr.indexOf(l) === i)
     .join(" · ");
+
+  // Location already shown under the product title — don't repeat in contact.
+  const showAreaInContact = !selected;
 
   const sendOrder = async () => {
     if (cartLines.length === 0) {
@@ -352,7 +366,10 @@ export function MarketplaceOrderWorkspace({
         </section>
       )}
 
-      <SupplierContactSection detail={detail} areaLabel={areaLabel} />
+      <SupplierContactSection
+        detail={detail}
+        areaLabel={showAreaInContact ? areaLabel : ""}
+      />
 
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
@@ -388,7 +405,9 @@ export function MarketplaceOrderWorkspace({
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="inline-flex items-center gap-1.5 text-muted-foreground">
             <ShoppingCart className="size-3.5" />
-            {cartLines.length} item{cartLines.length === 1 ? "" : "s"}
+            {cartUnits === 0
+              ? "Empty"
+              : `${cartUnits} unit${cartUnits === 1 ? "" : "s"} · ${cartLines.length} line${cartLines.length === 1 ? "" : "s"}`}
           </span>
           <span className="font-heading text-lg font-semibold tabular-nums">
             {formatMoney(cartTotal, cartCurrency)}
