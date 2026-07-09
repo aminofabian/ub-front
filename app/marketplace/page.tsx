@@ -308,12 +308,12 @@ function PublicMarketplacePageInner() {
                   Public marketplace
                 </p>
                 <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  Products from suppliers across the platform
+                  Products from suppliers added by businesses
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Browse every product listed by marketplace suppliers. Sign in
-                  with your business to connect a vendor and import catalogue
-                  links.
+                  Browse active suppliers and the products they supply across
+                  Kiosk businesses. Sign in to add a vendor to your directory
+                  and import matching catalogue links.
                 </p>
               </div>
 
@@ -424,15 +424,15 @@ function PublicMarketplacePageInner() {
                   : tab === "products"
                     ? hasQuery
                       ? `${resultCount} product${resultCount === 1 ? "" : "s"}`
-                      : "All marketplace products"
+                      : "Products from business suppliers"
                     : hasQuery
                       ? `${resultCount} supplier${resultCount === 1 ? "" : "s"}`
-                      : "All marketplace suppliers"}
+                      : "Suppliers added by businesses"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {tab === "products"
-                  ? "Every active product linked to a marketplace supplier."
-                  : "Select a vendor to preview their full catalogue."}
+                  ? "Active products linked to suppliers in business directories."
+                  : "Select a vendor to preview their linked catalogue."}
               </p>
             </div>
           </div>
@@ -451,11 +451,11 @@ function PublicMarketplacePageInner() {
               ) : tab === "products" ? (
                 visibleProducts.length === 0 ? (
                   <EmptyState
-                    title={hasQuery ? "No products match" : "No marketplace products yet"}
+                    title={hasQuery ? "No products match" : "No supplier products yet"}
                     hint={
                       hasQuery
                         ? "Try another name or barcode, or clear filters."
-                        : "Suppliers add catalogue items in the supplier portal. Once active, they appear here."
+                        : "When businesses link products to active suppliers, those items appear here."
                     }
                     onClear={() => {
                       setSearchInput("");
@@ -477,11 +477,11 @@ function PublicMarketplacePageInner() {
                 )
               ) : visibleSuppliers.length === 0 ? (
                 <EmptyState
-                  title={hasQuery ? "No suppliers match" : "No marketplace suppliers yet"}
+                  title={hasQuery ? "No suppliers match" : "No suppliers yet"}
                   hint={
                     hasQuery
                       ? "Try another name, category, or clear filters."
-                      : "Platform admins onboard suppliers, then they publish products to this directory."
+                      : "Active suppliers with linked products from business directories will show up here."
                   }
                   onClear={() => {
                     setSearchInput("");
