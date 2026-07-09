@@ -330,14 +330,49 @@ export function buildWhatsAppOrderUrl(opts: {
 }): string | null {
   const phone = normalizeWhatsAppPhone(opts.phone);
   if (!phone) return null;
+
+  const currency =
+    opts.lines.find((l) => l.currency)?.currency?.trim() || "KES";
+  let estimatedTotal = 0;
+  let pricedCount = 0;
+
   const itemLines = opts.lines
-    .map((l) => `• ${l.qty} × ${l.name}`)
+    .map((line, index) => {
+      const n = index + 1;
+      const name = line.name.trim();
+      if (line.unitPrice != null) {
+        const lineTotal = line.unitPrice * line.qty;
+        estimatedTotal += lineTotal;
+        pricedCount += 1;
+        return `${n}. ${line.qty} × ${name}\n    ${formatMoney(line.unitPrice, currency)} each`;
+      }
+      return `${n}. ${line.qty} × ${name}`;
+    })
     .join("\n");
-  const text =
-    `Hello ${opts.supplierName},\n\n` +
-    `Please find my order request (${opts.filename}):\n\n` +
-    `${itemLines}\n\n` +
-    `I've attached the PDF order sheet — kindly confirm availability and pricing.`;
+
+  const totalUnits = opts.lines.reduce((sum, l) => sum + l.qty, 0);
+  const summaryParts = [
+    `${opts.lines.length} item${opts.lines.length === 1 ? "" : "s"}`,
+    `${totalUnits} unit${totalUnits === 1 ? "" : "s"}`,
+  ];
+  if (pricedCount > 0) {
+    summaryParts.push(`est. ${formatMoney(estimatedTotal, currency)}`);
+  }
+
+  const text = [
+    `Hello ${opts.supplierName},`,
+    "",
+    "I'd like to place this order:",
+    "",
+    itemLines,
+    "",
+    `Total: ${summaryParts.join(" · ")}`,
+    "",
+    `PDF: ${opts.filename}`,
+    "",
+    "Please confirm availability and pricing. Thank you.",
+  ].join("\n");
+
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
