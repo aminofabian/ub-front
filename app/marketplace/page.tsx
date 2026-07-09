@@ -248,7 +248,7 @@ function PublicMarketplacePageInner() {
                   Source products. Order by WhatsApp.
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Open a product page to see its slug and only that supplier’s
+                  Open a product to view supplier contact details and their
                   linked catalogue — then build a quantity list and send a PDF
                   over WhatsApp.
                 </p>
@@ -542,11 +542,6 @@ function ProductTile({
           <p className="line-clamp-2 font-medium leading-snug">
             {row.productName}
           </p>
-          {row.productSlug ? (
-            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-              {row.productSlug}
-            </p>
-          ) : null}
           <p className="mt-1 text-xs text-muted-foreground">
             {row.supplierName}
             {row.supplierProductCount
@@ -622,11 +617,6 @@ function SupplierTile({
           <p className="font-heading text-lg font-semibold leading-tight tracking-tight">
             {row.name}
           </p>
-          {row.slug ? (
-            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-              /marketplace/s/{row.slug}
-            </p>
-          ) : null}
           <p className="mt-1 text-xs text-muted-foreground">
             {[row.supplierType, row.listedBy ? `via ${row.listedBy}` : null]
               .filter(Boolean)

@@ -1,85 +1,76 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
 
-import Link from "next/link";
-import { use, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-
-import { KioskLogo } from "@/components/brand/kiosk-logo";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_BASE_URL } from "@/lib/config";
+import { tryFetchMarketplaceSupplierBySlug } from "@/lib/marketplace-api";
 import {
-  fetchMarketplaceSupplierBySlug,
-  type MarketplaceSupplierDetail,
-} from "@/lib/marketplace-api";
+  marketplaceSupplierDescription,
+  marketplaceSupplierPath,
+  marketplaceSupplierSlugIsCanonical,
+} from "@/lib/marketplace-url";
 
 import { MarketplaceOrderWorkspace } from "../../_components/marketplace-order-panel";
+import {
+  MarketplaceSeoSummary,
+  MarketplaceSupplierJsonLd,
+} from "../../_components/marketplace-json-ld";
+import { MarketplacePageFrame } from "../../_components/marketplace-page-frame";
 
-export default function MarketplaceSupplierSlugPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = use(params);
-  const [detail, setDetail] = useState<MarketplaceSupplierDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+type PageProps = { params: Promise<{ slug: string }> };
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    void fetchMarketplaceSupplierBySlug(slug)
-      .then((row) => {
-        if (!cancelled) setDetail(row);
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setDetail(null);
-          toast.error(
-            error instanceof Error ? error.message : "Supplier not found",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const detail = await tryFetchMarketplaceSupplierBySlug(slug);
+  const base = APP_BASE_URL.replace(/\/+$/, "");
+
+  if (!detail) {
+    return {
+      title: "Supplier not found · Marketplace · Kiosk",
+      robots: { index: false, follow: false },
     };
-  }, [slug]);
+  }
+
+  const canonical = `${base}${marketplaceSupplierPath(detail)}`;
+  const title = `${detail.name} · Marketplace · Kiosk`;
+  const description = marketplaceSupplierDescription(detail);
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${detail.name} · Kiosk Marketplace`,
+      description,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: `${detail.name} · Kiosk Marketplace`,
+      description,
+    },
+    robots: { index: true, follow: true },
+  };
+}
+
+export default async function MarketplaceSupplierSlugPage({ params }: PageProps) {
+  const { slug } = await params;
+  const detail = await tryFetchMarketplaceSupplierBySlug(slug);
+  if (!detail) notFound();
+
+  if (!marketplaceSupplierSlugIsCanonical(slug, detail)) {
+    permanentRedirect(marketplaceSupplierPath(detail));
+  }
+
+  const description = marketplaceSupplierDescription(detail);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--muted)_40%,var(--background)))]">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <KioskLogo size="sm" href="/" />
-            <Link
-              href={APP_ROUTES.marketplace}
-              className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
-            >
-              Marketplace
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {loading ? (
-        <div className="flex min-h-[50vh] items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Opening supplier…
-        </div>
-      ) : detail ? (
+    <>
+      <MarketplaceSupplierJsonLd detail={detail} />
+      <MarketplacePageFrame>
+        <MarketplaceSeoSummary title={detail.name} description={description} />
         <MarketplaceOrderWorkspace detail={detail} />
-      ) : (
-        <div className="mx-auto max-w-lg px-4 py-16 text-center">
-          <p className="font-heading text-xl font-semibold">Supplier not found</p>
-          <Link
-            href={APP_ROUTES.marketplace}
-            className="mt-4 inline-block text-sm underline underline-offset-2"
-          >
-            Back to marketplace
-          </Link>
-        </div>
-      )}
-    </div>
+      </MarketplacePageFrame>
+    </>
   );
 }

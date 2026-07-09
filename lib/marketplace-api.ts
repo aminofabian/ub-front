@@ -365,6 +365,16 @@ export async function fetchMarketplaceSupplierBySlug(
   );
 }
 
+export async function tryFetchMarketplaceSupplierBySlug(
+  slug: string,
+): Promise<MarketplaceSupplierDetail | null> {
+  try {
+    return await fetchMarketplaceSupplierBySlug(slug);
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchMarketplaceProductBySlug(
   supplierSlug: string,
   productSlug: string,
@@ -372,6 +382,17 @@ export async function fetchMarketplaceProductBySlug(
   return publicFetch<MarketplaceSupplierDetail>(
     `${API_ROUTES.publicMarketplace}/s/${encodeURIComponent(supplierSlug)}/p/${encodeURIComponent(productSlug)}`,
   );
+}
+
+export async function tryFetchMarketplaceProductBySlug(
+  supplierSlug: string,
+  productSlug: string,
+): Promise<MarketplaceSupplierDetail | null> {
+  try {
+    return await fetchMarketplaceProductBySlug(supplierSlug, productSlug);
+  } catch {
+    return null;
+  }
 }
 
 export async function connectMarketplaceSupplier(

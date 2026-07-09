@@ -262,12 +262,6 @@ export function MarketplaceOrderWorkspace({
               ? ` · ${detail.products.length} products`
               : ""}
           </p>
-          {detail.slug ? (
-            <p className="truncate font-mono text-[11px] text-muted-foreground">
-              /marketplace/s/{detail.slug}
-              {selected?.slug ? `/p/${selected.slug}` : ""}
-            </p>
-          ) : null}
         </div>
       </div>
 
@@ -290,11 +284,6 @@ export function MarketplaceOrderWorkspace({
               <h1 className="font-heading text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
                 {selected.name}
               </h1>
-              {selected.slug ? (
-                <p className="mt-1 font-mono text-xs text-muted-foreground">
-                  {selected.slug}
-                </p>
-              ) : null}
               <p className="mt-1 text-xs text-muted-foreground">
                 {[selected.barcode, selected.sku].filter(Boolean).join(" · ") ||
                   "—"}
@@ -337,11 +326,6 @@ export function MarketplaceOrderWorkspace({
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             {detail.name}
           </h1>
-          {detail.slug ? (
-            <p className="mt-1 font-mono text-xs text-muted-foreground">
-              /marketplace/s/{detail.slug}
-            </p>
-          ) : null}
           {detail.location ? (
             <p className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="size-3.5" />
@@ -653,11 +637,6 @@ function CatalogueOrderRow({
         ) : (
           <p className="truncate text-sm font-medium">{product.name}</p>
         )}
-        {product.slug ? (
-          <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-            {product.slug}
-          </p>
-        ) : null}
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           {[product.barcode, product.sku].filter(Boolean).join(" · ") || "—"}
         </p>

@@ -1,88 +1,102 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
 
-import Link from "next/link";
-import { use, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-
-import { KioskLogo } from "@/components/brand/kiosk-logo";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_BASE_URL } from "@/lib/config";
+import { tryFetchMarketplaceProductBySlug } from "@/lib/marketplace-api";
 import {
-  fetchMarketplaceProductBySlug,
-  type MarketplaceSupplierDetail,
-} from "@/lib/marketplace-api";
+  findMarketplaceProduct,
+  marketplaceProductDescription,
+  marketplaceProductPath,
+  marketplaceProductSlugIsCanonical,
+  marketplaceSupplierSlugIsCanonical,
+} from "@/lib/marketplace-url";
 
-import { MarketplaceOrderWorkspace } from "../../../../_components/marketplace-order-panel";
+import { MarketplaceOrderWorkspace } from "../../../_components/marketplace-order-panel";
+import {
+  MarketplaceProductJsonLd,
+  MarketplaceSeoSummary,
+  marketplaceProductTitle,
+} from "../../../_components/marketplace-json-ld";
+import { MarketplacePageFrame } from "../../../_components/marketplace-page-frame";
 
-export default function MarketplaceProductSlugPage({
-  params,
-}: {
+type PageProps = {
   params: Promise<{ slug: string; productSlug: string }>;
-}) {
-  const { slug, productSlug } = use(params);
-  const [detail, setDetail] = useState<MarketplaceSupplierDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    void fetchMarketplaceProductBySlug(slug, productSlug)
-      .then((row) => {
-        if (!cancelled) setDetail(row);
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setDetail(null);
-          toast.error(
-            error instanceof Error ? error.message : "Product not found",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug, productSlug } = await params;
+  const detail = await tryFetchMarketplaceProductBySlug(slug, productSlug);
+  const base = APP_BASE_URL.replace(/\/+$/, "");
+
+  if (!detail) {
+    return {
+      title: "Product not found · Marketplace · Kiosk",
+      robots: { index: false, follow: false },
     };
-  }, [slug, productSlug]);
+  }
+
+  const product = findMarketplaceProduct(detail, productSlug);
+  if (!product) {
+    return {
+      title: "Product not found · Marketplace · Kiosk",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const canonical = `${base}${marketplaceProductPath(detail, product)}`;
+  const heading = marketplaceProductTitle(detail, product);
+  const title = `${heading} · ${detail.name} · Kiosk`;
+  const description = marketplaceProductDescription(detail, product);
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${product.name} · ${detail.name}`,
+      description,
+      url: canonical,
+      type: "website",
+      ...(product.imageUrl ? { images: [{ url: product.imageUrl, alt: product.name }] } : {}),
+    },
+    twitter: {
+      card: product.imageUrl ? "summary_large_image" : "summary",
+      title: `${product.name} · ${detail.name}`,
+      description,
+      ...(product.imageUrl ? { images: [product.imageUrl] } : {}),
+    },
+    robots: { index: true, follow: true },
+  };
+}
+
+export default async function MarketplaceProductSlugPage({ params }: PageProps) {
+  const { slug, productSlug } = await params;
+  const detail = await tryFetchMarketplaceProductBySlug(slug, productSlug);
+  if (!detail) notFound();
+
+  const product = findMarketplaceProduct(detail, productSlug);
+  if (!product) notFound();
+
+  if (!marketplaceSupplierSlugIsCanonical(slug, detail)) {
+    permanentRedirect(marketplaceProductPath(detail, product));
+  }
+  if (!marketplaceProductSlugIsCanonical(productSlug, product)) {
+    permanentRedirect(marketplaceProductPath(detail, product));
+  }
+
+  const description = marketplaceProductDescription(detail, product);
+  const heading = marketplaceProductTitle(detail, product);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--muted)_40%,var(--background)))]">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <KioskLogo size="sm" href="/" />
-            <Link
-              href={APP_ROUTES.marketplace}
-              className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
-            >
-              Marketplace
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {loading ? (
-        <div className="flex min-h-[50vh] items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Opening product…
-        </div>
-      ) : detail ? (
+    <>
+      <MarketplaceProductJsonLd detail={detail} product={product} />
+      <MarketplacePageFrame>
+        <MarketplaceSeoSummary title={heading} description={description} />
         <MarketplaceOrderWorkspace
           detail={detail}
-          selectedProductSlug={productSlug}
+          selectedProductSlug={product.slug ?? productSlug}
         />
-      ) : (
-        <div className="mx-auto max-w-lg px-4 py-16 text-center">
-          <p className="font-heading text-xl font-semibold">Product not found</p>
-          <Link
-            href={APP_ROUTES.marketplace}
-            className="mt-4 inline-block text-sm underline underline-offset-2"
-          >
-            Back to marketplace
-          </Link>
-        </div>
-      )}
-    </div>
+      </MarketplacePageFrame>
+    </>
   );
 }
