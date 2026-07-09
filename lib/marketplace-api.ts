@@ -16,6 +16,14 @@ export type MarketplaceSupplierSearchRow = {
   id: string;
   name: string;
   description: string | null;
+  supplierType: string | null;
+  listedBy: string | null;
+  productCount: number;
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  paymentMethodPreferred: string | null;
+  payoutType: string | null;
   deliveryRegions: string[];
   categoryTags: string[];
 };
@@ -26,8 +34,10 @@ export type MarketplaceProductSearchRow = {
   barcode: string | null;
   sku: string | null;
   categoryName: string | null;
+  imageUrl: string | null;
   supplierId: string;
   supplierName: string;
+  supplierType: string | null;
   packSize: number | null;
   packUnit: string | null;
   minOrderQty: number | null;
@@ -36,13 +46,29 @@ export type MarketplaceProductSearchRow = {
   available: boolean;
 };
 
+export type MarketplaceContactPreview = {
+  name: string | null;
+  roleLabel: string | null;
+  phone: string | null;
+  email: string | null;
+  primaryContact: boolean;
+};
+
 export type MarketplaceSupplierDetail = {
   id: string;
   name: string;
   description: string | null;
+  supplierType: string | null;
+  listedBy: string | null;
+  status: string;
   contactEmail: string | null;
   contactPhone: string | null;
-  status: string;
+  contacts: MarketplaceContactPreview[];
+  paymentMethodPreferred: string | null;
+  paymentDetails: string | null;
+  payoutType: string | null;
+  payoutPhone: string | null;
+  creditTermsDays: number | null;
   deliveryRegions: string[];
   categoryTags: string[];
   products: MarketplaceCatalogProductPreview[];
@@ -54,6 +80,7 @@ export type MarketplaceCatalogProductPreview = {
   barcode: string | null;
   sku: string | null;
   categoryName: string | null;
+  imageUrl: string | null;
   packSize: number | null;
   packUnit: string | null;
   minOrderQty: number | null;

@@ -1,18 +1,26 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
+  Banknote,
   Check,
+  CreditCard,
   Loader2,
   LogIn,
+  Mail,
   MapPin,
   Package,
+  Phone,
   Search,
+  Smartphone,
   Store,
   Truck,
+  UserRound,
+  Wallet,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +34,7 @@ import {
   fetchMarketplaceSupplierDetail,
   searchMarketplaceProducts,
   searchMarketplaceSuppliers,
+  type MarketplaceCatalogProductPreview,
   type MarketplaceProductSearchRow,
   type MarketplaceSupplierDetail,
   type MarketplaceSupplierSearchRow,
@@ -96,6 +105,28 @@ function hueFromId(id: string): number {
   return hash % 360;
 }
 
+function payoutLabel(payoutType: string | null | undefined): string | null {
+  if (!payoutType) return null;
+  if (payoutType === "mobile_wallet") return "M-Pesa";
+  if (payoutType === "manual") return "Manual payout";
+  return payoutType.replace(/_/g, " ");
+}
+
+function paymentSummary(opts: {
+  paymentMethodPreferred?: string | null;
+  payoutType?: string | null;
+}): string[] {
+  const bits: string[] = [];
+  if (opts.paymentMethodPreferred?.trim()) {
+    bits.push(opts.paymentMethodPreferred.trim());
+  }
+  const payout = payoutLabel(opts.payoutType);
+  if (payout && !bits.some((b) => b.toLowerCase() === payout.toLowerCase())) {
+    bits.push(payout);
+  }
+  return bits;
+}
+
 type SearchTab = "products" | "suppliers";
 
 function PublicMarketplacePageInner() {
@@ -108,7 +139,9 @@ function PublicMarketplacePageInner() {
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState<MarketplaceSupplierSearchRow[]>([]);
   const [products, setProducts] = useState<MarketplaceProductSearchRow[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
+    null,
+  );
   const [detail, setDetail] = useState<MarketplaceSupplierDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -217,11 +250,19 @@ function PublicMarketplacePageInner() {
   }, [products, suppliers, tab]);
 
   const visibleProducts = useMemo(() => {
-    if (!activeTag) return products;
-    const needle = activeTag.toLowerCase();
-    return products.filter(
-      (row) => row.categoryName?.trim().toLowerCase() === needle,
-    );
+    const filtered = !activeTag
+      ? products
+      : products.filter(
+          (row) =>
+            row.categoryName?.trim().toLowerCase() === activeTag.toLowerCase(),
+        );
+    // Prefer photographed catalogue items so the grid feels stocked.
+    return [...filtered].sort((a, b) => {
+      const ai = a.imageUrl ? 0 : 1;
+      const bi = b.imageUrl ? 0 : 1;
+      if (ai !== bi) return ai - bi;
+      return (a.productName || "").localeCompare(b.productName || "");
+    });
   }, [products, activeTag]);
 
   const visibleSuppliers = useMemo(() => {
@@ -277,21 +318,18 @@ function PublicMarketplacePageInner() {
         <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <KioskLogo size="sm" href="/" />
-            <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
+            <span className="hidden text-sm text-muted-foreground sm:inline">
               Marketplace
             </span>
           </div>
           <div className="flex items-center gap-2">
             {signedIn ? (
-              <Button asChild size="sm" variant="outline" className="rounded-xl">
+              <Button asChild variant="outline" size="sm" className="rounded-xl">
                 <Link href={APP_ROUTES.suppliers}>My suppliers</Link>
               </Button>
             ) : (
               <Button asChild size="sm" className="rounded-xl">
-                <Link href={APP_ROUTES.login}>
-                  <LogIn className="mr-1.5 size-3.5" />
-                  Sign in to connect
-                </Link>
+                <Link href={APP_ROUTES.login}>Sign in</Link>
               </Button>
             )}
           </div>
@@ -308,12 +346,12 @@ function PublicMarketplacePageInner() {
                   Public marketplace
                 </p>
                 <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  Products from suppliers added by businesses
+                  Products linked to real suppliers
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Browse active suppliers and the products they supply across
-                  Kiosk businesses. Sign in to add a vendor to your directory
-                  and import matching catalogue links.
+                  Browse catalogue items businesses already buy — with photos,
+                  contacts, and how each vendor gets paid. Sign in to add a
+                  supplier to your directory.
                 </p>
               </div>
 
@@ -324,7 +362,7 @@ function PublicMarketplacePageInner() {
                   placeholder={
                     tab === "products"
                       ? "Search products, barcodes, SKUs…"
-                      : "Search suppliers, categories, regions…"
+                      : "Search suppliers, contacts, payment methods…"
                   }
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -424,15 +462,15 @@ function PublicMarketplacePageInner() {
                   : tab === "products"
                     ? hasQuery
                       ? `${resultCount} product${resultCount === 1 ? "" : "s"}`
-                      : "Products from business suppliers"
+                      : "Supplier-linked products"
                     : hasQuery
                       ? `${resultCount} supplier${resultCount === 1 ? "" : "s"}`
-                      : "Suppliers added by businesses"}
+                      : "Suppliers with linked products"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {tab === "products"
-                  ? "Active products linked to suppliers in business directories."
-                  : "Select a vendor to preview their linked catalogue."}
+                  ? "Only items actively linked to a supplier appear here."
+                  : "Open a vendor for contacts, payment details, and catalogue."}
               </p>
             </div>
           </div>
@@ -441,7 +479,7 @@ function PublicMarketplacePageInner() {
             className={cn(
               "grid min-h-0 flex-1 gap-4",
               selectedSupplierId
-                ? "xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]"
+                ? "xl:grid-cols-[minmax(0,1fr)_minmax(360px,440px)]"
                 : "grid-cols-1",
             )}
           >
@@ -451,7 +489,9 @@ function PublicMarketplacePageInner() {
               ) : tab === "products" ? (
                 visibleProducts.length === 0 ? (
                   <EmptyState
-                    title={hasQuery ? "No products match" : "No supplier products yet"}
+                    title={
+                      hasQuery ? "No products match" : "No linked products yet"
+                    }
                     hint={
                       hasQuery
                         ? "Try another name or barcode, or clear filters."
@@ -531,6 +571,52 @@ function PublicMarketplacePageInner() {
   );
 }
 
+function ProductImage({
+  src,
+  alt,
+  hue,
+  className,
+  iconClassName = "size-5",
+}: {
+  src: string | null | undefined;
+  alt: string;
+  hue: number;
+  className?: string;
+  iconClassName?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(src && !failed);
+
+  return (
+    <div
+      className={cn("relative overflow-hidden bg-muted/40", className)}
+      style={
+        showImage
+          ? undefined
+          : {
+              background: `linear-gradient(145deg, hsl(${hue} 38% 88%), hsl(${(hue + 28) % 360} 30% 78%))`,
+            }
+      }
+    >
+      {showImage ? (
+        <Image
+          src={src!}
+          alt={alt}
+          fill
+          unoptimized
+          className="object-contain p-2 transition duration-300 group-hover:scale-[1.03]"
+          sizes="(max-width: 640px) 50vw, 240px"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-foreground/70">
+          <Package className={iconClassName} />
+        </span>
+      )}
+    </div>
+  );
+}
+
 function SupplierTile({
   row,
   selected,
@@ -543,6 +629,11 @@ function SupplierTile({
   onSelect: () => void;
 }) {
   const hue = hueFromId(row.id);
+  const payBits = paymentSummary({
+    paymentMethodPreferred: row.paymentMethodPreferred,
+    payoutType: row.payoutType,
+  });
+
   return (
     <button
       type="button"
@@ -561,31 +652,44 @@ function SupplierTile({
         <span className="relative flex size-12 items-center justify-center rounded-xl bg-white/15 text-sm font-semibold tracking-wide text-white backdrop-blur-sm">
           {initials(row.name)}
         </span>
-        {row.deliveryRegions?.[0] ? (
-          <span className="relative ml-auto inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-            <MapPin className="size-3" />
-            {row.deliveryRegions[0]}
-            {(row.deliveryRegions.length ?? 0) > 1
-              ? ` +${row.deliveryRegions.length - 1}`
-              : ""}
-          </span>
-        ) : null}
+        <span className="relative ml-auto inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+          <Package className="size-3" />
+          {row.productCount} linked
+        </span>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div>
           <p className="font-heading text-lg font-semibold leading-tight tracking-tight">
             {row.name}
           </p>
-          {row.description ? (
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-              {row.description}
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Marketplace supplier
-            </p>
-          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {[row.supplierType, row.listedBy ? `via ${row.listedBy}` : null]
+              .filter(Boolean)
+              .join(" · ") || "Supplier"}
+          </p>
         </div>
+
+        <div className="space-y-1 text-[11px] text-muted-foreground">
+          {row.contactPhone ? (
+            <p className="inline-flex items-center gap-1.5 truncate">
+              <Phone className="size-3 shrink-0" />
+              {row.contactPhone}
+            </p>
+          ) : null}
+          {row.contactEmail ? (
+            <p className="inline-flex items-center gap-1.5 truncate">
+              <Mail className="size-3 shrink-0" />
+              {row.contactEmail}
+            </p>
+          ) : null}
+          {payBits.length ? (
+            <p className="inline-flex items-center gap-1.5 truncate">
+              <Wallet className="size-3 shrink-0" />
+              {payBits.join(" · ")}
+            </p>
+          ) : null}
+        </div>
+
         {row.categoryTags?.length ? (
           <div className="mt-auto flex flex-wrap gap-1">
             {row.categoryTags.slice(0, 3).map((tag) => (
@@ -617,27 +721,27 @@ function ProductTile({
       style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
       onClick={onSelect}
     >
-      <div
-        className={cn(mktTileMedia, "h-24")}
-        style={{
-          background: `linear-gradient(145deg, hsl(${hue} 38% 88%), hsl(${(hue + 28) % 360} 30% 78%))`,
-        }}
-      >
-        <span className="relative flex size-10 items-center justify-center rounded-xl bg-background/70 text-foreground shadow-sm">
-          <Package className="size-4" />
-        </span>
-        {row.available === false ? (
-          <span className="relative ml-auto rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-            Unavailable
-          </span>
-        ) : null}
-      </div>
+      <ProductImage
+        src={row.imageUrl}
+        alt={row.productName}
+        hue={hue}
+        className="h-36 border-b border-border/40"
+        iconClassName="size-7 opacity-60"
+      />
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div>
+          {row.categoryName ? (
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {row.categoryName}
+            </p>
+          ) : null}
           <p className="line-clamp-2 font-medium leading-snug">
             {row.productName}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">{row.supplierName}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {row.supplierName}
+            {row.supplierType ? ` · ${row.supplierType}` : ""}
+          </p>
         </div>
         <div className="mt-auto flex items-end justify-between gap-2">
           <div className="min-w-0 text-[11px] text-muted-foreground">
@@ -654,7 +758,9 @@ function ProductTile({
             <p className="shrink-0 font-heading text-lg font-semibold tracking-tight">
               {formatMoney(row.unitPrice, row.currency ?? "KES")}
             </p>
-          ) : null}
+          ) : (
+            <p className="shrink-0 text-xs text-muted-foreground">Ask price</p>
+          )}
         </div>
       </div>
     </button>
@@ -710,6 +816,11 @@ function SupplierStorefront({
   }
 
   const hue = hueFromId(detail.id);
+  const payBits = paymentSummary({
+    paymentMethodPreferred: detail.paymentMethodPreferred,
+    payoutType: detail.payoutType,
+  });
+  const coverProducts = detail.products.filter((p) => p.imageUrl).slice(0, 3);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -720,6 +831,17 @@ function SupplierStorefront({
         }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,white/18,transparent_45%)]" />
+        {coverProducts[0]?.imageUrl ? (
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 opacity-25">
+            <Image
+              src={coverProducts[0].imageUrl}
+              alt=""
+              fill
+              unoptimized
+              className="object-cover"
+            />
+          </div>
+        ) : null}
         <div className="relative flex items-start justify-between gap-3">
           <button
             type="button"
@@ -746,6 +868,15 @@ function SupplierStorefront({
             <h2 className="font-heading text-2xl font-semibold leading-tight tracking-tight">
               {detail.name}
             </h2>
+            <p className="mt-1 text-xs text-white/80">
+              {[
+                detail.supplierType,
+                detail.listedBy ? `Listed by ${detail.listedBy}` : null,
+                `${detail.products.length} linked product${detail.products.length === 1 ? "" : "s"}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
             {detail.deliveryRegions?.length ? (
               <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/80">
                 <MapPin className="size-3.5" />
@@ -776,10 +907,162 @@ function SupplierStorefront({
           </div>
         ) : null}
 
+        <section className="space-y-2">
+          <h3 className="font-heading text-sm font-semibold tracking-tight">
+            Contacts
+          </h3>
+          {detail.contacts?.length ? (
+            <ul className="space-y-2">
+              {detail.contacts.map((contact, idx) => (
+                <li
+                  key={`${contact.phone ?? ""}-${contact.email ?? ""}-${idx}`}
+                  className="rounded-xl border border-border/45 bg-muted/15 px-3 py-2.5"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+                      <UserRound className="size-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">
+                        {contact.name || "Contact"}
+                        {contact.primaryContact ? (
+                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                            Primary
+                          </span>
+                        ) : null}
+                      </p>
+                      {contact.roleLabel ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          {contact.roleLabel}
+                        </p>
+                      ) : null}
+                      <div className="mt-1.5 space-y-1 text-[12px] text-muted-foreground">
+                        {contact.phone ? (
+                          <a
+                            href={`tel:${contact.phone}`}
+                            className="flex items-center gap-1.5 hover:text-foreground"
+                          >
+                            <Phone className="size-3" />
+                            {contact.phone}
+                          </a>
+                        ) : null}
+                        {contact.email ? (
+                          <a
+                            href={`mailto:${contact.email}`}
+                            className="flex items-center gap-1.5 truncate hover:text-foreground"
+                          >
+                            <Mail className="size-3" />
+                            {contact.email}
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : detail.contactPhone || detail.contactEmail ? (
+            <div className="rounded-xl border border-border/45 bg-muted/15 px-3 py-2.5 text-sm text-muted-foreground">
+              {detail.contactPhone ? (
+                <a
+                  href={`tel:${detail.contactPhone}`}
+                  className="flex items-center gap-1.5 hover:text-foreground"
+                >
+                  <Phone className="size-3.5" />
+                  {detail.contactPhone}
+                </a>
+              ) : null}
+              {detail.contactEmail ? (
+                <a
+                  href={`mailto:${detail.contactEmail}`}
+                  className="mt-1.5 flex items-center gap-1.5 truncate hover:text-foreground"
+                >
+                  <Mail className="size-3.5" />
+                  {detail.contactEmail}
+                </a>
+              ) : null}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-border/60 px-3 py-3 text-xs text-muted-foreground">
+              No public contacts listed yet.
+            </p>
+          )}
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="font-heading text-sm font-semibold tracking-tight">
+            Payment & terms
+          </h3>
+          <div className="grid gap-2">
+            {payBits.length ||
+            detail.paymentDetails ||
+            detail.payoutPhone ||
+            detail.creditTermsDays != null ? (
+              <>
+                {payBits.map((bit) => (
+                  <div
+                    key={bit}
+                    className="flex items-center gap-2 rounded-xl border border-border/45 bg-muted/15 px-3 py-2 text-sm"
+                  >
+                    {bit.toLowerCase().includes("m-pesa") ||
+                    bit.toLowerCase().includes("mpesa") ? (
+                      <Smartphone className="size-3.5 text-muted-foreground" />
+                    ) : bit.toLowerCase().includes("bank") ? (
+                      <Banknote className="size-3.5 text-muted-foreground" />
+                    ) : bit.toLowerCase().includes("card") ? (
+                      <CreditCard className="size-3.5 text-muted-foreground" />
+                    ) : (
+                      <Wallet className="size-3.5 text-muted-foreground" />
+                    )}
+                    <span>{bit}</span>
+                  </div>
+                ))}
+                {detail.payoutPhone ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-border/45 bg-muted/15 px-3 py-2 text-sm">
+                    <Smartphone className="size-3.5 text-muted-foreground" />
+                    <span>
+                      Payout phone{" "}
+                      <span className="font-medium text-foreground">
+                        {detail.payoutPhone}
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
+                {detail.creditTermsDays != null ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-border/45 bg-muted/15 px-3 py-2 text-sm">
+                    <Banknote className="size-3.5 text-muted-foreground" />
+                    <span>
+                      Credit terms{" "}
+                      <span className="font-medium text-foreground">
+                        {detail.creditTermsDays} day
+                        {detail.creditTermsDays === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
+                {detail.paymentDetails ? (
+                  <div className="rounded-xl border border-border/45 bg-muted/15 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Payment details
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                      {detail.paymentDetails}
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <p className="rounded-xl border border-dashed border-border/60 px-3 py-3 text-xs text-muted-foreground">
+                Payment preferences not published for this supplier.
+              </p>
+            )}
+          </div>
+        </section>
+
         <div>
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold tracking-tight">
-              Catalogue
+              Linked catalogue
             </h3>
             <span className="text-xs text-muted-foreground">
               {detail.products.length} item
@@ -788,49 +1071,12 @@ function SupplierStorefront({
           </div>
           {detail.products.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
-              No active products listed yet.
+              No active linked products yet.
             </p>
           ) : (
             <ul className="space-y-2">
               {detail.products.slice(0, 40).map((product) => (
-                <li
-                  key={product.id}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-border/45 bg-muted/20 px-3 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{product.name}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {[product.barcode, product.sku, product.categoryName]
-                        .filter(Boolean)
-                        .join(" · ") || "—"}
-                      {product.packSize != null && product.packUnit
-                        ? ` · ${product.packSize} ${product.packUnit}`
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    {product.unitPrice != null ? (
-                      <p className="text-sm font-semibold tabular-nums">
-                        {formatMoney(
-                          product.unitPrice,
-                          product.currency ?? "KES",
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Ask</p>
-                    )}
-                    {product.available ? (
-                      <p className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-primary">
-                        <Check className="size-3" />
-                        Available
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">
-                        Unavailable
-                      </p>
-                    )}
-                  </div>
-                </li>
+                <CatalogueRow key={product.id} product={product} />
               ))}
             </ul>
           )}
@@ -875,10 +1121,54 @@ function SupplierStorefront({
           </p>
         )}
         <p className="text-center text-[11px] text-muted-foreground">
-          Connecting imports catalogue links and enables portal purchase orders.
+          Connecting copies this supplier and imports barcode-matched product
+          links.
         </p>
       </div>
     </div>
+  );
+}
+
+function CatalogueRow({ product }: { product: MarketplaceCatalogProductPreview }) {
+  const hue = hueFromId(product.id);
+  return (
+    <li className="flex items-start gap-3 rounded-xl border border-border/45 bg-muted/20 px-2.5 py-2">
+      <ProductImage
+        src={product.imageUrl}
+        alt={product.name}
+        hue={hue}
+        className="size-14 shrink-0 rounded-lg"
+        iconClassName="size-4 opacity-50"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{product.name}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          {[product.barcode, product.sku, product.categoryName]
+            .filter(Boolean)
+            .join(" · ") || "—"}
+          {product.packSize != null && product.packUnit
+            ? ` · ${product.packSize} ${product.packUnit}`
+            : ""}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        {product.unitPrice != null ? (
+          <p className="text-sm font-semibold tabular-nums">
+            {formatMoney(product.unitPrice, product.currency ?? "KES")}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Ask</p>
+        )}
+        {product.available ? (
+          <p className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-primary">
+            <Check className="size-3" />
+            Linked
+          </p>
+        ) : (
+          <p className="mt-0.5 text-[10px] text-muted-foreground">Unavailable</p>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -925,7 +1215,7 @@ function MarketplaceSkeleton({ tab }: { tab: SearchTab }) {
           <div
             className={cn(
               "animate-pulse bg-muted/60",
-              tab === "suppliers" ? "h-28" : "h-24",
+              tab === "suppliers" ? "h-28" : "h-36",
             )}
           />
           <div className="space-y-2 p-4">
