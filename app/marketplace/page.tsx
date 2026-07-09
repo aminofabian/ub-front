@@ -451,12 +451,17 @@ function PublicMarketplacePageInner() {
               ) : tab === "products" ? (
                 visibleProducts.length === 0 ? (
                   <EmptyState
-                    title="No products found"
-                    hint="Try another name or barcode, or clear filters."
+                    title={hasQuery ? "No products match" : "No marketplace products yet"}
+                    hint={
+                      hasQuery
+                        ? "Try another name or barcode, or clear filters."
+                        : "Suppliers add catalogue items in the supplier portal. Once active, they appear here."
+                    }
                     onClear={() => {
                       setSearchInput("");
                       setActiveTag(null);
                     }}
+                    showClear={hasQuery}
                   />
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -472,12 +477,17 @@ function PublicMarketplacePageInner() {
                 )
               ) : visibleSuppliers.length === 0 ? (
                 <EmptyState
-                  title="No suppliers match"
-                  hint="Try another name, category, or clear filters."
+                  title={hasQuery ? "No suppliers match" : "No marketplace suppliers yet"}
+                  hint={
+                    hasQuery
+                      ? "Try another name, category, or clear filters."
+                      : "Platform admins onboard suppliers, then they publish products to this directory."
+                  }
                   onClear={() => {
                     setSearchInput("");
                     setActiveTag(null);
                   }}
+                  showClear={hasQuery}
                 />
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -876,10 +886,12 @@ function EmptyState({
   title,
   hint,
   onClear,
+  showClear = true,
 }: {
   title: string;
   hint: string;
   onClear: () => void;
+  showClear?: boolean;
 }) {
   return (
     <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/15 px-6 py-12 text-center">
@@ -888,14 +900,16 @@ function EmptyState({
         {title}
       </p>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hint}</p>
-      <Button
-        type="button"
-        variant="outline"
-        className="mt-4 rounded-xl"
-        onClick={onClear}
-      >
-        Clear search
-      </Button>
+      {showClear ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-4 rounded-xl"
+          onClick={onClear}
+        >
+          Clear search
+        </Button>
+      ) : null}
     </div>
   );
 }
