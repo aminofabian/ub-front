@@ -227,7 +227,7 @@ export function MarketplaceOrderWorkspace({
 
   const areaLabel = [detail.location, ...detail.locations]
     .map((l) => l?.trim())
-    .filter((l): l is string => Boolean(l) && !isJunkLocation(l))
+    .filter((l): l is string => typeof l === "string" && l.length > 0 && !isJunkLocation(l))
     .filter((l, i, arr) => arr.indexOf(l) === i)
     .join(" · ");
 
