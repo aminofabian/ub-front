@@ -27,6 +27,10 @@ export const APP_ROUTES = {
   categories: "/categories",
   suppliers: "/suppliers",
   marketplace: "/marketplace",
+  marketplaceSupplier: (slug: string) =>
+    `/marketplace/s/${encodeURIComponent(slug)}`,
+  marketplaceProduct: (supplierSlug: string, productSlug: string) =>
+    `/marketplace/s/${encodeURIComponent(supplierSlug)}/p/${encodeURIComponent(productSlug)}`,
   supplierPortalLogin: "/supplier-portal/login",
   supplierPortalOverview: "/supplier-portal/overview",
   supplierPortalProfile: "/supplier-portal/profile",

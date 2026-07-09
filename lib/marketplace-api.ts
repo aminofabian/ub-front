@@ -15,6 +15,7 @@ import type { ItemsPageResult } from "@/lib/api";
 export type MarketplaceSupplierSearchRow = {
   id: string;
   name: string;
+  slug: string | null;
   description: string | null;
   supplierType: string | null;
   listedBy: string | null;
@@ -33,12 +34,14 @@ export type MarketplaceSupplierSearchRow = {
 export type MarketplaceProductSearchRow = {
   productId: string;
   productName: string;
+  productSlug: string | null;
   barcode: string | null;
   sku: string | null;
   categoryName: string | null;
   imageUrl: string | null;
   supplierId: string;
   supplierName: string;
+  supplierSlug: string | null;
   supplierType: string | null;
   supplierProductCount: number;
   location: string | null;
@@ -62,6 +65,7 @@ export type MarketplaceContactPreview = {
 export type MarketplaceSupplierDetail = {
   id: string;
   name: string;
+  slug: string | null;
   description: string | null;
   supplierType: string | null;
   listedBy: string | null;
@@ -84,6 +88,7 @@ export type MarketplaceSupplierDetail = {
 export type MarketplaceCatalogProductPreview = {
   id: string;
   name: string;
+  slug: string | null;
   barcode: string | null;
   sku: string | null;
   categoryName: string | null;
@@ -348,7 +353,24 @@ export async function fetchMarketplaceSupplierDetail(
   supplierId: string,
 ): Promise<MarketplaceSupplierDetail> {
   return publicFetch<MarketplaceSupplierDetail>(
-    `${API_ROUTES.publicMarketplace}/suppliers/${supplierId}`,
+    `${API_ROUTES.publicMarketplace}/suppliers/${encodeURIComponent(supplierId)}`,
+  );
+}
+
+export async function fetchMarketplaceSupplierBySlug(
+  slug: string,
+): Promise<MarketplaceSupplierDetail> {
+  return publicFetch<MarketplaceSupplierDetail>(
+    `${API_ROUTES.publicMarketplace}/s/${encodeURIComponent(slug)}`,
+  );
+}
+
+export async function fetchMarketplaceProductBySlug(
+  supplierSlug: string,
+  productSlug: string,
+): Promise<MarketplaceSupplierDetail> {
+  return publicFetch<MarketplaceSupplierDetail>(
+    `${API_ROUTES.publicMarketplace}/s/${encodeURIComponent(supplierSlug)}/p/${encodeURIComponent(productSlug)}`,
   );
 }
 

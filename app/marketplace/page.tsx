@@ -3,17 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
-  ArrowLeft,
-  FileDown,
   Loader2,
   MapPin,
-  Minus,
   Package,
-  Plus,
   Search,
-  ShoppingCart,
   Store,
   Truck,
   X,
@@ -25,34 +19,23 @@ import { KioskLogo } from "@/components/brand/kiosk-logo";
 import { getSessionTokens } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import {
-  fetchMarketplaceSupplierDetail,
   listMarketplaceLocations,
   searchMarketplaceProducts,
   searchMarketplaceSuppliers,
-  type MarketplaceCatalogProductPreview,
   type MarketplaceProductSearchRow,
-  type MarketplaceSupplierDetail,
   type MarketplaceSupplierSearchRow,
 } from "@/lib/marketplace-api";
 import { cn, formatMoney } from "@/lib/utils";
 
 import {
-  mktBtn,
-  mktBtnGhost,
   mktChip,
   mktChipActive,
   mktHero,
   mktHeroPattern,
   mktPage,
-  mktPanel,
   mktSearch,
   mktTile,
 } from "./_components/marketplace-ui";
-import {
-  buildMarketplaceOrderPdf,
-  buildWhatsAppOrderUrl,
-  shareOrDownloadOrderPdf,
-} from "./_lib/marketplace-order-pdf";
 
 const SEARCH_DEBOUNCE_MS = 320;
 
@@ -81,7 +64,6 @@ const QUICK_PROMPTS = [
 ] as const;
 
 type SearchTab = "products" | "suppliers";
-type CartQty = Record<string, number>;
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -108,7 +90,6 @@ function hueFromId(id: string): number {
 }
 
 function PublicMarketplacePageInner() {
-  const searchParams = useSearchParams();
   const [tab, setTab] = useState<SearchTab>("products");
   const [searchInput, setSearchInput] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -118,16 +99,6 @@ function PublicMarketplacePageInner() {
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState<MarketplaceSupplierSearchRow[]>([]);
   const [products, setProducts] = useState<MarketplaceProductSearchRow[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(
-    null,
-  );
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
-    null,
-  );
-  const [detail, setDetail] = useState<MarketplaceSupplierDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [cart, setCart] = useState<CartQty>({});
-  const [sendingOrder, setSendingOrder] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -176,39 +147,6 @@ function PublicMarketplacePageInner() {
   useEffect(() => {
     void loadResults();
   }, [loadResults]);
-
-  const openSupplier = useCallback(
-    async (supplierId: string, productId?: string | null) => {
-      setSelectedSupplierId(supplierId);
-      setSelectedProductId(productId ?? null);
-      setDetailLoading(true);
-      try {
-        const row = await fetchMarketplaceSupplierDetail(supplierId);
-        setDetail(row);
-        if (productId) {
-          setCart((prev) =>
-            prev[productId] ? prev : { ...prev, [productId]: 1 },
-          );
-        }
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Failed to load supplier",
-        );
-        setDetail(null);
-      } finally {
-        setDetailLoading(false);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const supplierId = searchParams.get("supplier")?.trim();
-    const productId = searchParams.get("product")?.trim();
-    if (supplierId) {
-      void openSupplier(supplierId, productId);
-    }
-  }, [searchParams, openSupplier]);
 
   const categoryTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -267,98 +205,11 @@ function PublicMarketplacePageInner() {
     return [...merged].sort((a, b) => a.localeCompare(b)).slice(0, 16);
   }, [locations, products, suppliers, tab]);
 
-  const closeDetail = () => {
-    setSelectedSupplierId(null);
-    setSelectedProductId(null);
-    setDetail(null);
-    setCart({});
-  };
-
-  const setQty = (productId: string, qty: number) => {
-    setCart((prev) => {
-      const next = { ...prev };
-      if (qty <= 0) {
-        delete next[productId];
-      } else {
-        next[productId] = qty;
-      }
-      return next;
-    });
-  };
-
-  const cartLines = useMemo(() => {
-    if (!detail) return [];
-    return detail.products
-      .filter((p) => (cart[p.id] ?? 0) > 0)
-      .map((p) => ({
-        product: p,
-        qty: cart[p.id] ?? 0,
-      }));
-  }, [cart, detail]);
-
-  const cartTotal = useMemo(() => {
-    return cartLines.reduce((sum, line) => {
-      if (line.product.unitPrice == null) return sum;
-      return sum + line.product.unitPrice * line.qty;
-    }, 0);
-  }, [cartLines]);
-
-  const cartCurrency =
-    cartLines.find((l) => l.product.currency)?.product.currency ?? "KES";
-
-  const sendOrder = async () => {
-    if (!detail || cartLines.length === 0) {
-      toast.error("Add at least one product to the order.");
-      return;
-    }
-    setSendingOrder(true);
-    try {
-      const lines = cartLines.map(({ product, qty }) => ({
-        name: product.name,
-        sku: product.sku,
-        barcode: product.barcode,
-        qty,
-        unitPrice: product.unitPrice,
-        currency: product.currency,
-      }));
-      const filename = `order-${detail.name.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}.pdf`;
-      const blob = buildMarketplaceOrderPdf({
-        supplierName: detail.name,
-        supplierPhone: detail.contactPhone,
-        location: detail.location,
-        listedBy: detail.listedBy,
-        lines,
-      });
-      const wa = buildWhatsAppOrderUrl({
-        phone: detail.contactPhone,
-        supplierName: detail.name,
-        lines,
-        filename,
-      });
-      if (!wa && !detail.contactPhone) {
-        toast.message("No WhatsApp number on this supplier — downloading PDF.");
-      }
-      const mode = await shareOrDownloadOrderPdf(blob, filename, wa);
-      toast.success(
-        mode === "shared"
-          ? "Order shared — pick WhatsApp to send the PDF."
-          : wa
-            ? "PDF downloaded and WhatsApp opened with your order text."
-            : "PDF downloaded. Attach it in WhatsApp to the supplier.",
-      );
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not build order");
-    } finally {
-      setSendingOrder(false);
-    }
-  };
-
   const resultCount =
     tab === "suppliers" ? visibleSuppliers.length : visibleProducts.length;
   const hasQuery = Boolean(
     debouncedSearch.trim() || activeTag || activeLocation,
   );
-  const panelOpen = Boolean(selectedSupplierId);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,var(--background),color-mix(in_oklch,var(--muted)_40%,var(--background)))]">
@@ -397,8 +248,9 @@ function PublicMarketplacePageInner() {
                   Source products. Order by WhatsApp.
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Open a product, review everything that supplier stocks, build
-                  a quantity list, then send a PDF order over WhatsApp.
+                  Open a product page to see its slug and only that supplier’s
+                  linked catalogue — then build a quantity list and send a PDF
+                  over WhatsApp.
                 </p>
               </div>
 
@@ -545,61 +397,23 @@ function PublicMarketplacePageInner() {
               </p>
               <p className="text-xs text-muted-foreground">
                 {tab === "products"
-                  ? "Click a product to open the supplier catalogue and build an order."
-                  : "Click a supplier to browse linked products and order."}
+                  ? "Click a product to open its public page and that supplier’s catalogue."
+                  : "Click a supplier to open their public marketplace page."}
               </p>
             </div>
           </div>
 
-          <div
-            className={cn(
-              "grid min-h-0 flex-1 gap-4",
-              panelOpen
-                ? "xl:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]"
-                : "grid-cols-1",
-            )}
-          >
-            <section className="min-h-0">
-              {loading ? (
-                <MarketplaceSkeleton tab={tab} />
-              ) : tab === "products" ? (
-                visibleProducts.length === 0 ? (
-                  <EmptyState
-                    title={hasQuery ? "No products match" : "No linked products yet"}
-                    hint={
-                      hasQuery
-                        ? "Try another name, location, or clear filters."
-                        : "When businesses link products to active suppliers, those items appear here."
-                    }
-                    onClear={() => {
-                      setSearchInput("");
-                      setActiveTag(null);
-                      setActiveLocation(null);
-                    }}
-                    showClear={hasQuery}
-                  />
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    {visibleProducts.map((row, index) => (
-                      <ProductTile
-                        key={`${row.supplierId}-${row.productId}`}
-                        row={row}
-                        index={index}
-                        selected={selectedProductId === row.productId}
-                        onSelect={() =>
-                          void openSupplier(row.supplierId, row.productId)
-                        }
-                      />
-                    ))}
-                  </div>
-                )
-              ) : visibleSuppliers.length === 0 ? (
+          <section className="min-h-0">
+            {loading ? (
+              <MarketplaceSkeleton tab={tab} />
+            ) : tab === "products" ? (
+              visibleProducts.length === 0 ? (
                 <EmptyState
-                  title={hasQuery ? "No suppliers match" : "No suppliers yet"}
+                  title={hasQuery ? "No products match" : "No linked products yet"}
                   hint={
                     hasQuery
                       ? "Try another name, location, or clear filters."
-                      : "Active suppliers with linked products will show up here."
+                      : "When businesses link products to active suppliers, those items appear here."
                   }
                   onClear={() => {
                     setSearchInput("");
@@ -610,48 +424,34 @@ function PublicMarketplacePageInner() {
                 />
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {visibleSuppliers.map((row, index) => (
-                    <SupplierTile
-                      key={row.id}
-                      row={row}
-                      selected={selectedSupplierId === row.id}
-                      index={index}
-                      onSelect={() => void openSupplier(row.id)}
-                    />
+                  {visibleProducts.map((row, index) => (
+                    <ProductTile key={`${row.supplierId}-${row.productId}`} row={row} index={index} />
                   ))}
                 </div>
-              )}
-            </section>
-
-            {panelOpen ? (
-              <aside
-                className={cn(
-                  mktPanel,
-                  "fixed inset-x-0 bottom-0 top-14 z-40 xl:static xl:inset-auto xl:z-auto",
-                )}
-              >
-                <ProductOrderPanel
-                  detail={detail}
-                  loading={detailLoading}
-                  selectedProductId={selectedProductId}
-                  cart={cart}
-                  cartLines={cartLines}
-                  cartTotal={cartTotal}
-                  cartCurrency={cartCurrency}
-                  sendingOrder={sendingOrder}
-                  onClose={closeDetail}
-                  onSelectProduct={(id) => {
-                    setSelectedProductId(id);
-                    setCart((prev) =>
-                      prev[id] ? prev : { ...prev, [id]: 1 },
-                    );
-                  }}
-                  onSetQty={setQty}
-                  onSendOrder={() => void sendOrder()}
-                />
-              </aside>
-            ) : null}
-          </div>
+              )
+            ) : visibleSuppliers.length === 0 ? (
+              <EmptyState
+                title={hasQuery ? "No suppliers match" : "No suppliers yet"}
+                hint={
+                  hasQuery
+                    ? "Try another name, location, or clear filters."
+                    : "Active suppliers with linked products will show up here."
+                }
+                onClear={() => {
+                  setSearchInput("");
+                  setActiveTag(null);
+                  setActiveLocation(null);
+                }}
+                showClear={hasQuery}
+              />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {visibleSuppliers.map((row, index) => (
+                  <SupplierTile key={row.id} row={row} index={index} />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>
@@ -707,22 +507,23 @@ function ProductImage({
 function ProductTile({
   row,
   index,
-  selected,
-  onSelect,
 }: {
   row: MarketplaceProductSearchRow;
   index: number;
-  selected: boolean;
-  onSelect: () => void;
 }) {
   const hue = hueFromId(row.productId);
+  const href =
+    row.supplierSlug && row.productSlug
+      ? APP_ROUTES.marketplaceProduct(row.supplierSlug, row.productSlug)
+      : row.supplierSlug
+        ? APP_ROUTES.marketplaceSupplier(row.supplierSlug)
+        : APP_ROUTES.marketplace;
+
   return (
-    <button
-      type="button"
-      data-selected={selected}
+    <Link
+      href={href}
       className={mktTile}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
-      onClick={onSelect}
     >
       <ProductImage
         src={row.imageUrl}
@@ -741,6 +542,11 @@ function ProductTile({
           <p className="line-clamp-2 font-medium leading-snug">
             {row.productName}
           </p>
+          {row.productSlug ? (
+            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+              {row.productSlug}
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-muted-foreground">
             {row.supplierName}
             {row.supplierProductCount
@@ -776,29 +582,27 @@ function ProductTile({
           </div>
         </div>
       </div>
-    </button>
+    </Link>
   );
 }
 
 function SupplierTile({
   row,
-  selected,
   index,
-  onSelect,
 }: {
   row: MarketplaceSupplierSearchRow;
-  selected: boolean;
   index: number;
-  onSelect: () => void;
 }) {
   const hue = hueFromId(row.id);
+  const href = row.slug
+    ? APP_ROUTES.marketplaceSupplier(row.slug)
+    : APP_ROUTES.marketplace;
+
   return (
-    <button
-      type="button"
-      data-selected={selected}
+    <Link
+      href={href}
       className={mktTile}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
-      onClick={onSelect}
     >
       <div
         className="relative flex h-24 items-end px-4 pb-3"
@@ -818,6 +622,11 @@ function SupplierTile({
           <p className="font-heading text-lg font-semibold leading-tight tracking-tight">
             {row.name}
           </p>
+          {row.slug ? (
+            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+              /marketplace/s/{row.slug}
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-muted-foreground">
             {[row.supplierType, row.listedBy ? `via ${row.listedBy}` : null]
               .filter(Boolean)
@@ -831,331 +640,7 @@ function SupplierTile({
           ) : null}
         </div>
       </div>
-    </button>
-  );
-}
-
-function ProductOrderPanel({
-  detail,
-  loading,
-  selectedProductId,
-  cart,
-  cartLines,
-  cartTotal,
-  cartCurrency,
-  sendingOrder,
-  onClose,
-  onSelectProduct,
-  onSetQty,
-  onSendOrder,
-}: {
-  detail: MarketplaceSupplierDetail | null;
-  loading: boolean;
-  selectedProductId: string | null;
-  cart: CartQty;
-  cartLines: { product: MarketplaceCatalogProductPreview; qty: number }[];
-  cartTotal: number;
-  cartCurrency: string;
-  sendingOrder: boolean;
-  onClose: () => void;
-  onSelectProduct: (id: string) => void;
-  onSetQty: (id: string, qty: number) => void;
-  onSendOrder: () => void;
-}) {
-  if (loading || !detail) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground xl:hidden"
-            onClick={onClose}
-          >
-            <ArrowLeft className="size-4" />
-            Back
-          </button>
-          <button
-            type="button"
-            className="ml-auto p-1.5 text-muted-foreground hover:bg-muted"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-        <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Opening product…
-        </div>
-      </div>
-    );
-  }
-
-  const selected =
-    detail.products.find((p) => p.id === selectedProductId) ??
-    detail.products[0] ??
-    null;
-  const selectedQty = selected ? (cart[selected.id] ?? 0) : 0;
-  const otherProducts = detail.products.filter((p) => p.id !== selected?.id);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground xl:hidden"
-          onClick={onClose}
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </button>
-        <div className="min-w-0 flex-1 px-2">
-          <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            {detail.name}
-            {detail.products.length
-              ? ` · ${detail.products.length} products`
-              : ""}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="p-1.5 text-muted-foreground hover:bg-muted"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
-        {selected ? (
-          <section className="space-y-3 border border-border/55 bg-muted/10 p-3">
-            <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3">
-              <ProductImage
-                src={selected.imageUrl}
-                alt={selected.name}
-                hue={hueFromId(selected.id)}
-                className="aspect-square border border-border/50"
-                iconClassName="size-6 opacity-50"
-              />
-              <div className="min-w-0">
-                {selected.categoryName ? (
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {selected.categoryName}
-                  </p>
-                ) : null}
-                <h2 className="font-heading text-xl font-semibold leading-tight tracking-tight">
-                  {selected.name}
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {[selected.barcode, selected.sku].filter(Boolean).join(" · ") ||
-                    "—"}
-                </p>
-                {detail.location ? (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    <MapPin className="size-3" />
-                    {detail.location}
-                  </p>
-                ) : null}
-                <div className="mt-3 flex items-end justify-between gap-2">
-                  <div>
-                    {selected.unitPrice != null ? (
-                      <>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                          Buying price
-                        </p>
-                        <p className="font-heading text-2xl font-semibold tabular-nums">
-                          {formatMoney(
-                            selected.unitPrice,
-                            selected.currency ?? "KES",
-                          )}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Ask price</p>
-                    )}
-                  </div>
-                  <QtyControl
-                    qty={selectedQty}
-                    onChange={(qty) => onSetQty(selected.id, qty)}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <p className="border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
-            No linked products for this supplier.
-          </p>
-        )}
-
-        <section className="space-y-2">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-heading text-base font-semibold tracking-tight">
-              More from {detail.name}
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              {detail.products.length} linked
-            </span>
-          </div>
-          {otherProducts.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              This is the only linked product for this supplier.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {otherProducts.map((product) => (
-                <li key={product.id}>
-                  <CatalogueOrderRow
-                    product={product}
-                    qty={cart[product.id] ?? 0}
-                    active={selectedProductId === product.id}
-                    onSelect={() => onSelectProduct(product.id)}
-                    onSetQty={(qty) => onSetQty(product.id, qty)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      <div className="shrink-0 space-y-3 border-t border-border/50 bg-card p-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-            <ShoppingCart className="size-3.5" />
-            {cartLines.length} line{cartLines.length === 1 ? "" : "s"}
-          </span>
-          <span className="font-heading text-lg font-semibold tabular-nums">
-            {formatMoney(cartTotal, cartCurrency)}
-          </span>
-        </div>
-        <button
-          type="button"
-          className={cn(mktBtn, "w-full")}
-          disabled={sendingOrder || cartLines.length === 0}
-          onClick={onSendOrder}
-        >
-          {sendingOrder ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Preparing…
-            </>
-          ) : (
-            <>
-              <FileDown className="size-4" />
-              PDF + WhatsApp order
-            </>
-          )}
-        </button>
-        <p className="text-center text-[11px] text-muted-foreground">
-          Downloads a PDF order sheet and opens WhatsApp with the supplier when
-          a phone number is available.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function QtyControl({
-  qty,
-  onChange,
-}: {
-  qty: number;
-  onChange: (qty: number) => void;
-}) {
-  if (qty <= 0) {
-    return (
-      <button
-        type="button"
-        className={cn(mktBtnGhost, "h-9 px-3 text-xs")}
-        onClick={(e) => {
-          e.stopPropagation();
-          onChange(1);
-        }}
-      >
-        <Plus className="size-3.5" />
-        Add
-      </button>
-    );
-  }
-  return (
-    <div
-      className="inline-flex items-center border border-border"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button
-        type="button"
-        className="flex size-9 items-center justify-center hover:bg-muted"
-        onClick={() => onChange(qty - 1)}
-        aria-label="Decrease quantity"
-      >
-        <Minus className="size-3.5" />
-      </button>
-      <span className="min-w-8 text-center text-sm font-semibold tabular-nums">
-        {qty}
-      </span>
-      <button
-        type="button"
-        className="flex size-9 items-center justify-center hover:bg-muted"
-        onClick={() => onChange(qty + 1)}
-        aria-label="Increase quantity"
-      >
-        <Plus className="size-3.5" />
-      </button>
-    </div>
-  );
-}
-
-function CatalogueOrderRow({
-  product,
-  qty,
-  active,
-  onSelect,
-  onSetQty,
-}: {
-  product: MarketplaceCatalogProductPreview;
-  qty: number;
-  active: boolean;
-  onSelect: () => void;
-  onSetQty: (qty: number) => void;
-}) {
-  const hue = hueFromId(product.id);
-  return (
-    <div
-      className={cn(
-        "flex items-start gap-2.5 border border-border/50 bg-muted/10 p-2",
-        active && "border-foreground/40 bg-muted/25",
-      )}
-    >
-      <button type="button" className="shrink-0" onClick={onSelect}>
-        <ProductImage
-          src={product.imageUrl}
-          alt={product.name}
-          hue={hue}
-          className="size-14 border border-border/40"
-          iconClassName="size-4 opacity-50"
-        />
-      </button>
-      <button
-        type="button"
-        className="min-w-0 flex-1 text-left"
-        onClick={onSelect}
-      >
-        <p className="truncate text-sm font-medium">{product.name}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
-          {[product.barcode, product.sku].filter(Boolean).join(" · ") || "—"}
-        </p>
-        {product.unitPrice != null ? (
-          <p className="mt-1 text-sm font-semibold tabular-nums">
-            {formatMoney(product.unitPrice, product.currency ?? "KES")}
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-muted-foreground">Ask</p>
-        )}
-      </button>
-      <QtyControl qty={qty} onChange={onSetQty} />
-    </div>
+    </Link>
   );
 }
 
