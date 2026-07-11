@@ -19,11 +19,26 @@ const MAX_BODY_BYTES = 256_000;
 const CUPS_NAME_RE = /^[A-Za-z0-9._-]+$/;
 
 /** Absolute paths — Next/IDE often has a PATH without /usr/bin (spawn lp → ENOENT). */
-const LP_BIN = existsSync("/usr/bin/lp") ? "/usr/bin/lp" : "lp";
-const LPSTAT_BIN = existsSync("/usr/bin/lpstat") ? "/usr/bin/lpstat" : "lpstat";
+const LP_BIN_CANDIDATES = ["/usr/bin/lp", "/bin/lp", "lp"] as const;
+const LPSTAT_BIN_CANDIDATES = ["/usr/bin/lpstat", "/bin/lpstat", "lpstat"] as const;
+
+function resolveBin(candidates: readonly string[]): string | null {
+  for (const c of candidates) {
+    if (c.includes("/") && existsSync(c)) return c;
+  }
+  // Bare name only useful when PATH is sane (local Mac terminal).
+  return null;
+}
+
+const LP_BIN = resolveBin(LP_BIN_CANDIDATES);
+const LPSTAT_BIN = resolveBin(LPSTAT_BIN_CANDIDATES);
 const CUPS_PATH = [process.env.PATH, "/usr/bin", "/bin", "/usr/sbin"]
   .filter(Boolean)
   .join(":");
+
+function cupsAvailable(): boolean {
+  return Boolean(LP_BIN);
+}
 
 type PrinterTarget =
   | { mode: "network"; host: string; port: number }
@@ -59,6 +74,7 @@ function targetFromRequest(request: Request): PrinterTarget | null {
 }
 
 function listCupsPrinters(): Promise<string[]> {
+  if (!LPSTAT_BIN) return Promise.resolve([]);
   return new Promise((resolve) => {
     const child = spawn(LPSTAT_BIN, ["-a"], {
       stdio: ["ignore", "pipe", "pipe"],
@@ -109,6 +125,13 @@ function formatSpawnError(err: unknown, bin: string): Error {
 }
 
 function sendCups(name: string, data: Buffer): Promise<void> {
+  if (!LP_BIN) {
+    return Promise.reject(
+      new Error(
+        "CUPS printing is not available on this server (cloud host). Use Palmart Desktop on the till, or the system print dialog.",
+      ),
+    );
+  }
   const file = join(tmpdir(), `palmart-escpos-${process.pid}-${Date.now()}.bin`);
   return writeFile(file, data)
     .then(
@@ -156,10 +179,12 @@ function sendCups(name: string, data: Buffer): Promise<void> {
 
 /** Local print capability + CUPS queues visible on this machine. */
 export async function GET() {
-  const cupsPrinters = await listCupsPrinters();
+  const available = cupsAvailable();
+  const cupsPrinters = available ? await listCupsPrinters() : [];
   const fallback = envFallbackTarget();
   return NextResponse.json({
-    available: true,
+    /** True only when this host can run CUPS `lp` (till Mac / desktop) — never on Vercel. */
+    available,
     cupsPrinters,
     envFallback: fallback
       ? fallback.mode === "cups"
@@ -187,8 +212,19 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
-  if (target.mode === "cups" && !CUPS_NAME_RE.test(target.name)) {
-    return NextResponse.json({ error: "Invalid CUPS printer name" }, { status: 400 });
+  if (target.mode === "cups") {
+    if (!CUPS_NAME_RE.test(target.name)) {
+      return NextResponse.json({ error: "Invalid CUPS printer name" }, { status: 400 });
+    }
+    if (!cupsAvailable()) {
+      return NextResponse.json(
+        {
+          error:
+            "USB/CUPS printing only works on the till computer (Palmart Desktop or local Next). This cloud server has no access to your printer.",
+        },
+        { status: 503 },
+      );
+    }
   }
 
   const body = Buffer.from(await request.arrayBuffer());

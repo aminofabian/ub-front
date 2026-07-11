@@ -54,8 +54,8 @@ async function resolvePrinterTarget(
  *
  * Order:
  * 1. Desktop device bridge when `NEXT_PUBLIC_RUNTIME=desktop`
- * 2. Local Next.js `/api/local-print` using branch printer settings
- * 3. Browser print dialog (no auto-cut)
+ * 2. Local CUPS/`lp` via `/api/local-print` (only when Next runs on the till Mac)
+ * 3. Browser print dialog (cloud — no auto-cut)
  */
 export async function printPosReceipt(
   saleId: string,
@@ -94,11 +94,13 @@ export async function printPosReceipt(
       localAvailable = Boolean(status.available);
     }
   } catch {
-    // Next route unavailable — fall through to browser print.
+    // Cloud / route missing — fall through to browser print.
   }
 
   const resolved = await resolvePrinterTarget(printer);
 
+  // CUPS only works when this Next process runs on the till (has /usr/bin/lp).
+  // Online (Vercel) always falls through to the system dialog.
   if (localAvailable && hasPrinterTarget(resolved)) {
     try {
       const escpos = await fetchSaleReceiptThermal(id, widthMm);
@@ -142,9 +144,4 @@ export async function printPosReceipt(
   }
 
   window.print();
-  if (!hasPrinterTarget(resolved)) {
-    toast.message(
-      "No receipt printer set for this branch — opened system dialog. Set CUPS name under Branches → Receipt details, Save, then try again (Java API must be restarted if you just added the field).",
-    );
-  }
 }

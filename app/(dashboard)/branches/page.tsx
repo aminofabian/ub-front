@@ -747,12 +747,20 @@ export default function BranchesPage() {
                                     />
                                   </div>
                                   <p className={dashboardHintClass()}>
-                                    Leave blank to omit. Printer CUPS name comes from{" "}
-                                    <code className="text-xs">lpstat -v</code> on the till Mac
-                                    (the label before the colon). If website is empty, your business
-                                    primary domain is used when available. Use{" "}
-                                    <strong className="font-medium text-foreground">Save</strong> in
-                                    the row above to persist everything together.
+                                    Leave blank to omit.{" "}
+                                    <strong className="font-medium text-foreground">
+                                      Receipt printer CUPS name
+                                    </strong>{" "}
+                                    is only used when printing from{" "}
+                                    <strong className="font-medium text-foreground">
+                                      Palmart Desktop
+                                    </strong>{" "}
+                                    or a till that runs Next locally — not from the
+                                    cloud website. Get the name with{" "}
+                                    <code className="text-xs">lpstat -v</code> on the
+                                    till Mac. Use{" "}
+                                    <strong className="font-medium text-foreground">Save</strong>{" "}
+                                    in the row above to persist.
                                   </p>
                                 </div>
                               </Collapsible.Content>
