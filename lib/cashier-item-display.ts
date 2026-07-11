@@ -22,16 +22,133 @@ export function cashierItemPrimaryLabel(row: ItemSummaryRecord): string {
   if (resolved.needsNameFix) {
     return CATALOG_FIX_NAME_LABEL;
   }
-  const name = resolved.label;
-  const option = row.variantName?.trim();
-  if (option && !isGenericVariantLabel(option) && !looksLikeUuid(option)) {
+  let name = resolved.label;
+  if (looksLikeWeakProductName(name)) {
+    name = enrichWeakProductName(name, row);
+  }
+
+  const option = disambiguatorForPos(row);
+  if (option && !name.toLowerCase().includes(option.toLowerCase())) {
     return `${name} · ${option}`;
   }
-  if (row.variantOfItemId) {
-    const sku = row.sku?.trim();
-    return sku && !looksLikeUuid(sku) ? `${name} · ${sku}` : name;
+  return name;
+}
+
+/** True when the catalog name is a promo code, bare number, or similarly unusable alone. */
+export function looksLikeWeakProductName(name: string): boolean {
+  const t = name.trim();
+  if (!t) return true;
+  if (/^\d+$/.test(t)) return true;
+  if (/^\d+\s*for\s*\d+/i.test(t)) return true;
+  if (/^[a-z0-9]{1,3}$/i.test(t)) return true;
+  return false;
+}
+
+function enrichWeakProductName(name: string, row: ItemSummaryRecord): string {
+  const brand = row.brand?.trim();
+  const size = row.size?.trim();
+  const skuHint = humanizeSkuCategory(row.sku);
+  if (brand && size) {
+    return `${brand} ${size}`;
+  }
+  if (skuHint && /^\d+\s*for\s*\d+/i.test(name.trim())) {
+    return `${skuHint} · ${name.trim()}`;
+  }
+  if (skuHint && /^\d+$/.test(name.trim())) {
+    return `${skuHint} ${name.trim()}`.trim();
+  }
+  if (brand) {
+    return brand;
+  }
+  if (skuHint) {
+    return skuHint;
   }
   return name;
+}
+
+/**
+ * Short differentiator for cashiers: variant, size, package, or a humanized SKU
+ * suffix — never the full internal SKU string.
+ */
+export function disambiguatorForPos(row: ItemSummaryRecord): string | null {
+  const option = row.variantName?.trim();
+  if (option && !isGenericVariantLabel(option) && !looksLikeUuid(option)) {
+    if (isPosPackageSellRow(row)) {
+      const units = posPackageUnitsPerSale(row);
+      if (units != null && units > 1 && !/\d/.test(option)) {
+        return `${option} of ${units}`;
+      }
+    }
+    return option;
+  }
+  const size = row.size?.trim();
+  if (size && !looksLikeUuid(size)) {
+    return size;
+  }
+  if (isPosPackageSellRow(row)) {
+    const units = posPackageUnitsPerSale(row);
+    const pack = posPackageShortName(row);
+    if (units != null && units > 1) {
+      return `${pack} of ${units}`;
+    }
+    if (pack && pack !== "pack") {
+      return pack;
+    }
+  }
+  return humanizeSkuSuffix(row.sku);
+}
+
+/** Last SKU segment when it looks like a size/variant (500ML, 1KG, SMALL). */
+export function humanizeSkuSuffix(sku: string | undefined): string | null {
+  const s = sku?.trim();
+  if (!s || isInternalPosSku(s)) {
+    return null;
+  }
+  const parts = s.split(/[-_]/).filter(Boolean);
+  if (parts.length < 2) {
+    return null;
+  }
+  const last = parts[parts.length - 1]!;
+  const sizeMatch = last.match(/^(\d+(?:\.\d+)?)(ML|L|G|KG|PCS?)$/i);
+  if (sizeMatch) {
+    const amount = sizeMatch[1];
+    const unit = sizeMatch[2].toLowerCase();
+    return `${amount}${unit}`;
+  }
+  if (/^(SMALL|MEDIUM|LARGE|SINGLE|TRAY|DOZEN)$/i.test(last)) {
+    return last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
+  }
+  return null;
+}
+
+/** First SKU token when it looks like a product family (TOMATO, FLOURS). */
+function humanizeSkuCategory(sku: string | undefined): string | null {
+  const s = sku?.trim();
+  if (!s || isInternalPosSku(s)) {
+    return null;
+  }
+  const first = s.split(/[-_]/)[0]?.trim();
+  if (!first || first.length < 3 || /^\d+$/.test(first)) {
+    return null;
+  }
+  const known: Record<string, string> = {
+    TOMATO: "Tomatoes",
+    TOMATOES: "Tomatoes",
+    FLOURS: "Flour",
+    FLOUR: "Flour",
+    EGGS: "Eggs",
+    EGG: "Eggs",
+    BREAD: "Bread",
+    MILK: "Milk",
+  };
+  const upper = first.toUpperCase();
+  if (known[upper]) {
+    return known[upper];
+  }
+  if (upper.length <= 6 && /[AEIOU]/.test(upper)) {
+    return upper.charAt(0) + upper.slice(1).toLowerCase();
+  }
+  return null;
 }
 
 /**
@@ -325,21 +442,24 @@ export function posTopProductSubtitle(p: {
   return posAvailabilitySubtitle(stock, sku);
 }
 
-/** Extra text on cart line title: availability, or human SKU in parens — never internal IDs. */
+/** Extra text on cart line title: package availability only — never SKUs. */
 export function posCartLineSuffix(item: ItemSummaryRecord): string {
   if (isPosPackageSellRow(item)) {
     const avail = posAvailablePackages(item);
     if (avail != null) {
       const unit = posPackageShortName(item);
-      return ` (${avail} ${pluralPackageUnit(unit, avail)})`;
+      return ` · ${avail} ${pluralPackageUnit(unit, avail)}`;
     }
   }
-  const stock = formatStockQty(item.stockQty);
-  if (stock != null) {
-    return ` (${stock} available)`;
-  }
-  const sku = displaySkuForPos(item);
-  return sku ? ` (${sku})` : "";
+  return "";
+}
+
+/** Strip legacy "(SKU…)" suffixes from cart labels saved before this change. */
+export function stripPosCartSkuClutter(label: string): string {
+  return label
+    .replace(/\s*\((?:[A-Z0-9]+(?:-[A-Z0-9]+)+)\)\s*$/i, "")
+    .replace(/\s*\(\d+\s+available\)\s*$/i, "")
+    .trim();
 }
 
 /** Secondary line: SKU, and barcode when it differs (common for imported retail IDs). */

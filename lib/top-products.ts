@@ -9,9 +9,15 @@ export type TopProductRecord = {
   id: string;
   name: string;
   sku?: string;
+  variantName?: string | null;
+  brand?: string | null;
+  size?: string | null;
   thumbnailUrl?: string | null;
   /** Last seen branch on-hand when this row was updated from catalog (optional). */
   stockQty?: number | string | null;
+  packageVariant?: boolean;
+  packageUnitsPerSale?: number | string | null;
+  variantOfItemId?: string | null;
   /** Number of separate cart-add events. */
   count: number;
   /** Sum of quantities sold (rounded to 4 decimals). */
@@ -76,13 +82,32 @@ function writeStore(businessId: string | undefined | null, store: Store): void {
   }
 }
 
-type ItemLike = Pick<ItemSummaryRecord, "id" | "name" | "sku" | "thumbnailUrl" | "stockQty">;
+type ItemLike = Pick<
+  ItemSummaryRecord,
+  | "id"
+  | "name"
+  | "sku"
+  | "thumbnailUrl"
+  | "stockQty"
+  | "variantName"
+  | "brand"
+  | "size"
+  | "packageVariant"
+  | "packageUnitsPerSale"
+  | "variantOfItemId"
+>;
 
 function mergeMeta(existing: TopProductRecord | undefined, item: ItemLike): {
   name: string;
   sku?: string;
   thumbnailUrl: string | null;
   stockQty?: number | string | null;
+  variantName?: string | null;
+  brand?: string | null;
+  size?: string | null;
+  packageVariant?: boolean;
+  packageUnitsPerSale?: number | string | null;
+  variantOfItemId?: string | null;
 } {
   const stockQty =
     item.stockQty !== undefined ? item.stockQty : existing?.stockQty;
@@ -90,6 +115,13 @@ function mergeMeta(existing: TopProductRecord | undefined, item: ItemLike): {
     name: item.name?.trim() || existing?.name || "Item",
     sku: item.sku?.trim() || existing?.sku,
     thumbnailUrl: item.thumbnailUrl ?? existing?.thumbnailUrl ?? null,
+    variantName: item.variantName ?? existing?.variantName ?? null,
+    brand: item.brand ?? existing?.brand ?? null,
+    size: item.size ?? existing?.size ?? null,
+    packageVariant: item.packageVariant ?? existing?.packageVariant,
+    packageUnitsPerSale:
+      item.packageUnitsPerSale ?? existing?.packageUnitsPerSale ?? null,
+    variantOfItemId: item.variantOfItemId ?? existing?.variantOfItemId ?? null,
     ...(stockQty !== undefined ? { stockQty } : {}),
   };
 }

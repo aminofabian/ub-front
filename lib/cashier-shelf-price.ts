@@ -20,14 +20,20 @@ export function formatShelfPriceLabel(
 
 /**
  * Split a compact shelf string like `199.00 KES` into amount + ISO code.
- * Non-matching lines (loading copy, dashes, etc.) return {@code code: null}.
+ * Prefersthe last amount+currency pair so accidental unit prefixes
+ * (e.g. `1 kg 435 KES`) do not break the badge.
  */
 export function splitShelfPriceDisplay(line: string): { amount: string; code: string | null } {
   const t = line.trim();
   if (!t) return { amount: line, code: null };
-  const m = t.match(/^([\d][\d.,]*)\s+([A-Za-z]{3})$/);
-  if (m) {
-    return { amount: m[1], code: m[2].toUpperCase() };
+  const matches = [...t.matchAll(/([\d][\d.,]*)\s+([A-Za-z]{3})\b/g)];
+  const last = matches[matches.length - 1];
+  if (last) {
+    return { amount: last[1], code: last[2].toUpperCase() };
   }
-  return { amount: line, code: null };
+  const amountOnly = t.match(/^([\d][\d.,]*)$/);
+  if (amountOnly) {
+    return { amount: amountOnly[1], code: null };
+  }
+  return { amount: t, code: null };
 }

@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cashierItemPrimaryLabel,
   isPosPackageSellRow,
   mergePosItemStockFromDetail,
   posAvailablePackages,
+  posCartLineSuffix,
   posPackageStockHeadline,
   posSearchItemDetailLine,
+  stripPosCartSkuClutter,
 } from "./cashier-item-display";
 import type { ItemSummaryRecord } from "./api";
+import { splitShelfPriceDisplay } from "./cashier-shelf-price";
 
 const trayRow: ItemSummaryRecord = {
   id: "tray",
@@ -91,5 +95,69 @@ describe("pos package stock", () => {
     expect(posAvailablePackages(zeroRow)).toBe(0);
     expect(posAvailablePackages(zeroRow, true)).toBeNull();
     expect(posPackageStockHeadline(zeroRow, true)).toBe("0 on hand");
+  });
+});
+
+describe("cashier labels", () => {
+  it("disambiguates variants with size or package, not full SKU", () => {
+    const tray: ItemSummaryRecord = {
+      id: "1",
+      name: "Eggs",
+      sku: "EGGS-10001-TRAY",
+      variantName: "Tray",
+      variantOfItemId: "p",
+      packageVariant: true,
+      packageUnitsPerSale: 30,
+    };
+    const single: ItemSummaryRecord = {
+      id: "2",
+      name: "Eggs",
+      sku: "EGGS-10002-SINGLE",
+      variantName: "Single",
+      variantOfItemId: "p",
+    };
+    expect(cashierItemPrimaryLabel(tray)).toBe("Eggs · Tray of 30");
+    expect(cashierItemPrimaryLabel(single)).toBe("Eggs · Single");
+  });
+
+  it("enriches weak promo and numeric names from SKU family", () => {
+    expect(
+      cashierItemPrimaryLabel({
+        id: "t",
+        name: "3 for 20",
+        sku: "TOMATO-10002-3-FOR-20",
+      }),
+    ).toBe("Tomatoes · 3 for 20");
+    expect(
+      cashierItemPrimaryLabel({
+        id: "f",
+        name: "210",
+        sku: "FLOURS-10001-1KG",
+      }),
+    ).toBe("Flour 210 · 1kg");
+  });
+
+  it("never appends SKU to cart suffix", () => {
+    const row: ItemSummaryRecord = {
+      id: "m",
+      name: "Milk",
+      sku: "FRESHM-10001-500ML",
+      stockQty: 12,
+    };
+    expect(posCartLineSuffix(row)).toBe("");
+    expect(
+      stripPosCartSkuClutter("Brookside Milk (FRESHM-10001-500ML)"),
+    ).toBe("Brookside Milk");
+  });
+
+  it("keeps price badges to amount + currency only", () => {
+    expect(splitShelfPriceDisplay("1 kg 435 KES")).toEqual({
+      amount: "435",
+      code: "KES",
+    });
+    expect(splitShelfPriceDisplay("65 KES")).toEqual({
+      amount: "65",
+      code: "KES",
+    });
   });
 });

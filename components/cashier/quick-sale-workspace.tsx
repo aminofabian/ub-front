@@ -144,6 +144,16 @@ function parseMoney(raw: string): number | null {
   return roundMoney2(n);
 }
 
+/** Match cart lines for quantity merge (tolerate 3.9 vs 3.90). */
+function sameCartUnitPrice(a: string, b: string): boolean {
+  const left = parseMoney(a);
+  const right = parseMoney(b);
+  if (left != null && right != null) {
+    return Math.abs(left - right) < 0.001;
+  }
+  return a.trim() === b.trim();
+}
+
 function isSaleVoided(sale: SaleRecord): boolean {
   const v = sale.voidedAt;
   return v != null && String(v).length > 0;
@@ -1383,10 +1393,8 @@ export function QuickSaleWorkspace({
         toast.error("Choose a specific product, not the group label.");
         return false;
       }
-      const safeQty = capCartQuantity(
-        item,
-        Number.isFinite(qty) && qty > 0 ? qty : 1,
-      );
+      const addQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+      const safeQty = capCartQuantity(item, addQty);
       if (safeQty <= 0) {
         toast.error("This item is out of stock at this branch.");
         return false;
@@ -1397,16 +1405,20 @@ export function QuickSaleWorkspace({
         setNotice("");
         setError("");
       }
+      const priceKey = (unitPrice ?? "").trim();
+      const label =
+        `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim();
       const newLine = {
         key: crypto.randomUUID(),
         itemId: item.id,
-        label:
-          `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim(),
+        label,
         quantity: String(safeQty),
-        unitPrice: unitPrice ?? "",
+        unitPrice: priceKey,
         item,
       };
       let targetCartId = activeCartId;
+      let blockedByStock = false;
+      let didAdd = false;
       setCarts((prev) => {
         const { carts: nextCarts, targetId } = resolveCartTargetForAdd(
           prev,
@@ -1416,17 +1428,55 @@ export function QuickSaleWorkspace({
         return nextCarts.map((cart) => {
           if (cart.id !== targetId) return cart;
           if (startingNewSale) {
+            didAdd = true;
             return {
               ...resetCartSessionKeepingTab(cart),
               lines: [newLine],
             };
           }
+          const existingIdx = cart.lines.findIndex(
+            (l) =>
+              l.itemId === item.id && sameCartUnitPrice(l.unitPrice, priceKey),
+          );
+          if (existingIdx >= 0) {
+            const existing = cart.lines[existingIdx]!;
+            const currentQty = Number(existing.quantity);
+            const base = Number.isFinite(currentQty) && currentQty > 0 ? currentQty : 0;
+            const capped = capCartQuantity(item, base + addQty);
+            if (capped <= base) {
+              blockedByStock = true;
+              return cart;
+            }
+            didAdd = true;
+            return {
+              ...cart,
+              lines: cart.lines.map((l, i) =>
+                i === existingIdx
+                  ? {
+                      ...l,
+                      quantity: String(capped),
+                      unitPrice: priceKey || l.unitPrice,
+                      label,
+                      item,
+                    }
+                  : l,
+              ),
+            };
+          }
+          didAdd = true;
           return {
             ...cart,
             lines: [...cart.lines, newLine],
           };
         });
       });
+      if (blockedByStock) {
+        toast.error("Cannot add more — stock limit reached for this item.");
+        return false;
+      }
+      if (!didAdd) {
+        return false;
+      }
       if (targetCartId !== activeCartId) {
         setActiveCartId(targetCartId);
       }

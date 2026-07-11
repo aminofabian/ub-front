@@ -4,6 +4,7 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { itemListThumbnailUrl, type ItemSummaryRecord } from "@/lib/api";
+import { stripPosCartSkuClutter } from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
 
 import {
@@ -92,7 +93,7 @@ export function CashierCartSidePanel({
           </span>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
           {lines.length === 0 ? (
             <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 px-4 text-center">
               <ShoppingCart className="size-8 text-muted-foreground/35" />
@@ -104,80 +105,77 @@ export function CashierCartSidePanel({
               </p>
             </div>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="divide-y divide-border/40">
               {lines.map((line) => {
                 const thumb = itemListThumbnailUrl(line.item);
                 const qty = Number(line.quantity);
+                const title = stripPosCartSkuClutter(line.label);
                 return (
                   <li
                     key={line.key}
-                    className="rounded-xl border border-border/45 bg-background/80 p-2"
+                    className="flex items-center gap-2 px-1.5 py-1.5"
                   >
-                    <div className="flex gap-2">
-                      <div className="relative size-11 shrink-0 overflow-hidden rounded-lg bg-muted/40">
-                        {thumb ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={thumb}
-                            alt=""
-                            className="size-full object-contain p-0.5"
-                          />
-                        ) : (
-                          <span className="flex size-full items-center justify-center text-xs font-bold text-muted-foreground/50">
-                            {line.label.trim().charAt(0).toUpperCase() || "?"}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-foreground">
-                          {line.label}
-                        </p>
-                        <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-                          {Number(line.unitPrice).toFixed(2)} ×{" "}
-                          {Number.isFinite(qty) ? qty : line.quantity}
-                        </p>
-                      </div>
+                    <div className="relative size-9 shrink-0 overflow-hidden rounded-md bg-muted/40">
+                      {thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumb}
+                          alt=""
+                          className="size-full object-contain p-0.5"
+                        />
+                      ) : (
+                        <span className="flex size-full items-center justify-center text-[10px] font-bold text-muted-foreground/50">
+                          {title.trim().charAt(0).toUpperCase() || "?"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                        {title}
+                      </p>
+                      <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                        {Number(line.unitPrice).toFixed(2)} ·{" "}
+                        {lineSubtotal(line).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="inline-flex shrink-0 items-center rounded-md border border-border/60 bg-muted/15">
                       <button
                         type="button"
-                        onClick={() => removeLine(line.key)}
-                        className="shrink-0 self-start rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
-                        aria-label={`Remove ${line.label}`}
+                        className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                        aria-label="Decrease quantity"
+                        onClick={() => {
+                          const next = Math.max(
+                            1,
+                            (Number.isFinite(qty) ? qty : 1) - 1,
+                          );
+                          updateLine(line.key, "quantity", String(next));
+                        }}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Minus className="size-3.5" />
+                      </button>
+                      <span className="min-w-[1.5rem] text-center text-xs font-semibold tabular-nums">
+                        {Number.isFinite(qty) ? qty : line.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                        aria-label="Increase quantity"
+                        onClick={() => {
+                          const next = (Number.isFinite(qty) ? qty : 0) + 1;
+                          updateLine(line.key, "quantity", String(next));
+                        }}
+                      >
+                        <Plus className="size-3.5" />
                       </button>
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <div className="inline-flex items-center rounded-lg border border-border/60 bg-muted/20">
-                        <button
-                          type="button"
-                          className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
-                          aria-label="Decrease quantity"
-                          onClick={() => {
-                            const next = Math.max(1, (Number.isFinite(qty) ? qty : 1) - 1);
-                            updateLine(line.key, "quantity", String(next));
-                          }}
-                        >
-                          <Minus className="size-3.5" />
-                        </button>
-                        <span className="min-w-[1.75rem] text-center text-xs font-semibold tabular-nums">
-                          {Number.isFinite(qty) ? qty : line.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
-                          aria-label="Increase quantity"
-                          onClick={() => {
-                            const next = (Number.isFinite(qty) ? qty : 0) + 1;
-                            updateLine(line.key, "quantity", String(next));
-                          }}
-                        >
-                          <Plus className="size-3.5" />
-                        </button>
-                      </div>
-                      <span className="text-xs font-bold tabular-nums text-foreground">
-                        {lineSubtotal(line).toFixed(2)}
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeLine(line.key)}
+                      className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
+                      aria-label={`Remove ${title}`}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </li>
                 );
               })}

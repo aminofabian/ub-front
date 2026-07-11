@@ -268,16 +268,28 @@ function TopSellerTile({
   onPick: () => void;
   shelfLine: string;
 }) {
+  const title = cashierItemPrimaryLabel({
+    id: product.id,
+    name: product.name,
+    sku: product.sku ?? "",
+    variantName: product.variantName ?? undefined,
+    brand: product.brand ?? undefined,
+    size: product.size ?? undefined,
+    packageVariant: product.packageVariant,
+    packageUnitsPerSale: product.packageUnitsPerSale ?? undefined,
+    variantOfItemId: product.variantOfItemId ?? undefined,
+    thumbnailUrl: product.thumbnailUrl ?? null,
+  });
   return (
     <button
       type="button"
       onClick={onPick}
       className={KIOSK_TILE_SHELL}
-      aria-label={`Add ${product.name}, ${shelfLine}`}
+      aria-label={`Add ${title}, ${shelfLine}`}
     >
       <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
         <span
-          className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-0.5 rounded-l-xl bg-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl bg-[var(--pos-primary)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
           aria-hidden
         />
         {product.thumbnailUrl ? (
@@ -294,14 +306,17 @@ function TopSellerTile({
             className="flex h-full w-full items-center justify-center text-2xl font-bold tracking-tight text-muted-foreground/45"
             aria-hidden
           >
-            {product.name.trim().charAt(0).toUpperCase() || "?"}
+            {title.trim().charAt(0).toUpperCase() || "?"}
           </span>
         )}
         <KioskTileShelfBadge shelfLine={shelfLine} />
+        <span className="absolute left-1.5 top-1.5 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-border/60 bg-white/95 text-[var(--pos-primary)] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 dark:bg-card/95">
+          <Plus className="size-3.5" aria-hidden />
+        </span>
       </div>
       <div className="flex flex-1 flex-col px-2 pb-2 pt-1.5">
         <p className="line-clamp-2 text-left text-[12px] font-medium leading-snug tracking-normal text-foreground/85 sm:text-[13px] dark:text-foreground/80">
-          {product.name}
+          {title}
         </p>
       </div>
     </button>
@@ -390,11 +405,7 @@ function SearchHitTile({
           >
             {categoryLabel}
           </span>
-        ) : (
-          <span className="text-[10px] font-medium text-muted-foreground">
-            Tap to add · 1 unit
-          </span>
-        )}
+        ) : null}
       </div>
     </button>
   );
@@ -1011,6 +1022,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       name: p.name,
                       sku: p.sku ?? "",
                       thumbnailUrl: p.thumbnailUrl ?? null,
+                      variantName: p.variantName ?? undefined,
+                      brand: p.brand ?? undefined,
+                      size: p.size ?? undefined,
+                      packageVariant: p.packageVariant,
+                      packageUnitsPerSale: p.packageUnitsPerSale ?? undefined,
+                      variantOfItemId: p.variantOfItemId ?? undefined,
+                      stockQty: p.stockQty ?? undefined,
                     })
                   }
                 />
