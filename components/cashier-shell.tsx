@@ -185,7 +185,7 @@ export function CashierShell({ children }: CashierShellProps) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-2xl flex-1 px-3 py-4 sm:px-4 md:max-w-3xl">
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-3 py-3 sm:px-4 sm:py-4">
         {children}
       </main>
     </div>

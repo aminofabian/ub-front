@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
-  ArrowRight,
   ChevronLeft,
   Loader2,
   LogOut,
+  Plus,
   PlusCircle,
   ScanLine,
   Search,
@@ -30,6 +30,7 @@ import {
   shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
+import { useMediaLg } from "@/hooks/use-media-lg";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ import {
   CashierCartDrawer,
   type CashierCartDrawerProps,
 } from "./cashier-cart-drawer";
+import { CashierCartSidePanel } from "./cashier-cart-side-panel";
 import {
   CashierCurrencySuffix,
   CashierDottedLeader,
@@ -220,33 +222,36 @@ function tileShelfLine(
 }
 
 const KIOSK_TILE_SHELL = cn(
-  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/45 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform] duration-200",
+  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/45 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform,ring] duration-200",
   "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] hover:shadow-md hover:ring-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "active:scale-[0.98] active:border-[var(--pos-primary)]",
   "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
 );
 
-/** Shelf price on tile: bold amount + small ISO code (clearer than single blended string). */
+/** Shelf price on tile: high-contrast badge for glanceability. */
 function KioskTileShelfBadge({ shelfLine }: { shelfLine: string }) {
   const { amount, code } = splitShelfPriceDisplay(shelfLine);
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-1.5 z-[1] max-w-[calc(100%-0.75rem)] truncate rounded-md border border-neutral-300/80 bg-background/95 px-1.5 py-0.5 shadow-md backdrop-blur-[2px] dark:border-neutral-600/60 dark:bg-background/92",
+        "pointer-events-none absolute bottom-1.5 right-1.5 z-[1] max-w-[calc(100%-0.75rem)] truncate rounded-md px-1.5 py-0.5 shadow-md",
+        "border border-neutral-900/80 bg-neutral-950 text-white",
+        "dark:border-neutral-100/20 dark:bg-neutral-950",
         "inline-flex items-baseline gap-0.5 tabular-nums",
       )}
     >
       {code ? (
         <>
-          <span className="text-[11px] font-bold leading-none text-neutral-900 dark:text-neutral-100 sm:text-[12px]">
+          <span className="text-[11px] font-bold leading-none sm:text-[12px]">
             {amount}
           </span>
-          <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-neutral-700 dark:text-neutral-300 sm:text-[8px]">
+          <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-white/75 sm:text-[8px]">
             {code}
           </span>
         </>
       ) : (
-        <span className="text-[10px] font-semibold leading-none text-neutral-900 dark:text-neutral-100 sm:text-[11px]">
+        <span className="text-[10px] font-semibold leading-none sm:text-[11px]">
           {amount}
         </span>
       )}
@@ -307,10 +312,16 @@ function SearchHitTile({
   item,
   onPick,
   shelfLine,
+  showCategory,
+  cartQty,
+  justAdded,
 }: {
   item: ItemSummaryRecord;
   onPick: () => void;
   shelfLine: string;
+  showCategory: boolean;
+  cartQty: number;
+  justAdded: boolean;
 }) {
   const thumb = itemListThumbnailUrl(item);
   const title = cashierItemPrimaryLabel(item);
@@ -319,12 +330,23 @@ function SearchHitTile({
     <button
       type="button"
       onClick={onPick}
-      className={KIOSK_TILE_SHELL}
-      aria-label={`Add ${title}, ${shelfLine}`}
+      className={cn(
+        KIOSK_TILE_SHELL,
+        justAdded &&
+          "border-[var(--pos-primary)] ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+        cartQty > 0 &&
+          "border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))]",
+      )}
+      aria-label={`Add ${title} to cart, ${shelfLine}${cartQty > 0 ? `, ${cartQty} in cart` : ""}`}
     >
       <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
         <span
-          className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-0.5 rounded-l-xl bg-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          className={cn(
+            "pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl bg-[var(--pos-primary)] transition-opacity duration-200",
+            cartQty > 0 || justAdded
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100",
+          )}
           aria-hidden
         />
         {thumb ? (
@@ -345,19 +367,34 @@ function SearchHitTile({
           </span>
         )}
         <KioskTileShelfBadge shelfLine={shelfLine} />
+        {cartQty > 0 ? (
+          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--pos-primary)] px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[var(--pos-primary-ink)] shadow">
+            {cartQty > 99 ? "99+" : cartQty}
+          </span>
+        ) : (
+          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-border/60 bg-white/95 text-[var(--pos-primary)] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 dark:bg-card/95">
+            <Plus className="size-3.5" aria-hidden />
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
         <p className="line-clamp-2 text-left text-[12px] font-bold leading-[1.2] tracking-tight text-neutral-950 dark:text-neutral-50 sm:text-[13px]">
           {title}
         </p>
-        <span
-          className={cn(
-            "max-w-full truncate rounded-md px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide",
-            kioskCategoryPillClass(categoryLabel),
-          )}
-        >
-          {categoryLabel}
-        </span>
+        {showCategory ? (
+          <span
+            className={cn(
+              "max-w-full truncate rounded-md px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide",
+              kioskCategoryPillClass(categoryLabel),
+            )}
+          >
+            {categoryLabel}
+          </span>
+        ) : (
+          <span className="text-[10px] font-medium text-muted-foreground">
+            Tap to add · 1 unit
+          </span>
+        )}
       </div>
     </button>
   );
@@ -420,9 +457,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pulseCart, setPulseCart] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [tileShelfPrices, setTileShelfPrices] = useState<
     Record<string, string>
   >({});
+  const isLg = useMediaLg();
 
   const hitIdsKey = useMemo(
     () =>
@@ -441,11 +480,41 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     [topProducts],
   );
 
+  const cartQtyByItem = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const line of cart.lines) {
+      const q = Number(line.quantity);
+      if (!Number.isFinite(q) || q <= 0) continue;
+      map.set(line.itemId, (map.get(line.itemId) ?? 0) + q);
+    }
+    return map;
+  }, [cart.lines]);
+
+  const sharedCategoryLabel = useMemo(() => {
+    if (hits.length < 2) return null;
+    const first = hits[0]?.categoryName?.trim() || "";
+    if (!first) return null;
+    return hits.every((h) => (h.categoryName?.trim() || "") === first)
+      ? first
+      : null;
+  }, [hits]);
+
   const hasSearch =
     search.trim().length > 0 ||
     categoryFilterId != null ||
     Boolean(typeFilterId?.trim());
   const showCatalog = !hasSearch;
+
+  const markAdded = (itemId: string) => {
+    setPulseCart(true);
+    setJustAddedId(itemId);
+    window.setTimeout(() => {
+      setJustAddedId((cur) => (cur === itemId ? null : cur));
+    }, 700);
+    if (!isLg) {
+      setDrawerOpen(true);
+    }
+  };
 
   const handlePickItem = (item: ItemSummaryRecord) => {
     if (item.groupLabelOnly) {
@@ -460,8 +529,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     if (canQuickAdd) {
       const added = addLine(item, 1, shelfAmount);
       if (added) {
-        setPulseCart(true);
-        setDrawerOpen(true);
+        markAdded(item.id);
       }
       return;
     }
@@ -474,8 +542,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     setModalOpen(false);
     setPickedItem(null);
     if (added) {
-      setPulseCart(true);
-      setDrawerOpen(true);
+      markAdded(payload.item.id);
     }
   };
 
@@ -564,25 +631,30 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-3xl space-y-4 px-3 pb-28 sm:max-w-4xl sm:space-y-5 sm:px-5",
+        "mx-auto w-full max-w-[1600px] px-3 pb-28 sm:px-4 lg:pb-6",
         embeddedInDashboard && "max-w-none px-0 sm:px-1",
         "bg-neutral-50/95 dark:bg-background",
       )}
       style={brandTheme}
     >
+      <div className="flex items-start gap-4 lg:gap-5">
+        <div className="min-w-0 flex-1 space-y-3 sm:space-y-4">
       <section
-        className={cn(DASHBOARD_SECTION_SURFACE, "border-border/50 shadow-sm")}
+        className={cn(
+          DASHBOARD_SECTION_SURFACE,
+          "border-border/50 px-3 py-3 shadow-sm sm:px-4 sm:py-3.5",
+        )}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
               <span>{pageTitle}</span>
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-75"
                 aria-hidden
               />
             </h2>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
               {branchesLoading ? (
                 "Loading branches…"
               ) : activeBranchName ? (
@@ -591,7 +663,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   <span className="font-medium text-foreground">
                     {activeBranchName}
                   </span>
-                  <span className="opacity-70"> · change in top nav</span>
                 </>
               ) : (
                 <span className="text-amber-800 dark:text-amber-200">
@@ -600,97 +671,52 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               )}
             </p>
           </div>
-          {!online ? (
-            <div className="flex max-w-xs shrink-0 flex-col items-end gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {!online ? (
               <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
                 {uiCopy.offlinePill}
               </span>
-              {offlineBanner ? (
-                <span className="text-right text-[10px] leading-snug text-amber-800 dark:text-amber-200">
-                  {offlineBanner}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        {posShiftLinks ? (
-          <div className="mt-6 border-t border-border/40 pt-6">
-            <div className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                Shift & drawer
-              </p>
-              {!posShiftLinks.branchSelected ? (
-                <p className="text-xs text-muted-foreground">
-                  Pick a branch in the top nav to open shift tools.
-                </p>
-              ) : posShiftLinks.shiftLoading ? (
-                <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2
-                    className="size-3.5 animate-spin shrink-0"
-                    aria-hidden
-                  />
-                  Checking shift for this register…
-                </span>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
-                    <button
-                      type="button"
-                      onClick={() => posShiftLinks.onShortcut("new-drawout")}
-                      className={POS_SHIFT_CHIP_CLASS}
-                    >
-                      <Wallet
-                        className="size-3.5 shrink-0 text-muted-foreground"
-                        aria-hidden
-                      />
-                      New cash drawout
-                      <ArrowRight
-                        className="size-3 shrink-0 text-muted-foreground opacity-60"
-                        aria-hidden
-                      />
-                    </button>
-                  ) : null}
-                  {posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift ? (
-                    <button
-                      type="button"
-                      onClick={() => posShiftLinks.onShortcut("open-shift")}
-                      className={POS_SHIFT_CHIP_CLASS}
-                    >
-                      <PlusCircle
-                        className="size-3.5 shrink-0 text-muted-foreground"
-                        aria-hidden
-                      />
-                      Open new shift
-                      <ArrowRight
-                        className="size-3 shrink-0 text-muted-foreground opacity-60"
-                        aria-hidden
-                      />
-                    </button>
-                  ) : null}
-                  {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
-                    <button
-                      type="button"
-                      onClick={() => posShiftLinks.onShortcut("close-shift")}
-                      className={cn(
-                        POS_SHIFT_CHIP_CLASS,
-                        "border-destructive/25 hover:border-destructive/40",
-                      )}
-                    >
-                      <LogOut
-                        className="size-3.5 shrink-0 text-destructive/80"
-                        aria-hidden
-                      />
-                      Close shift
-                      <ArrowRight
-                        className="size-3 shrink-0 text-muted-foreground opacity-60"
-                        aria-hidden
-                      />
-                    </button>
-                  ) : null}
-                </div>
-              )}
-            </div>
+            ) : null}
+            {posShiftLinks?.branchSelected && !posShiftLinks.shiftLoading ? (
+              <>
+                {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
+                  <button
+                    type="button"
+                    onClick={() => posShiftLinks.onShortcut("new-drawout")}
+                    className={POS_SHIFT_CHIP_CLASS}
+                  >
+                    <Wallet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    Drawout
+                  </button>
+                ) : null}
+                {posShiftLinks.canOpenShift && !posShiftLinks.hasOpenShift ? (
+                  <button
+                    type="button"
+                    onClick={() => posShiftLinks.onShortcut("open-shift")}
+                    className={POS_SHIFT_CHIP_CLASS}
+                  >
+                    <PlusCircle className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    Open shift
+                  </button>
+                ) : null}
+                {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
+                  <button
+                    type="button"
+                    onClick={() => posShiftLinks.onShortcut("close-shift")}
+                    className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/25")}
+                  >
+                    <LogOut className="size-3.5 shrink-0 text-destructive/80" aria-hidden />
+                    Close shift
+                  </button>
+                ) : null}
+              </>
+            ) : null}
           </div>
+        </div>
+        {offlineBanner ? (
+          <p className="mt-2 text-[10px] leading-snug text-amber-800 dark:text-amber-200">
+            {offlineBanner}
+          </p>
         ) : null}
       </section>
 
@@ -805,7 +831,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <ScanLine className="size-[1.125rem]" />
             </button>
             <input
-              type="search"
+              type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={
@@ -813,10 +839,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   ? "Search within this aisle…"
                   : typeFilterId
                     ? "Search within this type…"
-                    : "Search by name, SKU or scan barcode…"
+                    : "Search name, SKU, or scan barcode…"
               }
               className="h-10 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/60 sm:h-11 sm:text-[15px]"
               autoComplete="off"
+              enterKeyHint="search"
               aria-label="Search products"
             />
             {search ? (
@@ -890,15 +917,17 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         >
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
-              {search.trim()
-                ? "Search results"
-                : categoryFilterId
-                  ? "Aisle items"
-                  : typeFilterId
-                    ? "Type items"
-                    : "Items"}
+              {sharedCategoryLabel
+                ? `${sharedCategoryLabel} — ${hits.length} result${hits.length === 1 ? "" : "s"}`
+                : search.trim()
+                  ? "Search results"
+                  : categoryFilterId
+                    ? "Aisle items"
+                    : typeFilterId
+                      ? "Type items"
+                      : "Items"}
             </h3>
-            {hits.length > 0 ? (
+            {!sharedCategoryLabel && hits.length > 0 ? (
               <span className="text-xs text-muted-foreground">
                 {hits.length} match{hits.length === 1 ? "" : "es"}
               </span>
@@ -915,7 +944,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     : "No items."}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {hits.map((item) => (
                 <SearchHitTile
                   key={item.id}
@@ -926,6 +955,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     item.id,
                     uiCopy,
                   )}
+                  showCategory={!sharedCategoryLabel}
+                  cartQty={cartQtyByItem.get(item.id) ?? 0}
+                  justAdded={justAddedId === item.id}
                   onPick={() => handlePickItem(item)}
                 />
               ))}
@@ -1109,10 +1141,26 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         </section>
       ) : null}
 
-      {/* ── Stacked cart buttons (bottom-right) ─────────────────── */}
+        </div>
+
+        <CashierCartSidePanel
+          currency={currency}
+          lines={cart.lines}
+          grandTotal={cart.grandTotal}
+          pulse={pulseCart}
+          canCompleteSale={cart.canCompleteSale}
+          loading={cart.loading}
+          branchSelected={branchSelected}
+          removeLine={cart.removeLine}
+          updateLine={cart.updateLine}
+          onCheckout={() => setDrawerOpen(true)}
+        />
+      </div>
+
+      {/* ── Stacked cart buttons (mobile / tablet) ─────────────────── */}
       <div
         className={cn(
-          "fixed left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse items-stretch gap-2",
+          "fixed left-1/2 z-30 flex -translate-x-1/2 flex-col-reverse items-stretch gap-2 lg:hidden",
           cartFabBottomClass,
           "sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end",
         )}
