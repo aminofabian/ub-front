@@ -69,7 +69,7 @@ async function prepareThermalEscPos(
   }
   const raw = new Uint8Array(await escpos.arrayBuffer());
   const patched = appendCashTenderEscPos(raw, cashTender, widthMm);
-  return new Blob([patched], { type: "application/octet-stream" });
+  return new Blob([new Uint8Array(patched)], { type: "application/octet-stream" });
 }
 
 /**
