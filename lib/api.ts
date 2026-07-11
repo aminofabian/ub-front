@@ -3363,6 +3363,8 @@ export async function fetchCategoryItemRevenue(
 
 export type RecentSaleRow = {
   saleId: string;
+  /** Short sequential receipt number (POS sales); null for web orders / older sales. */
+  receiptNo?: number | null;
   soldAt: string;
   cashierName: string;
   customerName: string;
@@ -5452,6 +5454,8 @@ export type SalePaymentResponseRecord = {
 
 export type SaleRecord = {
   id: string;
+  /** Short sequential receipt number per business (1, 2, 3, ...). */
+  receiptNo?: number | null;
   branchId: string;
   customerId?: string | null;
   shiftId: string;

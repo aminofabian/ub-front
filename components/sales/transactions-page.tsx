@@ -54,6 +54,7 @@ const ACCENT = "#B08D48";
 
 export type SaleTransaction = {
   saleId: string;
+  receiptNo: number | null;
   soldAt: string;
   cashierName: string;
   customerName: string;
@@ -118,6 +119,11 @@ function shortSaleId(saleId: string): string {
   return id.slice(-8).toUpperCase();
 }
 
+/** Prefer the short sequential receipt number; fall back to short UUID. */
+function txDisplayNo(tx: SaleTransaction): string {
+  return tx.receiptNo != null ? String(tx.receiptNo) : shortSaleId(tx.saleId);
+}
+
 export function groupLinesIntoTransactions(
   lines: RecentSaleRow[],
 ): SaleTransaction[] {
@@ -128,6 +134,7 @@ export function groupLinesIntoTransactions(
     if (!tx) {
       tx = {
         saleId: row.saleId,
+        receiptNo: row.receiptNo ?? null,
         soldAt: row.soldAt,
         cashierName: row.cashierName,
         customerName: row.customerName,
@@ -215,7 +222,7 @@ function TransactionRow({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `receipt-${shortSaleId(tx.saleId)}.pdf`;
+      a.download = `receipt-${txDisplayNo(tx)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -248,7 +255,7 @@ function TransactionRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-semibold text-[#666666]">
-              #{shortSaleId(tx.saleId)}
+              #{txDisplayNo(tx)}
             </span>
             <span
               className={cn(
@@ -497,6 +504,7 @@ export function TransactionsPage() {
       }
       if (!q) return true;
       return (
+        (tx.receiptNo != null && String(tx.receiptNo).includes(q)) ||
         tx.saleId.toLowerCase().includes(q) ||
         tx.cashierName.toLowerCase().includes(q) ||
         tx.customerName.toLowerCase().includes(q) ||

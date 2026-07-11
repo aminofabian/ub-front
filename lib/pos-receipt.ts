@@ -29,6 +29,8 @@ export type PosReceiptSnapshot = {
   branchReceiptMessage?: string | null;
   servedByName?: string | null;
   saleId: string;
+  /** Short sequential receipt number (1, 2, 3, ...); null for older sales. */
+  receiptNo?: number | null;
   soldAt: string;
   currency: string;
   status: string;
@@ -172,6 +174,7 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
     branchReceiptMessage: input.branchReceiptMessage?.trim() || null,
     servedByName: servedBy,
     saleId: sale.id,
+    receiptNo: sale.receiptNo ?? null,
     soldAt: input.clientSoldAt ?? new Date().toISOString(),
     currency: input.currency.trim().toUpperCase() || "KES",
     status: sale.status,

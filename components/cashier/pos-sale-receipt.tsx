@@ -168,7 +168,9 @@ export function PosSaleReceipt({
 
         <section className="pos-receipt-meta space-y-1" aria-label="Sale details">
           <p className="pos-receipt-sale-id font-bold uppercase tracking-wide text-black">
-            #{receipt.saleId.slice(0, 8).toUpperCase()}
+            {receipt.receiptNo != null
+              ? `Receipt #${receipt.receiptNo}`
+              : `#${receipt.saleId.slice(0, 8).toUpperCase()}`}
           </p>
           {receipt.servedByName ? (
             <ReceiptPair

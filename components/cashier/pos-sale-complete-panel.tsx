@@ -110,7 +110,9 @@ export function PosSaleCompletePanel({
                 : "Payment saved — print or hand the receipt to the customer."}
             </p>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-              #{shortSaleId(sale.id)}
+              {sale.receiptNo != null
+                ? `Receipt #${sale.receiptNo}`
+                : `#${shortSaleId(sale.id)}`}
             </p>
           </div>
         </div>
