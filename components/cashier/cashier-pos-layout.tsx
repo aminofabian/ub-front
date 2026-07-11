@@ -1298,6 +1298,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setDrawerOpen(true)}
+          className={drawerOpen ? "lg:invisible lg:pointer-events-none" : undefined}
         />
       </div>
 

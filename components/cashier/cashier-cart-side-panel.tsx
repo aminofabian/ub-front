@@ -31,6 +31,7 @@ type CashierCartSidePanelProps = {
   pulse?: boolean;
   loading: boolean;
   branchSelected: boolean;
+  className?: string;
   removeLine: (key: string) => void;
   updateLine: (
     key: string,
@@ -54,6 +55,7 @@ export function CashierCartSidePanel({
   pulse = false,
   loading,
   branchSelected,
+  className,
   removeLine,
   updateLine,
   onCheckout,
@@ -68,6 +70,7 @@ export function CashierCartSidePanel({
       className={cn(
         "hidden min-h-0 w-[min(100%,22rem)] shrink-0 flex-col lg:flex xl:w-[24rem]",
         "sticky top-[3.75rem] h-[calc(100dvh-4.5rem)]",
+        className,
       )}
     >
       <div
