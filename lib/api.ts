@@ -1478,6 +1478,17 @@ export async function fetchSaleReceiptPdf(saleId: string): Promise<Blob> {
   );
 }
 
+/** Raw ESC/POS bytes for a thermal (network 9100) printer. */
+export async function fetchSaleReceiptThermal(
+  saleId: string,
+  widthMm: number = 80,
+): Promise<Blob> {
+  const w = Number.isFinite(widthMm) ? widthMm : 80;
+  return requestBinary(
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/receipt/thermal?widthMm=${w}`,
+  );
+}
+
 export async function loginWithPassword(
   email: string,
   password: string,
