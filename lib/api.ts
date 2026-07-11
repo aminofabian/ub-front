@@ -1494,6 +1494,18 @@ export async function fetchSaleReceiptThermal(
   );
 }
 
+/** Raw ESC/POS bytes for a web-order pickup ticket. */
+export async function fetchWebOrderReceiptThermal(
+  orderId: string,
+  widthMm: number = 80,
+): Promise<Blob> {
+  const w = Number.isFinite(widthMm) ? widthMm : 80;
+  const params = new URLSearchParams({ widthMm: String(w) });
+  return requestBinary(
+    `/api/v1/web-orders/${encodeURIComponent(orderId.trim())}/receipt/thermal?${params}`,
+  );
+}
+
 export async function loginWithPassword(
   email: string,
   password: string,

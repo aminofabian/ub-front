@@ -1,6 +1,11 @@
 "use client";
 
-import { apiRequest, fetchBranches, fetchSaleReceiptThermal } from "@/lib/api";
+import {
+  apiRequest,
+  fetchBranches,
+  fetchSaleReceiptThermal,
+  fetchWebOrderReceiptThermal,
+} from "@/lib/api";
 import {
   appendCashTenderEscPos,
   type CashTenderEscPos,
@@ -149,5 +154,76 @@ export async function printPosReceipt(
       e instanceof Error ? e.message : "Could not reach the receipt printer.";
     toast.error(msg, { duration: 10_000 });
     throw e;
+  }
+}
+
+/**
+ * Print a storefront web-order pickup ticket on the branch thermal printer.
+ * Same till-bridge path as POS receipts. Quiet on missing printer when
+ * `opts.quiet` is set (used for background auto-print).
+ */
+export async function printWebOrderReceipt(
+  orderId: string,
+  widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
+  printer?: LocalReceiptPrinterTarget | null,
+  opts?: { quiet?: boolean },
+): Promise<boolean> {
+  const id = orderId.trim();
+  if (!id) {
+    return false;
+  }
+
+  const quiet = Boolean(opts?.quiet);
+
+  if (IS_DESKTOP) {
+    try {
+      const params = new URLSearchParams({ widthMm: String(widthMm) });
+      await apiRequest<void>(
+        `/api/v1/desktop/devices/print/web-order/${encodeURIComponent(id)}?${params}`,
+        { method: "POST", toast: false },
+      );
+      if (!quiet) toast.success("Web order sent to receipt printer.");
+      return true;
+    } catch (e) {
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : "Could not auto-print web order. Check Settings → Desktop & LAN → Printer.",
+        { duration: quiet ? 8_000 : 10_000 },
+      );
+      return false;
+    }
+  }
+
+  const resolved = await resolvePrinterTarget(printer);
+  const cupsName = resolved?.cupsName?.trim();
+
+  if (!cupsName) {
+    toast.message(
+      "Web order received, but no receipt printer is configured for this branch.",
+      { duration: 10_000 },
+    );
+    return false;
+  }
+
+  const bridgeUp = await isTillPrintBridgeUp();
+  if (!bridgeUp) {
+    toast.error(
+      `Web order received, but Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`,
+      { duration: 14_000 },
+    );
+    return false;
+  }
+
+  try {
+    const escpos = await fetchWebOrderReceiptThermal(id, widthMm);
+    await printEscPosViaTillBridge(escpos, cupsName);
+    if (!quiet) toast.success("Web order sent to receipt printer.");
+    return true;
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : "Could not auto-print web order.";
+    toast.error(msg, { duration: 10_000 });
+    return false;
   }
 }
