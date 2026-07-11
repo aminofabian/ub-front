@@ -18,20 +18,76 @@ export function isGenericVariantLabel(raw: string | undefined): boolean {
 
 /** Title for POS lists: parent name plus option label when this row is a variant SKU. */
 export function cashierItemPrimaryLabel(row: ItemSummaryRecord): string {
-  const resolved = resolveCatalogItemName(row);
+  const { primary, option } = cashierItemTitleParts(row);
+  return option ? `${primary} · ${option}` : primary;
+}
+
+/**
+ * Split POS title so UIs can truncate the product name while keeping size/variant
+ * fully visible (avoids “Ameru Coated Peanu…” hiding the pack size).
+ */
+export function cashierItemTitleParts(row: ItemSummaryRecord): {
+  primary: string;
+  option: string | null;
+} {
+  const resolved = resolveCatalogItemName({
+    name: row.name,
+    sku: undefined,
+    variantName: row.variantName,
+  });
   if (resolved.needsNameFix) {
-    return CATALOG_FIX_NAME_LABEL;
+    const fallback =
+      usablePosFallbackName(row) ??
+      (resolved.label !== CATALOG_FIX_NAME_LABEL ? resolved.label : null);
+    if (!fallback) {
+      return { primary: CATALOG_FIX_NAME_LABEL, option: null };
+    }
+    const option = disambiguatorForPos(row);
+    if (option && !fallback.toLowerCase().includes(option.toLowerCase())) {
+      return { primary: fallback, option };
+    }
+    return { primary: fallback, option: null };
   }
   let name = resolved.label;
   if (looksLikeWeakProductName(name)) {
     name = enrichWeakProductName(name, row);
   }
-
   const option = disambiguatorForPos(row);
   if (option && !name.toLowerCase().includes(option.toLowerCase())) {
-    return `${name} · ${option}`;
+    return { primary: name, option };
   }
-  return name;
+  // Prefer peeling a trailing " · size" off long catalog names so the unit stays visible.
+  const peeled = peelTrailingOption(name);
+  if (peeled) {
+    return peeled;
+  }
+  return { primary: name, option: null };
+}
+
+function usablePosFallbackName(row: ItemSummaryRecord): string | null {
+  const brand = row.brand?.trim();
+  const size = row.size?.trim();
+  const variant = row.variantName?.trim();
+  if (brand && (size || (variant && !isGenericVariantLabel(variant)))) {
+    return [brand, size].filter(Boolean).join(" ");
+  }
+  if (brand) return brand;
+  if (variant && !isGenericVariantLabel(variant) && !looksLikeUuid(variant)) {
+    return variant;
+  }
+  if (size) return size;
+  return humanizeSkuCategory(row.sku);
+}
+
+/** e.g. "Omo Hand Washing Powder · 1kg" → primary + option for two-line tiles. */
+function peelTrailingOption(
+  name: string,
+): { primary: string; option: string } | null {
+  const m = name.match(
+    /^(.+?)\s*[·•|-]\s*(\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?)|small|medium|large|single|tray(?:\s+of\s+\d+)?|dozen)\s*$/i,
+  );
+  if (!m?.[1] || !m[2]) return null;
+  return { primary: m[1].trim(), option: m[2].trim() };
 }
 
 /** True when the catalog name is a promo code, bare number, or similarly unusable alone. */

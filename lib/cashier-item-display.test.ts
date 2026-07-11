@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cashierItemPrimaryLabel,
+  cashierItemTitleParts,
   isPosPackageSellRow,
   mergePosItemStockFromDetail,
   posAvailablePackages,
@@ -167,5 +168,27 @@ describe("cashier labels", () => {
       amount: "435",
       code: null,
     });
+  });
+
+  it("splits title so size/variant can stay visible when name truncates", () => {
+    expect(
+      cashierItemTitleParts({
+        id: "o",
+        name: "Omo Hand Washing Powder",
+        sku: "OMO-1KG",
+        size: "1kg",
+      }),
+    ).toEqual({ primary: "Omo Hand Washing Powder", option: "1kg" });
+    expect(
+      cashierItemTitleParts({
+        id: "e",
+        name: "Eggs",
+        sku: "EGGS-TRAY",
+        variantName: "Tray",
+        variantOfItemId: "p",
+        packageVariant: true,
+        packageUnitsPerSale: 30,
+      }),
+    ).toEqual({ primary: "Eggs", option: "Tray of 30" });
   });
 });

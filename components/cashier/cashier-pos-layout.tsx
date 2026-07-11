@@ -25,6 +25,7 @@ import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
 import {
   cashierItemPrimaryLabel,
+  cashierItemTitleParts,
   isPosPackageSellRow,
   posAvailablePackages,
 } from "@/lib/cashier-item-display";
@@ -258,7 +259,7 @@ function KioskTileShelfBadge({ shelfLine }: { shelfLine: string }) {
   );
 }
 
-/** In-cart qty chip — persistent; briefly pulses after an add. */
+/** In-cart qty chip — cart glyph + count (not brand green / not a “rank”). */
 function KioskTileCartQty({
   cartQty,
   justAdded,
@@ -270,13 +271,14 @@ function KioskTileCartQty({
   return (
     <span
       className={cn(
-        "absolute left-1.5 top-1.5 z-[2] inline-flex min-h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums shadow",
-        "bg-[var(--pos-primary)] text-[var(--pos-primary-ink)]",
+        "absolute right-1.5 top-1.5 z-[2] inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[10px] font-bold tabular-nums shadow-md",
+        "border border-neutral-900/80 bg-neutral-950 text-white",
         justAdded && "animate-pulse ring-2 ring-white",
       )}
       title={`${cartQty} in cart — tap to add another`}
     >
-      {cartQty > 99 ? "99+" : cartQty}
+      <ShoppingCart className="size-2.5 shrink-0 opacity-90" aria-hidden />
+      <span>{cartQty > 99 ? "99+" : cartQty}</span>
     </span>
   );
 }
@@ -333,8 +335,10 @@ function KioskTileMedia({
     <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
       <span
         className={cn(
-          "pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl bg-[var(--pos-primary)] transition-opacity duration-200",
-          cartQty > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          "pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl transition-opacity duration-200",
+          cartQty > 0
+            ? "bg-neutral-900 opacity-100"
+            : "bg-[var(--pos-primary)] opacity-0 group-hover:opacity-100",
         )}
         aria-hidden
       />
@@ -358,6 +362,38 @@ function KioskTileMedia({
       <KioskTileCartQty cartQty={cartQty} justAdded={justAdded} />
       <KioskTileStockCue tone={stockTone} />
       <KioskTileShelfBadge shelfLine={shelfLine} />
+    </div>
+  );
+}
+
+function KioskTileTitle({
+  primary,
+  option,
+  fullTitle,
+  bold = false,
+}: {
+  primary: string;
+  option: string | null;
+  fullTitle: string;
+  bold?: boolean;
+}) {
+  return (
+    <div className="min-w-0" title={fullTitle}>
+      <p
+        className={cn(
+          "truncate text-left leading-tight tracking-tight",
+          bold
+            ? "text-[11px] font-bold text-neutral-950 dark:text-neutral-50 sm:text-[12px]"
+            : "text-[11px] font-medium text-foreground/85 sm:text-[12px] dark:text-foreground/80",
+        )}
+      >
+        {primary}
+      </p>
+      {option ? (
+        <p className="mt-0.5 truncate text-left text-[10px] font-semibold leading-none text-muted-foreground">
+          {option}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -388,6 +424,7 @@ function TopSellerTile({
     thumbnailUrl: product.thumbnailUrl ?? null,
     stockQty: product.stockQty ?? undefined,
   };
+  const { primary, option } = cashierItemTitleParts(itemLike);
   const title = cashierItemPrimaryLabel(itemLike);
   const thumb = posTileThumbUrl(product.name, product.thumbnailUrl);
   const stockTone = tileStockTone(itemLike);
@@ -398,7 +435,7 @@ function TopSellerTile({
       className={cn(
         KIOSK_TILE_SHELL,
         cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-primary)_45%,var(--border))]",
+          "border-neutral-800/55 bg-neutral-50/80 ring-1 ring-neutral-900/10 dark:bg-card",
         justAdded && "shadow-md",
         stockTone === "out" && "opacity-75",
       )}
@@ -416,10 +453,12 @@ function TopSellerTile({
         justAdded={justAdded}
         stockTone={stockTone}
       />
-      <div className="flex min-h-[2.25rem] flex-1 flex-col justify-center px-2 pb-2 pt-1.5">
-        <p className="truncate text-left text-[12px] font-medium leading-tight tracking-normal text-foreground/85 sm:text-[13px] dark:text-foreground/80">
-          {title}
-        </p>
+      <div className="flex min-h-[2.5rem] flex-1 flex-col justify-center px-2 pb-2 pt-1.5">
+        <KioskTileTitle
+          primary={primary}
+          option={option}
+          fullTitle={title}
+        />
       </div>
     </button>
   );
@@ -441,6 +480,7 @@ function SearchHitTile({
   justAdded: boolean;
 }) {
   const thumb = posTileThumbUrl(item.name, itemListThumbnailUrl(item));
+  const { primary, option } = cashierItemTitleParts(item);
   const title = cashierItemPrimaryLabel(item);
   const categoryLabel = item.categoryName?.trim() || "Menu";
   const stockTone = tileStockTone(item);
@@ -451,7 +491,7 @@ function SearchHitTile({
       className={cn(
         KIOSK_TILE_SHELL,
         cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-primary)_45%,var(--border))]",
+          "border-neutral-800/55 bg-neutral-50/80 ring-1 ring-neutral-900/10 dark:bg-card",
         justAdded && "shadow-md",
         stockTone === "out" && "opacity-75",
       )}
@@ -471,13 +511,16 @@ function SearchHitTile({
       />
       <div
         className={cn(
-          "flex min-h-[2.25rem] flex-1 flex-col justify-center gap-1 px-2 pb-2 pt-1.5",
-          showCategory && "min-h-[2.75rem]",
+          "flex min-h-[2.5rem] flex-1 flex-col justify-center gap-1 px-2 pb-2 pt-1.5",
+          showCategory && "min-h-[3rem]",
         )}
       >
-        <p className="truncate text-left text-[12px] font-bold leading-tight tracking-tight text-neutral-950 dark:text-neutral-50 sm:text-[13px]">
-          {title}
-        </p>
+        <KioskTileTitle
+          primary={primary}
+          option={option}
+          fullTitle={title}
+          bold
+        />
         {showCategory ? (
           <span
             className={cn(

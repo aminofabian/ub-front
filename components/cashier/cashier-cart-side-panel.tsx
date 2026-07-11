@@ -1,11 +1,13 @@
 "use client";
 
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingCart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { itemListThumbnailUrl, type ItemSummaryRecord } from "@/lib/api";
-import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
-import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
+import type { ItemSummaryRecord } from "@/lib/api";
+import {
+  cashierItemPrimaryLabel,
+  cashierItemTitleParts,
+} from "@/lib/cashier-item-display";
 import { cn } from "@/lib/utils";
 
 import {
@@ -78,7 +80,7 @@ export function CashierCartSidePanel({
             "ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
         )}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-3 py-2.5">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold tracking-tight text-foreground">
               Current cart
@@ -89,12 +91,12 @@ export function CashierCartSidePanel({
                 : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${itemCount} qty`}
             </p>
           </div>
-          <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]">
-            <ShoppingCart className="size-4" aria-hidden />
+          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]">
+            <ShoppingCart className="size-3.5" aria-hidden />
           </span>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1">
           {lines.length === 0 ? (
             <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 px-4 text-center">
               <ShoppingCart className="size-8 text-muted-foreground/35" />
@@ -106,80 +108,68 @@ export function CashierCartSidePanel({
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border/40">
+            <ul className="divide-y divide-border/35">
               {lines.map((line) => {
-                const thumb = posTileThumbUrl(
-                  line.item.name,
-                  itemListThumbnailUrl(line.item),
-                );
                 const qty = Number(line.quantity);
-                const title = cashierItemPrimaryLabel(line.item);
+                const full = cashierItemPrimaryLabel(line.item);
+                const { primary, option } = cashierItemTitleParts(line.item);
+                const sub = lineSubtotal(line);
                 return (
                   <li
                     key={line.key}
-                    className="flex items-center gap-2 px-1 py-2"
+                    className="flex items-center gap-1.5 px-1 py-1"
                   >
-                    <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted/40">
-                      {thumb ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={thumb}
-                          alt=""
-                          className="size-full object-contain p-0.5"
-                        />
-                      ) : (
-                        <span className="flex size-full items-center justify-center text-[11px] font-bold text-muted-foreground/50">
-                          {title.trim().charAt(0).toUpperCase() || "?"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1" title={full}>
                       <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
-                        {title}
+                        {primary}
+                        {option ? (
+                          <span className="font-medium text-muted-foreground">
+                            {" "}
+                            · {option}
+                          </span>
+                        ) : null}
                       </p>
-                      <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
-                        {Number(line.unitPrice).toFixed(2)} ·{" "}
-                        {lineSubtotal(line).toFixed(2)}
+                      <p className="mt-px text-[10px] tabular-nums text-muted-foreground">
+                        {Number(line.unitPrice).toFixed(2)} ×{" "}
+                        {Number.isFinite(qty) ? qty : line.quantity}
                       </p>
                     </div>
-                    <div className="inline-flex shrink-0 items-center rounded-lg border border-border/60 bg-muted/15">
+                    <div className="inline-flex shrink-0 items-center rounded-md border border-border/60 bg-muted/10">
                       <button
                         type="button"
-                        className="flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
-                        aria-label="Decrease quantity"
+                        className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                        aria-label={
+                          qty <= 1 ? `Remove ${full}` : "Decrease quantity"
+                        }
                         onClick={() => {
-                          const next = Math.max(
-                            1,
-                            (Number.isFinite(qty) ? qty : 1) - 1,
-                          );
-                          updateLine(line.key, "quantity", String(next));
+                          const cur = Number.isFinite(qty) ? qty : 1;
+                          if (cur <= 1) {
+                            removeLine(line.key);
+                            return;
+                          }
+                          updateLine(line.key, "quantity", String(cur - 1));
                         }}
                       >
-                        <Minus className="size-4" />
+                        <Minus className="size-3.5" />
                       </button>
-                      <span className="min-w-[1.75rem] text-center text-sm font-semibold tabular-nums">
+                      <span className="min-w-[1.25rem] text-center text-xs font-semibold tabular-nums">
                         {Number.isFinite(qty) ? qty : line.quantity}
                       </span>
                       <button
                         type="button"
-                        className="flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
                         aria-label="Increase quantity"
                         onClick={() => {
                           const next = (Number.isFinite(qty) ? qty : 0) + 1;
                           updateLine(line.key, "quantity", String(next));
                         }}
                       >
-                        <Plus className="size-4" />
+                        <Plus className="size-3.5" />
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeLine(line.key)}
-                      className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive"
-                      aria-label={`Remove ${title}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    <span className="w-[3.25rem] shrink-0 text-right text-[11px] font-semibold tabular-nums text-foreground">
+                      {sub.toFixed(2)}
+                    </span>
                   </li>
                 );
               })}
@@ -187,8 +177,8 @@ export function CashierCartSidePanel({
           )}
         </div>
 
-        <div className="shrink-0 border-t border-border/50 bg-background/90 px-4 py-3">
-          <div className="mb-3 flex items-end gap-2">
+        <div className="shrink-0 border-t border-border/50 bg-background/90 px-3 py-2.5">
+          <div className="mb-2.5 flex items-end gap-2">
             <span className="text-[11px] font-medium text-muted-foreground">
               Total
             </span>
@@ -212,8 +202,8 @@ export function CashierCartSidePanel({
           >
             {loading ? "Recording…" : "Checkout / Pay"}
           </Button>
-          <p className="mt-2 text-center text-[10px] text-muted-foreground">
-            Opens payment options (cash, M-Pesa, tab…)
+          <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+            − at 1 removes the line · Checkout opens pay options
           </p>
         </div>
       </div>
