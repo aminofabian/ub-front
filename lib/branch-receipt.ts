@@ -4,6 +4,8 @@ export type BranchReceiptSettings = {
   website: string | null;
   tillNumber: string | null;
   footerNote: string | null;
+  /** CUPS queue on the till Mac (`lpstat -v`), e.g. Caysn_CN811_UB. */
+  printerCupsName: string | null;
 };
 
 export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
@@ -12,6 +14,7 @@ export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
   website: null,
   tillNumber: null,
   footerNote: null,
+  printerCupsName: null,
 };
 
 export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
@@ -30,6 +33,7 @@ export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
     website: text(o.website),
     tillNumber: text(o.tillNumber),
     footerNote: text(o.footerNote),
+    printerCupsName: text(o.printerCupsName),
   };
 }
 
@@ -42,10 +46,13 @@ export function branchReceiptDraft(
     website: settings?.website ?? "",
     tillNumber: settings?.tillNumber ?? "",
     footerNote: settings?.footerNote ?? "",
+    printerCupsName: settings?.printerCupsName ?? "",
   };
 }
 
-export function branchReceiptPayload(draft: Record<keyof BranchReceiptSettings, string>): BranchReceiptSettings {
+export function branchReceiptPayload(
+  draft: Record<keyof BranchReceiptSettings, string>,
+): BranchReceiptSettings {
   const trim = (s: string) => {
     const t = s.trim();
     return t.length > 0 ? t : null;
@@ -56,6 +63,7 @@ export function branchReceiptPayload(draft: Record<keyof BranchReceiptSettings, 
     website: trim(draft.website),
     tillNumber: trim(draft.tillNumber),
     footerNote: trim(draft.footerNote),
+    printerCupsName: trim(draft.printerCupsName),
   };
 }
 

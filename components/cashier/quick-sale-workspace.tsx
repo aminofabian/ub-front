@@ -2543,6 +2543,11 @@ export function QuickSaleWorkspace({
             void onDownloadReceiptPdf().catch(() => undefined),
           receiptLoading,
           onStartNewSale,
+          receiptPrinter: {
+            cupsName:
+              branches.find((b) => b.id === branchId.trim())?.receipt
+                ?.printerCupsName ?? null,
+          },
         }}
       />
       {isCashier ? (

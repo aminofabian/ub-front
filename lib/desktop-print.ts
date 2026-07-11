@@ -7,21 +7,34 @@ import { toast } from "sonner";
 /** Default thermal roll width for ESC/POS and browser print (80mm). */
 export const DESKTOP_THERMAL_WIDTH_MM = 80;
 
-type LocalPrintStatus = {
-  configured?: boolean;
+export type LocalReceiptPrinterTarget = {
+  /** CUPS queue from branch settings (`lpstat -v`), e.g. Caysn_CN811_UB. */
+  cupsName?: string | null;
+  /** Optional network raw printer (port 9100). */
+  host?: string | null;
+  port?: number | null;
 };
+
+type LocalPrintStatus = {
+  available?: boolean;
+};
+
+function hasPrinterTarget(target?: LocalReceiptPrinterTarget | null): boolean {
+  return Boolean(target?.cupsName?.trim() || target?.host?.trim());
+}
 
 /**
  * Print a completed sale on the configured ESC/POS printer.
  *
  * Order:
- * 1. Desktop device bridge (Tauri + JVM) when `NEXT_PUBLIC_RUNTIME=desktop`
- * 2. Local Next.js raw TCP helper when `RECEIPT_PRINTER_HOST` is set
+ * 1. Desktop device bridge when `NEXT_PUBLIC_RUNTIME=desktop`
+ * 2. Local Next.js `/api/local-print` using branch printer settings
  * 3. Browser print dialog (no auto-cut)
  */
 export async function printPosReceipt(
   saleId: string,
   widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
+  printer?: LocalReceiptPrinterTarget | null,
 ): Promise<void> {
   const id = saleId.trim();
   if (!id) {
@@ -47,23 +60,36 @@ export async function printPosReceipt(
     return;
   }
 
-  let localConfigured = false;
+  let localAvailable = false;
   try {
     const statusRes = await fetch("/api/local-print", { method: "GET" });
     if (statusRes.ok) {
       const status = (await statusRes.json()) as LocalPrintStatus;
-      localConfigured = Boolean(status.configured);
+      localAvailable = Boolean(status.available);
     }
   } catch {
     // Next route unavailable — fall through to browser print.
   }
 
-  if (localConfigured) {
+  if (localAvailable && hasPrinterTarget(printer)) {
     try {
       const escpos = await fetchSaleReceiptThermal(id, widthMm);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/octet-stream",
+      };
+      const cups = printer?.cupsName?.trim();
+      const host = printer?.host?.trim();
+      if (cups) {
+        headers["X-Printer-Cups-Name"] = cups;
+      } else if (host) {
+        headers["X-Printer-Host"] = host;
+        if (printer?.port != null && Number.isFinite(printer.port)) {
+          headers["X-Printer-Port"] = String(printer.port);
+        }
+      }
       const printRes = await fetch("/api/local-print", {
         method: "POST",
-        headers: { "Content-Type": "application/octet-stream" },
+        headers,
         body: escpos,
       });
       if (!printRes.ok) {
@@ -72,7 +98,7 @@ export async function printPosReceipt(
         };
         throw new Error(
           payload.error ||
-            `Printer returned HTTP ${printRes.status}. Check RECEIPT_PRINTER_HOST.`,
+            `Printer returned HTTP ${printRes.status}. Check Branches → Receipt printer.`,
         );
       }
       toast.success("Sent to receipt printer.");
@@ -88,5 +114,9 @@ export async function printPosReceipt(
   }
 
   window.print();
-  toast.message("Opened system print dialog — auto-cut needs raw ESC/POS (restart Next after setting RECEIPT_PRINTER_CUPS_NAME).");
+  if (!hasPrinterTarget(printer)) {
+    toast.message(
+      "No receipt printer set for this branch — opened system dialog. Set CUPS name under Branches → Receipt details.",
+    );
+  }
 }

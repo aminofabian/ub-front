@@ -15,14 +15,15 @@ const CUT_TAIL = Buffer.from([
 ]);
 
 const MAX_BODY_BYTES = 256_000;
+const CUPS_NAME_RE = /^[A-Za-z0-9._-]+$/;
 
 type PrinterTarget =
   | { mode: "network"; host: string; port: number }
   | { mode: "cups"; name: string };
 
-function printerTarget(): PrinterTarget | null {
+function envFallbackTarget(): PrinterTarget | null {
   const cups = process.env.RECEIPT_PRINTER_CUPS_NAME?.trim();
-  if (cups) {
+  if (cups && CUPS_NAME_RE.test(cups)) {
     return { mode: "cups", name: cups };
   }
   const host = process.env.RECEIPT_PRINTER_HOST?.trim();
@@ -30,6 +31,41 @@ function printerTarget(): PrinterTarget | null {
   const port = Number(process.env.RECEIPT_PRINTER_PORT || 9100);
   if (!Number.isFinite(port) || port < 1 || port > 65535) return null;
   return { mode: "network", host, port };
+}
+
+function targetFromRequest(request: Request): PrinterTarget | null {
+  const cups = request.headers.get("x-printer-cups-name")?.trim();
+  if (cups) {
+    if (!CUPS_NAME_RE.test(cups)) {
+      return null;
+    }
+    return { mode: "cups", name: cups };
+  }
+  const host = request.headers.get("x-printer-host")?.trim();
+  if (host) {
+    const port = Number(request.headers.get("x-printer-port") || 9100);
+    if (!Number.isFinite(port) || port < 1 || port > 65535) return null;
+    return { mode: "network", host, port };
+  }
+  return envFallbackTarget();
+}
+
+function listCupsPrinters(): Promise<string[]> {
+  return new Promise((resolve) => {
+    const child = spawn("lpstat", ["-a"], { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.on("error", () => resolve([]));
+    child.on("close", () => {
+      const names = stdout
+        .split("\n")
+        .map((line) => line.trim().split(/\s+/)[0])
+        .filter((name) => Boolean(name) && CUPS_NAME_RE.test(name));
+      resolve(names);
+    });
+  });
 }
 
 function sendNetwork(host: string, port: number, data: Buffer): Promise<void> {
@@ -52,7 +88,6 @@ function sendNetwork(host: string, port: number, data: Buffer): Promise<void> {
   });
 }
 
-/** Write a temp file then `lp -o raw` so CUPS does not filter ESC/POS cut bytes. */
 function sendCups(name: string, data: Buffer): Promise<void> {
   const file = join(tmpdir(), `palmart-escpos-${process.pid}-${Date.now()}.bin`);
   return writeFile(file, data)
@@ -96,42 +131,41 @@ function sendCups(name: string, data: Buffer): Promise<void> {
     });
 }
 
-/** Whether a receipt printer is configured for raw ESC/POS. */
+/** Local print capability + CUPS queues visible on this machine. */
 export async function GET() {
-  const target = printerTarget();
-  if (!target) {
-    return NextResponse.json({ configured: false });
-  }
-  if (target.mode === "cups") {
-    return NextResponse.json({
-      configured: true,
-      mode: "cups",
-      name: target.name,
-    });
-  }
+  const cupsPrinters = await listCupsPrinters();
+  const fallback = envFallbackTarget();
   return NextResponse.json({
-    configured: true,
-    mode: "network",
-    host: target.host,
-    port: target.port,
+    available: true,
+    cupsPrinters,
+    envFallback: fallback
+      ? fallback.mode === "cups"
+        ? { mode: "cups", name: fallback.name }
+        : { mode: "network", host: fallback.host, port: fallback.port }
+      : null,
   });
 }
 
 /**
  * Accept raw ESC/POS bytes and print them.
- * - RECEIPT_PRINTER_CUPS_NAME → USB/local via `lp -o raw` (e.g. Caysn_CN811_UB)
- * - RECEIPT_PRINTER_HOST → network TCP :9100
+ * Prefer per-request headers from branch settings:
+ *   X-Printer-Cups-Name: Caysn_CN811_UB
+ *   X-Printer-Host / X-Printer-Port: network raw :9100
+ * Env RECEIPT_PRINTER_* remains an optional fallback.
  */
 export async function POST(request: Request) {
-  const target = printerTarget();
+  const target = targetFromRequest(request);
   if (!target) {
     return NextResponse.json(
       {
         error:
-          "No printer configured. Set RECEIPT_PRINTER_CUPS_NAME (USB, from `lpstat -v`) or RECEIPT_PRINTER_HOST (LAN IP) in frontend/.env.local and restart Next.js.",
+          "No printer specified. Set the CUPS name under Branches → Receipt details (or pass X-Printer-Cups-Name).",
       },
       { status: 503 },
     );
+  }
+  if (target.mode === "cups" && !CUPS_NAME_RE.test(target.name)) {
+    return NextResponse.json({ error: "Invalid CUPS printer name" }, { status: 400 });
   }
 
   const body = Buffer.from(await request.arrayBuffer());

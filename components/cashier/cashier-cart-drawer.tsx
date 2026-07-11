@@ -155,6 +155,12 @@ export type CashierCartDrawerProps = {
   onDownloadReceiptPdf: () => void;
   receiptLoading: boolean;
   onStartNewSale: () => void;
+  /** Branch CUPS / network printer for raw ESC/POS + cut. */
+  receiptPrinter?: {
+    cupsName?: string | null;
+    host?: string | null;
+    port?: number | null;
+  } | null;
 };
 
 function PayMethodTile({
@@ -287,6 +293,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     onDownloadReceiptPdf,
     receiptLoading,
     onStartNewSale,
+    receiptPrinter,
   } = props;
 
   const [linesOpen, setLinesOpen] = useState(false);
@@ -383,6 +390,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               onDownloadReceiptPdf={onDownloadReceiptPdf}
               receiptLoading={receiptLoading}
               onStartNewSale={onStartNewSale}
+              receiptPrinter={receiptPrinter}
             />
           </>
         ) : (

@@ -5,7 +5,7 @@ import { Check, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import type { SaleRecord } from "@/lib/api";
-import { printPosReceipt } from "@/lib/desktop-print";
+import { printPosReceipt, type LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import { Permission } from "@/lib/permissions";
 import {
   formatReceiptMoney,
@@ -34,6 +34,8 @@ export type PosSaleCompletePanelProps = {
   onDownloadReceiptPdf: () => void;
   receiptLoading: boolean;
   onStartNewSale: () => void;
+  /** Branch receipt printer (CUPS / network) for raw ESC/POS + cut. */
+  receiptPrinter?: LocalReceiptPrinterTarget | null;
 };
 
 function SummaryRow({
@@ -68,6 +70,7 @@ export function PosSaleCompletePanel({
   onDownloadReceiptPdf,
   receiptLoading,
   onStartNewSale,
+  receiptPrinter,
 }: PosSaleCompletePanelProps) {
   const itemCount = receipt.lines.reduce((n, l) => n + l.quantity, 0);
   const paymentSummary = receipt.payments
@@ -149,6 +152,7 @@ export function PosSaleCompletePanel({
           <PosSaleReceipt
             receipt={receipt}
             saleId={sale.id}
+            receiptPrinter={receiptPrinter}
             showPrintButton={false}
           />
         </div>
@@ -208,7 +212,7 @@ export function PosSaleCompletePanel({
             size="sm"
             className="h-9 min-w-0 flex-1 gap-1.5 rounded-sm border-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
             onClick={() => {
-              void printPosReceipt(sale.id);
+              void printPosReceipt(sale.id, undefined, receiptPrinter);
             }}
           >
             <Printer className="size-4 shrink-0" aria-hidden />

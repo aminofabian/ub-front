@@ -9,7 +9,7 @@ import {
   formatReceiptMoney,
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
-import { printPosReceipt } from "@/lib/desktop-print";
+import { printPosReceipt, type LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
 
 export const POS_RECEIPT_PRINT_ROOT_ID = "pos-receipt-print";
@@ -21,6 +21,8 @@ type PosSaleReceiptProps = {
   receipt: PosReceiptSnapshot;
   /** Required on desktop for ESC/POS printing via the device bridge. */
   saleId?: string;
+  /** Branch CUPS / network printer for cloud/dev raw print + cut. */
+  receiptPrinter?: LocalReceiptPrinterTarget | null;
   className?: string;
   showPrintButton?: boolean;
 };
@@ -90,6 +92,7 @@ function ReceiptMoney({
 export function PosSaleReceipt({
   receipt,
   saleId,
+  receiptPrinter,
   className,
   showPrintButton = true,
 }: PosSaleReceiptProps) {
@@ -110,7 +113,7 @@ export function PosSaleReceipt({
             className="h-9 w-full gap-2 rounded-sm text-sm font-semibold shadow-sm bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
             onClick={() => {
               if (saleId) {
-                void printPosReceipt(saleId);
+                void printPosReceipt(saleId, undefined, receiptPrinter);
               } else {
                 window.print();
               }

@@ -708,6 +708,24 @@ export default function BranchesPage() {
                                       }
                                       aria-label={`M-Pesa till for ${branch.name}`}
                                     />
+                                    <input
+                                      className={cn(dashboardInputClass(), "text-sm sm:col-span-2")}
+                                      placeholder="Receipt printer CUPS name (e.g. Caysn_CN811_UB)"
+                                      value={row.receipt.printerCupsName}
+                                      onChange={(e) =>
+                                        setEdits((prev) => ({
+                                          ...prev,
+                                          [branch.id]: {
+                                            ...row,
+                                            receipt: {
+                                              ...row.receipt,
+                                              printerCupsName: e.target.value,
+                                            },
+                                          },
+                                        }))
+                                      }
+                                      aria-label={`Receipt printer CUPS name for ${branch.name}`}
+                                    />
                                     <textarea
                                       className={cn(dashboardTextareaClass(), "text-sm sm:col-span-2")}
                                       placeholder="Footer message on receipt (optional)"
@@ -728,9 +746,12 @@ export default function BranchesPage() {
                                     />
                                   </div>
                                   <p className={dashboardHintClass()}>
-                                    Leave blank to omit. If website is empty, your business primary domain is used
-                                    when available. Use <strong className="font-medium text-foreground">Save</strong>{" "}
-                                    in the row above to persist everything together.
+                                    Leave blank to omit. Printer CUPS name comes from{" "}
+                                    <code className="text-xs">lpstat -v</code> on the till Mac
+                                    (the label before the colon). If website is empty, your business
+                                    primary domain is used when available. Use{" "}
+                                    <strong className="font-medium text-foreground">Save</strong> in
+                                    the row above to persist everything together.
                                   </p>
                                 </div>
                               </Collapsible.Content>

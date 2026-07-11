@@ -212,6 +212,7 @@ export type CashierPosLayoutProps = {
     | "onDownloadReceiptPdf"
     | "receiptLoading"
     | "onStartNewSale"
+    | "receiptPrinter"
   >;
 };
 
