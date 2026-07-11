@@ -9,15 +9,41 @@ const KIOSK_CATEGORY_PILL_PRESETS = [
   "bg-lime-100/90 text-lime-900 dark:bg-lime-950/35 dark:text-lime-100",
 ] as const;
 
+/** Ink-wash backgrounds for no-image product / aisle placeholders (market till). */
+const KIOSK_PLACEHOLDER_WASH_PRESETS = [
+  "from-[#e8dfd0] to-[#d9cfc0] text-[#5c5348]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#dce6df] to-[#c9d6cd] text-[#3f5248]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#e4dfe8] to-[#d2ccd8] text-[#4a4454]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#e6e2d4] to-[#d4cfbd] text-[#555040]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#dce4e8] to-[#c8d3d9] text-[#3e4d54]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#e8ddd8] to-[#d8c8c2] text-[#5a4740]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+  "from-[#e0e4d6] to-[#cdd4bf] text-[#47503c]/40] dark:from-muted/50 dark:to-muted/70 dark:text-muted-foreground/45",
+] as const;
+
+function hashLabel(label: string): number {
+  const t = label.trim();
+  let h = 0;
+  for (let i = 0; i < t.length; i++) {
+    h = (h + t.charCodeAt(i) * (i + 1)) % 2147483647;
+  }
+  return Math.abs(h);
+}
+
 export function kioskCategoryPillClass(label: string): string {
   const t = label.trim();
   if (!t) {
     return "bg-neutral-200/70 text-neutral-700 dark:bg-muted dark:text-muted-foreground";
   }
-  let h = 0;
-  for (let i = 0; i < t.length; i++) {
-    h = (h + t.charCodeAt(i) * (i + 1)) % 2147483647;
-  }
-  const idx = Math.abs(h) % KIOSK_CATEGORY_PILL_PRESETS.length;
+  const idx = hashLabel(t) % KIOSK_CATEGORY_PILL_PRESETS.length;
   return KIOSK_CATEGORY_PILL_PRESETS[idx];
+}
+
+/** Deterministic ink-wash classes for placeholder tile media (pair with `bg-gradient-to-br`). */
+export function kioskPlaceholderWashClass(label: string): string {
+  const t = label.trim();
+  if (!t) {
+    return "from-neutral-100 to-neutral-200/80 text-neutral-400/50 dark:from-muted/40 dark:to-muted/60 dark:text-muted-foreground/40";
+  }
+  const idx = hashLabel(t) % KIOSK_PLACEHOLDER_WASH_PRESETS.length;
+  return KIOSK_PLACEHOLDER_WASH_PRESETS[idx];
 }

@@ -1749,6 +1749,123 @@ button:hover .tenant-monogram-shell {
     animation: shop-cart-added-pulse 0.65s ease-out both;
 }
 
+/* ── Market till cashier workspace atmosphere ─────────────────────── */
+.pos-market-paper {
+    --pos-paper: #f1ece3;
+    --pos-paper-deep: #e8e1d4;
+    --pos-ink: #1c1915;
+    background-color: var(--pos-paper);
+    background-image:
+        radial-gradient(
+            ellipse 110% 70% at 12% -10%,
+            color-mix(in srgb, var(--pos-primary) 10%, transparent),
+            transparent 58%
+        ),
+        radial-gradient(
+            ellipse 90% 50% at 88% 0%,
+            color-mix(in srgb, var(--pos-paper-deep) 90%, #cfc6b4),
+            transparent 50%
+        ),
+        linear-gradient(165deg, #f6f2ea 0%, var(--pos-paper) 42%, var(--pos-paper-deep) 100%);
+    position: relative;
+}
+
+.pos-market-paper::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: multiply;
+}
+
+.pos-market-paper > * {
+    position: relative;
+    z-index: 1;
+}
+
+.dark .pos-market-paper {
+    --pos-paper: color-mix(in srgb, var(--background) 88%, #2a2620);
+    --pos-paper-deep: color-mix(in srgb, var(--background) 70%, #1a1814);
+    --pos-ink: var(--foreground);
+    background-image:
+        radial-gradient(
+            ellipse 110% 70% at 12% -10%,
+            color-mix(in srgb, var(--pos-primary) 14%, transparent),
+            transparent 58%
+        ),
+        linear-gradient(
+            165deg,
+            color-mix(in srgb, var(--card) 55%, #1f1c18) 0%,
+            var(--pos-paper) 50%,
+            var(--pos-paper-deep) 100%
+        );
+}
+
+.dark .pos-market-paper::before {
+    opacity: 0.18;
+    mix-blend-mode: soft-light;
+}
+
+.pos-market-section-label {
+    font-family: var(--font-heading), "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--pos-ink, var(--foreground));
+}
+
+.pos-market-ticket {
+    clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% - 6px),
+        96% 100%,
+        92% calc(100% - 6px),
+        88% 100%,
+        84% calc(100% - 6px),
+        80% 100%,
+        76% calc(100% - 6px),
+        72% 100%,
+        68% calc(100% - 6px),
+        64% 100%,
+        60% calc(100% - 6px),
+        56% 100%,
+        52% calc(100% - 6px),
+        48% 100%,
+        44% calc(100% - 6px),
+        40% 100%,
+        36% calc(100% - 6px),
+        32% 100%,
+        28% calc(100% - 6px),
+        24% 100%,
+        20% calc(100% - 6px),
+        16% 100%,
+        12% calc(100% - 6px),
+        8% 100%,
+        4% calc(100% - 6px),
+        0 100%
+    );
+}
+
+.pos-market-receipt {
+    background:
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--card) 92%, #f7f3eb) 0%,
+            var(--card) 100%
+        );
+    box-shadow:
+        0 1px 0 color-mix(in srgb, var(--pos-ink, #1c1915) 6%, transparent),
+        0 12px 28px -18px color-mix(in srgb, var(--pos-ink, #1c1915) 28%, transparent);
+}
+
+.dark .pos-market-receipt {
+    background: var(--card);
+}
+
 /* ── Grocery POS: cart panel/badge pulse on add ────────────────────── */
 @keyframes pos-cart-pulse {
     0% {

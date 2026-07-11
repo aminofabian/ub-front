@@ -1,11 +1,34 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  formatApiProblemMessage,
   isItemNotFoundProblem,
   isSessionRelatedProblem,
   isTenantContextMissingProblem,
   isUnmappedTenantHostProblem,
 } from "@/lib/problem";
+
+describe("formatApiProblemMessage", () => {
+  it("does not duplicate Spring ResponseStatusException title=detail", () => {
+    expect(
+      formatApiProblemMessage({
+        title: "No non-expired stock available for Brookside (SKU-1)",
+        status: 400,
+        detail: "No non-expired stock available for Brookside (SKU-1)",
+      }),
+    ).toBe("No non-expired stock available for Brookside (SKU-1)");
+  });
+
+  it("prefers detail when title is a generic HTTP status phrase", () => {
+    expect(
+      formatApiProblemMessage({
+        title: "Bad Request",
+        status: 400,
+        detail: "No non-expired stock available for Brookside",
+      }),
+    ).toBe("No non-expired stock available for Brookside");
+  });
+});
 
 describe("isItemNotFoundProblem", () => {
   it("matches pricing/catalog item missing detail", () => {

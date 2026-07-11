@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { DASHBOARD_SECTION_SURFACE } from "@/components/dashboard-page-ui";
 import {
   itemListThumbnailUrl,
   type CategoryTreeNodeRecord,
@@ -53,14 +52,17 @@ import {
   CashierCurrencySuffix,
   CashierDottedLeader,
 } from "./cashier-currency-inline";
-import { kioskCategoryPillClass } from "./kiosk-listing-styles";
+import {
+  kioskCategoryPillClass,
+  kioskPlaceholderWashClass,
+} from "./kiosk-listing-styles";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 
 const POS_SHIFT_CHIP_CLASS = cn(
-  "inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/90 px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground shadow-sm",
-  "transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-card hover:shadow-md",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-  "active:translate-y-0 active:shadow-sm",
+  "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_70%,transparent)] px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground",
+  "transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:bg-card",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
+  "active:scale-[0.98]",
 );
 
 export type CashierPosShiftLinksProps = {
@@ -232,11 +234,11 @@ function tileShelfLine(
 }
 
 const KIOSK_TILE_SHELL = cn(
-  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/45 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform] duration-200",
-  "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] hover:shadow-md",
-  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "group relative flex h-full flex-col overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] text-left shadow-[0_1px_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] transition-[box-shadow,border-color,transform] duration-200",
+  "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_32%,transparent)] hover:shadow-[0_8px_20px_-14px_color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)]",
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
   "active:scale-[0.98]",
-  "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
+  "dark:border-border/50 dark:bg-card dark:shadow-none",
 );
 
 /** Shelf price on tile: amount + currency only, never size/unit. */
@@ -246,17 +248,17 @@ function KioskTileShelfBadge({ shelfLine }: { shelfLine: string }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-1.5 z-[2] max-w-[calc(100%-0.75rem)] rounded-md px-1.5 py-0.5 shadow-md",
-        "border border-neutral-900/80 bg-neutral-950 text-white",
-        "dark:border-neutral-100/20 dark:bg-neutral-950",
-        "inline-flex flex-nowrap items-baseline gap-0.5 whitespace-nowrap tabular-nums",
+        "pointer-events-none absolute bottom-1.5 right-1.5 z-[2] max-w-[calc(100%-0.75rem)] rounded-sm px-1.5 py-0.5",
+        "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)] bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb]",
+        "dark:border-neutral-100/20 dark:bg-neutral-950 dark:text-white",
+        "inline-flex flex-nowrap items-baseline gap-0.5 whitespace-nowrap tabular-nums shadow-sm",
       )}
     >
       <span className="text-[11px] font-bold leading-none sm:text-[12px]">
         {amount}
       </span>
       {code ? (
-        <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-white/75 sm:text-[8px]">
+        <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] opacity-70 sm:text-[8px]">
           {code}
         </span>
       ) : null}
@@ -275,10 +277,12 @@ function KioskTileCartQty({
   if (cartQty <= 0) return null;
   return (
     <span
+      key={cartQty}
       className={cn(
-        "absolute right-1.5 top-1.5 z-[2] inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[10px] font-bold tabular-nums shadow-md",
-        "border border-neutral-900/80 bg-neutral-950 text-white",
-        justAdded && "animate-pulse ring-2 ring-white",
+        "pos-tile-qty-badge absolute right-1.5 top-1.5 z-[2] inline-flex h-6 items-center gap-0.5 rounded-sm px-1.5 text-[10px] font-bold tabular-nums shadow-sm",
+        "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)] bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb]",
+        "dark:border-neutral-100/20 dark:bg-neutral-950 dark:text-white",
+        justAdded && "ring-2 ring-[var(--pos-primary)] ring-offset-1 ring-offset-[var(--pos-paper,#f1ece3)]",
       )}
       title={`${cartQty} in cart — tap to add another`}
     >
@@ -337,12 +341,12 @@ function KioskTileMedia({
   stockTone: "out" | "low" | null;
 }) {
   return (
-    <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
+    <div className="relative aspect-[4/3] w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/40 dark:from-muted/30 dark:to-muted/50">
       <span
         className={cn(
-          "pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl transition-opacity duration-200",
+          "pointer-events-none absolute left-0 top-0 z-[1] h-full w-[3px] transition-opacity duration-200",
           cartQty > 0
-            ? "bg-neutral-900 opacity-100"
+            ? "bg-[var(--pos-ink,#1c1915)] opacity-100"
             : "bg-[var(--pos-primary)] opacity-0 group-hover:opacity-100",
         )}
         aria-hidden
@@ -358,7 +362,10 @@ function KioskTileMedia({
         />
       ) : (
         <span
-          className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100/80 text-2xl font-bold tracking-tight text-amber-900/35 dark:from-muted/40 dark:to-muted/60 dark:text-muted-foreground/40"
+          className={cn(
+            "flex h-full w-full items-center justify-center bg-gradient-to-br text-2xl font-bold tracking-tight",
+            kioskPlaceholderWashClass(title),
+          )}
           aria-hidden
         >
           {title.trim().charAt(0).toUpperCase() || "?"}
@@ -388,14 +395,14 @@ function KioskTileTitle({
         className={cn(
           "truncate text-left leading-tight tracking-tight",
           bold
-            ? "text-[11px] font-bold text-neutral-950 dark:text-neutral-50 sm:text-[12px]"
-            : "text-[11px] font-medium text-foreground/85 sm:text-[12px] dark:text-foreground/80",
+            ? "text-[11px] font-bold text-[var(--pos-ink,#1c1915)] dark:text-neutral-50 sm:text-[12px]"
+            : "text-[11px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_88%,transparent)] sm:text-[12px] dark:text-foreground/85",
         )}
       >
         {primary}
       </p>
       {option ? (
-        <p className="mt-0.5 truncate text-left text-[10px] font-semibold leading-none text-muted-foreground">
+        <p className="mt-0.5 truncate text-left text-[10px] font-medium leading-none text-muted-foreground">
           {option}
         </p>
       ) : null}
@@ -440,7 +447,7 @@ function TopSellerTile({
       className={cn(
         KIOSK_TILE_SHELL,
         cartQty > 0 &&
-          "border-neutral-800/55 bg-neutral-50/80 ring-1 ring-neutral-900/10 dark:bg-card",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,var(--card))] dark:bg-card",
         justAdded && "shadow-md",
         stockTone === "out" && "opacity-75",
       )}
@@ -496,7 +503,7 @@ function SearchHitTile({
       className={cn(
         KIOSK_TILE_SHELL,
         cartQty > 0 &&
-          "border-neutral-800/55 bg-neutral-50/80 ring-1 ring-neutral-900/10 dark:bg-card",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,var(--card))] dark:bg-card",
         justAdded && "shadow-md",
         stockTone === "out" && "opacity-75",
       )}
@@ -781,35 +788,29 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     <div
       className={cn(
         "mx-auto w-full max-w-[1600px] px-3 pb-28 sm:px-4 lg:pb-6",
-        embeddedInDashboard && "max-w-none px-0 sm:px-1",
-        "bg-neutral-50/95 dark:bg-background",
+        embeddedInDashboard ? "pos-market-paper max-w-none rounded-xl px-2 py-2 sm:px-3 sm:py-3" : "",
       )}
       style={brandTheme}
     >
       <div className="flex items-start gap-4 lg:gap-5">
         <div className="min-w-0 flex-1 space-y-3 sm:space-y-4">
-      <section
-        className={cn(
-          DASHBOARD_SECTION_SURFACE,
-          "border-border/50 px-3 py-3 shadow-sm sm:px-4 sm:py-3.5",
-        )}
-      >
+      <section className="border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-3 dark:border-border/40">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
+            <h2 className="pos-market-section-label flex items-center gap-2 text-xl leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-2xl">
               <span>{pageTitle}</span>
               <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-75"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-80"
                 aria-hidden
               />
             </h2>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
               {branchesLoading ? (
                 "Loading branches…"
               ) : activeBranchName ? (
                 <>
                   Selling at{" "}
-                  <span className="font-medium text-foreground">
+                  <span className="font-semibold text-foreground">
                     {activeBranchName}
                   </span>
                 </>
@@ -822,7 +823,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {!online ? (
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
+              <span className="rounded-md border border-amber-700/25 bg-amber-100/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
                 {uiCopy.offlinePill}
               </span>
             ) : null}
@@ -852,9 +853,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   <button
                     type="button"
                     onClick={() => posShiftLinks.onShortcut("close-shift")}
-                    className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/25")}
+                    className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/30 text-destructive")}
                   >
-                    <LogOut className="size-3.5 shrink-0 text-destructive/80" aria-hidden />
+                    <LogOut className="size-3.5 shrink-0" aria-hidden />
                     Close shift
                   </button>
                 ) : null}
@@ -877,10 +878,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <div className="sticky top-[3.5rem] z-21 -mx-1 sm:-mx-0">
           <div
             className={cn(
-              "flex items-center gap-1 overflow-x-auto px-2 py-1.5",
-              "bg-gradient-to-b from-background via-background/98 to-background/90",
-              "supports-[backdrop-filter]:bg-background/85 supports-[backdrop-filter]:backdrop-blur-sm",
-              "border-b border-border/30",
+              "flex items-center gap-1.5 overflow-x-auto px-1 py-1.5",
+              "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_88%,transparent)]",
+              "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_78%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
+              "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
             )}
           >
             {cartTabs.map((tab) => {
@@ -890,62 +891,53 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <div
                   key={tab.id}
                   className={cn(
-                    "group relative flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                    "pos-market-ticket group relative flex shrink-0 items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                     isActive
-                      ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)]"
-                      : "border-border/45 bg-card/70 hover:border-border hover:bg-card",
+                      ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,var(--card))] text-foreground shadow-sm"
+                      : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_85%,transparent)] text-muted-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] hover:text-foreground",
                   )}
                 >
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 outline-none"
                     onClick={() => onSwitchCart(tab.id)}
+                    className="flex min-w-0 items-center gap-1.5 text-left"
                   >
                     <span
                       className={cn(
-                        "max-w-[8rem] truncate leading-tight",
+                        "size-1.5 shrink-0 rounded-full",
                         isActive
-                          ? "text-[var(--pos-primary)]"
-                          : "text-foreground",
+                          ? "bg-[var(--pos-primary)]"
+                          : hasItems
+                            ? "bg-[var(--pos-ink,#1c1915)]/40"
+                            : "bg-muted-foreground/30",
                       )}
-                    >
-                      {tab.label}
-                    </span>
+                      aria-hidden
+                    />
+                    <span className="truncate font-semibold">{tab.label}</span>
                     {hasItems ? (
-                      <span
-                        className={cn(
-                          "inline-flex size-4 items-center justify-center rounded-full text-[9px] font-bold tabular-nums leading-none",
-                          isActive
-                            ? "bg-[var(--pos-primary)] text-[var(--pos-primary-ink)]"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {tab.itemCount > 99 ? "99+" : tab.itemCount}
+                      <span className="tabular-nums text-[10px] opacity-70">
+                        · {tab.itemCount}
                       </span>
                     ) : null}
                   </button>
-                  {!isActive && (
+                  {cartTabs.length > 1 ? (
                     <button
                       type="button"
-                      className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
-                      aria-label={`Close ${tab.label}`}
                       onClick={() => onRemoveCart(tab.id)}
+                      className="rounded p-0.5 text-muted-foreground/70 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                      aria-label={`Close ${tab.label}`}
                     >
                       <X className="size-3" />
                     </button>
-                  )}
+                  ) : null}
                 </div>
               );
             })}
             {canCreateCart ? (
               <button
                 type="button"
-                className={cn(
-                  "flex shrink-0 items-center gap-1 rounded-lg border border-dashed border-border/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-all",
-                  "hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_6%,transparent)]",
-                )}
                 onClick={onCreateCart}
-                aria-label="New cart"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-[var(--pos-primary)] hover:text-foreground"
               >
                 <PlusCircle className="size-3.5" />
                 <span>New</span>
@@ -956,31 +948,26 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       <div className="sticky top-[3.5rem] z-20 -mx-1 sm:-mx-0">
-        <section
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "border-border/50 p-2.5 shadow-sm supports-[backdrop-filter]:bg-card/92 supports-[backdrop-filter]:backdrop-blur-md sm:p-3",
-          )}
-        >
+        <section className="py-1">
           <div
             className={cn(
-              "group flex items-center gap-1.5 rounded-xl border border-border/60 bg-background/90 pl-3 pr-1 shadow-sm transition-colors",
-              "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_30%,var(--border))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos-primary)_12%,transparent)]",
-              "dark:bg-card/80",
+              "group flex items-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] pl-3.5 pr-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] transition-colors",
+              "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos-primary)_12%,transparent)]",
+              "dark:border-border/50 dark:bg-card/80 dark:shadow-none",
             )}
           >
             <Search
-              className="size-[1.125rem] shrink-0 text-muted-foreground/80"
+              className="size-5 shrink-0 text-muted-foreground/75"
               aria-hidden
             />
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="shrink-0 rounded-md p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground transition-colors"
+              className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_50%,transparent)] p-2 text-[var(--pos-ink,#1c1915)]/70 transition-colors hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)] dark:border-border/40 dark:bg-muted/30 dark:text-muted-foreground"
               aria-label="Scan barcode with phone camera"
               title="Scan barcode with camera"
             >
-              <ScanLine className="size-[1.125rem]" />
+              <ScanLine className="size-5" />
             </button>
             <input
               type="text"
@@ -993,7 +980,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     ? "Search within this type…"
                     : "Search name, SKU, or scan barcode…"
               }
-              className="h-10 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/60 sm:h-11 sm:text-[15px]"
+              className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/55 sm:h-[3.25rem] sm:text-base"
               autoComplete="off"
               enterKeyHint="search"
               aria-label="Search products"
@@ -1018,7 +1005,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : null}
           {categoryFilterId ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
-              <span className="rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] px-2.5 py-0.5 font-medium text-[var(--pos-primary)]">
+              <span className="rounded-md border border-[color-mix(in_srgb,var(--pos-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] px-2.5 py-0.5 font-medium text-[var(--pos-primary)]">
                 Aisle: {categoryFilterLabel ?? categoryFilterId}
               </span>
               <button
@@ -1043,7 +1030,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : null}
           {typeFilterId ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
+              <span className="rounded-md bg-muted px-2.5 py-0.5 font-medium text-foreground">
                 Type: {typeFilterLabel ?? typeFilterId}
               </span>
               {clearTypeFilter ? (
@@ -1061,14 +1048,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       </div>
 
       {hasSearch ? (
-        <section
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "space-y-2 border-border/50 p-3 sm:space-y-2.5 sm:p-4",
-          )}
-        >
+        <section className="space-y-2.5 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-3 dark:border-border/40">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
+            <h3 className="pos-market-section-label text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
               {sharedCategoryLabel
                 ? `${sharedCategoryLabel} — ${hits.length} result${hits.length === 1 ? "" : "s"}`
                 : search.trim()
@@ -1080,13 +1062,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       : "Items"}
             </h3>
             {!sharedCategoryLabel && hits.length > 0 ? (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs tabular-nums text-muted-foreground">
                 {hits.length} match{hits.length === 1 ? "" : "es"}
               </span>
             ) : null}
           </div>
           {hits.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-center text-xs text-muted-foreground sm:py-8">
+            <p className="rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
               {search.trim()
                 ? "No items match your search."
                 : categoryFilterId
@@ -1096,7 +1078,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     : "No items."}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {hits.map((item) => (
                 <SearchHitTile
                   key={item.id}
@@ -1121,37 +1103,32 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {showCatalog && (alwaysShowTopProducts || topProducts.length > 0) ? (
         <section
           aria-label="Top selling products"
-          className="space-y-2.5 rounded-xl border border-border/50 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:border-border/50 dark:ring-white/[0.03] sm:p-3.5"
+          className="space-y-3 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-3 dark:border-border/40"
         >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                aria-hidden
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_14%,transparent)] text-xs font-bold leading-none text-[var(--pos-primary)]"
-              >
-                ★
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-[13px] font-semibold leading-none tracking-tight sm:text-sm">
-                  {topProductsTitle}
-                </h3>
-                <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
-                  {topProductsSubtitle}
-                </p>
-              </div>
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Shelf
+              </p>
+              <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
+                {topProductsTitle}
+              </h3>
+              <p className="mt-1 truncate text-[11px] leading-tight text-muted-foreground">
+                {topProductsSubtitle}
+              </p>
             </div>
           </div>
           {alwaysShowTopProducts && topProductsLoading ? (
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-xs text-muted-foreground sm:py-8">
+            <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-xs text-muted-foreground sm:py-8">
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Loading top sellers…
             </div>
           ) : alwaysShowTopProducts && topProducts.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border/50 bg-muted/10 py-7 text-center text-xs text-muted-foreground sm:py-8">
+            <p className="rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
               No sales yet — top sellers will appear here after the first sale.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5">
               {topProducts.map((p) => (
                 <TopSellerTile
                   key={p.id}
@@ -1182,16 +1159,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       {showCatalog && canBrowseCategories ? (
-        <section
-          className={cn(
-            DASHBOARD_SECTION_SURFACE,
-            "space-y-2 border-border/50 p-3 sm:p-4",
-          )}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
-              Browse aisles
-            </h3>
+        <section className="space-y-3 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-3 dark:border-border/40">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Navigate
+              </p>
+              <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
+                Browse aisles
+              </h3>
+            </div>
             <div className="flex items-center gap-2">
               {categoryBrowseStack.length > 0 ? (
                 <Button
@@ -1231,12 +1208,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : categoryTreeBusy ? (
             <p className="text-xs text-muted-foreground">Loading aisles…</p>
           ) : visibleCategoryTiles.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border/50 bg-muted/10 py-8 text-center text-xs text-muted-foreground">
+            <p className="rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-8 text-center text-xs text-muted-foreground">
               No active aisles.
             </p>
           ) : (
-            <div className="-mx-1 overflow-x-auto px-1 pb-0.5 sm:-mx-1.5 sm:px-1.5">
-              <div className="flex gap-2 sm:gap-2.5">
+            <div className="pos-snap-row -mx-1 overflow-x-auto px-1 pb-1 sm:-mx-1.5 sm:px-1.5">
+              <div className="flex gap-2.5 sm:gap-3">
                 {visibleCategoryTiles.map((node) => {
                   const thumb = node.thumbnailUrl?.trim();
                   const kids = (node.children ?? []).filter((c) => c.active);
@@ -1252,10 +1229,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       type="button"
                       disabled={!online}
                       className={cn(
-                        "flex w-[5.75rem] shrink-0 flex-col items-center gap-1 rounded-xl border border-border/45 bg-white p-1.5 text-center text-[10px] shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform] duration-200",
-                        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:shadow-md disabled:opacity-50",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                        "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
+                        "flex w-[6.5rem] shrink-0 flex-col items-stretch gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] p-2 text-left transition-[border-color,transform] duration-200",
+                        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] disabled:opacity-50",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
+                        "dark:border-border/50 dark:bg-card",
                       )}
                       onClick={() => {
                         if (!online) return;
@@ -1266,30 +1243,32 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                         applySubtreeFilter(node.id, node.name);
                       }}
                     >
-                      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/35 bg-neutral-50/90 dark:bg-muted/40">
+                      <span
+                        className={cn(
+                          "relative flex h-12 w-full items-center justify-center overflow-hidden rounded-sm border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
+                          !thumb && `bg-gradient-to-br ${kioskPlaceholderWashClass(node.name)}`,
+                        )}
+                      >
                         {thumb ? (
                           <Image
                             src={thumb}
                             alt=""
-                            width={44}
-                            height={44}
+                            width={52}
+                            height={48}
                             className="h-full w-full object-cover"
                             unoptimized
                           />
                         ) : (
-                          <span
-                            className="text-sm font-bold text-muted-foreground/70"
-                            aria-hidden
-                          >
+                          <span className="text-base font-bold" aria-hidden>
                             {node.name.trim().charAt(0).toUpperCase() || "?"}
                           </span>
                         )}
                       </span>
-                      <span className="line-clamp-2 min-h-[2rem] w-full text-[10px] font-semibold leading-[1.15] text-foreground">
+                      <span className="line-clamp-2 min-h-[2.1rem] w-full text-[11px] font-semibold leading-[1.15] text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                         {node.name}
                       </span>
                       {countLabel ? (
-                        <span className="text-[9px] font-medium tabular-nums leading-none text-muted-foreground">
+                        <span className="text-[9px] font-medium uppercase tracking-wide tabular-nums text-muted-foreground">
                           {countLabel}
                         </span>
                       ) : null}
@@ -1345,7 +1324,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   : "z-20 scale-[0.94] opacity-85 hover:opacity-100",
                 pulseCart &&
                   isActive &&
-                  "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-neutral-50 dark:ring-offset-background",
+                  "ring-[3px] ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] ring-offset-2 ring-offset-[var(--pos-paper,#f1ece3)] dark:ring-offset-background",
               )}
               style={{
                 backgroundColor: isActive

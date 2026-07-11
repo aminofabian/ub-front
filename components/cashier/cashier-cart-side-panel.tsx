@@ -75,41 +75,57 @@ export function CashierCartSidePanel({
     >
       <div
         className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm ring-1 ring-black/[0.02]",
-          "dark:ring-white/[0.04]",
-          pulse &&
-            "ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
+          "pos-market-receipt flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)]",
+          "dark:border-border/60",
+          pulse && "animate-pos-cart-pulse ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
         )}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-3 py-2.5">
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-3.5 py-3 dark:border-border/50">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Till slip
+            </p>
+            <h2 className="pos-market-section-label mt-0.5 text-xl leading-none text-foreground">
               Current cart
             </h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
               {lines.length === 0
-                ? "Tap a product to add"
+                ? "Awaiting first item"
                 : `${lines.length} line${lines.length === 1 ? "" : "s"} · ${itemCount} qty`}
             </p>
           </div>
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] text-[var(--pos-primary)]">
+          <span className="inline-flex size-9 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]">
             <ShoppingCart className="size-3.5" aria-hidden />
           </span>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
           {lines.length === 0 ? (
-            <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 px-4 text-center">
-              <ShoppingCart className="size-8 text-muted-foreground/35" />
-              <p className="text-sm font-medium text-muted-foreground">
-                Cart is empty
-              </p>
-              <p className="text-[11px] leading-relaxed text-muted-foreground/80">
-                Search or scan a product. Tap a result to add 1 unit.
-              </p>
+            <div className="flex h-full min-h-[14rem] flex-col justify-between px-3 py-6">
+              <div className="space-y-3 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-4 dark:border-border/40">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-end gap-2 opacity-[0.28]"
+                    aria-hidden
+                  >
+                    <span className="h-2.5 w-[42%] rounded-sm bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)]" />
+                    <CashierDottedLeader />
+                    <span className="h-2.5 w-10 rounded-sm bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_25%,transparent)]" />
+                  </div>
+                ))}
+              </div>
+              <div className="pt-4 text-center">
+                <p className="pos-market-section-label text-lg text-foreground/80">
+                  Ready when you are
+                </p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  Search, scan, or tap a shelf item — it lands here as a line.
+                </p>
+              </div>
             </div>
           ) : (
-            <ul className="divide-y divide-border/35">
+            <ul className="divide-y divide-dashed divide-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:divide-border/40">
               {lines.map((line) => {
                 const qty = Number(line.quantity);
                 const full = cashierItemPrimaryLabel(line.item);
@@ -118,7 +134,7 @@ export function CashierCartSidePanel({
                 return (
                   <li
                     key={line.key}
-                    className="flex items-center gap-1.5 px-1 py-1"
+                    className="animate-pos-line-in flex items-center gap-1.5 px-1.5 py-2"
                   >
                     <div className="min-w-0 flex-1" title={full}>
                       <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
@@ -130,15 +146,21 @@ export function CashierCartSidePanel({
                           </span>
                         ) : null}
                       </p>
-                      <p className="mt-px text-[10px] tabular-nums text-muted-foreground">
-                        {Number(line.unitPrice).toFixed(2)} ×{" "}
-                        {Number.isFinite(qty) ? qty : line.quantity}
-                      </p>
+                      <div className="mt-0.5 flex items-end gap-1.5 text-[10px] tabular-nums text-muted-foreground">
+                        <span>
+                          {Number(line.unitPrice).toFixed(2)} ×{" "}
+                          {Number.isFinite(qty) ? qty : line.quantity}
+                        </span>
+                        <CashierDottedLeader />
+                        <span className="shrink-0 font-semibold text-foreground">
+                          {sub.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="inline-flex shrink-0 items-center rounded-md border border-border/60 bg-muted/10">
+                    <div className="inline-flex shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/60 dark:bg-muted/20">
                       <button
                         type="button"
-                        className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="flex size-10 items-center justify-center text-muted-foreground hover:text-foreground"
                         aria-label={
                           qty <= 1 ? `Remove ${full}` : "Decrease quantity"
                         }
@@ -153,12 +175,12 @@ export function CashierCartSidePanel({
                       >
                         <Minus className="size-3.5" />
                       </button>
-                      <span className="min-w-[1.25rem] text-center text-xs font-semibold tabular-nums">
+                      <span className="min-w-[1.35rem] text-center text-xs font-bold tabular-nums">
                         {Number.isFinite(qty) ? qty : line.quantity}
                       </span>
                       <button
                         type="button"
-                        className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="flex size-10 items-center justify-center text-muted-foreground hover:text-foreground"
                         aria-label="Increase quantity"
                         onClick={() => {
                           const next = (Number.isFinite(qty) ? qty : 0) + 1;
@@ -168,9 +190,6 @@ export function CashierCartSidePanel({
                         <Plus className="size-3.5" />
                       </button>
                     </div>
-                    <span className="w-[3.25rem] shrink-0 text-right text-[11px] font-semibold tabular-nums text-foreground">
-                      {sub.toFixed(2)}
-                    </span>
                   </li>
                 );
               })}
@@ -178,20 +197,23 @@ export function CashierCartSidePanel({
           )}
         </div>
 
-        <div className="shrink-0 border-t border-border/50 bg-background/90 px-3 py-2.5">
-          <div className="mb-2.5 flex items-end gap-2">
-            <span className="text-[11px] font-medium text-muted-foreground">
+        <div className="shrink-0 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,transparent)] px-3.5 py-3 dark:border-border/50 dark:bg-muted/10">
+          <div className="mb-3 flex items-end gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Total
             </span>
             <CashierDottedLeader />
-            <span className="inline-flex items-baseline gap-1 text-lg font-bold tabular-nums text-[var(--pos-primary)]">
+            <span
+              key={grandTotal.toFixed(2)}
+              className="pos-tile-line-total inline-flex items-baseline gap-1 text-2xl font-bold tabular-nums tracking-tight text-[var(--pos-primary)]"
+            >
               <span>{grandTotal.toFixed(2)}</span>
               <CashierCurrencySuffix code={currency} />
             </span>
           </div>
           <Button
             type="button"
-            className="h-11 w-full text-sm font-semibold"
+            className="h-12 w-full text-sm font-semibold tracking-wide"
             style={{
               backgroundColor: "var(--pos-primary)",
               color: "var(--pos-primary-ink)",
@@ -203,7 +225,7 @@ export function CashierCartSidePanel({
           >
             {loading ? "Recording…" : "Checkout / Pay"}
           </Button>
-          <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+          <p className="mt-2 text-center text-[10px] leading-snug text-muted-foreground">
             {!branchSelected
               ? "Pick a branch in the top nav to check out"
               : lines.length === 0 || grandTotal <= 0

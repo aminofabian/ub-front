@@ -15,6 +15,7 @@ import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { cn } from "@/lib/utils";
 
 type CashierShellProps = {
   children: React.ReactNode;
@@ -40,8 +41,12 @@ export function CashierShell({ children }: CashierShellProps) {
   const currentBranch = branches.find((b) => b.id === branchId);
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const branchLockedRole = isBranchLockedRole(roleKey);
-  const scopeSelectClass =
-    "h-7 max-w-[10.5rem] rounded-md border bg-background px-2 text-[11px] font-medium text-foreground shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50";
+  const scopeSelectClass = cn(
+    "h-7 max-w-[10.5rem] rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-2 text-[11px] font-medium text-foreground",
+    "shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+    "disabled:opacity-50 dark:bg-card/80",
+  );
 
   // Grocery clerks cannot use the cashier — bounce them back to their
   // workspace so they can generate invoices instead.
@@ -64,30 +69,45 @@ export function CashierShell({ children }: CashierShellProps) {
   );
 
   return (
-    <div className="flex min-h-full flex-col" style={brandTheme}>
-      <header className="sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-primary)_22%,transparent)] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <div className="flex min-h-full flex-col pos-market-paper" style={brandTheme}>
+      <header
+        className={cn(
+          "sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] backdrop-blur-md",
+          "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]",
+          "dark:border-border/50 dark:bg-background/90",
+        )}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
           <div className="flex min-w-0 flex-col">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-semibold">
+              <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
                 {loading ? "Loading…" : business?.name?.trim() || "Cashier"}
               </span>
               <span
-                className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
                   online
-                    ? "bg-emerald-100 text-emerald-900"
-                    : "bg-amber-100 text-amber-900"
-                }`}
+                    ? "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]"
+                    : "border-amber-700/25 bg-amber-100/80 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100",
+                )}
               >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    online ? "bg-[var(--pos-primary)]" : "bg-amber-600",
+                  )}
+                  aria-hidden
+                />
                 {online ? "Online" : "Offline"}
               </span>
               <RealtimeConnectionIndicator />
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
               {branchLockedRole ? (
                 currentBranch ? (
                   <span
-                    className="inline-flex h-7 max-w-[10.5rem] items-center gap-1 truncate rounded-md border bg-muted/30 px-2 text-[11px] font-medium text-muted-foreground"
+                    className="inline-flex h-7 max-w-[10.5rem] items-center gap-1 truncate rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent px-2 text-[11px] font-medium text-muted-foreground"
                     title="Branch switching is disabled for your role"
                   >
                     <Lock className="size-3 shrink-0" aria-hidden />
@@ -151,15 +171,20 @@ export function CashierShell({ children }: CashierShellProps) {
               </select>
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="h-8 text-xs">
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
               <Link href={APP_ROUTES.salesQuick}>Admin quick sale</Link>
             </Button>
             <Button
               asChild
               variant="outline"
               size="sm"
-              className="h-8 text-xs"
+              className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
             >
               <Link href={APP_ROUTES.business}>Full app</Link>
             </Button>

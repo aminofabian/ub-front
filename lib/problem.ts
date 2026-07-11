@@ -90,7 +90,7 @@ export function formatApiProblemMessage(payload: unknown): string {
 
   const detail = problem?.detail?.trim();
   if (detail && detail.length > 0) {
-    if (GENERIC_PROBLEM_TITLES.has(title)) {
+    if (GENERIC_PROBLEM_TITLES.has(title) || detail === title) {
       return detail;
     }
     return `${title}\n${detail}`;

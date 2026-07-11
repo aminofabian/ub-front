@@ -2517,6 +2517,7 @@ export function QuickSaleWorkspace({
         tillPrinterStatus={
           !IS_DESKTOP ? (
             <TillPrinterStatus
+              compact
               cupsName={
                 branches.find((b) => b.id === branchId.trim())?.receipt
                   ?.printerCupsName ?? null
