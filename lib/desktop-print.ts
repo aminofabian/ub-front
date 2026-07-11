@@ -90,11 +90,11 @@ export async function printPosReceipt(
   widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
   printer?: LocalReceiptPrinterTarget | null,
   cashTender?: CashTenderEscPos | null,
-): Promise<void> {
+): Promise<boolean> {
   const id = saleId.trim();
   if (!id) {
     window.print();
-    return;
+    return false;
   }
 
   if (IS_DESKTOP) {
@@ -108,6 +108,7 @@ export async function printPosReceipt(
         { method: "POST", toast: false },
       );
       toast.success("Sent to receipt printer.");
+      return true;
     } catch (e) {
       toast.error(
         e instanceof Error
@@ -116,7 +117,6 @@ export async function printPosReceipt(
       );
       throw e;
     }
-    return;
   }
 
   const resolved = await resolvePrinterTarget(printer);
@@ -127,7 +127,7 @@ export async function printPosReceipt(
       "No receipt printer configured for this branch. Set CUPS name under Branches → Receipt details, then Save.",
       { duration: 10_000 },
     );
-    return;
+    return false;
   }
 
   const bridgeUp = await isTillPrintBridgeUp();
@@ -136,13 +136,14 @@ export async function printPosReceipt(
       `Till Print Bridge is not running on this Mac. ${TILL_BRIDGE_START_HINT}`,
       { duration: 14_000 },
     );
-    return;
+    return false;
   }
 
   try {
     const escpos = await prepareThermalEscPos(id, widthMm, cashTender);
     await printEscPosViaTillBridge(escpos, cupsName);
     toast.success("Sent to receipt printer.");
+    return true;
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Could not reach the receipt printer.";

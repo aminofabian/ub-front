@@ -77,6 +77,8 @@ export type CashierPosShiftLinksProps = {
 export type CashierPosLayoutProps = {
   /** Page heading (default: Point of sale). */
   pageTitle?: string;
+  /** Changes after a successful auto-print; closes checkout for the next sale. */
+  checkoutCompletedKey?: number;
   /** When true, lifts fixed cart controls above the dashboard mobile bottom nav. */
   embeddedInDashboard?: boolean;
   /** Brand CSS variables on the layout root (POS primary colors). */
@@ -542,6 +544,7 @@ function SearchHitTile({
 export function CashierPosLayout(props: CashierPosLayoutProps) {
   const {
     pageTitle = "Point of sale",
+    checkoutCompletedKey = 0,
     embeddedInDashboard = false,
     brandTheme,
     online,
@@ -693,10 +696,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   }, [pulseCart]);
 
   useEffect(() => {
-    if (cart.notice || cart.error) {
+    if (cart.error) {
       setDrawerOpen(true);
     }
-  }, [cart.notice, cart.error]);
+  }, [cart.error]);
+
+  useEffect(() => {
+    if (checkoutCompletedKey > 0) {
+      setDrawerOpen(false);
+    }
+  }, [checkoutCompletedKey]);
 
   useEffect(() => {
     if (!online) {

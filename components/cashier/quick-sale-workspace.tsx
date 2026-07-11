@@ -82,6 +82,7 @@ import {
   isValidCustomerPhone,
 } from "@/lib/customer-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
+import { printPosReceipt } from "@/lib/desktop-print";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   buildPosReceiptSnapshot,
@@ -258,6 +259,8 @@ export function QuickSaleWorkspace({
   const [outboxCount, setOutboxCount] = useState(0);
   const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   const [pendingSalesRefreshKey, setPendingSalesRefreshKey] = useState(0);
+  /** Incremented after successful auto-print so the checkout drawer closes. */
+  const [checkoutCompletedKey, setCheckoutCompletedKey] = useState(0);
   const [outboxBusy, setOutboxBusy] = useState(false);
   const [lastSale, setLastSale] = useState<SaleRecord | null>(null);
   const [lastReceipt, setLastReceipt] = useState<PosReceiptSnapshot | null>(
@@ -1962,32 +1965,50 @@ export function QuickSaleWorkspace({
             soldByName: me?.name?.trim() ?? null,
           };
 
-          setLastSale(sale);
           setInvoiceRefreshKey((k) => k + 1);
           setPendingSalesRefreshKey((k) => k + 1);
-          setLastReceipt(
-            buildPosReceiptSnapshot({
-              businessName: receiptBusinessName,
-              logoUrl: business?.branding?.logoUrl ?? null,
-              branchName: receiptBranchName,
-              branchAddress: receiptBranch?.address?.trim() || null,
-              branchPhone: receiptBranch?.receipt?.phone ?? null,
-              branchEmail: receiptBranch?.receipt?.email ?? null,
-              branchWebsite: resolveReceiptWebsite(
-                receiptBranch?.receipt?.website,
-                business?.primaryDomain,
-              ),
-              tillNumber: receiptBranch?.receipt?.tillNumber ?? null,
-              branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
-              servedByName: me?.name?.trim() || sale.soldByName?.trim() || null,
-              currency: receiptCurrency,
-              cartLines: receiptCartLines,
-              sale,
-              customerName: receiptCustomerName,
-              cashTendered,
-              clientSoldAt: salePayload.clientSoldAt ?? undefined,
-            }),
-          );
+          const completedReceipt = buildPosReceiptSnapshot({
+            businessName: receiptBusinessName,
+            logoUrl: business?.branding?.logoUrl ?? null,
+            branchName: receiptBranchName,
+            branchAddress: receiptBranch?.address?.trim() || null,
+            branchPhone: receiptBranch?.receipt?.phone ?? null,
+            branchEmail: receiptBranch?.receipt?.email ?? null,
+            branchWebsite: resolveReceiptWebsite(
+              receiptBranch?.receipt?.website,
+              business?.primaryDomain,
+            ),
+            tillNumber: receiptBranch?.receipt?.tillNumber ?? null,
+            branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
+            servedByName: me?.name?.trim() || sale.soldByName?.trim() || null,
+            currency: receiptCurrency,
+            cartLines: receiptCartLines,
+            sale,
+            customerName: receiptCustomerName,
+            cashTendered,
+            clientSoldAt: salePayload.clientSoldAt ?? undefined,
+          });
+          const printed = await printPosReceipt(
+            sale.id,
+            undefined,
+            {
+              cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
+              branchId: bid,
+            },
+            completedReceipt.cashReceived != null
+              ? {
+                  received: completedReceipt.cashReceived,
+                  change: completedReceipt.changeGiven ?? 0,
+                }
+              : null,
+          ).catch(() => false);
+          if (printed) {
+            dismissCompletedSaleUi();
+            setCheckoutCompletedKey((key) => key + 1);
+          } else {
+            setLastSale(sale);
+            setLastReceipt(completedReceipt);
+          }
           setVoidNotes("");
           recordTopSellers();
           clearCartAfterSale(soldCartId);
@@ -2085,32 +2106,50 @@ export function QuickSaleWorkspace({
       }
 
       if (sale) {
-        setLastSale(sale);
         setInvoiceRefreshKey((k) => k + 1);
         setPendingSalesRefreshKey((k) => k + 1);
-        setLastReceipt(
-          buildPosReceiptSnapshot({
-            businessName: receiptBusinessName,
-            logoUrl: business?.branding?.logoUrl ?? null,
-            branchName: receiptBranchName,
-            branchAddress: receiptBranch?.address?.trim() || null,
-            branchPhone: receiptBranch?.receipt?.phone ?? null,
-            branchEmail: receiptBranch?.receipt?.email ?? null,
-            branchWebsite: resolveReceiptWebsite(
-              receiptBranch?.receipt?.website,
-              business?.primaryDomain,
-            ),
-            tillNumber: receiptBranch?.receipt?.tillNumber ?? null,
-            branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
-            servedByName: me?.name?.trim() || sale.soldByName?.trim() || null,
-            currency: receiptCurrency,
-            cartLines: receiptCartLines,
-            sale,
-            customerName: receiptCustomerName,
-            cashTendered,
-            clientSoldAt: salePayload.clientSoldAt ?? undefined,
-          }),
-        );
+        const completedReceipt = buildPosReceiptSnapshot({
+          businessName: receiptBusinessName,
+          logoUrl: business?.branding?.logoUrl ?? null,
+          branchName: receiptBranchName,
+          branchAddress: receiptBranch?.address?.trim() || null,
+          branchPhone: receiptBranch?.receipt?.phone ?? null,
+          branchEmail: receiptBranch?.receipt?.email ?? null,
+          branchWebsite: resolveReceiptWebsite(
+            receiptBranch?.receipt?.website,
+            business?.primaryDomain,
+          ),
+          tillNumber: receiptBranch?.receipt?.tillNumber ?? null,
+          branchReceiptMessage: receiptBranch?.receipt?.footerNote ?? null,
+          servedByName: me?.name?.trim() || sale.soldByName?.trim() || null,
+          currency: receiptCurrency,
+          cartLines: receiptCartLines,
+          sale,
+          customerName: receiptCustomerName,
+          cashTendered,
+          clientSoldAt: salePayload.clientSoldAt ?? undefined,
+        });
+        const printed = await printPosReceipt(
+          sale.id,
+          undefined,
+          {
+            cupsName: receiptBranch?.receipt?.printerCupsName ?? null,
+            branchId: bid,
+          },
+          completedReceipt.cashReceived != null
+            ? {
+                received: completedReceipt.cashReceived,
+                change: completedReceipt.changeGiven ?? 0,
+              }
+            : null,
+        ).catch(() => false);
+        if (printed) {
+          dismissCompletedSaleUi();
+          setCheckoutCompletedKey((key) => key + 1);
+        } else {
+          setLastSale(sale);
+          setLastReceipt(completedReceipt);
+        }
         setVoidNotes("");
         recordTopSellers();
         clearCartAfterSale(soldCartId);
@@ -2418,6 +2457,7 @@ export function QuickSaleWorkspace({
       <CashierPosLayout
         pageTitle={heading}
         embeddedInDashboard={!isCashier}
+        checkoutCompletedKey={checkoutCompletedKey}
         brandTheme={dialogBrandTheme}
         online={online}
         offlineBanner={posDraftOfflineBanner}
