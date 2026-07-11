@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,6 +17,13 @@ const CUT_TAIL = Buffer.from([
 
 const MAX_BODY_BYTES = 256_000;
 const CUPS_NAME_RE = /^[A-Za-z0-9._-]+$/;
+
+/** Absolute paths — Next/IDE often has a PATH without /usr/bin (spawn lp → ENOENT). */
+const LP_BIN = existsSync("/usr/bin/lp") ? "/usr/bin/lp" : "lp";
+const LPSTAT_BIN = existsSync("/usr/bin/lpstat") ? "/usr/bin/lpstat" : "lpstat";
+const CUPS_PATH = [process.env.PATH, "/usr/bin", "/bin", "/usr/sbin"]
+  .filter(Boolean)
+  .join(":");
 
 type PrinterTarget =
   | { mode: "network"; host: string; port: number }
@@ -52,7 +60,10 @@ function targetFromRequest(request: Request): PrinterTarget | null {
 
 function listCupsPrinters(): Promise<string[]> {
   return new Promise((resolve) => {
-    const child = spawn("lpstat", ["-a"], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(LPSTAT_BIN, ["-a"], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, PATH: CUPS_PATH },
+    });
     let stdout = "";
     child.stdout.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
@@ -88,6 +99,15 @@ function sendNetwork(host: string, port: number, data: Buffer): Promise<void> {
   });
 }
 
+function formatSpawnError(err: unknown, bin: string): Error {
+  if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
+    return new Error(
+      `Could not find ${bin}. Is CUPS installed? (expected /usr/bin/lp)`,
+    );
+  }
+  return err instanceof Error ? err : new Error(String(err));
+}
+
 function sendCups(name: string, data: Buffer): Promise<void> {
   const file = join(tmpdir(), `palmart-escpos-${process.pid}-${Date.now()}.bin`);
   return writeFile(file, data)
@@ -95,7 +115,7 @@ function sendCups(name: string, data: Buffer): Promise<void> {
       () =>
         new Promise<void>((resolve, reject) => {
           const child = spawn(
-            "lp",
+            LP_BIN,
             [
               "-d",
               name,
@@ -105,13 +125,16 @@ function sendCups(name: string, data: Buffer): Promise<void> {
               "document-format=application/vnd.cups-raw",
               file,
             ],
-            { stdio: ["ignore", "pipe", "pipe"] },
+            {
+              stdio: ["ignore", "pipe", "pipe"],
+              env: { ...process.env, PATH: CUPS_PATH },
+            },
           );
           let stderr = "";
           child.stderr.on("data", (chunk: Buffer) => {
             stderr += chunk.toString();
           });
-          child.on("error", reject);
+          child.on("error", (err) => reject(formatSpawnError(err, LP_BIN)));
           child.on("close", (code) => {
             if (code === 0) {
               resolve();
