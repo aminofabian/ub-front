@@ -113,7 +113,14 @@ export function PosSaleReceipt({
             className="h-9 w-full gap-2 rounded-sm text-sm font-semibold shadow-sm bg-[var(--pos-primary)] text-[var(--pos-primary-ink)] hover:opacity-90"
             onClick={() => {
               if (saleId) {
-                void printPosReceipt(saleId, undefined, receiptPrinter);
+                const tender =
+                  receipt.cashReceived != null && receipt.cashReceived > 0
+                    ? {
+                        received: receipt.cashReceived,
+                        change: receipt.changeGiven ?? 0,
+                      }
+                    : null;
+                void printPosReceipt(saleId, undefined, receiptPrinter, tender);
               } else {
                 window.print();
               }

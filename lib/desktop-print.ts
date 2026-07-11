@@ -1,6 +1,10 @@
 "use client";
 
 import { apiRequest, fetchBranches, fetchSaleReceiptThermal } from "@/lib/api";
+import {
+  appendCashTenderEscPos,
+  type CashTenderEscPos,
+} from "@/lib/escpos-cash-tender";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
   isTillPrintBridgeUp,
@@ -50,6 +54,24 @@ async function resolvePrinterTarget(
   }
 }
 
+async function prepareThermalEscPos(
+  saleId: string,
+  widthMm: number,
+  cashTender?: CashTenderEscPos | null,
+): Promise<Blob> {
+  const escpos = await fetchSaleReceiptThermal(
+    saleId,
+    widthMm,
+    cashTender?.received ?? null,
+  );
+  if (!cashTender || cashTender.received <= 0) {
+    return escpos;
+  }
+  const raw = new Uint8Array(await escpos.arrayBuffer());
+  const patched = appendCashTenderEscPos(raw, cashTender, widthMm);
+  return new Blob([patched], { type: "application/octet-stream" });
+}
+
 /**
  * Print a completed sale on the configured ESC/POS printer.
  *
@@ -60,12 +82,14 @@ async function resolvePrinterTarget(
  *
  * Palmart Desktop: JVM device bridge (Settings → Desktop & LAN).
  *
- * Fallback: system print dialog (no auto-cut).
+ * Pass `cashTender` when the on-screen receipt shows Received / Change so
+ * thermal print matches even before the API has persisted cash_received.
  */
 export async function printPosReceipt(
   saleId: string,
   widthMm: number = DESKTOP_THERMAL_WIDTH_MM,
   printer?: LocalReceiptPrinterTarget | null,
+  cashTender?: CashTenderEscPos | null,
 ): Promise<void> {
   const id = saleId.trim();
   if (!id) {
@@ -75,8 +99,12 @@ export async function printPosReceipt(
 
   if (IS_DESKTOP) {
     try {
+      const params = new URLSearchParams({ widthMm: String(widthMm) });
+      if (cashTender?.received != null && cashTender.received > 0) {
+        params.set("cashReceived", String(cashTender.received));
+      }
       await apiRequest<void>(
-        `/api/v1/desktop/devices/print/sale/${encodeURIComponent(id)}?widthMm=${widthMm}`,
+        `/api/v1/desktop/devices/print/sale/${encodeURIComponent(id)}?${params}`,
         { method: "POST", toast: false },
       );
       toast.success("Sent to receipt printer.");
@@ -112,7 +140,7 @@ export async function printPosReceipt(
   }
 
   try {
-    const escpos = await fetchSaleReceiptThermal(id, widthMm);
+    const escpos = await prepareThermalEscPos(id, widthMm, cashTender);
     await printEscPosViaTillBridge(escpos, cupsName);
     toast.success("Sent to receipt printer.");
   } catch (e) {

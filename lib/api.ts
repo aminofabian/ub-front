@@ -1482,10 +1482,15 @@ export async function fetchSaleReceiptPdf(saleId: string): Promise<Blob> {
 export async function fetchSaleReceiptThermal(
   saleId: string,
   widthMm: number = 80,
+  cashReceived?: number | null,
 ): Promise<Blob> {
   const w = Number.isFinite(widthMm) ? widthMm : 80;
+  const params = new URLSearchParams({ widthMm: String(w) });
+  if (cashReceived != null && Number.isFinite(cashReceived) && cashReceived > 0) {
+    params.set("cashReceived", String(cashReceived));
+  }
   return requestBinary(
-    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/receipt/thermal?widthMm=${w}`,
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/receipt/thermal?${params}`,
   );
 }
 

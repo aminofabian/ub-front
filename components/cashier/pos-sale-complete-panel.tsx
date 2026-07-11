@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import type { SaleRecord } from "@/lib/api";
 import { printPosReceipt, type LocalReceiptPrinterTarget } from "@/lib/desktop-print";
+import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { Permission } from "@/lib/permissions";
 import {
   formatReceiptMoney,
@@ -55,6 +56,18 @@ function SummaryRow({
       </span>
     </li>
   );
+}
+
+function cashTenderFromReceipt(
+  receipt: PosReceiptSnapshot,
+): { received: number; change: number } | null {
+  if (receipt.cashReceived == null || receipt.cashReceived <= 0) {
+    return null;
+  }
+  return {
+    received: receipt.cashReceived,
+    change: receipt.changeGiven ?? 0,
+  };
 }
 
 export function PosSaleCompletePanel({
@@ -214,7 +227,12 @@ export function PosSaleCompletePanel({
             size="sm"
             className="h-9 min-w-0 flex-1 gap-1.5 rounded-sm border-[var(--pos-primary)] text-sm font-semibold text-[var(--pos-primary)] hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]"
             onClick={() => {
-              void printPosReceipt(sale.id, undefined, receiptPrinter);
+              void printPosReceipt(
+                sale.id,
+                undefined,
+                receiptPrinter,
+                cashTenderFromReceipt(receipt),
+              );
             }}
           >
             <Printer className="size-4 shrink-0" aria-hidden />
