@@ -155,9 +155,17 @@ describe("cashier labels", () => {
       amount: "435",
       code: "KES",
     });
+    expect(splitShelfPriceDisplay("1kg / 435 KES")).toEqual({
+      amount: "435",
+      code: "KES",
+    });
     expect(splitShelfPriceDisplay("65 KES")).toEqual({
       amount: "65",
       code: "KES",
+    });
+    expect(splitShelfPriceDisplay("1kg / 435")).toEqual({
+      amount: "435",
+      code: null,
     });
   });
 });

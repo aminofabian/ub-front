@@ -4,7 +4,8 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { itemListThumbnailUrl, type ItemSummaryRecord } from "@/lib/api";
-import { stripPosCartSkuClutter } from "@/lib/cashier-item-display";
+import { cashierItemPrimaryLabel } from "@/lib/cashier-item-display";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { cn } from "@/lib/utils";
 
 import {
@@ -107,15 +108,18 @@ export function CashierCartSidePanel({
           ) : (
             <ul className="divide-y divide-border/40">
               {lines.map((line) => {
-                const thumb = itemListThumbnailUrl(line.item);
+                const thumb = posTileThumbUrl(
+                  line.item.name,
+                  itemListThumbnailUrl(line.item),
+                );
                 const qty = Number(line.quantity);
-                const title = stripPosCartSkuClutter(line.label);
+                const title = cashierItemPrimaryLabel(line.item);
                 return (
                   <li
                     key={line.key}
-                    className="flex items-center gap-2 px-1.5 py-1.5"
+                    className="flex items-center gap-2 px-1 py-2"
                   >
-                    <div className="relative size-9 shrink-0 overflow-hidden rounded-md bg-muted/40">
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted/40">
                       {thumb ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -124,7 +128,7 @@ export function CashierCartSidePanel({
                           className="size-full object-contain p-0.5"
                         />
                       ) : (
-                        <span className="flex size-full items-center justify-center text-[10px] font-bold text-muted-foreground/50">
+                        <span className="flex size-full items-center justify-center text-[11px] font-bold text-muted-foreground/50">
                           {title.trim().charAt(0).toUpperCase() || "?"}
                         </span>
                       )}
@@ -138,10 +142,10 @@ export function CashierCartSidePanel({
                         {lineSubtotal(line).toFixed(2)}
                       </p>
                     </div>
-                    <div className="inline-flex shrink-0 items-center rounded-md border border-border/60 bg-muted/15">
+                    <div className="inline-flex shrink-0 items-center rounded-lg border border-border/60 bg-muted/15">
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
                         aria-label="Decrease quantity"
                         onClick={() => {
                           const next = Math.max(
@@ -151,30 +155,30 @@ export function CashierCartSidePanel({
                           updateLine(line.key, "quantity", String(next));
                         }}
                       >
-                        <Minus className="size-3.5" />
+                        <Minus className="size-4" />
                       </button>
-                      <span className="min-w-[1.5rem] text-center text-xs font-semibold tabular-nums">
+                      <span className="min-w-[1.75rem] text-center text-sm font-semibold tabular-nums">
                         {Number.isFinite(qty) ? qty : line.quantity}
                       </span>
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
                         aria-label="Increase quantity"
                         onClick={() => {
                           const next = (Number.isFinite(qty) ? qty : 0) + 1;
                           updateLine(line.key, "quantity", String(next));
                         }}
                       >
-                        <Plus className="size-3.5" />
+                        <Plus className="size-4" />
                       </button>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeLine(line.key)}
-                      className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-destructive"
                       aria-label={`Remove ${title}`}
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-4" />
                     </button>
                   </li>
                 );

@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   Loader2,
   LogOut,
-  Plus,
   PlusCircle,
   ScanLine,
   Search,
@@ -24,12 +23,17 @@ import {
 } from "@/lib/api";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
-import { cashierItemPrimaryLabel, isPosPackageSellRow } from "@/lib/cashier-item-display";
+import {
+  cashierItemPrimaryLabel,
+  isPosPackageSellRow,
+  posAvailablePackages,
+} from "@/lib/cashier-item-display";
 import {
   formatShelfPriceLabel,
   shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
+import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
@@ -222,39 +226,148 @@ function tileShelfLine(
 }
 
 const KIOSK_TILE_SHELL = cn(
-  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/45 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform,ring] duration-200",
-  "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] hover:shadow-md hover:ring-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-  "active:scale-[0.98] active:border-[var(--pos-primary)]",
+  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/45 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition-[box-shadow,border-color,transform] duration-200",
+  "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,var(--border))] hover:shadow-md",
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "active:scale-[0.98]",
   "dark:border-border/50 dark:bg-card dark:ring-white/[0.03]",
 );
 
-/** Shelf price on tile: high-contrast badge for glanceability. */
+/** Shelf price on tile: amount + currency only, never size/unit. */
 function KioskTileShelfBadge({ shelfLine }: { shelfLine: string }) {
   const { amount, code } = splitShelfPriceDisplay(shelfLine);
+  if (!amount) return null;
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-1.5 z-[1] max-w-[calc(100%-0.75rem)] truncate rounded-md px-1.5 py-0.5 shadow-md",
+        "pointer-events-none absolute bottom-1.5 right-1.5 z-[2] max-w-[calc(100%-0.75rem)] rounded-md px-1.5 py-0.5 shadow-md",
         "border border-neutral-900/80 bg-neutral-950 text-white",
         "dark:border-neutral-100/20 dark:bg-neutral-950",
-        "inline-flex items-baseline gap-0.5 tabular-nums",
+        "inline-flex flex-nowrap items-baseline gap-0.5 whitespace-nowrap tabular-nums",
       )}
     >
+      <span className="text-[11px] font-bold leading-none sm:text-[12px]">
+        {amount}
+      </span>
       {code ? (
-        <>
-          <span className="text-[11px] font-bold leading-none sm:text-[12px]">
-            {amount}
-          </span>
-          <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-white/75 sm:text-[8px]">
-            {code}
-          </span>
-        </>
+        <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] text-white/75 sm:text-[8px]">
+          {code}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** In-cart qty chip — persistent; briefly pulses after an add. */
+function KioskTileCartQty({
+  cartQty,
+  justAdded,
+}: {
+  cartQty: number;
+  justAdded: boolean;
+}) {
+  if (cartQty <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "absolute left-1.5 top-1.5 z-[2] inline-flex min-h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums shadow",
+        "bg-[var(--pos-primary)] text-[var(--pos-primary-ink)]",
+        justAdded && "animate-pulse ring-2 ring-white",
+      )}
+      title={`${cartQty} in cart — tap to add another`}
+    >
+      {cartQty > 99 ? "99+" : cartQty}
+    </span>
+  );
+}
+
+function tileStockTone(
+  item: Pick<
+    ItemSummaryRecord,
+    | "stockQty"
+    | "baseStockQty"
+    | "packageVariant"
+    | "packageUnitsPerSale"
+    | "variantOfItemId"
+    | "variantName"
+  >,
+): "out" | "low" | null {
+  if (isPosPackageSellRow(item)) {
+    const pkgs = posAvailablePackages(item);
+    if (pkgs == null) return null;
+    if (pkgs <= 0) return "out";
+    if (pkgs <= 3) return "low";
+    return null;
+  }
+  const raw = item.stockQty;
+  if (raw === undefined || raw === null || raw === "") return null;
+  const n = typeof raw === "string" ? Number(raw) : raw;
+  if (!Number.isFinite(n)) return null;
+  if (n <= 0) return "out";
+  if (n <= 5) return "low";
+  return null;
+}
+
+function KioskTileStockCue({ tone }: { tone: "out" | "low" | null }) {
+  if (!tone) return null;
+  return (
+    <span
+      className={cn(
+        "pointer-events-none absolute left-1.5 bottom-1.5 z-[2] rounded px-1 py-px text-[8px] font-bold uppercase tracking-wide shadow-sm",
+        tone === "out"
+          ? "bg-red-600 text-white"
+          : "bg-amber-500 text-neutral-950",
+      )}
+    >
+      {tone === "out" ? "Out" : "Low"}
+    </span>
+  );
+}
+
+function KioskTileMedia({
+  title,
+  thumb,
+  shelfLine,
+  cartQty,
+  justAdded,
+  stockTone,
+}: {
+  title: string;
+  thumb: string | null;
+  shelfLine: string;
+  cartQty: number;
+  justAdded: boolean;
+  stockTone: "out" | "low" | null;
+}) {
+  return (
+    <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
+      <span
+        className={cn(
+          "pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl bg-[var(--pos-primary)] transition-opacity duration-200",
+          cartQty > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+        )}
+        aria-hidden
+      />
+      {thumb ? (
+        <Image
+          src={thumb}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
+          className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
+          unoptimized
+        />
       ) : (
-        <span className="text-[10px] font-semibold leading-none sm:text-[11px]">
-          {amount}
+        <span
+          className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100/80 text-2xl font-bold tracking-tight text-amber-900/35 dark:from-muted/40 dark:to-muted/60 dark:text-muted-foreground/40"
+          aria-hidden
+        >
+          {title.trim().charAt(0).toUpperCase() || "?"}
         </span>
       )}
+      <KioskTileCartQty cartQty={cartQty} justAdded={justAdded} />
+      <KioskTileStockCue tone={stockTone} />
+      <KioskTileShelfBadge shelfLine={shelfLine} />
     </div>
   );
 }
@@ -263,12 +376,16 @@ function TopSellerTile({
   product,
   onPick,
   shelfLine,
+  cartQty,
+  justAdded,
 }: {
   product: TopProductRecord;
   onPick: () => void;
   shelfLine: string;
+  cartQty: number;
+  justAdded: boolean;
 }) {
-  const title = cashierItemPrimaryLabel({
+  const itemLike: ItemSummaryRecord = {
     id: product.id,
     name: product.name,
     sku: product.sku ?? "",
@@ -279,43 +396,38 @@ function TopSellerTile({
     packageUnitsPerSale: product.packageUnitsPerSale ?? undefined,
     variantOfItemId: product.variantOfItemId ?? undefined,
     thumbnailUrl: product.thumbnailUrl ?? null,
-  });
+    stockQty: product.stockQty ?? undefined,
+  };
+  const title = cashierItemPrimaryLabel(itemLike);
+  const thumb = posTileThumbUrl(product.name, product.thumbnailUrl);
+  const stockTone = tileStockTone(itemLike);
   return (
     <button
       type="button"
       onClick={onPick}
-      className={KIOSK_TILE_SHELL}
-      aria-label={`Add ${title}, ${shelfLine}`}
+      className={cn(
+        KIOSK_TILE_SHELL,
+        cartQty > 0 &&
+          "border-[color-mix(in_srgb,var(--pos-primary)_45%,var(--border))]",
+        justAdded && "shadow-md",
+        stockTone === "out" && "opacity-75",
+      )}
+      aria-label={
+        cartQty > 0
+          ? `${title}, ${cartQty} in cart. Tap to add another. ${shelfLine}`
+          : `Add ${title}, ${shelfLine}`
+      }
     >
-      <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
-        <span
-          className="pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl bg-[var(--pos-primary)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-          aria-hidden
-        />
-        {product.thumbnailUrl ? (
-          <Image
-            src={product.thumbnailUrl}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
-            className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
-            unoptimized
-          />
-        ) : (
-          <span
-            className="flex h-full w-full items-center justify-center text-2xl font-bold tracking-tight text-muted-foreground/45"
-            aria-hidden
-          >
-            {title.trim().charAt(0).toUpperCase() || "?"}
-          </span>
-        )}
-        <KioskTileShelfBadge shelfLine={shelfLine} />
-        <span className="absolute left-1.5 top-1.5 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-border/60 bg-white/95 text-[var(--pos-primary)] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 dark:bg-card/95">
-          <Plus className="size-3.5" aria-hidden />
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col px-2 pb-2 pt-1.5">
-        <p className="line-clamp-2 text-left text-[12px] font-medium leading-snug tracking-normal text-foreground/85 sm:text-[13px] dark:text-foreground/80">
+      <KioskTileMedia
+        title={title}
+        thumb={thumb}
+        shelfLine={shelfLine}
+        cartQty={cartQty}
+        justAdded={justAdded}
+        stockTone={stockTone}
+      />
+      <div className="flex min-h-[2.25rem] flex-1 flex-col justify-center px-2 pb-2 pt-1.5">
+        <p className="truncate text-left text-[12px] font-medium leading-tight tracking-normal text-foreground/85 sm:text-[13px] dark:text-foreground/80">
           {title}
         </p>
       </div>
@@ -338,62 +450,42 @@ function SearchHitTile({
   cartQty: number;
   justAdded: boolean;
 }) {
-  const thumb = itemListThumbnailUrl(item);
+  const thumb = posTileThumbUrl(item.name, itemListThumbnailUrl(item));
   const title = cashierItemPrimaryLabel(item);
   const categoryLabel = item.categoryName?.trim() || "Menu";
+  const stockTone = tileStockTone(item);
   return (
     <button
       type="button"
       onClick={onPick}
       className={cn(
         KIOSK_TILE_SHELL,
-        justAdded &&
-          "border-[var(--pos-primary)] ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
         cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))]",
+          "border-[color-mix(in_srgb,var(--pos-primary)_45%,var(--border))]",
+        justAdded && "shadow-md",
+        stockTone === "out" && "opacity-75",
       )}
-      aria-label={`Add ${title} to cart, ${shelfLine}${cartQty > 0 ? `, ${cartQty} in cart` : ""}`}
+      aria-label={
+        cartQty > 0
+          ? `${title}, ${cartQty} in cart. Tap to add another. ${shelfLine}`
+          : `Add ${title} to cart, ${shelfLine}`
+      }
     >
-      <div className="relative aspect-[4/3] w-full shrink-0 bg-gradient-to-b from-neutral-50/90 to-neutral-100/60 dark:from-muted/30 dark:to-muted/50">
-        <span
-          className={cn(
-            "pointer-events-none absolute left-0 top-0 z-[1] h-full w-1 rounded-l-xl bg-[var(--pos-primary)] transition-opacity duration-200",
-            cartQty > 0 || justAdded
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100",
-          )}
-          aria-hidden
-        />
-        {thumb ? (
-          <Image
-            src={thumb}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
-            className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
-            unoptimized
-          />
-        ) : (
-          <span
-            className="flex h-full w-full items-center justify-center text-2xl font-bold tracking-tight text-muted-foreground/45"
-            aria-hidden
-          >
-            {title.trim().charAt(0).toUpperCase() || "?"}
-          </span>
+      <KioskTileMedia
+        title={title}
+        thumb={thumb}
+        shelfLine={shelfLine}
+        cartQty={cartQty}
+        justAdded={justAdded}
+        stockTone={stockTone}
+      />
+      <div
+        className={cn(
+          "flex min-h-[2.25rem] flex-1 flex-col justify-center gap-1 px-2 pb-2 pt-1.5",
+          showCategory && "min-h-[2.75rem]",
         )}
-        <KioskTileShelfBadge shelfLine={shelfLine} />
-        {cartQty > 0 ? (
-          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--pos-primary)] px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[var(--pos-primary-ink)] shadow">
-            {cartQty > 99 ? "99+" : cartQty}
-          </span>
-        ) : (
-          <span className="absolute left-1.5 top-1.5 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-border/60 bg-white/95 text-[var(--pos-primary)] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 dark:bg-card/95">
-            <Plus className="size-3.5" aria-hidden />
-          </span>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col gap-1 px-2 pb-2 pt-1.5">
-        <p className="line-clamp-2 text-left text-[12px] font-bold leading-[1.2] tracking-tight text-neutral-950 dark:text-neutral-50 sm:text-[13px]">
+      >
+        <p className="truncate text-left text-[12px] font-bold leading-tight tracking-tight text-neutral-950 dark:text-neutral-50 sm:text-[13px]">
           {title}
         </p>
         {showCategory ? (
@@ -1016,6 +1108,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   key={p.id}
                   product={p}
                   shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
+                  cartQty={cartQtyByItem.get(p.id) ?? 0}
+                  justAdded={justAddedId === p.id}
                   onPick={() =>
                     handlePickItem({
                       id: p.id,

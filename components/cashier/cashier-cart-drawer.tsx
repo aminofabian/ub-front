@@ -400,7 +400,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       type="button"
                                       variant="outline"
                                       size="icon-sm"
-                                      className="size-6 rounded-sm border-border/60"
+                                      className="size-11 rounded-md border-border/60"
                                       aria-label="Decrease"
                                       onClick={() =>
                                         updateLine(
@@ -410,14 +410,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                         )
                                       }
                                     >
-                                      <Minus className="size-2.5" />
+                                      <Minus className="size-4" />
                                     </Button>
                                     <input
                                       type="text"
                                       inputMode="decimal"
                                       aria-label="Quantity"
                                       className={fieldClass(
-                                        "mx-0.5 h-6 w-9 rounded-sm py-0 text-center text-xs font-semibold tabular-nums",
+                                        "mx-0.5 h-11 w-12 rounded-md py-0 text-center text-sm font-semibold tabular-nums",
                                       )}
                                       value={line.quantity}
                                       onChange={(e) =>
@@ -428,7 +428,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                       type="button"
                                       variant="outline"
                                       size="icon-sm"
-                                      className="size-6 rounded-sm border-border/60"
+                                      className="size-11 rounded-md border-border/60"
                                       aria-label="Increase"
                                       onClick={() =>
                                         updateLine(
@@ -438,7 +438,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                         )
                                       }
                                     >
-                                      <Plus className="size-2.5" />
+                                      <Plus className="size-4" />
                                     </Button>
                                   </div>
                                   <span className="text-[10px] text-muted-foreground">×</span>

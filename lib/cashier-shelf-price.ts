@@ -21,19 +21,30 @@ export function formatShelfPriceLabel(
 /**
  * Split a compact shelf string like `199.00 KES` into amount + ISO code.
  * Prefersthe last amount+currency pair so accidental unit prefixes
- * (e.g. `1 kg 435 KES`) do not break the badge.
+ * (e.g. `1 kg 435 KES` or `1kg / 435 KES`) never leak into the badge.
+ * Returns only a numeric amount — never raw unit text.
  */
 export function splitShelfPriceDisplay(line: string): { amount: string; code: string | null } {
   const t = line.trim();
-  if (!t) return { amount: line, code: null };
-  const matches = [...t.matchAll(/([\d][\d.,]*)\s+([A-Za-z]{3})\b/g)];
-  const last = matches[matches.length - 1];
-  if (last) {
-    return { amount: last[1], code: last[2].toUpperCase() };
+  if (!t) return { amount: "", code: null };
+  const withCode = [...t.matchAll(/([\d][\d.,]*)\s+([A-Za-z]{3})\b/g)];
+  const lastCoded = withCode[withCode.length - 1];
+  if (lastCoded) {
+    return { amount: lastCoded[1], code: lastCoded[2].toUpperCase() };
+  }
+  // Strip leading size/unit clutter ("1kg /", "500ml ·") then take the last number.
+  const stripped = t
+    .replace(/^\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?|pk)\b/i, "")
+    .replace(/^[·/\-|]+\s*/, "")
+    .trim();
+  const nums = [...stripped.matchAll(/([\d][\d.,]*)/g)];
+  const lastNum = nums[nums.length - 1]?.[1];
+  if (lastNum) {
+    return { amount: lastNum, code: null };
   }
   const amountOnly = t.match(/^([\d][\d.,]*)$/);
   if (amountOnly) {
     return { amount: amountOnly[1], code: null };
   }
-  return { amount: t, code: null };
+  return { amount: "", code: null };
 }
