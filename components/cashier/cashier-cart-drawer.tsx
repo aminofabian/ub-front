@@ -42,6 +42,7 @@ import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone } from "@/lib/customer-phone";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
+import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
 import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { cn } from "@/lib/utils";
 
@@ -156,11 +157,7 @@ export type CashierCartDrawerProps = {
   receiptLoading: boolean;
   onStartNewSale: () => void;
   /** Branch CUPS / network printer for raw ESC/POS + cut. */
-  receiptPrinter?: {
-    cupsName?: string | null;
-    host?: string | null;
-    port?: number | null;
-  } | null;
+  receiptPrinter?: LocalReceiptPrinterTarget | null;
 };
 
 function PayMethodTile({
