@@ -88,4 +88,5 @@ export async function printPosReceipt(
   }
 
   window.print();
+  toast.message("Opened system print dialog — auto-cut needs raw ESC/POS (restart Next after setting RECEIPT_PRINTER_CUPS_NAME).");
 }

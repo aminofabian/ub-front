@@ -1,11 +1,16 @@
 import { spawn } from "node:child_process";
+import { unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createConnection } from "node:net";
 import { NextResponse } from "next/server";
 
-/** Feed past the cutter, then partial-cut variants most thermals honor. */
+/**
+ * Cut sequence proven on Caysn CN811-UB via `lp -o raw`:
+ * feed past the blade, then GS V 1 (partial cut).
+ */
 const CUT_TAIL = Buffer.from([
-  0x1b, 0x64, 0x05, // ESC d 5 — feed 5 lines
-  0x1d, 0x56, 0x42, 0x00, // GS V 66 0 — feed + partial cut
+  0x1b, 0x64, 0x08, // ESC d 8 — feed 8 lines
   0x1d, 0x56, 0x01, // GS V 1 — partial cut
 ]);
 
@@ -47,32 +52,48 @@ function sendNetwork(host: string, port: number, data: Buffer): Promise<void> {
   });
 }
 
-/** Pass raw ESC/POS through CUPS so USB thermals get cut commands intact. */
+/** Write a temp file then `lp -o raw` so CUPS does not filter ESC/POS cut bytes. */
 function sendCups(name: string, data: Buffer): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("lp", ["-d", name, "-o", "raw"], {
-      stdio: ["pipe", "pipe", "pipe"],
+  const file = join(tmpdir(), `palmart-escpos-${process.pid}-${Date.now()}.bin`);
+  return writeFile(file, data)
+    .then(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const child = spawn(
+            "lp",
+            [
+              "-d",
+              name,
+              "-o",
+              "raw",
+              "-o",
+              "document-format=application/vnd.cups-raw",
+              file,
+            ],
+            { stdio: ["ignore", "pipe", "pipe"] },
+          );
+          let stderr = "";
+          child.stderr.on("data", (chunk: Buffer) => {
+            stderr += chunk.toString();
+          });
+          child.on("error", reject);
+          child.on("close", (code) => {
+            if (code === 0) {
+              resolve();
+              return;
+            }
+            reject(
+              new Error(
+                stderr.trim() ||
+                  `lp exited ${code}. Is printer "${name}" installed? (lpstat -v)`,
+              ),
+            );
+          });
+        }),
+    )
+    .finally(() => {
+      void unlink(file).catch(() => undefined);
     });
-    let stderr = "";
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(
-        new Error(
-          stderr.trim() ||
-            `lp exited ${code}. Is printer "${name}" installed? (lpstat -v)`,
-        ),
-      );
-    });
-    child.stdin.write(data);
-    child.stdin.end();
-  });
 }
 
 /** Whether a receipt printer is configured for raw ESC/POS. */
