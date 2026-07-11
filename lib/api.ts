@@ -5431,6 +5431,8 @@ export type PostSalePayload = {
   payments: PostSalePaymentPayload[];
   /** ISO-8601 instant when the cashier completed the sale (offline-safe; server may clamp skew). */
   clientSoldAt?: string | null;
+  /** Cash handed over by customer (full cash sales) — printed as Received / Change. */
+  cashReceived?: number | string | null;
 };
 
 export type SaleItemResponseRecord = {
@@ -5461,6 +5463,8 @@ export type SaleRecord = {
   shiftId: string;
   status: string;
   grandTotal: number | string;
+  /** Cash handed over (full cash sales); used for Received / Change on receipts. */
+  cashReceived?: number | string | null;
   refundedTotal: number | string;
   journalEntryId: string;
   payments: SalePaymentResponseRecord[];
@@ -5543,6 +5547,9 @@ function buildJsonPostSaleBody(body: PostSalePayload): Record<string, unknown> {
   const cust = body.customerId?.trim();
   if (cust) {
     payload.customerId = cust;
+  }
+  if (body.cashReceived != null && body.cashReceived !== "") {
+    payload.cashReceived = body.cashReceived;
   }
   return payload;
 }

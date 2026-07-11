@@ -152,9 +152,18 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
 
   let cashReceived: number | null = null;
   let changeGiven: number | null = null;
-  if (isFullCash && cashTendered != null && cashTendered >= grandTotal) {
-    cashReceived = roundMoney2(cashTendered);
-    changeGiven = roundMoney2(cashTendered - grandTotal);
+  const persistedCash = sale.cashReceived != null ? toNumber(sale.cashReceived) : null;
+  if (isFullCash) {
+    const tender =
+      persistedCash != null && persistedCash >= grandTotal
+        ? persistedCash
+        : cashTendered != null && cashTendered >= grandTotal
+          ? cashTendered
+          : null;
+    if (tender != null) {
+      cashReceived = roundMoney2(tender);
+      changeGiven = roundMoney2(tender - grandTotal);
+    }
   }
 
   const servedBy =

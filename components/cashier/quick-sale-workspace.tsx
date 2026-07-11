@@ -1805,6 +1805,7 @@ export function QuickSaleWorkspace({
       lines: payloadLines,
       payments,
       clientSoldAt: new Date().toISOString(),
+      ...(cashTendered != null ? { cashReceived: cashTendered } : {}),
     };
 
     const linesSnapshot = lines.map((line) => ({

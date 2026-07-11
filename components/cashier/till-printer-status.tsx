@@ -101,6 +101,12 @@ export function TillPrinterStatus({ cupsName, className }: TillPrinterStatusProp
         <p className="font-mono text-[10px] text-destructive/80">
           cd frontend && node scripts/till-print-bridge.mjs
         </p>
+        <p className="text-[10px] text-destructive/80">
+          One-time autostart:{" "}
+          <code className="font-mono">
+            bash scripts/install-till-print-bridge-autostart.sh
+          </code>
+        </p>
       </div>
     </div>
   );
