@@ -281,17 +281,7 @@ function KioskTileCartQty({
   );
 }
 
-function tileStockTone(
-  item: Pick<
-    ItemSummaryRecord,
-    | "stockQty"
-    | "baseStockQty"
-    | "packageVariant"
-    | "packageUnitsPerSale"
-    | "variantOfItemId"
-    | "variantName"
-  >,
-): "out" | "low" | null {
+function tileStockTone(item: ItemSummaryRecord): "out" | "low" | null {
   if (isPosPackageSellRow(item)) {
     const pkgs = posAvailablePackages(item);
     if (pkgs == null) return null;
