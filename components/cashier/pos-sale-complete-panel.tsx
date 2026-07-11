@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { DashboardFeedback } from "@/components/dashboard-page-ui";
 import type { SaleRecord } from "@/lib/api";
 import { printPosReceipt, type LocalReceiptPrinterTarget } from "@/lib/desktop-print";
-import type { PosReceiptSnapshot } from "@/lib/pos-receipt";
 import { Permission } from "@/lib/permissions";
 import {
   formatReceiptMoney,
