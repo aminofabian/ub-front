@@ -223,6 +223,105 @@ export function storefrontSlugFromEnv(): string | null {
   return sanitizeStorefrontSlug(process.env.NEXT_PUBLIC_STOREFRONT_SLUG);
 }
 
+export type CatalogStockStatus = "in_stock" | "low_stock" | "out_of_stock";
+
+const PACKAGING_VARIANT_KEYWORDS = new Set([
+  "nylon",
+  "glass",
+  "jar",
+  "bag",
+  "sack",
+  "tin",
+  "box",
+  "bottle",
+  "packet",
+  "pouch",
+  "can",
+  "carton",
+  "crate",
+  "tray",
+  "tub",
+]);
+
+const COLOR_VARIANT_KEYWORDS = new Set([
+  "white",
+  "red",
+  "black",
+  "brown",
+  "green",
+  "yellow",
+]);
+
+/** Customer-facing stock state for catalog cards (no raw quantities). */
+export function catalogStockStatus(
+  qtyOnHand: number | null | undefined,
+): CatalogStockStatus | null {
+  if (qtyOnHand == null || !Number.isFinite(qtyOnHand)) {
+    return null;
+  }
+  if (qtyOnHand <= 0) {
+    return "out_of_stock";
+  }
+  if (qtyOnHand <= 5) {
+    return "low_stock";
+  }
+  return "in_stock";
+}
+
+export function formatCatalogStockLabel(
+  qtyOnHand: number | null | undefined,
+): string | null {
+  const status = catalogStockStatus(qtyOnHand);
+  if (!status) {
+    return null;
+  }
+  switch (status) {
+    case "out_of_stock":
+      return "Out of stock";
+    case "low_stock":
+      return "Low stock";
+    case "in_stock":
+      return "In stock";
+  }
+}
+
+/**
+ * Turn raw variant labels (e.g. "Nylon", "1Kg", "Kg") into a readable subtitle.
+ */
+export function formatCatalogVariantSubtitle(
+  variantName: string | null | undefined,
+): string | null {
+  const raw = variantName?.trim();
+  if (!raw) {
+    return null;
+  }
+
+  const compactWeight = raw.match(/^(\d+(?:\.\d+)?)\s*(kg|g|lb|oz|l|ml)$/i);
+  if (compactWeight) {
+    const [, amount, unit] = compactWeight;
+    return `${amount} ${unit.toLowerCase()}`;
+  }
+
+  const spacedWeight = raw.match(/^(\d+(?:\.\d+)?)\s+(kg|g|lb|oz|l|ml)$/i);
+  if (spacedWeight) {
+    const [, amount, unit] = spacedWeight;
+    return `${amount} ${unit.toLowerCase()}`;
+  }
+
+  const lower = raw.toLowerCase();
+  if (/^(kg|g|lb|oz|l|ml)$/.test(lower)) {
+    return `Sold by ${lower}`;
+  }
+  if (PACKAGING_VARIANT_KEYWORDS.has(lower)) {
+    return `${raw.charAt(0).toUpperCase()}${raw.slice(1).toLowerCase()} pack`;
+  }
+  if (COLOR_VARIANT_KEYWORDS.has(lower)) {
+    return `${raw.charAt(0).toUpperCase()}${raw.slice(1).toLowerCase()}`;
+  }
+
+  return raw;
+}
+
 /** On-hand quantity at the storefront catalog branch (public catalog API). */
 export function formatStoreQty(
   qtyOnHand: number | null | undefined,

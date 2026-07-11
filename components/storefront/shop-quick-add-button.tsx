@@ -288,9 +288,9 @@ export function ShopQuickAddButton({
       ) : (
         <div
           className={cn(
-            "flex w-full items-stretch gap-1 border border-border/55 bg-muted/25 transition-all duration-200",
+            "flex w-full items-stretch border border-border/55 bg-muted/20 transition-all duration-200",
             compact
-              ? "rounded-md p-0.5 hover:border-border/80 hover:bg-muted/35"
+              ? "gap-1 rounded-md p-0.5 hover:border-border/80 hover:bg-muted/30"
               : "gap-1 rounded-2xl p-1 shadow-sm backdrop-blur-sm hover:border-border hover:bg-muted/45 hover:shadow-md",
             justAdded && "animate-shop-cart-added border-primary/35",
           )}
@@ -298,7 +298,9 @@ export function ShopQuickAddButton({
           <div
             className={cn(
               "flex flex-1 items-center justify-between gap-0.5 bg-background",
-              compact ? "rounded-[5px] px-0.5" : "rounded-xl px-0.5 py-0.5 shadow-inner ring-1 ring-black/[0.03]",
+              compact
+                ? "rounded-[5px] px-0.5 ring-1 ring-border/40"
+                : "rounded-xl px-0.5 py-0.5 shadow-inner ring-1 ring-black/[0.03]",
             )}
           >
             <button
@@ -330,18 +332,26 @@ export function ShopQuickAddButton({
               >
                 {pickQty}
               </span>
-              {!compact ? (
-                pickQty > 1 ? (
-                  <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-primary/80">
-                    <Sparkles className="size-2.5" aria-hidden />
-                    pack
-                  </span>
-                ) : (
-                  <span className="mt-0.5 text-[9px] font-medium text-muted-foreground/70">
-                    qty
-                  </span>
-                )
-              ) : null}
+              {pickQty > 1 ? (
+                <span
+                  className={cn(
+                    "mt-0.5 flex items-center gap-0.5 font-semibold text-primary/80",
+                    compact ? "text-[8px]" : "text-[9px]",
+                  )}
+                >
+                  {!compact ? <Sparkles className="size-2.5" aria-hidden /> : null}
+                  pack
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "mt-0.5 font-medium text-muted-foreground/70",
+                    compact ? "text-[8px]" : "text-[9px]",
+                  )}
+                >
+                  qty
+                </span>
+              )}
             </div>
 
             <button
@@ -367,14 +377,12 @@ export function ShopQuickAddButton({
               void addPickQty();
             }}
             className={cn(
-              "group relative flex shrink-0 items-center justify-center overflow-hidden font-semibold text-white transition-all duration-200",
-              "hover:brightness-105 active:scale-[0.98] disabled:opacity-60",
+              "group relative flex shrink-0 items-center justify-center overflow-hidden bg-primary font-semibold text-primary-foreground transition-all duration-200",
+              "hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60",
               compact
-                ? "min-h-7 gap-1 rounded-md px-2 text-[10px] shadow-sm"
+                ? "min-h-7 gap-1 rounded-md border-l border-border/50 px-2.5 text-[10px] shadow-sm"
                 : "min-h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-md hover:shadow-lg",
-              !accent && "bg-primary",
             )}
-            style={accentStyle(accent)}
           >
             <span
               className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"

@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import ShopProductGrid from "@/components/storefront/shop-product-grid";
 import { ShopProductGridSkeleton } from "@/components/storefront/shop-product-grid-skeleton";
@@ -18,6 +18,40 @@ const PAGE_SIZE = 24;
 const LOAD_MARGIN = "0px 0px 300px 0px";
 const MAX_AUTO_RETRIES = 2;
 const MIN_REQUEST_INTERVAL_MS = 400;
+
+type CatalogSort = "default" | "name_asc" | "price_asc" | "price_desc";
+
+function sortCatalogItems(
+  items: PublicCatalogItemCard[],
+  sort: CatalogSort,
+): PublicCatalogItemCard[] {
+  if (sort === "default") {
+    return items;
+  }
+  const copy = [...items];
+  switch (sort) {
+    case "name_asc":
+      return copy.sort((a, b) => {
+        const left = `${a.name} ${a.variantName ?? ""}`.trim();
+        const right = `${b.name} ${b.variantName ?? ""}`.trim();
+        return left.localeCompare(right);
+      });
+    case "price_asc":
+      return copy.sort((a, b) => {
+        const left = a.price ?? Number.POSITIVE_INFINITY;
+        const right = b.price ?? Number.POSITIVE_INFINITY;
+        return left - right;
+      });
+    case "price_desc":
+      return copy.sort((a, b) => {
+        const left = a.price ?? Number.NEGATIVE_INFINITY;
+        const right = b.price ?? Number.NEGATIVE_INFINITY;
+        return right - left;
+      });
+    default:
+      return items;
+  }
+}
 
 type PageResult =
   | { ok: true; payload: PublicCatalogListPayload }
@@ -71,6 +105,12 @@ export default function ShopCatalogWithMore({
   const [error, setError] = useState<string | null>(null);
   const [willAutoRetry, setWillAutoRetry] = useState(false);
   const [newFromIndex, setNewFromIndex] = useState(0);
+  const [sort, setSort] = useState<CatalogSort>("default");
+
+  const sortedItems = useMemo(
+    () => sortCatalogItems(items, sort),
+    [items, sort],
+  );
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(items);
@@ -95,6 +135,7 @@ export default function ShopCatalogWithMore({
     retryCountRef.current = 0;
     setWillAutoRetry(false);
     setError(null);
+    setSort("default");
   }, [q, categoryId, resolvedTypeId]);
 
   // Cancel any in-flight request if the component unmounts.
@@ -298,7 +339,7 @@ export default function ShopCatalogWithMore({
   return (
     <div className="space-y-4">
       {/* Section header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           {categoryHeading ? (
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -325,15 +366,31 @@ export default function ShopCatalogWithMore({
             </h2>
           )}
         </div>
-        <span className="text-[11px] font-medium tabular-nums text-muted-foreground/50">
-          {totalCount > items.length
-            ? `${items.length} of ${totalCount}`
-            : `${items.length} ${items.length === 1 ? "item" : "items"}`}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <label className="sr-only" htmlFor="shop-catalog-sort">
+            Sort products
+          </label>
+          <select
+            id="shop-catalog-sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as CatalogSort)}
+            className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-medium text-foreground shadow-sm outline-none transition-colors hover:border-border focus-visible:ring-2 focus-visible:ring-primary/30"
+          >
+            <option value="default">Featured</option>
+            <option value="name_asc">Name A–Z</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+          </select>
+          <span className="text-[11px] font-medium tabular-nums text-muted-foreground/50">
+            {totalCount > items.length
+              ? `${items.length} of ${totalCount}`
+              : `${items.length} ${items.length === 1 ? "item" : "items"}`}
+          </span>
+        </div>
       </div>
 
       <ShopProductGrid
-        items={items}
+        items={sortedItems}
         currency={currency}
         filtered={filtered}
         clearHref={APP_ROUTES.shop}
