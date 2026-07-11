@@ -1293,7 +1293,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           lines={cart.lines}
           grandTotal={cart.grandTotal}
           pulse={pulseCart}
-          canCompleteSale={cart.canCompleteSale}
           loading={cart.loading}
           branchSelected={branchSelected}
           removeLine={cart.removeLine}

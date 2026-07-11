@@ -29,7 +29,6 @@ type CashierCartSidePanelProps = {
   lines: CartLineLike[];
   grandTotal: number;
   pulse?: boolean;
-  canCompleteSale: boolean;
   loading: boolean;
   branchSelected: boolean;
   removeLine: (key: string) => void;
@@ -53,7 +52,6 @@ export function CashierCartSidePanel({
   lines,
   grandTotal,
   pulse = false,
-  canCompleteSale,
   loading,
   branchSelected,
   removeLine,
@@ -196,14 +194,18 @@ export function CashierCartSidePanel({
               color: "var(--pos-primary-ink)",
             }}
             disabled={
-              loading || lines.length === 0 || !branchSelected || !canCompleteSale
+              loading || lines.length === 0 || !branchSelected || grandTotal <= 0
             }
             onClick={onCheckout}
           >
             {loading ? "Recording…" : "Checkout / Pay"}
           </Button>
           <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            − at 1 removes the line · Checkout opens pay options
+            {!branchSelected
+              ? "Pick a branch in the top nav to check out"
+              : lines.length === 0 || grandTotal <= 0
+                ? "Add items to enable checkout"
+                : "− at 1 removes the line · Opens cash / M-Pesa / tab"}
           </p>
         </div>
       </div>

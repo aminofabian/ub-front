@@ -157,15 +157,19 @@ export function createEmptyCartSession(): CartSession {
   };
 }
 
-/** Derive a display label: "#N", "Cart N", or customer name if selected. */
+/** Derive a display label: "Sale #N", "Cart N", or customer name if selected. */
 export function cartSessionLabel(cart: CartSession): string {
   if (cart.selectedCustomer?.name?.trim()) {
     return cart.selectedCustomer.name.trim();
   }
   if (cart.ticketNumber != null && cart.ticketNumber > 0) {
-    return `#${cart.ticketNumber}`;
+    return `Sale #${cart.ticketNumber}`;
   }
-  return cart.label;
+  const raw = cart.label?.trim() || "Cart";
+  if (/^cart\b/i.test(raw) || /^#\d+/.test(raw)) {
+    return raw.replace(/^#(\d+)/, "Sale #$1");
+  }
+  return raw;
 }
 
 /** Total item count across all lines in the cart. */

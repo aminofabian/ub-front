@@ -264,6 +264,25 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     return (tender - grandTotal).toFixed(2);
   })();
 
+  const completeBlockedHint = (() => {
+    if (loading || lines.length === 0 || !branchSelected || canCompleteSale) {
+      return null;
+    }
+    if (splitPay) {
+      return "Enter cash and M-Pesa amounts that add up to the total.";
+    }
+    if (payMethod === "cash") {
+      return "Enter amount received (or tap Exact) before completing.";
+    }
+    if (customerNeeded && !selectedCustomer) {
+      return "Select a customer for this payment method.";
+    }
+    if (payMethod === "customer_credit" && selectedCustomer) {
+      return "Confirm a valid phone for tab credit.";
+    }
+    return "Finish payment details to complete the sale.";
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -641,19 +660,37 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                   ) : null}
 
                   {!splitPay && payMethod === "cash" ? (
-                    <label className="block space-y-0.5">
-                      <span className="text-[10px] font-medium text-muted-foreground">
-                        Amount received ({currency})
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        className={fieldClass("h-8 w-full text-right text-sm font-semibold tabular-nums")}
-                        value={cashTenderStr}
-                        onChange={(e) => setCashTenderStr(e.target.value)}
-                        placeholder="0.00"
-                        required
-                      />
+                    <div className="space-y-1">
+                      <div className="flex items-end justify-between gap-2">
+                        <label className="block min-w-0 flex-1 space-y-0.5">
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            Amount received ({currency})
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className={fieldClass(
+                              "h-9 w-full text-right text-sm font-semibold tabular-nums",
+                            )}
+                            value={cashTenderStr}
+                            onChange={(e) => setCashTenderStr(e.target.value)}
+                            placeholder={grandTotal.toFixed(2)}
+                            required
+                            autoFocus
+                          />
+                        </label>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-9 shrink-0 px-2.5 text-xs font-semibold"
+                          onClick={() =>
+                            setCashTenderStr(grandTotal.toFixed(2))
+                          }
+                        >
+                          Exact
+                        </Button>
+                      </div>
                       <p className="text-[10px] text-muted-foreground">
                         {cashChange != null ? (
                           <>
@@ -664,10 +701,10 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             <CashierCurrencySuffix code={currency} />
                           </>
                         ) : (
-                          "Enter cash from customer"
+                          "Enter cash from customer, or tap Exact"
                         )}
                       </p>
-                    </label>
+                    </div>
                   ) : null}
 
                   {splitPay ? (
@@ -858,6 +895,11 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
               {!branchSelected ? (
                 <p className="mb-2 rounded-sm border border-amber-200/50 bg-amber-50/90 px-2 py-1 text-[10px] text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
                   Pick a branch in the top nav to check out.
+                </p>
+              ) : null}
+              {completeBlockedHint ? (
+                <p className="mb-2 rounded-sm border border-border/50 bg-muted/30 px-2 py-1 text-[10px] text-muted-foreground">
+                  {completeBlockedHint}
                 </p>
               ) : null}
               <Button

@@ -12,8 +12,11 @@ export function formatShelfPriceLabel(
   raw: number | string | null | undefined,
   currency: string,
 ): string | null {
-  const s = shelfPriceToInputString(raw);
-  if (!s) return null;
+  if (raw == null) return null;
+  const n = typeof raw === "string" ? Number(raw) : raw;
+  if (!Number.isFinite(n) || n < 0) return null;
+  // Always two decimals on POS badges so 450.00 and 3.90 read consistently.
+  const s = (Math.round(n * 100) / 100).toFixed(2);
   const c = currency.trim();
   return c ? `${s} ${c}` : s;
 }
