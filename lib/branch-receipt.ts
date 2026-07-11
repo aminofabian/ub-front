@@ -2,6 +2,7 @@ export type BranchReceiptSettings = {
   phone: string | null;
   email: string | null;
   website: string | null;
+  tillNumber: string | null;
   footerNote: string | null;
 };
 
@@ -9,6 +10,7 @@ export const EMPTY_BRANCH_RECEIPT: BranchReceiptSettings = {
   phone: null,
   email: null,
   website: null,
+  tillNumber: null,
   footerNote: null,
 };
 
@@ -26,6 +28,7 @@ export function parseBranchReceipt(raw: unknown): BranchReceiptSettings {
     phone: text(o.phone),
     email: text(o.email),
     website: text(o.website),
+    tillNumber: text(o.tillNumber),
     footerNote: text(o.footerNote),
   };
 }
@@ -37,6 +40,7 @@ export function branchReceiptDraft(
     phone: settings?.phone ?? "",
     email: settings?.email ?? "",
     website: settings?.website ?? "",
+    tillNumber: settings?.tillNumber ?? "",
     footerNote: settings?.footerNote ?? "",
   };
 }
@@ -50,6 +54,7 @@ export function branchReceiptPayload(draft: Record<keyof BranchReceiptSettings, 
     phone: trim(draft.phone),
     email: trim(draft.email),
     website: trim(draft.website),
+    tillNumber: trim(draft.tillNumber),
     footerNote: trim(draft.footerNote),
   };
 }

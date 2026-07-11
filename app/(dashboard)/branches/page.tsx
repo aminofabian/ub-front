@@ -689,6 +689,25 @@ export default function BranchesPage() {
                                       }
                                       aria-label={`Receipt website for ${branch.name}`}
                                     />
+                                    <input
+                                      className={cn(dashboardInputClass(), "text-sm sm:col-span-2")}
+                                      placeholder="M-Pesa Till (e.g. 3502582)"
+                                      inputMode="numeric"
+                                      value={row.receipt.tillNumber}
+                                      onChange={(e) =>
+                                        setEdits((prev) => ({
+                                          ...prev,
+                                          [branch.id]: {
+                                            ...row,
+                                            receipt: {
+                                              ...row.receipt,
+                                              tillNumber: e.target.value,
+                                            },
+                                          },
+                                        }))
+                                      }
+                                      aria-label={`M-Pesa till for ${branch.name}`}
+                                    />
                                     <textarea
                                       className={cn(dashboardTextareaClass(), "text-sm sm:col-span-2")}
                                       placeholder="Footer message on receipt (optional)"

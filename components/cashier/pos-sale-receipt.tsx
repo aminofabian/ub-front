@@ -40,6 +40,7 @@ function hasReceiptContact(receipt: PosReceiptSnapshot): boolean {
   return Boolean(
     receipt.branchAddress?.trim() ||
       receipt.branchPhone?.trim() ||
+      receipt.tillNumber?.trim() ||
       receipt.branchEmail?.trim() ||
       receipt.branchWebsite?.trim(),
   );
@@ -246,6 +247,9 @@ export function PosSaleReceipt({
               ) : null}
               {receipt.branchPhone ? (
                 <p className="pos-receipt-phone">Tel: {receipt.branchPhone}</p>
+              ) : null}
+              {receipt.tillNumber ? (
+                <p className="pos-receipt-till">M-Pesa Till: {receipt.tillNumber}</p>
               ) : null}
               {receipt.branchEmail ? (
                 <p className="pos-receipt-email">{receipt.branchEmail}</p>

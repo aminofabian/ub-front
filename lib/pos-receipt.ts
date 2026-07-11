@@ -24,6 +24,8 @@ export type PosReceiptSnapshot = {
   branchPhone?: string | null;
   branchEmail?: string | null;
   branchWebsite?: string | null;
+  /** M-Pesa till (Buy Goods) shown on the receipt. */
+  tillNumber?: string | null;
   branchReceiptMessage?: string | null;
   servedByName?: string | null;
   saleId: string;
@@ -89,6 +91,8 @@ export type BuildPosReceiptInput = {
   branchPhone?: string | null;
   branchEmail?: string | null;
   branchWebsite?: string | null;
+  /** M-Pesa till (Buy Goods) shown on the receipt. */
+  tillNumber?: string | null;
   branchReceiptMessage?: string | null;
   servedByName?: string | null;
   currency: string;
@@ -164,6 +168,7 @@ export function buildPosReceiptSnapshot(input: BuildPosReceiptInput): PosReceipt
     branchPhone: input.branchPhone?.trim() || null,
     branchEmail: input.branchEmail?.trim() || null,
     branchWebsite: input.branchWebsite?.trim() || null,
+    tillNumber: input.tillNumber?.trim() || null,
     branchReceiptMessage: input.branchReceiptMessage?.trim() || null,
     servedByName: servedBy,
     saleId: sale.id,
