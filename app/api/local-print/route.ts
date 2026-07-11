@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { createConnection } from "node:net";
 import { NextResponse } from "next/server";
 
@@ -10,15 +11,23 @@ const CUT_TAIL = Buffer.from([
 
 const MAX_BODY_BYTES = 256_000;
 
-function printerTarget(): { host: string; port: number } | null {
+type PrinterTarget =
+  | { mode: "network"; host: string; port: number }
+  | { mode: "cups"; name: string };
+
+function printerTarget(): PrinterTarget | null {
+  const cups = process.env.RECEIPT_PRINTER_CUPS_NAME?.trim();
+  if (cups) {
+    return { mode: "cups", name: cups };
+  }
   const host = process.env.RECEIPT_PRINTER_HOST?.trim();
   if (!host) return null;
   const port = Number(process.env.RECEIPT_PRINTER_PORT || 9100);
   if (!Number.isFinite(port) || port < 1 || port > 65535) return null;
-  return { host, port };
+  return { mode: "network", host, port };
 }
 
-function sendRaw(host: string, port: number, data: Buffer): Promise<void> {
+function sendNetwork(host: string, port: number, data: Buffer): Promise<void> {
   return new Promise((resolve, reject) => {
     const socket = createConnection({ host, port }, () => {
       socket.write(data, (writeErr) => {
@@ -38,22 +47,59 @@ function sendRaw(host: string, port: number, data: Buffer): Promise<void> {
   });
 }
 
-/** Whether a LAN thermal printer is configured for raw ESC/POS. */
+/** Pass raw ESC/POS through CUPS so USB thermals get cut commands intact. */
+function sendCups(name: string, data: Buffer): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("lp", ["-d", name, "-o", "raw"], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(
+        new Error(
+          stderr.trim() ||
+            `lp exited ${code}. Is printer "${name}" installed? (lpstat -v)`,
+        ),
+      );
+    });
+    child.stdin.write(data);
+    child.stdin.end();
+  });
+}
+
+/** Whether a receipt printer is configured for raw ESC/POS. */
 export async function GET() {
   const target = printerTarget();
   if (!target) {
     return NextResponse.json({ configured: false });
   }
+  if (target.mode === "cups") {
+    return NextResponse.json({
+      configured: true,
+      mode: "cups",
+      name: target.name,
+    });
+  }
   return NextResponse.json({
     configured: true,
+    mode: "network",
     host: target.host,
     port: target.port,
   });
 }
 
 /**
- * Accept raw ESC/POS bytes and write them to RECEIPT_PRINTER_HOST:PORT (default 9100).
- * Used by cloud/dev cashier when the desktop device bridge is not available.
+ * Accept raw ESC/POS bytes and print them.
+ * - RECEIPT_PRINTER_CUPS_NAME → USB/local via `lp -o raw` (e.g. Caysn_CN811_UB)
+ * - RECEIPT_PRINTER_HOST → network TCP :9100
  */
 export async function POST(request: Request) {
   const target = printerTarget();
@@ -61,7 +107,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "RECEIPT_PRINTER_HOST is not set. Add the printer LAN IP to frontend/.env.local and restart Next.js.",
+          "No printer configured. Set RECEIPT_PRINTER_CUPS_NAME (USB, from `lpstat -v`) or RECEIPT_PRINTER_HOST (LAN IP) in frontend/.env.local and restart Next.js.",
       },
       { status: 503 },
     );
@@ -78,19 +124,22 @@ export async function POST(request: Request) {
   const payload = Buffer.concat([body, CUT_TAIL]);
 
   try {
-    await sendRaw(target.host, target.port, payload);
+    if (target.mode === "cups") {
+      await sendCups(target.name, payload);
+    } else {
+      await sendNetwork(target.host, target.port, payload);
+    }
   } catch (e) {
     const message =
-      e instanceof Error
-        ? e.message
-        : `Could not reach printer at ${target.host}:${target.port}`;
+      e instanceof Error ? e.message : "Could not reach the receipt printer";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
   return NextResponse.json({
     ok: true,
     bytes: payload.length,
-    host: target.host,
-    port: target.port,
+    ...(target.mode === "cups"
+      ? { mode: "cups", name: target.name }
+      : { mode: "network", host: target.host, port: target.port }),
   });
 }
