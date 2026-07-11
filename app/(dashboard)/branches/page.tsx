@@ -57,7 +57,7 @@ const EMPTY_DRAFT: BranchDraft = { name: "", address: "" };
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
 export default function BranchesPage() {
-  const { refreshSession, canManageBusinessSettings } = useDashboard();
+  const { refreshSession, refreshBranches, canManageBusinessSettings } = useDashboard();
   const [rows, setRows] = useState<BranchRecord[]>([]);
   const [draft, setDraft] = useState<BranchDraft>(EMPTY_DRAFT);
   const [edits, setEdits] = useState<Record<string, BranchEditRow>>({});
@@ -178,6 +178,7 @@ export default function BranchesPage() {
         receipt: branchReceiptPayload(row.receipt),
       });
       await load();
+      await refreshBranches();
       setFeedback({ kind: "success", text: "Branch updated." });
     } catch (error) {
       setFeedback({

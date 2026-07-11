@@ -2547,6 +2547,7 @@ export function QuickSaleWorkspace({
             cupsName:
               branches.find((b) => b.id === branchId.trim())?.receipt
                 ?.printerCupsName ?? null,
+            branchId: branchId.trim() || null,
           },
         }}
       />
