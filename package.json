@@ -8,6 +8,7 @@
     "dev:turbo": "next dev",
     "build": "rm -rf .next/cache && next build --webpack && node scripts/verify-legacy-safe.mjs",
     "build:desktop": "node scripts/build-desktop.mjs",
+    "till-print-bridge": "node scripts/till-print-bridge.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "bun test",

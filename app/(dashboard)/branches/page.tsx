@@ -747,20 +747,22 @@ export default function BranchesPage() {
                                     />
                                   </div>
                                   <p className={dashboardHintClass()}>
-                                    Leave blank to omit.{" "}
                                     <strong className="font-medium text-foreground">
-                                      Receipt printer CUPS name
+                                      Cloud cashier + USB printer:
                                     </strong>{" "}
-                                    is only used when printing from{" "}
-                                    <strong className="font-medium text-foreground">
-                                      Palmart Desktop
-                                    </strong>{" "}
-                                    or a till that runs Next locally — not from the
-                                    cloud website. Get the name with{" "}
-                                    <code className="text-xs">lpstat -v</code> on the
-                                    till Mac. Use{" "}
+                                    on the till Mac run{" "}
+                                    <code className="text-xs">
+                                      node scripts/till-print-bridge.mjs
+                                    </code>{" "}
+                                    (frontend folder) or double-click{" "}
+                                    <code className="text-xs">
+                                      scripts/start-till-print-bridge.command
+                                    </code>
+                                    . CUPS name from{" "}
+                                    <code className="text-xs">lpstat -v</code> (text before the
+                                    colon, e.g. Caysn_CN811_UB). Use{" "}
                                     <strong className="font-medium text-foreground">Save</strong>{" "}
-                                    in the row above to persist.
+                                    above.
                                   </p>
                                 </div>
                               </Collapsible.Content>

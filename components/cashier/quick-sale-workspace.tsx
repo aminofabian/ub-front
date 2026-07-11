@@ -82,11 +82,13 @@ import {
   isValidCustomerPhone,
 } from "@/lib/customer-phone";
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
+import { IS_DESKTOP } from "@/lib/runtime";
 import {
   buildPosReceiptSnapshot,
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
+import { TillPrinterStatus } from "./till-printer-status";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { PendingSalesPanel } from "./pending-sales-panel";
 import {
@@ -2470,6 +2472,16 @@ export function QuickSaleWorkspace({
                 onShortcut: onPosShiftShortcut,
               }
             : null
+        }
+        tillPrinterStatus={
+          !IS_DESKTOP ? (
+            <TillPrinterStatus
+              cupsName={
+                branches.find((b) => b.id === branchId.trim())?.receipt
+                  ?.printerCupsName ?? null
+              }
+            />
+          ) : null
         }
         cartTabs={carts.map((c) => ({
           grandTotal: cartSessionGrandTotal(c),

@@ -84,6 +84,8 @@ export type CashierPosLayoutProps = {
   online: boolean;
   /** Extra offline hint (e.g. draft mirror pending sync). */
   offlineBanner?: string | null;
+  /** Cloud cashier: till bridge + CUPS printer readiness. */
+  tillPrinterStatus?: React.ReactNode;
   currency: string;
   uiCopy: CashierPosUiCopy;
   activeBranchName: string;
@@ -544,6 +546,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     brandTheme,
     online,
     offlineBanner,
+    tillPrinterStatus,
     currency,
     uiCopy,
     activeBranchName,
@@ -854,6 +857,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           <p className="mt-2 text-[10px] leading-snug text-amber-800 dark:text-amber-200">
             {offlineBanner}
           </p>
+        ) : null}
+        {tillPrinterStatus ? (
+          <div className="mt-2 print:hidden">{tillPrinterStatus}</div>
         ) : null}
       </section>
 

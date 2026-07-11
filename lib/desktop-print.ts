@@ -2,6 +2,11 @@
 
 import { apiRequest, fetchBranches, fetchSaleReceiptThermal } from "@/lib/api";
 import { IS_DESKTOP } from "@/lib/runtime";
+import {
+  isTillPrintBridgeUp,
+  printEscPosViaTillBridge,
+  TILL_BRIDGE_START_HINT,
+} from "@/lib/till-print-bridge";
 import { toast } from "sonner";
 
 /** Default thermal roll width for ESC/POS and browser print (80mm). */
@@ -10,25 +15,21 @@ export const DESKTOP_THERMAL_WIDTH_MM = 80;
 export type LocalReceiptPrinterTarget = {
   /** CUPS queue from branch settings (`lpstat -v`), e.g. Caysn_CN811_UB. */
   cupsName?: string | null;
-  /** Optional network raw printer (port 9100). */
+  /** Optional network raw printer (port 9100) — till bridge network mode TBD. */
   host?: string | null;
   port?: number | null;
-  /** When set, re-fetch branch receipt settings if cupsName/host are missing. */
+  /** When set, re-fetch branch receipt settings if cupsName is missing. */
   branchId?: string | null;
 };
 
-type LocalPrintStatus = {
-  available?: boolean;
-};
-
-function hasPrinterTarget(target?: LocalReceiptPrinterTarget | null): boolean {
-  return Boolean(target?.cupsName?.trim() || target?.host?.trim());
+function hasCupsTarget(target?: LocalReceiptPrinterTarget | null): boolean {
+  return Boolean(target?.cupsName?.trim());
 }
 
 async function resolvePrinterTarget(
   printer?: LocalReceiptPrinterTarget | null,
 ): Promise<LocalReceiptPrinterTarget | null> {
-  if (hasPrinterTarget(printer)) {
+  if (hasCupsTarget(printer)) {
     return {
       cupsName: printer?.cupsName?.trim() || null,
       host: printer?.host?.trim() || null,
@@ -42,7 +43,7 @@ async function resolvePrinterTarget(
     const list = await fetchBranches();
     const branch = list.find((b) => b.id === branchId);
     const cupsName = branch?.receipt?.printerCupsName?.trim() || null;
-    if (!cupsName) return printer ?? null;
+    if (!cupsName) return { ...printer, branchId, cupsName: null };
     return { ...printer, cupsName, branchId };
   } catch {
     return printer ?? null;
@@ -52,10 +53,14 @@ async function resolvePrinterTarget(
 /**
  * Print a completed sale on the configured ESC/POS printer.
  *
- * Order:
- * 1. Desktop device bridge when `NEXT_PUBLIC_RUNTIME=desktop`
- * 2. Local CUPS/`lp` via `/api/local-print` (only when Next runs on the till Mac)
- * 3. Browser print dialog (cloud — no auto-cut)
+ * Cloud (online) cashier:
+ *   1. Java API builds ESC/POS + cut bytes
+ *   2. Browser POSTs to Till Print Bridge on this Mac (127.0.0.1:19500)
+ *   3. Bridge runs `lp -o raw` with branch CUPS name from admin settings
+ *
+ * Palmart Desktop: JVM device bridge (Settings → Desktop & LAN).
+ *
+ * Fallback: system print dialog (no auto-cut).
  */
 export async function printPosReceipt(
   saleId: string,
@@ -86,62 +91,34 @@ export async function printPosReceipt(
     return;
   }
 
-  let localAvailable = false;
-  try {
-    const statusRes = await fetch("/api/local-print", { method: "GET" });
-    if (statusRes.ok) {
-      const status = (await statusRes.json()) as LocalPrintStatus;
-      localAvailable = Boolean(status.available);
-    }
-  } catch {
-    // Cloud / route missing — fall through to browser print.
-  }
-
   const resolved = await resolvePrinterTarget(printer);
+  const cupsName = resolved?.cupsName?.trim();
 
-  // CUPS only works when this Next process runs on the till (has /usr/bin/lp).
-  // Online (Vercel) always falls through to the system dialog.
-  if (localAvailable && hasPrinterTarget(resolved)) {
-    try {
-      const escpos = await fetchSaleReceiptThermal(id, widthMm);
-      const headers: Record<string, string> = {
-        "Content-Type": "application/octet-stream",
-      };
-      const cups = resolved?.cupsName?.trim();
-      const host = resolved?.host?.trim();
-      if (cups) {
-        headers["X-Printer-Cups-Name"] = cups;
-      } else if (host) {
-        headers["X-Printer-Host"] = host;
-        if (resolved?.port != null && Number.isFinite(resolved.port)) {
-          headers["X-Printer-Port"] = String(resolved.port);
-        }
-      }
-      const printRes = await fetch("/api/local-print", {
-        method: "POST",
-        headers,
-        body: escpos,
-      });
-      if (!printRes.ok) {
-        const payload = (await printRes.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        throw new Error(
-          payload.error ||
-            `Printer returned HTTP ${printRes.status}. Check Branches → Receipt printer.`,
-        );
-      }
-      toast.success("Sent to receipt printer.");
-    } catch (e) {
-      toast.error(
-        e instanceof Error
-          ? e.message
-          : "Could not reach the receipt printer.",
-      );
-      throw e;
-    }
+  if (!cupsName) {
+    toast.message(
+      "No receipt printer configured for this branch. Set CUPS name under Branches → Receipt details, then Save.",
+      { duration: 10_000 },
+    );
     return;
   }
 
-  window.print();
+  const bridgeUp = await isTillPrintBridgeUp();
+  if (!bridgeUp) {
+    toast.error(
+      `Till Print Bridge is not running on this Mac. ${TILL_BRIDGE_START_HINT}`,
+      { duration: 14_000 },
+    );
+    return;
+  }
+
+  try {
+    const escpos = await fetchSaleReceiptThermal(id, widthMm);
+    await printEscPosViaTillBridge(escpos, cupsName);
+    toast.success("Sent to receipt printer.");
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : "Could not reach the receipt printer.";
+    toast.error(msg, { duration: 10_000 });
+    throw e;
+  }
 }
