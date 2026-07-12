@@ -27,6 +27,20 @@ import {
 } from "./config";
 import { normalizeNotificationData } from "./notification-display";
 
+/** Parse notification timestamps from REST (ISO string, epoch ms/s, etc.). */
+function coerceNotificationTimestamp(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
+    const ms = Date.parse(value);
+    return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // Heuristic: seconds vs milliseconds
+    const ms = value < 1e12 ? value * 1000 : value;
+    return new Date(ms).toISOString();
+  }
+  return null;
+}
+
 // ── Types ──
 
 export type RealtimeEventType =
@@ -290,6 +304,12 @@ export class RealtimeClient {
   private ticketRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   /** Tracks last-seen notification id to avoid duplicate emissions during REST polling. */
   private lastPollNotificationId: string | null = null;
+  /**
+   * First successful notifications poll only baselines the newest id.
+   * Never reset this when restarting REST fallback — otherwise reconnects
+   * replay inbox history (and cashiers re-print old web orders).
+   */
+  private notificationsPollBaselined = false;
   /** Single-flight connect guard — prevents parallel ticket mint + socket opens. */
   private connectPromise: Promise<void> | null = null;
   /** Bumped whenever a socket is torn down so stale onclose handlers are ignored. */
@@ -733,7 +753,8 @@ export class RealtimeClient {
   private startRestPolling(): void {
     if (!this.channels.includes("notifications")) return;
     if (this.pollTimer) return;
-    this.lastPollNotificationId = null; // reset dedup tracker on new poll cycle
+    // Keep lastPollNotificationId / notificationsPollBaselined across WS↔REST
+    // flips so we never replay the inbox after a reconnect.
     console.debug(
       "[realtime] Starting REST polling fallback at",
       REST_POLL_INTERVAL_MS,
@@ -764,38 +785,40 @@ export class RealtimeClient {
       if (response.ok) {
         const notifications = await response.json();
         if (Array.isArray(notifications)) {
-          // First poll: baseline the newest id without replaying history
-          // (otherwise reconnects/catch-up would re-fire old web-order prints).
-          if (!this.lastPollNotificationId) {
-            if (notifications.length > 0 && notifications[0]?.id) {
-              this.lastPollNotificationId = notifications[0].id as string;
-            } else {
-              this.lastPollNotificationId = "__empty__";
+          const newestId =
+            notifications.length > 0 && notifications[0]?.id
+              ? String(notifications[0].id)
+              : null;
+
+          // Baseline only — never emit historical inbox rows.
+          // Also covers empty→non-empty: still baseline, do not dump the list.
+          if (!this.notificationsPollBaselined || !this.lastPollNotificationId) {
+            if (newestId) {
+              this.lastPollNotificationId = newestId;
             }
+            this.notificationsPollBaselined = true;
             return;
           }
 
           for (const n of notifications) {
             // Deduplicate: only emit notifications newer than lastPollNotificationId
-            if (
-              this.lastPollNotificationId &&
-              this.lastPollNotificationId !== "__empty__" &&
-              n.id === this.lastPollNotificationId
-            ) {
+            if (n.id === this.lastPollNotificationId) {
               break; // notifications are ordered by created_at DESC
             }
+            const createdAt = coerceNotificationTimestamp(n.createdAt);
             this.handlers.onNotification?.({
               v: 1,
               type: "notification.created",
               eventId: n.id ?? "",
-              at: n.createdAt ?? new Date().toISOString(),
+              // Never invent "now" — that makes old rows look brand new to printers.
+              at: createdAt ?? "",
               priority: "MEDIUM",
               data: normalizeNotificationData(n as Record<string, unknown>),
             });
           }
           // Remember the newest notification id for next poll
-          if (notifications.length > 0 && notifications[0].id) {
-            this.lastPollNotificationId = notifications[0].id as string;
+          if (newestId) {
+            this.lastPollNotificationId = newestId;
           }
         }
       }

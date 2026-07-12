@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getNotificationPresentation } from "@/lib/notification-display";
 import { getSessionTokens } from "@/lib/auth";
+import { fetchWebOrderDetail } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import {
   DESKTOP_THERMAL_WIDTH_MM,
@@ -43,6 +44,17 @@ function readPayloadField(
   return "";
 }
 
+function parseTimestampMs(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const ms = Date.parse(value);
+    return Number.isFinite(ms) ? ms : null;
+  }
+  return null;
+}
+
 function alreadyPrintedWebOrder(orderId: string): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -61,19 +73,48 @@ function markWebOrderPrinted(orderId: string): void {
   }
 }
 
+function unmarkWebOrderPrinted(orderId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(PRINT_DONE_PREFIX + orderId);
+  } catch {
+    // ignore
+  }
+}
+
 function orderPlacedAtMs(frame: RealtimeFrame, data: Record<string, unknown>): number | null {
-  const candidates = [
+  const nested =
+    data.payload && typeof data.payload === "object" && !Array.isArray(data.payload)
+      ? (data.payload as Record<string, unknown>)
+      : null;
+  const candidates: unknown[] = [
     frame.at,
+    data.createdAt,
+    nested?.createdAt,
+    nested?.placedAt,
     readPayloadField(data, "createdAt"),
     readPayloadField(data, "placedAt"),
-    typeof data.createdAt === "string" ? data.createdAt : "",
   ];
   for (const raw of candidates) {
-    if (!raw?.trim()) continue;
-    const ms = Date.parse(raw);
-    if (Number.isFinite(ms)) return ms;
+    const ms = parseTimestampMs(raw);
+    if (ms != null) return ms;
   }
   return null;
+}
+
+async function resolveOrderPlacedAtMs(
+  frame: RealtimeFrame,
+  data: Record<string, unknown>,
+  orderId: string,
+): Promise<number | null> {
+  const fromFrame = orderPlacedAtMs(frame, data);
+  if (fromFrame != null) return fromFrame;
+  try {
+    const detail = await fetchWebOrderDetail(orderId);
+    return parseTimestampMs(detail.createdAt);
+  } catch {
+    return null;
+  }
 }
 
 function showCashierOrderToast(frame: RealtimeFrame) {
@@ -121,13 +162,13 @@ async function autoPrintPlacedOrder(
     return;
   }
 
-  // Never reprint an order this till already printed.
+  // Never reprint an order this till already printed / suppressed.
   if (alreadyPrintedWebOrder(orderId)) return;
 
-  const placedAt = orderPlacedAtMs(frame, data);
-  // When we have a timestamp, only print recent orders (< 1 hour).
-  // Missing timestamps are treated as live (REST poll no longer replays history).
-  if (placedAt != null && Date.now() - placedAt > PRINT_MAX_AGE_MS) {
+  const placedAt = await resolveOrderPlacedAtMs(frame, data, orderId);
+  // Fail closed: no timestamp, or older than 1 hour → suppress forever (no print).
+  if (placedAt == null || Date.now() - placedAt > PRINT_MAX_AGE_MS) {
+    markWebOrderPrinted(orderId);
     return;
   }
 
@@ -141,11 +182,9 @@ async function autoPrintPlacedOrder(
     { quiet: true },
   );
   if (!ok) {
-    // Allow a later retry if the printer/bridge was down.
-    try {
-      window.localStorage.removeItem(PRINT_DONE_PREFIX + orderId);
-    } catch {
-      // ignore
+    // Retry later only while the order is still inside the 1-hour window.
+    if (Date.now() - placedAt <= PRINT_MAX_AGE_MS) {
+      unmarkWebOrderPrinted(orderId);
     }
   }
 }
