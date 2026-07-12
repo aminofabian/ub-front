@@ -28,6 +28,13 @@ export type InventoryForm = {
   allowNegativeStock: boolean;
 };
 
+export type PosDraftsForm = {
+  enabled: boolean;
+  uiVisible: boolean;
+  shadowWrites: boolean;
+  offlineMirror: boolean;
+};
+
 export type CashierCapabilitiesForm = {
   priceEdit: boolean;
   createProduct: boolean;
