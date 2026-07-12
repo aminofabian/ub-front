@@ -119,7 +119,9 @@ export function useCatalogList(
       catalogScope,
       barcode: barcodeExact.trim() || undefined,
       branchId: branchIdForStock,
-      itemTypeId: itemTypeIdForList,
+      // Typed search should find the product even if it was created under a
+      // different department than the header scope (common for POS quick-create).
+      itemTypeId: debouncedSearch.trim() ? undefined : itemTypeIdForList,
     }),
     [
       filterCategoryId,
@@ -128,6 +130,7 @@ export function useCatalogList(
       barcodeExact,
       branchIdForStock,
       itemTypeIdForList,
+      debouncedSearch,
     ],
   );
 

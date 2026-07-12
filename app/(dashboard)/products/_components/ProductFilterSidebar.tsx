@@ -116,7 +116,11 @@ export function ProductFilterSidebar({ catalog }: Props) {
             ) : null}
           </div>
           <span className={catalogFilterHintClass}>
-            {searchPending ? "Updating…" : "/ to focus"}
+            {searchPending
+              ? "Updating…"
+              : catalog.debouncedSearch.trim()
+                ? "All departments"
+                : "/ to focus"}
           </span>
         </label>
 

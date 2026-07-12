@@ -90,6 +90,12 @@ export function CatalogListColumn({
             {filtersActive ? (
               <span className="text-muted-foreground"> · filtered</span>
             ) : null}
+            {catalog.debouncedSearch.trim() ? (
+              <span className="text-muted-foreground">
+                {" "}
+                · searching all departments
+              </span>
+            ) : null}
           </p>
           <div
             className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-l border-border/40 pl-2"
