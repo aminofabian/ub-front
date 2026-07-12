@@ -173,6 +173,11 @@ export type CashierPosLayoutProps = {
   allowNegativeStock?: boolean;
   /** Override shelf unit prices (permission or admin flag). */
   allowPriceEdit?: boolean;
+  /**
+   * Admins with pricing.sell_price.set may also write the shelf price
+   * when editing a cart line from POS.
+   */
+  canPersistShelfPrice?: boolean;
   /** Quick-create products from POS. */
   allowCreateProduct?: boolean;
   /** Admin can toggle cashier capability flags. */
@@ -669,6 +674,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     onRemoveCart,
     allowNegativeStock = false,
     allowPriceEdit = false,
+    canPersistShelfPrice = false,
     allowCreateProduct = false,
     canManageCashierCapabilities = false,
     priceEditFlagEnabled = false,
@@ -1721,10 +1727,22 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         currentPrice={
           cart.lines.find((l) => l.key === editPriceKey)?.unitPrice ?? ""
         }
+        itemId={cart.lines.find((l) => l.key === editPriceKey)?.itemId ?? null}
+        branchId={branchId}
+        online={online}
+        canUpdateCatalog={canPersistShelfPrice}
         onSave={(unitPrice) => {
           if (editPriceKey) {
             cart.updateLine(editPriceKey, "unitPrice", unitPrice);
           }
+        }}
+        onCatalogPriceSaved={(savedItemId, price) => {
+          const label = formatShelfPriceLabel(price, currency);
+          if (!label) return;
+          setTileShelfPrices((prev) => ({
+            ...prev,
+            [savedItemId]: label,
+          }));
         }}
       />
 

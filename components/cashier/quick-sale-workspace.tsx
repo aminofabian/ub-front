@@ -241,6 +241,10 @@ export function QuickSaleWorkspace({
   const allowPriceEdit =
     hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
     priceEditFlagEnabled;
+  const canPersistShelfPrice = hasPermission(
+    me?.permissions,
+    Permission.PricingSellPriceSet,
+  );
   const allowCreateProduct =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     createProductFlagEnabled;
@@ -2586,6 +2590,7 @@ export function QuickSaleWorkspace({
         onRemoveCart={removeCart}
         allowNegativeStock={allowNegativeStock}
         allowPriceEdit={allowPriceEdit}
+        canPersistShelfPrice={canPersistShelfPrice}
         allowCreateProduct={allowCreateProduct}
         canManageCashierCapabilities={canManageCashierCapabilities}
         priceEditFlagEnabled={priceEditFlagEnabled}
