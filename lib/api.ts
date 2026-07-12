@@ -56,6 +56,8 @@ type RequestOptions = {
   idempotencyKey?: string;
   /** When false, suppresses the automatic error toast (e.g. expected 409 conflicts). */
   toast?: boolean;
+  /** Override client fetch abort timeout (default 25s). STK retries may need longer. */
+  timeoutMs?: number;
 };
 
 /** Thrown for non-OK API responses; message includes validation field errors when present. */
@@ -191,11 +193,12 @@ const CLIENT_FETCH_TIMEOUT_MS = 25_000;
 function fetchWithClientTimeout(
   url: string,
   init: RequestInit,
+  timeoutMs: number = CLIENT_FETCH_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = window.setTimeout(
     () => controller.abort(),
-    CLIENT_FETCH_TIMEOUT_MS,
+    Math.max(1_000, timeoutMs),
   );
   const { signal: existingSignal, ...rest } = init;
   if (existingSignal) {
@@ -1204,6 +1207,7 @@ async function request<T>(
     requiresAuth = true,
     idempotencyKey: explicitIdempotencyKey,
     toast: suppressToast,
+    timeoutMs,
   }: RequestOptions = {},
 ): Promise<T> {
   if (isDesktopLicenseWriteBlocked(method, path)) {
@@ -1246,12 +1250,16 @@ async function request<T>(
       headers.set("Idempotency-Key", idem);
     }
     try {
-      return await fetchWithClientTimeout(apiUrl(path), {
-        method,
-        headers,
-        credentials: AUTH_FETCH_CREDENTIALS,
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      return await fetchWithClientTimeout(
+        apiUrl(path),
+        {
+          method,
+          headers,
+          credentials: AUTH_FETCH_CREDENTIALS,
+          body: body ? JSON.stringify(body) : undefined,
+        },
+        timeoutMs ?? CLIENT_FETCH_TIMEOUT_MS,
+      );
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new Error(
@@ -6773,6 +6781,8 @@ export async function initiatePosStkPush(
     method: "POST",
     body,
     idempotencyKey,
+    // Backend may poll KopoKopo + backoff ~15–20s when a prior prompt is clearing.
+    timeoutMs: 55_000,
   });
 }
 

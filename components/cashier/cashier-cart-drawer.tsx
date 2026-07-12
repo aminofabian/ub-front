@@ -639,7 +639,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         </>
                       ) : stkPushStatus === "sending" ? (
                         <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-center text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
-                          Sending STK Push…
+                          Sending M-Pesa prompt… (may take a few seconds if clearing a previous one)
                         </p>
                       ) : stkPushStatus === "sent" ? (
                         <div className="space-y-2">
