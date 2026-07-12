@@ -6810,8 +6810,8 @@ export async function initiatePosStkPush(
     method: "POST",
     body,
     idempotencyKey,
-    // Backend may poll KopoKopo + backoff ~15–20s when a prior prompt is clearing.
-    timeoutMs: 55_000,
+    // Backend may poll KopoKopo + backoff ~45–60s when Safaricom still holds a phone lock.
+    timeoutMs: 70_000,
   });
 }
 
