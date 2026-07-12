@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Image from "next/image";
 import {
   ChevronLeft,
@@ -35,6 +42,7 @@ import {
 } from "@/lib/cashier-shelf-price";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { useMediaLg } from "@/hooks/use-media-lg";
+import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
@@ -644,6 +652,37 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   >({});
   const isLg = useMediaLg();
   const compactShelf = !embeddedInDashboard;
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const focusSearch = useCallback((select = false) => {
+    const el = searchInputRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    if (select) {
+      el.select();
+    }
+  }, []);
+
+  const applyBarcodeSearch = useCallback(
+    (code: string) => {
+      const trimmed = code.trim();
+      if (!trimmed) return;
+      setSearch(trimmed);
+      // Next frame so the controlled value is painted, then select for the next scan.
+      window.requestAnimationFrame(() => focusSearch(true));
+    },
+    [setSearch, focusSearch],
+  );
+
+  usePosBarcodeWedge({
+    enabled: !drawerOpen && !modalOpen && !showScanner,
+    onScan: applyBarcodeSearch,
+    searchInputRef,
+  });
+
+  useEffect(() => {
+    focusSearch();
+  }, [focusSearch]);
 
   const hitIdsKey = useMemo(
     () =>
@@ -695,6 +734,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }, 700);
     if (!isLg) {
       setDrawerOpen(true);
+    } else {
+      // Keep the wedge / keyboard ready for the next scan.
+      window.requestAnimationFrame(() => focusSearch(true));
     }
   };
 
@@ -743,8 +785,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   useEffect(() => {
     if (checkoutCompletedKey > 0) {
       setDrawerOpen(false);
+      window.requestAnimationFrame(() => focusSearch(true));
     }
-  }, [checkoutCompletedKey]);
+  }, [checkoutCompletedKey, focusSearch]);
 
   useEffect(() => {
     if (!online) {
@@ -1056,9 +1099,15 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <ScanLine className="size-5" />
             </button>
             <input
+              ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                // Select so the next hardware scan replaces this code.
+                window.requestAnimationFrame(() => focusSearch(true));
+              }}
               placeholder={
                 categoryFilterId
                   ? "Search within this aisle…"
@@ -1073,6 +1122,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   : "h-12 text-[15px] sm:h-[3.25rem] sm:text-base",
               )}
               autoComplete="off"
+              autoFocus
               enterKeyHint="search"
               aria-label="Search products"
             />
@@ -1546,7 +1596,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         brandTheme={dialogBrandTheme}
         onOpenChange={(o) => {
           setModalOpen(o);
-          if (!o) setPickedItem(null);
+          if (!o) {
+            setPickedItem(null);
+            window.requestAnimationFrame(() => focusSearch(true));
+          }
         }}
         onSubmit={handleAddFromModal}
         allowNegativeStock={allowNegativeStock}
@@ -1563,6 +1616,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) {
             cart.onStartNewSale();
           }
+          if (!open) {
+            window.requestAnimationFrame(() => focusSearch(true));
+          }
         }}
         online={online}
         currency={currency}
@@ -1574,10 +1630,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {showScanner && (
         <BarcodeScanner
           onScan={(barcode) => {
-            setSearch(barcode);
+            applyBarcodeSearch(barcode);
             setShowScanner(false);
           }}
-          onClose={() => setShowScanner(false)}
+          onClose={() => {
+            setShowScanner(false);
+            window.requestAnimationFrame(() => focusSearch());
+          }}
         />
       )}
     </div>

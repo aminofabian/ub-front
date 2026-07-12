@@ -163,6 +163,16 @@ function isSaleVoided(sale: SaleRecord): boolean {
   return v != null && String(v).length > 0;
 }
 
+/** Fast path for USB wedge / GTIN / GI-* scans (skip the typing debounce). */
+function looksLikePosBarcodeQuery(q: string): boolean {
+  const t = q.trim();
+  if (t.length < 4 || /\s/.test(t)) return false;
+  if (t.startsWith("GI-")) return true;
+  if (/^\d{8,18}$/.test(t)) return true;
+  // Common retail / internal codes: no spaces, mostly alnum
+  return /^[A-Za-z0-9._\-]{6,64}$/.test(t);
+}
+
 export type QuickSaleWorkspaceVariant = "admin" | "cashier";
 
 type QuickSaleWorkspaceProps = {
@@ -1284,7 +1294,7 @@ export function QuickSaleWorkspace({
               : "Could not reach API and no cache for this search.",
           );
         });
-    }, 320);
+    }, looksLikePosBarcodeQuery(q) ? 40 : 320);
     return () => window.clearTimeout(t);
   }, [canSell, search, online, categoryFilterId, branchId, posItemTypeId]);
 
