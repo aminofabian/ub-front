@@ -32,6 +32,7 @@ type CashierCartSidePanelProps = {
   loading: boolean;
   branchSelected: boolean;
   className?: string;
+  allowPriceEdit?: boolean;
   removeLine: (key: string) => void;
   updateLine: (
     key: string,
@@ -39,6 +40,7 @@ type CashierCartSidePanelProps = {
     value: string,
   ) => void;
   onCheckout: () => void;
+  onEditPrice?: (key: string) => void;
 };
 
 function lineSubtotal(line: CartLineLike): number {
@@ -56,9 +58,11 @@ export function CashierCartSidePanel({
   loading,
   branchSelected,
   className,
+  allowPriceEdit = false,
   removeLine,
   updateLine,
   onCheckout,
+  onEditPrice,
 }: CashierCartSidePanelProps) {
   const itemCount = lines.reduce((sum, line) => {
     const q = Number(line.quantity);
@@ -146,9 +150,20 @@ export function CashierCartSidePanel({
                         ) : null}
                       </p>
                       <div className="mt-0.5 flex items-end gap-1.5 text-[10px] tabular-nums text-muted-foreground">
+                        {allowPriceEdit && onEditPrice ? (
+                          <button
+                            type="button"
+                            className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline"
+                            onClick={() => onEditPrice(line.key)}
+                            title="Edit unit price"
+                          >
+                            {Number(line.unitPrice).toFixed(2)}
+                          </button>
+                        ) : (
+                          <span>{Number(line.unitPrice).toFixed(2)}</span>
+                        )}
                         <span>
-                          {Number(line.unitPrice).toFixed(2)} ×{" "}
-                          {Number.isFinite(qty) ? qty : line.quantity}
+                          × {Number.isFinite(qty) ? qty : line.quantity}
                         </span>
                         <CashierDottedLeader />
                         <span className="shrink-0 font-semibold text-foreground">

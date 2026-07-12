@@ -86,6 +86,8 @@ type CashierProductModalProps = {
   onSubmit: (payload: CashierProductModalSubmit) => void;
   /** When true, quantity is not capped by on-hand stock. */
   allowNegativeStock?: boolean;
+  /** When true, unit price can be changed from shelf. */
+  allowPriceEdit?: boolean;
 };
 
 function formatNum(n: number): string {
@@ -106,6 +108,7 @@ export function CashierProductModal({
   onOpenChange,
   onSubmit,
   allowNegativeStock = false,
+  allowPriceEdit = false,
 }: CashierProductModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState("");
@@ -353,17 +356,29 @@ export function CashierProductModal({
           <label className="block space-y-1.5">
             <span className={MODAL_SECTION_LABEL}>
               Unit price{currency ? ` (${currency})` : ""}
+              {!allowPriceEdit ? (
+                <span className="ml-1.5 font-medium normal-case tracking-normal text-muted-foreground">
+                  · shelf
+                </span>
+              ) : null}
             </span>
             <input
               type="text"
               inputMode="decimal"
-              autoFocus
+              autoFocus={allowPriceEdit}
+              readOnly={!allowPriceEdit}
               placeholder={uiCopy.unitPricePlaceholder}
               className={modalFieldClass(
-                "h-11 w-full px-3 text-right text-lg font-semibold tabular-nums text-foreground",
+                cn(
+                  "h-11 w-full px-3 text-right text-lg font-semibold tabular-nums text-foreground",
+                  !allowPriceEdit && "cursor-default bg-muted/30 text-muted-foreground",
+                ),
               )}
               value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
+              onChange={(e) => {
+                if (!allowPriceEdit) return;
+                setUnitPrice(e.target.value);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && canSubmit) {
                   e.preventDefault();
@@ -373,6 +388,12 @@ export function CashierProductModal({
                 }
               }}
             />
+            {!allowPriceEdit ? (
+              <p className="text-[10px] leading-snug text-muted-foreground">
+                Price edits are locked. An admin can enable them from Cashier
+                permissions.
+              </p>
+            ) : null}
           </label>
 
           {subtotalNum != null && subtotalNum > 0 ? (

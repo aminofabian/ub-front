@@ -697,6 +697,8 @@ export type PosDraftsFeatureFlagsPatch = {
 export type FeatureFlagsPatchPayload = {
   posDrafts?: PosDraftsFeatureFlagsPatch;
   butcherPosEnabled?: boolean;
+  posCashierPriceEdit?: boolean;
+  posCashierCreateProduct?: boolean;
 };
 
 export type PatchBusinessPayload = {
@@ -2683,6 +2685,34 @@ export async function createItem(
   const created = await request<ItemCreateResponse>(API_ROUTES.items, {
     method: "POST",
     body: createPayloadWithoutBlankSku({ ...payload }),
+  });
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return created;
+}
+
+export type PosQuickCreateItemPayload = {
+  name: string;
+  itemTypeId: string;
+  barcode?: string;
+  categoryId?: string;
+  unitType?: string;
+  branchId?: string;
+  unitPrice: number;
+};
+
+/** Cashier quick-create (sales.sell + admin-enabled flag, or catalog write). */
+export async function createPosQuickItem(
+  payload: PosQuickCreateItemPayload,
+): Promise<ItemCreateResponse> {
+  const created = await request<ItemCreateResponse>("/api/v1/pos/quick-items", {
+    method: "POST",
+    body: payload,
+    idempotencyKey:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `pos-qi-${Date.now()}`,
   });
   const { notifyTenantCatalogChanged } =
     await import("@/lib/tenant-catalog-events");

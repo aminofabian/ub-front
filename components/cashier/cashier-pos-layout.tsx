@@ -14,8 +14,10 @@ import {
   Loader2,
   LogOut,
   PlusCircle,
+  PackagePlus,
   ScanLine,
   Search,
+  Settings2,
   ShoppingCart,
   Wallet,
   X,
@@ -65,6 +67,10 @@ import {
   kioskPlaceholderWashClass,
 } from "./kiosk-listing-styles";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { CashierAdminCapabilitiesModal } from "./cashier-admin-capabilities-modal";
+import { CashierCreateProductModal } from "./cashier-create-product-modal";
+import { CashierEditPriceModal } from "./cashier-edit-price-modal";
+import type { ItemTypeRecord } from "@/lib/api";
 
 const POS_SHIFT_CHIP_CLASS = cn(
   "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_70%,transparent)] px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground",
@@ -165,6 +171,17 @@ export type CashierPosLayoutProps = {
   onRemoveCart: (id: string) => void;
   /** When true, cart quantity is not capped by on-hand stock. */
   allowNegativeStock?: boolean;
+  /** Override shelf unit prices (permission or admin flag). */
+  allowPriceEdit?: boolean;
+  /** Quick-create products from POS. */
+  allowCreateProduct?: boolean;
+  /** Admin can toggle cashier capability flags. */
+  canManageCashierCapabilities?: boolean;
+  priceEditFlagEnabled?: boolean;
+  createProductFlagEnabled?: boolean;
+  onCashierCapabilitiesSaved?: () => Promise<void> | void;
+  itemTypes?: ItemTypeRecord[];
+  preferredItemTypeId?: string | null;
 
   cart: Pick<
     CashierCartDrawerProps,
@@ -638,6 +655,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     onSwitchCart,
     onRemoveCart,
     allowNegativeStock = false,
+    allowPriceEdit = false,
+    allowCreateProduct = false,
+    canManageCashierCapabilities = false,
+    priceEditFlagEnabled = false,
+    createProductFlagEnabled = false,
+    onCashierCapabilitiesSaved,
+    itemTypes = [],
+    preferredItemTypeId = null,
     cart,
   } = props;
 
@@ -647,6 +672,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [pulseCart, setPulseCart] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
+  const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [adminCapsOpen, setAdminCapsOpen] = useState(false);
+  const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const [tileShelfPrices, setTileShelfPrices] = useState<
     Record<string, string>
   >({});
@@ -675,7 +703,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   );
 
   usePosBarcodeWedge({
-    enabled: !drawerOpen && !modalOpen && !showScanner,
+    enabled:
+      !drawerOpen &&
+      !modalOpen &&
+      !showScanner &&
+      !createProductOpen &&
+      !adminCapsOpen &&
+      editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
   });
@@ -941,6 +975,26 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
+            {allowCreateProduct ? (
+              <button
+                type="button"
+                onClick={() => setCreateProductOpen(true)}
+                className={POS_SHIFT_CHIP_CLASS}
+              >
+                <PackagePlus className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Add product
+              </button>
+            ) : null}
+            {canManageCashierCapabilities ? (
+              <button
+                type="button"
+                onClick={() => setAdminCapsOpen(true)}
+                className={POS_SHIFT_CHIP_CLASS}
+              >
+                <Settings2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Permissions
+              </button>
+            ) : null}
             {!online ? (
               <span className="rounded-md border border-amber-700/25 bg-amber-100/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
                 {uiCopy.offlinePill}
@@ -1495,9 +1549,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           pulse={pulseCart}
           loading={cart.loading}
           branchSelected={branchSelected}
+          allowPriceEdit={allowPriceEdit}
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setDrawerOpen(true)}
+          onEditPrice={(key) => setEditPriceKey(key)}
           className={cn(
             embeddedInDashboard
               ? "sticky top-[3.75rem] h-[calc(100dvh-5.5rem)]"
@@ -1603,6 +1659,61 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         }}
         onSubmit={handleAddFromModal}
         allowNegativeStock={allowNegativeStock}
+        allowPriceEdit={allowPriceEdit}
+      />
+
+      <CashierCreateProductModal
+        open={createProductOpen}
+        onOpenChange={(o) => {
+          setCreateProductOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
+        brandTheme={dialogBrandTheme}
+        currency={currency}
+        branchId={branchId}
+        itemTypes={itemTypes}
+        preferredItemTypeId={preferredItemTypeId}
+        onCreated={(item, unitPrice) => {
+          const added = addLine(item, 1, unitPrice);
+          if (added) markAdded(item.id);
+        }}
+      />
+
+      <CashierAdminCapabilitiesModal
+        open={adminCapsOpen}
+        onOpenChange={(o) => {
+          setAdminCapsOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
+        brandTheme={dialogBrandTheme}
+        priceEditEnabled={priceEditFlagEnabled}
+        createProductEnabled={createProductFlagEnabled}
+        onSaved={async () => {
+          await onCashierCapabilitiesSaved?.();
+        }}
+      />
+
+      <CashierEditPriceModal
+        open={editPriceKey != null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditPriceKey(null);
+            window.requestAnimationFrame(() => focusSearch());
+          }
+        }}
+        brandTheme={dialogBrandTheme}
+        currency={currency}
+        label={
+          cart.lines.find((l) => l.key === editPriceKey)?.label ?? "Line price"
+        }
+        currentPrice={
+          cart.lines.find((l) => l.key === editPriceKey)?.unitPrice ?? ""
+        }
+        onSave={(unitPrice) => {
+          if (editPriceKey) {
+            cart.updateLine(editPriceKey, "unitPrice", unitPrice);
+          }
+        }}
       />
 
       <CashierCartDrawer

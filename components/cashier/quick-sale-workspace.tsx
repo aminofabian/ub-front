@@ -42,6 +42,8 @@ import {
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { parseStkPhoneParts } from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { allowNegativeStockForSales } from "@/lib/inventory-access";
 import {
   countPendingSales,
@@ -190,6 +192,7 @@ export function QuickSaleWorkspace({
     branchesLoading,
     itemTypes,
     itemTypeId: headerItemTypeId,
+    refreshSession,
   } = useDashboard();
   const online = useOnlineStatus();
   const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
@@ -230,6 +233,21 @@ export function QuickSaleWorkspace({
     hasPermission(me?.permissions, Permission.SalesVoidAny) ||
     hasPermission(me?.permissions, Permission.SalesVoidOwn);
   const allowNegativeStock = allowNegativeStockForSales(business);
+  const featureFlags = useFeatureFlags();
+  const priceEditFlagEnabled =
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true;
+  const createProductFlagEnabled =
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true;
+  const allowPriceEdit =
+    hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
+    priceEditFlagEnabled;
+  const allowCreateProduct =
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
+    createProductFlagEnabled;
+  const canManageCashierCapabilities = hasPermission(
+    me?.permissions,
+    Permission.BusinessManageSettings,
+  );
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -2561,6 +2579,14 @@ export function QuickSaleWorkspace({
         onSwitchCart={switchCart}
         onRemoveCart={removeCart}
         allowNegativeStock={allowNegativeStock}
+        allowPriceEdit={allowPriceEdit}
+        allowCreateProduct={allowCreateProduct}
+        canManageCashierCapabilities={canManageCashierCapabilities}
+        priceEditFlagEnabled={priceEditFlagEnabled}
+        createProductFlagEnabled={createProductFlagEnabled}
+        onCashierCapabilitiesSaved={() => refreshSession()}
+        itemTypes={itemTypes}
+        preferredItemTypeId={posItemTypeId}
         cart={{
           lines,
           grandTotal,
