@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ItemSummaryRecord } from "@/lib/api";
@@ -14,6 +14,10 @@ import {
   CashierCurrencySuffix,
   CashierDottedLeader,
 } from "./cashier-currency-inline";
+import {
+  CashierQtyControl,
+  formatCartQtyLabel,
+} from "./cashier-qty-control";
 
 type CartLineLike = {
   key: string;
@@ -146,7 +150,10 @@ export function CashierCartSidePanel({
                           <span>{Number(line.unitPrice).toFixed(2)}</span>
                         )}
                         <span>
-                          × {Number.isFinite(qty) ? qty : line.quantity}
+                          ×{" "}
+                          {Number.isFinite(qty)
+                            ? formatCartQtyLabel(qty)
+                            : line.quantity}
                         </span>
                         <CashierDottedLeader />
                         <span className="shrink-0 font-semibold text-foreground">
@@ -154,39 +161,15 @@ export function CashierCartSidePanel({
                         </span>
                       </div>
                     </div>
-                    <div className="inline-flex shrink-0 items-center border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:border-border/40">
-                      <button
-                        type="button"
-                        className="flex size-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                        aria-label={
-                          qty <= 1 ? `Remove ${full}` : "Decrease quantity"
-                        }
-                        onClick={() => {
-                          const cur = Number.isFinite(qty) ? qty : 1;
-                          if (cur <= 1) {
-                            removeLine(line.key);
-                            return;
-                          }
-                          updateLine(line.key, "quantity", String(cur - 1));
-                        }}
-                      >
-                        <Minus className="size-3.5" />
-                      </button>
-                      <span className="min-w-[1.35rem] text-center text-xs font-bold tabular-nums">
-                        {Number.isFinite(qty) ? qty : line.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        className="flex size-10 items-center justify-center text-muted-foreground hover:text-foreground"
-                        aria-label="Increase quantity"
-                        onClick={() => {
-                          const next = (Number.isFinite(qty) ? qty : 0) + 1;
-                          updateLine(line.key, "quantity", String(next));
-                        }}
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
-                    </div>
+                    <CashierQtyControl
+                      quantity={line.quantity}
+                      itemLabel={full}
+                      size="md"
+                      onChange={(next) =>
+                        updateLine(line.key, "quantity", next)
+                      }
+                      onRemove={() => removeLine(line.key)}
+                    />
                   </li>
                 );
               })}

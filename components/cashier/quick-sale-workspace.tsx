@@ -94,6 +94,7 @@ import {
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
+import { formatCartQtyValue } from "./cashier-qty-control";
 import { TillPrinterStatus } from "./till-printer-status";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { PendingSalesPanel } from "./pending-sales-panel";
@@ -1580,7 +1581,7 @@ export function QuickSaleWorkspace({
             return { ...l, quantity: value };
           }
           const capped = capCartQuantity(l.item, n);
-          return { ...l, quantity: String(capped) };
+          return { ...l, quantity: formatCartQtyValue(capped) };
         }),
       }));
     },

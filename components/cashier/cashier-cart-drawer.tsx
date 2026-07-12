@@ -7,8 +7,6 @@ import {
   Check,
   ChevronDown,
   Gift,
-  Minus,
-  Plus,
   ShoppingBag,
   Smartphone,
   Trash2,
@@ -38,6 +36,10 @@ import {
 } from "@/lib/cashier-item-display";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
 import { CashierCurrencySuffix } from "./cashier-currency-inline";
+import {
+  CashierQtyControl,
+  formatCartQtyLabel,
+} from "./cashier-qty-control";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone } from "@/lib/customer-phone";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -905,7 +907,6 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                             itemListThumbnailUrl(line.item),
                           );
                           const subtotal = lineSubtotal(line);
-                          const qNum = Number(line.quantity) || 0;
                           const full = cashierItemPrimaryLabel(line.item);
                           const { primary, option } =
                             cashierItemTitleParts(line.item);
@@ -949,50 +950,18 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                   {Number.isFinite(unit)
                                     ? unit.toFixed(2)
                                     : line.unitPrice}{" "}
-                                  × {qNum}
+                                  × {formatCartQtyLabel(line.quantity)}
                                 </p>
                               </div>
-                              <div className="inline-flex shrink-0 items-center rounded-lg border border-border/55 bg-muted/10">
-                                <button
-                                  type="button"
-                                  className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
-                                  aria-label={
-                                    qNum <= 1
-                                      ? `Remove ${full}`
-                                      : "Decrease quantity"
-                                  }
-                                  onClick={() => {
-                                    if (qNum <= 1) {
-                                      removeLine(line.key);
-                                      return;
-                                    }
-                                    updateLine(
-                                      line.key,
-                                      "quantity",
-                                      String(qNum - 1),
-                                    );
-                                  }}
-                                >
-                                  <Minus className="size-3.5" />
-                                </button>
-                                <span className="min-w-[1.25rem] text-center text-xs font-bold tabular-nums">
-                                  {line.quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
-                                  aria-label="Increase quantity"
-                                  onClick={() =>
-                                    updateLine(
-                                      line.key,
-                                      "quantity",
-                                      String(qNum + 1),
-                                    )
-                                  }
-                                >
-                                  <Plus className="size-3.5" />
-                                </button>
-                              </div>
+                              <CashierQtyControl
+                                quantity={line.quantity}
+                                itemLabel={full}
+                                size="sm"
+                                onChange={(next) =>
+                                  updateLine(line.key, "quantity", next)
+                                }
+                                onRemove={() => removeLine(line.key)}
+                              />
                               <span className="w-12 shrink-0 text-right text-[12px] font-bold tabular-nums">
                                 {subtotal.toFixed(2)}
                               </span>
