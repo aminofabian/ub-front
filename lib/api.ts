@@ -2703,6 +2703,13 @@ export type PosQuickCreateItemPayload = {
   buyingPrice?: number;
   /** Opening on-hand qty at the till branch (defaults to 1 on the server). */
   initialStockQty?: number;
+  /**
+   * Link as a variant: pass a parent (creates a child) or another variant
+   * (creates a sibling under the same parent).
+   */
+  relatedItemId?: string;
+  /** Option label when linking as a variant (defaults to name on the server). */
+  variantName?: string;
 };
 
 /** Cashier quick-create (sales.sell + admin-enabled flag, or catalog write). */
