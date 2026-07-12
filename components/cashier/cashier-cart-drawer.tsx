@@ -642,12 +642,29 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           Sending STK Push…
                         </p>
                       ) : stkPushStatus === "sent" ? (
-                        <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-center text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
-                          Waiting on{" "}
-                          <span className="font-mono font-semibold">
-                            {buildStkPhoneNumber(stkAreaCode, stkPhone)}
-                          </span>
-                        </p>
+                        <div className="space-y-2">
+                          <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-center text-[12px] font-medium text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+                            Waiting on{" "}
+                            <span className="font-mono font-semibold">
+                              {buildStkPhoneNumber(stkAreaCode, stkPhone)}
+                            </span>
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-10 w-full rounded-xl text-sm font-semibold"
+                            disabled={
+                              !online || !isStkPhoneValid(stkAreaCode, stkPhone)
+                            }
+                            onClick={() =>
+                              onStkPush(
+                                buildStkPhoneNumber(stkAreaCode, stkPhone),
+                              )
+                            }
+                          >
+                            Send prompt again
+                          </Button>
+                        </div>
                       ) : stkPushStatus === "confirmed" ? (
                         <div
                           className="space-y-2"
