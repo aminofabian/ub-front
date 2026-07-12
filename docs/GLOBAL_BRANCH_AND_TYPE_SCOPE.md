@@ -176,8 +176,8 @@ Legend:
 | **Transactions** | ✅ | ❌ | Implemented | Same as sales overview |
 | **Pending carts** | ✅ | ❌ | Implemented | Uses dashboard `branchId` directly |
 | **Sales reports** | ✅ | ❌ | Implemented | Branch filter + `fetchSalesRevenueByCategory(..., branchId)` |
-| **Analytics** | ✅ | ❌ | Implemented | Apply-branch banner (§9); category revenue branch-scoped |
-| **Activity** | ✅ | ❌ | Implemented | `useSyncBranchFilter` + two-way bind |
+| **Analytics** | ✅ | ✅ | Implemented | Apply-branch banner (§9); charts reload on header department |
+| **Activity** | ✅ | ✅ | Implemented | `useSyncBranchFilter` + header `itemTypeId` on recent sales |
 | **Quick sale** (dashboard) | ✅ | ✅ | Implemented | Header scope + D6 cart guard + checkout confirm |
 | **Cashier PWA** (`/cashier`) | ✅ | ✅ | Implemented | Branch/type driven by dashboard header; no local POS override (duplicate pickers removed) |
 | **Grocery counter** | ✅ | ➖ | Implemented | All-departments search (D4=A) |
@@ -227,7 +227,7 @@ flowchart TB
 
 - Products grid, supplier catalog picker, and stock search pass `itemTypeId`.
 - Cashier syncs to header with explicit “All types” override (D5).
-- Analytics category revenue is branch-scoped; department on reports remains N/A unless API adds support.
+- Analytics (and activity) pass header `itemTypeId` to finance, sales intelligence, sales register, inventory, and owner-summary APIs.
 
 ---
 

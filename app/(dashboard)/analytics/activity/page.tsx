@@ -19,7 +19,10 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import {
+  useSessionItemType,
+  useSyncBranchFilter,
+} from "@/hooks/use-session-scope";
 import {
   DashboardLoading,
   DashboardFeedback,
@@ -93,6 +96,7 @@ function SectionCard({
 
 export default function AnalyticsActivityPage() {
   const { setBranchId: setHeaderBranchId } = useDashboard();
+  const { itemTypeId: headerItemTypeId } = useSessionItemType();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,10 +160,12 @@ export default function AnalyticsActivityPage() {
 
       if (dateRange) {
         const branchFilter = branchId || undefined;
+        const typeFilter = headerItemTypeId?.trim() || undefined;
         const salesRes = await fetchRecentSales(
           dateRange.from,
           dateRange.to,
           branchFilter,
+          typeFilter,
         ).catch(() => []);
         setRecentSales(Array.isArray(salesRes) ? salesRes : []);
       } else {
@@ -173,7 +179,7 @@ export default function AnalyticsActivityPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, branchId]);
+  }, [dateRange, branchId, headerItemTypeId]);
 
   useEffect(() => {
     load();

@@ -152,10 +152,10 @@ export function BusinessHubWorkspace() {
         expiryRes,
       ] = await Promise.all([
         canViewOwnerSummary
-          ? fetchDashboardOwnerSummary().catch(() => null)
+          ? fetchDashboardOwnerSummary(branch, type).catch(() => null)
           : Promise.resolve(null),
         canViewInventoryValuation
-          ? fetchInventoryValuation(branch).catch(() => null)
+          ? fetchInventoryValuation(branch, type).catch(() => null)
           : Promise.resolve(null),
         fetchItemsPage(undefined, {
           page: 0,
@@ -163,34 +163,45 @@ export function BusinessHubWorkspace() {
           branchId: branch,
           itemTypeId: type,
         }).catch(() => null),
-        fetchSalesRegister(chartFrom, chartTo, branch).catch(() => null),
-        fetchFinancePulse(activeRange.to, branch).catch(() => null),
-        fetchFinancePulse(prevRange.to, branch).catch(() => null),
+        fetchSalesRegister(chartFrom, chartTo, branch, type).catch(() => null),
+        fetchFinancePulse(activeRange.to, branch, type).catch(() => null),
+        fetchFinancePulse(prevRange.to, branch, type).catch(() => null),
         period === "week"
-          ? fetchFinancePL(activeRange.from, activeRange.to, branch).catch(
+          ? fetchFinancePL(
+              activeRange.from,
+              activeRange.to,
+              branch,
+              type,
+            ).catch(() => null)
+          : Promise.resolve(null),
+        period === "week"
+          ? fetchFinancePL(prevRange.from, prevRange.to, branch, type).catch(
               () => null,
             )
           : Promise.resolve(null),
         period === "week"
-          ? fetchFinancePL(prevRange.from, prevRange.to, branch).catch(
-              () => null,
-            )
+          ? fetchSalesRegister(
+              activeRange.from,
+              activeRange.to,
+              branch,
+              type,
+            ).catch(() => null)
           : Promise.resolve(null),
         period === "week"
-          ? fetchSalesRegister(activeRange.from, activeRange.to, branch).catch(
-              () => null,
-            )
-          : Promise.resolve(null),
-        period === "week"
-          ? fetchSalesRegister(prevRange.from, prevRange.to, branch).catch(
-              () => null,
-            )
+          ? fetchSalesRegister(
+              prevRange.from,
+              prevRange.to,
+              branch,
+              type,
+            ).catch(() => null)
           : Promise.resolve(null),
         canViewSupplyBatches
           ? fetchBatchDashboard({ branchId: branch }).catch(() => null)
           : Promise.resolve(null),
         canViewSupplyBatches
-          ? fetchInventoryExpiryPipeline(branch).catch(() => null)
+          ? fetchInventoryExpiryPipeline(branch, undefined, type).catch(
+              () => null,
+            )
           : Promise.resolve(null),
       ]);
 

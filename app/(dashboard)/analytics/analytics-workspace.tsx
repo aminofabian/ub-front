@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "@/components/dashboard-provider";
-import { useSyncBranchFilter } from "@/hooks/use-session-scope";
+import {
+  useSessionItemType,
+  useSyncBranchFilter,
+} from "@/hooks/use-session-scope";
 import {
   DashboardLoading,
   DashboardFeedback,
@@ -530,6 +533,7 @@ export function AnalyticsWorkspace({
   activityHref?: string | null;
 } = {}) {
   const { setBranchId: setHeaderBranchId } = useDashboard();
+  const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const analyticsJourney = useMemo(
     () => buildAnalyticsJourney(activityHref),
     [activityHref],
@@ -636,6 +640,7 @@ export function AnalyticsWorkspace({
       if (dateRange) {
         const prev = previousPeriod(dateRange.from, dateRange.to);
         const branchFilter = appliedBranchId || undefined;
+        const typeFilter = headerItemTypeId?.trim() || undefined;
 
         const [
           pulseRes,
@@ -652,15 +657,25 @@ export function AnalyticsWorkspace({
           ownerRes,
           expenseRes,
         ] = await Promise.all([
-          fetchFinancePulse(dateRange.to, branchFilter).catch(() => null),
-          fetchFinancePL(dateRange.from, dateRange.to, branchFilter).catch(
+          fetchFinancePulse(dateRange.to, branchFilter, typeFilter).catch(
             () => null,
           ),
-          fetchFinancePL(prev.from, prev.to, branchFilter).catch(() => null),
-          fetchSalesRegister(dateRange.from, dateRange.to, branchFilter).catch(
+          fetchFinancePL(
+            dateRange.from,
+            dateRange.to,
+            branchFilter,
+            typeFilter,
+          ).catch(() => null),
+          fetchFinancePL(prev.from, prev.to, branchFilter, typeFilter).catch(
             () => null,
           ),
-          fetchSalesRegister(prev.from, prev.to, branchFilter).catch(
+          fetchSalesRegister(
+            dateRange.from,
+            dateRange.to,
+            branchFilter,
+            typeFilter,
+          ).catch(() => null),
+          fetchSalesRegister(prev.from, prev.to, branchFilter, typeFilter).catch(
             () => null,
           ),
           fetchSalesRevenueByCategory(
@@ -668,27 +683,36 @@ export function AnalyticsWorkspace({
             dateRange.to,
             undefined,
             branchFilter,
+            typeFilter,
           ).catch(() => []),
           fetchSalesRevenueByCategory(
             prev.from,
             prev.to,
             undefined,
             branchFilter,
+            typeFilter,
           ).catch(() => []),
           fetchPaymentsByMethod(
             dateRange.from,
             dateRange.to,
             branchFilter,
+            typeFilter,
           ).catch(() => []),
           fetchStaffPerformance(
             dateRange.from,
             dateRange.to,
             branchFilter,
+            typeFilter,
           ).catch(() => []),
-          fetchInventoryValuation(branchFilter).catch(() => null),
-          fetchInventoryExpiryPipeline(branchFilter).catch(() => null),
-          fetchDashboardOwnerSummary().catch(() => null),
-          fetchFinanceExpenses().catch(() => []),
+          fetchInventoryValuation(branchFilter, typeFilter).catch(() => null),
+          fetchInventoryExpiryPipeline(branchFilter, undefined, typeFilter).catch(
+            () => null,
+          ),
+          fetchDashboardOwnerSummary(branchFilter, typeFilter).catch(() => null),
+          // Expenses are not department-attributed; skip when a department is selected.
+          typeFilter
+            ? Promise.resolve([])
+            : fetchFinanceExpenses().catch(() => []),
         ]);
 
         setPulse(pulseRes);
@@ -733,7 +757,7 @@ export function AnalyticsWorkspace({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, appliedBranchId]);
+  }, [dateRange, appliedBranchId, headerItemTypeId]);
 
   useEffect(() => {
     load();

@@ -3367,12 +3367,14 @@ export async function fetchSalesRevenueByCategory(
   to?: string,
   categoryId?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<RevenueByCategoryRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (categoryId?.trim()) params.set("categoryId", categoryId.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<RevenueByCategoryRow[]>(
     `/api/v1/sales/intelligence/revenue-by-category${qs ? `?${qs}` : ""}`,
@@ -3451,11 +3453,13 @@ export async function fetchRecentSales(
   from?: string,
   to?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<RecentSaleRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<RecentSaleRow[]>(
     `/api/v1/sales/intelligence/recent-sales${qs ? `?${qs}` : ""}`,
@@ -3487,11 +3491,13 @@ export async function fetchPaymentsByMethod(
   from?: string,
   to?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<PaymentMethodBreakdownRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<PaymentMethodBreakdownRow[]>(
     `/api/v1/sales/intelligence/payments-by-method${qs ? `?${qs}` : ""}`,
@@ -3511,11 +3517,13 @@ export async function fetchStaffPerformance(
   from?: string,
   to?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<StaffPerformanceRow[]> {
   const params = new URLSearchParams();
   if (from?.trim()) params.set("from", from.trim());
   if (to?.trim()) params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<StaffPerformanceRow[]>(
     `/api/v1/sales/intelligence/staff-performance${qs ? `?${qs}` : ""}`,
@@ -3538,10 +3546,12 @@ export type FinancePulseResponse = {
 export async function fetchFinancePulse(
   date?: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<FinancePulseResponse> {
   const params = new URLSearchParams();
   if (date?.trim()) params.set("date", date.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<FinancePulseResponse>(
     `/api/v1/finance/pulse${qs ? `?${qs}` : ""}`,
@@ -3578,11 +3588,13 @@ export async function fetchFinancePL(
   from: string,
   to: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<ProfitAndLossResponse> {
   const params = new URLSearchParams();
   params.set("from", from.trim());
   params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   return request<ProfitAndLossResponse>(
     `/api/v1/finance/pl?${params.toString()}`,
   );
@@ -3636,8 +3648,17 @@ export type OwnerDashboardResponse = {
   }[];
 };
 
-export async function fetchDashboardOwnerSummary(): Promise<OwnerDashboardResponse> {
-  return request<OwnerDashboardResponse>("/api/v1/dashboard/owner-summary");
+export async function fetchDashboardOwnerSummary(
+  branchId?: string,
+  itemTypeId?: string,
+): Promise<OwnerDashboardResponse> {
+  const params = new URLSearchParams();
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
+  const qs = params.toString();
+  return request<OwnerDashboardResponse>(
+    `/api/v1/dashboard/owner-summary${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export type SalesRegisterDay = {
@@ -3664,11 +3685,13 @@ export async function fetchSalesRegister(
   from: string,
   to: string,
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<SalesRegisterResponse> {
   const params = new URLSearchParams();
   params.set("from", from.trim());
   params.set("to", to.trim());
   if (branchId?.trim()) params.set("branchId", branchId.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   return request<SalesRegisterResponse>(
     `/api/v1/reports/sales/register?${params.toString()}`,
   );
@@ -3687,10 +3710,12 @@ export type InventoryExpiryPipelineResponse = {
 export async function fetchInventoryExpiryPipeline(
   branchId?: string,
   asOf?: string,
+  itemTypeId?: string,
 ): Promise<InventoryExpiryPipelineResponse> {
   const params = new URLSearchParams();
   if (branchId?.trim()) params.set("branchId", branchId.trim());
   if (asOf?.trim()) params.set("asOf", asOf.trim());
+  if (itemTypeId?.trim()) params.set("itemTypeId", itemTypeId.trim());
   const qs = params.toString();
   return request<InventoryExpiryPipelineResponse>(
     `/api/v1/reports/inventory/expiry-pipeline${qs ? `?${qs}` : ""}`,
@@ -3900,10 +3925,14 @@ export async function fetchApAging(
 
 export async function fetchInventoryValuation(
   branchId?: string,
+  itemTypeId?: string,
 ): Promise<InventoryValuationResponseRecord> {
   const params = new URLSearchParams();
   if (branchId?.trim()) {
     params.set("branchId", branchId.trim());
+  }
+  if (itemTypeId?.trim()) {
+    params.set("itemTypeId", itemTypeId.trim());
   }
   const q = params.toString();
   return request<InventoryValuationResponseRecord>(
