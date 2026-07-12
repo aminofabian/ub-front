@@ -3737,6 +3737,28 @@ export async function fetchWebOrderDetail(
   );
 }
 
+export type WebOrderPickupTicketClaimResult = {
+  claimed: boolean;
+  reason: string;
+};
+
+/**
+ * Atomically claim a one-time cashier auto-print of a web-order pickup ticket.
+ * Returns claimed=false when already printed or the order is older than 1 hour.
+ */
+export async function claimWebOrderPickupTicket(
+  orderId: string,
+): Promise<WebOrderPickupTicketClaimResult> {
+  const id = orderId.trim();
+  if (!id) {
+    return { claimed: false, reason: "not_found" };
+  }
+  return request<WebOrderPickupTicketClaimResult>(
+    `/api/v1/web-orders/${encodeURIComponent(id)}/pickup-ticket/claim`,
+    { method: "POST", toast: false },
+  );
+}
+
 export type NotificationCampaignRecipientScope =
   | "ALL_BUYERS"
   | "ACTIVE_BUYERS_90D"

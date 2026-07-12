@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { getNotificationPresentation } from "@/lib/notification-display";
 import { getSessionTokens } from "@/lib/auth";
-import { fetchWebOrderDetail } from "@/lib/api";
+import { claimWebOrderPickupTicket } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import {
   DESKTOP_THERMAL_WIDTH_MM,
@@ -22,8 +22,6 @@ const CASHIER_ALERT_TYPES = new Set([
 ]);
 
 const PRINT_DONE_PREFIX = "palmart.web-order-printed:";
-/** Only auto-print tickets for orders placed within this window. */
-const PRINT_MAX_AGE_MS = 60 * 60 * 1000;
 
 function readPayloadField(
   data: Record<string, unknown>,
@@ -44,15 +42,14 @@ function readPayloadField(
   return "";
 }
 
-function parseTimestampMs(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value < 1e12 ? value * 1000 : value;
-  }
-  if (typeof value === "string" && value.trim()) {
-    const ms = Date.parse(value);
-    return Number.isFinite(ms) ? ms : null;
-  }
-  return null;
+function stableNotificationKey(frame: RealtimeFrame, data: Record<string, unknown>): string {
+  const orderId = readPayloadField(data, "orderId");
+  if (orderId) return `order:${orderId}:${String(data.notificationType ?? "")}`;
+  const notifId =
+    (typeof data.id === "string" && data.id.trim()) ||
+    frame.eventId?.trim() ||
+    "";
+  return notifId ? `notif:${notifId}` : "";
 }
 
 function alreadyPrintedWebOrder(orderId: string): boolean {
@@ -73,55 +70,15 @@ function markWebOrderPrinted(orderId: string): void {
   }
 }
 
-function unmarkWebOrderPrinted(orderId: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(PRINT_DONE_PREFIX + orderId);
-  } catch {
-    // ignore
-  }
-}
-
-function orderPlacedAtMs(frame: RealtimeFrame, data: Record<string, unknown>): number | null {
-  const nested =
-    data.payload && typeof data.payload === "object" && !Array.isArray(data.payload)
-      ? (data.payload as Record<string, unknown>)
-      : null;
-  const candidates: unknown[] = [
-    frame.at,
-    data.createdAt,
-    nested?.createdAt,
-    nested?.placedAt,
-    readPayloadField(data, "createdAt"),
-    readPayloadField(data, "placedAt"),
-  ];
-  for (const raw of candidates) {
-    const ms = parseTimestampMs(raw);
-    if (ms != null) return ms;
-  }
-  return null;
-}
-
-async function resolveOrderPlacedAtMs(
-  frame: RealtimeFrame,
-  data: Record<string, unknown>,
-  orderId: string,
-): Promise<number | null> {
-  const fromFrame = orderPlacedAtMs(frame, data);
-  if (fromFrame != null) return fromFrame;
-  try {
-    const detail = await fetchWebOrderDetail(orderId);
-    return parseTimestampMs(detail.createdAt);
-  } catch {
-    return null;
-  }
-}
-
 function showCashierOrderToast(frame: RealtimeFrame) {
   const data = frame.data as Record<string, unknown>;
   const notificationType =
     typeof data.notificationType === "string" ? data.notificationType : "";
   if (!CASHIER_ALERT_TYPES.has(notificationType)) {
+    return;
+  }
+  // Inbox catch-up/poll must not spam the till with historical toasts.
+  if (frame.delivery === "poll") {
     return;
   }
   const presentation = getNotificationPresentation(data);
@@ -141,12 +98,24 @@ function showCashierOrderToast(frame: RealtimeFrame) {
   });
 }
 
+/**
+ * Auto-print pickup tickets for brand-new storefront orders only.
+ *
+ * Hard gates (all must pass):
+ * 1. Live WebSocket delivery — never REST poll / inbox replay
+ * 2. Local once-per-order mark
+ * 3. Server atomic claim — rejects already-printed and orders older than 1 hour
+ */
 async function autoPrintPlacedOrder(
   frame: RealtimeFrame,
   cashierBranchId: string | undefined,
   canSell: boolean,
 ) {
   if (!canSell) return;
+  // CRITICAL: REST poll synthesizes historical notification.created frames.
+  // Those must never drive the printer.
+  if (frame.delivery === "poll") return;
+
   const data = frame.data as Record<string, unknown>;
   const notificationType =
     typeof data.notificationType === "string" ? data.notificationType : "";
@@ -158,41 +127,40 @@ async function autoPrintPlacedOrder(
 
   const bid = cashierBranchId?.trim();
   if (bid && orderBranchId && bid !== orderBranchId) {
-    // Another branch's catalog — don't print on this till.
     return;
   }
 
-  // Never reprint an order this till already printed / suppressed.
   if (alreadyPrintedWebOrder(orderId)) return;
 
-  const placedAt = await resolveOrderPlacedAtMs(frame, data, orderId);
-  // Fail closed: no timestamp, or older than 1 hour → suppress forever (no print).
-  if (placedAt == null || Date.now() - placedAt > PRINT_MAX_AGE_MS) {
+  // Server is source of truth: only the first till that claims a <1h order prints.
+  let claim;
+  try {
+    claim = await claimWebOrderPickupTicket(orderId);
+  } catch {
+    // Don't print on claim failure — avoids reprint storms when offline/auth flakes.
+    return;
+  }
+  if (!claim.claimed) {
+    // already_printed | too_old | not_found — suppress locally forever.
     markWebOrderPrinted(orderId);
     return;
   }
 
-  // Claim before awaiting the printer so concurrent tabs don't double-print.
   markWebOrderPrinted(orderId);
 
-  const ok = await printWebOrderReceipt(
+  await printWebOrderReceipt(
     orderId,
     DESKTOP_THERMAL_WIDTH_MM,
     { branchId: orderBranchId || bid || null },
     { quiet: true },
   );
-  if (!ok) {
-    // Retry later only while the order is still inside the 1-hour window.
-    if (Date.now() - placedAt <= PRINT_MAX_AGE_MS) {
-      unmarkWebOrderPrinted(orderId);
-    }
-  }
+  // Do not unmark on print failure: the server claim already consumed the one-shot.
+  // Manual reprint remains available via order detail / desktop print APIs.
 }
 
 /**
  * Real-time alerts for cashiers: new/paid web orders with optional chime.
- * On order placed, auto-prints a pickup ticket when the till printer is ready.
- * Only prints orders younger than 1 hour, and only once per order on this device.
+ * Auto-prints pickup tickets only for live, recent, unprinted orders (server-gated).
  */
 export function CashierOrderAlerts() {
   const dash = useOptionalDashboard();
@@ -216,12 +184,13 @@ export function CashierOrderAlerts() {
         if (frame.type !== "notification.created") {
           return;
         }
-        const id = frame.eventId || "";
-        if (id && seenRef.current.has(id)) {
+        const data = frame.data as Record<string, unknown>;
+        const key = stableNotificationKey(frame, data);
+        if (key && seenRef.current.has(key)) {
           return;
         }
-        if (id) {
-          seenRef.current.add(id);
+        if (key) {
+          seenRef.current.add(key);
         }
         showCashierOrderToast(frame);
         void autoPrintPlacedOrder(frame, branchId, canSell);
@@ -229,7 +198,7 @@ export function CashierOrderAlerts() {
     });
 
     client.connect().catch(() => {
-      // polling fallback
+      // polling fallback (toasts/UI only — never auto-print)
     });
 
     return unregister;

@@ -72,6 +72,11 @@ export interface RealtimeFrame {
   at: string;
   priority: Priority;
   data: Record<string, unknown>;
+  /**
+   * How the frame was obtained. REST poll replays inbox history and must never
+   * trigger side effects like auto-printing. Live WS frames omit this (or use "live").
+   */
+  delivery?: "live" | "poll";
 }
 
 export interface RealtimeError {
@@ -619,8 +624,23 @@ export class RealtimeClient {
 
     const handlerKey = TYPE_HANDLER_MAP[frame.type];
     if (handlerKey && this.handlers[handlerKey]) {
+      if (frame.type === "notification.created") {
+        this.advanceNotificationPollCursor(frame);
+      }
       (this.handlers[handlerKey] as FrameHandler)(frame);
     }
+  }
+
+  /** Keep REST poll cursor in sync with live WS so reconnects don't re-emit. */
+  private advanceNotificationPollCursor(frame: RealtimeFrame): void {
+    const id =
+      typeof frame.data?.id === "string" && frame.data.id.trim()
+        ? frame.data.id.trim()
+        : frame.eventId?.trim() || "";
+    if (!id || !this.notificationsPollBaselined) {
+      return;
+    }
+    this.lastPollNotificationId = id;
   }
 
   private send(frame: Record<string, unknown>): void {
@@ -813,6 +833,7 @@ export class RealtimeClient {
               // Never invent "now" — that makes old rows look brand new to printers.
               at: createdAt ?? "",
               priority: "MEDIUM",
+              delivery: "poll",
               data: normalizeNotificationData(n as Record<string, unknown>),
             });
           }

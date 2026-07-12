@@ -1,7 +1,7 @@
 // Phase 9 Slice 5: PWA service worker — caches the app shell and serves
 // stale-while-revalidate for API calls when offline.
 
-const CACHE_VERSION = "palmart-v3";
+const CACHE_VERSION = "palmart-v4";
 const STATIC_CACHE = `palmart-static-${CACHE_VERSION}`;
 const API_CACHE = `palmart-api-${CACHE_VERSION}`;
 
