@@ -77,7 +77,7 @@ function lineSubtotal(line: CartLineLike): number {
   return Math.round(q * p * 100) / 100;
 }
 
-const CASH_QUICK_ADD = [50, 100, 200, 500, 1000] as const;
+const CASH_QUICK_AMOUNTS = [50, 100, 200, 500, 1000] as const;
 
 export type CashierCartDrawerProps = {
   open: boolean;
@@ -344,10 +344,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     return "Finish payment details to complete.";
   })();
 
-  const addCash = (amount: number) => {
-    const cur = Number(cashTenderStr.trim());
-    const base = Number.isFinite(cur) && cur > 0 ? cur : 0;
-    setCashTenderStr((base + amount).toFixed(2));
+  const setCashFromPicker = (amount: number) => {
+    setCashTenderStr(amount.toFixed(2));
   };
 
   return (
@@ -555,14 +553,14 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                         placeholder="0.00"
                       />
                       <div className="flex flex-wrap gap-1.5">
-                        {CASH_QUICK_ADD.map((n) => (
+                        {CASH_QUICK_AMOUNTS.map((n) => (
                           <button
                             key={n}
                             type="button"
-                            onClick={() => addCash(n)}
+                            onClick={() => setCashFromPicker(n)}
                             className="rounded-xl border border-border/55 bg-background px-2.5 py-1.5 text-[12px] font-semibold tabular-nums text-foreground transition hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)]"
                           >
-                            +{n}
+                            {n}
                           </button>
                         ))}
                       </div>
@@ -578,7 +576,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                           ? Number(cashChange) === 0
                             ? "Exact — tap Complete below"
                             : `Give back ${cashChange} ${currency}`
-                          : "Tap Exact total, or add notes with +50 / +100…"}
+                          : "Tap Exact total, or pick a note amount"}
                       </p>
                     </div>
                   ) : null}

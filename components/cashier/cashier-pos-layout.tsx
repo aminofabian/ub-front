@@ -390,12 +390,12 @@ function KioskTileMedia({
           fill
           sizes={
             compact
-              ? "(max-width: 640px) 28vw, (max-width: 1024px) 14vw, 110px"
+              ? "(max-width: 640px) 22vw, (max-width: 1024px) 12vw, 90px"
               : "(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
           }
           className={cn(
             "object-contain transition-transform duration-300 group-hover:scale-[1.04]",
-            compact ? "p-1" : "p-1.5",
+            compact ? "p-0.5" : "p-1.5",
           )}
           unoptimized
         />
@@ -423,11 +423,13 @@ function KioskTileTitle({
   option,
   fullTitle,
   bold = false,
+  compact = false,
 }: {
   primary: string;
   option: string | null;
   fullTitle: string;
   bold?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div className="min-w-0" title={fullTitle}>
@@ -435,14 +437,23 @@ function KioskTileTitle({
         className={cn(
           "truncate text-left leading-tight tracking-tight",
           bold
-            ? "text-[11px] font-bold text-[var(--pos-ink,#1c1915)] dark:text-neutral-50 sm:text-[12px]"
-            : "text-[11px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_88%,transparent)] sm:text-[12px] dark:text-foreground/85",
+            ? compact
+              ? "text-[10px] font-bold text-[var(--pos-ink,#1c1915)] dark:text-neutral-50 sm:text-[11px]"
+              : "text-[11px] font-bold text-[var(--pos-ink,#1c1915)] dark:text-neutral-50 sm:text-[12px]"
+            : compact
+              ? "text-[10px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_88%,transparent)] sm:text-[11px] dark:text-foreground/85"
+              : "text-[11px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_88%,transparent)] sm:text-[12px] dark:text-foreground/85",
         )}
       >
         {primary}
       </p>
       {option ? (
-        <p className="mt-0.5 truncate text-left text-[10px] font-medium leading-none text-muted-foreground">
+        <p
+          className={cn(
+            "truncate text-left font-medium leading-none text-muted-foreground",
+            compact ? "mt-px text-[9px]" : "mt-0.5 text-[10px]",
+          )}
+        >
           {option}
         </p>
       ) : null}
@@ -512,7 +523,7 @@ function TopSellerTile({
         className={cn(
           "flex flex-1 flex-col justify-center",
           compact
-            ? "min-h-[2rem] px-1.5 pb-1.5 pt-1"
+            ? "min-h-[1.75rem] px-1 pb-1 pt-0.5"
             : "min-h-[2.5rem] px-2 pb-2 pt-1.5",
         )}
       >
@@ -520,6 +531,7 @@ function TopSellerTile({
           primary={primary}
           option={option}
           fullTitle={title}
+          compact={compact}
         />
       </div>
     </button>
@@ -578,9 +590,9 @@ function SearchHitTile({
         className={cn(
           "flex flex-1 flex-col justify-center gap-1",
           compact
-            ? "min-h-[2rem] px-1.5 pb-1.5 pt-1"
+            ? "min-h-[1.75rem] px-1 pb-1 pt-0.5"
             : "min-h-[2.5rem] px-2 pb-2 pt-1.5",
-          showCategory && (compact ? "min-h-[2.6rem]" : "min-h-[3rem]"),
+          showCategory && (compact ? "min-h-[2.4rem]" : "min-h-[3rem]"),
         )}
       >
         <KioskTileTitle
@@ -588,6 +600,7 @@ function SearchHitTile({
           option={option}
           fullTitle={title}
           bold
+          compact={compact}
         />
         {showCategory ? (
           <span
@@ -899,37 +912,37 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         "mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
           ? "pos-market-paper max-w-none rounded-xl px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6"
-          : "flex min-h-0 flex-1 flex-col overflow-hidden pb-28 lg:pb-0",
+          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-28 lg:pb-0",
       )}
       style={brandTheme}
     >
       <div
         className={cn(
-          "flex gap-4 lg:gap-5",
+          "flex gap-3 lg:gap-4",
           embeddedInDashboard
             ? "items-start"
-            : "min-h-0 flex-1 items-stretch overflow-hidden",
+            : "h-full min-h-0 flex-1 items-stretch overflow-hidden",
         )}
       >
         <div
           className={cn(
             "min-w-0 flex-1",
-            compactShelf ? "space-y-2" : "space-y-3 sm:space-y-4",
+            compactShelf ? "space-y-1.5" : "space-y-3 sm:space-y-4",
             !embeddedInDashboard &&
-              "min-h-0 overflow-y-auto overscroll-y-contain pr-0.5",
+              "h-full min-h-0 overflow-y-auto overscroll-y-contain pr-0.5",
           )}
         >
       <section
         className={cn(
           "border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40",
-          compactShelf ? "pb-2" : "pb-3",
+          compactShelf ? "pb-1.5" : "pb-3",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="min-w-0">
             {compactShelf ? (
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="pos-market-section-label text-base leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                <h2 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   {pageTitle}
                 </h2>
                 {branchesLoading ? (
@@ -1172,11 +1185,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "flex-1 bg-transparent outline-none placeholder:text-muted-foreground/55",
                 compactShelf
-                  ? "h-10 text-sm"
+                  ? "h-9 text-sm"
                   : "h-12 text-[15px] sm:h-[3.25rem] sm:text-base",
               )}
               autoComplete="off"
-              autoFocus
               enterKeyHint="search"
               aria-label="Search products"
             />
@@ -1246,14 +1258,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <section
           className={cn(
             "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-2 pt-2" : "space-y-2.5 pt-3",
+            compactShelf ? "space-y-1.5 pt-1.5" : "space-y-2.5 pt-3",
           )}
         >
           <div className="flex items-center justify-between gap-2">
             <h3
               className={cn(
                 "pos-market-section-label leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground",
-                compactShelf ? "text-base" : "text-lg sm:text-xl",
+                compactShelf ? "text-[0.95rem]" : "text-lg sm:text-xl",
               )}
             >
               {sharedCategoryLabel
@@ -1287,7 +1299,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "grid gap-1.5 sm:gap-2",
                 compactShelf
-                  ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+                  ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
                   : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
               )}
             >
@@ -1318,13 +1330,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           aria-label="Top selling products"
           className={cn(
             "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-2 pt-2" : "space-y-3 pt-3",
+            compactShelf ? "space-y-1.5 pt-1.5" : "space-y-3 pt-3",
           )}
         >
           <div className="flex items-end justify-between gap-2">
             <div className="min-w-0">
               {compactShelf ? (
-                <h3 className="pos-market-section-label text-base leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   {topProductsTitle}
                   <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                     Shelf
@@ -1359,7 +1371,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               className={cn(
                 "grid gap-1.5 sm:gap-2",
                 compactShelf
-                  ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+                  ? "grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
                   : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
               )}
             >
@@ -1397,13 +1409,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         <section
           className={cn(
             "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-2 pt-2" : "space-y-3 pt-3",
+            compactShelf ? "space-y-1.5 pt-1.5" : "space-y-3 pt-3",
           )}
         >
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div className="min-w-0">
               {compactShelf ? (
-                <h3 className="pos-market-section-label text-base leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   Browse aisles
                 </h3>
               ) : (
@@ -1557,7 +1569,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           className={cn(
             embeddedInDashboard
               ? "sticky top-[3.75rem] h-[calc(100dvh-5.5rem)]"
-              : "overflow-hidden",
+              : "h-full max-h-full overflow-hidden",
             drawerOpen && "lg:invisible lg:pointer-events-none",
           )}
         />

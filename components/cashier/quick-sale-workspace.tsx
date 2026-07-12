@@ -2470,13 +2470,13 @@ export function QuickSaleWorkspace({
   return (
     <div
       className={cn(
-        isCashier && "flex min-h-0 flex-1 flex-col overflow-hidden",
+        isCashier && "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
       )}
     >
       <div
         className={cn(
           "flex items-center justify-between px-1",
-          isCashier ? "shrink-0 pb-1" : "pb-2",
+          isCashier ? "shrink-0 pb-0.5" : "pb-2",
         )}
       >
         {!isCashier ? (

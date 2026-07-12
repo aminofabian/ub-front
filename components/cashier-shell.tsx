@@ -78,9 +78,26 @@ export function CashierShell({ children }: CashierShellProps) {
     }
   }, [roleKey, router]);
 
+  // Lock document scroll for the life of the till — nested panes scroll instead.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+    };
+  }, []);
+
   return (
     <div
-      className="flex h-dvh max-h-dvh flex-col overflow-hidden pos-market-paper"
+      className="flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden pos-market-paper"
       style={brandTheme}
     >
       <header
@@ -91,7 +108,7 @@ export function CashierShell({ children }: CashierShellProps) {
           "dark:border-border/50 dark:bg-background/90",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 px-3 py-1.5 sm:px-4">
           <div className="flex min-w-0 flex-col">
             <div className="flex flex-wrap items-center gap-2">
               <span className="pos-market-section-label truncate text-[1.05rem] leading-none sm:text-lg">
@@ -116,7 +133,7 @@ export function CashierShell({ children }: CashierShellProps) {
               </span>
               <RealtimeConnectionIndicator />
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               {branchLockedRole ? (
                 currentBranch ? (
                   <span
@@ -235,7 +252,7 @@ export function CashierShell({ children }: CashierShellProps) {
           </div>
         </div>
       </header>
-      <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4 sm:py-3">
+      <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2">
         {children}
       </main>
 
