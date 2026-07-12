@@ -1046,13 +1046,13 @@ export function QuickSaleWorkspace({
     if (variant === "cashier") {
       const bid = branchId?.trim();
       if (!online || !bid) {
-        setTopProducts(getTopProducts(business?.id ?? null, 20));
+        setTopProducts(getTopProducts(business?.id ?? null, 24));
         setTopProductsLoading(false);
         return;
       }
       setTopProductsLoading(true);
       void fetchPosTopProducts(bid, {
-        limit: 20,
+        limit: 24,
         itemTypeId: posItemTypeId ?? undefined,
       })
         .then((list) => {
@@ -1077,7 +1077,7 @@ export function QuickSaleWorkspace({
           );
         })
         .catch(() => {
-          setTopProducts(getTopProducts(business?.id ?? null, 20));
+          setTopProducts(getTopProducts(business?.id ?? null, 24));
         })
         .finally(() => {
           setTopProductsLoading(false);
@@ -2525,7 +2525,7 @@ export function QuickSaleWorkspace({
         topProducts={topProducts}
         topProductsLoading={variant === "cashier" ? topProductsLoading : false}
         topProductsTitle={
-          variant === "cashier" ? "Top 20 best sellers" : undefined
+          variant === "cashier" ? "Top 24 best sellers" : undefined
         }
         topProductsSubtitle={
           variant === "cashier"
