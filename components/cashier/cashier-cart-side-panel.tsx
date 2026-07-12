@@ -68,8 +68,7 @@ export function CashierCartSidePanel({
   return (
     <aside
       className={cn(
-        "hidden min-h-0 w-[min(100%,22rem)] shrink-0 flex-col lg:flex xl:w-[24rem]",
-        "sticky top-[3.75rem] h-[calc(100dvh-4.5rem)]",
+        "hidden min-h-0 w-[min(100%,22rem)] shrink-0 flex-col self-stretch lg:flex xl:w-[24rem]",
         className,
       )}
     >
@@ -101,7 +100,7 @@ export function CashierCartSidePanel({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
           {lines.length === 0 ? (
-            <div className="flex h-full min-h-[14rem] flex-col justify-between px-3 py-6">
+            <div className="flex h-full min-h-[8rem] flex-col justify-between px-3 py-4 sm:min-h-[14rem] sm:py-6">
               <div className="space-y-3 border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-4 dark:border-border/40">
                 {[0, 1, 2].map((i) => (
                   <div

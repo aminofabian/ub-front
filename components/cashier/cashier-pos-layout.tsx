@@ -787,13 +787,28 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1600px] px-3 pb-28 sm:px-4 lg:pb-6",
-        embeddedInDashboard ? "pos-market-paper max-w-none rounded-xl px-2 py-2 sm:px-3 sm:py-3" : "",
+        "mx-auto w-full max-w-[1600px]",
+        embeddedInDashboard
+          ? "pos-market-paper max-w-none rounded-xl px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6"
+          : "flex min-h-0 flex-1 flex-col overflow-hidden pb-28 lg:pb-0",
       )}
       style={brandTheme}
     >
-      <div className="flex items-start gap-4 lg:gap-5">
-        <div className="min-w-0 flex-1 space-y-3 sm:space-y-4">
+      <div
+        className={cn(
+          "flex gap-4 lg:gap-5",
+          embeddedInDashboard
+            ? "items-start"
+            : "min-h-0 flex-1 items-stretch overflow-hidden",
+        )}
+      >
+        <div
+          className={cn(
+            "min-w-0 flex-1 space-y-3 sm:space-y-4",
+            !embeddedInDashboard &&
+              "min-h-0 overflow-y-auto overscroll-y-contain pr-0.5",
+          )}
+        >
       <section className="border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-3 dark:border-border/40">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
@@ -873,9 +888,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         ) : null}
       </section>
 
-      {/* ── Multi-cart tabs ─────────────────────────────────────── */}
+      {/* ── Sticky cart tabs + search ───────────────────────────── */}
+      <div
+        className={cn(
+          "sticky z-20 -mx-1 space-y-1 sm:-mx-0",
+          embeddedInDashboard ? "top-[3.5rem]" : "top-0",
+        )}
+      >
       {cartTabs.length > 0 ? (
-        <div className="sticky top-[3.5rem] z-21 -mx-1 sm:-mx-0">
           <div
             className={cn(
               "flex items-center gap-1.5 overflow-x-auto px-1 py-1.5",
@@ -944,11 +964,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               </button>
             ) : null}
           </div>
-        </div>
       ) : null}
 
-      <div className="sticky top-[3.5rem] z-20 -mx-1 sm:-mx-0">
-        <section className="py-1">
+        <section
+          className={cn(
+            "py-1",
+            "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_92%,transparent)]",
+            "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] supports-[backdrop-filter]:backdrop-blur-sm",
+            "dark:bg-background/90",
+          )}
+        >
           <div
             className={cn(
               "group flex items-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] pl-3.5 pr-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] transition-colors",
@@ -1293,7 +1318,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setDrawerOpen(true)}
-          className={drawerOpen ? "lg:invisible lg:pointer-events-none" : undefined}
+          className={cn(
+            embeddedInDashboard
+              ? "sticky top-[3.75rem] h-[calc(100dvh-5.5rem)]"
+              : "overflow-hidden",
+            drawerOpen && "lg:invisible lg:pointer-events-none",
+          )}
         />
       </div>
 

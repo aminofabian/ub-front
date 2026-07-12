@@ -69,10 +69,13 @@ export function CashierShell({ children }: CashierShellProps) {
   );
 
   return (
-    <div className="flex min-h-full flex-col pos-market-paper" style={brandTheme}>
+    <div
+      className="flex h-dvh max-h-dvh flex-col overflow-hidden pos-market-paper"
+      style={brandTheme}
+    >
       <header
         className={cn(
-          "sticky top-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
+          "shrink-0 z-10 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)]",
           "bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_82%,transparent)] backdrop-blur-md",
           "supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_72%,transparent)]",
           "dark:border-border/50 dark:bg-background/90",
@@ -210,7 +213,7 @@ export function CashierShell({ children }: CashierShellProps) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1600px] flex-1 px-3 py-3 sm:px-4 sm:py-4">
+      <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4 sm:py-3">
         {children}
       </main>
     </div>

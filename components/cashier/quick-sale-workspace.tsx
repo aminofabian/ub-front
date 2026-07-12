@@ -84,6 +84,7 @@ import {
 import { resolveReceiptWebsite } from "@/lib/branch-receipt";
 import { printPosReceipt } from "@/lib/desktop-print";
 import { IS_DESKTOP } from "@/lib/runtime";
+import { cn } from "@/lib/utils";
 import {
   buildPosReceiptSnapshot,
   type PosReceiptSnapshot,
@@ -2433,8 +2434,17 @@ export function QuickSaleWorkspace({
   }
 
   return (
-    <>
-      <div className="flex items-center justify-between px-1 pb-2">
+    <div
+      className={cn(
+        isCashier && "flex min-h-0 flex-1 flex-col overflow-hidden",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between px-1 pb-2",
+          isCashier && "shrink-0",
+        )}
+      >
         <span className="text-[10px] font-medium text-muted-foreground">
           {activeBranchName || "Point of sale"}
         </span>
@@ -2645,6 +2655,6 @@ export function QuickSaleWorkspace({
           ) : null}
         </>
       ) : null}
-    </>
+    </div>
   );
 }
