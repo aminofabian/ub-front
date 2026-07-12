@@ -2700,6 +2700,7 @@ export type PosQuickCreateItemPayload = {
   unitType?: string;
   branchId?: string;
   unitPrice: number;
+  buyingPrice?: number;
 };
 
 /** Cashier quick-create (sales.sell + admin-enabled flag, or catalog write). */

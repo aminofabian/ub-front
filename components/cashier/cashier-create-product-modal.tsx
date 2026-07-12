@@ -43,6 +43,7 @@ export function CashierCreateProductModal({
 }: CashierCreateProductModalProps) {
   const [name, setName] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [buyingPrice, setBuyingPrice] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [itemTypeId, setItemTypeId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -51,6 +52,7 @@ export function CashierCreateProductModal({
     if (!open) return;
     setName("");
     setBarcode("");
+    setBuyingPrice("");
     setUnitPrice("");
     const preferred = preferredItemTypeId?.trim();
     const fallback =
@@ -61,11 +63,15 @@ export function CashierCreateProductModal({
   }, [open, preferredItemTypeId, itemTypes]);
 
   const priceNum = Number(unitPrice);
+  const buyingNum = buyingPrice.trim() === "" ? null : Number(buyingPrice);
+  const buyingOk =
+    buyingNum == null || (Number.isFinite(buyingNum) && buyingNum >= 0);
   const canSubmit =
     name.trim().length > 0 &&
     itemTypeId.trim().length > 0 &&
     Number.isFinite(priceNum) &&
-    priceNum > 0;
+    priceNum > 0 &&
+    buyingOk;
 
   const onSubmit = async () => {
     if (!canSubmit) return;
@@ -77,6 +83,7 @@ export function CashierCreateProductModal({
         barcode: barcode.trim() || undefined,
         branchId: branchId.trim() || undefined,
         unitPrice: priceNum,
+        buyingPrice: buyingNum ?? undefined,
         unitType: "each",
       });
       const priceStr = priceNum.toFixed(2);
@@ -93,7 +100,8 @@ export function CashierCreateProductModal({
       toast.success("Product created");
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not create product");
+      const msg = e instanceof Error ? e.message : "Could not create product";
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -103,6 +111,7 @@ export function CashierCreateProductModal({
     "h-10 w-full rounded-xl border border-border/55 bg-background px-3 text-sm shadow-sm",
     "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
   );
+  const currencySuffix = currency ? ` (${currency})` : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,24 +177,38 @@ export function CashierCreateProductModal({
               )}
             </select>
           </label>
-          <label className="block space-y-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Sell price{currency ? ` (${currency})` : ""}
-            </span>
-            <input
-              className={cn(fieldClass, "text-right font-semibold tabular-nums")}
-              inputMode="decimal"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
-              placeholder="0.00"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canSubmit && !busy) {
-                  e.preventDefault();
-                  void onSubmit();
-                }
-              }}
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Buying price{currencySuffix}
+              </span>
+              <input
+                className={cn(fieldClass, "text-right tabular-nums")}
+                inputMode="decimal"
+                value={buyingPrice}
+                onChange={(e) => setBuyingPrice(e.target.value)}
+                placeholder="0.00"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Sell price{currencySuffix}
+              </span>
+              <input
+                className={cn(fieldClass, "text-right font-semibold tabular-nums")}
+                inputMode="decimal"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+                placeholder="0.00"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canSubmit && !busy) {
+                    e.preventDefault();
+                    void onSubmit();
+                  }
+                }}
+              />
+            </label>
+          </div>
         </div>
 
         <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">
