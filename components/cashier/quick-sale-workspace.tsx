@@ -2441,14 +2441,18 @@ export function QuickSaleWorkspace({
     >
       <div
         className={cn(
-          "flex items-center justify-between px-1 pb-2",
-          isCashier && "shrink-0",
+          "flex items-center justify-between px-1",
+          isCashier ? "shrink-0 pb-1" : "pb-2",
         )}
       >
-        <span className="text-[10px] font-medium text-muted-foreground">
-          {activeBranchName || "Point of sale"}
-        </span>
-        <div className="flex items-center gap-2">
+        {!isCashier ? (
+          <span className="text-[10px] font-medium text-muted-foreground">
+            {activeBranchName || "Point of sale"}
+          </span>
+        ) : (
+          <span className="sr-only">{activeBranchName || "Point of sale"}</span>
+        )}
+        <div className={cn("flex items-center gap-2", isCashier && "ml-auto")}>
           {(posDraftsUi || posDraftsEnabled) && (
             <PendingSalesPanel
               onResumeDraft={(id) => void resumePosDraft(id)}

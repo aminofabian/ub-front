@@ -332,6 +332,7 @@ function KioskTileMedia({
   cartQty,
   justAdded,
   stockTone,
+  compact = false,
 }: {
   title: string;
   thumb: string | null;
@@ -339,9 +340,15 @@ function KioskTileMedia({
   cartQty: number;
   justAdded: boolean;
   stockTone: "out" | "low" | null;
+  compact?: boolean;
 }) {
   return (
-    <div className="relative aspect-[4/3] w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/40 dark:from-muted/30 dark:to-muted/50">
+    <div
+      className={cn(
+        "relative w-full shrink-0 border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_55%,transparent)] dark:border-border/40 dark:from-muted/30 dark:to-muted/50",
+        compact ? "aspect-square" : "aspect-[4/3]",
+      )}
+    >
       <span
         className={cn(
           "pointer-events-none absolute left-0 top-0 z-[1] h-full w-[3px] transition-opacity duration-200",
@@ -356,14 +363,22 @@ function KioskTileMedia({
           src={thumb}
           alt=""
           fill
-          sizes="(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
-          className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.04]"
+          sizes={
+            compact
+              ? "(max-width: 640px) 28vw, (max-width: 1024px) 14vw, 110px"
+              : "(max-width: 640px) 34vw, (max-width: 1024px) 18vw, 140px"
+          }
+          className={cn(
+            "object-contain transition-transform duration-300 group-hover:scale-[1.04]",
+            compact ? "p-1" : "p-1.5",
+          )}
           unoptimized
         />
       ) : (
         <span
           className={cn(
-            "flex h-full w-full items-center justify-center bg-gradient-to-br text-2xl font-bold tracking-tight",
+            "flex h-full w-full items-center justify-center bg-gradient-to-br font-bold tracking-tight",
+            compact ? "text-xl" : "text-2xl",
             kioskPlaceholderWashClass(title),
           )}
           aria-hidden
@@ -416,12 +431,14 @@ function TopSellerTile({
   shelfLine,
   cartQty,
   justAdded,
+  compact = false,
 }: {
   product: TopProductRecord;
   onPick: () => void;
   shelfLine: string;
   cartQty: number;
   justAdded: boolean;
+  compact?: boolean;
 }) {
   const itemLike: ItemSummaryRecord = {
     id: product.id,
@@ -464,8 +481,16 @@ function TopSellerTile({
         cartQty={cartQty}
         justAdded={justAdded}
         stockTone={stockTone}
+        compact={compact}
       />
-      <div className="flex min-h-[2.5rem] flex-1 flex-col justify-center px-2 pb-2 pt-1.5">
+      <div
+        className={cn(
+          "flex flex-1 flex-col justify-center",
+          compact
+            ? "min-h-[2rem] px-1.5 pb-1.5 pt-1"
+            : "min-h-[2.5rem] px-2 pb-2 pt-1.5",
+        )}
+      >
         <KioskTileTitle
           primary={primary}
           option={option}
@@ -483,6 +508,7 @@ function SearchHitTile({
   showCategory,
   cartQty,
   justAdded,
+  compact = false,
 }: {
   item: ItemSummaryRecord;
   onPick: () => void;
@@ -490,6 +516,7 @@ function SearchHitTile({
   showCategory: boolean;
   cartQty: number;
   justAdded: boolean;
+  compact?: boolean;
 }) {
   const thumb = posTileThumbUrl(item.name, itemListThumbnailUrl(item));
   const { primary, option } = cashierItemTitleParts(item);
@@ -520,11 +547,15 @@ function SearchHitTile({
         cartQty={cartQty}
         justAdded={justAdded}
         stockTone={stockTone}
+        compact={compact}
       />
       <div
         className={cn(
-          "flex min-h-[2.5rem] flex-1 flex-col justify-center gap-1 px-2 pb-2 pt-1.5",
-          showCategory && "min-h-[3rem]",
+          "flex flex-1 flex-col justify-center gap-1",
+          compact
+            ? "min-h-[2rem] px-1.5 pb-1.5 pt-1"
+            : "min-h-[2.5rem] px-2 pb-2 pt-1.5",
+          showCategory && (compact ? "min-h-[2.6rem]" : "min-h-[3rem]"),
         )}
       >
         <KioskTileTitle
@@ -612,6 +643,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     Record<string, string>
   >({});
   const isLg = useMediaLg();
+  const compactShelf = !embeddedInDashboard;
 
   const hitIdsKey = useMemo(
     () =>
@@ -804,37 +836,66 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       >
         <div
           className={cn(
-            "min-w-0 flex-1 space-y-3 sm:space-y-4",
+            "min-w-0 flex-1",
+            compactShelf ? "space-y-2" : "space-y-3 sm:space-y-4",
             !embeddedInDashboard &&
               "min-h-0 overflow-y-auto overscroll-y-contain pr-0.5",
           )}
         >
-      <section className="border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] pb-3 dark:border-border/40">
+      <section
+        className={cn(
+          "border-b border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] dark:border-border/40",
+          compactShelf ? "pb-2" : "pb-3",
+        )}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="pos-market-section-label flex items-center gap-2 text-xl leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-2xl">
-              <span>{pageTitle}</span>
-              <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-80"
-                aria-hidden
-              />
-            </h2>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
-              {branchesLoading ? (
-                "Loading branches…"
-              ) : activeBranchName ? (
-                <>
-                  Selling at{" "}
-                  <span className="font-semibold text-foreground">
+            {compactShelf ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="pos-market-section-label text-base leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                  {pageTitle}
+                </h2>
+                {branchesLoading ? (
+                  <span className="text-[11px] text-muted-foreground">
+                    Loading branches…
+                  </span>
+                ) : activeBranchName ? (
+                  <span className="truncate text-[11px] text-muted-foreground">
                     {activeBranchName}
                   </span>
-                </>
-              ) : (
-                <span className="text-amber-800 dark:text-amber-200">
-                  Pick a branch in the top nav to start.
-                </span>
-              )}
-            </p>
+                ) : (
+                  <span className="text-[11px] text-amber-800 dark:text-amber-200">
+                    Pick a branch in the top nav
+                  </span>
+                )}
+              </div>
+            ) : (
+              <>
+                <h2 className="pos-market-section-label flex items-center gap-2 text-xl leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-2xl">
+                  <span>{pageTitle}</span>
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pos-primary)] opacity-80"
+                    aria-hidden
+                  />
+                </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+                  {branchesLoading ? (
+                    "Loading branches…"
+                  ) : activeBranchName ? (
+                    <>
+                      Selling at{" "}
+                      <span className="font-semibold text-foreground">
+                        {activeBranchName}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-amber-800 dark:text-amber-200">
+                      Pick a branch in the top nav to start.
+                    </span>
+                  )}
+                </p>
+              </>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {!online ? (
@@ -1005,7 +1066,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     ? "Search within this type…"
                     : "Search name, SKU, or scan barcode…"
               }
-              className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/55 sm:h-[3.25rem] sm:text-base"
+              className={cn(
+                "flex-1 bg-transparent outline-none placeholder:text-muted-foreground/55",
+                compactShelf
+                  ? "h-10 text-sm"
+                  : "h-12 text-[15px] sm:h-[3.25rem] sm:text-base",
+              )}
               autoComplete="off"
               enterKeyHint="search"
               aria-label="Search products"
@@ -1073,9 +1139,19 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       </div>
 
       {hasSearch ? (
-        <section className="space-y-2.5 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-3 dark:border-border/40">
+        <section
+          className={cn(
+            "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
+            compactShelf ? "space-y-2 pt-2" : "space-y-2.5 pt-3",
+          )}
+        >
           <div className="flex items-center justify-between gap-2">
-            <h3 className="pos-market-section-label text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
+            <h3
+              className={cn(
+                "pos-market-section-label leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground",
+                compactShelf ? "text-base" : "text-lg sm:text-xl",
+              )}
+            >
               {sharedCategoryLabel
                 ? `${sharedCategoryLabel} — ${hits.length} result${hits.length === 1 ? "" : "s"}`
                 : search.trim()
@@ -1103,7 +1179,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     : "No items."}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div
+              className={cn(
+                "grid gap-1.5 sm:gap-2",
+                compactShelf
+                  ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+                  : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
+              )}
+            >
               {hits.map((item) => (
                 <SearchHitTile
                   key={item.id}
@@ -1117,6 +1200,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   showCategory={!sharedCategoryLabel}
                   cartQty={cartQtyByItem.get(item.id) ?? 0}
                   justAdded={justAddedId === item.id}
+                  compact={compactShelf}
                   onPick={() => handlePickItem(item)}
                 />
               ))}
@@ -1128,19 +1212,33 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {showCatalog && (alwaysShowTopProducts || topProducts.length > 0) ? (
         <section
           aria-label="Top selling products"
-          className="space-y-3 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-3 dark:border-border/40"
+          className={cn(
+            "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
+            compactShelf ? "space-y-2 pt-2" : "space-y-3 pt-3",
+          )}
         >
           <div className="flex items-end justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Shelf
-              </p>
-              <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
-                {topProductsTitle}
-              </h3>
-              <p className="mt-1 truncate text-[11px] leading-tight text-muted-foreground">
-                {topProductsSubtitle}
-              </p>
+              {compactShelf ? (
+                <h3 className="pos-market-section-label text-base leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                  {topProductsTitle}
+                  <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Shelf
+                  </span>
+                </h3>
+              ) : (
+                <>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Shelf
+                  </p>
+                  <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
+                    {topProductsTitle}
+                  </h3>
+                  <p className="mt-1 truncate text-[11px] leading-tight text-muted-foreground">
+                    {topProductsSubtitle}
+                  </p>
+                </>
+              )}
             </div>
           </div>
           {alwaysShowTopProducts && topProductsLoading ? (
@@ -1153,7 +1251,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               No sales yet — top sellers will appear here after the first sale.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5">
+            <div
+              className={cn(
+                "grid gap-1.5 sm:gap-2",
+                compactShelf
+                  ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+                  : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
+              )}
+            >
               {topProducts.map((p) => (
                 <TopSellerTile
                   key={p.id}
@@ -1161,6 +1266,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
                   cartQty={cartQtyByItem.get(p.id) ?? 0}
                   justAdded={justAddedId === p.id}
+                  compact={compactShelf}
                   onPick={() =>
                     handlePickItem({
                       id: p.id,
@@ -1184,15 +1290,28 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       ) : null}
 
       {showCatalog && canBrowseCategories ? (
-        <section className="space-y-3 border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] pt-3 dark:border-border/40">
+        <section
+          className={cn(
+            "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
+            compactShelf ? "space-y-2 pt-2" : "space-y-3 pt-3",
+          )}
+        >
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Navigate
-              </p>
-              <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
-                Browse aisles
-              </h3>
+              {compactShelf ? (
+                <h3 className="pos-market-section-label text-base leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                  Browse aisles
+                </h3>
+              ) : (
+                <>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Navigate
+                  </p>
+                  <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
+                    Browse aisles
+                  </h3>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {categoryBrowseStack.length > 0 ? (
@@ -1238,7 +1357,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </p>
           ) : (
             <div className="pos-snap-row -mx-1 overflow-x-auto px-1 pb-1 sm:-mx-1.5 sm:px-1.5">
-              <div className="flex gap-2.5 sm:gap-3">
+              <div className={cn("flex", compactShelf ? "gap-2" : "gap-2.5 sm:gap-3")}>
                 {visibleCategoryTiles.map((node) => {
                   const thumb = node.thumbnailUrl?.trim();
                   const kids = (node.children ?? []).filter((c) => c.active);
@@ -1254,10 +1373,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                       type="button"
                       disabled={!online}
                       className={cn(
-                        "flex w-[6.5rem] shrink-0 flex-col items-stretch gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] p-2 text-left transition-[border-color,transform] duration-200",
+                        "flex shrink-0 flex-col items-stretch rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left transition-[border-color,transform] duration-200",
                         "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] disabled:opacity-50",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
                         "dark:border-border/50 dark:bg-card",
+                        compactShelf
+                          ? "w-[5.25rem] gap-1 p-1.5"
+                          : "w-[6.5rem] gap-1.5 p-2",
                       )}
                       onClick={() => {
                         if (!online) return;
@@ -1270,7 +1392,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     >
                       <span
                         className={cn(
-                          "relative flex h-12 w-full items-center justify-center overflow-hidden rounded-sm border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
+                          "relative flex w-full items-center justify-center overflow-hidden rounded-sm border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
+                          compactShelf ? "h-9" : "h-12",
                           !thumb && `bg-gradient-to-br ${kioskPlaceholderWashClass(node.name)}`,
                         )}
                       >
@@ -1289,7 +1412,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                           </span>
                         )}
                       </span>
-                      <span className="line-clamp-2 min-h-[2.1rem] w-full text-[11px] font-semibold leading-[1.15] text-[var(--pos-ink,#1c1915)] dark:text-foreground">
+                      <span
+                        className={cn(
+                          "line-clamp-2 w-full font-semibold leading-[1.15] text-[var(--pos-ink,#1c1915)] dark:text-foreground",
+                          compactShelf
+                            ? "min-h-[1.7rem] text-[10px]"
+                            : "min-h-[2.1rem] text-[11px]",
+                        )}
+                      >
                         {node.name}
                       </span>
                       {countLabel ? (
