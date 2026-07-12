@@ -1633,7 +1633,8 @@ export function QuickSaleWorkspace({
         updateActiveCart({
           stkPushStatus: "sent",
           stkPushCheckoutId: result.checkoutRequestId,
-          mpesaRef: result.checkoutRequestId,
+          // Don't show the KopoKopo checkout UUID as an M-Pesa ref — wait for the receipt.
+          mpesaRef: "",
           stkPushError: "",
         });
       } catch (e) {
@@ -1658,11 +1659,16 @@ export function QuickSaleWorkspace({
           return;
         }
         if (status.success) {
+          const receipt = status.gatewayTransactionId?.trim();
+          if (!receipt) {
+            // Backend should only report success with an M-Pesa receipt; keep waiting.
+            return;
+          }
           notifyStkPaymentConfirmed(stkPushCheckoutId);
           updateActiveCart({
             stkPushStatus: "confirmed",
             stkPushError: "",
-            mpesaRef: status.gatewayTransactionId ?? stkPushCheckoutId,
+            mpesaRef: receipt,
           });
         } else if (status.failed) {
           updateActiveCart({
