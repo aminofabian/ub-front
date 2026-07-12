@@ -45,6 +45,7 @@ export function CashierCreateProductModal({
   const [barcode, setBarcode] = useState("");
   const [buyingPrice, setBuyingPrice] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [initialStockQty, setInitialStockQty] = useState("1");
   const [itemTypeId, setItemTypeId] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -54,6 +55,7 @@ export function CashierCreateProductModal({
     setBarcode("");
     setBuyingPrice("");
     setUnitPrice("");
+    setInitialStockQty("1");
     const preferred = preferredItemTypeId?.trim();
     const fallback =
       preferred && itemTypes.some((t) => t.id === preferred)
@@ -64,14 +66,18 @@ export function CashierCreateProductModal({
 
   const priceNum = Number(unitPrice);
   const buyingNum = buyingPrice.trim() === "" ? null : Number(buyingPrice);
+  const stockNum = Number(initialStockQty);
   const buyingOk =
     buyingNum == null || (Number.isFinite(buyingNum) && buyingNum >= 0);
+  const stockOk = Number.isFinite(stockNum) && stockNum > 0;
   const canSubmit =
     name.trim().length > 0 &&
     itemTypeId.trim().length > 0 &&
+    branchId.trim().length > 0 &&
     Number.isFinite(priceNum) &&
     priceNum > 0 &&
-    buyingOk;
+    buyingOk &&
+    stockOk;
 
   const onSubmit = async () => {
     if (!canSubmit) return;
@@ -84,6 +90,7 @@ export function CashierCreateProductModal({
         branchId: branchId.trim() || undefined,
         unitPrice: priceNum,
         buyingPrice: buyingNum ?? undefined,
+        initialStockQty: stockNum,
         unitType: "each",
       });
       const priceStr = priceNum.toFixed(2);
@@ -93,7 +100,7 @@ export function CashierCreateProductModal({
           name: created.name,
           sku: created.sku ?? "",
           barcode: barcode.trim() || undefined,
-          stockQty: 0,
+          stockQty: stockNum,
         },
         priceStr,
       );
@@ -200,15 +207,30 @@ export function CashierCreateProductModal({
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(e.target.value)}
                 placeholder="0.00"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canSubmit && !busy) {
-                    e.preventDefault();
-                    void onSubmit();
-                  }
-                }}
               />
             </label>
           </div>
+          <label className="block space-y-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Opening stock
+            </span>
+            <input
+              className={cn(fieldClass, "text-right tabular-nums")}
+              inputMode="decimal"
+              value={initialStockQty}
+              onChange={(e) => setInitialStockQty(e.target.value)}
+              placeholder="1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canSubmit && !busy) {
+                  e.preventDefault();
+                  void onSubmit();
+                }
+              }}
+            />
+            <span className="text-[11px] text-muted-foreground">
+              Received at this till branch so the item can be sold right away.
+            </span>
+          </label>
         </div>
 
         <DialogFooter className="gap-2 border-t border-border/40 px-4 py-3">

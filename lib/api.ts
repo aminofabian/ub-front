@@ -2701,6 +2701,8 @@ export type PosQuickCreateItemPayload = {
   branchId?: string;
   unitPrice: number;
   buyingPrice?: number;
+  /** Opening on-hand qty at the till branch (defaults to 1 on the server). */
+  initialStockQty?: number;
 };
 
 /** Cashier quick-create (sales.sell + admin-enabled flag, or catalog write). */
