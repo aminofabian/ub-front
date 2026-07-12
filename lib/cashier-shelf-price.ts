@@ -51,3 +51,29 @@ export function splitShelfPriceDisplay(line: string): { amount: string; code: st
   }
   return { amount: "", code: null };
 }
+
+/** Parse numeric amount from a shelf display line (`65.00 KES` → 65). */
+export function parseShelfAmount(line: string): number | null {
+  const { amount } = splitShelfPriceDisplay(line);
+  if (!amount) return null;
+  const n = Number(amount.replace(/,/g, ""));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
+ * Flag prices that jump far above the rest of the visible shelf so cashiers
+ * double-check before ringing up (e.g. 6008 next to 15–150 grocery prices).
+ */
+export function isHighValueShelfPrice(
+  amount: number,
+  peerAmounts: readonly number[],
+): boolean {
+  if (!Number.isFinite(amount) || amount <= 0) return false;
+  if (amount >= 1000) return true;
+  const peers = peerAmounts
+    .filter((p) => Number.isFinite(p) && p > 0)
+    .sort((a, b) => a - b);
+  if (peers.length < 4) return false;
+  const mid = peers[Math.floor(peers.length / 2)]!;
+  return mid > 0 && amount >= mid * 8;
+}

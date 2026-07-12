@@ -57,7 +57,7 @@ export function CashierShell({ children }: CashierShellProps) {
     [business?.branding],
   );
   const scopeSelectClass = cn(
-    "h-7 max-w-[10.5rem] rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
+    "h-7 max-w-[10.5rem] border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
     "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-2 text-[11px] font-medium text-foreground",
     "shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
     "disabled:opacity-50 dark:bg-card/80",
@@ -116,7 +116,7 @@ export function CashierShell({ children }: CashierShellProps) {
               </span>
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  "inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
                   online
                     ? "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] text-[var(--pos-primary)]"
                     : "border-amber-700/25 bg-amber-100/80 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100",
@@ -137,7 +137,7 @@ export function CashierShell({ children }: CashierShellProps) {
               {branchLockedRole ? (
                 currentBranch ? (
                   <span
-                    className="inline-flex h-7 max-w-[10.5rem] items-center gap-1 truncate rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent px-2 text-[11px] font-medium text-muted-foreground"
+                    className="inline-flex h-7 max-w-[10.5rem] items-center gap-1 truncate border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent px-2 text-[11px] font-medium text-muted-foreground"
                     title="Branch switching is disabled for your role"
                   >
                     <Lock className="size-3 shrink-0" aria-hidden />
@@ -201,32 +201,33 @@ export function CashierShell({ children }: CashierShellProps) {
               </select>
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          <div className="flex shrink-0 flex-wrap items-center gap-x-1 gap-y-1">
             {canManageCashierCapabilities ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setCapsOpen(true)}
               >
                 <Settings2 className="size-3.5" aria-hidden />
-                Cashier permissions
+                Till settings
               </Button>
             ) : null}
+            <div className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] sm:block dark:bg-border/60" aria-hidden />
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Link href={APP_ROUTES.salesQuick}>Admin quick sale</Link>
+              <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
             </Button>
             <Button
               asChild
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
               <Link href={APP_ROUTES.business}>Full app</Link>
             </Button>
@@ -236,9 +237,9 @@ export function CashierShell({ children }: CashierShellProps) {
             />
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
-              className="h-8 text-xs"
+              className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
               onClick={() =>
                 logoutRemote()
                   .catch(() => undefined)

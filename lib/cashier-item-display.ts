@@ -54,12 +54,24 @@ export function cashierItemTitleParts(row: ItemSummaryRecord): {
   }
   const option = disambiguatorForPos(row);
   if (option && !name.toLowerCase().includes(option.toLowerCase())) {
+    // "210" + option "1kg" still reads as a SKU — re-enrich with size attached.
+    if (/^\d+$/.test(name.trim())) {
+      const fixed = enrichWeakProductName(`${name} ${option}`, {
+        ...row,
+        size: row.size?.trim() || option,
+      });
+      const peeled = peelTrailingOption(fixed);
+      return peeled ?? { primary: fixed, option: null };
+    }
     return { primary: name, option };
   }
   // Prefer peeling a trailing " · size" off long catalog names so the unit stays visible.
   const peeled = peelTrailingOption(name);
   if (peeled) {
     return peeled;
+  }
+  if (/^\d+$/.test(name.trim())) {
+    return { primary: enrichWeakProductName(name, row), option: null };
   }
   return { primary: name, option: null };
 }
@@ -97,27 +109,58 @@ export function looksLikeWeakProductName(name: string): boolean {
   if (/^\d+$/.test(t)) return true;
   if (/^\d+\s*for\s*\d+/i.test(t)) return true;
   if (/^[a-z0-9]{1,3}$/i.test(t)) return true;
+  // "210 1kg" / "210 · 1kg" — numeric code + size only (SKU leaked into name).
+  if (
+    /^\d+\s+[·•-]?\s*\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?)\s*$/i.test(t) ||
+    /^\d+\s*[·•]\s*\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?)?\s*$/i.test(t)
+  ) {
+    return true;
+  }
   return false;
 }
 
 function enrichWeakProductName(name: string, row: ItemSummaryRecord): string {
   const brand = row.brand?.trim();
   const size = row.size?.trim();
+  const category = row.categoryName?.trim();
   const skuHint = humanizeSkuCategory(row.sku);
+  const family =
+    skuHint ||
+    brand ||
+    (category && !/^(uncategorized|general|other|misc)$/i.test(category)
+      ? category
+      : null);
+  const trimmed = name.trim();
+  const numericPlusSize =
+    trimmed.match(
+      /^(\d+)\s+[·•-]?\s*(\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?))\s*$/i,
+    ) ??
+    trimmed.match(
+      /^(\d+)\s*[·•]\s*(\d+(?:\.\d+)?\s*(?:kg|g|ml|l|pcs?)?)\s*$/i,
+    );
+  if (family && numericPlusSize?.[1] && numericPlusSize[2]) {
+    return `${family} ${numericPlusSize[1]} · ${numericPlusSize[2].trim()}`;
+  }
+  if (family && /^\d+$/.test(trimmed)) {
+    const unit = size || humanizeSkuSuffix(row.sku);
+    return unit ? `${family} ${trimmed} · ${unit}` : `${family} ${trimmed}`;
+  }
   if (brand && size) {
     return `${brand} ${size}`;
   }
-  if (skuHint && /^\d+\s*for\s*\d+/i.test(name.trim())) {
-    return `${skuHint} · ${name.trim()}`;
+  if (family && /^\d+\s*for\s*\d+/i.test(trimmed)) {
+    return `${family} · ${trimmed}`;
   }
-  if (skuHint && /^\d+$/.test(name.trim())) {
-    return `${skuHint} ${name.trim()}`.trim();
+  if (family) {
+    return family;
   }
-  if (brand) {
-    return brand;
+  // Last resort: never leave cashiers with a bare code + size as the title.
+  if (/^\d+$/.test(trimmed)) {
+    const unit = size || humanizeSkuSuffix(row.sku);
+    return unit ? `Item ${trimmed} · ${unit}` : `Item ${trimmed}`;
   }
-  if (skuHint) {
-    return skuHint;
+  if (numericPlusSize?.[1] && numericPlusSize[2]) {
+    return `Item ${numericPlusSize[1]} · ${numericPlusSize[2].trim()}`;
   }
   return name;
 }
@@ -201,8 +244,12 @@ function humanizeSkuCategory(sku: string | undefined): string | null {
   if (known[upper]) {
     return known[upper];
   }
-  if (upper.length <= 6 && /[AEIOU]/.test(upper)) {
+  if (upper.length <= 8 && /[AEIOU]/.test(upper) && !/^\d/.test(upper)) {
     return upper.charAt(0) + upper.slice(1).toLowerCase();
+  }
+  // Multi-token first segment like BATHSOAP / SOAP210 — title-case when alphabetic.
+  if (/^[A-Z]{4,}$/i.test(first) && /[AEIOU]/i.test(first)) {
+    return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   }
   return null;
 }

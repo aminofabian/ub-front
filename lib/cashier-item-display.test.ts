@@ -136,6 +136,30 @@ describe("cashier labels", () => {
         sku: "FLOURS-10001-1KG",
       }),
     ).toBe("Flour 210 · 1kg");
+    expect(
+      cashierItemPrimaryLabel({
+        id: "f2",
+        name: "210 1kg",
+        sku: "FLOURS-10001-1KG",
+      }),
+    ).toBe("Flour 210 · 1kg");
+    expect(
+      cashierItemPrimaryLabel({
+        id: "f3",
+        name: "210",
+        sku: "X-10001-1KG",
+        size: "1kg",
+        categoryName: "Soap",
+      }),
+    ).toBe("Soap 210 · 1kg");
+    expect(
+      cashierItemPrimaryLabel({
+        id: "f4",
+        name: "210",
+        sku: "X-9",
+        size: "1kg",
+      }),
+    ).toBe("Item 210 · 1kg");
   });
 
   it("never appends SKU to cart suffix", () => {

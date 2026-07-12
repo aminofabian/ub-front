@@ -76,6 +76,8 @@ import {
   cartSessionLabel,
   cartSessionItemCount,
   cartSessionGrandTotal,
+  cartSessionTabKind,
+  cartSessionAgeMs,
   MAX_CARTS,
   type CartSession,
 } from "@/lib/cart-session";
@@ -248,10 +250,6 @@ export function QuickSaleWorkspace({
   const allowCreateProduct =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     createProductFlagEnabled;
-  const canManageCashierCapabilities = hasPermission(
-    me?.permissions,
-    Permission.BusinessManageSettings,
-  );
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -2582,6 +2580,8 @@ export function QuickSaleWorkspace({
           id: c.id,
           label: cartSessionLabel(c),
           itemCount: cartSessionItemCount(c),
+          kind: cartSessionTabKind(c),
+          ageMs: cartSessionAgeMs(c),
         }))}
         activeCartId={activeCartId}
         canCreateCart={carts.length < MAX_CARTS}
@@ -2592,10 +2592,6 @@ export function QuickSaleWorkspace({
         allowPriceEdit={allowPriceEdit}
         canPersistShelfPrice={canPersistShelfPrice}
         allowCreateProduct={allowCreateProduct}
-        canManageCashierCapabilities={canManageCashierCapabilities}
-        priceEditFlagEnabled={priceEditFlagEnabled}
-        createProductFlagEnabled={createProductFlagEnabled}
-        onCashierCapabilitiesSaved={() => refreshSession()}
         itemTypes={itemTypes}
         preferredItemTypeId={posItemTypeId}
         cart={{

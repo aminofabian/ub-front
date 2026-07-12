@@ -13,11 +13,11 @@ import {
   ChevronLeft,
   Loader2,
   LogOut,
+  Package,
   PlusCircle,
   PackagePlus,
   ScanLine,
   Search,
-  Settings2,
   ShoppingCart,
   Wallet,
   X,
@@ -39,10 +39,13 @@ import {
 } from "@/lib/cashier-item-display";
 import {
   formatShelfPriceLabel,
+  isHighValueShelfPrice,
+  parseShelfAmount,
   shelfPriceToInputString,
   splitShelfPriceDisplay,
 } from "@/lib/cashier-shelf-price";
 import { posTileThumbUrl } from "@/lib/pos-tile-thumb";
+import { CART_STALE_MS, CART_VERY_STALE_MS } from "@/lib/cart-session";
 import { useMediaLg } from "@/hooks/use-media-lg";
 import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
@@ -63,20 +66,38 @@ import {
   CashierDottedLeader,
 } from "./cashier-currency-inline";
 import {
-  kioskCategoryPillClass,
   kioskPlaceholderWashClass,
 } from "./kiosk-listing-styles";
 import { BarcodeScanner } from "@/components/barcode-scanner";
-import { CashierAdminCapabilitiesModal } from "./cashier-admin-capabilities-modal";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
 import type { ItemTypeRecord } from "@/lib/api";
 
 const POS_SHIFT_CHIP_CLASS = cn(
-  "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_70%,transparent)] px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground",
-  "transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] hover:bg-card",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
+  "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
+  "transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_4%,transparent)]",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
   "active:scale-[0.98]",
+);
+
+const POS_PRIMARY_CHIP_CLASS = cn(
+  POS_SHIFT_CHIP_CLASS,
+  "border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] text-[var(--pos-ink,#1c1915)]",
+  "hover:bg-[color-mix(in_srgb,var(--pos-primary)_8%,transparent)]",
+);
+
+const POS_SECONDARY_CHIP_CLASS = cn(
+  POS_SHIFT_CHIP_CLASS,
+  "border-transparent text-muted-foreground",
+  "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] hover:text-foreground",
+);
+
+const KIOSK_TILE_SHELL = cn(
+  "group relative flex h-full flex-col overflow-hidden border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-[color-mix(in_srgb,var(--card)_94%,#f7f3eb)] text-left transition-[border-color,background-color] duration-150",
+  "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_18%,transparent)] hover:bg-card",
+  "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)]",
+  "active:bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_40%,var(--card))]",
+  "dark:border-border/40 dark:bg-card",
 );
 
 export type CashierPosShiftLinksProps = {
@@ -163,6 +184,10 @@ export type CashierPosLayoutProps = {
     label: string;
     itemCount: number;
     grandTotal: number;
+    /** held = parked ticket, empty = blank lane, open = local cart with lines */
+    kind: "held" | "empty" | "open";
+    /** Age in ms for stale held-sale cues. */
+    ageMs: number;
   }[];
   activeCartId: string;
   canCreateCart: boolean;
@@ -180,11 +205,6 @@ export type CashierPosLayoutProps = {
   canPersistShelfPrice?: boolean;
   /** Quick-create products from POS. */
   allowCreateProduct?: boolean;
-  /** Admin can toggle cashier capability flags. */
-  canManageCashierCapabilities?: boolean;
-  priceEditFlagEnabled?: boolean;
-  createProductFlagEnabled?: boolean;
-  onCashierCapabilitiesSaved?: () => Promise<void> | void;
   itemTypes?: ItemTypeRecord[];
   preferredItemTypeId?: string | null;
 
@@ -263,36 +283,42 @@ function tileShelfLine(
   return prices[id] ? prices[id] : copy.tileShelfEmpty;
 }
 
-const KIOSK_TILE_SHELL = cn(
-  "group relative flex h-full flex-col overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,#f7f3eb)] text-left shadow-[0_1px_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] transition-[box-shadow,border-color,transform] duration-200",
-  "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_32%,transparent)] hover:shadow-[0_8px_20px_-14px_color-mix(in_srgb,var(--pos-ink,#1c1915)_35%,transparent)]",
-  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
-  "active:scale-[0.98]",
-  "dark:border-border/50 dark:bg-card dark:shadow-none",
-);
-
-/** Shelf price on tile: amount + currency only, never size/unit. */
-function KioskTileShelfBadge({ shelfLine }: { shelfLine: string }) {
+/** Shelf price under the title — supporting, never overlaid on the photo. */
+function KioskTileShelfPrice({
+  shelfLine,
+  compact = false,
+}: {
+  shelfLine: string;
+  compact?: boolean;
+}) {
   const { amount, code } = splitShelfPriceDisplay(shelfLine);
-  if (!amount) return null;
+  if (!amount) {
+    if (!shelfLine.trim()) return null;
+    return (
+      <p
+        className={cn(
+          "truncate tabular-nums text-muted-foreground",
+          compact ? "text-[9px]" : "text-[10px]",
+        )}
+      >
+        {shelfLine}
+      </p>
+    );
+  }
   return (
-    <div
+    <p
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-1.5 z-[2] max-w-[calc(100%-0.75rem)] rounded-sm px-1.5 py-0.5",
-        "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)] bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb]",
-        "dark:border-neutral-100/20 dark:bg-neutral-950 dark:text-white",
-        "inline-flex flex-nowrap items-baseline gap-0.5 whitespace-nowrap tabular-nums shadow-sm",
+        "inline-flex max-w-full items-baseline gap-0.5 truncate tabular-nums text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_72%,transparent)] dark:text-muted-foreground",
+        compact ? "text-[10px]" : "text-[11px]",
       )}
     >
-      <span className="text-[11px] font-bold leading-none sm:text-[12px]">
-        {amount}
-      </span>
+      <span className="font-semibold leading-none">{amount}</span>
       {code ? (
-        <span className="text-[7px] font-semibold uppercase leading-none tracking-[0.14em] opacity-70 sm:text-[8px]">
+        <span className="text-[8px] font-medium uppercase tracking-[0.12em] opacity-70">
           {code}
         </span>
       ) : null}
-    </div>
+    </p>
   );
 }
 
@@ -309,10 +335,10 @@ function KioskTileCartQty({
     <span
       key={cartQty}
       className={cn(
-        "pos-tile-qty-badge absolute right-1.5 top-1.5 z-[2] inline-flex h-6 items-center gap-0.5 rounded-sm px-1.5 text-[10px] font-bold tabular-nums shadow-sm",
-        "border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_80%,transparent)] bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb]",
-        "dark:border-neutral-100/20 dark:bg-neutral-950 dark:text-white",
-        justAdded && "ring-2 ring-[var(--pos-primary)] ring-offset-1 ring-offset-[var(--pos-paper,#f1ece3)]",
+        "pos-tile-qty-badge absolute right-1.5 top-1.5 z-[2] inline-flex h-5 items-center gap-0.5 px-1.5 text-[10px] font-semibold tabular-nums",
+        "bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb]",
+        "dark:bg-neutral-950 dark:text-white",
+        justAdded && "outline outline-1 outline-offset-1 outline-[var(--pos-primary)]",
       )}
       title={`${cartQty} in cart — tap to add another`}
     >
@@ -344,10 +370,10 @@ function KioskTileStockCue({ tone }: { tone: "out" | "low" | null }) {
   return (
     <span
       className={cn(
-        "pointer-events-none absolute left-1.5 bottom-1.5 z-[2] rounded px-1 py-px text-[8px] font-bold uppercase tracking-wide shadow-sm",
+        "pointer-events-none absolute left-1.5 top-1.5 z-[2] px-1 py-px text-[8px] font-semibold uppercase tracking-wide",
         tone === "out"
-          ? "bg-red-600 text-white"
-          : "bg-amber-500 text-neutral-950",
+          ? "bg-[var(--pos-ink,#1c1915)] text-[#f7f3eb]"
+          : "bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] text-[var(--pos-ink,#1c1915)]",
       )}
     >
       {tone === "out" ? "Out" : "Low"}
@@ -358,7 +384,6 @@ function KioskTileStockCue({ tone }: { tone: "out" | "low" | null }) {
 function KioskTileMedia({
   title,
   thumb,
-  shelfLine,
   cartQty,
   justAdded,
   stockTone,
@@ -366,7 +391,6 @@ function KioskTileMedia({
 }: {
   title: string;
   thumb: string | null;
-  shelfLine: string;
   cartQty: number;
   justAdded: boolean;
   stockTone: "out" | "low" | null;
@@ -407,18 +431,22 @@ function KioskTileMedia({
       ) : (
         <span
           className={cn(
-            "flex h-full w-full items-center justify-center bg-gradient-to-br font-bold tracking-tight",
-            compact ? "text-xl" : "text-2xl",
+            "flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br",
             kioskPlaceholderWashClass(title),
           )}
           aria-hidden
         >
-          {title.trim().charAt(0).toUpperCase() || "?"}
+          <Package
+            className={cn(
+              "opacity-55",
+              compact ? "size-5" : "size-7 sm:size-8",
+            )}
+            strokeWidth={1.5}
+          />
         </span>
       )}
       <KioskTileCartQty cartQty={cartQty} justAdded={justAdded} />
       <KioskTileStockCue tone={stockTone} />
-      <KioskTileShelfBadge shelfLine={shelfLine} />
     </div>
   );
 }
@@ -427,27 +455,25 @@ function KioskTileTitle({
   primary,
   option,
   fullTitle,
-  bold = false,
+  shelfLine,
+  highValue = false,
   compact = false,
 }: {
   primary: string;
   option: string | null;
   fullTitle: string;
-  bold?: boolean;
+  shelfLine: string;
+  highValue?: boolean;
   compact?: boolean;
 }) {
   return (
-    <div className="min-w-0" title={fullTitle}>
+    <div className="relative min-w-0 space-y-0.5">
       <p
         className={cn(
-          "truncate text-left leading-tight tracking-tight",
-          bold
-            ? compact
-              ? "text-[10px] font-bold text-[var(--pos-ink,#1c1915)] dark:text-neutral-50 sm:text-[11px]"
-              : "text-[11px] font-bold text-[var(--pos-ink,#1c1915)] dark:text-neutral-50 sm:text-[12px]"
-            : compact
-              ? "text-[10px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_88%,transparent)] sm:text-[11px] dark:text-foreground/85"
-              : "text-[11px] font-semibold text-[color-mix(in_srgb,var(--pos-ink,#1c1915)_88%,transparent)] sm:text-[12px] dark:text-foreground/85",
+          "text-left leading-snug tracking-tight text-[var(--pos-ink,#1c1915)] dark:text-neutral-50",
+          compact
+            ? "line-clamp-3 text-[11px] font-semibold sm:text-[12px]"
+            : "line-clamp-3 text-[12px] font-semibold sm:text-[13px]",
         )}
       >
         {primary}
@@ -455,13 +481,40 @@ function KioskTileTitle({
       {option ? (
         <p
           className={cn(
-            "truncate text-left font-medium leading-none text-muted-foreground",
-            compact ? "mt-px text-[9px]" : "mt-0.5 text-[10px]",
+            "text-left font-bold leading-snug text-[var(--pos-ink,#1c1915)] dark:text-neutral-100",
+            compact
+              ? "line-clamp-2 text-[10px] sm:text-[11px]"
+              : "line-clamp-2 text-[11px] sm:text-[12px]",
           )}
         >
           {option}
         </p>
       ) : null}
+      <div className="flex min-w-0 flex-wrap items-center gap-1">
+        <KioskTileShelfPrice shelfLine={shelfLine} compact={compact} />
+        {highValue ? (
+          <span
+            className={cn(
+              "shrink-0 font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+              compact ? "text-[8px]" : "text-[9px]",
+            )}
+            title="Confirm price — high-value item"
+          >
+            Confirm
+          </span>
+        ) : null}
+      </div>
+      {/* Hover/focus reveal for truncated near-duplicates. */}
+      <span
+        role="tooltip"
+        className={cn(
+          "pointer-events-none absolute bottom-[calc(100%+0.25rem)] left-0 z-20 hidden max-w-[14rem] bg-[var(--pos-ink,#1c1915)] px-2 py-1.5 text-left text-[11px] font-medium leading-snug text-[#f7f3eb]",
+          "group-hover:block group-focus-visible:block",
+        )}
+      >
+        {fullTitle}
+        {shelfLine ? ` · ${shelfLine}` : ""}
+      </span>
     </div>
   );
 }
@@ -470,6 +523,7 @@ function TopSellerTile({
   product,
   onPick,
   shelfLine,
+  highValue = false,
   cartQty,
   justAdded,
   compact = false,
@@ -477,6 +531,7 @@ function TopSellerTile({
   product: TopProductRecord;
   onPick: () => void;
   shelfLine: string;
+  highValue?: boolean;
   cartQty: number;
   justAdded: boolean;
   compact?: boolean;
@@ -505,20 +560,19 @@ function TopSellerTile({
       className={cn(
         KIOSK_TILE_SHELL,
         cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,var(--card))] dark:bg-card",
-        justAdded && "shadow-md",
-        stockTone === "out" && "opacity-75",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
+        stockTone === "out" && "opacity-70",
       )}
       aria-label={
         cartQty > 0
           ? `${title}, ${cartQty} in cart. Tap to add another. ${shelfLine}`
           : `Add ${title}, ${shelfLine}`
       }
+      title={title}
     >
       <KioskTileMedia
         title={title}
         thumb={thumb}
-        shelfLine={shelfLine}
         cartQty={cartQty}
         justAdded={justAdded}
         stockTone={stockTone}
@@ -528,14 +582,16 @@ function TopSellerTile({
         className={cn(
           "flex flex-1 flex-col justify-center",
           compact
-            ? "min-h-[1.75rem] px-1 pb-1 pt-0.5"
-            : "min-h-[2.5rem] px-2 pb-2 pt-1.5",
+            ? "min-h-[3.1rem] px-1 pb-1 pt-0.5"
+            : "min-h-[4rem] px-2 pb-2 pt-1.5",
         )}
       >
         <KioskTileTitle
           primary={primary}
           option={option}
           fullTitle={title}
+          shelfLine={shelfLine}
+          highValue={highValue}
           compact={compact}
         />
       </div>
@@ -547,6 +603,7 @@ function SearchHitTile({
   item,
   onPick,
   shelfLine,
+  highValue = false,
   showCategory,
   cartQty,
   justAdded,
@@ -555,6 +612,7 @@ function SearchHitTile({
   item: ItemSummaryRecord;
   onPick: () => void;
   shelfLine: string;
+  highValue?: boolean;
   showCategory: boolean;
   cartQty: number;
   justAdded: boolean;
@@ -572,20 +630,19 @@ function SearchHitTile({
       className={cn(
         KIOSK_TILE_SHELL,
         cartQty > 0 &&
-          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_28%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_70%,var(--card))] dark:bg-card",
-        justAdded && "shadow-md",
-        stockTone === "out" && "opacity-75",
+          "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_45%,var(--card))]",
+        stockTone === "out" && "opacity-70",
       )}
       aria-label={
         cartQty > 0
           ? `${title}, ${cartQty} in cart. Tap to add another. ${shelfLine}`
           : `Add ${title} to cart, ${shelfLine}`
       }
+      title={title}
     >
       <KioskTileMedia
         title={title}
         thumb={thumb}
-        shelfLine={shelfLine}
         cartQty={cartQty}
         justAdded={justAdded}
         stockTone={stockTone}
@@ -595,25 +652,21 @@ function SearchHitTile({
         className={cn(
           "flex flex-1 flex-col justify-center gap-1",
           compact
-            ? "min-h-[1.75rem] px-1 pb-1 pt-0.5"
-            : "min-h-[2.5rem] px-2 pb-2 pt-1.5",
-          showCategory && (compact ? "min-h-[2.4rem]" : "min-h-[3rem]"),
+            ? "min-h-[3.1rem] px-1 pb-1 pt-0.5"
+            : "min-h-[4rem] px-2 pb-2 pt-1.5",
+          showCategory && (compact ? "min-h-[3.75rem]" : "min-h-[4.5rem]"),
         )}
       >
         <KioskTileTitle
           primary={primary}
           option={option}
           fullTitle={title}
-          bold
+          shelfLine={shelfLine}
+          highValue={highValue}
           compact={compact}
         />
         {showCategory ? (
-          <span
-            className={cn(
-              "max-w-full truncate rounded-md px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide",
-              kioskCategoryPillClass(categoryLabel),
-            )}
-          >
+          <span className="max-w-full truncate text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
             {categoryLabel}
           </span>
         ) : null}
@@ -676,10 +729,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowPriceEdit = false,
     canPersistShelfPrice = false,
     allowCreateProduct = false,
-    canManageCashierCapabilities = false,
-    priceEditFlagEnabled = false,
-    createProductFlagEnabled = false,
-    onCashierCapabilitiesSaved,
     itemTypes = [],
     preferredItemTypeId = null,
     cart,
@@ -692,7 +741,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [showScanner, setShowScanner] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [createProductOpen, setCreateProductOpen] = useState(false);
-  const [adminCapsOpen, setAdminCapsOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const [tileShelfPrices, setTileShelfPrices] = useState<
     Record<string, string>
@@ -727,7 +775,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !modalOpen &&
       !showScanner &&
       !createProductOpen &&
-      !adminCapsOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -763,6 +810,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
     return map;
   }, [cart.lines]);
+
+  const shelfPeerAmounts = useMemo(() => {
+    const amounts: number[] = [];
+    for (const line of Object.values(tileShelfPrices)) {
+      const n = parseShelfAmount(line);
+      if (n != null && n > 0) amounts.push(n);
+    }
+    return amounts;
+  }, [tileShelfPrices]);
+
+  const isHighValueTile = useCallback(
+    (shelfLine: string) => {
+      const n = parseShelfAmount(shelfLine);
+      if (n == null) return false;
+      return isHighValueShelfPrice(n, shelfPeerAmounts);
+    },
+    [shelfPeerAmounts],
+  );
 
   const sharedCategoryLabel = useMemo(() => {
     if (hits.length < 2) return null;
@@ -917,7 +982,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       className={cn(
         "mx-auto w-full max-w-[1600px]",
         embeddedInDashboard
-          ? "pos-market-paper max-w-none rounded-xl px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6"
+          ? "pos-market-paper max-w-none px-2 py-2 pb-28 sm:px-3 sm:py-3 lg:pb-6"
           : "flex h-full min-h-0 flex-1 flex-col overflow-hidden pb-28 lg:pb-0",
       )}
       style={brandTheme}
@@ -998,36 +1063,26 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               <button
                 type="button"
                 onClick={() => setCreateProductOpen(true)}
-                className={POS_SHIFT_CHIP_CLASS}
+                className={POS_PRIMARY_CHIP_CLASS}
               >
                 <PackagePlus className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 Add product
               </button>
             ) : null}
-            {canManageCashierCapabilities ? (
-              <button
-                type="button"
-                onClick={() => setAdminCapsOpen(true)}
-                className={POS_SHIFT_CHIP_CLASS}
-              >
-                <Settings2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                Permissions
-              </button>
-            ) : null}
             {!online ? (
-              <span className="rounded-md border border-amber-700/25 bg-amber-100/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
+              <span className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 {uiCopy.offlinePill}
               </span>
             ) : null}
             {posShiftLinks?.branchSelected && !posShiftLinks.shiftLoading ? (
-              <>
+              <div className="ml-1 flex flex-wrap items-center gap-1 border-l border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] pl-2.5 dark:border-border/50">
                 {posShiftLinks.canCloseShift && posShiftLinks.hasOpenShift ? (
                   <button
                     type="button"
                     onClick={() => posShiftLinks.onShortcut("new-drawout")}
-                    className={POS_SHIFT_CHIP_CLASS}
+                    className={POS_SECONDARY_CHIP_CLASS}
                   >
-                    <Wallet className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    <Wallet className="size-3.5 shrink-0" aria-hidden />
                     Drawout
                   </button>
                 ) : null}
@@ -1035,7 +1090,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   <button
                     type="button"
                     onClick={() => posShiftLinks.onShortcut("open-shift")}
-                    className={POS_SHIFT_CHIP_CLASS}
+                    className={POS_PRIMARY_CHIP_CLASS}
                   >
                     <PlusCircle className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     Open shift
@@ -1045,13 +1100,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   <button
                     type="button"
                     onClick={() => posShiftLinks.onShortcut("close-shift")}
-                    className={cn(POS_SHIFT_CHIP_CLASS, "border-destructive/30 text-destructive")}
+                    className={cn(
+                      POS_SHIFT_CHIP_CLASS,
+                      "border-transparent text-destructive/80 hover:border-destructive/25 hover:text-destructive",
+                    )}
                   >
                     <LogOut className="size-3.5 shrink-0" aria-hidden />
                     Close shift
                   </button>
                 ) : null}
-              </>
+              </div>
             ) : null}
           </div>
         </div>
@@ -1081,39 +1139,102 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               "border-b border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40 dark:bg-background/85",
             )}
           >
-            {cartTabs.map((tab) => {
+            {([...cartTabs] as typeof cartTabs)
+              .sort((a, b) => {
+                // Active tab first, then held (stale first), then open, empty last.
+                const rank = (t: (typeof cartTabs)[number]) => {
+                  if (t.id === activeCartId) return 0;
+                  if (t.kind === "held") return 1;
+                  if (t.kind === "open") return 2;
+                  return 3;
+                };
+                const d = rank(a) - rank(b);
+                if (d !== 0) return d;
+                if (a.kind === "held" && b.kind === "held") {
+                  return b.ageMs - a.ageMs;
+                }
+                return 0;
+              })
+              .map((tab) => {
               const isActive = tab.id === activeCartId;
               const hasItems = tab.itemCount > 0;
+              const veryStale =
+                tab.kind === "held" && tab.ageMs >= CART_VERY_STALE_MS;
+              const stale =
+                tab.kind === "held" && tab.ageMs >= CART_STALE_MS;
+              const role = isActive
+                ? "Open"
+                : tab.kind === "held"
+                  ? stale
+                    ? "Stale"
+                    : "Held"
+                  : tab.kind === "empty"
+                    ? "Spare"
+                    : "Parked";
+              const totalLabel = Number.isFinite(tab.grandTotal)
+                ? tab.grandTotal.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })
+                : "0";
               return (
                 <div
                   key={tab.id}
                   className={cn(
                     "pos-market-ticket group relative flex shrink-0 items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                     isActive
-                      ? "border-[var(--pos-primary)] bg-[color-mix(in_srgb,var(--pos-primary)_12%,var(--card))] text-foreground shadow-sm"
-                      : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_85%,transparent)] text-muted-foreground hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] hover:text-foreground",
+                      ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)] bg-card text-foreground"
+                      : veryStale || stale
+                        ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-transparent text-foreground"
+                        : tab.kind === "held"
+                          ? "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent text-foreground"
+                          : tab.kind === "empty"
+                            ? "border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent text-muted-foreground"
+                            : "border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <button
                     type="button"
                     onClick={() => onSwitchCart(tab.id)}
-                    className="flex min-w-0 items-center gap-1.5 text-left"
+                    className="flex min-w-0 flex-col items-start gap-0.5 text-left"
+                    title={
+                      hasItems
+                        ? `${role} ${tab.label} · ${tab.itemCount} items · ${totalLabel} ${currency}`
+                        : `${role} · ${tab.label}`
+                    }
                   >
-                    <span
-                      className={cn(
-                        "size-1.5 shrink-0 rounded-full",
-                        isActive
-                          ? "bg-[var(--pos-primary)]"
-                          : hasItems
-                            ? "bg-[var(--pos-ink,#1c1915)]/40"
-                            : "bg-muted-foreground/30",
-                      )}
-                      aria-hidden
-                    />
-                    <span className="truncate font-semibold">{tab.label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "size-1.5 shrink-0 rounded-full",
+                          isActive
+                            ? "bg-[var(--pos-ink,#1c1915)]"
+                            : veryStale || stale
+                              ? "bg-muted-foreground"
+                              : hasItems
+                                ? "bg-muted-foreground/50"
+                                : "bg-muted-foreground/25",
+                        )}
+                        aria-hidden
+                      />
+                      <span
+                        className={cn(
+                          "text-[9px] font-semibold uppercase tracking-[0.12em]",
+                          veryStale || stale
+                            ? "text-foreground/70"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {role}
+                      </span>
+                      <span className="truncate font-semibold tabular-nums">
+                        {tab.label}
+                      </span>
+                    </span>
                     {hasItems ? (
-                      <span className="tabular-nums text-[10px] opacity-70">
-                        · {tab.itemCount}
+                      <span className="pl-3 text-[10px] tabular-nums text-muted-foreground">
+                        {tab.itemCount}{" "}
+                        {tab.itemCount === 1 ? "item" : "items"} · {totalLabel}{" "}
+                        {currency}
                       </span>
                     ) : null}
                   </button>
@@ -1153,9 +1274,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         >
           <div
             className={cn(
-              "group flex items-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,#f7f3eb)] pl-3.5 pr-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--pos-ink,#1c1915)_6%,transparent)] transition-colors",
-              "focus-within:border-[color-mix(in_srgb,var(--pos-primary)_40%,transparent)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--pos-primary)_12%,transparent)]",
-              "dark:border-border/50 dark:bg-card/80 dark:shadow-none",
+              "group flex items-center gap-2 border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-card pl-3.5 pr-1.5 transition-colors",
+              "focus-within:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_22%,transparent)]",
+              "dark:border-border/40 dark:bg-card/80",
             )}
           >
             <Search
@@ -1165,7 +1286,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             <button
               type="button"
               onClick={() => setShowScanner(true)}
-              className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-[color-mix(in_srgb,var(--pos-paper,#f1ece3)_50%,transparent)] p-2 text-[var(--pos-ink,#1c1915)]/70 transition-colors hover:border-[var(--pos-primary)] hover:text-[var(--pos-primary)] dark:border-border/40 dark:bg-muted/30 dark:text-muted-foreground"
+              className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground"
               aria-label="Scan barcode with phone camera"
               title="Scan barcode with camera"
             >
@@ -1218,7 +1339,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : null}
           {categoryFilterId ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
-              <span className="rounded-md border border-[color-mix(in_srgb,var(--pos-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)] px-2.5 py-0.5 font-medium text-[var(--pos-primary)]">
+              <span className="bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_5%,transparent)] px-2.5 py-0.5 font-medium text-foreground">
                 Aisle: {categoryFilterLabel ?? categoryFilterId}
               </span>
               <button
@@ -1232,7 +1353,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                 <label className="inline-flex cursor-pointer items-center gap-1.5 text-muted-foreground">
                   <input
                     type="checkbox"
-                    className="size-3.5 rounded border-border accent-[var(--pos-primary)]"
+                    className="size-3.5 border-border accent-[var(--pos-primary)]"
                     checked={keepAisleFilter}
                     onChange={(e) => onKeepAisleFilterChange(e.target.checked)}
                   />
@@ -1243,7 +1364,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : null}
           {typeFilterId ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 px-0.5 text-xs">
-              <span className="rounded-md bg-muted px-2.5 py-0.5 font-medium text-foreground">
+              <span className="bg-muted px-2.5 py-0.5 font-medium text-foreground">
                 Type: {typeFilterLabel ?? typeFilterId}
               </span>
               {clearTypeFilter ? (
@@ -1291,7 +1412,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             ) : null}
           </div>
           {hits.length === 0 ? (
-            <p className="rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
+            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
               {search.trim()
                 ? "No items match your search."
                 : categoryFilterId
@@ -1309,23 +1430,27 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
               )}
             >
-              {hits.map((item) => (
+              {hits.map((item) => {
+                const shelfLine = tileShelfLine(
+                  online,
+                  tileShelfPrices,
+                  item.id,
+                  uiCopy,
+                );
+                return (
                 <SearchHitTile
                   key={item.id}
                   item={item}
-                  shelfLine={tileShelfLine(
-                    online,
-                    tileShelfPrices,
-                    item.id,
-                    uiCopy,
-                  )}
+                  shelfLine={shelfLine}
+                  highValue={isHighValueTile(shelfLine)}
                   showCategory={!sharedCategoryLabel}
                   cartQty={cartQtyByItem.get(item.id) ?? 0}
                   justAdded={justAddedId === item.id}
                   compact={compactShelf}
                   onPick={() => handlePickItem(item)}
                 />
-              ))}
+              );
+              })}
             </div>
           )}
         </section>
@@ -1364,12 +1489,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
             </div>
           </div>
           {alwaysShowTopProducts && topProductsLoading ? (
-            <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-xs text-muted-foreground sm:py-8">
+            <div className="flex items-center justify-center gap-2 border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-xs text-muted-foreground sm:py-8">
               <Loader2 className="size-4 animate-spin" aria-hidden />
               Loading top sellers…
             </div>
           ) : alwaysShowTopProducts && topProducts.length === 0 ? (
-            <p className="rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
+            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-7 text-center text-xs text-muted-foreground sm:py-8">
               No sales yet — top sellers will appear here after the first sale.
             </p>
           ) : (
@@ -1381,11 +1506,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                   : "grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 md:grid-cols-4 lg:grid-cols-5",
               )}
             >
-              {topProducts.map((p) => (
+              {topProducts.map((p) => {
+                const shelfLine = tileShelfLine(online, tileShelfPrices, p.id, uiCopy);
+                return (
                 <TopSellerTile
                   key={p.id}
                   product={p}
-                  shelfLine={tileShelfLine(online, tileShelfPrices, p.id, uiCopy)}
+                  shelfLine={shelfLine}
+                  highValue={isHighValueTile(shelfLine)}
                   cartQty={cartQtyByItem.get(p.id) ?? 0}
                   justAdded={justAddedId === p.id}
                   compact={compactShelf}
@@ -1405,7 +1533,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     })
                   }
                 />
-              ))}
+              );
+              })}
             </div>
           )}
         </section>
@@ -1414,8 +1543,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       {showCatalog && canBrowseCategories ? (
         <section
           className={cn(
-            "border-t border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] dark:border-border/40",
-            compactShelf ? "space-y-1.5 pt-1.5" : "space-y-3 pt-3",
+            "border-t border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] dark:border-border/40",
+            compactShelf ? "mt-2 space-y-1.5 pt-2" : "mt-3 space-y-3 pt-3",
           )}
         >
           <div className="flex flex-wrap items-end justify-between gap-2">
@@ -1423,11 +1552,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               {compactShelf ? (
                 <h3 className="pos-market-section-label text-[0.95rem] leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground">
                   Browse aisles
+                  <span className="ml-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    A–Z
+                  </span>
                 </h3>
               ) : (
                 <>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Navigate
+                    Aisles · A–Z
                   </p>
                   <h3 className="pos-market-section-label mt-0.5 text-lg leading-none text-[var(--pos-ink,#1c1915)] dark:text-foreground sm:text-xl">
                     Browse aisles
@@ -1474,13 +1606,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           ) : categoryTreeBusy ? (
             <p className="text-xs text-muted-foreground">Loading aisles…</p>
           ) : visibleCategoryTiles.length === 0 ? (
-            <p className="rounded-md border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-8 text-center text-xs text-muted-foreground">
+            <p className="border border-dashed border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-[color-mix(in_srgb,var(--card)_50%,transparent)] py-8 text-center text-xs text-muted-foreground">
               No active aisles.
             </p>
           ) : (
             <div className="pos-snap-row -mx-1 overflow-x-auto px-1 pb-1 sm:-mx-1.5 sm:px-1.5">
               <div className={cn("flex", compactShelf ? "gap-2" : "gap-2.5 sm:gap-3")}>
-                {visibleCategoryTiles.map((node) => {
+                {visibleCategoryTiles.map((node, index) => {
                   const thumb = node.thumbnailUrl?.trim();
                   const kids = (node.children ?? []).filter((c) => c.active);
                   const drillable = kids.length > 0;
@@ -1489,16 +1621,31 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     : node.childCount > 0
                       ? `${node.childCount} item${node.childCount === 1 ? "" : "s"}`
                       : "";
+                  const letter = node.name.trim().charAt(0).toUpperCase() || "?";
+                  const prevLetter =
+                    visibleCategoryTiles[index - 1]?.name
+                      .trim()
+                      .charAt(0)
+                      .toUpperCase() || "";
+                  const showLetter = letter !== prevLetter;
                   return (
+                    <div key={node.id} className="flex shrink-0 items-stretch gap-1.5">
+                      {showLetter ? (
+                        <span
+                          className="flex shrink-0 items-center self-center px-1 text-[10px] font-semibold tabular-nums text-muted-foreground"
+                          aria-hidden
+                        >
+                          {letter}
+                        </span>
+                      ) : null}
                     <button
-                      key={node.id}
                       type="button"
                       disabled={!online}
                       className={cn(
-                        "flex shrink-0 flex-col items-stretch rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_12%,transparent)] bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] text-left transition-[border-color,transform] duration-200",
-                        "hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] disabled:opacity-50",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--pos-paper,var(--background))]",
-                        "dark:border-border/50 dark:bg-card",
+                        "flex shrink-0 flex-col items-stretch border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)] bg-card text-left transition-colors duration-150",
+                        "hover:border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_16%,transparent)] disabled:opacity-50",
+                        "focus-visible:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)]",
+                        "dark:border-border/40 dark:bg-card",
                         compactShelf
                           ? "w-[5.25rem] gap-1 p-1.5"
                           : "w-[6.5rem] gap-1.5 p-2",
@@ -1514,7 +1661,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                     >
                       <span
                         className={cn(
-                          "relative flex w-full items-center justify-center overflow-hidden rounded-sm border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_8%,transparent)]",
+                          "relative flex w-full items-center justify-center overflow-hidden",
                           compactShelf ? "h-9" : "h-12",
                           !thumb && `bg-gradient-to-br ${kioskPlaceholderWashClass(node.name)}`,
                         )}
@@ -1529,9 +1676,14 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                             unoptimized
                           />
                         ) : (
-                          <span className="text-base font-bold" aria-hidden>
-                            {node.name.trim().charAt(0).toUpperCase() || "?"}
-                          </span>
+                          <Package
+                            className={cn(
+                              "opacity-50",
+                              compactShelf ? "size-4" : "size-5",
+                            )}
+                            strokeWidth={1.5}
+                            aria-hidden
+                          />
                         )}
                       </span>
                       <span
@@ -1550,6 +1702,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
                         </span>
                       ) : null}
                     </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1621,11 +1774,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               }}
               aria-label={`${isActive ? "Open" : "Switch to"} ${tab.label}${hasItems ? ` · ${tab.grandTotal.toFixed(2)}` : ""}`}
             >
-              <span className="relative inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)] sm:size-8 sm:rounded-full">
+              <span className="relative inline-flex size-7 shrink-0 items-center justify-center bg-[color-mix(in_srgb,var(--pos-primary-ink)_12%,transparent)] sm:size-8">
                 <ShoppingCart className="size-3.5 sm:size-4" />
                 {hasItems ? (
                   <span
-                    className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full text-[9px] font-bold shadow sm:size-5 sm:text-[10px]"
+                    className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center text-[9px] font-bold shadow sm:size-5 sm:text-[10px]"
                     style={{
                       backgroundColor: "var(--pos-primary-ink)",
                       color: "var(--pos-primary)",
@@ -1694,20 +1847,6 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         onCreated={(item, unitPrice) => {
           const added = addLine(item, 1, unitPrice);
           if (added) markAdded(item.id);
-        }}
-      />
-
-      <CashierAdminCapabilitiesModal
-        open={adminCapsOpen}
-        onOpenChange={(o) => {
-          setAdminCapsOpen(o);
-          if (!o) window.requestAnimationFrame(() => focusSearch());
-        }}
-        brandTheme={dialogBrandTheme}
-        priceEditEnabled={priceEditFlagEnabled}
-        createProductEnabled={createProductFlagEnabled}
-        onSaved={async () => {
-          await onCashierCapabilitiesSaved?.();
         }}
       />
 

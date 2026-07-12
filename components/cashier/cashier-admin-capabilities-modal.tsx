@@ -54,7 +54,7 @@ export function CashierAdminCapabilitiesModal({
         },
       });
       await onSaved();
-      toast.success("Cashier permissions updated");
+      toast.success("Till settings updated");
       onOpenChange(false);
     } catch (e) {
       toast.error(
@@ -76,7 +76,7 @@ export function CashierAdminCapabilitiesModal({
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Settings2 className="size-4 text-[var(--pos-primary)]" />
-              Cashier permissions
+              Till settings
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">
               Allow cashiers on this business to edit prices or add products from

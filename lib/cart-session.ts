@@ -157,20 +157,53 @@ export function createEmptyCartSession(): CartSession {
   };
 }
 
-/** Derive a display label: "Sale #N", "Cart N", or customer name if selected. */
+/** Derive a display label: ticket #N, customer name, or New sale for blank carts. */
 export function cartSessionLabel(cart: CartSession): string {
   if (cart.selectedCustomer?.name?.trim()) {
     return cart.selectedCustomer.name.trim();
   }
   if (cart.ticketNumber != null && cart.ticketNumber > 0) {
-    return `Sale #${cart.ticketNumber}`;
+    return `#${cart.ticketNumber}`;
+  }
+  if (cart.lines.length === 0) {
+    return "New sale";
   }
   const raw = cart.label?.trim() || "Cart";
-  if (/^cart\b/i.test(raw) || /^#\d+/.test(raw)) {
-    return raw.replace(/^#(\d+)/, "Sale #$1");
+  if (/^cart\s*\d+$/i.test(raw)) {
+    return "Sale";
+  }
+  if (/^#\d+/.test(raw)) {
+    return raw.replace(/^#(\d+)/, "#$1");
   }
   return raw;
 }
+
+/** Tab role for cashiers: which sale is live vs parked. */
+export function cartSessionTabKind(
+  cart: CartSession,
+): "held" | "empty" | "open" {
+  if (cart.ticketNumber != null && cart.ticketNumber > 0) {
+    return "held";
+  }
+  if (cart.lines.length === 0) {
+    return "empty";
+  }
+  return "open";
+}
+
+/** Age of a held/open tab in ms (prefers last sync, else createdAt). */
+export function cartSessionAgeMs(
+  cart: Pick<CartSession, "createdAt" | "lastSyncedAt">,
+  now = Date.now(),
+): number {
+  const synced = cart.lastSyncedAt ? Date.parse(cart.lastSyncedAt) : NaN;
+  const base = Number.isFinite(synced) ? synced : cart.createdAt;
+  return Math.max(0, now - base);
+}
+
+/** Held sales older than this should prompt cleanup. */
+export const CART_STALE_MS = 60 * 60 * 1000; // 1h
+export const CART_VERY_STALE_MS = 3 * 60 * 60 * 1000; // 3h
 
 /** Total item count across all lines in the cart. */
 export function cartSessionItemCount(cart: CartSession): number {
