@@ -1062,6 +1062,12 @@ export function QuickSaleWorkspace({
               name: row.name,
               sku: row.sku ?? undefined,
               thumbnailUrl: row.thumbnailUrl ?? null,
+              variantName: row.variantName ?? null,
+              brand: row.brand ?? null,
+              size: row.size ?? null,
+              variantOfItemId: row.variantOfItemId ?? null,
+              packageVariant: row.packageVariant === true,
+              packageUnitsPerSale: row.packageUnitsPerSale ?? null,
               count: row.saleCount,
               qty: Number(row.totalQuantity) || 0,
               lastUsedAt: row.lastSoldAt

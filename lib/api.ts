@@ -5445,6 +5445,12 @@ export type PosTopProductRecord = {
   saleCount: number;
   totalQuantity: number | string;
   lastSoldAt?: string | null;
+  variantName?: string | null;
+  brand?: string | null;
+  size?: string | null;
+  variantOfItemId?: string | null;
+  packageVariant?: boolean | null;
+  packageUnitsPerSale?: number | string | null;
 };
 
 /**
