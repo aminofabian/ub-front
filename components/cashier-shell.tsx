@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { Lock, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Lock, MapPin, Settings2 } from "lucide-react";
 
+import { CashierAdminCapabilitiesModal } from "@/components/cashier/cashier-admin-capabilities-modal";
 import { PushNotificationsEnable } from "@/components/push-notifications-enable";
 import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { logoutRemote } from "@/lib/api";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { hasPermission, Permission } from "@/lib/permissions";
+import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { cn } from "@/lib/utils";
 
 type CashierShellProps = {
@@ -36,11 +40,22 @@ export function CashierShell({ children }: CashierShellProps) {
     itemTypeId,
     setItemTypeId,
     itemTypesLoading,
+    refreshSession,
   } = useDashboard();
+  const featureFlags = useFeatureFlags();
+  const [capsOpen, setCapsOpen] = useState(false);
 
   const currentBranch = branches.find((b) => b.id === branchId);
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const branchLockedRole = isBranchLockedRole(roleKey);
+  const canManageCashierCapabilities =
+    hasPermission(me?.permissions, Permission.BusinessManageSettings) ||
+    roleKey === "owner" ||
+    roleKey === "admin";
+  const brandTheme = useMemo(
+    () => posBrandThemeStyle(business?.branding ?? null),
+    [business?.branding],
+  );
   const scopeSelectClass = cn(
     "h-7 max-w-[10.5rem] rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)]",
     "bg-[color-mix(in_srgb,var(--card)_88%,#f7f3eb)] px-2 text-[11px] font-medium text-foreground",
@@ -62,11 +77,6 @@ export function CashierShell({ children }: CashierShellProps) {
       router.replace(APP_ROUTES.butcher);
     }
   }, [roleKey, router]);
-
-  const brandTheme = useMemo(
-    () => posBrandThemeStyle(business?.branding ?? null),
-    [business?.branding],
-  );
 
   return (
     <div
@@ -175,6 +185,18 @@ export function CashierShell({ children }: CashierShellProps) {
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {canManageCashierCapabilities ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+                onClick={() => setCapsOpen(true)}
+              >
+                <Settings2 className="size-3.5" aria-hidden />
+                Cashier permissions
+              </Button>
+            ) : null}
             <Button
               asChild
               variant="ghost"
@@ -216,6 +238,21 @@ export function CashierShell({ children }: CashierShellProps) {
       <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-3 py-2 sm:px-4 sm:py-3">
         {children}
       </main>
+
+      {canManageCashierCapabilities ? (
+        <CashierAdminCapabilitiesModal
+          open={capsOpen}
+          onOpenChange={setCapsOpen}
+          brandTheme={brandTheme}
+          priceEditEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true
+          }
+          createProductEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true
+          }
+          onSaved={() => refreshSession()}
+        />
+      ) : null}
     </div>
   );
 }

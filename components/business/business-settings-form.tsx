@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
   TIER_SUGGESTIONS,
+  type CashierCapabilitiesForm,
   type EditableBusiness,
   type InventoryForm,
   type PosDraftsForm,
@@ -49,6 +50,8 @@ export function BusinessSettingsForm({
   setInventory,
   posDrafts,
   setPosDrafts,
+  cashierCapabilities,
+  setCashierCapabilities,
   activeBranches,
   canManageBusinessSettings,
   isSaving,
@@ -65,6 +68,10 @@ export function BusinessSettingsForm({
   setInventory: React.Dispatch<React.SetStateAction<InventoryForm>>;
   posDrafts: PosDraftsForm;
   setPosDrafts: React.Dispatch<React.SetStateAction<PosDraftsForm>>;
+  cashierCapabilities: CashierCapabilitiesForm;
+  setCashierCapabilities: React.Dispatch<
+    React.SetStateAction<CashierCapabilitiesForm>
+  >;
   activeBranches: BranchRecord[];
   canManageBusinessSettings: boolean;
   isSaving: boolean;
@@ -433,6 +440,57 @@ export function BusinessSettingsForm({
             </label>
           </FormDrawerFields>
         </div>
+      ) : null}
+
+      {canManageBusinessSettings ? (
+        <FormDrawerFields
+          legend="Cashier permissions"
+          hint="Allow cashiers to edit prices or create products from the POS. Managers with pricing/catalog permissions always can."
+        >
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+              checked={cashierCapabilities.priceEdit}
+              onChange={(event) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  priceEdit: event.target.checked,
+                }))
+              }
+            />
+            <span className="space-y-1">
+              <span className="flex items-center gap-2 font-medium">
+                <ShoppingCart className="size-4 text-muted-foreground" />
+                Allow cashiers to edit prices
+              </span>
+              <span className={hintClass()}>
+                Cashiers can change unit prices on cart lines (override shelf
+                price at checkout).
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+              checked={cashierCapabilities.createProduct}
+              onChange={(event) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  createProduct: event.target.checked,
+                }))
+              }
+            />
+            <span className="space-y-1">
+              <span className="font-medium">Allow cashiers to add products</span>
+              <span className={hintClass()}>
+                Cashiers can quick-create a sellable item from the register and
+                add it to the cart.
+              </span>
+            </span>
+          </label>
+        </FormDrawerFields>
       ) : null}
 
       {canManageBusinessSettings ? (

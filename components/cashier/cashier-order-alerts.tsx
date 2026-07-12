@@ -20,8 +20,9 @@ const CASHIER_ALERT_TYPES = new Set([
   "storefront.order.paid",
 ]);
 
-const PRINT_CLAIM_PREFIX = "palmart.web-order-print:";
-const PRINT_CLAIM_TTL_MS = 120_000;
+const PRINT_DONE_PREFIX = "palmart.web-order-printed:";
+/** Only auto-print tickets for orders placed within this window. */
+const PRINT_MAX_AGE_MS = 60 * 60 * 1000;
 
 function readPayloadField(
   data: Record<string, unknown>,
@@ -42,24 +43,37 @@ function readPayloadField(
   return "";
 }
 
-/** First cashier tab on this machine wins — avoids duplicate prints from one browser profile. */
-function claimWebOrderPrint(orderId: string): boolean {
+function alreadyPrintedWebOrder(orderId: string): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const key = PRINT_CLAIM_PREFIX + orderId;
-    const now = Date.now();
-    const existing = window.localStorage.getItem(key);
-    if (existing) {
-      const claimedAt = Number(existing);
-      if (Number.isFinite(claimedAt) && now - claimedAt < PRINT_CLAIM_TTL_MS) {
-        return false;
-      }
-    }
-    window.localStorage.setItem(key, String(now));
-    return true;
+    return Boolean(window.localStorage.getItem(PRINT_DONE_PREFIX + orderId));
   } catch {
-    return true;
+    return false;
   }
+}
+
+function markWebOrderPrinted(orderId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PRINT_DONE_PREFIX + orderId, String(Date.now()));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function orderPlacedAtMs(frame: RealtimeFrame, data: Record<string, unknown>): number | null {
+  const candidates = [
+    frame.at,
+    readPayloadField(data, "createdAt"),
+    readPayloadField(data, "placedAt"),
+    typeof data.createdAt === "string" ? data.createdAt : "",
+  ];
+  for (const raw of candidates) {
+    if (!raw?.trim()) continue;
+    const ms = Date.parse(raw);
+    if (Number.isFinite(ms)) return ms;
+  }
+  return null;
 }
 
 function showCashierOrderToast(frame: RealtimeFrame) {
@@ -107,19 +121,39 @@ async function autoPrintPlacedOrder(
     return;
   }
 
-  if (!claimWebOrderPrint(orderId)) return;
+  // Never reprint an order this till already printed.
+  if (alreadyPrintedWebOrder(orderId)) return;
 
-  await printWebOrderReceipt(
+  const placedAt = orderPlacedAtMs(frame, data);
+  // When we have a timestamp, only print recent orders (< 1 hour).
+  // Missing timestamps are treated as live (REST poll no longer replays history).
+  if (placedAt != null && Date.now() - placedAt > PRINT_MAX_AGE_MS) {
+    return;
+  }
+
+  // Claim before awaiting the printer so concurrent tabs don't double-print.
+  markWebOrderPrinted(orderId);
+
+  const ok = await printWebOrderReceipt(
     orderId,
     DESKTOP_THERMAL_WIDTH_MM,
     { branchId: orderBranchId || bid || null },
     { quiet: true },
   );
+  if (!ok) {
+    // Allow a later retry if the printer/bridge was down.
+    try {
+      window.localStorage.removeItem(PRINT_DONE_PREFIX + orderId);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 /**
  * Real-time alerts for cashiers: new/paid web orders with optional chime.
  * On order placed, auto-prints a pickup ticket when the till printer is ready.
+ * Only prints orders younger than 1 hour, and only once per order on this device.
  */
 export function CashierOrderAlerts() {
   const dash = useOptionalDashboard();

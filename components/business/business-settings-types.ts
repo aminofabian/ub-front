@@ -1,5 +1,6 @@
 import type { BusinessRecord } from "@/lib/api";
 import { POS_DRAFT_FLAGS } from "@/lib/pos-draft-api";
+import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import type { BranchRecord } from "@/lib/api";
 
 export const MAX_FEATURED = 12;
@@ -27,12 +28,25 @@ export type InventoryForm = {
   allowNegativeStock: boolean;
 };
 
-export type PosDraftsForm = {
-  enabled: boolean;
-  uiVisible: boolean;
-  shadowWrites: boolean;
-  offlineMirror: boolean;
+export type CashierCapabilitiesForm = {
+  priceEdit: boolean;
+  createProduct: boolean;
 };
+
+export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
+  priceEdit: false,
+  createProduct: false,
+};
+
+export function cashierCapabilitiesFromRecord(
+  b: BusinessRecord | null,
+): CashierCapabilitiesForm {
+  const ff = b?.featureFlags ?? {};
+  return {
+    priceEdit: ff[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true,
+    createProduct: ff[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true,
+  };
+}
 
 export const DEFAULT_EDITABLE: EditableBusiness = {
   name: "",
@@ -135,6 +149,7 @@ export function applyBusinessSnapshot(
   storefront: StorefrontForm;
   inventory: InventoryForm;
   posDrafts: PosDraftsForm;
+  cashierCapabilities: CashierCapabilitiesForm;
 } {
   return {
     editable: {
@@ -145,5 +160,6 @@ export function applyBusinessSnapshot(
     storefront: storefrontFromRecord(payload, branchList),
     inventory: inventoryFromRecord(payload),
     posDrafts: posDraftsFromRecord(payload),
+    cashierCapabilities: cashierCapabilitiesFromRecord(payload),
   };
 }

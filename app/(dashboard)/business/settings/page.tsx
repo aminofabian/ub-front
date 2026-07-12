@@ -22,12 +22,14 @@ import {
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
 import {
   applyBusinessSnapshot,
+  DEFAULT_CASHIER_CAPABILITIES,
   DEFAULT_EDITABLE,
   DEFAULT_INVENTORY,
   DEFAULT_POS_DRAFTS,
   DEFAULT_STOREFRONT,
   defaultCatalogBranchId,
   parseFeaturedLines,
+  type CashierCapabilitiesForm,
   type EditableBusiness,
   type InventoryForm,
   type PosDraftsForm,
@@ -72,6 +74,8 @@ export default function BusinessSettingsPage() {
     useState<StorefrontForm>(DEFAULT_STOREFRONT);
   const [inventory, setInventory] = useState<InventoryForm>(DEFAULT_INVENTORY);
   const [posDrafts, setPosDrafts] = useState<PosDraftsForm>(DEFAULT_POS_DRAFTS);
+  const [cashierCapabilities, setCashierCapabilities] =
+    useState<CashierCapabilitiesForm>(DEFAULT_CASHIER_CAPABILITIES);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -103,6 +107,7 @@ export default function BusinessSettingsPage() {
         setStorefront(next.storefront);
         setInventory(next.inventory);
         setPosDrafts(next.posDrafts);
+        setCashierCapabilities(next.cashierCapabilities);
       })
       .catch((error) => {
         if (hydratedFromBootstrap.current) {
@@ -130,6 +135,7 @@ export default function BusinessSettingsPage() {
       setStorefront(next.storefront);
       setInventory(next.inventory);
       setPosDrafts(next.posDrafts);
+      setCashierCapabilities(next.cashierCapabilities);
     }
     void load();
   }, [load, bootstrapBusiness]);
@@ -180,6 +186,7 @@ export default function BusinessSettingsPage() {
     setStorefront(next.storefront);
     setInventory(next.inventory);
     setPosDrafts(next.posDrafts);
+    setCashierCapabilities(next.cashierCapabilities);
   }, [effectiveSnapshot, branches]);
 
   const onSave = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -222,6 +229,8 @@ export default function BusinessSettingsPage() {
             shadowWrites: posDrafts.shadowWrites,
             offlineMirror: posDrafts.offlineMirror,
           },
+          posCashierPriceEdit: cashierCapabilities.priceEdit,
+          posCashierCreateProduct: cashierCapabilities.createProduct,
         };
       }
       await updateBusiness(body);
@@ -234,6 +243,7 @@ export default function BusinessSettingsPage() {
       setStorefront(applied.storefront);
       setInventory(applied.inventory);
       setPosDrafts(applied.posDrafts);
+      setCashierCapabilities(applied.cashierCapabilities);
       setFeedback({ kind: "success", text: "Your changes were saved." });
     } catch (error) {
       setFeedback({
@@ -519,6 +529,8 @@ export default function BusinessSettingsPage() {
             setInventory={setInventory}
             posDrafts={posDrafts}
             setPosDrafts={setPosDrafts}
+            cashierCapabilities={cashierCapabilities}
+            setCashierCapabilities={setCashierCapabilities}
             activeBranches={activeBranches}
             canManageBusinessSettings={canManageBusinessSettings}
             isSaving={isSaving}

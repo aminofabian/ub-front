@@ -764,10 +764,22 @@ export class RealtimeClient {
       if (response.ok) {
         const notifications = await response.json();
         if (Array.isArray(notifications)) {
+          // First poll: baseline the newest id without replaying history
+          // (otherwise reconnects/catch-up would re-fire old web-order prints).
+          if (!this.lastPollNotificationId) {
+            if (notifications.length > 0 && notifications[0]?.id) {
+              this.lastPollNotificationId = notifications[0].id as string;
+            } else {
+              this.lastPollNotificationId = "__empty__";
+            }
+            return;
+          }
+
           for (const n of notifications) {
             // Deduplicate: only emit notifications newer than lastPollNotificationId
             if (
               this.lastPollNotificationId &&
+              this.lastPollNotificationId !== "__empty__" &&
               n.id === this.lastPollNotificationId
             ) {
               break; // notifications are ordered by created_at DESC
