@@ -38,7 +38,7 @@ function platformLabel(platform: string | null | undefined): string {
 function emptyPrintersMessage(platform: string | null | undefined): string {
   switch (platform) {
     case "win32":
-      return "No printers found on Windows. Add the receipt printer in Settings → Bluetooth & devices → Printers & scanners first (skip Microsoft Print to PDF / Fax).";
+      return "No print queues found on Windows. The device must appear under Settings → Printers & scanners (not only in Device Manager). Install/add the printer, set it Online, restart Print Spooler if needed, then Detect again. Skip Microsoft Print to PDF / Fax.";
     case "linux":
       return "No CUPS printers found on Linux. Install cups, add the printer, then retry Detect.";
     case "darwin":
@@ -133,7 +133,7 @@ export function CupsPrinterPicker({
           )}
           {loading ? "Detecting…" : "Detect printers"}
         </Button>
-        {printers && printers.length > 1 ? (
+        {printers && printers.length > 0 ? (
           <label className="inline-flex min-w-0 flex-1 items-center gap-1.5">
             <Printer
               className={cn("shrink-0 text-muted-foreground", compact ? "size-3" : "size-3.5")}
@@ -159,7 +159,7 @@ export function CupsPrinterPicker({
                 <option key={p.name} value={p.name}>
                   {p.name}
                   {p.likelyThermal ? " (receipt)" : ""}
-                  {p.isDefault ? " — default" : ""}
+                  {p.isDefault ? " - default" : ""}
                 </option>
               ))}
             </select>

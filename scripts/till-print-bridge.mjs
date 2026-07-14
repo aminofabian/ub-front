@@ -188,13 +188,33 @@ async function listCupsPrinters() {
 }
 
 /**
- * List Windows printers via PowerShell Get-Printer.
+ * List Windows printers via PowerShell.
+ * Prefer Get-Printer; fall back to Win32_Printer (WMI) when Get-Printer is
+ * missing/empty (common on locked-down or older Windows installs).
  */
 async function listWindowsPrinters() {
   const ps = `
 $ErrorActionPreference = 'Stop'
-Get-Printer | Select-Object Name, PortName, DriverName, Default |
-  ConvertTo-Json -Compress
+function Emit-PrinterJson($rows) {
+  if (-not $rows -or $rows.Count -eq 0) { return '' }
+  if ($rows.Count -eq 1) { return ($rows | ConvertTo-Json -Compress) }
+  return ($rows | ConvertTo-Json -Compress)
+}
+$rows = @()
+try {
+  $rows = @(Get-Printer | Select-Object Name, PortName, DriverName, Default)
+} catch {
+  $rows = @()
+}
+if ($rows.Count -eq 0) {
+  $rows = @(Get-CimInstance -ClassName Win32_Printer -ErrorAction SilentlyContinue |
+    Select-Object Name, PortName, DriverName, @{n='Default';e={$_.Default}})
+  if (-not $rows -or $rows.Count -eq 0) {
+    $rows = @(Get-WmiObject -Class Win32_Printer -ErrorAction SilentlyContinue |
+      Select-Object Name, PortName, DriverName, @{n='Default';e={$_.Default}})
+  }
+}
+Emit-PrinterJson $rows
 `.trim();
 
   let out;
@@ -211,7 +231,7 @@ Get-Printer | Select-Object Name, PortName, DriverName, Default |
     throw new Error(
       e instanceof Error
         ? e.message
-        : "PowerShell Get-Printer failed. Is the Print Spooler running?",
+        : "PowerShell could not list printers. Is the Print Spooler running?",
     );
   }
 
@@ -224,7 +244,9 @@ Get-Printer | Select-Object Name, PortName, DriverName, Default |
   try {
     parsed = JSON.parse(trimmed);
   } catch {
-    throw new Error("Could not parse Windows printer list from PowerShell.");
+    throw new Error(
+      "Could not parse Windows printer list from PowerShell. Try restarting the Print Spooler service.",
+    );
   }
   const rows = Array.isArray(parsed) ? parsed : [parsed];
 
