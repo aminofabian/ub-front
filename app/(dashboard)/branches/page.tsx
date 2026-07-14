@@ -713,7 +713,7 @@ export default function BranchesPage() {
                                     <div className="flex flex-col gap-1.5 sm:col-span-2">
                                       <input
                                         className={cn(dashboardInputClass(), "text-sm")}
-                                        placeholder="Receipt printer CUPS name (e.g. Caysn_CN811_UB)"
+                                        placeholder="Receipt printer name (e.g. Caysn_CN811_UB)"
                                         value={row.receipt.printerCupsName}
                                         onChange={(e) =>
                                           setEdits((prev) => ({
@@ -727,7 +727,7 @@ export default function BranchesPage() {
                                             },
                                           }))
                                         }
-                                        aria-label={`Receipt printer CUPS name for ${branch.name}`}
+                                        aria-label={`Receipt printer name for ${branch.name}`}
                                       />
                                       {canManage ? (
                                         <CupsPrinterPicker
@@ -768,23 +768,29 @@ export default function BranchesPage() {
                                   </div>
                                   <p className={dashboardHintClass()}>
                                     <strong className="font-medium text-foreground">
-                                      Cloud cashier + USB printer:
+                                      Cloud cashier + receipt printer:
                                     </strong>{" "}
-                                    on the till Mac run{" "}
+                                    on the till PC (macOS / Windows / Linux) run{" "}
                                     <code className="text-xs">
                                       node scripts/till-print-bridge.mjs
-                                    </code>{" "}
-                                    (frontend folder) or double-click{" "}
-                                    <code className="text-xs">
-                                      scripts/start-till-print-bridge.command
                                     </code>
+                                    . Shortcuts:{" "}
+                                    <code className="text-xs">
+                                      start-till-print-bridge.command
+                                    </code>{" "}
+                                    (Mac),{" "}
+                                    <code className="text-xs">
+                                      start-till-print-bridge.cmd
+                                    </code>{" "}
+                                    (Windows). Autostart: Mac LaunchAgent / Linux systemd
+                                    scripts in <code className="text-xs">frontend/scripts</code>
                                     . Use{" "}
                                     <strong className="font-medium text-foreground">
                                       Detect printers
                                     </strong>{" "}
-                                    above (or paste a CUPS name from{" "}
-                                    <code className="text-xs">lpstat -v</code>), then{" "}
+                                    above, then{" "}
                                     <strong className="font-medium text-foreground">Save</strong>.
+                                    Network printers: bridge also supports TCP port 9100.
                                   </p>
                                 </div>
                               </Collapsible.Content>

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 type TillPrinterStatusProps = {
   cupsName?: string | null;
-  /** When set, Detect can save the CUPS name onto this branch (if permitted). */
+  /** When set, Detect can save the printer name onto this branch (if permitted). */
   branchId?: string | null;
   className?: string;
   /** Slim ink-line treatment for the market-till command strip. */
@@ -29,7 +29,7 @@ type TillPrinterStatusProps = {
 };
 
 /**
- * Cloud cashier only — shows whether the till Mac can print ESC/POS + auto-cut.
+ * Cloud cashier only — shows whether this till PC can print ESC/POS + auto-cut.
  */
 export function TillPrinterStatus({
   cupsName,
@@ -92,14 +92,14 @@ export function TillPrinterStatus({
           toast.success(`Saved printer ${cups} for this branch.`);
         } catch {
           toast.message(
-            `Using ${cups} on this Mac. Could not save to branch — set it under Branches → Receipt details.`,
+            `Using ${cups} on this PC. Could not save to branch — set it under Branches → Receipt details.`,
             { duration: 10_000 },
           );
         } finally {
           setSaving(false);
         }
       } else {
-        toast.success(`Using ${cups} on this Mac.`);
+        toast.success(`Using ${cups} on this PC.`);
       }
     },
     [branchId, canManageBusinessSettings, onCupsNameChosen, refreshBranches],
@@ -126,12 +126,12 @@ export function TillPrinterStatus({
           {compact ? (
             <span>
               <span className="font-semibold">Printer not set</span>
-              <span className="text-muted-foreground"> — detect on this Mac</span>
+              <span className="text-muted-foreground"> — detect on this PC</span>
             </span>
           ) : (
             <p>
               <span className="font-semibold">Receipt printer not configured.</span>{" "}
-              Detect CUPS printers on this Mac, or set one under{" "}
+              Detect printers on this PC (macOS / Windows / Linux), or set one under{" "}
               <strong>Branches → Receipt details</strong>.
             </p>
           )}
@@ -170,7 +170,7 @@ export function TillPrinterStatus({
             {compact ? "Printer ready" : "Receipt printer ready"} —{" "}
             <code className="text-[10px]">{effectiveName}</code>
             {localName ? (
-              <span className="text-muted-foreground"> (this Mac)</span>
+              <span className="text-muted-foreground"> (this PC)</span>
             ) : null}
           </span>
         </div>
@@ -207,16 +207,24 @@ export function TillPrinterStatus({
         <div className="space-y-1">
           <p className="font-semibold">Till Print Bridge is not running</p>
           <p className="text-destructive/90">
-            Printing will not auto-cut until you start the bridge on this Mac.{" "}
+            Printing will not auto-cut until you start the bridge on this PC.{" "}
             {TILL_BRIDGE_START_HINT}
           </p>
           <p className="font-mono text-[10px] text-destructive/80">
             cd frontend && node scripts/till-print-bridge.mjs
           </p>
           <p className="text-[10px] text-destructive/80">
-            One-time autostart:{" "}
+            Autostart: Mac{" "}
             <code className="font-mono">
               bash scripts/install-till-print-bridge-autostart.sh
+            </code>
+            ; Linux{" "}
+            <code className="font-mono">
+              bash scripts/install-till-print-bridge-systemd.sh
+            </code>
+            ; Windows{" "}
+            <code className="font-mono">
+              scripts\install-till-print-bridge-task.ps1
             </code>
           </p>
         </div>

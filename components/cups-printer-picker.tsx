@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
+  fetchTillBridgeHealth,
   fetchTillCupsPrinters,
-  isTillPrintBridgeUp,
   TILL_BRIDGE_START_HINT,
   type TillCupsPrinter,
 } from "@/lib/till-print-bridge";
@@ -22,8 +22,34 @@ type CupsPrinterPickerProps = {
   disabled?: boolean;
 };
 
+function platformLabel(platform: string | null | undefined): string {
+  switch (platform) {
+    case "win32":
+      return "Windows";
+    case "darwin":
+      return "macOS";
+    case "linux":
+      return "Linux";
+    default:
+      return platform?.trim() || "this PC";
+  }
+}
+
+function emptyPrintersMessage(platform: string | null | undefined): string {
+  switch (platform) {
+    case "win32":
+      return "No printers found on Windows. Add the receipt printer in Settings → Bluetooth & devices → Printers & scanners first (skip Microsoft Print to PDF / Fax).";
+    case "linux":
+      return "No CUPS printers found on Linux. Install cups, add the printer, then retry Detect.";
+    case "darwin":
+      return "No printers found on this Mac. Add the receipt printer in System Settings → Printers & Scanners first.";
+    default:
+      return "No printers found on this PC. Add the receipt printer in system settings first.";
+  }
+}
+
 /**
- * Detect CUPS queues on this Mac via Till Print Bridge and pick one.
+ * Detect local printers via Till Print Bridge and pick one.
  * Auto-applies when there is a single / suggested thermal printer.
  */
 export function CupsPrinterPicker({
@@ -42,8 +68,8 @@ export function CupsPrinterPicker({
     setLoading(true);
     setError(null);
     try {
-      const up = await isTillPrintBridgeUp();
-      if (!up) {
+      const health = await fetchTillBridgeHealth();
+      if (!health?.ok) {
         const msg = `Till Print Bridge is not running. ${TILL_BRIDGE_START_HINT}`;
         setError(msg);
         toast.error(msg, { duration: 12_000 });
@@ -51,9 +77,9 @@ export function CupsPrinterPicker({
         return;
       }
       const listed = await fetchTillCupsPrinters();
+      const platform = listed.platform || health.platform || null;
       if (listed.printers.length === 0) {
-        const msg =
-          "No CUPS printers found on this Mac. Add the receipt printer in System Settings → Printers & Scanners first.";
+        const msg = emptyPrintersMessage(platform);
         setError(msg);
         toast.message(msg, { duration: 10_000 });
         setPrinters([]);
@@ -69,14 +95,19 @@ export function CupsPrinterPicker({
         toast.success(
           listed.printers.length === 1
             ? `Selected printer ${auto}`
-            : `Auto-picked ${auto}`,
+            : `Auto-picked ${auto} (${platformLabel(platform)})`,
         );
       } else {
-        toast.message("Choose a printer from the list.", { duration: 6_000 });
+        toast.message(
+          `Choose a printer on ${platformLabel(platform)} (skip Fax / PDF printers).`,
+          { duration: 6_000 },
+        );
       }
     } catch (e) {
       const msg =
-        e instanceof Error ? e.message : "Could not list printers on this Mac.";
+        e instanceof Error
+          ? e.message
+          : "Could not list printers on this PC.";
       setError(msg);
       toast.error(msg, { duration: 10_000 });
       setPrinters(null);

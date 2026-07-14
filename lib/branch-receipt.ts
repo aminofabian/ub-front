@@ -4,7 +4,7 @@ export type BranchReceiptSettings = {
   website: string | null;
   tillNumber: string | null;
   footerNote: string | null;
-  /** CUPS queue on the till Mac (`lpstat -v`), e.g. Caysn_CN811_UB. */
+  /** Spooler / CUPS / Windows printer name on the till PC (`lpstat -v` / Detect). */
   printerCupsName: string | null;
 };
 
