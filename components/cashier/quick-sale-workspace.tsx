@@ -284,6 +284,10 @@ export function QuickSaleWorkspace({
     createEmptyCartSession(),
   ]);
   const [activeCartId, setActiveCartId] = useState<string>(carts[0].id);
+  const cartsRef = useRef(carts);
+  const activeCartIdRef = useRef(activeCartId);
+  cartsRef.current = carts;
+  activeCartIdRef.current = activeCartId;
 
   // ── Page-level UI state (declared early because cart/draft callbacks reference them)
   const [error, setError] = useState("");
@@ -801,7 +805,7 @@ export function QuickSaleWorkspace({
     setVoidNotes("");
   }, []);
 
-  /** Load a grocery invoice by GI-* barcode into a new cart tab. */
+  /** Load a grocery invoice by GI-* barcode into the till (reuse empty tab when possible). */
   const loadGroceryInvoiceByBarcode = useCallback(
     async (barcode: string) => {
       const q = barcode.trim();
@@ -823,6 +827,24 @@ export function QuickSaleWorkspace({
             `This invoice has ${labels[invoice.status] ?? invoice.status}.`,
             { duration: 5000 },
           );
+          return;
+        }
+
+        // Already open in a tab — just focus it (skip re-lock).
+        const currentCarts = cartsRef.current;
+        const alreadyOpen = currentCarts.find(
+          (c) =>
+            c.groceryInvoiceId === invoice.id ||
+            c.groceryBarcode === invoice.barcodeCode,
+        );
+        if (alreadyOpen) {
+          dismissCompletedSaleUi();
+          setActiveCartId(alreadyOpen.id);
+          setSearch("");
+          setHits([]);
+          toast.success(`Invoice ${invoice.barcodeCode} already open`, {
+            duration: 3000,
+          });
           return;
         }
 
@@ -863,21 +885,44 @@ export function QuickSaleWorkspace({
           };
         });
 
-        setCarts((prev) => {
-          if (prev.length >= MAX_CARTS) {
+        const activeId = activeCartIdRef.current;
+        const active = currentCarts.find((c) => c.id === activeId);
+        const reuseEmpty =
+          active != null &&
+          active.lines.length === 0 &&
+          !active.groceryInvoiceId;
+
+        if (reuseEmpty && active) {
+          setCarts((prev) =>
+            prev.map((c) =>
+              c.id === active.id
+                ? {
+                    ...c,
+                    label: invoice.barcodeCode,
+                    lines: invoiceLines,
+                    groceryInvoiceId: invoice.id,
+                    groceryBarcode: invoice.barcodeCode,
+                  }
+                : c,
+            ),
+          );
+          setActiveCartId(active.id);
+        } else {
+          if (currentCarts.length >= MAX_CARTS) {
             toast.error("Too many carts open. Clear one first.", {
               duration: 4000,
             });
-            return prev;
+            void unlockGroceryInvoice(invoice.id).catch(() => {});
+            return;
           }
           const fresh = createEmptyCartSession();
           fresh.label = invoice.barcodeCode;
           fresh.lines = invoiceLines;
           fresh.groceryInvoiceId = invoice.id;
           fresh.groceryBarcode = invoice.barcodeCode;
+          setCarts((prev) => [...prev, fresh]);
           setActiveCartId(fresh.id);
-          return [...prev, fresh];
-        });
+        }
 
         setSearch("");
         setHits([]);

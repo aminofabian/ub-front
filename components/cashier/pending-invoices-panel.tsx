@@ -199,10 +199,14 @@ export function PendingInvoicesPanel({
   }
 
   return (
-    <div className="relative">
+    // When open, lift above sticky POS chrome (tabs/search use z-20) so row
+    // clicks hit the menu instead of the layer underneath.
+    <div className={cn("relative", open && "z-50")}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
         className={cn(
           "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
           open
@@ -230,9 +234,13 @@ export function PendingInvoicesPanel({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed inset-0 z-40"
+            aria-hidden
+            onClick={() => setOpen(false)}
+          />
 
-          <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
               <span className="text-sm font-semibold">Pending Invoices</span>
               {loading && (
@@ -260,7 +268,12 @@ export function PendingInvoicesPanel({
                       key={inv.id}
                       type="button"
                       onClick={() => {
-                        onLoadInvoice(inv.barcodeCode);
+                        const barcode = inv.barcodeCode?.trim() ?? "";
+                        if (!barcode) {
+                          toast.error("Invoice barcode missing — refresh the list.");
+                          return;
+                        }
+                        onLoadInvoice(barcode);
                         setOpen(false);
                       }}
                       className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
@@ -270,7 +283,10 @@ export function PendingInvoicesPanel({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-semibold text-foreground">
+                          <span
+                            className="truncate text-xs font-mono font-semibold text-foreground"
+                            title={inv.barcodeCode}
+                          >
                             {inv.barcodeCode}
                           </span>
                           <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">

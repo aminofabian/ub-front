@@ -119,10 +119,13 @@ export function PendingSalesPanel({
   );
 
   return (
-    <div className="relative">
+    // When open, lift above sticky POS chrome (tabs/search use z-20).
+    <div className={cn("relative", open && "z-50")}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
         className={cn(
           "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
           open
