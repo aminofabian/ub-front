@@ -6,7 +6,10 @@ import { Minus, Plus, Scissors } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-/** Known retail portions → decimal qty. */
+/** Sale API allows at most 3 decimal places on weighed qty. */
+export const WEIGHTED_QTY_DECIMALS = 3;
+
+/** Known retail portions → decimal qty (max 3 dp to match sale API). */
 export const CART_QTY_PORTIONS: ReadonlyArray<{
   value: number;
   label: string;
@@ -14,20 +17,20 @@ export const CART_QTY_PORTIONS: ReadonlyArray<{
   group: "cut" | "share" | "fine" | "bake";
 }> = [
   { value: 0.5, label: "½", hint: "Half", group: "cut" },
-  { value: 1 / 3, label: "⅓", hint: "Third", group: "cut" },
+  { value: 0.333, label: "⅓", hint: "Third", group: "cut" },
   { value: 0.25, label: "¼", hint: "Quarter", group: "cut" },
   { value: 0.2, label: "⅕", hint: "Fifth", group: "cut" },
-  { value: 1 / 6, label: "⅙", hint: "Sixth", group: "cut" },
+  { value: 0.167, label: "⅙", hint: "Sixth", group: "cut" },
   { value: 0.125, label: "⅛", hint: "Eighth", group: "cut" },
   { value: 0.75, label: "¾", hint: "Three quarters", group: "share" },
-  { value: 2 / 3, label: "⅔", hint: "Two thirds", group: "share" },
+  { value: 0.667, label: "⅔", hint: "Two thirds", group: "share" },
   { value: 0.4, label: "⅖", hint: "Two fifths", group: "share" },
   { value: 0.375, label: "⅜", hint: "Three eighths", group: "share" },
   { value: 0.625, label: "⅝", hint: "Five eighths", group: "share" },
   { value: 0.875, label: "⅞", hint: "Seven eighths", group: "share" },
   { value: 0.1, label: "¹⁄₁₀", hint: "Tenth", group: "fine" },
-  { value: 1 / 12, label: "¹⁄₁₂", hint: "Twelfth", group: "fine" },
-  { value: 1 / 16, label: "¹⁄₁₆", hint: "Sixteenth", group: "fine" },
+  { value: 0.083, label: "¹⁄₁₂", hint: "Twelfth", group: "fine" },
+  { value: 0.063, label: "¹⁄₁₆", hint: "Sixteenth", group: "fine" },
   { value: 0.05, label: "¹⁄₂₀", hint: "Twentieth", group: "fine" },
   { value: 1.5, label: "1½", hint: "One and a half", group: "bake" },
   { value: 2.5, label: "2½", hint: "Two and a half", group: "bake" },
@@ -47,19 +50,19 @@ const PORTION_GROUPS: ReadonlyArray<{
 
 const FRACTION_LABELS: ReadonlyArray<{ value: number; label: string }> = [
   { value: 0.05, label: "¹⁄₂₀" },
-  { value: 1 / 16, label: "¹⁄₁₆" },
+  { value: 0.063, label: "¹⁄₁₆" },
   { value: 0.1, label: "¹⁄₁₀" },
   { value: 0.125, label: "⅛" },
-  { value: 1 / 12, label: "¹⁄₁₂" },
-  { value: 1 / 6, label: "⅙" },
+  { value: 0.083, label: "¹⁄₁₂" },
+  { value: 0.167, label: "⅙" },
   { value: 0.2, label: "⅕" },
   { value: 0.25, label: "¼" },
-  { value: 1 / 3, label: "⅓" },
+  { value: 0.333, label: "⅓" },
   { value: 0.375, label: "⅜" },
   { value: 0.4, label: "⅖" },
   { value: 0.5, label: "½" },
   { value: 0.625, label: "⅝" },
-  { value: 2 / 3, label: "⅔" },
+  { value: 0.667, label: "⅔" },
   { value: 0.75, label: "¾" },
   { value: 0.875, label: "⅞" },
   { value: 1.5, label: "1½" },
@@ -67,10 +70,13 @@ const FRACTION_LABELS: ReadonlyArray<{ value: number; label: string }> = [
   { value: 3.75, label: "3¾" },
 ];
 
+/** Round / stringify qty for cart lines (≤3 dp — sale API weighed limit). */
 export function formatCartQtyValue(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "1";
-  const rounded = Math.round(n * 1_000_000) / 1_000_000;
-  return String(Number(rounded.toFixed(6)));
+  const factor = 10 ** WEIGHTED_QTY_DECIMALS;
+  const rounded = Math.round(n * factor) / factor;
+  if (rounded <= 0) return (1 / factor).toFixed(WEIGHTED_QTY_DECIMALS);
+  return String(Number(rounded.toFixed(WEIGHTED_QTY_DECIMALS)));
 }
 
 /** Pretty qty for till display (½ instead of 0.5). */

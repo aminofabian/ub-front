@@ -94,7 +94,10 @@ import {
   type PosReceiptSnapshot,
 } from "@/lib/pos-receipt";
 import { CashierPosLayout } from "./cashier-pos-layout";
-import { formatCartQtyValue } from "./cashier-qty-control";
+import {
+  formatCartQtyValue,
+  WEIGHTED_QTY_DECIMALS,
+} from "./cashier-qty-control";
 import { TillPrinterStatus } from "./till-printer-status";
 import { PendingInvoicesPanel } from "./pending-invoices-panel";
 import { PendingSalesPanel } from "./pending-sales-panel";
@@ -1792,9 +1795,19 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
+      const qtyOut = weighed
+        ? Number(q.toFixed(WEIGHTED_QTY_DECIMALS))
+        : Math.round(q);
+      if (weighed && qtyOut <= 0) {
+        setError(
+          `Line ${i + 1} (${line.label}): weight must be at least 0.001 kg.`,
+        );
+        setNotice("");
+        return;
+      }
       payloadLines.push({
         itemId: line.itemId,
-        quantity: weighed ? q : Math.round(q),
+        quantity: qtyOut,
         unitPrice: p,
       });
     }
