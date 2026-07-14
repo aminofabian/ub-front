@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Printer } from "lucide-react";
+import { AlertTriangle, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { TillBridgeDownloadButton } from "@/components/cashier/till-bridge-download-button";
@@ -175,38 +175,6 @@ export function TillPrinterStatus({
     );
   }
 
-  return (
-    <div
-      role="status"
-      className={cn(
-        compact
-          ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-[color-mix(in_srgb,var(--pos-primary)_85%,#1c1915)]"
-          : "flex flex-col gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-xs text-emerald-950 dark:text-emerald-50",
-        className,
-      )}
-    >
-      <div className="inline-flex items-center gap-1.5">
-        <CheckCircle2
-          className={cn(
-            "shrink-0",
-            compact ? "size-3 text-[var(--pos-primary)]" : "size-3.5 text-emerald-600",
-          )}
-          aria-hidden
-        />
-        <span>
-          {compact ? "Printer ready" : "Receipt printer ready"} —{" "}
-          <code className="text-[10px]">{effectiveName}</code>
-          {localName ? (
-            <span className="text-muted-foreground"> (this PC)</span>
-          ) : null}
-        </span>
-      </div>
-      <CupsPrinterPicker
-        compact={compact}
-        value={effectiveName}
-        disabled={saving}
-        onSelect={(n) => void handleSelect(n)}
-      />
-    </div>
-  );
+  // Printer configured + bridge up — keep the till strip clean.
+  return null;
 }
