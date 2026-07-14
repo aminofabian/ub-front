@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Printer } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  Printer,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { TillBridgeDownloadButton } from "@/components/cashier/till-bridge-download-button";
 import { CupsPrinterPicker } from "@/components/cups-printer-picker";
 import { useDashboard } from "@/components/dashboard-provider";
+import { Button } from "@/components/ui/button";
 import { patchBranch } from "@/lib/api";
 import { EMPTY_BRANCH_RECEIPT } from "@/lib/branch-receipt";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -30,6 +36,7 @@ type TillPrinterStatusProps = {
 
 /**
  * Cloud cashier only — shows whether this till PC can print ESC/POS + auto-cut.
+ * When ready, collapses behind a small Printer button so Detect remains available.
  */
 export function TillPrinterStatus({
   cupsName,
@@ -43,6 +50,7 @@ export function TillPrinterStatus({
   const [localName, setLocalName] = useState<string | null>(null);
   const [bridgeUp, setBridgeUp] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   useEffect(() => {
     setLocalName(getLocalTillCupsName());
@@ -175,6 +183,62 @@ export function TillPrinterStatus({
     );
   }
 
-  // Printer configured + bridge up — keep the till strip clean.
-  return null;
+  // Printer configured + bridge up — collapse behind a button; Detect stays available.
+  return (
+    <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
+      <Button
+        type="button"
+        variant="outline"
+        size={compact ? "xs" : "sm"}
+        className={cn(
+          "inline-flex max-w-full items-center gap-1.5",
+          compact && "h-6 px-2 text-[11px]",
+        )}
+        aria-expanded={panelOpen}
+        aria-controls="till-printer-panel"
+        onClick={() => setPanelOpen((open) => !open)}
+      >
+        <CheckCircle2
+          className={cn(
+            "shrink-0 text-[var(--pos-primary)]",
+            compact ? "size-3" : "size-3.5",
+          )}
+          aria-hidden
+        />
+        <Printer className={cn("shrink-0", compact ? "size-3" : "size-3.5")} aria-hidden />
+        <span className="min-w-0 truncate font-medium">
+          {effectiveName}
+        </span>
+        <ChevronDown
+          className={cn(
+            "size-3 shrink-0 text-muted-foreground transition-transform",
+            panelOpen && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </Button>
+      {panelOpen ? (
+        <div
+          id="till-printer-panel"
+          role="region"
+          aria-label="Receipt printer options"
+          className={cn(
+            compact
+              ? "flex flex-col gap-1 rounded-md border border-border/50 bg-background/90 px-2 py-1.5 text-[11px]"
+              : "flex flex-col gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs",
+          )}
+        >
+          <p className="text-muted-foreground">
+            Change or re-detect the receipt printer on this PC.
+          </p>
+          <CupsPrinterPicker
+            compact={compact}
+            value={effectiveName}
+            disabled={saving}
+            onSelect={(n) => void handleSelect(n)}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 }
