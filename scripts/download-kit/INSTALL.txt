@@ -19,6 +19,10 @@ Windows
 Double-click: Install-Palmart-Print-Bridge.cmd
 (Allow SmartScreen / Run anyway if prompted)
 
+To run without installing: keep this unzipped folder, then double-click
+start-till-print-bridge.cmd (leave that window open while cashiering).
+Do not run the .cmd from inside a nested path that moved the .mjs elsewhere.
+
 Linux
 -----
 bash install-palmart-print-bridge.sh

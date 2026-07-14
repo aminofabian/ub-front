@@ -19,7 +19,28 @@ if (-not (Test-Path $BridgeSrc)) {
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item -Force $BridgeSrc $BridgeDst
-Copy-Item -Force (Join-Path $PkgDir "start-till-print-bridge.cmd") (Join-Path $InstallDir "start-till-print-bridge.cmd") -ErrorAction SilentlyContinue
+
+# Flat install layout: bridge + launcher side by side (not frontend/scripts/...).
+$StartCmd = Join-Path $InstallDir "start-till-print-bridge.cmd"
+$StartCmdSrc = Join-Path $PkgDir "start-till-print-bridge.cmd"
+if (Test-Path $StartCmdSrc) {
+  Copy-Item -Force $StartCmdSrc $StartCmd
+} else {
+  @(
+    "@echo off",
+    "cd /d `"%~dp0`"",
+    "echo Starting Till Print Bridge for Palmart cloud cashier...",
+    "echo Leave this window open while cashiering. Press Ctrl+C to stop.",
+    "where node >nul 2>&1",
+    "if errorlevel 1 (",
+    "  echo node not found in PATH. Install Node.js from https://nodejs.org/",
+    "  pause",
+    "  exit /b 1",
+    ")",
+    "node `"%~dp0till-print-bridge.mjs`"",
+    "pause"
+  ) | Set-Content -Path $StartCmd -Encoding ASCII
+}
 
 $Action = New-ScheduledTaskAction -Execute $Node -Argument "`"$BridgeDst`"" -WorkingDirectory $InstallDir
 $Trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
