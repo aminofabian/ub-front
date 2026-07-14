@@ -445,7 +445,7 @@ export function BusinessSettingsForm({
       {canManageBusinessSettings ? (
         <FormDrawerFields
           legend="Cashier permissions"
-          hint="Allow cashiers to edit prices or create products from the POS. Managers with pricing/catalog permissions always can."
+          hint="Allow cashiers to edit prices, create products, or mark items as weighted from the POS. Managers with pricing/catalog permissions always can."
         >
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
             <input
@@ -487,6 +487,28 @@ export function BusinessSettingsForm({
               <span className={hintClass()}>
                 Cashiers can quick-create a sellable item from the register and
                 add it to the cart.
+              </span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+              checked={cashierCapabilities.weighedToggle}
+              onChange={(event) =>
+                setCashierCapabilities((previous) => ({
+                  ...previous,
+                  weighedToggle: event.target.checked,
+                }))
+              }
+            />
+            <span className="space-y-1">
+              <span className="font-medium">
+                Allow cashiers to mark items as weighted
+              </span>
+              <span className={hintClass()}>
+                Cashiers can toggle sell-by-weight on a cart line so quantity can
+                be entered in kg (updates the product catalog).
               </span>
             </span>
           </label>

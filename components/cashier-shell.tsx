@@ -268,6 +268,9 @@ export function CashierShell({ children }: CashierShellProps) {
           createProductEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true
           }
+          weighedToggleEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] === true
+          }
           onSaved={() => refreshSession()}
         />
       ) : null}

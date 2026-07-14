@@ -40,6 +40,7 @@ import {
   CashierQtyControl,
   formatCartQtyLabel,
 } from "./cashier-qty-control";
+import { CashierWeighedToggle } from "./cashier-weighed-toggle";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
 import { isValidCustomerPhone } from "@/lib/customer-phone";
 import { IS_DESKTOP } from "@/lib/runtime";
@@ -97,6 +98,9 @@ export type CashierCartDrawerProps = {
     field: "quantity" | "unitPrice",
     value: string,
   ) => void;
+  allowWeighedToggle?: boolean;
+  weighedToggleBusyItemId?: string | null;
+  onToggleWeighed?: (lineKey: string) => void;
 
   payMethod: SalePaymentMethod;
   setPayMethod: (m: SalePaymentMethod) => void;
@@ -240,6 +244,9 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
     grandTotal,
     removeLine,
     updateLine,
+    allowWeighedToggle = false,
+    weighedToggleBusyItemId = null,
+    onToggleWeighed,
     payMethod,
     setPayMethod,
     mpesaRef,
@@ -937,20 +944,35 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 )}
                               </div>
                               <div className="min-w-0 flex-1" title={full}>
-                                <p className="truncate text-[12px] font-semibold leading-tight">
-                                  {primary}
-                                  {option ? (
-                                    <span className="font-medium text-muted-foreground">
-                                      {" "}
-                                      · {option}
-                                    </span>
+                                <div className="flex min-w-0 items-start gap-1.5">
+                                  <p className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight">
+                                    {primary}
+                                    {option ? (
+                                      <span className="font-medium text-muted-foreground">
+                                        {" "}
+                                        · {option}
+                                      </span>
+                                    ) : null}
+                                  </p>
+                                  {allowWeighedToggle && onToggleWeighed ? (
+                                    <CashierWeighedToggle
+                                      weighed={line.item.isWeighed === true}
+                                      busy={
+                                        weighedToggleBusyItemId === line.itemId
+                                      }
+                                      itemLabel={full}
+                                      onToggle={() =>
+                                        onToggleWeighed(line.key)
+                                      }
+                                    />
                                   ) : null}
-                                </p>
+                                </div>
                                 <p className="text-[10px] tabular-nums text-muted-foreground">
                                   {Number.isFinite(unit)
                                     ? unit.toFixed(2)
                                     : line.unitPrice}{" "}
                                   × {formatCartQtyLabel(line.quantity)}
+                                  {line.item.isWeighed === true ? " kg" : ""}
                                 </p>
                               </div>
                               <CashierQtyControl

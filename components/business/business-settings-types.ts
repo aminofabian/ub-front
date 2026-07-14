@@ -38,11 +38,13 @@ export type PosDraftsForm = {
 export type CashierCapabilitiesForm = {
   priceEdit: boolean;
   createProduct: boolean;
+  weighedToggle: boolean;
 };
 
 export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   priceEdit: false,
   createProduct: false,
+  weighedToggle: false,
 };
 
 export function cashierCapabilitiesFromRecord(
@@ -52,6 +54,7 @@ export function cashierCapabilitiesFromRecord(
   return {
     priceEdit: ff[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true,
     createProduct: ff[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true,
+    weighedToggle: ff[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] === true,
   };
 }
 

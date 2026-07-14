@@ -23,6 +23,7 @@ type CashierAdminCapabilitiesModalProps = {
   brandTheme: CSSProperties;
   priceEditEnabled: boolean;
   createProductEnabled: boolean;
+  weighedToggleEnabled: boolean;
   onSaved: () => Promise<void> | void;
 };
 
@@ -32,17 +33,20 @@ export function CashierAdminCapabilitiesModal({
   brandTheme,
   priceEditEnabled,
   createProductEnabled,
+  weighedToggleEnabled,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
   const [priceEdit, setPriceEdit] = useState(priceEditEnabled);
   const [createProduct, setCreateProduct] = useState(createProductEnabled);
+  const [weighedToggle, setWeighedToggle] = useState(weighedToggleEnabled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setPriceEdit(priceEditEnabled);
     setCreateProduct(createProductEnabled);
-  }, [open, priceEditEnabled, createProductEnabled]);
+    setWeighedToggle(weighedToggleEnabled);
+  }, [open, priceEditEnabled, createProductEnabled, weighedToggleEnabled]);
 
   const onSave = async () => {
     setSaving(true);
@@ -51,6 +55,7 @@ export function CashierAdminCapabilitiesModal({
         featureFlags: {
           posCashierPriceEdit: priceEdit,
           posCashierCreateProduct: createProduct,
+          posCashierWeighedToggle: weighedToggle,
         },
       });
       await onSaved();
@@ -79,8 +84,9 @@ export function CashierAdminCapabilitiesModal({
               Till settings
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">
-              Allow cashiers on this business to edit prices or add products from
-              the POS. Managers with pricing/catalog permissions always can.
+              Allow cashiers on this business to edit prices, add products, or
+              mark items as weighted from the POS. Managers with
+              pricing/catalog permissions always can.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -126,6 +132,28 @@ export function CashierAdminCapabilitiesModal({
               <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
                 Cashiers may create a simple sellable product and add it to the
                 cart. Flag: {POS_CASHIER_CAPABILITY_FLAGS.createProduct}
+              </span>
+            </span>
+          </label>
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-[var(--pos-primary)]"
+              checked={weighedToggle}
+              onChange={(e) => setWeighedToggle(e.target.checked)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Mark items as weighted
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Cashiers may toggle sell-by-weight on a cart line (kg qty). Flag:{" "}
+                {POS_CASHIER_CAPABILITY_FLAGS.weighedToggle}
               </span>
             </span>
           </label>

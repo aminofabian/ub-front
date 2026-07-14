@@ -706,6 +706,7 @@ export type FeatureFlagsPatchPayload = {
   butcherPosEnabled?: boolean;
   posCashierPriceEdit?: boolean;
   posCashierCreateProduct?: boolean;
+  posCashierWeighedToggle?: boolean;
 };
 
 export type PatchBusinessPayload = {
@@ -2744,6 +2745,25 @@ export async function createPosQuickItem(
     await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
   return created;
+}
+
+/** Cashier cart: mark catalog item as sold by weight (flag or catalog write). */
+export async function setPosItemWeighed(
+  itemId: string,
+  weighed: boolean,
+): Promise<{ id: string; isWeighed: boolean; unitType?: string }> {
+  const updated = await request<{
+    id: string;
+    isWeighed: boolean;
+    unitType?: string;
+  }>(`/api/v1/pos/items/${encodeURIComponent(itemId.trim())}/weighed`, {
+    method: "PUT",
+    body: { weighed },
+  });
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return updated;
 }
 
 export async function fetchSupplierItemLinks(

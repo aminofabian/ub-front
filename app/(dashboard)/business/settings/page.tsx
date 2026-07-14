@@ -231,6 +231,7 @@ export default function BusinessSettingsPage() {
           },
           posCashierPriceEdit: cashierCapabilities.priceEdit,
           posCashierCreateProduct: cashierCapabilities.createProduct,
+          posCashierWeighedToggle: cashierCapabilities.weighedToggle,
         };
       }
       await updateBusiness(body);

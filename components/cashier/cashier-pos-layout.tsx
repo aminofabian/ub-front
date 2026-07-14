@@ -205,6 +205,10 @@ export type CashierPosLayoutProps = {
   canPersistShelfPrice?: boolean;
   /** Quick-create products from POS. */
   allowCreateProduct?: boolean;
+  /** Mark cart lines as sold by weight (permission or admin flag). */
+  allowWeighedToggle?: boolean;
+  weighedToggleBusyItemId?: string | null;
+  onToggleWeighed?: (lineKey: string) => void;
   itemTypes?: ItemTypeRecord[];
   preferredItemTypeId?: string | null;
 
@@ -729,6 +733,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowPriceEdit = false,
     canPersistShelfPrice = false,
     allowCreateProduct = false,
+    allowWeighedToggle = false,
+    weighedToggleBusyItemId = null,
+    onToggleWeighed,
     itemTypes = [],
     preferredItemTypeId = null,
     cart,
@@ -1721,10 +1728,13 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           loading={cart.loading}
           branchSelected={branchSelected}
           allowPriceEdit={allowPriceEdit}
+          allowWeighedToggle={allowWeighedToggle}
+          weighedToggleBusyItemId={weighedToggleBusyItemId}
           removeLine={cart.removeLine}
           updateLine={cart.updateLine}
           onCheckout={() => setDrawerOpen(true)}
           onEditPrice={(key) => setEditPriceKey(key)}
+          onToggleWeighed={onToggleWeighed}
           className={cn(
             embeddedInDashboard
               ? "sticky top-[3.75rem] h-[calc(100dvh-5.5rem)]"
@@ -1904,6 +1914,9 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         currency={currency}
         branchSelected={branchSelected}
         brandTheme={dialogBrandTheme}
+        allowWeighedToggle={allowWeighedToggle}
+        weighedToggleBusyItemId={weighedToggleBusyItemId}
+        onToggleWeighed={onToggleWeighed}
         {...cart}
       />
 

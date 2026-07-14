@@ -18,6 +18,7 @@ import {
   CashierQtyControl,
   formatCartQtyLabel,
 } from "./cashier-qty-control";
+import { CashierWeighedToggle } from "./cashier-weighed-toggle";
 
 type CartLineLike = {
   key: string;
@@ -37,6 +38,8 @@ type CashierCartSidePanelProps = {
   branchSelected: boolean;
   className?: string;
   allowPriceEdit?: boolean;
+  allowWeighedToggle?: boolean;
+  weighedToggleBusyItemId?: string | null;
   removeLine: (key: string) => void;
   updateLine: (
     key: string,
@@ -45,6 +48,7 @@ type CashierCartSidePanelProps = {
   ) => void;
   onCheckout: () => void;
   onEditPrice?: (key: string) => void;
+  onToggleWeighed?: (lineKey: string) => void;
 };
 
 function lineSubtotal(line: CartLineLike): number {
@@ -63,10 +67,13 @@ export function CashierCartSidePanel({
   branchSelected,
   className,
   allowPriceEdit = false,
+  allowWeighedToggle = false,
+  weighedToggleBusyItemId = null,
   removeLine,
   updateLine,
   onCheckout,
   onEditPrice,
+  onToggleWeighed,
 }: CashierCartSidePanelProps) {
   const itemCount = lines.reduce((sum, line) => {
     const q = Number(line.quantity);
@@ -128,14 +135,26 @@ export function CashierCartSidePanel({
                     className="animate-pos-line-in flex items-center gap-1.5 px-1.5 py-2"
                   >
                     <div className="min-w-0 flex-1" title={full}>
-                      <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
-                        {primary}
-                      </p>
-                      {option ? (
-                        <p className="truncate text-[11px] font-bold leading-tight text-foreground">
-                          {option}
-                        </p>
-                      ) : null}
+                      <div className="flex min-w-0 items-start gap-1.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                            {primary}
+                          </p>
+                          {option ? (
+                            <p className="truncate text-[11px] font-bold leading-tight text-foreground">
+                              {option}
+                            </p>
+                          ) : null}
+                        </div>
+                        {allowWeighedToggle && onToggleWeighed ? (
+                          <CashierWeighedToggle
+                            weighed={line.item.isWeighed === true}
+                            busy={weighedToggleBusyItemId === line.itemId}
+                            itemLabel={full}
+                            onToggle={() => onToggleWeighed(line.key)}
+                          />
+                        ) : null}
+                      </div>
                       <div className="mt-0.5 flex items-end gap-1.5 text-[10px] tabular-nums text-muted-foreground">
                         {allowPriceEdit && onEditPrice ? (
                           <button
@@ -154,6 +173,7 @@ export function CashierCartSidePanel({
                           {Number.isFinite(qty)
                             ? formatCartQtyLabel(qty)
                             : line.quantity}
+                          {line.item.isWeighed === true ? " kg" : ""}
                         </span>
                         <CashierDottedLeader />
                         <span className="shrink-0 font-semibold text-foreground">

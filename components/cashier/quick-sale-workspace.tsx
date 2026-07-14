@@ -25,6 +25,7 @@ import {
   fetchPosTopProducts,
   fetchSaleReceiptPdf,
   postVoidSale,
+  setPosItemWeighed,
   tryPostSaleWithRetries,
   type CategoryTreeNodeRecord,
   type CustomerRecord,
@@ -244,6 +245,8 @@ export function QuickSaleWorkspace({
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true;
   const createProductFlagEnabled =
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true;
+  const weighedToggleFlagEnabled =
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] === true;
   const allowPriceEdit =
     hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
     priceEditFlagEnabled;
@@ -254,6 +257,9 @@ export function QuickSaleWorkspace({
   const allowCreateProduct =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     createProductFlagEnabled;
+  const allowWeighedToggle =
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
+    weighedToggleFlagEnabled;
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -1633,6 +1639,87 @@ export function QuickSaleWorkspace({
     [updateActiveCart, schedulePosDraftSync, activeCartId],
   );
 
+  const [weighedToggleBusyItemId, setWeighedToggleBusyItemId] = useState<
+    string | null
+  >(null);
+
+  const toggleLineWeighed = useCallback(
+    async (lineKey: string) => {
+      if (!allowWeighedToggle || !online) {
+        if (!online) toast.error("Go online to change weighted selling.");
+        return;
+      }
+      let target: { itemId: string; next: boolean } | null = null;
+      for (const cart of carts) {
+        const line = cart.lines.find((l) => l.key === lineKey);
+        if (line) {
+          target = {
+            itemId: line.itemId,
+            next: line.item.isWeighed !== true,
+          };
+          break;
+        }
+      }
+      if (!target) return;
+      const { itemId, next } = target;
+      setWeighedToggleBusyItemId(itemId);
+      try {
+        const updated = await setPosItemWeighed(itemId, next);
+        setCarts((prev) =>
+          prev.map((cart) => ({
+            ...cart,
+            lines: cart.lines.map((l) => {
+              if (l.itemId !== itemId) return l;
+              const qtyNum = Number(l.quantity);
+              let quantity = l.quantity;
+              if (!updated.isWeighed && Number.isFinite(qtyNum)) {
+                quantity = String(Math.max(1, Math.round(qtyNum)));
+              } else if (updated.isWeighed && Number.isFinite(qtyNum)) {
+                quantity = formatCartQtyValue(qtyNum);
+              }
+              return {
+                ...l,
+                quantity,
+                item: {
+                  ...l.item,
+                  isWeighed: updated.isWeighed,
+                  ...(updated.unitType
+                    ? { unitType: updated.unitType }
+                    : {}),
+                },
+              };
+            }),
+          })),
+        );
+        setHits((prev) =>
+          prev.map((h) =>
+            h.id === itemId
+              ? {
+                  ...h,
+                  isWeighed: updated.isWeighed,
+                  ...(updated.unitType
+                    ? { unitType: updated.unitType }
+                    : {}),
+                }
+              : h,
+          ),
+        );
+        toast.success(
+          updated.isWeighed
+            ? "Marked as weighted — enter qty in kg"
+            : "Weighted selling cleared",
+        );
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not update weighted setting",
+        );
+      } finally {
+        setWeighedToggleBusyItemId(null);
+      }
+    },
+    [allowWeighedToggle, online, carts],
+  );
+
   const updateLine = useCallback(
     (key: string, field: "quantity" | "unitPrice", value: string) => {
       updateActiveCart((cart) => ({
@@ -2696,6 +2783,9 @@ export function QuickSaleWorkspace({
         allowPriceEdit={allowPriceEdit}
         canPersistShelfPrice={canPersistShelfPrice}
         allowCreateProduct={allowCreateProduct}
+        allowWeighedToggle={allowWeighedToggle}
+        weighedToggleBusyItemId={weighedToggleBusyItemId}
+        onToggleWeighed={toggleLineWeighed}
         itemTypes={itemTypes}
         preferredItemTypeId={posItemTypeId}
         cart={{
