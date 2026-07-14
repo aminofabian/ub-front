@@ -85,6 +85,20 @@ const packages = [
         "start-till-print-bridge.cmd",
         join(__dirname, "start-till-print-bridge.cmd"),
       ],
+      // Bundled so Win7 PCs that download the main Windows zip still get a no-Node path.
+      [
+        "Install-Palmart-Print-Bridge-Win7.cmd",
+        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.cmd"),
+      ],
+      [
+        "Install-Palmart-Print-Bridge-Win7.ps1",
+        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.ps1"),
+      ],
+      [
+        "till-print-bridge-win7.ps1",
+        join(KIT, "win7", "till-print-bridge-win7.ps1"),
+      ],
+      ["INSTALL-WINDOWS7.txt", join(KIT, "win7", "INSTALL.txt")],
     ],
   },
   {

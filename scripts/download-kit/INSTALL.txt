@@ -25,8 +25,10 @@ Uninstall autostart: run Uninstall-Palmart-Print-Bridge.ps1 in the install folde
 
 Windows 7
 ---------
-Use the separate package: palmart-till-print-bridge-windows7.zip
-(No Node.js - PowerShell bridge). See that zip INSTALL.txt.
+This zip also includes the Win7 installer (no Node.js).
+On Windows 7, run Install-Palmart-Print-Bridge.cmd - it auto-switches,
+or run Install-Palmart-Print-Bridge-Win7.cmd directly.
+See INSTALL-WINDOWS7.txt. Or download palmart-till-print-bridge-windows7.zip.
 
 macOS
 -----
