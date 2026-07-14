@@ -21,6 +21,16 @@ type TillBridgeDownloadButtonProps = {
   os?: TillBridgeDownloadOs;
 };
 
+function toastForOs(os: TillBridgeDownloadOs): string {
+  if (os === "windows7") {
+    return "Download started. Unzip, run Install-Palmart-Print-Bridge-Win7.cmd once (no Node.js). Then Detect printers. Use Chrome 109 on Windows 7.";
+  }
+  if (os === "windows") {
+    return "Download started. Unzip, run Install-Palmart-Print-Bridge.cmd once. It stays running in the background - then Detect printers.";
+  }
+  return "Download started. Unzip, run the installer once, then come back and Detect printers.";
+}
+
 /**
  * Starts a zip download of the Till Print Bridge installer for this OS.
  */
@@ -34,12 +44,7 @@ export function TillBridgeDownloadButton({
 
   const onClick = () => {
     downloadTillPrintBridge(resolved);
-    toast.message(
-      resolved === "windows"
-        ? "Download started. Unzip → run Install-Palmart-Print-Bridge.cmd once. It stays running in the background — then Detect printers."
-        : "Download started. Unzip, run the installer once, then come back and Detect printers.",
-      { duration: 12_000 },
-    );
+    toast.message(toastForOs(resolved), { duration: 12_000 });
   };
 
   return (
@@ -61,14 +66,26 @@ export function TillBridgeDownloadButton({
           </a>
           {" · "}
           <a className="underline" href={TILL_BRIDGE_DOWNLOADS.windows} download>
-            Windows
+            Windows 10/11
+          </a>
+          {" · "}
+          <a
+            className="underline"
+            href={TILL_BRIDGE_DOWNLOADS.windows7}
+            download
+          >
+            Windows 7
           </a>
           {" · "}
           <a className="underline" href={TILL_BRIDGE_DOWNLOADS.linux} download>
             Linux
           </a>
-          {" — "}
-          <a className="underline" href={tillBridgeDownloadHref(resolved)} download>
+          {" - "}
+          <a
+            className="underline"
+            href={tillBridgeDownloadHref(resolved)}
+            download
+          >
             direct link
           </a>
         </p>

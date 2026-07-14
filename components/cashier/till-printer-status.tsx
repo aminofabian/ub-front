@@ -135,8 +135,8 @@ export function TillPrinterStatus({
           <div className="min-w-0 space-y-0.5">
             <p className="font-semibold">Print bridge not installed on this PC</p>
             <p className={cn(compact ? "text-destructive/80" : "text-destructive/90")}>
-              Download → unzip → run the installer once. On Windows it starts hidden at
-              sign-in (no window to leave open). Then return here and Detect printers.
+              Download, unzip, run the installer once (Windows 7 has its own package, no
+              Node.js). It starts hidden at sign-in. Then return here and Detect printers.
             </p>
           </div>
         </div>

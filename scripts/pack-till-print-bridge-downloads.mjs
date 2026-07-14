@@ -98,6 +98,25 @@ const packages = [
       ],
     ],
   },
+  {
+    id: "windows7",
+    zip: "palmart-till-print-bridge-windows7.zip",
+    files: [
+      ["INSTALL.txt", join(KIT, "win7", "INSTALL.txt")],
+      [
+        "till-print-bridge-win7.ps1",
+        join(KIT, "win7", "till-print-bridge-win7.ps1"),
+      ],
+      [
+        "Install-Palmart-Print-Bridge-Win7.cmd",
+        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.cmd"),
+      ],
+      [
+        "Install-Palmart-Print-Bridge-Win7.ps1",
+        join(KIT, "win7", "Install-Palmart-Print-Bridge-Win7.ps1"),
+      ],
+    ],
+  },
 ];
 
 const built = [];

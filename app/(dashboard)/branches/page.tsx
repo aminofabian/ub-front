@@ -794,7 +794,14 @@ export default function BranchesPage() {
                                       className="underline"
                                       href="/downloads/palmart-till-print-bridge-windows.zip"
                                     >
-                                      Windows
+                                      Windows 10/11
+                                    </a>
+                                    {" · "}
+                                    <a
+                                      className="underline"
+                                      href="/downloads/palmart-till-print-bridge-windows7.zip"
+                                    >
+                                      Windows 7
                                     </a>
                                     {" · "}
                                     <a

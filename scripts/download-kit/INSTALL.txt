@@ -23,8 +23,14 @@ You do NOT need to keep a window open while cashiering.
 Manual start (only if needed): start-till-print-bridge.cmd
 Uninstall autostart: run Uninstall-Palmart-Print-Bridge.ps1 in the install folder.
 
+Windows 7
+---------
+Use the separate package: palmart-till-print-bridge-windows7.zip
+(No Node.js - PowerShell bridge). See that zip INSTALL.txt.
+
 macOS
 -----
+
 Double-click: Install Palmart Print Bridge.command
 (If macOS blocks it: right-click → Open)
 

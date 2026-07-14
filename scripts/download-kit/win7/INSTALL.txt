@@ -1,0 +1,26 @@
+Palmart Till Print Bridge - Windows 7
+=====================================
+
+This package is for Windows 7 only.
+It does NOT need Node.js (uses built-in PowerShell).
+
+1. Unzip this folder.
+2. Double-click: Install-Palmart-Print-Bridge-Win7.cmd
+   (Allow SmartScreen / Run anyway if prompted)
+3. Return to Palmart Cashier -> Printer -> Detect printers.
+
+After install:
+  - Bridge runs hidden in the background
+  - Auto-starts at every Windows sign-in
+  - Listens on http://127.0.0.1:19500
+
+Cashier browser on Windows 7:
+  Use Google Chrome 109 (last version that supports Windows 7).
+  Newer Chrome/Edge will not install on Windows 7.
+
+If install says health check failed, run Command Prompt as Administrator:
+  netsh http add urlacl url=http://127.0.0.1:19500/ user=%USERNAME%
+Then run the installer again.
+
+For Windows 10 / 11, use the normal Windows download instead
+(palmart-till-print-bridge-windows.zip).

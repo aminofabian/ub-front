@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-07-14T15:58:01.516Z",
+  "generatedAt": "2026-07-14T16:26:02.243Z",
   "files": [
     "palmart-till-print-bridge-macos.zip",
     "palmart-till-print-bridge-windows.zip",
-    "palmart-till-print-bridge-linux.zip"
+    "palmart-till-print-bridge-linux.zip",
+    "palmart-till-print-bridge-windows7.zip"
   ],
   "note": "Unzip, run the installer for your OS, then Detect printers in Cashier."
 }
