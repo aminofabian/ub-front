@@ -852,6 +852,10 @@ export type PatchItemPayload = {
   packagingUnitQty?: number | string | null;
   /** Move the SKU to a different department (item type). */
   itemTypeId?: string;
+  /** Unit of measure (each, kg, g, lb, …). */
+  unitType?: string;
+  /** When true, sold by weight with fractional qty at the till. */
+  isWeighed?: boolean;
 };
 
 /** Response from GET /api/v1/items/{id}/supplier-links */

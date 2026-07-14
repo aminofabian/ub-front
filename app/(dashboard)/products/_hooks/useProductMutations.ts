@@ -1189,6 +1189,49 @@ export function useProductMutations(d: Dependencies) {
     ],
   );
 
+  const [weighedBusy, setWeighedBusy] = useState(false);
+
+  const onToggleWeighed = useCallback(async () => {
+    if (!selectedId || !detail) {
+      setMessage("Select a product first.");
+      return;
+    }
+    if (!canCatalogWrite) {
+      setMessage("You do not have permission to edit products.");
+      return;
+    }
+    const next = detail.isWeighed !== true;
+    const unit = (detail.unitType ?? "").trim().toLowerCase();
+    const weightUnit =
+      unit === "kg" || unit === "g" || unit === "lb" ? unit : "kg";
+    setWeighedBusy(true);
+    setMessage("");
+    try {
+      await patchItem(selectedId, {
+        isWeighed: next,
+        ...(next ? { unitType: weightUnit } : {}),
+      });
+      const updated = await refreshSelectedDetail();
+      if (updated) syncListRowFromDetail(updated);
+      setMessage(
+        next
+          ? "Sell by weight on — fractional qty allowed at the till (kg)."
+          : "Sell by weight off — till qty must be whole numbers.",
+      );
+    } catch (err) {
+      setMessage(formatMutationError(err, "Could not update sell-by-weight."));
+    } finally {
+      setWeighedBusy(false);
+    }
+  }, [
+    canCatalogWrite,
+    detail,
+    refreshSelectedDetail,
+    selectedId,
+    setMessage,
+    syncListRowFromDetail,
+  ]);
+
   const onChangeItemType = useCallback(
     async (nextItemTypeId: string): Promise<boolean> => {
       if (!selectedId) {
@@ -1286,6 +1329,8 @@ export function useProductMutations(d: Dependencies) {
     onCreatePackages,
     onChangeItemType,
     changeItemTypeBusy,
+    onToggleWeighed,
+    weighedBusy,
   };
 }
 

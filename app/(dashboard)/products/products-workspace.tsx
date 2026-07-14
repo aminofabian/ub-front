@@ -350,6 +350,10 @@ export function ProductsWorkspace() {
     onToggleFeatured: D?.id
       ? () => void featured.toggleFeatured(D.id)
       : undefined,
+    onToggleWeighed: canCatalogWrite
+      ? () => void m.onToggleWeighed()
+      : undefined,
+    weighedBusy: m.weighedBusy,
   };
 
   return (

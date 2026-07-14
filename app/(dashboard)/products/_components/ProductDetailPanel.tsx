@@ -17,6 +17,7 @@ import {
   Pencil,
   PencilLine,
   Save,
+  Scale,
   Star,
 } from "lucide-react";
 
@@ -155,6 +156,9 @@ type Props = {
   featuredBusy?: boolean;
   featuredAtCapacity?: boolean;
   onToggleFeatured?: () => void;
+  /** Toggle catalog `isWeighed` (sell by kg at the till). */
+  onToggleWeighed?: () => void;
+  weighedBusy?: boolean;
 };
 
 export function ProductDetailPanel(props: Props) {
@@ -232,6 +236,8 @@ export function ProductDetailPanel(props: Props) {
     featuredBusy = false,
     featuredAtCapacity = false,
     onToggleFeatured,
+    onToggleWeighed,
+    weighedBusy = false,
   } = props;
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -598,6 +604,12 @@ export function ProductDetailPanel(props: Props) {
                   Package SKU
                 </span>
               )}
+              {detail.isWeighed === true && (
+                <span className="inline-flex items-center gap-0.5 border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                  <Scale className="size-2.5" aria-hidden />
+                  By weight
+                </span>
+              )}
             </div>
             <h3
               className={cn(
@@ -824,6 +836,66 @@ export function ProductDetailPanel(props: Props) {
               {packageVariants.length === 1 ? "" : "s"} already configured
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {/* Sell by weight — till fractional qty / price per kg */}
+      {canCatalogWrite && panelKind !== "group" && onToggleWeighed ? (
+        <div
+          className={cn(
+            detailPackageCardClass,
+            detail.isWeighed === true &&
+              "border-emerald-500/25 ring-emerald-500/15",
+          )}
+        >
+          <div className="flex gap-3">
+            <div
+              className={cn(
+                "flex size-11 shrink-0 items-center justify-center",
+                detail.isWeighed === true
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              <Scale className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold tracking-tight">
+                {detail.isWeighed === true
+                  ? "Selling by weight"
+                  : "Sell by weight"}
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                {detail.isWeighed === true ? (
+                  <>
+                    Price is per{" "}
+                    <span className="font-medium text-foreground">
+                      {(detail.unitType ?? "kg").trim() || "kg"}
+                    </span>
+                    . Cashiers can enter fractional qty (e.g. 0.347).
+                  </>
+                ) : (
+                  "For loose / scale items. Turns on fractional qty at the till and prices per kg."
+                )}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant={detail.isWeighed === true ? "outline" : "default"}
+            className="mt-3 h-10 w-full gap-2 rounded-xl text-sm font-medium shadow-sm"
+            disabled={weighedBusy}
+            onClick={onToggleWeighed}
+          >
+            {weighedBusy ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Scale className="size-4" aria-hidden />
+            )}
+            {detail.isWeighed === true
+              ? "Turn off sell by weight"
+              : "Sell by weight"}
+          </Button>
         </div>
       ) : null}
 
