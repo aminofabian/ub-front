@@ -1,27 +1,32 @@
 Palmart Till Print Bridge
 =========================
 
-This small helper lets the cloud cashier print to a USB / local / network
-thermal printer on THIS computer.
+Lets the cloud cashier print to a USB / local / network thermal printer
+on THIS computer.
 
 1. Unzip this folder.
-2. Run the installer for your OS (see below).
+2. Run the installer for your OS (below).
 3. If asked, install Node.js LTS from https://nodejs.org/ then re-run.
-4. Return to Palmart Cashier → Detect printers.
+4. Return to Palmart Cashier → Printer → Detect printers.
+
+Windows (install once — recommended)
+------------------------------------
+Double-click: Install-Palmart-Print-Bridge.cmd
+(Allow SmartScreen / Run anyway if prompted)
+
+That:
+  - installs under %LOCALAPPDATA%\Palmart\till-print-bridge
+  - starts the bridge hidden in the background
+  - auto-starts at every Windows sign-in
+
+You do NOT need to keep a window open while cashiering.
+Manual start (only if needed): start-till-print-bridge.cmd
+Uninstall autostart: run Uninstall-Palmart-Print-Bridge.ps1 in the install folder.
 
 macOS
 -----
 Double-click: Install Palmart Print Bridge.command
 (If macOS blocks it: right-click → Open)
-
-Windows
--------
-Double-click: Install-Palmart-Print-Bridge.cmd
-(Allow SmartScreen / Run anyway if prompted)
-
-To run without installing: keep this unzipped folder, then double-click
-start-till-print-bridge.cmd (leave that window open while cashiering).
-Do not run the .cmd from inside a nested path that moved the .mjs elsewhere.
 
 Linux
 -----

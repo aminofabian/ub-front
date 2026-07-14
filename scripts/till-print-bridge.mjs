@@ -10,15 +10,18 @@
  *   Windows       — spooler RAW via PowerShell Win32 WritePrinter
  *   All           — Ethernet/Wi‑Fi ESC/POS on TCP port 9100 (X-Printer-Host)
  *
- * Usage (on the till machine, leave running):
- *   node scripts/till-print-bridge.mjs
+ * Usage:
+ *   Windows (recommended): run Install-Palmart-Print-Bridge.cmd once — autostarts hidden.
+ *   Dev / manual: node scripts/till-print-bridge.mjs
  *   pnpm till-print-bridge
+ *
+ * Optional: TILL_PRINT_BRIDGE_LOG=/path/to/bridge.log for headless file logging.
  */
 
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { createConnection } from "node:net";
-import { existsSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { platform as osPlatform, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,6 +31,22 @@ const HOST = "127.0.0.1";
 const PLATFORM = osPlatform(); // darwin | linux | win32 | …
 const IS_WIN = PLATFORM === "win32";
 const IS_UNIX = PLATFORM === "darwin" || PLATFORM === "linux";
+const LOG_FILE = (process.env.TILL_PRINT_BRIDGE_LOG || "").trim();
+
+function logLine(...parts) {
+  const line = parts.map((p) => String(p)).join(" ");
+  try {
+    console.log(line);
+  } catch {
+    // ignore broken stdout when detached
+  }
+  if (!LOG_FILE) return;
+  try {
+    appendFileSync(LOG_FILE, `${new Date().toISOString()} ${line}\n`, "utf8");
+  } catch {
+    // ignore log write failures
+  }
+}
 
 const LP_BIN = ["/usr/bin/lp", "/bin/lp"].find((p) => existsSync(p));
 const LPSTAT_BIN = ["/usr/bin/lpstat", "/bin/lpstat"].find((p) => existsSync(p));
@@ -520,15 +539,32 @@ const server = createServer(async (req, res) => {
   send(res, 404, "not found");
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`Till Print Bridge listening on http://${HOST}:${PORT}`);
-  console.log(`Platform: ${PLATFORM}`);
-  if (IS_UNIX) {
-    console.log(`CUPS lp: ${LP_BIN ?? "NOT FOUND"}`);
-    console.log(`CUPS lpstat: ${LPSTAT_BIN ?? "NOT FOUND"}`);
-  } else if (IS_WIN) {
-    console.log("Windows spooler: PowerShell Get-Printer / WritePrinter (RAW)");
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE") {
+    logLine(
+      `Till Print Bridge already listening on http://${HOST}:${PORT} — exiting cleanly.`,
+    );
+    process.exit(0);
   }
-  console.log("Network ESC/POS: X-Printer-Host (+ optional X-Printer-Port, default 9100)");
-  console.log("Leave this running while using cloud cashier. Press Ctrl+C to stop.");
+  logLine("Till Print Bridge failed to start:", err instanceof Error ? err.message : err);
+  process.exit(1);
+});
+
+server.listen(PORT, HOST, () => {
+  logLine(`Till Print Bridge listening on http://${HOST}:${PORT}`);
+  logLine(`Platform: ${PLATFORM}`);
+  if (IS_UNIX) {
+    logLine(`CUPS lp: ${LP_BIN ?? "NOT FOUND"}`);
+    logLine(`CUPS lpstat: ${LPSTAT_BIN ?? "NOT FOUND"}`);
+  } else if (IS_WIN) {
+    logLine("Windows spooler: PowerShell Get-Printer / WritePrinter (RAW)");
+  }
+  logLine("Network ESC/POS: X-Printer-Host (+ optional X-Printer-Port, default 9100)");
+  if (LOG_FILE) {
+    logLine(`Logging to ${LOG_FILE}`);
+  } else if (IS_WIN) {
+    logLine("Installed via Windows installer? It runs hidden at logon — no console needed.");
+  } else {
+    logLine("Leave this process running while using cloud cashier (or use the OS installer / autostart).");
+  }
 });

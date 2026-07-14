@@ -35,7 +35,9 @@ export function TillBridgeDownloadButton({
   const onClick = () => {
     downloadTillPrintBridge(resolved);
     toast.message(
-      "Download started. Unzip, run the installer, then come back and Detect printers.",
+      resolved === "windows"
+        ? "Download started. Unzip → run Install-Palmart-Print-Bridge.cmd once. It stays running in the background — then Detect printers."
+        : "Download started. Unzip, run the installer once, then come back and Detect printers.",
       { duration: 12_000 },
     );
   };

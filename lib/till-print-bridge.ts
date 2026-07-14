@@ -210,4 +210,4 @@ export async function printEscPosViaTillBridge(
 }
 
 export const TILL_BRIDGE_START_HINT =
-  "The bridge must run on THIS computer (the one with the printer), not another PC. In the frontend folder: node scripts/till-print-bridge.mjs — macOS: start-till-print-bridge.command · Windows: start-till-print-bridge.cmd · Linux: bash scripts/install-till-print-bridge-systemd.sh";
+  "The bridge must run on THIS computer (the one with the printer), not another PC. Windows: unzip Download → run Install-Palmart-Print-Bridge.cmd once (autostarts hidden at sign-in). macOS: Install Palmart Print Bridge.command. Linux: bash install-palmart-print-bridge.sh.";

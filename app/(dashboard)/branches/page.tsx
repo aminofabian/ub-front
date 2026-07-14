@@ -774,7 +774,9 @@ export default function BranchesPage() {
                                     <strong className="font-medium text-foreground">
                                       Download for macOS / Windows / Linux
                                     </strong>
-                                    , unzip, run the installer, then{" "}
+                                    , unzip, run the installer once (Windows:
+                                    Install-Palmart-Print-Bridge.cmd — runs hidden
+                                    at sign-in, no window to leave open), then{" "}
                                     <strong className="font-medium text-foreground">
                                       Detect printers
                                     </strong>{" "}
