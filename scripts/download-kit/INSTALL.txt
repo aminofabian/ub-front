@@ -1,0 +1,26 @@
+Palmart Till Print Bridge
+=========================
+
+This small helper lets the cloud cashier print to a USB / local / network
+thermal printer on THIS computer.
+
+1. Unzip this folder.
+2. Run the installer for your OS (see below).
+3. If asked, install Node.js LTS from https://nodejs.org/ then re-run.
+4. Return to Palmart Cashier → Detect printers.
+
+macOS
+-----
+Double-click: Install Palmart Print Bridge.command
+(If macOS blocks it: right-click → Open)
+
+Windows
+-------
+Double-click: Install-Palmart-Print-Bridge.cmd
+(Allow SmartScreen / Run anyway if prompted)
+
+Linux
+-----
+bash install-palmart-print-bridge.sh
+
+After install, the bridge listens on http://127.0.0.1:19500 and starts at login.

@@ -210,4 +210,4 @@ export async function printEscPosViaTillBridge(
 }
 
 export const TILL_BRIDGE_START_HINT =
-  "On this till PC, in the frontend folder run: node scripts/till-print-bridge.mjs — macOS: scripts/start-till-print-bridge.command · Windows: scripts/start-till-print-bridge.cmd · Linux: bash scripts/install-till-print-bridge-systemd.sh";
+  "The bridge must run on THIS computer (the one with the printer), not another PC. In the frontend folder: node scripts/till-print-bridge.mjs — macOS: start-till-print-bridge.command · Windows: start-till-print-bridge.cmd · Linux: bash scripts/install-till-print-bridge-systemd.sh";

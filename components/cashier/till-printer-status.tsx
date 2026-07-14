@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Printer } from "lucide-react";
 import { toast } from "sonner";
 
+import { TillBridgeDownloadButton } from "@/components/cashier/till-bridge-download-button";
 import { CupsPrinterPicker } from "@/components/cups-printer-picker";
 import { useDashboard } from "@/components/dashboard-provider";
 import { patchBranch } from "@/lib/api";
@@ -13,7 +14,6 @@ import {
   getLocalTillCupsName,
   isTillPrintBridgeUp,
   setLocalTillCupsName,
-  TILL_BRIDGE_START_HINT,
 } from "@/lib/till-print-bridge";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +106,36 @@ export function TillPrinterStatus({
   );
 
   if (IS_DESKTOP) return null;
+  if (bridgeUp === null) return null;
+
+  if (!bridgeUp) {
+    return (
+      <div
+        role="alert"
+        className={cn(
+          compact
+            ? "inline-flex max-w-full flex-col gap-1.5 text-[11px] text-destructive"
+            : "flex flex-col gap-2 rounded-lg border border-destructive/35 bg-destructive/[0.07] px-3 py-2 text-xs text-destructive",
+          className,
+        )}
+      >
+        <div className="flex items-start gap-1.5">
+          <AlertTriangle
+            className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")}
+            aria-hidden
+          />
+          <div className="min-w-0 space-y-0.5">
+            <p className="font-semibold">Print bridge not installed on this PC</p>
+            <p className={cn(compact ? "text-destructive/80" : "text-destructive/90")}>
+              Download the installer for this computer, unzip, run it, then return here
+              and Detect printers.
+            </p>
+          </div>
+        </div>
+        <TillBridgeDownloadButton compact={compact} />
+      </div>
+    );
+  }
 
   if (!effectiveName) {
     return (
@@ -131,7 +161,7 @@ export function TillPrinterStatus({
           ) : (
             <p>
               <span className="font-semibold">Receipt printer not configured.</span>{" "}
-              Detect printers on this PC (macOS / Windows / Linux), or set one under{" "}
+              Detect printers on this PC, or set one under{" "}
               <strong>Branches → Receipt details</strong>.
             </p>
           )}
@@ -145,90 +175,38 @@ export function TillPrinterStatus({
     );
   }
 
-  if (bridgeUp === null) return null;
-
-  if (bridgeUp) {
-    return (
-      <div
-        role="status"
-        className={cn(
-          compact
-            ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-[color-mix(in_srgb,var(--pos-primary)_85%,#1c1915)]"
-            : "flex flex-col gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-xs text-emerald-950 dark:text-emerald-50",
-          className,
-        )}
-      >
-        <div className="inline-flex items-center gap-1.5">
-          <CheckCircle2
-            className={cn(
-              "shrink-0",
-              compact ? "size-3 text-[var(--pos-primary)]" : "size-3.5 text-emerald-600",
-            )}
-            aria-hidden
-          />
-          <span>
-            {compact ? "Printer ready" : "Receipt printer ready"} —{" "}
-            <code className="text-[10px]">{effectiveName}</code>
-            {localName ? (
-              <span className="text-muted-foreground"> (this PC)</span>
-            ) : null}
-          </span>
-        </div>
-        <CupsPrinterPicker
-          compact={compact}
-          value={effectiveName}
-          disabled={saving}
-          onSelect={(n) => void handleSelect(n)}
-        />
-      </div>
-    );
-  }
-
   return (
     <div
-      role="alert"
+      role="status"
       className={cn(
         compact
-          ? "inline-flex max-w-full flex-wrap items-start gap-1.5 text-[11px] text-destructive"
-          : "flex items-start gap-2 rounded-lg border border-destructive/35 bg-destructive/[0.07] px-3 py-2 text-xs text-destructive",
+          ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-[color-mix(in_srgb,var(--pos-primary)_85%,#1c1915)]"
+          : "flex flex-col gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-xs text-emerald-950 dark:text-emerald-50",
         className,
       )}
     >
-      <AlertTriangle
-        className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")}
-        aria-hidden
-      />
-      {compact ? (
+      <div className="inline-flex items-center gap-1.5">
+        <CheckCircle2
+          className={cn(
+            "shrink-0",
+            compact ? "size-3 text-[var(--pos-primary)]" : "size-3.5 text-emerald-600",
+          )}
+          aria-hidden
+        />
         <span>
-          <span className="font-semibold">Print bridge down</span>
-          <span className="text-destructive/80"> — {TILL_BRIDGE_START_HINT}</span>
+          {compact ? "Printer ready" : "Receipt printer ready"} —{" "}
+          <code className="text-[10px]">{effectiveName}</code>
+          {localName ? (
+            <span className="text-muted-foreground"> (this PC)</span>
+          ) : null}
         </span>
-      ) : (
-        <div className="space-y-1">
-          <p className="font-semibold">Till Print Bridge is not running</p>
-          <p className="text-destructive/90">
-            Printing will not auto-cut until you start the bridge on this PC.{" "}
-            {TILL_BRIDGE_START_HINT}
-          </p>
-          <p className="font-mono text-[10px] text-destructive/80">
-            cd frontend && node scripts/till-print-bridge.mjs
-          </p>
-          <p className="text-[10px] text-destructive/80">
-            Autostart: Mac{" "}
-            <code className="font-mono">
-              bash scripts/install-till-print-bridge-autostart.sh
-            </code>
-            ; Linux{" "}
-            <code className="font-mono">
-              bash scripts/install-till-print-bridge-systemd.sh
-            </code>
-            ; Windows{" "}
-            <code className="font-mono">
-              scripts\install-till-print-bridge-task.ps1
-            </code>
-          </p>
-        </div>
-      )}
+      </div>
+      <CupsPrinterPicker
+        compact={compact}
+        value={effectiveName}
+        disabled={saving}
+        onSelect={(n) => void handleSelect(n)}
+      />
     </div>
   );
 }

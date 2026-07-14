@@ -9,6 +9,8 @@
     "build": "rm -rf .next/cache && next build --webpack && node scripts/verify-legacy-safe.mjs",
     "build:desktop": "node scripts/build-desktop.mjs",
     "till-print-bridge": "node scripts/till-print-bridge.mjs",
+    "pack:till-print-bridge": "node scripts/pack-till-print-bridge-downloads.mjs",
+    "prebuild": "node scripts/pack-till-print-bridge-downloads.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "bun test",

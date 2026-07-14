@@ -770,27 +770,38 @@ export default function BranchesPage() {
                                     <strong className="font-medium text-foreground">
                                       Cloud cashier + receipt printer:
                                     </strong>{" "}
-                                    on the till PC (macOS / Windows / Linux) run{" "}
-                                    <code className="text-xs">
-                                      node scripts/till-print-bridge.mjs
-                                    </code>
-                                    . Shortcuts:{" "}
-                                    <code className="text-xs">
-                                      start-till-print-bridge.command
-                                    </code>{" "}
-                                    (Mac),{" "}
-                                    <code className="text-xs">
-                                      start-till-print-bridge.cmd
-                                    </code>{" "}
-                                    (Windows). Autostart: Mac LaunchAgent / Linux systemd
-                                    scripts in <code className="text-xs">frontend/scripts</code>
-                                    . Use{" "}
+                                    on the till PC open Cashier and click{" "}
+                                    <strong className="font-medium text-foreground">
+                                      Download for macOS / Windows / Linux
+                                    </strong>
+                                    , unzip, run the installer, then{" "}
                                     <strong className="font-medium text-foreground">
                                       Detect printers
                                     </strong>{" "}
-                                    above, then{" "}
+                                    above and{" "}
                                     <strong className="font-medium text-foreground">Save</strong>.
-                                    Network printers: bridge also supports TCP port 9100.
+                                    Direct zips:{" "}
+                                    <a
+                                      className="underline"
+                                      href="/downloads/palmart-till-print-bridge-macos.zip"
+                                    >
+                                      macOS
+                                    </a>
+                                    {" · "}
+                                    <a
+                                      className="underline"
+                                      href="/downloads/palmart-till-print-bridge-windows.zip"
+                                    >
+                                      Windows
+                                    </a>
+                                    {" · "}
+                                    <a
+                                      className="underline"
+                                      href="/downloads/palmart-till-print-bridge-linux.zip"
+                                    >
+                                      Linux
+                                    </a>
+                                    . Network printers also supported (TCP 9100).
                                   </p>
                                 </div>
                               </Collapsible.Content>
