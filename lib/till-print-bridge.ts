@@ -10,9 +10,28 @@ export const TILL_PRINT_BRIDGE_URL =
     process.env.NEXT_PUBLIC_TILL_PRINT_BRIDGE_URL?.trim()) ||
   "http://127.0.0.1:19500";
 
+/** Machine-local CUPS override when branch settings are empty or differ per till Mac. */
+const LOCAL_CUPS_KEY = "palmart:till-printer-cups:v1";
+
 export type TillBridgeHealth = {
   ok?: boolean;
   cups?: boolean;
+  lpstat?: boolean;
+};
+
+export type TillCupsPrinter = {
+  name: string;
+  uri: string;
+  isDefault: boolean;
+  likelyThermal: boolean;
+};
+
+export type TillCupsPrinterList = {
+  ok: boolean;
+  printers: TillCupsPrinter[];
+  /** Best guess for a receipt printer (thermal hint, else default, else sole queue). */
+  suggested: string | null;
+  defaultName: string | null;
 };
 
 /** True when the till bridge responds on localhost (run `pnpm till-print-bridge`). */
@@ -28,6 +47,50 @@ export async function isTillPrintBridgeUp(): Promise<boolean> {
     return Boolean(data.ok);
   } catch {
     return false;
+  }
+}
+
+/** List CUPS queues on this Mac via the till bridge (`lpstat -v`). */
+export async function fetchTillCupsPrinters(): Promise<TillCupsPrinterList> {
+  const res = await fetch(`${TILL_PRINT_BRIDGE_URL}/printers`, {
+    method: "GET",
+    mode: "cors",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      text.trim() ||
+        `Till print bridge returned HTTP ${res.status} listing printers.`,
+    );
+  }
+  const data = (await res.json()) as TillCupsPrinterList;
+  return {
+    ok: Boolean(data.ok),
+    printers: Array.isArray(data.printers) ? data.printers : [],
+    suggested: typeof data.suggested === "string" ? data.suggested : null,
+    defaultName: typeof data.defaultName === "string" ? data.defaultName : null,
+  };
+}
+
+export function getLocalTillCupsName(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(LOCAL_CUPS_KEY)?.trim();
+    return v || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setLocalTillCupsName(name: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    const t = name?.trim() || "";
+    if (!t) window.localStorage.removeItem(LOCAL_CUPS_KEY);
+    else window.localStorage.setItem(LOCAL_CUPS_KEY, t);
+  } catch {
+    // ignore quota / private mode
   }
 }
 

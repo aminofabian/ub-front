@@ -12,6 +12,7 @@ import {
 } from "@/lib/escpos-cash-tender";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
+  getLocalTillCupsName,
   isTillPrintBridgeUp,
   printEscPosViaTillBridge,
   TILL_BRIDGE_START_HINT,
@@ -38,6 +39,16 @@ function hasCupsTarget(target?: LocalReceiptPrinterTarget | null): boolean {
 async function resolvePrinterTarget(
   printer?: LocalReceiptPrinterTarget | null,
 ): Promise<LocalReceiptPrinterTarget | null> {
+  const localCups = getLocalTillCupsName();
+  // Per-Mac override wins so a new till can use a differently named CUPS queue.
+  if (localCups) {
+    return {
+      cupsName: localCups,
+      host: printer?.host?.trim() || null,
+      port: printer?.port ?? null,
+      branchId: printer?.branchId ?? null,
+    };
+  }
   if (hasCupsTarget(printer)) {
     return {
       cupsName: printer?.cupsName?.trim() || null,
@@ -47,16 +58,22 @@ async function resolvePrinterTarget(
     };
   }
   const branchId = printer?.branchId?.trim();
-  if (!branchId) return printer ?? null;
-  try {
-    const list = await fetchBranches();
-    const branch = list.find((b) => b.id === branchId);
-    const cupsName = branch?.receipt?.printerCupsName?.trim() || null;
-    if (!cupsName) return { ...printer, branchId, cupsName: null };
-    return { ...printer, cupsName, branchId };
-  } catch {
-    return printer ?? null;
+  let cupsName: string | null = null;
+  if (branchId) {
+    try {
+      const list = await fetchBranches();
+      const branch = list.find((b) => b.id === branchId);
+      cupsName = branch?.receipt?.printerCupsName?.trim() || null;
+    } catch {
+      // leave null
+    }
   }
+  return {
+    cupsName,
+    host: printer?.host?.trim() || null,
+    port: printer?.port ?? null,
+    branchId: branchId || printer?.branchId || null,
+  };
 }
 
 async function prepareThermalEscPos(
@@ -129,7 +146,7 @@ export async function printPosReceipt(
 
   if (!cupsName) {
     toast.message(
-      "No receipt printer configured for this branch. Set CUPS name under Branches → Receipt details, then Save.",
+      "No receipt printer configured. Use Detect printers on the till, or set the CUPS name under Branches → Receipt details.",
       { duration: 10_000 },
     );
     return false;
@@ -200,7 +217,7 @@ export async function printWebOrderReceipt(
 
   if (!cupsName) {
     toast.message(
-      "Web order received, but no receipt printer is configured for this branch.",
+      "Web order received, but no receipt printer is configured. Use Detect printers on the till, or set CUPS name under Branches → Receipt details.",
       { duration: 10_000 },
     );
     return false;

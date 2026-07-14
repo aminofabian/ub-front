@@ -23,8 +23,12 @@ import { join } from "node:path";
 const PORT = Number(process.env.TILL_PRINT_BRIDGE_PORT || 19500);
 const HOST = "127.0.0.1";
 const LP_BIN = ["/usr/bin/lp", "/bin/lp"].find((p) => existsSync(p));
+const LPSTAT_BIN = ["/usr/bin/lpstat", "/bin/lpstat"].find((p) => existsSync(p));
 const CUPS_NAME_RE = /^[A-Za-z0-9._-]+$/;
 const MAX_BODY = 256_000;
+/** Names that look like retail/thermal receipt printers (prefer when auto-picking). */
+const THERMAL_HINT_RE =
+  /caysn|xprinter|epson|tm-|tm_|star|bixolon|citizen|pos|receipt|thermal|cn\d|rp\d|tsp|tsp100|tsp143/i;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +54,70 @@ function readRequest(req) {
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
+}
+
+function runCmd(bin, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (c) => {
+      stdout += c.toString();
+    });
+    child.stderr.on("data", (c) => {
+      stderr += c.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve(stdout);
+      else reject(new Error(stderr.trim() || `${bin} exited ${code}`));
+    });
+  });
+}
+
+/**
+ * List CUPS queues from `lpstat -v` / `lpstat -d`.
+ * Example line: `device for Caysn_CN811_UB: usb://Caysn/...`
+ */
+async function listCupsPrinters() {
+  if (!LPSTAT_BIN) {
+    throw new Error("CUPS lpstat not found (expected /usr/bin/lpstat on macOS)");
+  }
+  const [devicesOut, defaultOut] = await Promise.all([
+    runCmd(LPSTAT_BIN, ["-v"]),
+    runCmd(LPSTAT_BIN, ["-d"]).catch(() => ""),
+  ]);
+
+  const defaultMatch = /system default destination:\s*(\S+)/i.exec(defaultOut);
+  const defaultName = defaultMatch?.[1]?.trim() || null;
+
+  const printers = [];
+  for (const line of devicesOut.split("\n")) {
+    const m = /^device for\s+(\S+):\s*(.*)$/i.exec(line.trim());
+    if (!m) continue;
+    const name = m[1];
+    if (!CUPS_NAME_RE.test(name)) continue;
+    const uri = (m[2] || "").trim();
+    printers.push({
+      name,
+      uri,
+      isDefault: Boolean(defaultName && name === defaultName),
+      likelyThermal: THERMAL_HINT_RE.test(name) || THERMAL_HINT_RE.test(uri),
+    });
+  }
+
+  printers.sort((a, b) => {
+    if (a.likelyThermal !== b.likelyThermal) return a.likelyThermal ? -1 : 1;
+    if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const suggested =
+    printers.find((p) => p.likelyThermal)?.name ??
+    printers.find((p) => p.isDefault)?.name ??
+    (printers.length === 1 ? printers[0].name : null);
+
+  return { printers, suggested, defaultName };
 }
 
 function sendCups(name, data) {
@@ -110,10 +178,25 @@ const server = createServer(async (req, res) => {
       {
         ok: true,
         cups: Boolean(LP_BIN),
+        lpstat: Boolean(LPSTAT_BIN),
         port: PORT,
       },
       "application/json",
     );
+    return;
+  }
+
+  if (req.method === "GET" && (url === "/printers" || url === "/printers/")) {
+    try {
+      const listed = await listCupsPrinters();
+      send(res, 200, { ok: true, ...listed }, "application/json");
+    } catch (e) {
+      send(
+        res,
+        502,
+        e instanceof Error ? e.message : String(e),
+      );
+    }
     return;
   }
 

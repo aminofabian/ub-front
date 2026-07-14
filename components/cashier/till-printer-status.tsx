@@ -1,20 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Printer } from "lucide-react";
+import { toast } from "sonner";
 
+import { CupsPrinterPicker } from "@/components/cups-printer-picker";
+import { useDashboard } from "@/components/dashboard-provider";
+import { patchBranch } from "@/lib/api";
+import { EMPTY_BRANCH_RECEIPT } from "@/lib/branch-receipt";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
+  getLocalTillCupsName,
   isTillPrintBridgeUp,
+  setLocalTillCupsName,
   TILL_BRIDGE_START_HINT,
 } from "@/lib/till-print-bridge";
 import { cn } from "@/lib/utils";
 
 type TillPrinterStatusProps = {
   cupsName?: string | null;
+  /** When set, Detect can save the CUPS name onto this branch (if permitted). */
+  branchId?: string | null;
   className?: string;
   /** Slim ink-line treatment for the market-till command strip. */
   compact?: boolean;
+  /** Called after a printer is chosen so the parent can refresh branch data. */
+  onCupsNameChosen?: (cupsName: string) => void;
 };
 
 /**
@@ -22,11 +33,20 @@ type TillPrinterStatusProps = {
  */
 export function TillPrinterStatus({
   cupsName,
+  branchId,
   className,
   compact = false,
+  onCupsNameChosen,
 }: TillPrinterStatusProps) {
-  const name = cupsName?.trim() || null;
+  const { canManageBusinessSettings, refreshBranches } = useDashboard();
+  const branchName = cupsName?.trim() || null;
+  const [localName, setLocalName] = useState<string | null>(null);
   const [bridgeUp, setBridgeUp] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalName(getLocalTillCupsName());
+  }, [branchName]);
 
   useEffect(() => {
     if (IS_DESKTOP) {
@@ -48,33 +68,79 @@ export function TillPrinterStatus({
     };
   }, []);
 
+  const effectiveName = branchName || localName;
+
+  const handleSelect = useCallback(
+    async (name: string) => {
+      const cups = name.trim();
+      if (!cups) return;
+      setLocalTillCupsName(cups);
+      setLocalName(cups);
+      onCupsNameChosen?.(cups);
+
+      const bid = branchId?.trim();
+      if (bid && canManageBusinessSettings) {
+        setSaving(true);
+        try {
+          await patchBranch(bid, {
+            receipt: {
+              ...EMPTY_BRANCH_RECEIPT,
+              printerCupsName: cups,
+            },
+          });
+          await refreshBranches();
+          toast.success(`Saved printer ${cups} for this branch.`);
+        } catch {
+          toast.message(
+            `Using ${cups} on this Mac. Could not save to branch — set it under Branches → Receipt details.`,
+            { duration: 10_000 },
+          );
+        } finally {
+          setSaving(false);
+        }
+      } else {
+        toast.success(`Using ${cups} on this Mac.`);
+      }
+    },
+    [branchId, canManageBusinessSettings, onCupsNameChosen, refreshBranches],
+  );
+
   if (IS_DESKTOP) return null;
 
-  if (!name) {
+  if (!effectiveName) {
     return (
       <div
         role="status"
         className={cn(
           compact
-            ? "inline-flex items-center gap-1.5 text-[11px] text-amber-900 dark:text-amber-100"
-            : "flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.08] px-3 py-2 text-xs text-amber-950 dark:text-amber-50",
+            ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-amber-900 dark:text-amber-100"
+            : "flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.08] px-3 py-2 text-xs text-amber-950 dark:text-amber-50",
           className,
         )}
       >
-        <Printer className={cn("shrink-0", compact ? "size-3" : "mt-0.5 size-3.5")} aria-hidden />
-        {compact ? (
-          <span>
-            <span className="font-semibold">Printer not set</span>
-            <span className="text-muted-foreground"> — Branches → Receipt details</span>
-          </span>
-        ) : (
-          <p>
-            <span className="font-semibold">Receipt printer not configured.</span>{" "}
-            In admin go to <strong>Branches → Receipt details</strong>, set{" "}
-            <strong>Receipt printer CUPS name</strong> (from{" "}
-            <code className="text-[10px]">lpstat -v</code>), then Save.
-          </p>
-        )}
+        <div className="flex items-start gap-1.5">
+          <Printer
+            className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")}
+            aria-hidden
+          />
+          {compact ? (
+            <span>
+              <span className="font-semibold">Printer not set</span>
+              <span className="text-muted-foreground"> — detect on this Mac</span>
+            </span>
+          ) : (
+            <p>
+              <span className="font-semibold">Receipt printer not configured.</span>{" "}
+              Detect CUPS printers on this Mac, or set one under{" "}
+              <strong>Branches → Receipt details</strong>.
+            </p>
+          )}
+        </div>
+        <CupsPrinterPicker
+          compact={compact}
+          disabled={saving}
+          onSelect={(n) => void handleSelect(n)}
+        />
       </div>
     );
   }
@@ -87,22 +153,33 @@ export function TillPrinterStatus({
         role="status"
         className={cn(
           compact
-            ? "inline-flex items-center gap-1.5 text-[11px] text-[color-mix(in_srgb,var(--pos-primary)_85%,#1c1915)]"
-            : "flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-xs text-emerald-950 dark:text-emerald-50",
+            ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-[color-mix(in_srgb,var(--pos-primary)_85%,#1c1915)]"
+            : "flex flex-col gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-1.5 text-xs text-emerald-950 dark:text-emerald-50",
           className,
         )}
       >
-        <CheckCircle2
-          className={cn(
-            "shrink-0",
-            compact ? "size-3 text-[var(--pos-primary)]" : "size-3.5 text-emerald-600",
-          )}
-          aria-hidden
+        <div className="inline-flex items-center gap-1.5">
+          <CheckCircle2
+            className={cn(
+              "shrink-0",
+              compact ? "size-3 text-[var(--pos-primary)]" : "size-3.5 text-emerald-600",
+            )}
+            aria-hidden
+          />
+          <span>
+            {compact ? "Printer ready" : "Receipt printer ready"} —{" "}
+            <code className="text-[10px]">{effectiveName}</code>
+            {localName ? (
+              <span className="text-muted-foreground"> (this Mac)</span>
+            ) : null}
+          </span>
+        </div>
+        <CupsPrinterPicker
+          compact={compact}
+          value={effectiveName}
+          disabled={saving}
+          onSelect={(n) => void handleSelect(n)}
         />
-        <span>
-          {compact ? "Printer ready" : "Receipt printer ready"} —{" "}
-          <code className="text-[10px]">{name}</code>
-        </span>
       </div>
     );
   }
@@ -117,7 +194,10 @@ export function TillPrinterStatus({
         className,
       )}
     >
-      <AlertTriangle className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")} aria-hidden />
+      <AlertTriangle
+        className={cn("shrink-0", compact ? "mt-0.5 size-3" : "mt-0.5 size-3.5")}
+        aria-hidden
+      />
       {compact ? (
         <span>
           <span className="font-semibold">Print bridge down</span>

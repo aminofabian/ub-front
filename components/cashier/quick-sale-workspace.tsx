@@ -2630,6 +2630,7 @@ export function QuickSaleWorkspace({
                 branches.find((b) => b.id === branchId.trim())?.receipt
                   ?.printerCupsName ?? null
               }
+              branchId={branchId.trim() || null}
             />
           ) : null
         }

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
 
+import { CupsPrinterPicker } from "@/components/cups-printer-picker";
 import { useDashboard } from "@/components/dashboard-provider";
 import { FormDrawer, FormDrawerFields } from "@/components/form-drawer";
 import {
@@ -709,24 +710,43 @@ export default function BranchesPage() {
                                       }
                                       aria-label={`M-Pesa till for ${branch.name}`}
                                     />
-                                    <input
-                                      className={cn(dashboardInputClass(), "text-sm sm:col-span-2")}
-                                      placeholder="Receipt printer CUPS name (e.g. Caysn_CN811_UB)"
-                                      value={row.receipt.printerCupsName}
-                                      onChange={(e) =>
-                                        setEdits((prev) => ({
-                                          ...prev,
-                                          [branch.id]: {
-                                            ...row,
-                                            receipt: {
-                                              ...row.receipt,
-                                              printerCupsName: e.target.value,
+                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                      <input
+                                        className={cn(dashboardInputClass(), "text-sm")}
+                                        placeholder="Receipt printer CUPS name (e.g. Caysn_CN811_UB)"
+                                        value={row.receipt.printerCupsName}
+                                        onChange={(e) =>
+                                          setEdits((prev) => ({
+                                            ...prev,
+                                            [branch.id]: {
+                                              ...row,
+                                              receipt: {
+                                                ...row.receipt,
+                                                printerCupsName: e.target.value,
+                                              },
                                             },
-                                          },
-                                        }))
-                                      }
-                                      aria-label={`Receipt printer CUPS name for ${branch.name}`}
-                                    />
+                                          }))
+                                        }
+                                        aria-label={`Receipt printer CUPS name for ${branch.name}`}
+                                      />
+                                      {canManage ? (
+                                        <CupsPrinterPicker
+                                          value={row.receipt.printerCupsName}
+                                          onSelect={(cupsName) =>
+                                            setEdits((prev) => ({
+                                              ...prev,
+                                              [branch.id]: {
+                                                ...row,
+                                                receipt: {
+                                                  ...row.receipt,
+                                                  printerCupsName: cupsName,
+                                                },
+                                              },
+                                            }))
+                                          }
+                                        />
+                                      ) : null}
+                                    </div>
                                     <textarea
                                       className={cn(dashboardTextareaClass(), "text-sm sm:col-span-2")}
                                       placeholder="Footer message on receipt (optional)"
@@ -758,11 +778,13 @@ export default function BranchesPage() {
                                     <code className="text-xs">
                                       scripts/start-till-print-bridge.command
                                     </code>
-                                    . CUPS name from{" "}
-                                    <code className="text-xs">lpstat -v</code> (text before the
-                                    colon, e.g. Caysn_CN811_UB). Use{" "}
-                                    <strong className="font-medium text-foreground">Save</strong>{" "}
-                                    above.
+                                    . Use{" "}
+                                    <strong className="font-medium text-foreground">
+                                      Detect printers
+                                    </strong>{" "}
+                                    above (or paste a CUPS name from{" "}
+                                    <code className="text-xs">lpstat -v</code>), then{" "}
+                                    <strong className="font-medium text-foreground">Save</strong>.
                                   </p>
                                 </div>
                               </Collapsible.Content>
