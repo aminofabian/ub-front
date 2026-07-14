@@ -384,6 +384,10 @@ export type ItemSummaryRecord = {
   active?: boolean;
   /** When true, row only groups option SKUs (full-tree catalog). Omitted when listing with catalogScope SKUS_ONLY. */
   groupLabelOnly?: boolean;
+  /** True when sold by weight (kg/g/lb); fractional cart qty is allowed. */
+  isWeighed?: boolean;
+  /** Unit of measure from catalog list (each, kg, …). */
+  unitType?: string;
   /** When true, item may appear in the public storefront catalog (Phase 15). */
   webPublished?: boolean;
   /**

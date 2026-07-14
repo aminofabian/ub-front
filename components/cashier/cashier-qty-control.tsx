@@ -121,6 +121,11 @@ function PortionPie({
 type CashierQtyControlProps = {
   quantity: string;
   itemLabel: string;
+  /**
+   * When false (default), only whole-number qty — matches sale API rules for
+   * non-weighed items. Portion / fraction picker is for weighed lines only.
+   */
+  allowFractions?: boolean;
   /** Compact for dense cart rows. */
   size?: "sm" | "md";
   className?: string;
@@ -131,6 +136,7 @@ type CashierQtyControlProps = {
 export function CashierQtyControl({
   quantity,
   itemLabel,
+  allowFractions = false,
   size = "md",
   className,
   onChange,
@@ -210,12 +216,15 @@ export function CashierQtyControl({
   }, [open]);
 
   const applyPortion = (value: number) => {
+    if (!allowFractions) return;
     onChange(formatCartQtyValue(value));
     setOpen(false);
   };
 
+  const wholeQty = Math.max(1, Math.floor(qNum + 1e-9));
+
   const panel =
-    open && coords && typeof document !== "undefined"
+    allowFractions && open && coords && typeof document !== "undefined"
       ? createPortal(
           <div
             ref={panelRef}
@@ -359,8 +368,20 @@ export function CashierQtyControl({
             "flex items-center justify-center text-muted-foreground hover:text-foreground",
             btn,
           )}
-          aria-label={qNum <= 1 ? `Remove ${itemLabel}` : "Decrease quantity"}
+          aria-label={
+            (allowFractions ? qNum : wholeQty) <= 1
+              ? `Remove ${itemLabel}`
+              : "Decrease quantity"
+          }
           onClick={() => {
+            if (!allowFractions) {
+              if (wholeQty <= 1) {
+                onRemove();
+                return;
+              }
+              onChange(String(wholeQty - 1));
+              return;
+            }
             if (qNum <= 1) {
               onRemove();
               return;
@@ -370,22 +391,33 @@ export function CashierQtyControl({
         >
           <Minus className="size-3.5" />
         </button>
-        <button
-          type="button"
-          className={cn(
-            labelMin,
-            "px-0.5 text-center text-xs font-bold tabular-nums leading-none",
-            "text-foreground underline-offset-2 hover:underline",
-            open && "text-[var(--pos-primary)]",
-          )}
-          aria-expanded={open}
-          aria-controls={panelId}
-          aria-haspopup="dialog"
-          title="Split into a portion"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {formatCartQtyLabel(quantity)}
-        </button>
+        {allowFractions ? (
+          <button
+            type="button"
+            className={cn(
+              labelMin,
+              "px-0.5 text-center text-xs font-bold tabular-nums leading-none",
+              "text-foreground underline-offset-2 hover:underline",
+              open && "text-[var(--pos-primary)]",
+            )}
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-haspopup="dialog"
+            title="Split into a portion"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {formatCartQtyLabel(quantity)}
+          </button>
+        ) : (
+          <span
+            className={cn(
+              labelMin,
+              "px-0.5 text-center text-xs font-bold tabular-nums leading-none text-foreground",
+            )}
+          >
+            {String(wholeQty)}
+          </span>
+        )}
         <button
           type="button"
           className={cn(
@@ -393,25 +425,33 @@ export function CashierQtyControl({
             btn,
           )}
           aria-label="Increase quantity"
-          onClick={() => onChange(formatCartQtyValue(qNum + 1))}
+          onClick={() =>
+            onChange(
+              allowFractions
+                ? formatCartQtyValue(qNum + 1)
+                : String(wholeQty + 1),
+            )
+          }
         >
           <Plus className="size-3.5" />
         </button>
-        <button
-          type="button"
-          className={cn(
-            "flex items-center justify-center border-l border-inherit text-muted-foreground hover:text-[var(--pos-primary)]",
-            btn,
-            open && "text-[var(--pos-primary)]",
-          )}
-          aria-label={`Portion ${itemLabel}`}
-          aria-expanded={open}
-          aria-controls={panelId}
-          title="Fraction / portion"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <Scissors className="size-3.5" strokeWidth={2.25} />
-        </button>
+        {allowFractions ? (
+          <button
+            type="button"
+            className={cn(
+              "flex items-center justify-center border-l border-inherit text-muted-foreground hover:text-[var(--pos-primary)]",
+              btn,
+              open && "text-[var(--pos-primary)]",
+            )}
+            aria-label={`Portion ${itemLabel}`}
+            aria-expanded={open}
+            aria-controls={panelId}
+            title="Fraction / portion"
+            onClick={() => setOpen((v) => !v)}
+          >
+            <Scissors className="size-3.5" strokeWidth={2.25} />
+          </button>
+        ) : null}
       </div>
       {panel}
     </div>

@@ -957,6 +957,7 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                                 quantity={line.quantity}
                                 itemLabel={full}
                                 size="sm"
+                                allowFractions={line.item.isWeighed === true}
                                 onChange={(next) =>
                                   updateLine(line.key, "quantity", next)
                                 }

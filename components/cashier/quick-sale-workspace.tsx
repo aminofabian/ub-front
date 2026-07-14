@@ -837,19 +837,28 @@ export function QuickSaleWorkspace({
         setNotice("");
         setError("");
 
-        const invoiceLines = invoice.lines.map((l) => ({
-          key: crypto.randomUUID(),
-          itemId: l.itemId,
-          label: l.itemName,
-          quantity: String(l.quantity),
-          unitPrice: String(l.unitPrice),
-          item: {
-            id: l.itemId,
-            name: l.itemName,
-            sku: "",
-            thumbnailUrl: null,
-          } as ItemSummaryRecord,
-        }));
+        const invoiceLines = invoice.lines.map((l) => {
+          const rawQty = Number(l.quantity);
+          const qty =
+            Number.isFinite(rawQty) && rawQty > 0 ? rawQty : 1;
+          // Grocery invoices are typically each-sold; treat as non-weighed so
+          // the till keeps whole-number qty (sale API rejects fractions).
+          const whole = Math.max(1, Math.round(qty));
+          return {
+            key: crypto.randomUUID(),
+            itemId: l.itemId,
+            label: l.itemName,
+            quantity: String(whole),
+            unitPrice: String(l.unitPrice),
+            item: {
+              id: l.itemId,
+              name: l.itemName,
+              sku: "",
+              thumbnailUrl: null,
+              isWeighed: false,
+            } as ItemSummaryRecord,
+          };
+        });
 
         setCarts((prev) => {
           if (prev.length >= MAX_CARTS) {
@@ -1437,7 +1446,9 @@ export function QuickSaleWorkspace({
         return false;
       }
       const addQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
-      const safeQty = capCartQuantity(item, addQty);
+      const weighed = item.isWeighed === true;
+      const normalizedAdd = weighed ? addQty : Math.max(1, Math.round(addQty));
+      const safeQty = capCartQuantity(item, normalizedAdd);
       if (safeQty <= 0) {
         toast.error("This item is out of stock at this branch.");
         return false;
@@ -1451,11 +1462,14 @@ export function QuickSaleWorkspace({
       const priceKey = (unitPrice ?? "").trim();
       const label =
         `${cashierItemPrimaryLabel(item)}${posCartLineSuffix(item)}`.trim();
+      const qtyStr = weighed
+        ? formatCartQtyValue(safeQty)
+        : String(Math.max(1, Math.round(safeQty)));
       const newLine = {
         key: crypto.randomUUID(),
         itemId: item.id,
         label,
-        quantity: String(safeQty),
+        quantity: qtyStr,
         unitPrice: priceKey,
         item,
       };
@@ -1485,19 +1499,23 @@ export function QuickSaleWorkspace({
             const existing = cart.lines[existingIdx]!;
             const currentQty = Number(existing.quantity);
             const base = Number.isFinite(currentQty) && currentQty > 0 ? currentQty : 0;
-            const capped = capCartQuantity(item, base + addQty);
+            const nextRaw = base + normalizedAdd;
+            const capped = capCartQuantity(item, nextRaw);
             if (capped <= base) {
               blockedByStock = true;
               return cart;
             }
             didAdd = true;
+            const mergedQty = weighed
+              ? formatCartQtyValue(capped)
+              : String(Math.max(1, Math.round(capped)));
             return {
               ...cart,
               lines: cart.lines.map((l, i) =>
                 i === existingIdx
                   ? {
                       ...l,
-                      quantity: String(capped),
+                      quantity: mergedQty,
                       unitPrice: priceKey || l.unitPrice,
                       label,
                       item,
@@ -1580,8 +1598,15 @@ export function QuickSaleWorkspace({
           if (!Number.isFinite(n) || n < 0) {
             return { ...l, quantity: value };
           }
-          const capped = capCartQuantity(l.item, n);
-          return { ...l, quantity: formatCartQtyValue(capped) };
+          const weighed = l.item.isWeighed === true;
+          const normalized = weighed ? n : Math.max(1, Math.round(n));
+          const capped = capCartQuantity(l.item, normalized);
+          return {
+            ...l,
+            quantity: weighed
+              ? formatCartQtyValue(capped)
+              : String(Math.max(1, Math.round(capped))),
+          };
         }),
       }));
     },
@@ -1745,7 +1770,8 @@ export function QuickSaleWorkspace({
       quantity: number;
       unitPrice: number;
     }[] = [];
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!;
       const q = parseQty(line.quantity);
       const p = parseMoney(line.unitPrice);
       if (p == null || q == null) {
@@ -1758,7 +1784,19 @@ export function QuickSaleWorkspace({
         setNotice("");
         return;
       }
-      payloadLines.push({ itemId: line.itemId, quantity: q, unitPrice: p });
+      const weighed = line.item?.isWeighed === true;
+      if (!weighed && Math.abs(q - Math.round(q)) > 1e-9) {
+        setError(
+          `Line ${i + 1} (${line.label}): non-weighed items must have a whole-number quantity.`,
+        );
+        setNotice("");
+        return;
+      }
+      payloadLines.push({
+        itemId: line.itemId,
+        quantity: weighed ? q : Math.round(q),
+        unitPrice: p,
+      });
     }
     if (grandTotal <= 0) {
       setError("Grand total must be positive.");
