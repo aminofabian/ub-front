@@ -91,16 +91,32 @@ function Convert-PrintersToJson($rows) {
 }
 
 function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
-  $helper = Join-Path $PSScriptRoot "windows-raw-print.ps1"
-  if (-not (Test-Path -LiteralPath $helper)) {
-    throw "Missing windows-raw-print.ps1 next to the bridge. Re-download the Windows 7 zip and run the installer again."
+  # $PSScriptRoot is often $null on PowerShell 2.0 (Windows 7) — never Join-Path it.
+  $base = $ScriptDir
+  if (-not $base) {
+    try { $base = Split-Path -Parent $MyInvocation.MyCommand.Path } catch { }
   }
-  $tmp = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), ("palmart-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
+  if (-not $base) {
+    $base = [string](Get-Location).Path
+  }
+  if (-not $base) {
+    throw "Cannot resolve bridge folder to find windows-raw-print.ps1."
+  }
+  $helper = Join-Path $base "windows-raw-print.ps1"
+  if (-not (Test-Path -LiteralPath $helper)) {
+    throw ("Missing windows-raw-print.ps1 next to the bridge (" + $helper + "). Re-download the Windows 7 zip and run the installer again.")
+  }
+  if ([string]::IsNullOrEmpty($PrinterName)) {
+    throw "PrinterName is empty."
+  }
+  $tempRoot = [System.IO.Path]::GetTempPath()
+  if (-not $tempRoot) { $tempRoot = $base }
+  $tmp = [System.IO.Path]::Combine($tempRoot, ("palmart-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
   [System.IO.File]::WriteAllBytes($tmp, $Bytes)
   try {
     & $helper -PrinterName $PrinterName -FilePath $tmp
   } finally {
-    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    if ($tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
   }
 }
 

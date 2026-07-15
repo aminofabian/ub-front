@@ -354,12 +354,22 @@ async function materializeWindowsRawPrintPs1() {
  * Send RAW bytes to a Windows printer (port/share first; spooler skipped for Epson).
  */
 async function sendWindowsRaw(name, data) {
+  const printer = String(name || "").trim();
+  if (!printer) {
+    throw new Error("Printer name is empty.");
+  }
   const file = join(
     tmpdir(),
     `palmart-escpos-${process.pid}-${Date.now()}.bin`,
   );
   await writeFile(file, data);
   const helper = await materializeWindowsRawPrintPs1();
+  if (!helper || !existsSync(helper)) {
+    throw new Error("Failed to prepare windows-raw-print.ps1.");
+  }
+  if (!existsSync(file)) {
+    throw new Error("Failed to write temp print file.");
+  }
 
   try {
     await runCmd("powershell.exe", [
@@ -370,14 +380,14 @@ async function sendWindowsRaw(name, data) {
       "-File",
       helper,
       "-PrinterName",
-      name,
+      printer,
       "-FilePath",
       file,
     ]);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(
-      msg.trim() || `Windows raw print failed for "${name}"`,
+      msg.trim() || `Windows raw print failed for "${printer}"`,
     );
   } finally {
     unlink(file).catch(() => undefined);

@@ -8,6 +8,12 @@ param(
 $ErrorActionPreference = "Stop"
 $script:PrintEngine = "v5-bypass-epson"
 
+if ([string]::IsNullOrEmpty($PrinterName)) {
+  throw "PrinterName is empty."
+}
+if ([string]::IsNullOrEmpty($FilePath)) {
+  throw "FilePath is empty (cannot bind Path). Bridge failed to create the temp print file."
+}
 if (-not (Test-Path -LiteralPath $FilePath)) {
   throw ("Print file not found: " + $FilePath)
 }
