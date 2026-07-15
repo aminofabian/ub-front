@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Boxes, Package, PackagePlus } from "lucide-react";
 
@@ -46,6 +53,10 @@ import {
 } from "./catalog-list-styles";
 
 export type CatalogDensity = "comfortable" | "dense";
+
+export type VirtualizedCatalogBodyHandle = {
+  scrollToIndex: (index: number) => void;
+};
 
 export type VirtualizedCatalogBodyProps = {
   rows: ItemSummaryRecord[];
@@ -130,24 +141,30 @@ function compactStockDisplay(row: ItemSummaryRecord): {
   return { label: "—", className: "text-muted-foreground/35", title: full };
 }
 
-export function VirtualizedCatalogBody({
-  rows,
-  categoryById,
-  variantIdsByParentId,
-  selectedId,
-  selectedIds,
-  density,
-  onRowClick,
-  onToggleRowSelect,
-  isRowActive,
-  loadingMore,
-  hasMore,
-  onLoadMore,
-  initialLoading,
-  catalogEmpty = false,
-  onAddFromCatalog,
-  canAddFromCatalog = false,
-}: VirtualizedCatalogBodyProps) {
+export const VirtualizedCatalogBody = forwardRef<
+  VirtualizedCatalogBodyHandle,
+  VirtualizedCatalogBodyProps
+>(function VirtualizedCatalogBody(
+  {
+    rows,
+    categoryById,
+    variantIdsByParentId,
+    selectedId,
+    selectedIds,
+    density,
+    onRowClick,
+    onToggleRowSelect,
+    isRowActive,
+    loadingMore,
+    hasMore,
+    onLoadMore,
+    initialLoading,
+    catalogEmpty = false,
+    onAddFromCatalog,
+    canAddFromCatalog = false,
+  },
+  ref,
+) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowMetaById = useMemo(() => buildCatalogRowMeta(rows), [rows]);
   const duplicateRowIds = useMemo(() => findDuplicateCatalogRowIds(rows), [rows]);
@@ -175,6 +192,17 @@ export function VirtualizedCatalogBody({
     },
     overscan: 12,
   });
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToIndex: (index: number) => {
+        if (index < 0 || index >= rows.length) return;
+        virtualizer.scrollToIndex(index, { align: "start", behavior: "smooth" });
+      },
+    }),
+    [rows.length, virtualizer],
+  );
 
   useEffect(() => {
     const el = parentRef.current;
@@ -581,4 +609,4 @@ export function VirtualizedCatalogBody({
       </div>
     </div>
   );
-}
+});

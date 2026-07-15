@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,12 @@ import {
   catalogListToolbarFilterCheckboxClass,
   type CatalogListDisplayType,
 } from "./catalog-list-styles";
-import { VirtualizedCatalogBody } from "./VirtualizedCatalogBody";
+import { CatalogLetterJumpRail } from "./CatalogLetterJumpRail";
+import type { CatalogLetterKey } from "./catalog-letter-index";
+import {
+  VirtualizedCatalogBody,
+  type VirtualizedCatalogBodyHandle,
+} from "./VirtualizedCatalogBody";
 
 type Props = {
   catalog: CatalogListApi;
@@ -51,6 +56,11 @@ export function CatalogListColumn({
 }: Props) {
   const selectionCount = catalog.rowSelection.size;
   const hasSelection = selectionCount > 0;
+  const listBodyRef = useRef<VirtualizedCatalogBodyHandle>(null);
+  const pendingScrollIndexRef = useRef<number | null>(null);
+  const [activeLetter, setActiveLetter] = useState<CatalogLetterKey | null>(
+    null,
+  );
 
   const filtersActive = useMemo(() => {
     return (
@@ -74,6 +84,34 @@ export function CatalogListColumn({
     catalog.listRows.length < catalog.listTotalElements
       ? `${catalog.listRows.length} loaded`
       : null;
+
+  const scrollToPending = useCallback(() => {
+    const index = pendingScrollIndexRef.current;
+    if (index == null) return;
+    if (index >= catalog.displayRows.length) return;
+    listBodyRef.current?.scrollToIndex(index);
+    pendingScrollIndexRef.current = null;
+  }, [catalog.displayRows.length]);
+
+  useEffect(() => {
+    scrollToPending();
+  }, [scrollToPending, catalog.displayRows.length]);
+
+  const jumpToLetter = catalog.jumpToLetter;
+
+  const handleLetterJump = useCallback(
+    async (letter: CatalogLetterKey) => {
+      setActiveLetter(letter);
+      const index = await jumpToLetter(letter);
+      if (index < 0) {
+        setActiveLetter(null);
+        return;
+      }
+      pendingScrollIndexRef.current = index;
+      scrollToPending();
+    },
+    [jumpToLetter, scrollToPending],
+  );
 
   return (
     <div className="flex min-h-[12rem] min-w-0 max-w-full flex-1 flex-col gap-0 overflow-x-hidden lg:min-h-0 lg:overflow-hidden">
@@ -175,8 +213,9 @@ export function CatalogListColumn({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden pr-4">
         <VirtualizedCatalogBody
+          ref={listBodyRef}
           rows={catalog.displayRows}
           categoryById={catalog.categoryById}
           variantIdsByParentId={catalog.variantIdsByParent}
@@ -186,7 +225,7 @@ export function CatalogListColumn({
           onRowClick={onRowClick}
           onToggleRowSelect={catalog.onToggleRowSelect}
           isRowActive={isRowActive}
-          loadingMore={catalog.listLoadingMore}
+          loadingMore={catalog.listLoadingMore || catalog.letterJumpBusy}
           hasMore={!catalog.listLast}
           onLoadMore={catalog.loadMoreCatalog}
           initialLoading={catalog.listLoadingInitial}
@@ -198,6 +237,15 @@ export function CatalogListColumn({
           onAddFromCatalog={onAddFromCatalog}
           canAddFromCatalog={canAddFromCatalog}
         />
+        {catalog.displayRows.length > 0 ? (
+          <CatalogLetterJumpRail
+            rows={catalog.displayRows}
+            listComplete={catalog.listLast && !catalog.listLoadingInitial}
+            busy={catalog.letterJumpBusy}
+            activeLetter={activeLetter}
+            onJump={(letter) => void handleLetterJump(letter)}
+          />
+        ) : null}
       </div>
     </div>
   );

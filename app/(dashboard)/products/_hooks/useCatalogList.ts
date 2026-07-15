@@ -21,6 +21,10 @@ import {
   sortCatalogRowsParentFirst,
   type CatalogListDisplayType,
 } from "../_components/catalog-list-styles";
+import {
+  findCatalogLetterIndex,
+  type CatalogLetterKey,
+} from "../_components/catalog-letter-index";
 
 const DISPLAY_TYPE_TO_API: Record<CatalogListDisplayType, CatalogRowType> = {
   parent: "PARENT",
@@ -84,6 +88,13 @@ export function useCatalogList(
     zeroStock: 0,
     lowStock: 0,
   });
+  const [letterJumpBusy, setLetterJumpBusy] = useState(false);
+
+  const listRowsRef = useRef(listRows);
+  listRowsRef.current = listRows;
+  const listLastRef = useRef(listLast);
+  listLastRef.current = listLast;
+  const letterJumpInFlightRef = useRef(false);
 
   const variantIdsByParent = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -98,6 +109,8 @@ export function useCatalogList(
     () => sortCatalogRowsParentFirst(listRows),
     [listRows],
   );
+  const catalogRowsRef = useRef(catalogRows);
+  catalogRowsRef.current = catalogRows;
 
   const rowTypeFilterActive =
     rowTypeFilter.size > 0 && rowTypeFilter.size < CATALOG_LIST_DISPLAY_TYPES.length;
@@ -278,6 +291,60 @@ export function useCatalogList(
     }
   }, [listLast, listLoadingMore, listLoadingInitial, debouncedSearch, listFetchOpts, rowTypeFilter]);
 
+  /**
+   * Ensure rows for `letter` are loaded (paging ahead if needed), then return
+   * the display-list index to scroll to. Returns -1 when the letter has no rows.
+   */
+  const jumpToLetter = useCallback(
+    async (letter: CatalogLetterKey): Promise<number> => {
+      const locate = () =>
+        findCatalogLetterIndex(catalogRowsRef.current, letter);
+
+      let index = locate();
+      if (index >= 0) return index;
+      if (letterJumpInFlightRef.current) return -1;
+
+      const rowTypes = catalogRowTypesForApi(rowTypeFilter);
+      if (rowTypes === null) return -1;
+
+      letterJumpInFlightRef.current = true;
+      setLetterJumpBusy(true);
+      try {
+        // Keep the same page size as normal paging so Spring offsets stay aligned.
+        while (index < 0 && !listLastRef.current && nextPageRef.current > 0) {
+          const pagen = nextPageRef.current;
+          const page = await fetchItemsPage(debouncedSearch || undefined, {
+            ...listFetchOpts,
+            catalogRowTypes: rowTypes,
+            page: pagen,
+            size: 80,
+          });
+          const merged = [...listRowsRef.current, ...page.content];
+          listRowsRef.current = merged;
+          setListRows(merged);
+          setListLast(page.last);
+          listLastRef.current = page.last;
+          nextPageRef.current = page.last ? 0 : pagen + 1;
+          // Keep catalogRowsRef in sync before the next React render.
+          catalogRowsRef.current = sortCatalogRowsParentFirst(merged);
+          index = locate();
+        }
+        return index;
+      } catch (error) {
+        if (!(error instanceof ApiRequestError)) {
+          setMessage(
+            error instanceof Error ? error.message : "Failed to jump to letter.",
+          );
+        }
+        return -1;
+      } finally {
+        letterJumpInFlightRef.current = false;
+        setLetterJumpBusy(false);
+      }
+    },
+    [debouncedSearch, listFetchOpts, rowTypeFilter],
+  );
+
   useEffect(() => {
     const fromRows = buildVariantIdsByParentId(listRows);
     setVariantIdsByParentId((prev) => {
@@ -408,6 +475,7 @@ export function useCatalogList(
     toggleRowTypeFilter,
     setRowTypeFilter,
     listTotalElements, listLast, listLoadingInitial, listLoadingMore,
+    letterJumpBusy,
     search, setSearch, debouncedSearch, setDebouncedSearch,
     filterCategoryId, setFilterCategoryId,
     includeCategoryDescendants, setIncludeCategoryDescendants,
@@ -421,7 +489,7 @@ export function useCatalogList(
     rowSelection, setRowSelection, onToggleRowSelect, variantIdsByParent,
     listDensity, setListDensity,
     message, setMessage,
-    loadCategoriesAndTypes, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, resetFilters,
+    loadCategoriesAndTypes, refreshFullCatalog, syncListRowFromDetail, loadMoreCatalog, jumpToLetter, resetFilters,
   };
 }
 
