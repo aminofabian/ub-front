@@ -65,6 +65,7 @@ import {
   detailSectionClass,
   detailSectionHeadClass,
   detailSectionLabelClass,
+  detailSellingStripClass,
   detailShellClass,
   detailStatCellClass,
   detailFieldLabelClass,
@@ -756,146 +757,53 @@ export function ProductDetailPanel(props: Props) {
         ) : null}
       </div>
 
-      {/* Package workflow — primary CTA or active package context */}
+      {/* Active package SKU — compact context (not a marketing card) */}
       {sharedStock ? (
-        <div className={cn(detailPackageCardClass, "border-violet-500/25 ring-violet-500/15")}>
-          <div className="flex gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center bg-violet-500/15 text-violet-600 dark:text-violet-300">
-              <Boxes className="size-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold tracking-tight">
-                Selling as package
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                {unitsPerPackage != null ? (
-                  <>
-                    <span className="font-semibold tabular-nums text-foreground">
-                      {unitsPerPackage}
-                    </span>{" "}
-                    base units per sale from{" "}
-                    <span className="font-medium text-foreground">
-                      {variantParentDisplayName ?? "parent stock"}
-                    </span>
-                    .
-                  </>
-                ) : (
-                  "Set units per package in full edit."
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <div
+          className={cn(
+            detailPackageCardClass,
+            "flex flex-wrap items-center gap-2 border-violet-500/25 p-2 ring-violet-500/15",
+          )}
+        >
+          <Boxes
+            className="size-4 shrink-0 text-violet-600 dark:text-violet-300"
+            aria-hidden
+          />
+          <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
+            <span className="font-semibold text-foreground">Package SKU</span>
+            {unitsPerPackage != null ? (
+              <>
+                {" "}
+                ·{" "}
+                <span className="tabular-nums font-semibold text-foreground">
+                  {unitsPerPackage}
+                </span>{" "}
+                units from {variantParentDisplayName ?? "parent"}
+              </>
+            ) : null}
+          </p>
+          <div className="flex shrink-0 gap-1.5">
             <Button
               type="button"
               variant="outline"
-              className="h-9 flex-1 rounded-lg text-xs"
+              size="sm"
+              className="h-7 rounded-md px-2 text-[10px]"
               onClick={() => setActiveDrawer("edit-product")}
             >
-              Edit package
+              Edit
             </Button>
             {onOpenBaseStock ? (
               <Button
                 type="button"
-                className="h-9 flex-1 rounded-lg text-xs"
+                size="sm"
+                className="h-7 gap-1 rounded-md px-2 text-[10px]"
                 onClick={onOpenBaseStock}
               >
-                <PackagePlus className="size-3.5" aria-hidden />
+                <PackagePlus className="size-3" aria-hidden />
                 Base stock
               </Button>
             ) : null}
           </div>
-        </div>
-      ) : canAddPackageSales ? (
-        <div className={detailPackageCardClass}>
-          <div className="flex gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center bg-primary/15 text-primary">
-              <Boxes className="size-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold tracking-tight">
-                Packages &amp; bundles
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Sell trays, packs, or custom sizes from this product without
-                duplicating stock.
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            className="mt-3 h-10 w-full gap-2 rounded-xl text-sm font-medium shadow-sm"
-            onClick={onOpenPackageSales}
-          >
-            <PackagePlus className="size-4" aria-hidden />
-            Add package size
-          </Button>
-          {packageVariants.length > 0 ? (
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              {packageVariants.length} package size
-              {packageVariants.length === 1 ? "" : "s"} already configured
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* Sell by weight — till fractional qty / price per kg */}
-      {canCatalogWrite && panelKind !== "group" && onToggleWeighed ? (
-        <div
-          className={cn(
-            detailPackageCardClass,
-            detail.isWeighed === true &&
-              "border-emerald-500/25 ring-emerald-500/15",
-          )}
-        >
-          <div className="flex gap-3">
-            <div
-              className={cn(
-                "flex size-11 shrink-0 items-center justify-center",
-                detail.isWeighed === true
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                  : "bg-muted text-muted-foreground",
-              )}
-            >
-              <Scale className="size-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold tracking-tight">
-                {detail.isWeighed === true
-                  ? "Selling by weight"
-                  : "Sell by weight"}
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                {detail.isWeighed === true ? (
-                  <>
-                    Price is per{" "}
-                    <span className="font-medium text-foreground">
-                      {(detail.unitType ?? "kg").trim() || "kg"}
-                    </span>
-                    . Cashiers can enter fractional qty (e.g. 0.347).
-                  </>
-                ) : (
-                  "For loose / scale items. Turns on fractional qty at the till and prices per kg."
-                )}
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant={detail.isWeighed === true ? "outline" : "default"}
-            className="mt-3 h-10 w-full gap-2 rounded-xl text-sm font-medium shadow-sm"
-            disabled={weighedBusy}
-            onClick={onToggleWeighed}
-          >
-            {weighedBusy ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Scale className="size-4" aria-hidden />
-            )}
-            {detail.isWeighed === true
-              ? "Turn off sell by weight"
-              : "Sell by weight"}
-          </Button>
         </div>
       ) : null}
 
@@ -1021,19 +929,20 @@ export function ProductDetailPanel(props: Props) {
         </div>
         {quickEdit === "stock" && !sharedStock && canInventoryWrite ? (
           <div
-            className="border-t border-border/40 bg-muted/20 px-2.5 py-2.5"
+            className="border-t border-border/40 bg-muted/15 px-2.5 py-2"
             onKeyDown={onInlineEnter(() => void saveQuickStock())}
           >
-            <p className={cn(productFormLabelClass, "mb-2")}>Set on-hand stock</p>
-            <div className="space-y-2">
-              <label className={productFormFieldClass}>
-                <span className={productFormLabelClass}>Branch</span>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[7.5rem] flex-1">
+                <span className={cn(productFormLabelClass, "mb-0.5 block")}>
+                  Branch
+                </span>
                 <select
-                  className={productFormSelectClass}
+                  className={cn(productFormSelectClass, "h-8")}
                   value={quickStockBranchId}
                   onChange={(e) => setQuickStockBranchId(e.target.value)}
                 >
-                  <option value="">— Select branch —</option>
+                  <option value="">— Select —</option>
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
@@ -1041,48 +950,20 @@ export function ProductDetailPanel(props: Props) {
                   ))}
                 </select>
               </label>
-              <label className={productFormFieldClass}>
-                <span className={productFormLabelClass}>On hand</span>
+              <label className="w-[5.5rem] shrink-0">
+                <span className={cn(productFormLabelClass, "mb-0.5 block")}>
+                  On hand
+                </span>
                 <input
                   autoFocus
-                  className={productFormInputClass}
+                  className={cn(productFormInputClass, "h-8")}
                   inputMode="decimal"
                   value={quickStock}
                   onChange={(e) => setQuickStock(e.target.value)}
-                  placeholder="e.g. 12"
+                  placeholder="0"
                   aria-label="On-hand quantity"
                 />
               </label>
-              {quickStockBaselineLoading ? (
-                <p className="text-[10px] text-muted-foreground">
-                  Loading current stock…
-                </p>
-              ) : quickStockBaseline != null ? (
-                <p className="text-[10px] tabular-nums text-muted-foreground">
-                  Current at branch:{" "}
-                  <span className="font-medium text-foreground">
-                    {formatAmount(quickStockBaseline)}
-                  </span>
-                  {(() => {
-                    const next = Number(quickStock.trim());
-                    if (!Number.isFinite(next) || quickStock.trim() === "") {
-                      return null;
-                    }
-                    const d = Math.round((next - quickStockBaseline) * 10000) / 10000;
-                    if (Math.abs(d) < 0.0001) return null;
-                    return (
-                      <span>
-                        {" "}
-                        → after save:{" "}
-                        <span className="font-medium text-foreground">
-                          {formatAmount(next)}
-                        </span>
-                        {d > 0 ? ` (+${formatAmount(d)})` : ` (${formatAmount(d)})`}
-                      </span>
-                    );
-                  })()}
-                </p>
-              ) : null}
               {(() => {
                 const next = Number(quickStock.trim());
                 const base = quickStockBaseline ?? 0;
@@ -1090,12 +971,12 @@ export function ProductDetailPanel(props: Props) {
                   Number.isFinite(next) && next > base + 0.0001;
                 if (!needsCost) return null;
                 return (
-                  <label className={productFormFieldClass}>
-                    <span className={productFormLabelClass}>
-                      Unit cost (increase only)
+                  <label className="w-[5.5rem] shrink-0">
+                    <span className={cn(productFormLabelClass, "mb-0.5 block")}>
+                      Unit cost
                     </span>
                     <input
-                      className={productFormInputClass}
+                      className={cn(productFormInputClass, "h-8")}
                       inputMode="decimal"
                       value={quickStockUnitCost}
                       onChange={(e) => setQuickStockUnitCost(e.target.value)}
@@ -1104,14 +985,39 @@ export function ProductDetailPanel(props: Props) {
                   </label>
                 );
               })()}
-            </div>
-            <div className="mt-2 flex justify-end">
               {saveCancelBtns(() => void saveQuickStock())}
             </div>
+            {quickStockBaselineLoading ? (
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Loading current stock…
+              </p>
+            ) : quickStockBaseline != null ? (
+              <p className="mt-1 text-[10px] tabular-nums text-muted-foreground">
+                Now {formatAmount(quickStockBaseline)}
+                {(() => {
+                  const next = Number(quickStock.trim());
+                  if (!Number.isFinite(next) || quickStock.trim() === "") {
+                    return null;
+                  }
+                  const d =
+                    Math.round((next - quickStockBaseline) * 10000) / 10000;
+                  if (Math.abs(d) < 0.0001) return null;
+                  return (
+                    <span>
+                      {" "}
+                      → {formatAmount(next)}
+                      {d > 0
+                        ? ` (+${formatAmount(d)})`
+                        : ` (${formatAmount(d)})`}
+                    </span>
+                  );
+                })()}
+              </p>
+            ) : null}
           </div>
         ) : null}
         {supplierLinks.length === 0 && canCatalogWrite ? (
-          <p className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+          <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
             <button
               type="button"
               className="font-medium text-primary transition-colors hover:text-primary/80"
@@ -1119,10 +1025,94 @@ export function ProductDetailPanel(props: Props) {
             >
               Link a supplier
             </button>{" "}
-            for cost tracking and margin accuracy.
+            for cost &amp; margin.
           </p>
         ) : null}
       </section>
+
+      {/* Selling options — compact strip (packages + weight) */}
+      {(canAddPackageSales ||
+        (canCatalogWrite && panelKind !== "group" && onToggleWeighed) ||
+        packageVariants.length > 0) &&
+      !sharedStock ? (
+        <div className={detailSellingStripClass} role="group" aria-label="Selling options">
+          {canAddPackageSales || packageVariants.length > 0 ? (
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <Boxes
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <span className="truncate text-[11px] text-muted-foreground">
+                {packageVariants.length > 0 ? (
+                  <>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {packageVariants.length}
+                    </span>{" "}
+                    package size{packageVariants.length === 1 ? "" : "s"}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">No package sizes</span>
+                )}
+              </span>
+              {canAddPackageSales && packageVariants.length === 0 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="ml-auto h-7 shrink-0 gap-1 rounded-md px-2 text-[10px]"
+                  onClick={onOpenPackageSales}
+                >
+                  <PackagePlus className="size-3" aria-hidden />
+                  Add package
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          {canCatalogWrite && panelKind !== "group" && onToggleWeighed ? (
+            <div
+              className={cn(
+                "flex items-center gap-1.5",
+                (canAddPackageSales || packageVariants.length > 0) &&
+                  "border-l border-border/50 pl-3",
+              )}
+            >
+              <Scale
+                className={cn(
+                  "size-3.5 shrink-0",
+                  detail.isWeighed === true
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-muted-foreground",
+                )}
+                aria-hidden
+              />
+              <button
+                type="button"
+                disabled={weighedBusy}
+                onClick={onToggleWeighed}
+                className={cn(
+                  "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-semibold transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                  detail.isWeighed === true
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground",
+                  weighedBusy && "opacity-60",
+                )}
+                title={
+                  detail.isWeighed === true
+                    ? "Turn off sell by weight"
+                    : "Sell by weight at the till"
+                }
+              >
+                {weighedBusy ? (
+                  <Loader2 className="size-3 animate-spin" aria-hidden />
+                ) : null}
+                {detail.isWeighed === true
+                  ? `By ${(detail.unitType ?? "kg").trim() || "kg"}`
+                  : "By weight"}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Compact alerts */}
       {packagePoolEmpty ? (
@@ -1145,6 +1135,261 @@ export function ProductDetailPanel(props: Props) {
           or convert those SKUs to packages.
         </div>
       ) : null}
+
+      {/* SKUs — variants & packages */}
+      <section className={detailSectionClass}>
+        <button
+          type="button"
+          className={detailCollapsibleTriggerClass}
+          onClick={() => setVariantsOpen((o) => !o)}
+          aria-expanded={variantsOpen}
+        >
+          <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+          <span className={detailSectionLabelClass}>
+            {isChildVariant
+              ? "Sibling SKUs"
+              : packageVariants.length > 0 && optionVariants.length === 0
+                ? "Package sizes"
+                : "SKUs & variants"}
+          </span>
+          {variantCountLabel ? (
+            <span className="bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
+              {variantCountLabel}
+            </span>
+          ) : null}
+          <span className="ml-auto">
+            {variantsOpen ? (
+              <ChevronUp className="size-4 text-muted-foreground" aria-hidden />
+            ) : (
+              <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+            )}
+          </span>
+        </button>
+        {variantsOpen ? (
+          <>
+            {isChildVariant && variantParentDisplayName ? (
+              <div className="border-t border-border/40 bg-violet-500/[0.04] px-3 py-2">
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  More sizes or options for{" "}
+                  <span className="font-medium text-foreground">
+                    {variantParentDisplayName}
+                  </span>
+                  . New siblings share the same parent in your catalog.
+                </p>
+                {canCatalogWrite ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-8 gap-1.5 rounded-lg border-violet-500/25 bg-background text-xs"
+                    onClick={openAddVariant}
+                  >
+                    <GitBranchPlus className="size-3.5" aria-hidden />
+                    Add sibling SKU
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {!isChildVariant &&
+            (canCatalogWrite ||
+              (canAddPackageSales && packageVariants.length > 0)) ? (
+              <div className="flex flex-wrap gap-2 border-t border-border/40 bg-muted/15 px-3 py-1.5">
+                {canAddPackageSales && packageVariants.length > 0 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 gap-1 rounded-md text-[11px]"
+                    onClick={onOpenPackageSales}
+                  >
+                    <Boxes className="size-3.5" aria-hidden />
+                    Add package
+                  </Button>
+                ) : null}
+                {canCatalogWrite ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 rounded-md text-[11px]"
+                    onClick={openAddVariant}
+                  >
+                    <PackagePlus className="size-3.5" aria-hidden />
+                    Add variant
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {variantRows.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 border-t border-border/40 px-4 py-5 text-center">
+                <div className="flex size-9 items-center justify-center border border-dashed border-border/60 bg-muted/30">
+                  <Layers className="size-4 text-muted-foreground/50" aria-hidden />
+                </div>
+                <div className="max-w-[14rem] space-y-0.5">
+                  <p className="text-xs font-medium text-foreground">
+                    No SKUs yet
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Use Add package or Add variant above.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
+                {variantRows.map((v) => {
+                  const vThumb = itemListThumbnailUrl(v);
+                  const vSelected = selectedId === v.id;
+                  const editing = variantInlineEditId === v.id;
+                  return (
+                    <Fragment key={v.id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2.5 px-3 py-2.5 transition-colors",
+                          !vSelected && panelTone.variantRowHover,
+                          vSelected && panelTone.variantRowActive,
+                          editing && "bg-muted/20",
+                        )}
+                    onClick={() => {
+                      if (!editing) selectProduct(v.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!editing && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        selectProduct(v.id);
+                      }
+                    }}
+                  >
+                    <div className="relative size-7 shrink-0 overflow-hidden border border-border/60 bg-muted">
+                      {vThumb ? (
+                        <Image
+                          src={vThumb}
+                          alt=""
+                          width={28}
+                          height={28}
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Package
+                            className="size-3.5 text-muted-foreground/40"
+                            aria-hidden
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {v.variantName?.trim() || v.name}
+                        </p>
+                        {v.packageVariant ? (
+                          <span className="inline-flex shrink-0 items-center gap-0.5 border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                            <Boxes className="size-2.5" aria-hidden />
+                            Pack
+                          </span>
+                        ) : null}
+                      </div>
+                      {v.packageVariant ? (
+                        <p className="text-[11px] tabular-nums text-muted-foreground">
+                          {toNumber(v.packageUnitsPerSale) ?? "?"} units ·{" "}
+                          {formatStockLabel(v)}
+                        </p>
+                      ) : v.variantName &&
+                        v.variantName.trim().toLowerCase() !==
+                          v.name.trim().toLowerCase() ? (
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {v.name}
+                        </p>
+                      ) : v.sku ? (
+                        <p className="truncate font-mono text-[10px] text-muted-foreground">
+                          {v.sku}
+                        </p>
+                      ) : null}
+                    </div>
+                    {canCatalogWrite && (
+                      <button
+                        type="button"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-colors hover:text-foreground"
+                        onClick={(e) => startVariantRowEdit(v, e)}
+                        aria-label={`Edit ${v.variantName?.trim() || v.name}`}
+                      >
+                        <Pencil className="size-3" aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                  {editing && (
+                    <div className="border-t border-border/40 bg-muted/20 px-3 py-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <label className="flex flex-1 flex-col gap-1.5 text-[11px] font-medium text-muted-foreground">
+                          Display name
+                          <input
+                            className={quickInputClass}
+                            value={variantEditName}
+                            onChange={(e) => setVariantEditName(e.target.value)}
+                            aria-label="Variant display name"
+                          />
+                        </label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 gap-1 rounded-lg"
+                            disabled={quickSavingVariant}
+                            onClick={() => void saveVariantInline()}
+                          >
+                            {quickSavingVariant ? (
+                              <Loader2
+                                className="size-3.5 animate-spin"
+                                aria-hidden
+                              />
+                            ) : (
+                              "Save"
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 rounded-lg"
+                            disabled={quickSavingVariant}
+                            onClick={cancelVariantInlineEdit}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Variant name and SKU are set at creation — adjust from{" "}
+                        <button
+                          type="button"
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                          onClick={() => setActiveDrawer("edit-product")}
+                        >
+                          Details
+                        </button>
+                        .
+                      </p>
+                    </div>
+                  )}
+                    </Fragment>
+                  );
+                })}
+                {isChildVariant && canCatalogWrite ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-muted/10 px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
+                    onClick={openAddVariant}
+                  >
+                    <GitBranchPlus className="size-3.5 shrink-0" aria-hidden />
+                    Add another option under {variantParentDisplayName ?? "parent"}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </>
+        ) : null}
+      </section>
 
       {/* Product details — identity & inventory alerts (no duplicate pricing) */}
       {canCatalogWrite ? (
@@ -1453,276 +1698,6 @@ export function ProductDetailPanel(props: Props) {
           ) : null}
         </section>
       ) : null}
-
-      {/* SKUs — variants & packages */}
-      <section className={detailSectionClass}>
-        <button
-          type="button"
-          className={detailCollapsibleTriggerClass}
-          onClick={() => setVariantsOpen((o) => !o)}
-          aria-expanded={variantsOpen}
-        >
-          <Layers className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
-          <span className={detailSectionLabelClass}>
-            {isChildVariant
-              ? "Sibling SKUs"
-              : packageVariants.length > 0 && optionVariants.length === 0
-                ? "Package sizes"
-                : "SKUs & variants"}
-          </span>
-          {variantCountLabel ? (
-            <span className="bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
-              {variantCountLabel}
-            </span>
-          ) : null}
-          <span className="ml-auto">
-            {variantsOpen ? (
-              <ChevronUp className="size-4 text-muted-foreground" aria-hidden />
-            ) : (
-              <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
-            )}
-          </span>
-        </button>
-        {variantsOpen ? (
-          <>
-            {isChildVariant && variantParentDisplayName ? (
-              <div className="border-t border-border/40 bg-violet-500/[0.04] px-3 py-2">
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  More sizes or options for{" "}
-                  <span className="font-medium text-foreground">
-                    {variantParentDisplayName}
-                  </span>
-                  . New siblings share the same parent in your catalog.
-                </p>
-                {canCatalogWrite ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="mt-2 h-8 gap-1.5 rounded-lg border-violet-500/25 bg-background text-xs"
-                    onClick={openAddVariant}
-                  >
-                    <GitBranchPlus className="size-3.5" aria-hidden />
-                    Add sibling SKU
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-            {!isChildVariant ? (
-              <div className="flex flex-wrap gap-2 border-t border-border/40 bg-muted/15 px-3 py-2">
-                {canAddPackageSales ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 gap-1 rounded-lg text-xs"
-                    onClick={onOpenPackageSales}
-                  >
-                    <Boxes className="size-3.5" aria-hidden />
-                    Add package
-                  </Button>
-                ) : null}
-                {canCatalogWrite ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1 rounded-lg text-xs"
-                    onClick={openAddVariant}
-                  >
-                    <PackagePlus className="size-3.5" aria-hidden />
-                    Add variant
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-            {variantRows.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 border-t border-border/40 px-4 py-6 text-center">
-                <div className="flex size-12 items-center justify-center border border-dashed border-border/60 bg-muted/30">
-                  <Layers className="size-5 text-muted-foreground/50" aria-hidden />
-                </div>
-                <div className="max-w-[14rem] space-y-1">
-                  <p className="text-xs font-medium text-foreground">
-                    No SKUs yet
-                  </p>
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    Add option variants or package sizes under this product.
-                  </p>
-                </div>
-                <div className="flex w-full max-w-[16rem] flex-col gap-2 sm:flex-row sm:justify-center">
-                  {canAddPackageSales ? (
-                    <Button
-                      type="button"
-                      className="h-9 flex-1 gap-1.5 rounded-lg text-xs"
-                      onClick={onOpenPackageSales}
-                    >
-                      <Boxes className="size-3.5" aria-hidden />
-                      Package
-                    </Button>
-                  ) : null}
-                  {canCatalogWrite ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-9 flex-1 gap-1.5 rounded-lg text-xs"
-                      onClick={openAddVariant}
-                    >
-                      <PackagePlus className="size-3.5" aria-hidden />
-                      Variant
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40 border-t border-border/40 bg-background/50">
-                {variantRows.map((v) => {
-                  const vThumb = itemListThumbnailUrl(v);
-                  const vSelected = selectedId === v.id;
-                  const editing = variantInlineEditId === v.id;
-                  return (
-                    <Fragment key={v.id}>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className={cn(
-                          "flex cursor-pointer items-center gap-2.5 px-3 py-2.5 transition-colors",
-                          !vSelected && panelTone.variantRowHover,
-                          vSelected && panelTone.variantRowActive,
-                          editing && "bg-muted/20",
-                        )}
-                    onClick={() => {
-                      if (!editing) selectProduct(v.id);
-                    }}
-                    onKeyDown={(e) => {
-                      if (!editing && (e.key === "Enter" || e.key === " ")) {
-                        e.preventDefault();
-                        selectProduct(v.id);
-                      }
-                    }}
-                  >
-                    <div className="relative size-7 shrink-0 overflow-hidden border border-border/60 bg-muted">
-                      {vThumb ? (
-                        <Image
-                          src={vThumb}
-                          alt=""
-                          width={28}
-                          height={28}
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Package
-                            className="size-3.5 text-muted-foreground/40"
-                            aria-hidden
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="truncate text-xs font-medium text-foreground">
-                          {v.name}
-                        </p>
-                        {v.packageVariant ? (
-                          <span className="inline-flex shrink-0 items-center gap-0.5 border border-primary/20 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
-                            <Boxes className="size-2.5" aria-hidden />
-                            Pack
-                          </span>
-                        ) : null}
-                      </div>
-                      {v.packageVariant ? (
-                        <p className="text-[11px] tabular-nums text-muted-foreground">
-                          {toNumber(v.packageUnitsPerSale) ?? "?"} units ·{" "}
-                          {formatStockLabel(v)}
-                        </p>
-                      ) : v.variantName ? (
-                        <p className="text-[11px] text-muted-foreground">
-                          {v.variantName}
-                        </p>
-                      ) : null}
-                    </div>
-                    {canCatalogWrite && (
-                      <button
-                        type="button"
-                        className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-colors hover:text-foreground"
-                        onClick={(e) => startVariantRowEdit(v, e)}
-                        aria-label={`Edit ${v.name}`}
-                      >
-                        <Pencil className="size-3" aria-hidden />
-                      </button>
-                    )}
-                  </div>
-                  {editing && (
-                    <div className="border-t border-border/40 bg-muted/20 px-3 py-3">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                        <label className="flex flex-1 flex-col gap-1.5 text-[11px] font-medium text-muted-foreground">
-                          Display name
-                          <input
-                            className={quickInputClass}
-                            value={variantEditName}
-                            onChange={(e) => setVariantEditName(e.target.value)}
-                            aria-label="Variant display name"
-                          />
-                        </label>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 gap-1 rounded-lg"
-                            disabled={quickSavingVariant}
-                            onClick={() => void saveVariantInline()}
-                          >
-                            {quickSavingVariant ? (
-                              <Loader2
-                                className="size-3.5 animate-spin"
-                                aria-hidden
-                              />
-                            ) : (
-                              "Save"
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 rounded-lg"
-                            disabled={quickSavingVariant}
-                            onClick={cancelVariantInlineEdit}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                      <p className="mt-2 text-[11px] text-muted-foreground">
-                        Variant name and SKU are set at creation — adjust from{" "}
-                        <button
-                          type="button"
-                          className="font-medium text-primary underline-offset-2 hover:underline"
-                          onClick={() => setActiveDrawer("edit-product")}
-                        >
-                          Details
-                        </button>
-                        .
-                      </p>
-                    </div>
-                  )}
-                    </Fragment>
-                  );
-                })}
-                {isChildVariant && canCatalogWrite ? (
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-center gap-2 border-t border-dashed border-border/60 bg-muted/10 px-3 py-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
-                    onClick={openAddVariant}
-                  >
-                    <GitBranchPlus className="size-3.5 shrink-0" aria-hidden />
-                    Add another option under {variantParentDisplayName ?? "parent"}
-                  </button>
-                ) : null}
-              </div>
-            )}
-          </>
-        ) : null}
-      </section>
 
       {/* Mobile sticky actions */}
       <div className={detailStickyBarClass}>
