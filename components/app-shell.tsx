@@ -139,7 +139,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "inventory",
     title: "Inventory",
-    shortLabel: "Stock",
+    shortLabel: "Inventory",
     blurb: "On-hand stock, movement, and counts",
     icon: Warehouse,
     entryHref: APP_ROUTES.inventoryStock,
