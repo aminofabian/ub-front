@@ -344,7 +344,7 @@ using System.Runtime.InteropServices;
 public class PalmartRawPrint {
   [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
   public class DOCINFO {
-    public int cbSize = 20;
+    public int cbSize;
     public string pDocName;
     public string pOutputFile;
     public string pDatatype;
@@ -370,15 +370,26 @@ $path = '${qFile}'
 $bytes = [System.IO.File]::ReadAllBytes($path)
 $hPrinter = [IntPtr]::Zero
 if (-not [PalmartRawPrint]::OpenPrinter($printer, [ref]$hPrinter, [IntPtr]::Zero)) {
-  throw "OpenPrinter failed for '$printer' (Win32 $($LASTEXITCODE))"
+  $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+  throw "OpenPrinter failed for '$printer' (Win32 $err)"
 }
 try {
-  $di = New-Object PalmartRawPrint+DOCINFO
-  $di.pDocName = 'Palmart ESC/POS'
-  $di.pDatatype = 'RAW'
-  $di.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($di)
-  if (-not [PalmartRawPrint]::StartDocPrinter($hPrinter, 1, $di)) {
-    throw "StartDocPrinter failed (is the queue RAW-capable?)"
+  $started = $false
+  $lastErr = 0
+  foreach ($dtype in @('RAW','TEXT',$null)) {
+    $di = New-Object PalmartRawPrint+DOCINFO
+    $di.pDocName = 'Palmart ESC/POS'
+    $di.pOutputFile = $null
+    $di.pDatatype = $dtype
+    $di.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($di)
+    if ([PalmartRawPrint]::StartDocPrinter($hPrinter, 1, $di)) {
+      $started = $true
+      break
+    }
+    $lastErr = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+  }
+  if (-not $started) {
+    throw ("StartDocPrinter failed for '$printer' (Win32 $lastErr). Reinstall the printer using Windows driver 'Generic / Text Only', set it Online, then Detect printers again.")
   }
   try {
     [void][PalmartRawPrint]::StartPagePrinter($hPrinter)
@@ -387,7 +398,8 @@ try {
       $written = 0
       $ptr = $pinned.AddrOfPinnedObject()
       if (-not [PalmartRawPrint]::WritePrinter($hPrinter, $ptr, $bytes.Length, [ref]$written)) {
-        throw "WritePrinter failed"
+        $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        throw "WritePrinter failed (Win32 $err)"
       }
     } finally {
       $pinned.Free()
