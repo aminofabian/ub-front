@@ -15,6 +15,7 @@ import {
   Coins,
   HandCoins,
   Layers,
+  ListChecks,
   MapPin,
   Receipt,
   Scale,
@@ -196,6 +197,15 @@ function statusLabel(status: string): string {
     default:
       return status;
   }
+}
+
+/** Severity dot hue for a variance figure — shared with the legend + badges. */
+function varianceDot(v: number | null | undefined): string | null {
+  if (v == null) return null;
+  const abs = Math.abs(v);
+  if (abs === 0) return "bg-emerald-500";
+  if (abs < VARIANCE_THRESHOLD_RED) return "bg-amber-500";
+  return "bg-red-500";
 }
 
 /** Status dot hue — shared vocabulary with the variance legend. */
@@ -799,11 +809,13 @@ function KpiCard({
   value,
   icon: Icon,
   valueClassName,
+  dotClassName,
 }: {
   label: string;
   value: string;
   icon?: LucideIcon;
   valueClassName?: string;
+  dotClassName?: string | null;
 }) {
   return (
     <div className="group relative overflow-hidden border border-border/70 bg-gradient-to-b from-card to-muted/25 p-2.5 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
@@ -811,7 +823,12 @@ function KpiCard({
         <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
           {label}
         </p>
-        {Icon ? (
+        {dotClassName ? (
+          <span
+            className={cn("size-2 shrink-0 rounded-full", dotClassName)}
+            aria-hidden
+          />
+        ) : Icon ? (
           <Icon
             className="size-3.5 shrink-0 text-foreground/40"
             aria-hidden
@@ -827,6 +844,33 @@ function KpiCard({
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+/** Numbered header for a console panel — reads as a workflow step (01 → 03). */
+function PanelHeader({
+  index,
+  icon: Icon,
+  title,
+  meta,
+}: {
+  index: string;
+  icon: LucideIcon;
+  title: string;
+  meta?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-3">
+      <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground/50">
+        {index}
+      </span>
+      <span className="h-3 w-px bg-border/70" aria-hidden />
+      <Icon className="size-4 text-foreground/45" aria-hidden />
+      <h3 className="text-sm font-semibold tracking-tight text-foreground">
+        {title}
+      </h3>
+      {meta ? <div className="ml-auto flex items-center">{meta}</div> : null}
     </div>
   );
 }
@@ -1210,6 +1254,7 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
               : "—"
           }
           icon={Scale}
+          dotClassName={varianceDot(variance)}
           valueClassName={varianceColor(variance)}
         />
       </div>
@@ -1641,6 +1686,24 @@ export default function ShiftsPage() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* ─── Column 1: Shift List (~28%) ────────────────────────── */}
         <div className="flex w-[28%] min-w-[260px] flex-shrink-0 flex-col border-r border-border/50">
+          <PanelHeader
+            index="01"
+            icon={ListChecks}
+            title="Shift List"
+            meta={
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                {loading && (
+                  <span
+                    className="size-1.5 animate-pulse rounded-full bg-primary"
+                    aria-hidden
+                  />
+                )}
+                <span className="inline-flex min-w-5 items-center justify-center border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  {totalCount}
+                </span>
+              </span>
+            }
+          />
           {/* Filters */}
           <div className="space-y-3 border-b border-border/50 bg-muted/15 p-3">
             <div className="relative">
@@ -1689,20 +1752,6 @@ export default function ShiftsPage() {
 
           {/* Shift cards */}
           <div className="flex-1 overflow-y-auto p-3">
-            <div className="mb-2.5 flex items-center justify-between px-0.5">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                Shifts
-                <span className="inline-flex min-w-5 items-center justify-center rounded-none border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                  {totalCount}
-                </span>
-              </span>
-              {loading && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                  Loading…
-                </span>
-              )}
-            </div>
             <div className="space-y-2.5">
               {filteredShifts.map((s) => (
                 <ShiftCard
@@ -1736,12 +1785,7 @@ export default function ShiftsPage() {
 
         {/* ─── Column 2: Analytics (~35%) ──────────────────────────── */}
         <div className="hidden w-[35%] min-w-[300px] flex-shrink-0 border-r border-border/50 lg:flex lg:flex-col">
-          <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-3">
-            <Calculator className="size-4 text-muted-foreground" aria-hidden />
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">
-              Shift Analytics
-            </h3>
-          </div>
+          <PanelHeader index="02" icon={Calculator} title="Analytics" />
           <div className="flex-1 overflow-y-auto">
             <AnalyticsPanel shiftId={selectedShiftId} />
           </div>
@@ -1749,34 +1793,31 @@ export default function ShiftsPage() {
 
         {/* ─── Column 3: Detail Tabs (~37%) ────────────────────────── */}
         <div className="flex flex-1 flex-col">
-          <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-3">
-            {selectedShift ? (
-              <>
-                <span
-                  className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
-                  aria-hidden
-                >
-                  {initials(selectedShift.cashierName)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
-                    {selectedShift.cashierName}
-                  </h3>
-                  <p className="truncate text-[11px] leading-tight text-muted-foreground">
-                    {selectedShift.branchName}
-                  </p>
-                </div>
-                <StatusBadge status={selectedShift.status} />
-              </>
-            ) : (
-              <>
-                <ClipboardList className="size-4 text-muted-foreground" aria-hidden />
-                <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                  Shift Details
+          {selectedShift ? (
+            <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-3">
+              <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground/50">
+                03
+              </span>
+              <span className="h-3 w-px bg-border/70" aria-hidden />
+              <span
+                className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
+                aria-hidden
+              >
+                {initials(selectedShift.cashierName)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
+                  {selectedShift.cashierName}
                 </h3>
-              </>
-            )}
-          </div>
+                <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                  {selectedShift.branchName}
+                </p>
+              </div>
+              <StatusBadge status={selectedShift.status} />
+            </div>
+          ) : (
+            <PanelHeader index="03" icon={ClipboardList} title="Shift Details" />
+          )}
           <div className="flex-1 overflow-y-auto">
             <DetailTabs shiftId={selectedShiftId} />
           </div>
