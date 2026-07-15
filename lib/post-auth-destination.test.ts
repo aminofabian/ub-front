@@ -19,9 +19,9 @@ describe("resolvePostAuthDestination", () => {
     ).toBe(APP_ROUTES.butcher);
   });
 
-  it("sends cashiers to quick sale", () => {
+  it("sends cashiers to cashier", () => {
     expect(resolvePostAuthDestination({ role: { key: "cashier" } })).toBe(
-      APP_ROUTES.salesQuick,
+      APP_ROUTES.cashier,
     );
   });
 
@@ -72,7 +72,7 @@ describe("roleLandingRedirect", () => {
   it("redirects cashier off /business", () => {
     expect(
       roleLandingRedirect({ role: { key: "cashier" } }, APP_ROUTES.business),
-    ).toBe(APP_ROUTES.salesQuick);
+    ).toBe(APP_ROUTES.cashier);
   });
 
   it("redirects stock manager off /business", () => {

@@ -328,7 +328,6 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
 
   if (gate.roleKey === "cashier") {
     const allowed: readonly string[] = [
-      APP_ROUTES.salesQuick,
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
       APP_ROUTES.purchasingAddSupplies,
@@ -611,7 +610,7 @@ export function AppShell({ children }: AppShellProps) {
   const homeHref = isStockManager
     ? APP_ROUTES.inventoryStockTakeDailyAudit
     : isCashier
-      ? APP_ROUTES.salesQuick
+      ? APP_ROUTES.cashier
       : isButcherCashier
         ? APP_ROUTES.butcher
         : isGroceryClerk
@@ -767,15 +766,14 @@ export function AppShell({ children }: AppShellProps) {
     }
     if (roleKey === "cashier") {
       return BOTTOM_TABS.map((tab) => {
-        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.sales };
+        if (tab.id === "sales") return { ...tab, href: APP_ROUTES.cashier };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
       }).filter(
         (tab) =>
           tab.id !== "overview" &&
           (!tab.href ||
-            tab.href === APP_ROUTES.sales ||
-            tab.href === APP_ROUTES.salesQuick ||
+            tab.href === APP_ROUTES.cashier ||
             tab.href === APP_ROUTES.shifts ||
             tab.id === "more"),
       );
@@ -902,7 +900,6 @@ export function AppShell({ children }: AppShellProps) {
 
     if (roleKey === "cashier") {
       const allowed = [
-        APP_ROUTES.salesQuick,
         APP_ROUTES.cashier,
         APP_ROUTES.shifts,
         APP_ROUTES.purchasingAddSupplies,
@@ -911,7 +908,7 @@ export function AppShell({ children }: AppShellProps) {
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
       if (!isAllowed) {
-        router.replace(APP_ROUTES.salesQuick);
+        router.replace(APP_ROUTES.cashier);
       }
       return;
     }

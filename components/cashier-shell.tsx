@@ -214,23 +214,27 @@ export function CashierShell({ children }: CashierShellProps) {
                 Till settings
               </Button>
             ) : null}
-            <div className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] sm:block dark:bg-border/60" aria-hidden />
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <Link href={APP_ROUTES.business}>Full app</Link>
-            </Button>
+            {roleKey !== "cashier" ? (
+              <>
+                <div className="mx-0.5 hidden h-4 w-px bg-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] sm:block dark:bg-border/60" aria-hidden />
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Link href={APP_ROUTES.salesQuick}>Admin sale</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Link href={APP_ROUTES.business}>Full app</Link>
+                </Button>
+              </>
+            ) : null}
             <PushNotificationsEnable
               label="Push alerts"
               className="hidden sm:block"

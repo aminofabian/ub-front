@@ -1383,6 +1383,7 @@ export default function ShiftsPage() {
   const canOpen = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canClose = hasPermission(me?.permissions, Permission.ShiftsClose);
   const canRead = hasPermission(me?.permissions, Permission.ShiftsRead);
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const allowed = canOpen || canClose || canRead;
 
   // Data
@@ -1699,8 +1700,26 @@ export default function ShiftsPage() {
                       icon: MapPin,
                     },
                   ]),
-              { href: APP_ROUTES.salesQuick, label: "Quick sale", icon: Receipt },
-              { href: APP_ROUTES.business, label: "Business", icon: Building2 },
+              roleKey === "cashier"
+                ? {
+                    href: APP_ROUTES.cashier,
+                    label: "Cashier",
+                    icon: Receipt,
+                  }
+                : {
+                    href: APP_ROUTES.salesQuick,
+                    label: "Quick sale",
+                    icon: Receipt,
+                  },
+              ...(roleKey === "cashier"
+                ? []
+                : [
+                    {
+                      href: APP_ROUTES.business,
+                      label: "Business",
+                      icon: Building2,
+                    },
+                  ]),
             ].map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}

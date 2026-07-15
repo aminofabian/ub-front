@@ -33,7 +33,7 @@ export function resolvePostAuthDestination(
     return APP_ROUTES.butcher;
   }
   if (roleKey === "cashier") {
-    return APP_ROUTES.salesQuick;
+    return APP_ROUTES.cashier;
   }
   if (roleKey === "stock_manager") {
     return APP_ROUTES.inventoryStockTakeDailyAudit;
