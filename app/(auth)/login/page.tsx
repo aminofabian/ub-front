@@ -58,7 +58,7 @@ function LoginPageContent() {
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const tenantGreeting =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
-  const [mode, setMode] = useState<AuthMode>(AUTH_MODE.password);
+  const [mode, setMode] = useState<AuthMode>(AUTH_MODE.pin);
   const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
   const [email, setEmail] = useState(
     () => searchParams.get("email")?.trim() ?? "",
@@ -373,17 +373,17 @@ function LoginPageContent() {
       <div className="mt-6 grid grid-cols-2 gap-2">
         <button
           type="button"
-          className={modeBtn(mode === AUTH_MODE.password)}
-          onClick={() => setMode(AUTH_MODE.password)}
-        >
-          Email &amp; password
-        </button>
-        <button
-          type="button"
           className={modeBtn(mode === AUTH_MODE.pin)}
           onClick={() => setMode(AUTH_MODE.pin)}
         >
           PIN login
+        </button>
+        <button
+          type="button"
+          className={modeBtn(mode === AUTH_MODE.password)}
+          onClick={() => setMode(AUTH_MODE.password)}
+        >
+          Email &amp; password
         </button>
       </div>
 
