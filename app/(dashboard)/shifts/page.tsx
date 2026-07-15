@@ -91,6 +91,10 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
 /** Ledger convention: money is rendered in monospace tabular figures. */
 const NUM = "font-mono tabular-nums";
 
+/** Unified card surface shared across all three console panels. */
+const CARD =
+  "border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]";
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -191,15 +195,31 @@ function statusBadgeClass(status: string): string {
 function statusLabel(status: string): string {
   switch (status) {
     case "open":
-      return "🟢 Open";
+      return "Open";
     case "suspended":
-      return "🟡 Suspended";
+      return "Suspended";
     case "closed":
-      return "🔴 Closed";
+      return "Closed";
     case "reconciled":
-      return "🔵 Reconciled";
+      return "Reconciled";
     default:
       return status;
+  }
+}
+
+/** Status dot hue — shared vocabulary with the variance legend. */
+function statusDotClass(status: string): string {
+  switch (status) {
+    case "open":
+      return "bg-emerald-500";
+    case "suspended":
+      return "bg-amber-500";
+    case "closed":
+      return "bg-red-500";
+    case "reconciled":
+      return "bg-blue-500";
+    default:
+      return "bg-muted-foreground";
   }
 }
 
@@ -211,10 +231,14 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-none border px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 text-[11px] font-semibold",
         statusBadgeClass(status),
       )}
     >
+      <span
+        className={cn("size-1.5 rounded-full", statusDotClass(status))}
+        aria-hidden
+      />
       {statusLabel(status)}
     </span>
   );
@@ -480,7 +504,7 @@ function DenominationComparison({
             <tr className="border-b border-border/50 bg-muted/25">
               <th
                 scope="col"
-                className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
               >
                 Denom
                 <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
@@ -489,32 +513,32 @@ function DenominationComparison({
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
               >
                 Opening Qty
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
               >
                 Opening Total
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
               >
                 Closing Qty
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
               >
                 Closing Total
               </th>
               <th
                 scope="col"
                 title="Net cash movement during the shift (Closing − Opening)"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
               >
                 Change
               </th>
@@ -560,7 +584,7 @@ function DenominationComparison({
           </tbody>
           <tfoot className="border-t-2 border-border/60 bg-muted/30 font-semibold">
             <tr>
-              <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4">
+              <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4">
                 Total
               </td>
               <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
@@ -590,10 +614,10 @@ function DenominationComparison({
       </div>
 
       {showReconciliation && (
-        <div className="border border-border/70 bg-gradient-to-b from-card to-muted/25 p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+        <div className={cn(CARD, "p-3")}>
           <div className="mb-2 flex items-center gap-1.5">
             <Scale className="size-3.5 text-muted-foreground/70" aria-hidden />
-            <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
               Drawer Reconciliation
             </h5>
           </div>
@@ -681,37 +705,37 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
               <tr className="border-b border-border/50 bg-muted/25">
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
                   Time
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
                   Category
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
                   Description
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                  className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
                   Recipient
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                  className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
                   Amount
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2.5 text-center font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                  className="px-3 py-2.5 text-center font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
                 >
                   Status
                 </th>
@@ -768,7 +792,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
       </div>
 
       {/* Totals */}
-      <dl className="space-y-1 border border-border/70 bg-gradient-to-b from-card to-muted/25 p-3 text-xs shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+      <dl className={cn(CARD, "space-y-1 p-3 text-xs")}>
         {approvedTotal > 0 && (
           <LeaderRow
             label="Approved drawouts"
@@ -820,12 +844,12 @@ function KpiCard({
         aria-hidden
       />
       <div className="flex items-center justify-between gap-2">
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
           {label}
         </p>
         {Icon ? (
           <Icon
-            className="size-3.5 shrink-0 text-muted-foreground/55"
+            className="size-3.5 shrink-0 text-foreground/40"
             aria-hidden
           />
         ) : null}
@@ -846,14 +870,14 @@ function KpiCard({
 /** Small uppercase section heading with a leading icon chip. */
 function SectionLabel({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
   return (
-    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-      <Icon className="size-3.5 text-muted-foreground/70" aria-hidden />
+    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+      <Icon className="size-3.5 text-foreground/45" aria-hidden />
       {text}
     </h4>
   );
 }
 
-/** Denomination list with per-row value-share proportion bars. */
+/** Denomination list rendered as a clean ledger card. */
 function DenomStackList({
   title,
   denoms,
@@ -870,49 +894,37 @@ function DenomStackList({
   })).filter((r) => r.qty > 0);
 
   return (
-    <div className="border border-border/60 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
-      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-2.5 py-1.5">
+    <div className={CARD}>
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-2.5 py-2">
         <SectionLabel icon={Layers} text={title} />
-        <span className={cn("text-xs font-bold text-foreground", NUM)}>
+        <span className={cn("text-sm font-bold text-foreground", NUM)}>
           {moneyStr(total)}
         </span>
       </div>
       <div className="divide-y divide-border/30">
         {rows.map(({ d, qty }) => {
           const amount = d.value * qty;
-          const pct = total > 0 ? Math.max(3, (amount / total) * 100) : 0;
           return (
             <div
               key={d.value}
-              className="space-y-1 px-2.5 py-1.5 transition-colors hover:bg-muted/20"
+              className="flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors hover:bg-muted/20"
             >
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5">
-                  {d.type === "NOTE" ? (
-                    <Banknote className="size-3 text-muted-foreground/70" aria-hidden />
-                  ) : (
-                    <Coins className="size-3 text-muted-foreground/70" aria-hidden />
-                  )}
-                  <span className={cn("font-medium text-foreground", NUM)}>
-                    {d.value.toLocaleString("en-KE")}
-                  </span>
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    × {qty}
-                  </span>
+              <span className="flex items-center gap-1.5">
+                {d.type === "NOTE" ? (
+                  <Banknote className="size-3 text-foreground/40" aria-hidden />
+                ) : (
+                  <Coins className="size-3 text-foreground/40" aria-hidden />
+                )}
+                <span className={cn("font-medium text-muted-foreground", NUM)}>
+                  {d.value.toLocaleString("en-KE")}
                 </span>
-                <span className={cn("font-medium text-foreground", NUM)}>
-                  {moneyStr(amount)}
+                <span className="text-[10px] font-medium text-muted-foreground/70">
+                  × {qty}
                 </span>
-              </div>
-              <div className="h-0.5 overflow-hidden bg-border/60" aria-hidden>
-                <div
-                  className={cn(
-                    "h-full",
-                    d.type === "NOTE" ? "bg-primary/70" : "bg-primary/30",
-                  )}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+              </span>
+              <span className={cn("font-semibold text-foreground", NUM)}>
+                {moneyStr(amount)}
+              </span>
             </div>
           );
         })}
@@ -1559,7 +1571,7 @@ export default function ShiftsPage() {
               <Clock className="size-[18px]" aria-hidden />
             </span>
             <div className="min-w-0">
-              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
                 Operations
               </span>
               <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground">
@@ -1731,7 +1743,7 @@ export default function ShiftsPage() {
                 </span>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {filteredShifts.map((s) => (
                 <ShiftCard
                   key={s.id}
