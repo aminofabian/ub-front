@@ -354,7 +354,7 @@ function NoteBlock({
   return (
     <div
       className={cn(
-        "space-y-1.5 border p-3",
+        "space-y-1 border p-2.5",
         flag
           ? "border-amber-500/30 bg-amber-500/[0.06]"
           : "border-border/60 bg-muted/15",
@@ -397,7 +397,7 @@ function ShiftCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "group relative w-full overflow-hidden rounded-none border p-3 text-left transition-all duration-200",
+        "group relative w-full overflow-hidden rounded-none border p-2.5 text-left transition-all duration-200",
         "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-md",
         isSelected
           ? "border-primary/40 bg-primary/[0.04] shadow-sm ring-1 ring-primary/20"
@@ -426,7 +426,7 @@ function ShiftCard({
       </div>
 
       {/* Details row */}
-      <div className="mt-2.5 flex items-center gap-2 text-xs">
+      <div className="mt-2 flex items-center gap-2 text-xs">
         <span className="shrink-0 text-muted-foreground">
           {fmtShortDate(shift.openedAt)}
         </span>
@@ -450,7 +450,7 @@ function ShiftCard({
       {varNum !== null ? (
         <div
           className={cn(
-            "mt-1.5 flex items-center justify-between rounded-none border px-2 py-1 text-xs",
+            "mt-1 flex items-center justify-between rounded-none border px-2 py-1 text-xs",
             varianceBgColor(v),
           )}
         >
@@ -468,7 +468,7 @@ function ShiftCard({
           </span>
         </div>
       ) : shift.status === "open" ? (
-        <div className="mt-1.5 flex items-center gap-2 rounded-none border border-dashed px-2 py-1 text-xs">
+        <div className="mt-1 flex items-center gap-2 rounded-none border border-dashed px-2 py-1 text-xs">
           <span className="shrink-0 text-muted-foreground">Float</span>
           <div
             className="flex min-h-[1em] min-w-8 flex-1 items-center"
@@ -521,7 +521,7 @@ function DenominationComparison({
     expected != null || counted != null || variance != null;
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <div className={cn(DASHBOARD_TABLE_SURFACE, "rounded-none")}>
         <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -639,14 +639,14 @@ function DenominationComparison({
       </div>
 
       {showReconciliation && (
-        <div className={cn(CARD, "p-3")}>
+        <div className={cn(CARD, "p-2.5")}>
           <div className="mb-2 flex items-center gap-1.5">
             <Scale className="size-3.5 text-muted-foreground/70" aria-hidden />
             <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/70">
               Drawer Reconciliation
             </h5>
           </div>
-          <dl className="space-y-1.5 text-xs">
+          <dl className="space-y-1 text-xs">
             <LeaderRow
               label="Expected"
               value={expected != null ? moneyStr(expected) : "—"}
@@ -860,7 +860,7 @@ function KpiCard({
   dotClassName?: string | null;
 }) {
   return (
-    <div className="group relative overflow-hidden border border-border/70 bg-gradient-to-b from-card to-muted/25 p-2.5 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
+    <div className="group relative overflow-hidden border border-border/70 bg-gradient-to-b from-card to-muted/25 p-2 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
       <div className="flex items-center justify-between gap-2">
         <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
           {label}
@@ -903,7 +903,7 @@ function PanelHeader({
   meta?: ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-3">
+    <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-2">
       <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground/50">
         {index}
       </span>
@@ -945,7 +945,7 @@ function DenomStackList({
 
   return (
     <div className={CARD}>
-      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-2.5 py-2">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-2.5 py-1.5">
         <SectionLabel icon={Layers} text={title} />
         <span className={cn("text-sm font-bold text-foreground", NUM)}>
           {moneyStr(total)}
@@ -957,7 +957,7 @@ function DenomStackList({
           return (
             <div
               key={d.value}
-              className="flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors hover:bg-muted/20"
+              className="flex items-center justify-between px-2.5 py-1 text-xs transition-colors hover:bg-muted/20"
             >
               <span className="flex items-center gap-1.5">
                 {d.type === "NOTE" ? (
@@ -1056,7 +1056,7 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
   return (
     <div className="flex h-full flex-col">
       {/* Tab bar — segmented control */}
-      <div className="border-b border-border/50 bg-muted/20 p-2">
+      <div className="border-b border-border/50 bg-muted/20 p-1.5">
         <div className="flex gap-1 rounded-none border border-border/50 bg-background/60 p-1">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
@@ -1067,7 +1067,7 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-none px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-none px-2.5 py-1 text-xs font-medium transition-all duration-150",
                   active
                     ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
                     : "text-muted-foreground hover:text-foreground",
@@ -1088,9 +1088,9 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-2.5">
         {activeTab === "denominations" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {openingDenoms.length > 0 && closingDenoms.length > 0 ? (
               <DenominationComparison
                 openingDenoms={openingDenoms}
@@ -1124,11 +1124,11 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
         )}
 
         {activeTab === "summary" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Shift metadata */}
-            <section className="space-y-2">
+            <section className="space-y-1.5">
               <SectionLabel icon={ClipboardList} text="Shift" />
-              <dl className="space-y-1.5 text-xs">
+              <dl className="space-y-1 text-xs">
                 <div className="flex items-center justify-between">
                   <dt className="text-muted-foreground">Status</dt>
                   <StatusBadge status={detail.status} />
@@ -1148,9 +1148,9 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
             </section>
 
             {/* Cash reconciliation */}
-            <section className="space-y-2">
+            <section className="space-y-1.5">
               <SectionLabel icon={Scale} text="Cash Reconciliation" />
-              <dl className="space-y-1.5 text-xs">
+              <dl className="space-y-1 text-xs">
                 <LeaderRow
                   label="Opening float"
                   value={moneyStr(detail.openingCash)}
@@ -1290,9 +1290,9 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
       : null;
 
   return (
-    <div className="space-y-4 p-3">
+    <div className="space-y-3 p-2.5">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <KpiCard
           label="Opening Float"
           value={moneyStr(detail.openingCash)}
@@ -1343,7 +1343,7 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
       {/* Timeline */}
       <div className="space-y-2">
         <SectionLabel icon={Clock} text="Timeline" />
-        <div className="relative space-y-3 pl-1 text-xs">
+        <div className="relative space-y-2 pl-1 text-xs">
           <span
             className="absolute bottom-1.5 left-[4px] top-1.5 w-px bg-border"
             aria-hidden
@@ -1730,7 +1730,7 @@ export default function ShiftsPage() {
       {/* Reconciliation console */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] md:flex dark:ring-white/[0.04]">
         {/* Console toolbar */}
-        <div className="flex items-center justify-between gap-3 border-b border-border/50 bg-gradient-to-r from-muted/45 via-muted/20 to-transparent px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-border/50 bg-gradient-to-r from-muted/45 via-muted/20 to-transparent px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 text-primary shadow-sm">
               <Scale className="size-[18px]" aria-hidden />
@@ -1770,7 +1770,7 @@ export default function ShiftsPage() {
             }
           />
           {/* Filters */}
-          <div className="space-y-3 border-b border-border/50 bg-muted/15 p-3">
+          <div className="space-y-2 border-b border-border/50 bg-muted/15 p-2.5">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -1816,8 +1816,8 @@ export default function ShiftsPage() {
           </div>
 
           {/* Shift cards */}
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="space-y-2.5">
+          <div className="flex-1 overflow-y-auto p-2.5">
+            <div className="space-y-2">
               {filteredShifts.map((s) => (
                 <ShiftCard
                   key={s.id}
@@ -1859,7 +1859,7 @@ export default function ShiftsPage() {
         {/* ─── Column 3: Detail Tabs (~37%) ────────────────────────── */}
         <div className="flex flex-1 flex-col">
           {selectedShift ? (
-            <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-3">
+            <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-2">
               <span className="font-mono text-[10px] font-semibold tabular-nums text-muted-foreground/50">
                 03
               </span>
