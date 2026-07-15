@@ -19,8 +19,11 @@ const DialogOverlay = React.forwardRef<
   <RadixDialog.Overlay
     ref={ref}
     className={cn(
-      // Slightly lighter scrim improves readability for "light" drawers/modals.
-      "fixed inset-0 z-50 bg-black/35 backdrop-blur-sm",
+      // Solid rgba first so Chrome 109 / Win7 always get a visible scrim.
+      // Soft blur is progressive enhancement only (can look invisible when
+      // `color-mix` / translucent utilities fail on legacy Chromium).
+      "fixed inset-0 z-50 bg-[rgba(0,0,0,0.5)]",
+      "supports-[backdrop-filter]:bg-black/40 supports-[backdrop-filter]:backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       className,

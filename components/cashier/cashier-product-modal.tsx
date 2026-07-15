@@ -45,8 +45,9 @@ const MODAL_SECTION_LABEL = cn(
 
 const modalFieldClass = (extra?: string) =>
   cn(
-    "rounded-xl border border-border/55 bg-background shadow-sm transition-[border-color,box-shadow]",
-    "focus:outline-none focus-visible:border-[color-mix(in_srgb,var(--pos-primary)_38%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)]",
+    // Solid fill + border — avoid translucent / color-mix focus rings (Win7 Chrome 109).
+    "rounded-xl border border-border bg-background shadow-sm transition-[border-color,box-shadow]",
+    "focus:outline-none focus-visible:border-[var(--pos-primary)] focus-visible:ring-2 focus-visible:ring-[var(--pos-primary)]",
     extra,
   );
 
@@ -55,8 +56,8 @@ function ModalShelfBadge({ children }: { children: string }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-1 right-1 z-[1] max-w-[calc(100%-0.5rem)] truncate rounded-md border border-border/45 px-1.5 py-0.5",
-        "bg-background/93 text-[9px] font-bold tabular-nums leading-none text-foreground shadow-sm backdrop-blur-[2px] sm:text-[10px]",
+        "pointer-events-none absolute bottom-1 right-1 z-[1] max-w-[calc(100%-0.5rem)] truncate rounded-md border border-border px-1.5 py-0.5",
+        "bg-background text-[9px] font-bold tabular-nums leading-none text-foreground shadow-sm sm:text-[10px]",
       )}
     >
       {children}
@@ -197,30 +198,19 @@ export function CashierProductModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="center"
+        // Opaque scrim — Win7 Chrome 109 washes out translucent overlays.
+        overlayClassName="bg-[rgba(0,0,0,0.55)] supports-[backdrop-filter]:bg-[rgba(0,0,0,0.45)]"
         className={cn(
-          "gap-0 overflow-hidden border-border/35 p-0 shadow-2xl ring-1 ring-black/[0.04] dark:ring-white/[0.05]",
+          "gap-0 overflow-hidden border border-border bg-background p-0 shadow-2xl",
           "w-[calc(100vw-1.25rem)] max-w-[min(22rem,calc(100vw-1.25rem))] sm:max-w-md",
-          "bg-gradient-to-b from-background via-background to-muted/12 dark:to-muted/8",
         )}
         style={brandTheme}
       >
-        <div className="relative overflow-hidden border-b border-border/40 bg-gradient-to-b from-[color-mix(in_srgb,var(--pos-primary)_08%,transparent)] via-muted/10 to-transparent px-4 pb-4 pt-5 dark:from-[color-mix(in_srgb,var(--pos-primary)_12%,transparent)] dark:via-muted/10">
-          {/* Soft halo behind the product — keeps focus on the photo */}
-          <div
-            className="pointer-events-none absolute left-1/2 top-8 h-40 w-[min(20rem,90vw)] -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)] opacity-70 blur-3xl dark:opacity-50"
-            aria-hidden
-          />
+        <div className="relative overflow-hidden border-b border-border bg-muted px-4 pb-4 pt-5">
           <DialogHeader className="relative flex flex-col items-center space-y-0 text-center">
             <div className="relative mx-auto aspect-square w-[min(11.5rem,calc(100vw-3.5rem))] max-w-full shrink-0">
-              <div
-                className={cn(
-                  "pointer-events-none absolute -inset-1 rounded-[1.35rem] bg-gradient-to-br opacity-90 shadow-[0_12px_40px_-12px_color-mix(in_srgb,var(--pos-primary)_45%,transparent)]",
-                  "from-[color-mix(in_srgb,var(--pos-primary)_35%,transparent)] via-transparent to-[color-mix(in_srgb,var(--pos-primary)_15%,transparent)]",
-                )}
-                aria-hidden
-              />
               {thumb ? (
-                <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-white to-neutral-100 shadow-lg ring-2 ring-white/80 dark:from-white/15 dark:to-muted/40 dark:ring-white/[0.08]">
+                <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-border bg-white shadow-lg dark:bg-muted">
                   <Image
                     src={thumb}
                     alt=""
@@ -232,7 +222,7 @@ export function CashierProductModal({
                   <ModalShelfBadge>{shelfCaption || uiCopy.modalShelfUnavailable}</ModalShelfBadge>
                 </span>
               ) : (
-                <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-muted to-muted/70 shadow-lg ring-2 ring-black/[0.04] dark:ring-white/[0.08]">
+                <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted shadow-lg">
                   <span className="text-5xl font-bold text-[var(--pos-primary)]" aria-hidden>
                     {headerTitle.trim().charAt(0).toUpperCase() || "?"}
                   </span>
@@ -281,7 +271,7 @@ export function CashierProductModal({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-xl border-border/55"
+                className="h-10 w-10 shrink-0 rounded-xl border-border bg-background"
                 aria-label="Decrease quantity"
                 disabled={quantity <= 1}
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -311,7 +301,7 @@ export function CashierProductModal({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-xl border-border/55"
+                className="h-10 w-10 shrink-0 rounded-xl border-border bg-background"
                 aria-label="Increase quantity"
                 disabled={maxPackages != null && quantity >= maxPackages}
                 onClick={() =>
@@ -336,12 +326,12 @@ export function CashierProductModal({
                     "active:scale-[0.97]",
                     overMax && "cursor-not-allowed opacity-40",
                     quantity === q
-                      ? "border-transparent text-[var(--pos-primary-ink)] shadow-md ring-2 ring-[color-mix(in_srgb,var(--pos-primary)_28%,transparent)] ring-offset-2 ring-offset-background"
-                      : "border-border/55 bg-background/90 hover:border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] hover:bg-muted/35",
+                      ? "border-[var(--pos-primary)] text-[var(--pos-primary-ink)] shadow-md"
+                      : "border-border bg-background hover:border-[var(--pos-primary)] hover:bg-muted",
                   )}
                   style={
                     quantity === q
-                      ? { backgroundColor: "var(--pos-primary)", borderColor: "transparent" }
+                      ? { backgroundColor: "var(--pos-primary)", borderColor: "var(--pos-primary)" }
                       : undefined
                   }
                   onClick={() => setQuantity(overMax ? quantity : q)}
@@ -371,7 +361,7 @@ export function CashierProductModal({
               className={modalFieldClass(
                 cn(
                   "h-11 w-full px-3 text-right text-lg font-semibold tabular-nums text-foreground",
-                  !allowPriceEdit && "cursor-default bg-muted/30 text-muted-foreground",
+                  !allowPriceEdit && "cursor-default bg-muted text-muted-foreground",
                 ),
               )}
               value={unitPrice}
@@ -397,12 +387,7 @@ export function CashierProductModal({
           </label>
 
           {subtotalNum != null && subtotalNum > 0 ? (
-            <div
-              className={cn(
-                "rounded-xl border border-[color-mix(in_srgb,var(--pos-primary)_22%,var(--border))] bg-gradient-to-br px-3 py-2.5 text-center shadow-sm ring-1 ring-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]",
-                "from-[color-mix(in_srgb,var(--pos-primary)_07%,transparent)] to-muted/25 dark:to-muted/15",
-              )}
-            >
+            <div className="rounded-xl border border-border bg-muted px-3 py-2.5 text-center shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Line subtotal</p>
               <p className="mt-0.5 inline-flex items-baseline justify-center gap-0.5 text-lg font-bold tabular-nums text-[var(--pos-primary)] sm:text-xl">
                 <span>{subtotalNum.toFixed(2)}</span>
@@ -411,12 +396,12 @@ export function CashierProductModal({
             </div>
           ) : null}
 
-          <DialogFooter className="gap-2 border-t border-border/35 pt-3.5 sm:gap-2">
+          <DialogFooter className="gap-2 border-t border-border pt-3.5 sm:gap-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-11 rounded-xl sm:flex-none"
+              className="h-11 rounded-xl border-border bg-background sm:flex-none"
             >
               Cancel
             </Button>
