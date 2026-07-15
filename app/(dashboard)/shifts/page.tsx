@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Clock,
   Coins,
+  FileText,
   HandCoins,
   Layers,
   ListChecks,
@@ -333,6 +334,47 @@ function LeaderRow({
       <dd className={cn("shrink-0 font-medium text-foreground", NUM, valueClassName)}>
         {value}
       </dd>
+    </div>
+  );
+}
+
+/** Free-text note / reason block with an icon label. */
+function NoteBlock({
+  icon: Icon,
+  label,
+  text,
+  tone = "default",
+}: {
+  icon: LucideIcon;
+  label: string;
+  text: string;
+  tone?: "default" | "flag";
+}) {
+  const flag = tone === "flag";
+  return (
+    <div
+      className={cn(
+        "space-y-1.5 border p-3",
+        flag
+          ? "border-amber-500/30 bg-amber-500/[0.06]"
+          : "border-border/60 bg-muted/15",
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <Icon
+          className={cn(
+            "size-3.5 shrink-0",
+            flag ? "text-amber-600 dark:text-amber-400" : "text-foreground/45",
+          )}
+          aria-hidden
+        />
+        <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
+          {label}
+        </span>
+      </div>
+      <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+        {text}
+      </p>
     </div>
   );
 }
@@ -1003,6 +1045,7 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
 
   const openingDenoms = detail.openingDenominations || [];
   const closingDenoms = detail.closingDenominations || [];
+  const summaryVariance = toNum(detail.closingVariance);
 
   const tabs = [
     { id: "denominations", label: "Denominations", icon: Layers },
@@ -1014,7 +1057,7 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
     <div className="flex h-full flex-col">
       {/* Tab bar — segmented control */}
       <div className="border-b border-border/50 bg-muted/20 p-2">
-        <div className="flex gap-1 rounded-none border border-border/50 bg-background/60 p-1 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+        <div className="flex gap-1 rounded-none border border-border/50 bg-background/60 p-1">
           {tabs.map((tab) => {
             const TabIcon = tab.icon;
             const active = activeTab === tab.id;
@@ -1081,80 +1124,102 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
         )}
 
         {activeTab === "summary" && (
-          <div className="space-y-3">
-            <dl className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <dt className="text-muted-foreground">Status</dt>
-                <StatusBadge status={detail.status} />
-              </div>
-              <LeaderRow
-                label="Shift ID"
-                value={`${detail.id.slice(0, 8)}…`}
-              />
-              <LeaderRow
-                label="Opened by"
-                value={detail.openedByName || "—"}
-                valueClassName="font-sans"
-              />
-              <LeaderRow label="Opened" value={fmtDate(detail.openedAt)} />
-              <LeaderRow label="Closed" value={fmtDate(detail.closedAt)} />
-            </dl>
-            <dl className="space-y-1.5 border-t border-border/50 pt-3 text-xs">
-              <LeaderRow
-                label="Opening float"
-                value={moneyStr(detail.openingCash)}
-              />
-              <LeaderRow
-                label="Expected"
-                value={moneyStr(detail.expectedClosingCash)}
-              />
-              <LeaderRow
-                label="Counted"
-                value={moneyStr(detail.countedClosingCash)}
-              />
-              <div className="flex items-baseline gap-2 border-t border-dashed border-border/60 pt-2">
-                <dt className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-foreground">
-                  Variance
-                </dt>
-                <span
-                  className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
-                  aria-hidden
+          <div className="space-y-4">
+            {/* Shift metadata */}
+            <section className="space-y-2">
+              <SectionLabel icon={ClipboardList} text="Shift" />
+              <dl className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Status</dt>
+                  <StatusBadge status={detail.status} />
+                </div>
+                <LeaderRow
+                  label="Shift ID"
+                  value={`${detail.id.slice(0, 8)}…`}
                 />
-                <dd
-                  className={cn(
-                    "shrink-0 text-sm font-bold",
-                    NUM,
-                    varianceColor(detail.closingVariance),
-                  )}
-                >
-                  {toNum(detail.closingVariance) != null
-                    ? signedMoney(toNum(detail.closingVariance) as number)
-                    : "—"}
-                </dd>
-              </div>
-            </dl>
-            {detail.openingNotes && (
-              <div className="border-t pt-3">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Opening Notes
-                </p>
-                <p className="mt-1 text-sm">{detail.openingNotes}</p>
-              </div>
-            )}
-            {detail.closingNotes && (
-              <div className="border-t pt-3">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Closing Notes
-                </p>
-                <p className="mt-1 text-sm">{detail.closingNotes}</p>
-              </div>
-            )}
+                <LeaderRow
+                  label="Opened by"
+                  value={detail.openedByName || "—"}
+                  valueClassName="font-sans"
+                />
+                <LeaderRow label="Opened" value={fmtDate(detail.openedAt)} />
+                <LeaderRow label="Closed" value={fmtDate(detail.closedAt)} />
+              </dl>
+            </section>
+
+            {/* Cash reconciliation */}
+            <section className="space-y-2">
+              <SectionLabel icon={Scale} text="Cash Reconciliation" />
+              <dl className="space-y-1.5 text-xs">
+                <LeaderRow
+                  label="Opening float"
+                  value={moneyStr(detail.openingCash)}
+                />
+                <LeaderRow
+                  label="Expected"
+                  value={moneyStr(detail.expectedClosingCash)}
+                />
+                <LeaderRow
+                  label="Counted"
+                  value={moneyStr(detail.countedClosingCash)}
+                />
+                <div className="flex items-baseline gap-2 border-t border-dashed border-border/60 pt-2">
+                  <dt className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-foreground">
+                    {varianceDot(summaryVariance) ? (
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          varianceDot(summaryVariance),
+                        )}
+                        aria-hidden
+                      />
+                    ) : null}
+                    Variance
+                  </dt>
+                  <span
+                    className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
+                    aria-hidden
+                  />
+                  <dd
+                    className={cn(
+                      "shrink-0 text-sm font-bold",
+                      NUM,
+                      varianceColor(detail.closingVariance),
+                    )}
+                  >
+                    {summaryVariance != null
+                      ? signedMoney(summaryVariance)
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
             {detail.varianceReason && (
-              <div className="border-t pt-3">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Variance Reason
-                </p>
-                <p className="mt-1 text-sm">{detail.varianceReason}</p>
+              <NoteBlock
+                icon={AlertTriangle}
+                label="Variance reason"
+                text={detail.varianceReason}
+                tone={summaryVariance ? "flag" : "default"}
+              />
+            )}
+
+            {(detail.openingNotes || detail.closingNotes) && (
+              <div className="space-y-2">
+                {detail.openingNotes && (
+                  <NoteBlock
+                    icon={FileText}
+                    label="Opening notes"
+                    text={detail.openingNotes}
+                  />
+                )}
+                {detail.closingNotes && (
+                  <NoteBlock
+                    icon={FileText}
+                    label="Closing notes"
+                    text={detail.closingNotes}
+                  />
+                )}
               </div>
             )}
           </div>
