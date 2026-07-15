@@ -268,21 +268,31 @@ export function BusinessHubWorkspace() {
 
   const marginFooter = useMemo(() => {
     if (!canViewAnalytics) return undefined;
+    let pct: number | null = null;
     if (isToday && pulse && pulse.grossMarginPct != null) {
-      return `${fmtPct(pulse.grossMarginPct)} margin`;
+      pct = toNum(pulse.grossMarginPct);
+    } else if (!isToday && weekPl && revenue > 0) {
+      pct = (grossProfit / revenue) * 100;
     }
-    if (!isToday && weekPl && revenue > 0) {
-      return `${fmtPct((grossProfit / revenue) * 100)} margin`;
+    if (pct == null || Number.isNaN(pct)) return undefined;
+    if (grossProfit < 0) {
+      return `${fmtPct(pct)} · costs above sell prices`;
     }
-    return undefined;
+    return `${fmtPct(pct)} margin`;
   }, [canViewAnalytics, isToday, pulse, weekPl, revenue, grossProfit]);
 
   const revenueTrend = fmtTrendPct(revenue, prevRevenue);
   const ordersTrend = fmtTrendPct(orders ?? 0, prevOrders ?? 0);
   const revenueFooter = revenueTrend ?? marginFooter;
-  const revenueFooterTone = revenueTrend?.startsWith("-")
+  const revenueFooterTone = !revenueTrend
     ? "muted"
-    : "positive";
+    : revenueTrend.startsWith("-") || revenueTrend.startsWith("<-")
+      ? "muted"
+      : "positive";
+  const profitFooterTone =
+    grossProfit < 0 || (marginFooter?.startsWith("-") ?? false)
+      ? "negative"
+      : "positive";
 
   const openShifts = pulse?.openShifts ?? 0;
   const lowStockCount = batchDashboard?.lowStockProducts?.length ?? 0;
@@ -418,11 +428,11 @@ export function BusinessHubWorkspace() {
             value={fmtCount(orders)}
             footer={ordersTrend ?? undefined}
             footerTone={
-              ordersTrend?.startsWith("-")
+              !ordersTrend
                 ? "muted"
-                : ordersTrend
-                  ? "positive"
-                  : "muted"
+                : ordersTrend.startsWith("-") || ordersTrend.startsWith("<-")
+                  ? "muted"
+                  : "positive"
             }
             href={APP_ROUTES.salesTransactions}
           />
@@ -431,7 +441,7 @@ export function BusinessHubWorkspace() {
               label="Gross profit"
               value={fmtKes(grossProfit)}
               footer={marginFooter}
-              footerTone="positive"
+              footerTone={profitFooterTone}
               href={APP_ROUTES.analytics}
             />
           ) : (

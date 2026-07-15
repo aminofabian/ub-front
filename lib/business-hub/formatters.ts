@@ -43,9 +43,14 @@ export function fmtTrendPct(current: number, previous: number): string | null {
   if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
   if (previous === 0) {
     if (current === 0) return null;
-    return "+100%";
+    return current > 0 ? "+100%" : "-100%";
   }
   const delta = ((current - previous) / Math.abs(previous)) * 100;
+  if (!Number.isFinite(delta)) return null;
+  // Near-zero baselines produce absurd percentages (e.g. +48000%); treat as a step-change.
+  if (Math.abs(delta) > 999) {
+    return delta > 0 ? ">+999%" : "<-999%";
+  }
   const sign = delta > 0 ? "+" : "";
   return `${sign}${delta.toFixed(1)}%`;
 }

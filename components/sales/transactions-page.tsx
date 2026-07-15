@@ -15,6 +15,7 @@ import {
 
 import {
   DASHBOARD_MAX,
+  DASHBOARD_TABLE_HEAD,
   DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
   dashboardInputClass,
@@ -119,6 +120,27 @@ function itemPreview(tx: SaleTransaction): string {
   return `${first} + ${tx.lineCount - 1} more`;
 }
 
+function saleMetaParts(tx: SaleTransaction): string[] {
+  const isOnline = tx.channel === "online_store";
+  const parts: string[] = [];
+  const pay = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
+  const payKey = pay.toLowerCase();
+  if (!isOnline && payKey && payKey !== "online" && payKey !== "online checkout") {
+    parts.push(pay);
+  }
+  const customer = tx.customerName?.trim() ?? "";
+  const cashier = tx.cashierName?.trim() ?? "";
+  if (isOnline) {
+    if (customer) parts.push(customer);
+  } else {
+    if (cashier) parts.push(cashier);
+    if (customer && customer.toLowerCase() !== cashier.toLowerCase()) {
+      parts.push(customer);
+    }
+  }
+  return parts;
+}
+
 function Metric({
   label,
   value,
@@ -170,6 +192,7 @@ function TransactionRow({
     !refunded &&
     status !== "voided" &&
     !status.includes("void");
+  const meta = saleMetaParts(tx);
 
   const onDownloadReceipt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,37 +213,37 @@ function TransactionRow({
   };
 
   return (
-    <div
+    <article
       className={cn(
-        "border-b border-[#EEEEEE] last:border-0",
-        refunded && "bg-red-50/30",
+        "border-b border-border/40 last:border-0 transition-colors",
+        refunded && "bg-destructive/[0.03]",
       )}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-[#F9F6F0]/50"
+        className="flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-muted/30 sm:px-5"
         aria-expanded={expanded}
       >
-        <span className="mt-0.5 text-[#888888]">
+        <span className="mt-0.5 text-muted-foreground">
           {expanded ? (
-            <ChevronDown className="size-4" aria-hidden />
+            <ChevronDown className="size-3.5" aria-hidden />
           ) : (
-            <ChevronRight className="size-4" aria-hidden />
+            <ChevronRight className="size-3.5" aria-hidden />
           )}
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs font-semibold text-[#666666]">
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-[11px] font-semibold tracking-wide text-foreground/70">
               #{txDisplayNo(tx)}
             </span>
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                 isOnline
                   ? "bg-indigo-50 text-indigo-800"
                   : refunded
-                    ? "bg-red-100 text-red-700"
+                    ? "bg-destructive/10 text-destructive"
                     : "bg-emerald-50 text-emerald-800",
               )}
             >
@@ -230,92 +253,95 @@ function TransactionRow({
                   ? "Refunded"
                   : "Completed"}
             </span>
+            <span className="text-[11px] text-muted-foreground">
+              {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
+            </span>
           </div>
-          <p className="mt-1 truncate text-[15px] font-medium text-[#333333]">
+          <p className="truncate text-sm font-medium text-foreground/90">
             {itemPreview(tx)}
           </p>
-          <p className="mt-1 text-sm text-[#666666]">
-            {formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods)}
-            {tx.cashierName ? (
-              <>
-                <span className="mx-1.5 text-[#CCCCCC]">·</span>
-                {tx.cashierName}
-              </>
-            ) : null}
-            {tx.customerName?.trim() ? (
-              <>
-                <span className="mx-1.5 text-[#CCCCCC]">·</span>
-                {tx.customerName}
-              </>
-            ) : null}
-          </p>
+          {meta.length > 0 ? (
+            <p className="truncate text-xs text-muted-foreground">
+              {meta.join(" · ")}
+            </p>
+          ) : null}
         </div>
         <div className="shrink-0 text-right">
           <p
             className={cn(
-              "text-base font-bold tabular-nums",
-              refunded ? "text-[#C47A5A]" : "text-black",
+              "text-base font-semibold tabular-nums tracking-tight",
+              refunded ? "text-[#C47A5A]" : "text-foreground",
             )}
           >
             {refunded && tx.total > 0 ? "−" : ""}
             {fmtKes(Math.abs(tx.total))}
           </p>
-          <p className="mt-0.5 text-xs text-[#888888]">
-            {tx.lineCount} item{tx.lineCount === 1 ? "" : "s"} ·{" "}
-            {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
+          <p className="text-[11px] text-muted-foreground">
+            {tx.lineCount} item{tx.lineCount === 1 ? "" : "s"}
           </p>
         </div>
       </button>
 
       {expanded ? (
-        <div className="border-t border-[#EEEEEE] bg-[#FAFAFA] px-5 py-3">
-          <ul className="space-y-2">
-            {tx.lines.map((line, i) => (
-              <li
-                key={`${line.itemId}-${i}`}
-                className="flex items-start justify-between gap-3 text-sm"
-              >
-                <span className="min-w-0 text-[#444444]">
-                  {formatQty(line.quantity)} × {line.itemName}
-                </span>
-                <span className="shrink-0 tabular-nums font-medium text-[#333333]">
-                  {fmtKes(line.lineTotal)}
-                </span>
-              </li>
-            ))}
+        <div className="border-t border-border/25 bg-muted/10 px-4 py-2 sm:px-5 sm:pl-11">
+          <ul className="space-y-0.5">
+            {tx.lines.map((line, i) => {
+              const lineRefunded = isRefunded(line.status);
+              return (
+                <li
+                  key={`${line.itemId}-${i}`}
+                  className="flex items-baseline justify-between gap-3 text-[11px] leading-snug text-muted-foreground sm:text-xs"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="tabular-nums opacity-70">
+                      {formatQty(line.quantity)}
+                    </span>
+                    <span className="mx-1 opacity-40">×</span>
+                    <span
+                      className={lineRefunded ? "line-through opacity-70" : ""}
+                    >
+                      {line.itemName}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums opacity-80">
+                    {fmtKes(line.lineTotal)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           {!isOnline ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="gap-1.5 border-[#EEEEEE] bg-white text-xs"
+                className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
                 disabled={receiptLoading}
                 onClick={onDownloadReceipt}
               >
-                <Download className="size-3.5" aria-hidden />
-                {receiptLoading ? "Downloading…" : "Receipt PDF"}
+                <Download className="size-3" aria-hidden />
+                {receiptLoading ? "…" : "Receipt"}
               </Button>
               {showAdjust ? (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="gap-1.5 border-[#EEEEEE] bg-white text-xs"
+                  className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
                     onAdjustPayment();
                   }}
                 >
-                  <Pencil className="size-3.5" aria-hidden />
+                  <Pencil className="size-3" aria-hidden />
                   Adjust payment
                 </Button>
               ) : null}
             </div>
           ) : (
-            <p className="mt-3 text-xs text-[#888888]">
-              Storefront pickup order — manage under{" "}
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Online order — manage in{" "}
               <Link
                 href={APP_ROUTES.storefrontWebOrders}
                 className="font-medium text-[#B08D48] hover:underline"
@@ -327,17 +353,23 @@ function TransactionRow({
           )}
         </div>
       ) : null}
-    </div>
+    </article>
   );
 }
 
 function ListSkeleton() {
   return (
     <div className={SURFACE}>
+      <div className={DASHBOARD_TABLE_HEAD}>
+        <div className="h-3.5 w-28 animate-pulse rounded bg-muted" />
+      </div>
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="border-b border-[#EEEEEE] px-5 py-4 last:border-0">
-          <div className="h-4 w-40 rounded bg-[#EEEEEE] animate-pulse" />
-          <div className="mt-2 h-3 w-56 rounded bg-[#EEEEEE] animate-pulse" />
+        <div
+          key={i}
+          className="space-y-2 border-b border-border/40 px-4 py-3 last:border-0 sm:px-5"
+        >
+          <div className="h-3.5 w-36 animate-pulse rounded bg-muted" />
+          <div className="h-3 w-52 animate-pulse rounded bg-muted" />
         </div>
       ))}
     </div>
@@ -760,18 +792,48 @@ export function TransactionsPage() {
       {loading ? (
         <ListSkeleton />
       ) : filtered.length === 0 ? (
-        <div className={cn(SURFACE, "px-6 py-16 text-center text-sm", MUTED)}>
+        <div
+          className={cn(
+            SURFACE,
+            "px-6 py-16 text-center text-sm text-muted-foreground",
+          )}
+        >
           {!dateRange
             ? "Pick a from and to date above."
-            : search.trim() ||
-                statusFilter !== "all" ||
-                paymentFilter !== "all" ||
-                channelFilter !== "all"
+            : feedFiltered
               ? "No transactions match your filters."
               : "No transactions in this period."}
         </div>
       ) : (
-        <div className={SURFACE}>
+        <section className={SURFACE} aria-label="Transactions">
+          <div
+            className={cn(
+              DASHBOARD_TABLE_HEAD,
+              "flex flex-wrap items-center justify-between gap-2",
+            )}
+          >
+            <div>
+              <h2 className="font-sans text-sm font-semibold tracking-tight text-foreground">
+                Receipts
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {feedFiltered
+                  ? `Showing ${filtered.length.toLocaleString("en-KE")} of ${transactions.length.toLocaleString("en-KE")}`
+                  : `${filtered.length.toLocaleString("en-KE")} transaction${filtered.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={downloadPdf}
+              disabled={pdfLoading}
+            >
+              <FileDown className="size-3.5" aria-hidden />
+              {pdfLoading ? "Preparing…" : "Download PDF"}
+            </Button>
+          </div>
           {filtered.map((tx) => (
             <TransactionRow
               key={tx.saleId}
@@ -789,7 +851,7 @@ export function TransactionsPage() {
               }}
             />
           ))}
-        </div>
+        </section>
       )}
 
       <AdjustSalePaymentDialog

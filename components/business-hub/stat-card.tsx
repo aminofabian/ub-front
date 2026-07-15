@@ -15,7 +15,7 @@ export function StatCard({
   label: string;
   value: string;
   footer?: string;
-  footerTone?: "muted" | "positive" | "warning";
+  footerTone?: "muted" | "positive" | "warning" | "negative";
   href?: string;
 }) {
   const card = (
@@ -30,6 +30,7 @@ export function StatCard({
             "mt-auto pt-4 text-sm font-medium",
             footerTone === "positive" && "text-emerald-600",
             footerTone === "warning" && "text-[#C47A5A]",
+            footerTone === "negative" && "text-rose-600",
             footerTone === "muted" && "text-[#666666]",
           )}
         >
