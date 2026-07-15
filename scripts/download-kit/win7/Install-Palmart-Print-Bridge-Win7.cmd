@@ -1,5 +1,7 @@
 @echo off
 REM Windows 7 one-time install - PowerShell bridge, no Node.js.
+REM Must be run from the unzipped folder (same folder as the .ps1 files).
+setlocal EnableExtensions
 cd /d "%~dp0"
 
 echo === Palmart Till Print Bridge (Windows 7) ===
@@ -7,23 +9,51 @@ echo Install once. Runs in the background at every sign-in.
 echo No Node.js required.
 echo.
 
+set "PS1=%~dp0Install-Palmart-Print-Bridge-Win7.ps1"
+set "BRIDGE=%~dp0till-print-bridge-win7.ps1"
+
+if not exist "%PS1%" goto :missingFiles
+if not exist "%BRIDGE%" goto :missingFiles
+
 if not exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
   echo PowerShell not found. Windows 7 needs PowerShell 2.0 or later.
   pause
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Palmart-Print-Bridge-Win7.ps1"
-if errorlevel 1 (
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%"
+set "ERR=%ERRORLEVEL%"
+if not "%ERR%"=="0" (
   echo.
-  echo Install failed. Try right-click this .cmd - Run as administrator.
+  echo Install failed (exit %ERR%).
+  echo Try right-click this .cmd - Run as administrator.
   echo If health check fails, run as admin once:
   echo   netsh http add urlacl url=http://127.0.0.1:19500/ user=%USERNAME%
   pause
-  exit /b 1
+  exit /b %ERR%
 )
 echo.
 echo Done. Close this window - the bridge keeps running in the background.
 echo Next: Palmart Cashier - open Printer - Detect printers.
 echo Use Chrome 109 if the cashier site will not load on this PC.
 pause
+exit /b 0
+
+:missingFiles
+echo.
+echo ERROR: Required install files are not next to this .cmd
+echo.
+echo This folder: %CD%
+echo Looking for:
+echo   Install-Palmart-Print-Bridge-Win7.ps1
+echo   till-print-bridge-win7.ps1
+echo.
+echo Fix:
+echo   1. Open the unzipped folder named palmart-till-print-bridge-windows7
+echo      (not only the Downloads folder)
+echo   2. Make sure BOTH .cmd and .ps1 files are in that same folder
+echo   3. Double-click Install-Palmart-Print-Bridge-Win7.cmd from THERE
+echo.
+echo Do not copy only the .cmd file out of the zip.
+pause
+exit /b 1
