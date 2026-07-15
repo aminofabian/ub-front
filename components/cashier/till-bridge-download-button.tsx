@@ -19,6 +19,8 @@ type TillBridgeDownloadButtonProps = {
   className?: string;
   /** Force a specific package; default = detect from user agent. */
   os?: TillBridgeDownloadOs;
+  /** When the bridge is already installed — label as update/reinstall. */
+  update?: boolean;
 };
 
 function toastForOs(os: TillBridgeDownloadOs): string {
@@ -42,9 +44,16 @@ export function TillBridgeDownloadButton({
   compact = false,
   className,
   os,
+  update = false,
 }: TillBridgeDownloadButtonProps) {
   const resolved = os ?? detectTillBridgeDownloadOs();
-  const label = tillBridgeDownloadLabel(resolved);
+  const label = update
+    ? resolved === "windows7"
+      ? "Update bridge (Win7)"
+      : resolved === "windows"
+        ? "Update print bridge"
+        : `Update bridge (${tillBridgeDownloadLabel(resolved)})`
+    : tillBridgeDownloadLabel(resolved);
   const windowsFamily = isWindowsFamily(resolved);
 
   const onDownload = (target: TillBridgeDownloadOs) => {
@@ -57,7 +66,7 @@ export function TillBridgeDownloadButton({
       <div className={cn("flex flex-wrap items-center gap-1.5", compact && "gap-1")}>
         <Button
           type="button"
-          variant={compact ? "outline" : "default"}
+          variant={compact || update ? "outline" : "default"}
           size={compact ? "xs" : "sm"}
           onClick={() => onDownload(resolved === "windows7" ? "windows7" : resolved)}
         >
@@ -73,7 +82,7 @@ export function TillBridgeDownloadButton({
             title="PowerShell bridge - no Node.js"
           >
             <Download className="size-3.5" aria-hidden />
-            Windows 7 (no Node)
+            {update ? "Update Win7 (no Node)" : "Windows 7 (no Node)"}
           </Button>
         ) : null}
       </div>

@@ -123,7 +123,23 @@ export function TillPrinterStatus({
   );
 
   if (IS_DESKTOP) return null;
-  if (bridgeUp === null) return null;
+
+  // Still probing localhost — show download so tills are never stuck without a link.
+  if (bridgeUp === null) {
+    return (
+      <div
+        className={cn(
+          compact
+            ? "inline-flex max-w-full flex-col gap-1 text-[11px] text-muted-foreground"
+            : "flex flex-col gap-2 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground",
+          className,
+        )}
+      >
+        <p className="font-medium text-foreground">Checking print bridge…</p>
+        <TillBridgeDownloadButton compact={compact} update />
+      </div>
+    );
+  }
 
   if (!bridgeUp || winEngineStale) {
     return (
@@ -150,10 +166,13 @@ export function TillPrinterStatus({
             <p className={cn(compact ? "text-destructive/80" : "text-destructive/90")}>
               {winEngineStale ? (
                 <>
-                  Re-download and reinstall the Windows bridge (need{" "}
+                  Download the latest bridge, run the installer again (need{" "}
                   <strong className="font-semibold">{REQUIRED_WIN_PRINT_ENGINE}</strong>
-                  ). Then open http://127.0.0.1:19500/health and confirm printEngine
-                  matches. Epson ePOS cannot use the old StartDocPrinter path.
+                  ), then confirm{" "}
+                  <span className="font-mono text-[10px]">
+                    http://127.0.0.1:19500/health
+                  </span>
+                  .
                 </>
               ) : (
                 <>
@@ -165,7 +184,7 @@ export function TillPrinterStatus({
             </p>
           </div>
         </div>
-        <TillBridgeDownloadButton compact={compact} />
+        <TillBridgeDownloadButton compact={compact} update={winEngineStale} />
       </div>
     );
   }
@@ -204,11 +223,12 @@ export function TillPrinterStatus({
           disabled={saving}
           onSelect={(n) => void handleSelect(n)}
         />
+        <TillBridgeDownloadButton compact={compact} update />
       </div>
     );
   }
 
-  // Printer configured + bridge up — collapse behind a button; Detect stays available.
+  // Printer configured + bridge up — collapse behind a button; Detect + update stay available.
   return (
     <div className={cn("inline-flex max-w-full flex-col gap-1", className)}>
       <Button
@@ -254,7 +274,7 @@ export function TillPrinterStatus({
           )}
         >
           <p className="text-muted-foreground">
-            Change or re-detect the receipt printer on this PC.
+            Change printer, or update the print bridge on this PC.
           </p>
           <CupsPrinterPicker
             compact={compact}
@@ -262,6 +282,7 @@ export function TillPrinterStatus({
             disabled={saving}
             onSelect={(n) => void handleSelect(n)}
           />
+          <TillBridgeDownloadButton compact={compact} update />
         </div>
       ) : null}
     </div>
