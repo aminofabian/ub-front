@@ -480,22 +480,25 @@ export function SupplyLineTotalCell({
 }
 
 function rowReferenceCost(
-  link?: { lastCostPrice?: number | string | null; defaultCostPrice?: number | string | null },
+  link?: {
+    lastCostPrice?: number | string | null;
+    defaultCostPrice?: number | string | null;
+    catalogBuyingPrice?: number | string | null;
+  },
 ): number | null {
   if (!link) {
     return null;
   }
-  const last = link.lastCostPrice;
-  if (last != null && String(last).trim() !== "") {
-    const n = Number(last);
-    if (Number.isFinite(n) && n >= 0) {
-      return n;
+  for (const raw of [
+    link.lastCostPrice,
+    link.defaultCostPrice,
+    link.catalogBuyingPrice,
+  ]) {
+    if (raw == null || String(raw).trim() === "") {
+      continue;
     }
-  }
-  const def = link.defaultCostPrice;
-  if (def != null && String(def).trim() !== "") {
-    const n = Number(def);
-    if (Number.isFinite(n) && n >= 0) {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
       return n;
     }
   }

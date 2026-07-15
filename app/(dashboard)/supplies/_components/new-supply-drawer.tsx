@@ -180,18 +180,28 @@ function draftBuyingUnitFromPricingKey(
   return null;
 }
 
-/** Prefer last/default link cost; treat 0 / blank as unset so history can fill. */
-function linkSeedUnitCost(link: SupplierItemLinkRecord): string {
-  for (const raw of [link.lastCostPrice, link.defaultCostPrice]) {
-    if (raw == null || String(raw).trim() === "") {
-      continue;
-    }
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) {
-      return Number.isInteger(n) ? String(n) : n.toFixed(2);
-    }
+/** Prefer last/default link cost, then catalog buying price; treat 0 / blank as unset. */
+function positiveMoneyStr(raw: number | string | null | undefined): string {
+  if (raw == null || String(raw).trim() === "") {
+    return "";
   }
-  return "";
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return "";
+  }
+  return n.toFixed(2);
+}
+
+function linkSeedUnitCost(link: SupplierItemLinkRecord): string {
+  return (
+    positiveMoneyStr(link.lastCostPrice) ||
+    positiveMoneyStr(link.defaultCostPrice) ||
+    positiveMoneyStr(link.catalogBuyingPrice)
+  );
+}
+
+function linkSeedShelfPrice(link: SupplierItemLinkRecord): string {
+  return positiveMoneyStr(link.catalogShelfPrice);
 }
 
 function unitCostMissing(unitStr: string): boolean {
@@ -389,7 +399,7 @@ export function NewSupplyDrawer({
           item: null,
           qtyStr: "",
           unitStr: linkSeedUnitCost(link),
-          sellPriceStr: "",
+          sellPriceStr: linkSeedShelfPrice(link),
           sellPriceTouched: false,
           expiry: "",
         })),
@@ -553,7 +563,8 @@ export function NewSupplyDrawer({
               ) {
                 next = { ...next, unitStr: latestCost.toFixed(2) };
               }
-              if (!r.sellPriceTouched && r.sellPriceStr.trim() === "") {
+              // Prefer live current/suggested shelf over catalog seed when available.
+              if (!r.sellPriceTouched) {
                 const shelf = cur ?? sug;
                 if (shelf != null) {
                   next = { ...next, sellPriceStr: shelf.toFixed(2) };
@@ -729,17 +740,18 @@ export function NewSupplyDrawer({
 
     setRows((prev) => {
       const idx = prev.findIndex((row) => rowItemId(row) === draft.item.id);
+      const catalogShelf = linkSeedShelfPrice(link);
       const preserved =
         idx >= 0
           ? {
               qtyStr: prev[idx].qtyStr,
-              sellPriceStr: prev[idx].sellPriceStr,
+              sellPriceStr: prev[idx].sellPriceStr.trim() || catalogShelf,
               sellPriceTouched: prev[idx].sellPriceTouched,
               expiry: prev[idx].expiry,
             }
           : {
               qtyStr: "",
-              sellPriceStr: "",
+              sellPriceStr: catalogShelf,
               sellPriceTouched: false,
               expiry: "",
             };

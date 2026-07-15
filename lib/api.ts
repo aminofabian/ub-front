@@ -890,6 +890,10 @@ export type SupplierItemLinkRecord = {
   supplierSku?: string | null;
   defaultCostPrice?: number | string | null;
   lastCostPrice?: number | string | null;
+  /** Catalog item buying price when link cost fields are unset. */
+  catalogBuyingPrice?: number | string | null;
+  /** Catalog bundle/shelf price for draft retail prefill. */
+  catalogShelfPrice?: number | string | null;
   reorderLevel?: number | string | null;
   packSize?: number | string | null;
   packUnit?: string | null;
