@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
+  FileDown,
   List,
   Pencil,
   RefreshCw,
@@ -56,6 +57,11 @@ import {
   txDisplayNo,
   type SaleTransaction,
 } from "@/lib/sale-transactions";
+import {
+  buildSalesActivityPdf,
+  downloadBlob,
+  salesActivityPdfFilename,
+} from "@/lib/sales-activity-pdf";
 
 const SURFACE = DASHBOARD_TABLE_SURFACE;
 const MUTED = "text-muted-foreground";
@@ -339,7 +345,7 @@ function ListSkeleton() {
 }
 
 export function TransactionsPage() {
-  const { me, setBranchId: setHeaderBranchId } = useDashboard();
+  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = hasPermission(me?.permissions, Permission.SalesIntelligenceRead);
   const canViewWebOrders = hasPermission(
     me?.permissions,
@@ -354,6 +360,7 @@ export function TransactionsPage() {
   const [branchId, setBranchId] = useState("");
   const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
   const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<string | undefined>();
+  const [pdfLoading, setPdfLoading] = useState(false);
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
     value: branchId,
@@ -517,6 +524,57 @@ export function TransactionsPage() {
     };
   }, [transactions]);
 
+  const filteredSummary = useMemo(() => {
+    let revenue = 0;
+    let units = 0;
+    for (const tx of filtered) {
+      if (!isRefunded(tx.status)) revenue += tx.total;
+      for (const line of tx.lines) {
+        if (!isRefunded(line.status)) units += toNum(line.quantity);
+      }
+    }
+    return { revenue, units, count: filtered.length };
+  }, [filtered]);
+
+  const downloadPdf = useCallback(() => {
+    if (!dateRange || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const branchLabel = branchId.trim()
+        ? (branches.find((b) => b.id === branchId)?.name ?? "Branch")
+        : "All branches";
+      const blob = buildSalesActivityPdf({
+        title: "Sales transactions",
+        businessLabel: business?.name ?? null,
+        branchLabel,
+        periodLabel: periodLabel || "Selected period",
+        revenue: filteredSummary.revenue,
+        transactionCount: filteredSummary.count,
+        unitsSold: filteredSummary.units,
+        transactions: filtered,
+      });
+      downloadBlob(
+        blob,
+        salesActivityPdfFilename({
+          title: "sales-transactions",
+          from: dateRange.from,
+          to: dateRange.to,
+        }),
+      );
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [
+    dateRange,
+    pdfLoading,
+    branchId,
+    branches,
+    business?.name,
+    periodLabel,
+    filteredSummary,
+    filtered,
+  ]);
+
   const feedFiltered =
     search.trim() !== "" ||
     statusFilter !== "all" ||
@@ -587,6 +645,17 @@ export function TransactionsPage() {
               aria-hidden
             />
             Refresh
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={downloadPdf}
+            disabled={loading || !dateRange || pdfLoading}
+          >
+            <FileDown className="size-3.5" aria-hidden />
+            {pdfLoading ? "PDF…" : "PDF"}
           </Button>
         </div>
       </header>

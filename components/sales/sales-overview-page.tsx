@@ -10,6 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import {
+  Download,
   List,
   Pencil,
   Receipt,
@@ -57,6 +58,11 @@ import {
   matchesPaymentFilter,
   type PaymentFilter,
 } from "@/lib/sale-payment-filter";
+import {
+  buildSalesActivityPdf,
+  downloadBlob,
+  salesActivityPdfFilename,
+} from "@/lib/sales-activity-pdf";
 
 const MUTED = "text-muted-foreground";
 const POLL_MS = 8_000;
@@ -417,7 +423,7 @@ function SaleGroup({
 }
 
 export function SalesOverviewPage() {
-  const { me, setBranchId: setHeaderBranchId } = useDashboard();
+  const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed =
     hasPermission(me?.permissions, Permission.SalesIntelligenceRead) ||
     hasPermission(me?.permissions, Permission.SalesSell);
@@ -435,6 +441,7 @@ export function SalesOverviewPage() {
   const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<
     string | undefined
   >();
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [branchId, setBranchId] = useState("");
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -594,6 +601,57 @@ export function SalesOverviewPage() {
     [filteredLines],
   );
 
+  const filteredSummary = useMemo(() => {
+    let revenue = 0;
+    let units = 0;
+    for (const tx of transactions) {
+      if (!isRefunded(tx.status)) revenue += tx.total;
+      for (const line of tx.lines) {
+        if (!isRefunded(line.status)) units += toNum(line.quantity);
+      }
+    }
+    return { revenue, units, count: transactions.length };
+  }, [transactions]);
+
+  const downloadPdf = useCallback(() => {
+    if (!dateRange || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const branchLabel = branchId.trim()
+        ? (branches.find((b) => b.id === branchId)?.name ?? "Branch")
+        : "All branches";
+      const blob = buildSalesActivityPdf({
+        title: "Sales activity",
+        businessLabel: business?.name ?? null,
+        branchLabel,
+        periodLabel: periodLabel || "Selected period",
+        revenue: filteredSummary.revenue,
+        transactionCount: filteredSummary.count,
+        unitsSold: filteredSummary.units,
+        transactions,
+      });
+      downloadBlob(
+        blob,
+        salesActivityPdfFilename({
+          title: "sales-activity",
+          from: dateRange.from,
+          to: dateRange.to,
+        }),
+      );
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [
+    dateRange,
+    pdfLoading,
+    branchId,
+    branches,
+    business?.name,
+    periodLabel,
+    filteredSummary,
+    transactions,
+  ]);
+
   const summary = useMemo(() => {
     let revenue = 0;
     let refundTotal = 0;
@@ -732,6 +790,17 @@ export function SalesOverviewPage() {
               aria-hidden
             />
             Refresh
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={downloadPdf}
+            disabled={loading || !dateRange || pdfLoading}
+          >
+            <Download className="size-3.5" aria-hidden />
+            {pdfLoading ? "PDF…" : "PDF"}
           </Button>
           <Button
             size="sm"
