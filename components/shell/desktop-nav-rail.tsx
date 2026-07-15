@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -9,6 +10,8 @@ import {
   CreditCard,
   LayoutDashboard,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   Receipt,
   ScanLine,
   ShoppingBag,
@@ -218,20 +221,32 @@ function SubNavLink({ href, label, icon: Icon, active }: SubNavLinkProps) {
 type SubNavPanelProps = {
   section: DesktopNavSection;
   pathname: string;
+  onCollapse: () => void;
 };
 
-function SubNavPanel({ section, pathname }: SubNavPanelProps) {
+function SubNavPanel({ section, pathname, onCollapse }: SubNavPanelProps) {
   return (
     <aside className="flex h-screen w-52 shrink-0 flex-col border-r border-border/60 bg-background">
-      <div className="border-b border-border/50 px-4 py-[1.15rem]">
-        <p className="text-sm font-semibold tracking-tight text-foreground">
-          {section.title}
-        </p>
-        {section.blurb ? (
-          <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
-            {section.blurb}
+      <div className="flex items-start justify-between gap-2 border-b border-border/50 px-4 py-[0.9rem]">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+            {section.title}
           </p>
-        ) : null}
+          {section.blurb ? (
+            <p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
+              {section.blurb}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={onCollapse}
+          title="Hide pages"
+          aria-label="Hide pages"
+          className="-mr-1 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
+        >
+          <PanelLeftClose className="size-4" strokeWidth={1.75} aria-hidden />
+        </button>
       </div>
       <nav
         className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2"
@@ -263,6 +278,8 @@ type DesktopNavRailProps = {
   flat?: boolean;
 };
 
+const NAV_PANEL_COLLAPSED_KEY = "ub.navPanel.collapsed";
+
 export function DesktopNavRail({
   pathname,
   homeHref,
@@ -273,6 +290,32 @@ export function DesktopNavRail({
   sections,
   flat = false,
 }: DesktopNavRailProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Restore the user's last choice after mount (kept out of the initial render
+  // to avoid a hydration mismatch).
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(NAV_PANEL_COLLAPSED_KEY) === "1") {
+        setCollapsed(true);
+      }
+    } catch {
+      // localStorage unavailable (private mode / SSR) — fall back to expanded.
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(NAV_PANEL_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        // Non-fatal: preference just won't persist.
+      }
+      return next;
+    });
+  };
+
   const activeSectionId = resolveActiveNavSectionId(
     sections,
     pathname,
@@ -320,6 +363,18 @@ export function DesktopNavRail({
             )}
           </Link>
 
+          {panelSection && collapsed ? (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Show pages"
+              aria-label="Show pages"
+              className="mb-1.5 flex size-10 items-center justify-center rounded-xl text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              <PanelLeftOpen className="size-[1.15rem]" strokeWidth={1.75} aria-hidden />
+            </button>
+          ) : null}
+
           <nav
             className="flex w-full flex-1 flex-col gap-0.5 overflow-y-auto px-1.5 pb-3"
             aria-label="Main"
@@ -352,8 +407,12 @@ export function DesktopNavRail({
         </div>
       </aside>
 
-      {panelSection ? (
-        <SubNavPanel section={panelSection} pathname={pathname} />
+      {panelSection && !collapsed ? (
+        <SubNavPanel
+          section={panelSection}
+          pathname={pathname}
+          onCollapse={toggleCollapsed}
+        />
       ) : null}
     </>
   );
