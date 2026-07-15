@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   List,
+  Pencil,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
+import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -203,16 +205,27 @@ function TransactionRow({
   onToggle,
   nowMs,
   showRelativeTime,
+  canAdjustPayment,
+  onAdjustPayment,
 }: {
   tx: SaleTransaction;
   expanded: boolean;
   onToggle: () => void;
   nowMs: number;
   showRelativeTime: boolean;
+  canAdjustPayment: boolean;
+  onAdjustPayment: () => void;
 }) {
   const refunded = isRefunded(tx.status);
   const isOnline = tx.channel === "online_store";
   const [receiptLoading, setReceiptLoading] = useState(false);
+  const status = tx.status?.toLowerCase() ?? "";
+  const showAdjust =
+    canAdjustPayment &&
+    !isOnline &&
+    !refunded &&
+    status !== "voided" &&
+    !status.includes("void");
 
   const onDownloadReceipt = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -340,6 +353,21 @@ function TransactionRow({
                 <Download className="size-3.5" aria-hidden />
                 {receiptLoading ? "Downloading…" : "Receipt PDF"}
               </Button>
+              {showAdjust ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-[#EEEEEE] bg-white text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdjustPayment();
+                  }}
+                >
+                  <Pencil className="size-3.5" aria-hidden />
+                  Adjust payment
+                </Button>
+              ) : null}
             </div>
           ) : (
             <p className="mt-3 text-xs text-[#888888]">
@@ -379,9 +407,15 @@ export function TransactionsPage() {
     me?.permissions,
     Permission.StorefrontOrdersRead,
   );
+  const canAdjustPayment = hasPermission(
+    me?.permissions,
+    Permission.SalesPaymentAdjust,
+  );
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchId, setBranchId] = useState("");
+  const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
+  const [adjustReceiptLabel, setAdjustReceiptLabel] = useState<string | undefined>();
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
     value: branchId,
@@ -735,10 +769,28 @@ export function TransactionsPage() {
               }
               nowMs={nowMs}
               showRelativeTime={isToday}
+              canAdjustPayment={canAdjustPayment}
+              onAdjustPayment={() => {
+                setAdjustSaleId(tx.saleId);
+                setAdjustReceiptLabel(txDisplayNo(tx));
+              }}
             />
           ))}
         </div>
       )}
+
+      <AdjustSalePaymentDialog
+        open={adjustSaleId != null}
+        saleId={adjustSaleId}
+        receiptLabel={adjustReceiptLabel}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdjustSaleId(null);
+            setAdjustReceiptLabel(undefined);
+          }
+        }}
+        onAdjusted={() => void load({ silent: true })}
+      />
     </div>
   );
 }

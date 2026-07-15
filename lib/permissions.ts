@@ -41,6 +41,8 @@ export const Permission = {
   SalesVoidOwn: "sales.void.own",
   SalesVoidAny: "sales.void.any",
   SalesRefundCreate: "sales.refund.create",
+  /** Correct mis-recorded tender (cash / M-Pesa / card / credit) on a completed sale. */
+  SalesPaymentAdjust: "sales.payment.adjust",
   SalesIntelligenceRead: "sales.intelligence.read",
   StorefrontOrdersRead: "storefront.orders.read",
   NotificationsPromotionsManage: "notifications.promotions.manage",

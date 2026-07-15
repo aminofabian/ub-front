@@ -5841,6 +5841,46 @@ export async function postVoidSale(
   );
 }
 
+export async function fetchSale(saleId: string): Promise<SaleRecord> {
+  return request<SaleRecord>(
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}`,
+    { toast: false },
+  );
+}
+
+export type AdjustSalePaymentsPayload = {
+  payments: PostSalePaymentPayload[];
+  reason?: string | null;
+};
+
+/** Admin correction when tender was mis-recorded (cash ↔ M-Pesa ↔ credit ↔ card). */
+export async function adjustSalePayments(
+  saleId: string,
+  body: AdjustSalePaymentsPayload,
+): Promise<SaleRecord> {
+  const payments = body.payments.map((p) => {
+    const row: Record<string, unknown> = {
+      method: p.method,
+      amount: p.amount,
+    };
+    if (p.reference?.trim()) {
+      row.reference = p.reference.trim();
+    }
+    return row;
+  });
+  const reason = body.reason?.trim();
+  return request<SaleRecord>(
+    `/api/v1/sales/${encodeURIComponent(saleId.trim())}/payments`,
+    {
+      method: "PATCH",
+      body: {
+        payments,
+        ...(reason ? { reason } : {}),
+      },
+    },
+  );
+}
+
 /** Idempotent per Idempotency-Key; requires an open shift for drawer-affecting refunds. */
 export async function postSaleRefund(
   saleId: string,

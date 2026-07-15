@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { List, Receipt, RefreshCw, Search } from "lucide-react";
+import { List, Pencil, Receipt, RefreshCw, Search } from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
+import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
 import { cn } from "@/lib/utils";
 import { formatDateRangeLabel, presetRange } from "@/lib/analytics-date-range";
 import { fetchBranches, type BranchRecord, type RecentSaleRow } from "@/lib/api";
@@ -86,16 +87,27 @@ function rowKey(row: RecentSaleRow, index: number): string {
   return `${row.saleId}-${row.itemId}-${row.soldAt}-${index}`;
 }
 
+function canAdjustSalePayment(row: RecentSaleRow): boolean {
+  if (row.channel === "online_store") return false;
+  const status = row.status?.toLowerCase() ?? "";
+  if (status.includes("refund") || status === "voided") return false;
+  return status === "completed" || status === "";
+}
+
 function SaleLineRow({
   row,
   nowMs,
   isNew,
   showRelativeTime,
+  showAdjust,
+  onAdjust,
 }: {
   row: RecentSaleRow;
   nowMs: number;
   isNew?: boolean;
   showRelativeTime: boolean;
+  showAdjust?: boolean;
+  onAdjust?: () => void;
 }) {
   const refunded =
     row.status?.toLowerCase() === "refunded" ||
@@ -136,6 +148,20 @@ function SaleLineRow({
               </>
             ) : null}
           </p>
+          {showAdjust && onAdjust ? (
+            <div className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 border-[#EEEEEE] bg-white px-2 text-xs"
+                onClick={onAdjust}
+              >
+                <Pencil className="size-3" aria-hidden />
+                Adjust payment
+              </Button>
+            </div>
+          ) : null}
         </div>
         <div className="shrink-0 text-right">
           <p
@@ -214,8 +240,13 @@ export function SalesOverviewPage() {
     me?.permissions,
     Permission.StorefrontOrdersRead,
   );
+  const canAdjustPayment = hasPermission(
+    me?.permissions,
+    Permission.SalesPaymentAdjust,
+  );
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
+  const [adjustSaleId, setAdjustSaleId] = useState<string | null>(null);
   const [branchId, setBranchId] = useState("");
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -369,6 +400,19 @@ export function SalesOverviewPage() {
       );
     });
   }, [lines, search, statusFilter, paymentFilter, channelFilter]);
+
+  const adjustAnchorKeys = useMemo(() => {
+    const seen = new Set<string>();
+    const anchors = new Set<string>();
+    filteredLines.forEach((row, index) => {
+      if (seen.has(row.saleId)) return;
+      seen.add(row.saleId);
+      if (canAdjustPayment && canAdjustSalePayment(row)) {
+        anchors.add(rowKey(row, index));
+      }
+    });
+    return anchors;
+  }, [filteredLines, canAdjustPayment]);
 
   const summary = useMemo(() => {
     let revenue = 0;
@@ -649,10 +693,29 @@ export function SalesOverviewPage() {
               nowMs={nowMs}
               isNew={newKeys.has(rowKey(row, index))}
               showRelativeTime={isLivePeriod}
+              showAdjust={adjustAnchorKeys.has(rowKey(row, index))}
+              onAdjust={() => setAdjustSaleId(row.saleId)}
             />
           ))}
         </div>
       )}
+
+      <AdjustSalePaymentDialog
+        open={adjustSaleId != null}
+        saleId={adjustSaleId}
+        receiptLabel={
+          adjustSaleId
+            ? (() => {
+                const row = filteredLines.find((r) => r.saleId === adjustSaleId);
+                return row?.receiptNo != null ? String(row.receiptNo) : undefined;
+              })()
+            : undefined
+        }
+        onOpenChange={(open) => {
+          if (!open) setAdjustSaleId(null);
+        }}
+        onAdjusted={() => void load({ silent: true })}
+      />
     </div>
   );
 }
