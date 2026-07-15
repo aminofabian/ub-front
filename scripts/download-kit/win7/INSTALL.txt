@@ -13,8 +13,10 @@ It does NOT need Node.js (uses built-in PowerShell).
 
 After install:
   - Bridge runs hidden in the background
-  - Auto-starts at every Windows sign-in
+  - Auto-starts at every Windows sign-in via the Startup folder
+    (Task Scheduler is not used on Windows 7)
   - Listens on http://127.0.0.1:19500
+  - You should see: OK - Windows 7 bridge installed and running...
 
 Cashier browser on Windows 7:
   Use Google Chrome 109 (last version that supports Windows 7).

@@ -1,5 +1,6 @@
 # Install Palmart Till Print Bridge on Windows 7 (no Node.js).
 # ASCII-only. Works with Windows PowerShell 2.0+.
+# Autostart = Startup folder only (schtasks is unreliable on Win7).
 $ErrorActionPreference = "Stop"
 
 $PkgDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -9,7 +10,6 @@ $BridgeDst = Join-Path $InstallDir "till-print-bridge-win7.ps1"
 $VbsPath = Join-Path $InstallDir "run-hidden.vbs"
 $LogPath = Join-Path $InstallDir "bridge.log"
 $StartCmdPath = Join-Path $InstallDir "start-till-print-bridge.cmd"
-$TaskName = "PalmartTillPrintBridge"
 $StartupName = "Palmart-Till-Print-Bridge.vbs"
 $HealthUrl = "http://127.0.0.1:19500/health"
 $Port = 19500
@@ -29,10 +29,10 @@ function Test-BridgeHealth {
   }
 }
 
-function Wait-BridgeHealth([int]$Attempts = 20) {
+function Wait-BridgeHealth([int]$Attempts = 25) {
   for ($i = 0; $i -lt $Attempts; $i++) {
     if (Test-BridgeHealth) { return $true }
-    Start-Sleep -Milliseconds 700
+    Start-Sleep -Milliseconds 800
   }
   return $false
 }
@@ -64,31 +64,15 @@ function Install-StartupEntry([string]$SourceVbs) {
   return $dest
 }
 
-function Install-LogonTaskSchtasks([string]$VbsFile) {
-  # Windows 7 schtasks: pass ONLY the .vbs path as /TR (shell opens it with wscript).
-  # Do NOT put wscript.exe + quoted path in /TR - Start-Process splits it and
-  # schtasks treats the .vbs path as an invalid extra switch.
-  if (-not (Test-Path $VbsFile)) {
-    throw ("Missing launcher: " + $VbsFile)
-  }
-
-  # Ignore delete failure when the task does not exist yet.
-  Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Delete", "/TN", $TaskName, "/F") -Wait -NoNewWindow -ErrorAction SilentlyContinue | Out-Null
-
-  $p = Start-Process -FilePath "schtasks.exe" -ArgumentList @(
-    "/Create",
-    "/TN", $TaskName,
-    "/TR", $VbsFile,
-    "/SC", "ONLOGON",
-    "/F"
-  ) -Wait -PassThru -NoNewWindow
-  if ($null -eq $p -or $p.ExitCode -ne 0) {
-    $code = 1
-    if ($p) { $code = $p.ExitCode }
-    throw ("schtasks create failed with exit " + $code)
-  }
-
-  Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Run", "/TN", $TaskName) -Wait -NoNewWindow -ErrorAction SilentlyContinue | Out-Null
+function Start-BridgeHidden([string]$WscriptExe, [string]$VbsFile) {
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $WscriptExe
+  $psi.Arguments = '"' + $VbsFile + '"'
+  $psi.WorkingDirectory = (Split-Path -Parent $VbsFile)
+  $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+  $psi.CreateNoWindow = $true
+  $psi.UseShellExecute = $false
+  [void][System.Diagnostics.Process]::Start($psi)
 }
 
 if (-not (Test-Path $BridgeSrc)) {
@@ -113,6 +97,10 @@ Write-Step "No Node.js required on Windows 7."
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item -Force $BridgeSrc $BridgeDst
 Write-HiddenVbs -PowerShellExe $psExe -BridgeFile $BridgeDst -WorkDir $InstallDir -OutVbs $VbsPath -OutLog $LogPath
+if (-not (Test-Path $VbsPath)) {
+  throw ("Failed to write launcher: " + $VbsPath)
+}
+Write-Step ("Launcher: " + $VbsPath)
 
 [System.IO.File]::WriteAllLines($StartCmdPath, @(
   "@echo off",
@@ -125,25 +113,23 @@ Write-HiddenVbs -PowerShellExe $psExe -BridgeFile $BridgeDst -WorkDir $InstallDi
 $startupPath = $null
 try {
   $startupPath = Install-StartupEntry -SourceVbs $VbsPath
-  if ($startupPath) { Write-Step ("Startup folder: " + $startupPath) }
+  if ($startupPath) {
+    Write-Step ("Startup folder: " + $startupPath)
+  } else {
+    Write-Warning "Could not resolve Startup folder."
+  }
 } catch {
   Write-Warning ("Could not add Startup folder entry: " + $_.Exception.Message)
 }
 
-$taskOk = $false
-try {
-  Install-LogonTaskSchtasks -VbsFile $VbsPath
-  $taskOk = $true
-  Write-Step ("Scheduled task: " + $TaskName + " (schtasks ONLOGON)")
-} catch {
-  # Startup folder entry is enough for daily use on Windows 7.
-  Write-Warning ("Scheduled task skipped (Startup folder still used): " + $_.Exception.Message)
-}
+# Do not use schtasks on Windows 7 - quoting/API differences cause false errors.
+# Startup folder is the supported autostart method.
+Write-Step "Autostart: Startup folder (no Task Scheduler on Windows 7)"
 
 if (Test-BridgeHealth) {
   Write-Step ("Bridge already healthy on port " + $Port)
 } else {
-  Start-Process -FilePath $Wscript -ArgumentList ('"' + $VbsPath + '"') -WindowStyle Hidden | Out-Null
+  Start-BridgeHidden -WscriptExe $Wscript -VbsFile $VbsPath
   Write-Step "Started bridge in background (no window)"
 }
 
@@ -151,21 +137,22 @@ $ok = Wait-BridgeHealth
 Write-Host ""
 if ($ok) {
   Write-Host "OK - Windows 7 bridge installed and running at http://127.0.0.1:19500"
-  Write-Host "It starts automatically when you sign in. No window to leave open. No Node.js."
-  if ($taskOk) {
-    Write-Host ("Autostart: Startup folder + schtasks (" + $TaskName + ")")
-  } else {
-    Write-Host "Autostart: Startup folder"
+  Write-Host "It starts automatically when you sign in to Windows."
+  Write-Host "No window to leave open. No Node.js. No Task Scheduler needed."
+  if ($startupPath) {
+    Write-Host ("Autostart file: " + $startupPath)
   }
   Write-Host ("Logs: " + $LogPath)
   Write-Host ""
   Write-Host "Go back to Palmart Cashier and click Detect printers."
   Write-Host "Tip: use Chrome 109 (last Chrome for Windows 7) for the cashier site."
-} else {
-  Write-Warning "Files installed, but health check failed."
-  Write-Warning ("Log file: " + $LogPath)
-  Write-Warning ("Try: " + $StartCmdPath)
-  Write-Warning "If URL reservation fails, run once as Administrator, or:"
-  Write-Warning ("  netsh http add urlacl url=http://127.0.0.1:19500/ user=" + $env:USERNAME)
-  throw "Bridge did not become healthy on http://127.0.0.1:19500"
+  exit 0
 }
+
+Write-Warning "Files installed, but health check failed."
+Write-Warning ("Log file: " + $LogPath)
+Write-Warning ("Try: " + $StartCmdPath)
+Write-Warning "If URL reservation fails, open Command Prompt as Administrator and run:"
+Write-Warning ("  netsh http add urlacl url=http://127.0.0.1:19500/ user=" + $env:USERNAME)
+Write-Warning "Then run this installer again."
+throw "Bridge did not become healthy on http://127.0.0.1:19500"
