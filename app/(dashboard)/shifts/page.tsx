@@ -146,15 +146,6 @@ function varianceBgColor(v: number | string | null | undefined): string {
   return "bg-red-500/10 border-red-500/20";
 }
 
-/** Solid accent hue for variance severity (used on KPI metric rules). */
-function varianceAccent(v: number | null | undefined): string {
-  if (v == null) return "bg-border";
-  const abs = Math.abs(v);
-  if (abs === 0) return "bg-emerald-500";
-  if (abs < VARIANCE_THRESHOLD_RED) return "bg-amber-500";
-  return "bg-red-500";
-}
-
 function toNum(v: number | string | null | undefined): number | null {
   if (v == null) return null;
   const n = typeof v === "number" ? v : Number(v);
@@ -348,37 +339,19 @@ function ShiftCard({
 }) {
   const v = shift.variance;
   const varNum = v != null ? (typeof v === "number" ? v : Number(v)) : null;
-  const accent =
-    shift.status === "open"
-      ? "bg-emerald-500"
-      : shift.status === "suspended"
-        ? "bg-amber-500"
-        : shift.status === "reconciled"
-          ? "bg-blue-500"
-          : "bg-red-500";
 
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "group relative w-full overflow-hidden rounded-none border p-3 pl-3.5 text-left transition-all duration-200",
+        "group relative w-full overflow-hidden rounded-none border p-3 text-left transition-all duration-200",
         "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-md",
         isSelected
           ? "border-primary/40 bg-primary/[0.04] shadow-sm ring-1 ring-primary/20"
           : "border-border/70 bg-card ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
       )}
     >
-      {/* Status accent stripe */}
-      <span
-        className={cn(
-          "absolute inset-y-0 left-0 w-1 transition-opacity",
-          accent,
-          isSelected ? "opacity-100" : "opacity-60 group-hover:opacity-100",
-        )}
-        aria-hidden
-      />
-
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -582,7 +555,7 @@ function DenominationComparison({
               );
             })}
           </tbody>
-          <tfoot className="border-t-2 border-border/60 bg-muted/30 font-semibold">
+          <tfoot className="border-t border-border/50 bg-muted/30 font-semibold">
             <tr>
               <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4">
                 Total
@@ -826,23 +799,14 @@ function KpiCard({
   value,
   icon: Icon,
   valueClassName,
-  accentClassName,
 }: {
   label: string;
   value: string;
   icon?: LucideIcon;
   valueClassName?: string;
-  accentClassName?: string;
 }) {
   return (
     <div className="group relative overflow-hidden border border-border/70 bg-gradient-to-b from-card to-muted/25 p-2.5 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
-      <span
-        className={cn(
-          "absolute inset-x-0 top-0 h-[3px]",
-          accentClassName || "bg-border",
-        )}
-        aria-hidden
-      />
       <div className="flex items-center justify-between gap-2">
         <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/70">
           {label}
@@ -1224,19 +1188,16 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
           label="Opening Float"
           value={moneyStr(detail.openingCash)}
           icon={Wallet}
-          accentClassName="bg-primary/50"
         />
         <KpiCard
           label="Expected Cash"
           value={moneyStr(expected)}
           icon={Calculator}
-          accentClassName="bg-primary/25"
         />
         <KpiCard
           label="Counted Cash"
           value={counted != null ? moneyStr(counted) : "—"}
           icon={Coins}
-          accentClassName="bg-primary/25"
           valueClassName={
             counted != null ? "text-foreground" : "text-muted-foreground"
           }
@@ -1250,7 +1211,6 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
           }
           icon={Scale}
           valueClassName={varianceColor(variance)}
-          accentClassName={varianceAccent(variance)}
         />
       </div>
 
