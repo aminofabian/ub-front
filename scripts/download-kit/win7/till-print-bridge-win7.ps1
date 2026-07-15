@@ -123,12 +123,54 @@ public class PalmartRawPrintWin7 {
   $script:RawPrintTypeReady = $true
 }
 
+function Get-WindowsPrinterNames {
+  $names = @()
+  try {
+    $names = @(Get-WmiObject Win32_Printer | ForEach-Object { [string]$_.Name })
+  } catch { }
+  return @($names | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() })
+}
+
+function Resolve-WindowsPrinterName([string]$Wanted) {
+  $Wanted = $Wanted.Trim()
+  $h = [IntPtr]::Zero
+  if ([PalmartRawPrintWin7]::OpenPrinter($Wanted, [ref]$h, [IntPtr]::Zero)) {
+    [void][PalmartRawPrintWin7]::ClosePrinter($h)
+    return $Wanted
+  }
+  $names = @(Get-WindowsPrinterNames)
+  if ($names.Count -eq 0) {
+    throw ("OpenPrinter failed for '" + $Wanted + "' - Windows lists no printers. Add the printer in Devices and Printers (Generic / Text Only), then Detect printers again.")
+  }
+  foreach ($n in $names) {
+    if ([string]::Compare($n, $Wanted, $true) -eq 0) { return $n }
+  }
+  $norm = (($Wanted -replace "\s+", " ").Trim()).ToLower()
+  $hits = @()
+  foreach ($n in $names) {
+    $nn = (($n -replace "\s+", " ").Trim()).ToLower()
+    if ($nn -eq $norm) { $hits += $n }
+  }
+  if ($hits.Count -eq 1) { return $hits[0] }
+  $hits = @()
+  foreach ($n in $names) {
+    $nn = $n.ToLower()
+    if ($nn.Contains($norm) -or $norm.Contains((($n -replace "\s+", " ").Trim()).ToLower())) {
+      $hits += $n
+    }
+  }
+  if ($hits.Count -eq 1) { return $hits[0] }
+  $list = [string]::Join(", ", $names)
+  throw ("OpenPrinter failed for '" + $Wanted + "'. Exact queue name not found. Installed printers: " + $list + ". Detect printers in Cashier and pick the exact name.")
+}
+
 function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
   Ensure-RawPrintType
+  $printer = Resolve-WindowsPrinterName $PrinterName
   $hPrinter = [IntPtr]::Zero
-  if (-not [PalmartRawPrintWin7]::OpenPrinter($PrinterName, [ref]$hPrinter, [IntPtr]::Zero)) {
+  if (-not [PalmartRawPrintWin7]::OpenPrinter($printer, [ref]$hPrinter, [IntPtr]::Zero)) {
     $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-    throw ("OpenPrinter failed for '" + $PrinterName + "' (Win32 " + $err + ")")
+    throw ("OpenPrinter failed for '" + $printer + "' (Win32 " + $err + "). Printer may be offline or deleted - Detect printers again.")
   }
   try {
     $started = $false
