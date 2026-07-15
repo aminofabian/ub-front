@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -87,6 +88,10 @@ const DRAWOUT_STATUS_BADGE: Record<string, string> = {
 };
 
 
+/** Ledger convention: money is rendered in monospace tabular figures. */
+const NUM = "font-mono tabular-nums";
+
+
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
 
@@ -135,6 +140,15 @@ function varianceBgColor(v: number | string | null | undefined): string {
   if (abs < VARIANCE_THRESHOLD_RED)
     return "bg-amber-500/10 border-amber-500/20";
   return "bg-red-500/10 border-red-500/20";
+}
+
+/** Solid accent hue for variance severity (used on KPI metric rules). */
+function varianceAccent(v: number | null | undefined): string {
+  if (v == null) return "bg-border";
+  const abs = Math.abs(v);
+  if (abs === 0) return "bg-emerald-500";
+  if (abs < VARIANCE_THRESHOLD_RED) return "bg-amber-500";
+  return "bg-red-500";
 }
 
 function toNum(v: number | string | null | undefined): number | null {
@@ -265,6 +279,39 @@ function PanelEmptyState({
   );
 }
 
+/** Receipt-style row with a dotted leader connecting label to figure. */
+function LeaderRow({
+  label,
+  value,
+  valueClassName,
+  strong,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  valueClassName?: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt
+        className={cn(
+          "shrink-0 text-muted-foreground",
+          strong && "font-medium text-foreground",
+        )}
+      >
+        {label}
+      </dt>
+      <span
+        className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
+        aria-hidden
+      />
+      <dd className={cn("shrink-0 font-medium text-foreground", NUM, valueClassName)}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 /** Shift card shown in Column 1 list. */
 function ShiftCard({
   shift,
@@ -341,7 +388,7 @@ function ShiftCard({
           <div className="h-0 w-full border-b border-dotted border-muted-foreground/35" />
         </div>
         <span className="inline-flex shrink-0 items-baseline gap-0.5 tabular-nums">
-          <span className="font-medium text-foreground">
+          <span className={cn("font-medium text-foreground", NUM)}>
             {moneyStrCompact(shift.openingFloat)}
           </span>
           <span className="text-[6px] font-normal uppercase leading-none tracking-[0.16em] text-muted-foreground/45 sm:text-[7px]">
@@ -367,7 +414,7 @@ function ShiftCard({
             )}
             {Math.abs(varNum) >= VARIANCE_THRESHOLD_RED ? "Needs review" : "Variance"}
           </span>
-          <span className={cn("font-semibold tabular-nums", varianceColor(v))}>
+          <span className={cn("font-semibold", NUM, varianceColor(v))}>
             {v != null ? `${varNum >= 0 ? "+" : ""}${moneyStrCompact(v)}` : "—"}
           </span>
         </div>
@@ -381,7 +428,7 @@ function ShiftCard({
             <div className="h-0 w-full border-b border-dotted border-muted-foreground/35" />
           </div>
           <span className="inline-flex shrink-0 items-baseline gap-0.5 tabular-nums text-foreground">
-            <span className="font-medium">
+            <span className={cn("font-medium", NUM)}>
               {moneyStrCompact(shift.openingFloat)}
             </span>
             <span className="text-[6px] font-normal uppercase leading-none tracking-[0.16em] text-muted-foreground/45 sm:text-[7px]">
@@ -425,10 +472,7 @@ function DenominationComparison({
     expected != null || counted != null || variance != null;
 
   return (
-    <div className="space-y-3">
-      <h4 className="text-sm font-medium text-foreground">
-        Denomination Breakdown
-      </h4>
+    <div className="space-y-2.5">
       <div className={cn(DASHBOARD_TABLE_SURFACE, "rounded-none")}>
         <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -487,24 +531,24 @@ function DenominationComparison({
               if (!hasData) return null;
               return (
                 <tr key={d.value} className="transition-colors hover:bg-muted/25">
-                  <td className="px-3 py-2 font-medium tabular-nums sm:px-4">
+                  <td className="px-3 py-1.5 font-medium font-mono tabular-nums sm:px-4">
                     {d.value.toLocaleString("en-KE")}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums sm:px-4">
+                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
                     {oQty}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums sm:px-4">
+                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
                     {moneyStr(oTotal)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums sm:px-4">
+                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
                     {cQty}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums sm:px-4">
+                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
                     {moneyStr(cTotal)}
                   </td>
                   <td
                     className={cn(
-                      "px-3 py-2 text-right font-medium tabular-nums sm:px-4",
+                      "px-3 py-1.5 text-right font-medium font-mono tabular-nums sm:px-4",
                       changeColor(change),
                     )}
                   >
@@ -514,24 +558,26 @@ function DenominationComparison({
               );
             })}
           </tbody>
-          <tfoot className="border-t border-border/50 bg-muted/25 font-medium">
+          <tfoot className="border-t-2 border-border/60 bg-muted/30 font-semibold">
             <tr>
-              <td className="px-3 py-2.5 sm:px-4">Total</td>
-              <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
+              <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4">
+                Total
+              </td>
+              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
                 {Object.values(openQty).reduce((a, b) => a + b, 0)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
+              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
                 {moneyStr(openTotal)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
+              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
                 {Object.values(closeQty).reduce((a, b) => a + b, 0)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
+              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
                 {moneyStr(closeTotal)}
               </td>
               <td
                 className={cn(
-                  "px-3 py-2.5 text-right tabular-nums sm:px-4",
+                  "px-3 py-2 text-right font-mono tabular-nums sm:px-4",
                   changeColor(netChange),
                 )}
               >
@@ -543,47 +589,47 @@ function DenominationComparison({
         </div>
       </div>
 
-      <p className="px-0.5 text-[11px] leading-relaxed text-muted-foreground">
-        <span className="font-medium text-foreground">Change</span> = Closing −
-        Opening (net cash that moved through the drawer this shift). This is not
-        the reconciliation variance.
-      </p>
-
       {showReconciliation && (
-        <div className="rounded-none border border-border/70 bg-muted/20 p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
-          <h5 className="mb-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Drawer Reconciliation
-          </h5>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Expected Cash</span>
-              <span className="tabular-nums font-medium text-foreground">
-                {expected != null ? moneyStr(expected) : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Counted Cash</span>
-              <span className="tabular-nums font-medium text-foreground">
-                {counted != null ? moneyStr(counted) : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-border/40 pt-1">
-              <span className="font-medium text-foreground">
+        <div className="border border-border/70 bg-gradient-to-b from-card to-muted/25 p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Scale className="size-3.5 text-muted-foreground/70" aria-hidden />
+            <h5 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Drawer Reconciliation
+            </h5>
+          </div>
+          <dl className="space-y-1.5 text-xs">
+            <LeaderRow
+              label="Expected"
+              value={expected != null ? moneyStr(expected) : "—"}
+            />
+            <LeaderRow
+              label="Counted"
+              value={counted != null ? moneyStr(counted) : "—"}
+            />
+            <div className="flex items-baseline gap-2 border-t border-dashed border-border/60 pt-2">
+              <dt className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-foreground">
                 Variance
-                <span className="ml-1 font-normal text-muted-foreground">
-                  (Counted − Expected)
-                </span>
-              </span>
+              </dt>
               <span
+                className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
+                aria-hidden
+              />
+              <dd
                 className={cn(
-                  "tabular-nums font-semibold",
+                  "shrink-0 text-sm font-bold",
+                  NUM,
                   varianceColor(variance),
                 )}
               >
                 {variance != null ? signedMoney(variance) : "—"}
-              </span>
+              </dd>
             </div>
-          </div>
+          </dl>
+          <p className="mt-2 border-t border-border/40 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+            Variance = Counted − Expected. The{" "}
+            <span className="font-medium text-foreground">Change</span> column
+            above is Closing − Opening (cash movement), not variance.
+          </p>
         </div>
       )}
     </div>
@@ -680,7 +726,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                     d.status === "VOIDED" && "opacity-60",
                   )}
                 >
-                  <td className="whitespace-nowrap px-3 py-2 tabular-nums sm:px-4">
+                  <td className="whitespace-nowrap px-3 py-2 font-mono tabular-nums sm:px-4">
                     {fmtShortDate(d.createdAt)}
                   </td>
                   <td className="px-3 py-2 sm:px-4">
@@ -693,7 +739,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                     {d.description}
                   </td>
                   <td className="px-3 py-2 sm:px-4">{d.recipientName}</td>
-                  <td className="px-3 py-2 text-right font-medium tabular-nums sm:px-4">
+                  <td className="px-3 py-2 text-right font-medium font-mono tabular-nums sm:px-4">
                     {moneyStr(d.amount)}
                   </td>
                   <td className="px-3 py-2 text-center sm:px-4">
@@ -722,32 +768,29 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
       </div>
 
       {/* Totals */}
-      <div className="space-y-0.5 rounded-none border border-border/70 bg-muted/20 p-3 text-xs shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+      <dl className="space-y-1 border border-border/70 bg-gradient-to-b from-card to-muted/25 p-3 text-xs shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
         {approvedTotal > 0 && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Approved Drawouts</span>
-            <span className="tabular-nums font-medium text-emerald-600">
-              {moneyStr(approvedTotal)}
-            </span>
-          </div>
+          <LeaderRow
+            label="Approved drawouts"
+            value={moneyStr(approvedTotal)}
+            valueClassName="text-emerald-600 dark:text-emerald-400"
+          />
         )}
         {pendingTotal > 0 && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Pending Drawouts</span>
-            <span className="tabular-nums font-medium text-amber-600">
-              {moneyStr(pendingTotal)}
-            </span>
-          </div>
+          <LeaderRow
+            label="Pending drawouts"
+            value={moneyStr(pendingTotal)}
+            valueClassName="text-amber-600 dark:text-amber-400"
+          />
         )}
         {voidedTotal > 0 && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Voided Drawouts</span>
-            <span className="tabular-nums font-medium text-muted-foreground">
-              {moneyStr(voidedTotal)}
-            </span>
-          </div>
+          <LeaderRow
+            label="Voided drawouts"
+            value={moneyStr(voidedTotal)}
+            valueClassName="text-muted-foreground"
+          />
         )}
-      </div>
+      </dl>
     </div>
   );
 }
@@ -759,35 +802,38 @@ function KpiCard({
   value,
   icon: Icon,
   valueClassName,
-  iconClassName,
+  accentClassName,
 }: {
   label: string;
   value: string;
   icon?: LucideIcon;
   valueClassName?: string;
-  iconClassName?: string;
+  accentClassName?: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-none border border-border/70 bg-gradient-to-b from-card to-muted/25 p-3 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
-      <div className="flex items-start justify-between gap-2">
+    <div className="group relative overflow-hidden border border-border/70 bg-gradient-to-b from-card to-muted/25 p-2.5 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
+      <span
+        className={cn(
+          "absolute inset-x-0 top-0 h-[3px]",
+          accentClassName || "bg-border",
+        )}
+        aria-hidden
+      />
+      <div className="flex items-center justify-between gap-2">
         <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {label}
         </p>
         {Icon ? (
-          <span
-            className={cn(
-              "flex size-6 shrink-0 items-center justify-center rounded-none border border-border/50 bg-background/70 text-muted-foreground shadow-sm",
-              iconClassName,
-            )}
+          <Icon
+            className="size-3.5 shrink-0 text-muted-foreground/55"
             aria-hidden
-          >
-            <Icon className="size-3.5" />
-          </span>
+          />
         ) : null}
       </div>
       <p
         className={cn(
-          "mt-2 text-lg font-bold tabular-nums leading-tight tracking-tight",
+          "mt-1.5 text-base font-bold leading-tight tracking-tight sm:text-lg",
+          NUM,
           valueClassName || "text-foreground",
         )}
       >
@@ -824,46 +870,45 @@ function DenomStackList({
   })).filter((r) => r.qty > 0);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
+    <div className="border border-border/60 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/25 px-2.5 py-1.5">
         <SectionLabel icon={Layers} text={title} />
-        <span className="text-xs font-semibold tabular-nums text-foreground">
+        <span className={cn("text-xs font-bold text-foreground", NUM)}>
           {moneyStr(total)}
         </span>
       </div>
-      <div className="space-y-1.5">
+      <div className="divide-y divide-border/30">
         {rows.map(({ d, qty }) => {
           const amount = d.value * qty;
-          const pct = total > 0 ? Math.max(2, (amount / total) * 100) : 0;
+          const pct = total > 0 ? Math.max(3, (amount / total) * 100) : 0;
           return (
             <div
               key={d.value}
-              className="space-y-1 rounded-none border border-border/50 bg-muted/20 px-2.5 py-1.5 transition-colors hover:bg-muted/35"
+              className="space-y-1 px-2.5 py-1.5 transition-colors hover:bg-muted/20"
             >
               <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5">
                   {d.type === "NOTE" ? (
-                    <Banknote className="size-3 text-muted-foreground" aria-hidden />
+                    <Banknote className="size-3 text-muted-foreground/70" aria-hidden />
                   ) : (
-                    <Coins className="size-3 text-muted-foreground" aria-hidden />
+                    <Coins className="size-3 text-muted-foreground/70" aria-hidden />
                   )}
-                  <span className="tabular-nums font-medium text-foreground">
+                  <span className={cn("font-medium text-foreground", NUM)}>
                     {d.value.toLocaleString("en-KE")}
                   </span>
-                  <span className="text-muted-foreground">× {qty}</span>
-                </div>
-                <span className="tabular-nums font-medium text-foreground">
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    × {qty}
+                  </span>
+                </span>
+                <span className={cn("font-medium text-foreground", NUM)}>
                   {moneyStr(amount)}
                 </span>
               </div>
-              <div
-                className="h-1 overflow-hidden bg-border/70"
-                aria-hidden
-              >
+              <div className="h-0.5 overflow-hidden bg-border/60" aria-hidden>
                 <div
                   className={cn(
                     "h-full",
-                    d.type === "NOTE" ? "bg-primary/70" : "bg-primary/35",
+                    d.type === "NOTE" ? "bg-primary/70" : "bg-primary/30",
                   )}
                   style={{ width: `${pct}%` }}
                 />
@@ -980,9 +1025,9 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-3">
         {activeTab === "denominations" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {openingDenoms.length > 0 && closingDenoms.length > 0 ? (
               <DenominationComparison
                 openingDenoms={openingDenoms}
@@ -1017,70 +1062,57 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
 
         {activeTab === "summary" && (
           <div className="space-y-3">
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Status</span>
+            <dl className="space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <dt className="text-muted-foreground">Status</dt>
                 <StatusBadge status={detail.status} />
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Shift ID</span>
-                <span className="font-mono text-xs">
-                  {detail.id.slice(0, 8)}…
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Opened By</span>
-                <span className="font-medium">
-                  {detail.openedByName || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Opened At</span>
-                <span>{fmtDate(detail.openedAt)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Closed At</span>
-                <span>{fmtDate(detail.closedAt)}</span>
-              </div>
-            </div>
-            <div className="border-t pt-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Opening Float</span>
-                <span className="tabular-nums font-medium">
-                  {moneyStr(detail.openingCash)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Expected Cash</span>
-                <span className="tabular-nums font-medium">
-                  {moneyStr(detail.expectedClosingCash)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Counted Cash</span>
-                <span className="tabular-nums font-medium">
-                  {moneyStr(detail.countedClosingCash)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm border-t pt-1 mt-1">
-                <span className="text-muted-foreground">
+              <LeaderRow
+                label="Shift ID"
+                value={`${detail.id.slice(0, 8)}…`}
+              />
+              <LeaderRow
+                label="Opened by"
+                value={detail.openedByName || "—"}
+                valueClassName="font-sans"
+              />
+              <LeaderRow label="Opened" value={fmtDate(detail.openedAt)} />
+              <LeaderRow label="Closed" value={fmtDate(detail.closedAt)} />
+            </dl>
+            <dl className="space-y-1.5 border-t border-border/50 pt-3 text-xs">
+              <LeaderRow
+                label="Opening float"
+                value={moneyStr(detail.openingCash)}
+              />
+              <LeaderRow
+                label="Expected"
+                value={moneyStr(detail.expectedClosingCash)}
+              />
+              <LeaderRow
+                label="Counted"
+                value={moneyStr(detail.countedClosingCash)}
+              />
+              <div className="flex items-baseline gap-2 border-t border-dashed border-border/60 pt-2">
+                <dt className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-foreground">
                   Variance
-                  <span className="ml-1 text-xs text-muted-foreground/70">
-                    (Counted − Expected)
-                  </span>
-                </span>
+                </dt>
                 <span
+                  className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-border/60"
+                  aria-hidden
+                />
+                <dd
                   className={cn(
-                    "tabular-nums font-semibold",
+                    "shrink-0 text-sm font-bold",
+                    NUM,
                     varianceColor(detail.closingVariance),
                   )}
                 >
                   {toNum(detail.closingVariance) != null
                     ? signedMoney(toNum(detail.closingVariance) as number)
                     : "—"}
-                </span>
+                </dd>
               </div>
-            </div>
+            </dl>
             {detail.openingNotes && (
               <div className="border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">
@@ -1173,23 +1205,26 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
       : null;
 
   return (
-    <div className="space-y-5 p-4">
+    <div className="space-y-4 p-3">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         <KpiCard
           label="Opening Float"
           value={moneyStr(detail.openingCash)}
           icon={Wallet}
+          accentClassName="bg-primary/50"
         />
         <KpiCard
           label="Expected Cash"
           value={moneyStr(expected)}
           icon={Calculator}
+          accentClassName="bg-primary/25"
         />
         <KpiCard
           label="Counted Cash"
           value={counted != null ? moneyStr(counted) : "—"}
           icon={Coins}
+          accentClassName="bg-primary/25"
           valueClassName={
             counted != null ? "text-foreground" : "text-muted-foreground"
           }
@@ -1203,17 +1238,7 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
           }
           icon={Scale}
           valueClassName={varianceColor(variance)}
-          iconClassName={cn(
-            variance != null && Math.abs(variance) === 0 &&
-              "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-            variance != null &&
-              Math.abs(variance) > 0 &&
-              Math.abs(variance) < VARIANCE_THRESHOLD_RED &&
-              "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-            variance != null &&
-              Math.abs(variance) >= VARIANCE_THRESHOLD_RED &&
-              "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
-          )}
+          accentClassName={varianceAccent(variance)}
         />
       </div>
 
@@ -1244,7 +1269,7 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
           <div className="relative flex items-center gap-2.5">
             <span className="z-10 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
             <span className="text-muted-foreground">Opened</span>
-            <span className="ml-auto tabular-nums font-medium text-foreground">
+            <span className={cn("ml-auto font-medium text-foreground", NUM)}>
               {fmtShortDate(detail.openedAt)}
             </span>
           </div>
@@ -1252,7 +1277,7 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
             <div className="relative flex items-center gap-2.5">
               <span className="z-10 size-2 rounded-full bg-red-500 ring-2 ring-background" />
               <span className="text-muted-foreground">Closed</span>
-              <span className="ml-auto tabular-nums font-medium text-foreground">
+              <span className={cn("ml-auto font-medium text-foreground", NUM)}>
                 {fmtShortDate(detail.closedAt)}
               </span>
             </div>
