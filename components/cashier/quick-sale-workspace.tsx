@@ -246,7 +246,7 @@ export function QuickSaleWorkspace({
   const createProductFlagEnabled =
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true;
   const weighedToggleFlagEnabled =
-    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] === true;
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false;
   const allowPriceEdit =
     hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
     priceEditFlagEnabled;

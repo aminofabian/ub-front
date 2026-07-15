@@ -445,7 +445,7 @@ export function BusinessSettingsForm({
       {canManageBusinessSettings ? (
         <FormDrawerFields
           legend="Cashier permissions"
-          hint="Allow cashiers to edit prices, create products, or mark items as weighted from the POS. Managers with pricing/catalog permissions always can."
+          hint="Allow cashiers to edit prices, create products, or mark items as weighted from the POS. Weighted marking is on by default; managers with pricing/catalog permissions always can."
         >
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
             <input

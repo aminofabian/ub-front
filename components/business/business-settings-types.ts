@@ -44,7 +44,8 @@ export type CashierCapabilitiesForm = {
 export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   priceEdit: false,
   createProduct: false,
-  weighedToggle: false,
+  /** Default on — cashiers need this for produce/kg sales; admin can still disable. */
+  weighedToggle: true,
 };
 
 export function cashierCapabilitiesFromRecord(
@@ -54,7 +55,8 @@ export function cashierCapabilitiesFromRecord(
   return {
     priceEdit: ff[POS_CASHIER_CAPABILITY_FLAGS.priceEdit] === true,
     createProduct: ff[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true,
-    weighedToggle: ff[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] === true,
+    // Absent flag → enabled (matches DEFAULT_CASHIER_CAPABILITIES).
+    weighedToggle: ff[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false,
   };
 }
 
