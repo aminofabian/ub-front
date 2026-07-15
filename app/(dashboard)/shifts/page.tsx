@@ -529,7 +529,7 @@ function DenominationComparison({
             <tr className="border-b border-border/50 bg-muted/25">
               <th
                 scope="col"
-                className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                className="px-2.5 py-2 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
               >
                 Denom
                 <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
@@ -538,32 +538,26 @@ function DenominationComparison({
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                className="px-2.5 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
               >
-                Opening Qty
+                Opening
+                <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
+                  qty · total
+                </span>
               </th>
               <th
                 scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                className="px-2.5 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
               >
-                Opening Total
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
-              >
-                Closing Qty
-              </th>
-              <th
-                scope="col"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
-              >
-                Closing Total
+                Closing
+                <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/55">
+                  qty · total
+                </span>
               </th>
               <th
                 scope="col"
                 title="Net cash movement during the shift (Closing − Opening)"
-                className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4"
+                className="px-2.5 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3"
               >
                 Change
               </th>
@@ -580,24 +574,30 @@ function DenominationComparison({
               if (!hasData) return null;
               return (
                 <tr key={d.value} className="transition-colors hover:bg-muted/25">
-                  <td className="px-3 py-1.5 font-medium font-mono tabular-nums sm:px-4">
+                  <td className="px-2.5 py-1.5 font-medium font-mono tabular-nums sm:px-3">
                     {d.value.toLocaleString("en-KE")}
                   </td>
-                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
-                    {oQty}
+                  <td className="whitespace-nowrap px-2.5 py-1.5 text-right sm:px-3">
+                    <span className="font-mono tabular-nums text-muted-foreground">
+                      {oQty}
+                    </span>
+                    <span className="mx-1 text-muted-foreground/40">·</span>
+                    <span className="font-mono tabular-nums text-foreground">
+                      {moneyStr(oTotal)}
+                    </span>
                   </td>
-                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
-                    {moneyStr(oTotal)}
-                  </td>
-                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
-                    {cQty}
-                  </td>
-                  <td className="px-3 py-1.5 text-right font-mono tabular-nums sm:px-4">
-                    {moneyStr(cTotal)}
+                  <td className="whitespace-nowrap px-2.5 py-1.5 text-right sm:px-3">
+                    <span className="font-mono tabular-nums text-muted-foreground">
+                      {cQty}
+                    </span>
+                    <span className="mx-1 text-muted-foreground/40">·</span>
+                    <span className="font-mono tabular-nums text-foreground">
+                      {moneyStr(cTotal)}
+                    </span>
                   </td>
                   <td
                     className={cn(
-                      "px-3 py-1.5 text-right font-medium font-mono tabular-nums sm:px-4",
+                      "px-2.5 py-1.5 text-right font-medium font-mono tabular-nums sm:px-3",
                       changeColor(change),
                     )}
                   >
@@ -609,24 +609,30 @@ function DenominationComparison({
           </tbody>
           <tfoot className="border-t border-border/50 bg-muted/30 font-semibold">
             <tr>
-              <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-4">
+              <td className="px-2.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/65 sm:px-3">
                 Total
               </td>
-              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
-                {Object.values(openQty).reduce((a, b) => a + b, 0)}
+              <td className="whitespace-nowrap px-2.5 py-2 text-right sm:px-3">
+                <span className="font-mono tabular-nums text-muted-foreground">
+                  {Object.values(openQty).reduce((a, b) => a + b, 0)}
+                </span>
+                <span className="mx-1 text-muted-foreground/40">·</span>
+                <span className="font-mono tabular-nums text-foreground">
+                  {moneyStr(openTotal)}
+                </span>
               </td>
-              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
-                {moneyStr(openTotal)}
-              </td>
-              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
-                {Object.values(closeQty).reduce((a, b) => a + b, 0)}
-              </td>
-              <td className="px-3 py-2 text-right font-mono tabular-nums sm:px-4">
-                {moneyStr(closeTotal)}
+              <td className="whitespace-nowrap px-2.5 py-2 text-right sm:px-3">
+                <span className="font-mono tabular-nums text-muted-foreground">
+                  {Object.values(closeQty).reduce((a, b) => a + b, 0)}
+                </span>
+                <span className="mx-1 text-muted-foreground/40">·</span>
+                <span className="font-mono tabular-nums text-foreground">
+                  {moneyStr(closeTotal)}
+                </span>
               </td>
               <td
                 className={cn(
-                  "px-3 py-2 text-right font-mono tabular-nums sm:px-4",
+                  "px-2.5 py-2 text-right font-mono tabular-nums sm:px-3",
                   changeColor(netChange),
                 )}
               >
@@ -1680,12 +1686,8 @@ export default function ShiftsPage() {
           </div>
         </div>
 
-        {/* Description + quick links */}
-        <div className="mt-4 flex flex-col gap-3 border-t border-border/50 pt-4 lg:flex-row lg:items-center lg:justify-between">
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Track cash drawer shifts with full denomination-level counting. Open
-            a shift, count cash by KES denomination, and reconcile at close.
-          </p>
+        {/* Quick links */}
+        <div className="mt-3 flex flex-col gap-3 border-t border-border/50 pt-3 lg:flex-row lg:items-center lg:justify-end">
           <div className="flex flex-wrap gap-2 lg:shrink-0">
             {[
               ...(isBranchLockedRole
