@@ -59,17 +59,8 @@ const PAYMENT_ICONS: Record<
   loyalty: Gift,
 };
 
-const PAYMENT_TONES: Record<
-  Exclude<PaymentFilter, "all" | "other">,
-  { dot: string; active: string }
-> = {
-  cash: { dot: "bg-emerald-500", active: "bg-emerald-50 text-emerald-900 ring-emerald-200" },
-  mpesa: { dot: "bg-sky-500", active: "bg-sky-50 text-sky-900 ring-sky-200" },
-  split: { dot: "bg-violet-500", active: "bg-violet-50 text-violet-900 ring-violet-200" },
-  credit: { dot: "bg-amber-500", active: "bg-amber-50 text-amber-900 ring-amber-200" },
-  wallet: { dot: "bg-teal-500", active: "bg-teal-50 text-teal-900 ring-teal-200" },
-  loyalty: { dot: "bg-pink-500", active: "bg-pink-50 text-pink-900 ring-pink-200" },
-};
+const PAYMENT_ACTIVE =
+  "bg-[#F9F6F0] text-[#8B6F3A] ring-[#E8DFD0] shadow-sm";
 
 function FilterLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -156,8 +147,8 @@ export function SalesFeedFilters({
 
   return (
     <div className="space-y-2">
-      <div className="overflow-hidden rounded-xl border border-[#EEEEEE] bg-white shadow-sm">
-        <div className="flex items-center gap-2 border-b border-[#F3F3F3] px-3 py-2">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02]">
+        <div className="flex items-center gap-2 border-b border-border/40 px-3.5 py-2.5">
           <FilterLabel>Period</FilterLabel>
           <div
             className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -280,7 +271,6 @@ export function SalesFeedFilters({
               {PAYMENT_METHOD_CHIPS.map(({ id, label, short }) => {
                 const active = paymentFilter === id;
                 const Icon = PAYMENT_ICONS[id];
-                const tone = PAYMENT_TONES[id];
                 return (
                   <button
                     key={id}
@@ -290,19 +280,12 @@ export function SalesFeedFilters({
                       onPaymentFilterChange(active ? "all" : id)
                     }
                     className={cn(
-                      "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ring-1 ring-inset transition-all",
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset transition-all",
                       active
-                        ? tone.active
+                        ? PAYMENT_ACTIVE
                         : "bg-transparent text-[#666666] ring-transparent hover:bg-[#FAFAFA]",
                     )}
                   >
-                    <span
-                      className={cn(
-                        "size-1.5 rounded-full",
-                        active ? tone.dot : "bg-[#CCCCCC]",
-                      )}
-                      aria-hidden
-                    />
                     <Icon className="size-3 opacity-70" aria-hidden />
                     <span>{short}</span>
                   </button>

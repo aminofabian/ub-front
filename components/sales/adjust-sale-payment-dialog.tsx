@@ -172,29 +172,35 @@ export function AdjustSalePaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Adjust payment</DialogTitle>
-          <DialogDescription>
-            Correct a mis-recorded tender for sale {titleId}. Ledger and (if the
-            shift is still open) drawer cash are updated automatically.
+      <DialogContent className="max-w-md gap-0 p-0 sm:max-w-lg">
+        <DialogHeader className="space-y-1.5 border-b border-border/50 px-6 py-5">
+          <DialogTitle className="text-lg tracking-tight">
+            Adjust payment
+          </DialogTitle>
+          <DialogDescription className="text-sm leading-relaxed">
+            Correct tender for sale {titleId}. Ledger updates automatically;
+            drawer cash updates if the shift is still open.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-4 px-6 py-5">
         {loading ? (
-          <p className="py-6 text-sm text-[#888888]">Loading sale…</p>
+          <p className="py-4 text-sm text-muted-foreground">Loading sale…</p>
         ) : error && !sale ? (
-          <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
             {error}
           </p>
         ) : sale ? (
           <div className="space-y-4">
-            <div className="rounded-lg border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-sm">
-              <p className="font-medium text-[#333333]">
-                Total {fmtKes(grandTotal)}
+            <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Sale total
               </p>
-              <p className="mt-0.5 text-xs text-[#888888]">
-                Current:{" "}
+              <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight text-foreground">
+                {fmtKes(grandTotal)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Recorded as{" "}
                 {sale.payments
                   .map(
                     (p) =>
@@ -215,12 +221,12 @@ export function AdjustSalePaymentDialog({
               {drafts.map((draft, index) => (
                 <div
                   key={index}
-                  className="space-y-2 rounded-lg border border-[#EEEEEE] p-3"
+                  className="space-y-3 rounded-xl border border-border/60 p-3.5"
                 >
-                  <label className="block text-xs font-medium text-[#666666]">
+                  <label className="block text-xs font-medium text-muted-foreground">
                     Payment method
                     <select
-                      className={cn(dashboardSelectClass(), "mt-1")}
+                      className={cn(dashboardSelectClass(), "mt-1.5")}
                       value={draft.method}
                       disabled={hasRestricted}
                       onChange={(e) => {
@@ -250,13 +256,13 @@ export function AdjustSalePaymentDialog({
                   </label>
 
                   {drafts.length > 1 ? (
-                    <label className="block text-xs font-medium text-[#666666]">
+                    <label className="block text-xs font-medium text-muted-foreground">
                       Amount (KES)
                       <input
                         type="number"
                         min={0}
                         step="0.01"
-                        className={cn(dashboardInputClass(), "mt-1")}
+                        className={cn(dashboardInputClass(), "mt-1.5")}
                         value={draft.amount}
                         disabled={hasRestricted}
                         onChange={(e) => {
@@ -272,11 +278,11 @@ export function AdjustSalePaymentDialog({
                   ) : null}
 
                   {draft.method === "mpesa_manual" || draft.method === "card" ? (
-                    <label className="block text-xs font-medium text-[#666666]">
+                    <label className="block text-xs font-medium text-muted-foreground">
                       Reference (optional)
                       <input
                         type="text"
-                        className={cn(dashboardInputClass(), "mt-1")}
+                        className={cn(dashboardInputClass(), "mt-1.5")}
                         value={draft.reference}
                         placeholder="M-Pesa code / slip no."
                         disabled={hasRestricted}
@@ -296,7 +302,7 @@ export function AdjustSalePaymentDialog({
             </div>
 
             {wantsCreditWithoutCustomer(drafts, sale) ? (
-              <p className="text-xs text-[#888888]">
+              <p className="text-xs text-muted-foreground">
                 Credit requires a customer already linked to this sale.
               </p>
             ) : null}
@@ -308,11 +314,11 @@ export function AdjustSalePaymentDialog({
               </p>
             ) : null}
 
-            <label className="block text-xs font-medium text-[#666666]">
+            <label className="block text-xs font-medium text-muted-foreground">
               Reason (optional)
               <input
                 type="text"
-                className={cn(dashboardInputClass(), "mt-1")}
+                className={cn(dashboardInputClass(), "mt-1.5")}
                 value={reason}
                 placeholder="e.g. Cashier recorded M-Pesa as cash"
                 maxLength={500}
@@ -321,14 +327,15 @@ export function AdjustSalePaymentDialog({
             </label>
 
             {error ? (
-              <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                 {error}
               </p>
             ) : null}
           </div>
         ) : null}
+        </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter className="gap-2 border-t border-border/50 px-6 py-4 sm:gap-2">
           <Button
             type="button"
             variant="outline"
@@ -339,6 +346,7 @@ export function AdjustSalePaymentDialog({
           </Button>
           <Button
             type="button"
+            className="bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
             onClick={() => void onSave()}
             disabled={!canSave}
           >
