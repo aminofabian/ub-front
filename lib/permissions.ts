@@ -33,6 +33,7 @@ export const Permission = {
   StocktakeDelete: "stocktake.delete",
   PricingRead: "pricing.read",
   PricingSellPriceSet: "pricing.sell_price.set",
+  PricingCostPriceSet: "pricing.cost_price.set",
   PricingRulesManage: "pricing.rules.manage",
   ShiftsOpen: "shifts.open",
   ShiftsClose: "shifts.close",

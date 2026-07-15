@@ -54,6 +54,7 @@ export const APP_ROUTES = {
   inventoryStockTakeRestock: "/inventory/stock-take/restock",
   inventoryStockTakeRestockOrders: "/inventory/stock-take/restock/orders",
   inventorySupplyBatches: "/inventory/supply-batches",
+  inventoryCostIssues: "/inventory/cost-issues",
   pricing: "/pricing",
   shifts: "/shifts",
   analytics: "/analytics",

@@ -3951,6 +3951,70 @@ export async function fetchApAging(
   );
 }
 
+export type CostIssueRowRecord = {
+  itemId: string;
+  name: string;
+  sku: string;
+  unitType: string;
+  currentStock: number | string | null;
+  activeQty: number | string | null;
+  activeBatchCount: number;
+  effectiveCost: number | string | null;
+  batchWac: number | string | null;
+  buyingPrice: number | string | null;
+  sellPrice: number | string | null;
+  marginPct: number | string | null;
+  costSource: "batch" | "reference" | "none";
+  primaryIssue: "zero_cost" | "sells_at_loss" | "thin_margin";
+  zeroCost: boolean;
+  sellsAtLoss: boolean;
+  thinMargin: boolean;
+};
+
+export type CostIssuesResponseRecord = {
+  branchId: string | null;
+  thinMarginPct: number | string;
+  total: number;
+  zeroCostCount: number;
+  sellsAtLossCount: number;
+  thinMarginCount: number;
+  items: CostIssueRowRecord[];
+};
+
+export type AdjustItemCostPayload = {
+  unitCost: number;
+  sellPrice?: number | null;
+  branchId?: string | null;
+  reason?: string | null;
+};
+
+export async function fetchCostIssues(
+  branchId?: string,
+  thinMarginPct?: number,
+): Promise<CostIssuesResponseRecord> {
+  const params = new URLSearchParams();
+  if (branchId?.trim()) {
+    params.set("branchId", branchId.trim());
+  }
+  if (thinMarginPct != null && Number.isFinite(thinMarginPct)) {
+    params.set("thinMarginPct", String(thinMarginPct));
+  }
+  const q = params.toString();
+  return request<CostIssuesResponseRecord>(
+    `/api/v1/inventory/cost-issues${q ? `?${q}` : ""}`,
+  );
+}
+
+export async function adjustItemCost(
+  itemId: string,
+  payload: AdjustItemCostPayload,
+): Promise<CostIssueRowRecord> {
+  return request<CostIssueRowRecord>(
+    `/api/v1/inventory/cost-issues/${encodeURIComponent(itemId)}/adjust`,
+    { method: "POST", body: payload },
+  );
+}
+
 export async function fetchInventoryValuation(
   branchId?: string,
   itemTypeId?: string,

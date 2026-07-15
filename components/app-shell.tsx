@@ -158,6 +158,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.inventoryStock, label: "Stock" },
       { href: APP_ROUTES.inventoryRestock, label: "Out of stock" },
       { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
+      { href: APP_ROUTES.inventoryCostIssues, label: "Cost issues" },
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       {
         href: APP_ROUTES.inventoryStockTakeInvestigations,
@@ -407,6 +408,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.inventoryStockTakeReconciliation)
     return gate.canApproveStockTake;
+  if (item.href === APP_ROUTES.inventoryCostIssues) return gate.canViewPricing;
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
