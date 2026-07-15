@@ -97,6 +97,24 @@ describe("pos package stock", () => {
     expect(posAvailablePackages(zeroRow, true)).toBeNull();
     expect(posPackageStockHeadline(zeroRow, true)).toBe("0 on hand");
   });
+
+  it("returns null cap when oversell is allowed but partial base stock is below one package", () => {
+    // e.g. Whole Pack of 45 with only 20 sticks left → 0 whole packs, but sell allowed
+    const partialRow: ItemSummaryRecord = {
+      id: "pack",
+      name: "Rhino Kubwa",
+      sku: "RHINO-PACK",
+      variantName: "Whole Pack 45 Sticks",
+      variantOfItemId: "parent",
+      packageVariant: true,
+      packageUnitsPerSale: 45,
+      baseStockQty: 20,
+      stockQty: 0,
+    };
+    expect(posAvailablePackages(partialRow)).toBe(0);
+    expect(posAvailablePackages(partialRow, true)).toBeNull();
+    expect(posPackageStockHeadline(partialRow, true)).toBe("0 on hand");
+  });
 });
 
 describe("cashier labels", () => {

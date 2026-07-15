@@ -410,23 +410,28 @@ export function posPackageStockHeadline(
   allowNegativeStock = false,
 ): string {
   const unit = posPackageShortName(row);
-  if (allowNegativeStock) {
-    const units = posPackageUnitsPerSale(row);
-    if (units != null) {
-      const base = toStockNumber(row.baseStockQty);
-      const fromList = toStockNumber(row.stockQty);
-      const stockBase = base ?? fromList;
-      if (stockBase != null && stockBase <= 0) {
-        return "0 on hand";
-      }
+  const units = posPackageUnitsPerSale(row);
+  if (units != null) {
+    const base = toStockNumber(row.baseStockQty);
+    const fromList = toStockNumber(row.stockQty);
+    const stockBase = base ?? fromList;
+    const wholePackages =
+      base != null && base >= 0
+        ? Math.floor(base / units)
+        : fromList != null && fromList >= 0
+          ? Math.floor(fromList)
+          : null;
+    // Zero whole packs (including partial base stock below one pack)
+    if (
+      (stockBase != null && stockBase <= 0) ||
+      wholePackages === 0
+    ) {
+      return allowNegativeStock ? "0 on hand" : "Sold out";
     }
   }
   const avail = posAvailablePackages(row, allowNegativeStock);
   if (avail == null) {
     return "—";
-  }
-  if (avail === 0) {
-    return allowNegativeStock ? "0 on hand" : "Sold out";
   }
   if (avail === 1) {
     return `Last ${unit} left`;
@@ -447,6 +452,10 @@ function pluralPackageLabel(label: string, count: number): string {
 /**
  * Whole packages available at the branch. Uses base stock ÷ units per package when the API
  * provides {@link ItemSummaryRecord.baseStockQty}; otherwise falls back to {@link stockQty}.
+ *
+ * When {@link allowNegativeStock} is true and there are zero whole packages available
+ * (including partial base stock that doesn't make a full pack), returns `null` so POS
+ * does not cap quantity — cashiers may still sell.
  */
 export function posAvailablePackages(
   row: ItemSummaryRecord,
@@ -459,23 +468,21 @@ export function posAvailablePackages(
   if (units == null) {
     return null;
   }
-  const base = toStockNumber(row.baseStockQty);
-  if (base != null) {
-    if (base <= 0 && allowNegativeStock) {
+
+  const uncappedIfOversellAllowed = (packages: number): number | null => {
+    if (packages <= 0 && allowNegativeStock) {
       return null;
     }
-    if (base >= 0) {
-      return Math.floor(base / units);
-    }
+    return packages;
+  };
+
+  const base = toStockNumber(row.baseStockQty);
+  if (base != null && base >= 0) {
+    return uncappedIfOversellAllowed(Math.floor(base / units));
   }
   const fromList = toStockNumber(row.stockQty);
-  if (fromList != null) {
-    if (fromList <= 0 && allowNegativeStock) {
-      return null;
-    }
-    if (fromList >= 0) {
-      return Math.floor(fromList);
-    }
+  if (fromList != null && fromList >= 0) {
+    return uncappedIfOversellAllowed(Math.floor(fromList));
   }
   return null;
 }

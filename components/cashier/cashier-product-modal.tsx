@@ -192,7 +192,7 @@ export function CashierProductModal({
   const canSubmit =
     item != null &&
     quantity > 0 &&
-    (maxPackages == null || quantity <= maxPackages);
+    (allowNegativeStock || maxPackages == null || quantity <= maxPackages);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
