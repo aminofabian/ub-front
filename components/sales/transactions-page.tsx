@@ -14,11 +14,18 @@ import {
 
 import {
   DASHBOARD_MAX,
+  DASHBOARD_TABLE_SURFACE,
+  DashboardFeedback,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { AdjustSalePaymentDialog } from "@/components/sales/adjust-sale-payment-dialog";
+import {
+  SalesFeedFilters,
+  type SalesDatePreset,
+  type StatusFilter,
+} from "@/components/sales/sales-feed-filters";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -49,15 +56,9 @@ import {
   txDisplayNo,
   type SaleTransaction,
 } from "@/lib/sale-transactions";
-import {
-  SalesFeedFilters,
-  type SalesDatePreset,
-  type StatusFilter,
-} from "@/components/sales/sales-feed-filters";
 
-const SURFACE = "overflow-hidden rounded-xl border border-[#EEEEEE] bg-white";
-const MUTED = "text-[#888888]";
-const ACCENT = "#B08D48";
+const SURFACE = DASHBOARD_TABLE_SURFACE;
+const MUTED = "text-muted-foreground";
 
 export type { SaleTransaction };
 
@@ -112,10 +113,7 @@ function itemPreview(tx: SaleTransaction): string {
   return `${first} + ${tx.lineCount - 1} more`;
 }
 
-const SUMMARY_CARD =
-  "flex min-h-[88px] flex-col rounded-xl border border-[#EEEEEE] bg-white p-4";
-
-function SummaryCard({
+function Metric({
   label,
   value,
   hint,
@@ -125,12 +123,16 @@ function SummaryCard({
   hint?: string;
 }) {
   return (
-    <div className={SUMMARY_CARD}>
-      <p className="text-xs font-medium text-[#888888]">{label}</p>
-      <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-black">
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate text-xl font-semibold tabular-nums tracking-tight text-foreground">
         {value}
       </p>
-      {hint ? <p className="mt-1 truncate text-xs text-[#888888]">{hint}</p> : null}
+      {hint ? (
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -524,14 +526,13 @@ export function TransactionsPage() {
   if (!allowed) {
     return (
       <div className="mx-auto max-w-lg py-16 text-center">
-        <h1 className="text-lg font-semibold text-black">Transactions</h1>
+        <h1 className="text-lg font-semibold text-foreground">Transactions</h1>
         <p className={cn("mt-2 text-sm", MUTED)}>
           You do not have permission to view transactions.
         </p>
         <Link
           href={APP_ROUTES.business}
-          className="mt-6 inline-block text-sm font-medium"
-          style={{ color: ACCENT }}
+          className="mt-6 inline-block text-sm font-medium text-[#B08D48] hover:underline"
         >
           Back to business
         </Link>
@@ -539,43 +540,50 @@ export function TransactionsPage() {
     );
   }
 
+  const statusLine = [
+    periodLabel || (datePreset === "custom" ? "Choose dates below" : null),
+    lastUpdated
+      ? `Updated ${lastUpdated.toLocaleTimeString("en-KE", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-6")}>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className={cn("text-sm font-medium", MUTED)}>Sales</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-black">
+    <div className={cn(DASHBOARD_MAX, "space-y-5")}>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Sales
+          </p>
+          <h1 className="mt-0.5 font-sans text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             Transactions
           </h1>
-          <ActiveScopeSubtitle className={cn("mt-1", MUTED)} />
-          <p className={cn("mt-1 text-sm", MUTED)}>
-            {periodLabel || (datePreset === "custom" ? "Choose dates below." : "")}
-            {lastUpdated
-              ? `${periodLabel ? " · " : ""}Updated ${lastUpdated.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}`
-              : null}
+          <ActiveScopeSubtitle className="mt-0.5 text-xs text-muted-foreground" />
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            {statusLine || "Receipts for the selected period."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-2 border-[#EEEEEE] bg-white"
-            asChild
-          >
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" asChild>
             <Link href={APP_ROUTES.sales}>
-              <List className="size-4" aria-hidden />
-              Line items
+              <List className="size-3.5" aria-hidden />
+              Activity
             </Link>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="gap-2 border-[#EEEEEE] bg-white"
+            size="sm"
+            className="gap-1.5"
             onClick={() => void load({ silent: true })}
             disabled={loading}
           >
             <RefreshCw
-              className={cn("size-4", refreshing && "animate-spin")}
+              className={cn("size-3.5", refreshing && "animate-spin")}
               aria-hidden
             />
             Refresh
@@ -583,102 +591,102 @@ export function TransactionsPage() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#888888]"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search receipt, product, cashier…"
-            className={cn(dashboardInputClass(), "pl-9")}
-            aria-label="Search transactions"
-          />
-        </div>
-        <select
-          value={branchId}
-          onChange={(e) => onChangeBranch(e.target.value)}
-          className={cn(dashboardSelectClass(), "sm:w-56")}
-          aria-label="Branch"
-          disabled={branchLocked}
-        >
-          <option value="">All branches</option>
-          {branches
-            .filter((b) => !branchLocked || b.id === me?.branchId)
-            .map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-        </select>
-      </div>
-
-      <SalesFeedFilters
-        datePreset={datePreset}
-        onDatePresetChange={setDatePreset}
-        customFrom={customFrom}
-        customTo={customTo}
-        onCustomFromChange={setCustomFrom}
-        onCustomToChange={setCustomTo}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        paymentFilter={paymentFilter}
-        onPaymentFilterChange={setPaymentFilter}
-        channelFilter={channelFilter}
-        onChannelFilterChange={setChannelFilter}
-        showChannelFilter={canViewWebOrders}
-      />
-
       {dateRange && !error && !loading ? (
-        <section aria-label="Period summary" className="space-y-2">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard label="Revenue" value={fmtKes(summary.revenue)} />
-            <SummaryCard
-              label="Transactions"
-              value={summary.count.toLocaleString("en-KE")}
-              hint={
-                summary.completed > 0
-                  ? `${fmtKes(summary.avgTicket)} avg · ${summary.completed} completed`
-                  : undefined
-              }
-            />
-            <SummaryCard
-              label="Units sold"
-              value={summary.units.toLocaleString("en-KE", {
-                maximumFractionDigits: 1,
-              })}
-            />
-            <SummaryCard
-              label={summary.refundCount > 0 ? "Refunds" : "Period"}
-              value={
-                summary.refundCount > 0
-                  ? fmtKes(summary.refundTotal)
-                  : periodLabel.split("–")[0]?.trim() || "—"
-              }
-              hint={
-                summary.refundCount > 0
-                  ? `${summary.refundCount} refunded`
-                  : undefined
-              }
-            />
-          </div>
-          {feedFiltered && filtered.length !== transactions.length ? (
-            <p className={cn("text-xs", MUTED)}>
-              Showing {filtered.length.toLocaleString("en-KE")} of{" "}
-              {transactions.length.toLocaleString("en-KE")} transactions.
-            </p>
-          ) : null}
+        <section
+          aria-label="Period summary"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <Metric label="Revenue" value={fmtKes(summary.revenue)} />
+          <Metric
+            label="Transactions"
+            value={summary.count.toLocaleString("en-KE")}
+            hint={
+              summary.completed > 0
+                ? `${fmtKes(summary.avgTicket)} average`
+                : undefined
+            }
+          />
+          <Metric
+            label="Units sold"
+            value={summary.units.toLocaleString("en-KE", {
+              maximumFractionDigits: 1,
+            })}
+          />
+          <Metric
+            label={summary.refundCount > 0 ? "Refunds" : "Period"}
+            value={
+              summary.refundCount > 0
+                ? fmtKes(summary.refundTotal)
+                : periodLabel.split("–")[0]?.trim() || "—"
+            }
+            hint={
+              summary.refundCount > 0
+                ? `${summary.refundCount} refunded`
+                : undefined
+            }
+          />
         </section>
       ) : null}
 
-      {error ? (
-        <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
+      <section className="space-y-2.5" aria-label="Filters">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search receipt, product, cashier…"
+              className={cn(dashboardInputClass(), "h-9 py-2 pl-9 text-sm")}
+              aria-label="Search transactions"
+            />
+          </div>
+          <select
+            value={branchId}
+            onChange={(e) => onChangeBranch(e.target.value)}
+            className={cn(dashboardSelectClass(), "h-9 py-1.5 sm:w-48")}
+            aria-label="Branch"
+            disabled={branchLocked}
+          >
+            <option value="">All branches</option>
+            {branches
+              .filter((b) => !branchLocked || b.id === me?.branchId)
+              .map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        <SalesFeedFilters
+          datePreset={datePreset}
+          onDatePresetChange={setDatePreset}
+          customFrom={customFrom}
+          customTo={customTo}
+          onCustomFromChange={setCustomFrom}
+          onCustomToChange={setCustomTo}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          paymentFilter={paymentFilter}
+          onPaymentFilterChange={setPaymentFilter}
+          channelFilter={channelFilter}
+          onChannelFilterChange={setChannelFilter}
+          showChannelFilter={canViewWebOrders}
+        />
+
+        {feedFiltered && filtered.length !== transactions.length ? (
+          <p className="text-xs text-muted-foreground">
+            Showing {filtered.length.toLocaleString("en-KE")} of{" "}
+            {transactions.length.toLocaleString("en-KE")} transactions.
+          </p>
+        ) : null}
+      </section>
+
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
       {loading ? (
         <ListSkeleton />

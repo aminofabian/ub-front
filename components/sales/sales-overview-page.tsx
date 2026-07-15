@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   List,
@@ -8,7 +15,6 @@ import {
   Receipt,
   RefreshCw,
   Search,
-  TrendingUp,
 } from "lucide-react";
 
 import {
@@ -111,25 +117,69 @@ function canAdjustSalePayment(tx: SaleTransaction): boolean {
   return true;
 }
 
+function RevenueSparkline({
+  values,
+  labels,
+}: {
+  values: number[];
+  labels: string[];
+}) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values, 1);
+  const w = 120;
+  const h = 28;
+  const pad = 1;
+  const points = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+    const y = h - pad - (v / max) * (h - pad * 2);
+    return `${x},${y}`;
+  });
+  const area = `M${points[0]} L${points.join(" L")} L${w - pad},${h - pad} L${pad},${h - pad} Z`;
+
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className="mt-1.5 overflow-visible"
+      role="img"
+      aria-label={`Revenue trend: ${labels[0]} to ${labels[labels.length - 1]}`}
+    >
+      <path d={area} fill="#B08D48" fillOpacity={0.12} />
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke="#B08D48"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function Metric({
   label,
   value,
   hint,
+  chart,
 }: {
   label: string;
   value: string;
   hint?: string;
+  chart?: ReactNode;
 }) {
   return (
-    <div className="min-w-0 px-1 py-1">
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1.5 truncate text-2xl font-semibold tabular-nums tracking-tight text-foreground">
+      <p className="mt-0.5 truncate text-xl font-semibold tabular-nums tracking-tight text-foreground">
         {value}
       </p>
+      {chart}
       {hint ? (
-        <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -137,15 +187,71 @@ function Metric({
 
 function MetricsSkeleton() {
   return (
-    <div className="grid gap-6 border-b border-border/50 pb-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="space-y-2 px-1 py-1">
-          <div className="h-3 w-16 animate-pulse rounded bg-muted" />
-          <div className="h-8 w-28 animate-pulse rounded bg-muted" />
+        <div key={i} className="space-y-1.5">
+          <div className="h-2.5 w-14 animate-pulse rounded bg-muted" />
+          <div className="h-6 w-24 animate-pulse rounded bg-muted" />
         </div>
       ))}
     </div>
   );
+}
+
+/** Build hourly (today/yesterday) or daily buckets for a compact sparkline. */
+function buildRevenueTrend(
+  rows: RecentSaleRow[],
+  opts: { hourly: boolean; from: string; to: string },
+): { values: number[]; labels: string[] } {
+  const buckets = new Map<string, number>();
+
+  if (opts.hourly) {
+    for (let h = 0; h < 24; h++) {
+      buckets.set(String(h).padStart(2, "0"), 0);
+    }
+  } else {
+    const start = new Date(`${opts.from}T00:00:00`);
+    const end = new Date(`${opts.to}T00:00:00`);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      buckets.set(key, 0);
+    }
+  }
+
+  for (const row of rows) {
+    if (isRefunded(row.status)) continue;
+    const dt = new Date(row.soldAt);
+    if (Number.isNaN(dt.getTime())) continue;
+    const key = opts.hourly
+      ? String(dt.getHours()).padStart(2, "0")
+      : row.soldAt.slice(0, 10);
+    if (!buckets.has(key)) continue;
+    buckets.set(key, (buckets.get(key) ?? 0) + toNum(row.lineTotal));
+  }
+
+  const entries = [...buckets.entries()];
+  // For hourly: drop leading/trailing empty hours if there is any activity
+  let slice = entries;
+  if (opts.hourly) {
+    const first = entries.findIndex(([, v]) => v > 0);
+    let last = -1;
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if ((entries[i]?.[1] ?? 0) > 0) {
+        last = i;
+        break;
+      }
+    }
+    if (first >= 0 && last >= first) {
+      slice = entries.slice(Math.max(0, first - 1), Math.min(entries.length, last + 2));
+    }
+  }
+
+  return {
+    values: slice.map(([, v]) => v),
+    labels: slice.map(([k]) =>
+      opts.hourly ? `${k}:00` : k.slice(5),
+    ),
+  };
 }
 
 function FeedSkeleton() {
@@ -171,6 +277,28 @@ function FeedSkeleton() {
   );
 }
 
+function saleMetaParts(tx: SaleTransaction): string[] {
+  const isOnline = tx.channel === "online_store";
+  const parts: string[] = [];
+  const pay = formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods);
+  const payKey = pay.toLowerCase();
+  // Online rows already show an Online badge — skip repeating "Online checkout".
+  if (!isOnline && payKey && payKey !== "online" && payKey !== "online checkout") {
+    parts.push(pay);
+  }
+  const customer = tx.customerName?.trim() ?? "";
+  const cashier = tx.cashierName?.trim() ?? "";
+  if (isOnline) {
+    if (customer) parts.push(customer);
+  } else {
+    if (cashier) parts.push(cashier);
+    if (customer && customer.toLowerCase() !== cashier.toLowerCase()) {
+      parts.push(customer);
+    }
+  }
+  return parts;
+}
+
 function SaleGroup({
   tx,
   nowMs,
@@ -188,6 +316,7 @@ function SaleGroup({
 }) {
   const refunded = isRefunded(tx.status);
   const isOnline = tx.channel === "online_store";
+  const meta = saleMetaParts(tx);
 
   return (
     <article
@@ -197,15 +326,15 @@ function SaleGroup({
         refunded && "bg-destructive/[0.03]",
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-5 py-4 sm:px-6">
-        <div className="min-w-0 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs font-semibold tracking-wide text-muted-foreground">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 px-4 py-2.5 sm:px-5">
+        <div className="min-w-0 space-y-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-[11px] font-semibold tracking-wide text-foreground/70">
               #{txDisplayNo(tx)}
             </span>
             <span
               className={cn(
-                "rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                 isOnline
                   ? "bg-indigo-50 text-indigo-800"
                   : refunded
@@ -219,41 +348,27 @@ function SaleGroup({
                   ? "Refunded"
                   : "Completed"}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground">
               {formatSoldTime(tx.soldAt, nowMs, { relative: showRelativeTime })}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground/80">
-              {formatSalePaymentDisplay(tx.paymentMethod, tx.paymentMethods)}
-            </span>
-            {tx.cashierName ? (
-              <>
-                <span className="mx-1.5 text-border">·</span>
-                {tx.cashierName}
-              </>
-            ) : null}
-            {tx.customerName?.trim() ? (
-              <>
-                <span className="mx-1.5 text-border">·</span>
-                {tx.customerName}
-              </>
-            ) : null}
-          </p>
+          {meta.length > 0 ? (
+            <p className="text-xs font-medium text-foreground/75">{meta.join(" · ")}</p>
+          ) : null}
         </div>
 
-        <div className="flex shrink-0 items-start gap-3">
+        <div className="flex shrink-0 items-start gap-2">
           <div className="text-right">
             <p
               className={cn(
-                "text-lg font-semibold tabular-nums tracking-tight",
+                "text-base font-semibold tabular-nums tracking-tight",
                 refunded ? "text-[#C47A5A]" : "text-foreground",
               )}
             >
               {refunded && tx.total > 0 ? "−" : ""}
               {fmtKes(Math.abs(tx.total))}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {tx.lineCount} item{tx.lineCount === 1 ? "" : "s"}
             </p>
           </div>
@@ -262,44 +377,34 @@ function SaleGroup({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              className="h-7 gap-1 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={onAdjust}
             >
-              <Pencil className="size-3.5" aria-hidden />
+              <Pencil className="size-3" aria-hidden />
               Adjust
             </Button>
           ) : null}
         </div>
       </div>
 
-      <ul className="space-y-1.5 border-t border-border/30 bg-muted/20 px-5 py-3 sm:px-6">
+      <ul className="space-y-0.5 border-t border-border/25 bg-muted/10 px-4 py-1.5 pl-7 sm:px-5 sm:pl-8">
         {tx.lines.map((line, i) => {
           const lineRefunded = isRefunded(line.status);
           return (
             <li
               key={`${line.itemId}-${i}`}
-              className="flex items-baseline justify-between gap-4 text-sm"
+              className="flex items-baseline justify-between gap-3 text-[11px] leading-snug text-muted-foreground sm:text-xs"
             >
-              <span
-                className={cn(
-                  "min-w-0 truncate",
-                  lineRefunded ? "text-muted-foreground" : "text-foreground/90",
-                )}
-              >
-                <span className="tabular-nums text-muted-foreground">
+              <span className="min-w-0 truncate">
+                <span className="tabular-nums opacity-70">
                   {formatQty(line.quantity)}
                 </span>
-                <span className="mx-1.5 text-border">×</span>
-                {line.itemName}
+                <span className="mx-1 opacity-40">×</span>
+                <span className={lineRefunded ? "line-through opacity-70" : ""}>
+                  {line.itemName}
+                </span>
               </span>
-              <span
-                className={cn(
-                  "shrink-0 tabular-nums",
-                  lineRefunded
-                    ? "text-muted-foreground"
-                    : "font-medium text-foreground/80",
-                )}
-              >
+              <span className="shrink-0 tabular-nums opacity-80">
                 {lineRefunded ? "−" : ""}
                 {fmtKes(line.lineTotal)}
               </span>
@@ -538,6 +643,18 @@ export function SalesOverviewPage() {
     };
   }, [lines]);
 
+  const revenueTrend = useMemo(() => {
+    if (!dateRange || lines.length === 0) {
+      return { values: [] as number[], labels: [] as string[] };
+    }
+    const hourly = datePreset === "today" || datePreset === "yesterday";
+    return buildRevenueTrend(lines, {
+      hourly,
+      from: dateRange.from,
+      to: dateRange.to,
+    });
+  }, [lines, dateRange, datePreset]);
+
   const feedFiltered =
     search.trim() !== "" ||
     statusFilter !== "all" ||
@@ -575,31 +692,26 @@ export function SalesOverviewPage() {
     .join(" · ");
 
   return (
-    <div className={cn(DASHBOARD_MAX, "space-y-8")}>
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-8">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/50 text-foreground shadow-sm">
-            <TrendingUp className="size-[18px]" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Sales
-            </p>
-            <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-foreground">
-              Activity
-            </h1>
-            <ActiveScopeSubtitle className="mt-1 text-xs text-muted-foreground" />
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              {statusLine || "Sold items for the selected period."}
-            </p>
-          </div>
+    <div className={cn(DASHBOARD_MAX, "space-y-5")}>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Sales
+          </p>
+          <h1 className="mt-0.5 font-sans text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Activity
+          </h1>
+          <ActiveScopeSubtitle className="mt-0.5 text-xs text-muted-foreground" />
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            {statusLine || "Sold items for the selected period."}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-1.5"
             asChild
           >
             <Link href={APP_ROUTES.salesTransactions}>
@@ -611,7 +723,7 @@ export function SalesOverviewPage() {
             type="button"
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-1.5"
             onClick={() => void load({ silent: true })}
             disabled={loading}
           >
@@ -624,7 +736,7 @@ export function SalesOverviewPage() {
           <Button
             size="sm"
             asChild
-            className="gap-2 bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
+            className="gap-1.5 bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
           >
             <Link href={APP_ROUTES.salesQuick}>
               <Receipt className="size-3.5" aria-hidden />
@@ -640,9 +752,27 @@ export function SalesOverviewPage() {
         ) : (
           <section
             aria-label="Period summary"
-            className="grid gap-6 border-b border-border/50 pb-6 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
-            <Metric label="Revenue" value={fmtKes(summary.revenue)} />
+            <Metric
+              label="Revenue"
+              value={fmtKes(summary.revenue)}
+              chart={
+                revenueTrend.values.some((v) => v > 0) ? (
+                  <RevenueSparkline
+                    values={revenueTrend.values}
+                    labels={revenueTrend.labels}
+                  />
+                ) : null
+              }
+              hint={
+                revenueTrend.values.some((v) => v > 0)
+                  ? datePreset === "today" || datePreset === "yesterday"
+                    ? "Hourly trend"
+                    : "Daily trend"
+                  : undefined
+              }
+            />
             <Metric
               label="Transactions"
               value={summary.transactions.toLocaleString("en-KE")}
@@ -682,11 +812,11 @@ export function SalesOverviewPage() {
         )
       ) : null}
 
-      <section className="space-y-4" aria-label="Filters">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <section className="space-y-2.5" aria-label="Filters">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <input
@@ -694,14 +824,14 @@ export function SalesOverviewPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search receipt, product, cashier…"
-              className={cn(dashboardInputClass(), "pl-9")}
+              className={cn(dashboardInputClass(), "h-9 py-2 pl-9 text-sm")}
               aria-label="Search sales"
             />
           </div>
           <select
             value={branchId}
             onChange={(e) => onChangeBranch(e.target.value)}
-            className={cn(dashboardSelectClass(), "sm:w-52")}
+            className={cn(dashboardSelectClass(), "h-9 py-1.5 sm:w-48")}
             aria-label="Branch"
             disabled={branchLocked}
           >

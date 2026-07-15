@@ -10,6 +10,7 @@ import {
   Smartphone,
   Store,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { dashboardInputClass } from "@/components/dashboard-page-ui";
@@ -42,9 +43,9 @@ export const DATE_FILTER_OPTIONS: { id: SalesDatePreset; label: string }[] = [
 ];
 
 const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
-  { id: "all", label: "Any status" },
-  { id: "completed", label: "Completed" },
-  { id: "refunded", label: "Refunded" },
+  { id: "all", label: "Any" },
+  { id: "completed", label: "Done" },
+  { id: "refunded", label: "Refund" },
 ];
 
 const PAYMENT_ICONS: Record<
@@ -59,28 +60,21 @@ const PAYMENT_ICONS: Record<
   loyalty: Gift,
 };
 
-const PAYMENT_ACTIVE =
-  "bg-[#F9F6F0] text-[#8B6F3A] ring-[#E8DFD0] shadow-sm";
+const SEGMENT =
+  "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors";
+const SEGMENT_IDLE =
+  "text-muted-foreground hover:bg-muted/70 hover:text-foreground";
+const SEGMENT_ACTIVE = "bg-[#F9F6F0] text-[#8B6F3A]";
 
-function FilterLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#AAAAAA]">
-      {children}
-    </span>
-  );
-}
-
-function Chip({
+function Seg({
   active,
   onClick,
   children,
-  className,
   title,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  className?: string;
   title?: string;
 }) {
   return (
@@ -88,17 +82,27 @@ function Chip({
       type="button"
       title={title}
       onClick={onClick}
-      className={cn(
-        "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-all",
-        "ring-1 ring-inset",
-        active
-          ? "bg-[#F9F6F0] text-[#8B6F3A] ring-[#E8DFD0] shadow-sm"
-          : "bg-transparent text-[#666666] ring-transparent hover:bg-[#FAFAFA] hover:text-[#333333]",
-        className,
-      )}
+      className={cn(SEGMENT, active ? SEGMENT_ACTIVE : SEGMENT_IDLE)}
     >
       {children}
     </button>
+  );
+}
+
+function FilterCluster({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5">
+      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/80">
+        {label}
+      </span>
+      <div className="flex flex-wrap items-center gap-0.5">{children}</div>
+    </div>
   );
 }
 
@@ -146,205 +150,144 @@ export function SalesFeedFilters({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02]">
-        <div className="flex items-center gap-2 border-b border-border/40 px-3.5 py-2.5">
-          <FilterLabel>Period</FilterLabel>
-          <div
-            className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            role="group"
-            aria-label="Date range"
-          >
-            {DATE_FILTER_OPTIONS.map(({ id, label }) => (
-              <Chip
-                key={id}
-                active={datePreset === id}
-                onClick={() => onDatePresetChange(id)}
-              >
-                {label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        {datePreset === "custom" ? (
-          <div className="flex flex-wrap items-end gap-2 border-b border-[#F3F3F3] bg-[#FAFAFA] px-3 py-2">
-            <label className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-medium text-[#888888]">From</span>
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => onCustomFromChange(e.target.value)}
-                className={cn(dashboardInputClass(), "h-8 py-1 text-xs")}
-              />
-            </label>
-            <label className="flex flex-col gap-0.5">
-              <span className="text-[10px] font-medium text-[#888888]">To</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => onCustomToChange(e.target.value)}
-                className={cn(dashboardInputClass(), "h-8 py-1 text-xs")}
-              />
-            </label>
-          </div>
-        ) : null}
-
-        {showChannelFilter ? (
-          <div className="flex items-center gap-2 border-b border-[#F3F3F3] px-3 py-2">
-            <FilterLabel>Channel</FilterLabel>
-            <div
-              className="flex min-w-0 flex-1 flex-wrap gap-1"
-              role="group"
-              aria-label="Sales channel"
-            >
-              {CHANNEL_FILTER_OPTIONS.map(({ id, label, short }) => {
-                const active = channelFilter === id;
-                const Icon =
-                  id === "online_store"
-                    ? ShoppingBag
-                    : id === "walk_in"
-                      ? Store
-                      : null;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    title={label}
-                    onClick={() => onChannelFilterChange(id)}
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-all",
-                      active
-                        ? id === "online_store"
-                          ? "bg-indigo-50 text-indigo-900 ring-indigo-200"
-                          : "bg-[#F9F6F0] text-[#8B6F3A] ring-[#E8DFD0]"
-                        : "bg-transparent text-[#666666] ring-transparent hover:bg-[#FAFAFA]",
-                    )}
-                  >
-                    {Icon ? (
-                      <Icon className="size-3 opacity-75" aria-hidden />
-                    ) : null}
-                    {short}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:gap-3">
-          <div className="flex min-w-0 items-center gap-2 sm:max-w-[42%]">
-            <FilterLabel>Status</FilterLabel>
-            <div
-              className="flex min-w-0 flex-1 flex-wrap gap-1"
-              role="group"
-              aria-label="Sale status"
-            >
-              {STATUS_OPTIONS.map(({ id, label }) => (
-                <Chip
+    <div className="rounded-xl border border-border/70 bg-card shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-1.5 border-b border-border/40 px-2.5 py-1.5">
+        <FilterCluster label="When">
+          <div role="group" aria-label="Period">
+            <div className="flex flex-wrap items-center gap-0.5">
+              {DATE_FILTER_OPTIONS.map(({ id, label }) => (
+                <Seg
                   key={id}
-                  active={statusFilter === id}
-                  onClick={() => onStatusFilterChange(id)}
-                  title={label}
+                  active={datePreset === id}
+                  onClick={() => onDatePresetChange(id)}
                 >
-                  {id === "all" ? "Any" : label}
-                </Chip>
+                  {label}
+                </Seg>
               ))}
             </div>
           </div>
+        </FilterCluster>
 
-          {showTender ? (
-            <div
-              className="hidden h-5 w-px shrink-0 bg-[#EEEEEE] sm:block"
-              aria-hidden
-            />
-          ) : null}
-
-          {showTender ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <FilterLabel>Tender</FilterLabel>
-            <div
-              className="flex min-w-0 flex-1 flex-wrap gap-1"
-              role="group"
-              aria-label="Payment method"
-            >
-              {PAYMENT_METHOD_CHIPS.map(({ id, label, short }) => {
-                const active = paymentFilter === id;
-                const Icon = PAYMENT_ICONS[id];
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    title={label}
-                    onClick={() =>
-                      onPaymentFilterChange(active ? "all" : id)
-                    }
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset transition-all",
-                      active
-                        ? PAYMENT_ACTIVE
-                        : "bg-transparent text-[#666666] ring-transparent hover:bg-[#FAFAFA]",
-                    )}
-                  >
-                    <Icon className="size-3 opacity-70" aria-hidden />
-                    <span>{short}</span>
-                  </button>
-                );
-              })}
-              <Chip
-                active={paymentFilter === "other"}
-                onClick={() =>
-                  onPaymentFilterChange(
-                    paymentFilter === "other" ? "all" : "other",
-                  )
-                }
-                title="Other payment methods"
-              >
-                Other
-              </Chip>
-            </div>
-          </div>
-          ) : null}
-        </div>
-      </div>
-
-      {hasExtraFilters ? (
-        <div className="flex items-center justify-between gap-2 px-0.5">
-          <p className="text-[11px] text-[#888888]">
-            {statusFilter !== "all" ? (
-              <span>
-                {statusFilter === "completed" ? "Completed only" : "Refunds only"}
-              </span>
-            ) : null}
-            {statusFilter !== "all" && paymentFilter !== "all" ? (
-              <span className="mx-1 text-[#CCCCCC]">·</span>
-            ) : null}
-            {channelFilter !== "all" ? (
-              <span>
-                {CHANNEL_FILTER_OPTIONS.find((c) => c.id === channelFilter)
-                  ?.label ?? "Channel"}
-              </span>
-            ) : null}
-            {channelFilter !== "all" && paymentFilter !== "all" ? (
-              <span className="mx-1 text-[#CCCCCC]">·</span>
-            ) : null}
-            {paymentFilter !== "all" ? (
-              <span>
-                {PAYMENT_METHOD_CHIPS.find((c) => c.id === paymentFilter)?.label ??
-                  "Other"}{" "}
-                tender
-              </span>
-            ) : null}
-          </p>
+        {hasExtraFilters ? (
           <button
             type="button"
             onClick={clearExtra}
-            className="text-[11px] font-medium text-[#B08D48] hover:underline"
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+            title="Clear filters"
           >
-            Clear filters
+            <X className="size-3" aria-hidden />
+            Clear
           </button>
+        ) : null}
+      </div>
+
+      {datePreset === "custom" ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/40 bg-muted/20 px-2.5 py-1.5">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            From
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => onCustomFromChange(e.target.value)}
+              className={cn(dashboardInputClass(), "h-8 w-auto py-1 text-xs")}
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            To
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => onCustomToChange(e.target.value)}
+              className={cn(dashboardInputClass(), "h-8 w-auto py-1 text-xs")}
+            />
+          </label>
         </div>
       ) : null}
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-2.5 py-1.5">
+        {showChannelFilter ? (
+          <FilterCluster label="Channel">
+            <div role="group" aria-label="Channel">
+              <div className="flex flex-wrap items-center gap-0.5">
+                {CHANNEL_FILTER_OPTIONS.map(({ id, label, short }) => {
+                  const Icon =
+                    id === "online_store"
+                      ? ShoppingBag
+                      : id === "walk_in"
+                        ? Store
+                        : null;
+                  return (
+                    <Seg
+                      key={id}
+                      active={channelFilter === id}
+                      onClick={() => onChannelFilterChange(id)}
+                      title={label}
+                    >
+                      {Icon ? (
+                        <Icon className="size-3 opacity-70" aria-hidden />
+                      ) : null}
+                      {short}
+                    </Seg>
+                  );
+                })}
+              </div>
+            </div>
+          </FilterCluster>
+        ) : null}
+
+        <FilterCluster label="Status">
+          <div role="group" aria-label="Status">
+            <div className="flex flex-wrap items-center gap-0.5">
+              {STATUS_OPTIONS.map(({ id, label }) => (
+                <Seg
+                  key={id}
+                  active={statusFilter === id}
+                  onClick={() => onStatusFilterChange(id)}
+                >
+                  {label}
+                </Seg>
+              ))}
+            </div>
+          </div>
+        </FilterCluster>
+
+        {showTender ? (
+          <FilterCluster label="Pay">
+            <div role="group" aria-label="Payment">
+              <div className="flex flex-wrap items-center gap-0.5">
+                {PAYMENT_METHOD_CHIPS.map(({ id, label, short }) => {
+                  const active = paymentFilter === id;
+                  const Icon = PAYMENT_ICONS[id];
+                  return (
+                    <Seg
+                      key={id}
+                      active={active}
+                      onClick={() =>
+                        onPaymentFilterChange(active ? "all" : id)
+                      }
+                      title={label}
+                    >
+                      <Icon className="size-3 opacity-70" aria-hidden />
+                      {short}
+                    </Seg>
+                  );
+                })}
+                <Seg
+                  active={paymentFilter === "other"}
+                  onClick={() =>
+                    onPaymentFilterChange(
+                      paymentFilter === "other" ? "all" : "other",
+                    )
+                  }
+                  title="Other"
+                >
+                  Other
+                </Seg>
+              </div>
+            </div>
+          </FilterCluster>
+        ) : null}
+      </div>
     </div>
   );
 }
