@@ -1,29 +1,37 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
+  AlertTriangle,
+  ArrowRight,
   Banknote,
   Building2,
+  Calculator,
+  ClipboardList,
   Clock,
   Coins,
+  HandCoins,
+  Layers,
   MapPin,
   Receipt,
+  Scale,
   Search,
+  Wallet,
   X,
 } from "lucide-react";
 
 import {
   DASHBOARD_SECTION_SURFACE,
-  DASHBOARD_TABLE_HEAD,
   DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardLoading,
-  DashboardPageHero,
-  DashboardQuickLinks,
   dashboardInputClass,
   dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
+import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -129,6 +137,28 @@ function varianceBgColor(v: number | string | null | undefined): string {
   return "bg-red-500/10 border-red-500/20";
 }
 
+function toNum(v: number | string | null | undefined): number | null {
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Net cash movement (Closing − Opening) is directional, NOT a reconciliation
+ * variance, so it must not reuse the red/amber severity scale. Zero is muted;
+ * inflow and outflow get subtle, neutral directional cues for scanning.
+ */
+function changeColor(v: number | null | undefined): string {
+  if (v == null || v === 0) return "text-muted-foreground";
+  return v > 0
+    ? "text-emerald-700 dark:text-emerald-400"
+    : "text-orange-700 dark:text-orange-400";
+}
+
+function signedMoney(v: number): string {
+  return `${v > 0 ? "+" : v < 0 ? "−" : ""}${moneyStr(Math.abs(v))}`;
+}
+
 function statusBadgeClass(status: string): string {
   switch (status) {
     case "open":
@@ -167,12 +197,71 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center rounded-none border px-2 py-0.5 text-[11px] font-medium",
         statusBadgeClass(status),
       )}
     >
       {statusLabel(status)}
     </span>
+  );
+}
+
+/** Two-letter monogram for a cashier, e.g. "John Doe" → "JD". */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Compact key explaining the variance colour scale (reconciliation semantics). */
+function VarianceLegend({ className }: { className?: string }) {
+  const items = [
+    { dot: "bg-emerald-500", label: "Balanced" },
+    { dot: "bg-amber-500", label: `Minor · <${VARIANCE_THRESHOLD_RED}` },
+    { dot: "bg-red-500", label: `Review · ≥${VARIANCE_THRESHOLD_RED}` },
+  ];
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {items.map((it) => (
+        <span key={it.label} className="inline-flex items-center gap-1.5">
+          <span className={cn("size-1.5 rounded-full", it.dot)} aria-hidden />
+          <span className="tabular-nums">{it.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Centered empty / prompt state for the analytics + detail panes. */
+function PanelEmptyState({
+  icon: Icon,
+  title,
+  hint,
+}: {
+  icon: LucideIcon;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+      <span className="flex size-12 items-center justify-center rounded-none border border-border/60 bg-muted/40 text-muted-foreground/70 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        {hint ? (
+          <p className="mx-auto max-w-[220px] text-xs leading-relaxed text-muted-foreground">
+            {hint}
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -188,36 +277,60 @@ function ShiftCard({
 }) {
   const v = shift.variance;
   const varNum = v != null ? (typeof v === "number" ? v : Number(v)) : null;
+  const accent =
+    shift.status === "open"
+      ? "bg-emerald-500"
+      : shift.status === "suspended"
+        ? "bg-amber-500"
+        : shift.status === "reconciled"
+          ? "bg-blue-500"
+          : "bg-red-500";
 
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full rounded-xl border p-3 text-left transition-all",
-        "hover:border-primary/30 hover:bg-accent/40",
+        "group relative w-full overflow-hidden rounded-none border p-3 pl-3.5 text-left transition-all duration-200",
+        "hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-md",
         isSelected
-          ? "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/20"
+          ? "border-primary/40 bg-primary/[0.04] shadow-sm ring-1 ring-primary/20"
           : "border-border/70 bg-card ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
       )}
     >
+      {/* Status accent stripe */}
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-1 transition-opacity",
+          accent,
+          isSelected ? "opacity-100" : "opacity-60 group-hover:opacity-100",
+        )}
+        aria-hidden
+      />
+
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-semibold text-foreground">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span
+            className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-muted/50 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
+            aria-hidden
+          >
+            {initials(shift.cashierName)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-foreground">
               {shift.cashierName}
             </span>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {shift.branchName}
+            </p>
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {shift.branchName}
-          </p>
         </div>
         <StatusBadge status={shift.status} />
       </div>
 
       {/* Details row */}
-      <div className="mt-2 flex items-center gap-2 text-xs">
+      <div className="mt-2.5 flex items-center gap-2 text-xs">
         <span className="shrink-0 text-muted-foreground">
           {fmtShortDate(shift.openedAt)}
         </span>
@@ -241,17 +354,25 @@ function ShiftCard({
       {varNum !== null ? (
         <div
           className={cn(
-            "mt-1.5 flex items-center justify-between rounded-lg border px-2 py-1 text-xs",
+            "mt-1.5 flex items-center justify-between rounded-none border px-2 py-1 text-xs",
             varianceBgColor(v),
           )}
         >
-          <span className="text-muted-foreground">Variance</span>
+          <span className="flex items-center gap-1 text-muted-foreground">
+            {Math.abs(varNum) >= VARIANCE_THRESHOLD_RED && (
+              <AlertTriangle
+                className="size-3 text-red-600 dark:text-red-400"
+                aria-label="Large variance — needs review"
+              />
+            )}
+            {Math.abs(varNum) >= VARIANCE_THRESHOLD_RED ? "Needs review" : "Variance"}
+          </span>
           <span className={cn("font-semibold tabular-nums", varianceColor(v))}>
             {v != null ? `${varNum >= 0 ? "+" : ""}${moneyStrCompact(v)}` : "—"}
           </span>
         </div>
       ) : shift.status === "open" ? (
-        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-dashed px-2 py-1 text-xs">
+        <div className="mt-1.5 flex items-center gap-2 rounded-none border border-dashed px-2 py-1 text-xs">
           <span className="shrink-0 text-muted-foreground">Float</span>
           <div
             className="flex min-h-[1em] min-w-8 flex-1 items-center"
@@ -278,19 +399,37 @@ function ShiftCard({
 function DenominationComparison({
   openingDenoms,
   closingDenoms,
+  expectedClosingCash,
+  countedClosingCash,
+  closingVariance,
 }: {
   openingDenoms: DenominationRecord[];
   closingDenoms: DenominationRecord[];
+  expectedClosingCash?: number | string | null;
+  countedClosingCash?: number | string | null;
+  closingVariance?: number | string | null;
 }) {
   const openQty = denomsToQuantities(openingDenoms);
   const closeQty = denomsToQuantities(closingDenoms);
+  const openTotal = denomTotal(openingDenoms);
+  const closeTotal = denomTotal(closingDenoms);
+  const netChange = closeTotal - openTotal;
+
+  const expected = toNum(expectedClosingCash);
+  const counted = toNum(countedClosingCash);
+  // Prefer the server-provided variance; fall back to counted − expected.
+  const variance =
+    toNum(closingVariance) ??
+    (counted != null && expected != null ? counted - expected : null);
+  const showReconciliation =
+    expected != null || counted != null || variance != null;
 
   return (
     <div className="space-y-3">
       <h4 className="text-sm font-medium text-foreground">
         Denomination Breakdown
       </h4>
-      <div className={DASHBOARD_TABLE_SURFACE}>
+      <div className={cn(DASHBOARD_TABLE_SURFACE, "rounded-none")}>
         <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
@@ -300,6 +439,9 @@ function DenominationComparison({
                 className="px-3 py-2.5 text-left font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
               >
                 Denom
+                <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/60">
+                  (KES)
+                </span>
               </th>
               <th
                 scope="col"
@@ -327,9 +469,10 @@ function DenominationComparison({
               </th>
               <th
                 scope="col"
+                title="Net cash movement during the shift (Closing − Opening)"
                 className="px-3 py-2.5 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
               >
-                Variance
+                Change
               </th>
             </tr>
           </thead>
@@ -339,12 +482,14 @@ function DenominationComparison({
               const cQty = closeQty[d.value] || 0;
               const oTotal = d.value * oQty;
               const cTotal = d.value * cQty;
-              const varAmt = cTotal - oTotal;
+              const change = cTotal - oTotal;
               const hasData = oQty > 0 || cQty > 0;
               if (!hasData) return null;
               return (
                 <tr key={d.value} className="transition-colors hover:bg-muted/25">
-                  <td className="px-3 py-2 font-medium sm:px-4">{d.label}</td>
+                  <td className="px-3 py-2 font-medium tabular-nums sm:px-4">
+                    {d.value.toLocaleString("en-KE")}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums sm:px-4">
                     {oQty}
                   </td>
@@ -360,11 +505,10 @@ function DenominationComparison({
                   <td
                     className={cn(
                       "px-3 py-2 text-right font-medium tabular-nums sm:px-4",
-                      varianceColor(varAmt),
+                      changeColor(change),
                     )}
                   >
-                    {varAmt >= 0 ? "+" : ""}
-                    {moneyStr(varAmt)}
+                    {signedMoney(change)}
                   </td>
                 </tr>
               );
@@ -377,31 +521,71 @@ function DenominationComparison({
                 {Object.values(openQty).reduce((a, b) => a + b, 0)}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
-                {moneyStr(denomTotal(openingDenoms))}
+                {moneyStr(openTotal)}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
                 {Object.values(closeQty).reduce((a, b) => a + b, 0)}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums sm:px-4">
-                {moneyStr(denomTotal(closingDenoms))}
+                {moneyStr(closeTotal)}
               </td>
               <td
                 className={cn(
                   "px-3 py-2.5 text-right tabular-nums sm:px-4",
-                  varianceColor(
-                    denomTotal(closingDenoms) - denomTotal(openingDenoms),
-                  ),
+                  changeColor(netChange),
                 )}
               >
-                {moneyStr(
-                  denomTotal(closingDenoms) - denomTotal(openingDenoms),
-                )}
+                {signedMoney(netChange)}
               </td>
             </tr>
           </tfoot>
         </table>
         </div>
       </div>
+
+      <p className="px-0.5 text-[11px] leading-relaxed text-muted-foreground">
+        <span className="font-medium text-foreground">Change</span> = Closing −
+        Opening (net cash that moved through the drawer this shift). This is not
+        the reconciliation variance.
+      </p>
+
+      {showReconciliation && (
+        <div className="rounded-none border border-border/70 bg-muted/20 p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+          <h5 className="mb-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Drawer Reconciliation
+          </h5>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Expected Cash</span>
+              <span className="tabular-nums font-medium text-foreground">
+                {expected != null ? moneyStr(expected) : "—"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Counted Cash</span>
+              <span className="tabular-nums font-medium text-foreground">
+                {counted != null ? moneyStr(counted) : "—"}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-border/40 pt-1">
+              <span className="font-medium text-foreground">
+                Variance
+                <span className="ml-1 font-normal text-muted-foreground">
+                  (Counted − Expected)
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "tabular-nums font-semibold",
+                  varianceColor(variance),
+                )}
+              >
+                {variance != null ? signedMoney(variance) : "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -444,7 +628,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
 
   return (
     <div className="space-y-3">
-      <div className={DASHBOARD_TABLE_SURFACE}>
+      <div className={cn(DASHBOARD_TABLE_SURFACE, "rounded-none")}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -515,7 +699,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
                   <td className="px-3 py-2 text-center sm:px-4">
                   <span
                     className={cn(
-                      "inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+                      "inline-block rounded-none border px-1.5 py-0.5 text-[10px] font-medium",
                       DRAWOUT_STATUS_BADGE[d.status] || "",
                     )}
                   >
@@ -538,7 +722,7 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
       </div>
 
       {/* Totals */}
-      <div className="space-y-0.5 rounded-xl border border-border/70 bg-muted/20 p-3 text-xs shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+      <div className="space-y-0.5 rounded-none border border-border/70 bg-muted/20 p-3 text-xs shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
         {approvedTotal > 0 && (
           <div className="flex justify-between">
             <span className="text-muted-foreground">Approved Drawouts</span>
@@ -573,25 +757,121 @@ function DrawoutList({ drawouts }: { drawouts: DrawoutRecord[] }) {
 function KpiCard({
   label,
   value,
-  color,
+  icon: Icon,
+  valueClassName,
+  iconClassName,
 }: {
   label: string;
   value: string;
-  color?: string;
+  icon?: LucideIcon;
+  valueClassName?: string;
+  iconClassName?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-3 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
-      <p className="font-sans text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+    <div className="group relative overflow-hidden rounded-none border border-border/70 bg-gradient-to-b from-card to-muted/25 p-3 shadow-sm ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:ring-white/[0.04]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {label}
+        </p>
+        {Icon ? (
+          <span
+            className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-none border border-border/50 bg-background/70 text-muted-foreground shadow-sm",
+              iconClassName,
+            )}
+            aria-hidden
+          >
+            <Icon className="size-3.5" />
+          </span>
+        ) : null}
+      </div>
       <p
         className={cn(
-          "mt-1 text-lg font-bold tabular-nums leading-tight",
-          color || "text-foreground",
+          "mt-2 text-lg font-bold tabular-nums leading-tight tracking-tight",
+          valueClassName || "text-foreground",
         )}
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+/** Small uppercase section heading with a leading icon chip. */
+function SectionLabel({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+  return (
+    <h4 className="flex items-center gap-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <Icon className="size-3.5 text-muted-foreground/70" aria-hidden />
+      {text}
+    </h4>
+  );
+}
+
+/** Denomination list with per-row value-share proportion bars. */
+function DenomStackList({
+  title,
+  denoms,
+  total,
+}: {
+  title: string;
+  denoms: DenominationRecord[];
+  total: number;
+}) {
+  const qtyMap = denomsToQuantities(denoms);
+  const rows = KES_DENOMINATIONS.map((d) => ({
+    d,
+    qty: qtyMap[d.value] || 0,
+  })).filter((r) => r.qty > 0);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <SectionLabel icon={Layers} text={title} />
+        <span className="text-xs font-semibold tabular-nums text-foreground">
+          {moneyStr(total)}
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {rows.map(({ d, qty }) => {
+          const amount = d.value * qty;
+          const pct = total > 0 ? Math.max(2, (amount / total) * 100) : 0;
+          return (
+            <div
+              key={d.value}
+              className="space-y-1 rounded-none border border-border/50 bg-muted/20 px-2.5 py-1.5 transition-colors hover:bg-muted/35"
+            >
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  {d.type === "NOTE" ? (
+                    <Banknote className="size-3 text-muted-foreground" aria-hidden />
+                  ) : (
+                    <Coins className="size-3 text-muted-foreground" aria-hidden />
+                  )}
+                  <span className="tabular-nums font-medium text-foreground">
+                    {d.value.toLocaleString("en-KE")}
+                  </span>
+                  <span className="text-muted-foreground">× {qty}</span>
+                </div>
+                <span className="tabular-nums font-medium text-foreground">
+                  {moneyStr(amount)}
+                </span>
+              </div>
+              <div
+                className="h-1 overflow-hidden bg-border/70"
+                aria-hidden
+              >
+                <div
+                  className={cn(
+                    "h-full",
+                    d.type === "NOTE" ? "bg-primary/70" : "bg-primary/35",
+                  )}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -644,11 +924,11 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
 
   if (!shiftId) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">
-          Select a shift to view details
-        </p>
-      </div>
+      <PanelEmptyState
+        icon={ClipboardList}
+        title="No shift selected"
+        hint="Choose a shift to inspect its denomination breakdown, summary and drawouts."
+      />
     );
   }
 
@@ -660,30 +940,43 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
   const closingDenoms = detail.closingDenominations || [];
 
   const tabs = [
-    { id: "denominations", label: "Denominations" },
-    { id: "summary", label: "Summary" },
-    { id: "expenses", label: "Expenses" },
+    { id: "denominations", label: "Denominations", icon: Layers },
+    { id: "summary", label: "Summary", icon: ClipboardList },
+    { id: "expenses", label: "Drawouts", icon: HandCoins },
   ];
 
   return (
     <div className="flex h-full flex-col">
-      {/* Tab bar */}
-      <div className="flex border-b">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "px-4 py-2.5 text-xs font-medium transition-colors",
-              activeTab === tab.id
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Tab bar — segmented control */}
+      <div className="border-b border-border/50 bg-muted/20 p-2">
+        <div className="flex gap-1 rounded-none border border-border/50 bg-background/60 p-1 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-none px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                  active
+                    ? "bg-card text-foreground shadow-sm ring-1 ring-border/60"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <TabIcon
+                  className={cn(
+                    "size-3.5",
+                    active ? "text-primary" : "text-muted-foreground/70",
+                  )}
+                  aria-hidden
+                />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Tab content */}
@@ -694,6 +987,9 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
               <DenominationComparison
                 openingDenoms={openingDenoms}
                 closingDenoms={closingDenoms}
+                expectedClosingCash={detail.expectedClosingCash}
+                countedClosingCash={detail.countedClosingCash}
+                closingVariance={detail.closingVariance}
               />
             ) : openingDenoms.length > 0 ? (
               <DenominationTable
@@ -767,14 +1063,21 @@ function DetailTabs({ shiftId }: { shiftId: string | null }) {
                 </span>
               </div>
               <div className="flex justify-between text-sm border-t pt-1 mt-1">
-                <span className="text-muted-foreground">Variance</span>
+                <span className="text-muted-foreground">
+                  Variance
+                  <span className="ml-1 text-xs text-muted-foreground/70">
+                    (Counted − Expected)
+                  </span>
+                </span>
                 <span
                   className={cn(
                     "tabular-nums font-semibold",
                     varianceColor(detail.closingVariance),
                   )}
                 >
-                  {moneyStr(detail.closingVariance)}
+                  {toNum(detail.closingVariance) != null
+                    ? signedMoney(toNum(detail.closingVariance) as number)
+                    : "—"}
                 </span>
               </div>
             </div>
@@ -837,11 +1140,11 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
 
   if (!shiftId) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">
-          Select a shift to see analytics
-        </p>
-      </div>
+      <PanelEmptyState
+        icon={Scale}
+        title="No shift selected"
+        hint="Pick a shift from the list to see its float, variance and cash movement."
+      />
     );
   }
 
@@ -870,15 +1173,26 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
       : null;
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-5 p-4">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-2">
-        <KpiCard label="Opening Float" value={moneyStr(detail.openingCash)} />
-        <KpiCard label="Expected Cash" value={moneyStr(expected)} />
+      <div className="grid grid-cols-2 gap-2.5">
+        <KpiCard
+          label="Opening Float"
+          value={moneyStr(detail.openingCash)}
+          icon={Wallet}
+        />
+        <KpiCard
+          label="Expected Cash"
+          value={moneyStr(expected)}
+          icon={Calculator}
+        />
         <KpiCard
           label="Counted Cash"
           value={counted != null ? moneyStr(counted) : "—"}
-          color={counted != null ? "text-foreground" : "text-muted-foreground"}
+          icon={Coins}
+          valueClassName={
+            counted != null ? "text-foreground" : "text-muted-foreground"
+          }
         />
         <KpiCard
           label="Variance"
@@ -887,107 +1201,58 @@ function AnalyticsPanel({ shiftId }: { shiftId: string | null }) {
               ? `${variance >= 0 ? "+" : ""}${moneyStr(variance)}`
               : "—"
           }
-          color={varianceColor(variance)}
+          icon={Scale}
+          valueClassName={varianceColor(variance)}
+          iconClassName={cn(
+            variance != null && Math.abs(variance) === 0 &&
+              "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+            variance != null &&
+              Math.abs(variance) > 0 &&
+              Math.abs(variance) < VARIANCE_THRESHOLD_RED &&
+              "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+            variance != null &&
+              Math.abs(variance) >= VARIANCE_THRESHOLD_RED &&
+              "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+          )}
         />
       </div>
 
-      {/* Denomination Breakdown */}
+      {/* Denomination Breakdowns */}
       {openingDenoms.length > 0 && (
-        <div className="space-y-1">
-          <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Opening Counts
-          </h4>
-          <div className="space-y-0.5">
-            {KES_DENOMINATIONS.map((d) => {
-              const qty = denomsToQuantities(openingDenoms)[d.value] || 0;
-              if (qty === 0) return null;
-              return (
-                <div
-                  key={d.value}
-                  className="flex items-center justify-between rounded bg-muted/30 px-2.5 py-1 text-xs"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {d.type === "NOTE" ? (
-                      <Banknote className="size-3 text-muted-foreground" />
-                    ) : (
-                      <Coins className="size-3 text-muted-foreground" />
-                    )}
-                    <span>{d.label}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">×{qty}</span>
-                    <span className="w-16 text-right tabular-nums font-medium">
-                      {moneyStr(d.value * qty)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-            <div className="flex items-center justify-between border-t pt-1 text-xs font-semibold">
-              <span>Total</span>
-              <span className="tabular-nums">{moneyStr(openTotal)}</span>
-            </div>
-          </div>
-        </div>
+        <DenomStackList
+          title="Opening Counts"
+          denoms={openingDenoms}
+          total={openTotal}
+        />
       )}
-
       {closingDenoms.length > 0 && (
-        <div className="space-y-1">
-          <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Closing Counts
-          </h4>
-          <div className="space-y-0.5">
-            {KES_DENOMINATIONS.map((d) => {
-              const qty = denomsToQuantities(closingDenoms)[d.value] || 0;
-              if (qty === 0) return null;
-              return (
-                <div
-                  key={d.value}
-                  className="flex items-center justify-between rounded bg-muted/30 px-2.5 py-1 text-xs"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {d.type === "NOTE" ? (
-                      <Banknote className="size-3 text-muted-foreground" />
-                    ) : (
-                      <Coins className="size-3 text-muted-foreground" />
-                    )}
-                    <span>{d.label}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">×{qty}</span>
-                    <span className="w-16 text-right tabular-nums font-medium">
-                      {moneyStr(d.value * qty)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-            <div className="flex items-center justify-between border-t pt-1 text-xs font-semibold">
-              <span>Total</span>
-              <span className="tabular-nums">{moneyStr(closeTotal)}</span>
-            </div>
-          </div>
-        </div>
+        <DenomStackList
+          title="Closing Counts"
+          denoms={closingDenoms}
+          total={closeTotal}
+        />
       )}
 
       {/* Timeline */}
-      <div className="space-y-1.5">
-        <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Timeline
-        </h4>
-        <div className="space-y-1 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="size-2 rounded-full bg-emerald-500" />
+      <div className="space-y-2">
+        <SectionLabel icon={Clock} text="Timeline" />
+        <div className="relative space-y-3 pl-1 text-xs">
+          <span
+            className="absolute bottom-1.5 left-[4px] top-1.5 w-px bg-border"
+            aria-hidden
+          />
+          <div className="relative flex items-center gap-2.5">
+            <span className="z-10 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
             <span className="text-muted-foreground">Opened</span>
-            <span className="ml-auto tabular-nums text-foreground">
+            <span className="ml-auto tabular-nums font-medium text-foreground">
               {fmtShortDate(detail.openedAt)}
             </span>
           </div>
           {detail.closedAt && (
-            <div className="flex items-center gap-2">
-              <div className="size-2 rounded-full bg-red-500" />
+            <div className="relative flex items-center gap-2.5">
+              <span className="z-10 size-2 rounded-full bg-red-500 ring-2 ring-background" />
               <span className="text-muted-foreground">Closed</span>
-              <span className="ml-auto tabular-nums text-foreground">
+              <span className="ml-auto tabular-nums font-medium text-foreground">
                 {fmtShortDate(detail.closedAt)}
               </span>
             </div>
@@ -1261,22 +1526,26 @@ export default function ShiftsPage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1440px] flex-col gap-6 px-4 pb-16 sm:px-6">
-      <section className={DASHBOARD_SECTION_SURFACE}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <DashboardPageHero
-            showActiveScope
-            icon={Clock}
-            eyebrow="Operations"
-            title="Shifts"
-            description={
-              <>
-                Track cash drawer shifts with full denomination-level counting.
-                Open a shift, count cash by KES denomination, and reconcile at
-                close.
-              </>
-            }
-          />
-          <div className="flex flex-wrap gap-2 lg:shrink-0">
+      <section className={cn(DASHBOARD_SECTION_SURFACE, "rounded-none p-4 sm:p-5")}>
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+          {/* Identity */}
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center border border-border/60 bg-muted/50 text-foreground shadow-sm">
+              <Clock className="size-[18px]" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Operations
+              </span>
+              <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground">
+                Shifts
+              </h1>
+              <ActiveScopeSubtitle className="mt-0.5 text-xs" />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
             {currentOpenShift && canClose ? (
               <>
                 <Button
@@ -1303,34 +1572,44 @@ export default function ShiftsPage() {
             ) : null}
           </div>
         </div>
-        <div className="mt-8">
-          <DashboardQuickLinks
-            links={[
+
+        {/* Description + quick links */}
+        <div className="mt-4 flex flex-col gap-3 border-t border-border/50 pt-4 lg:flex-row lg:items-center lg:justify-between">
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Track cash drawer shifts with full denomination-level counting. Open
+            a shift, count cash by KES denomination, and reconcile at close.
+          </p>
+          <div className="flex flex-wrap gap-2 lg:shrink-0">
+            {[
               ...(isBranchLockedRole
                 ? []
                 : [
                     {
                       href: APP_ROUTES.branches,
                       label: "Branches",
-                      desc: "Locations",
                       icon: MapPin,
                     },
                   ]),
-              {
-                href: APP_ROUTES.salesQuick,
-                label: "Quick sale",
-                desc: "POS",
-                icon: Receipt,
-              },
-              {
-                href: APP_ROUTES.business,
-                label: "Business",
-                desc: "Settings",
-                icon: Building2,
-              },
-            ]}
-            compact
-          />
+              { href: APP_ROUTES.salesQuick, label: "Quick sale", icon: Receipt },
+              { href: APP_ROUTES.business, label: "Business", icon: Building2 },
+            ].map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="inline-flex items-center gap-1.5 border border-border/60 bg-card/90 px-2.5 py-1.5 text-xs font-semibold tracking-tight text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-card hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <Icon
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+                {label}
+                <ArrowRight
+                  className="size-3 shrink-0 text-muted-foreground opacity-60"
+                  aria-hidden
+                />
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -1341,16 +1620,36 @@ export default function ShiftsPage() {
         </div>
       ) : null}
 
-      {/* Three-column layout */}
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
+      {/* Reconciliation console */}
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.02] md:flex dark:ring-white/[0.04]">
+        {/* Console toolbar */}
+        <div className="flex items-center justify-between gap-3 border-b border-border/50 bg-gradient-to-r from-muted/45 via-muted/20 to-transparent px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 text-primary shadow-sm">
+              <Scale className="size-[18px]" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h2 className="font-heading text-base font-semibold leading-tight tracking-tight text-foreground">
+                Reconciliation Console
+              </h2>
+              <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                Opening float → sales → close-out variance
+              </p>
+            </div>
+          </div>
+          <VarianceLegend className="justify-end" />
+        </div>
+
+        {/* Panels */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* ─── Column 1: Shift List (~28%) ────────────────────────── */}
-        <div className="hidden w-[28%] min-w-[260px] flex-shrink-0 border-r border-border/50 md:flex md:flex-col">
+        <div className="flex w-[28%] min-w-[260px] flex-shrink-0 flex-col border-r border-border/50">
           {/* Filters */}
           <div className="space-y-3 border-b border-border/50 bg-muted/15 p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
-                className={dashboardInputClass(loading, "pl-9 text-sm")}
+                className={dashboardInputClass(loading, "pl-9 text-sm rounded-none")}
                 placeholder="Search cashier or branch..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1359,7 +1658,7 @@ export default function ShiftsPage() {
             </div>
             <div className="flex gap-2">
               <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs")}
+                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs rounded-none")}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 aria-label="Filter by status"
@@ -1371,7 +1670,7 @@ export default function ShiftsPage() {
                 ))}
               </select>
               <select
-                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs")}
+                className={cn(dashboardSelectClass(loading), "min-w-0 flex-1 text-xs rounded-none")}
                 value={branchFilter}
                 disabled={isBranchLockedRole}
                 onChange={(e) => setBranchFilter(e.target.value)}
@@ -1393,14 +1692,18 @@ export default function ShiftsPage() {
 
           {/* Shift cards */}
           <div className="flex-1 overflow-y-auto p-3">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                {totalCount > 0
-                  ? `${totalCount} shift${totalCount !== 1 ? "s" : ""}`
-                  : "Shifts"}
+            <div className="mb-2.5 flex items-center justify-between px-0.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                Shifts
+                <span className="inline-flex min-w-5 items-center justify-center rounded-none border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  {totalCount}
+                </span>
               </span>
               {loading && (
-                <span className="text-xs text-muted-foreground">Loading…</span>
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                  Loading…
+                </span>
               )}
             </div>
             <div className="space-y-2">
@@ -1436,7 +1739,8 @@ export default function ShiftsPage() {
 
         {/* ─── Column 2: Analytics (~35%) ──────────────────────────── */}
         <div className="hidden w-[35%] min-w-[300px] flex-shrink-0 border-r border-border/50 lg:flex lg:flex-col">
-          <div className={DASHBOARD_TABLE_HEAD}>
+          <div className="flex items-center gap-2 border-b border-border/50 bg-muted/25 px-4 py-3">
+            <Calculator className="size-4 text-muted-foreground" aria-hidden />
             <h3 className="text-sm font-semibold tracking-tight text-foreground">
               Shift Analytics
             </h3>
@@ -1448,16 +1752,38 @@ export default function ShiftsPage() {
 
         {/* ─── Column 3: Detail Tabs (~37%) ────────────────────────── */}
         <div className="flex flex-1 flex-col">
-          <div className={DASHBOARD_TABLE_HEAD}>
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">
-              {selectedShift
-                ? `${selectedShift.cashierName} — ${selectedShift.branchName}`
-                : "Shift Details"}
-            </h3>
+          <div className="flex items-center gap-2.5 border-b border-border/50 bg-muted/25 px-4 py-3">
+            {selectedShift ? (
+              <>
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-none border border-border/60 bg-background/70 font-sans text-[11px] font-bold tracking-tight text-foreground shadow-sm"
+                  aria-hidden
+                >
+                  {initials(selectedShift.cashierName)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
+                    {selectedShift.cashierName}
+                  </h3>
+                  <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                    {selectedShift.branchName}
+                  </p>
+                </div>
+                <StatusBadge status={selectedShift.status} />
+              </>
+            ) : (
+              <>
+                <ClipboardList className="size-4 text-muted-foreground" aria-hidden />
+                <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                  Shift Details
+                </h3>
+              </>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             <DetailTabs shiftId={selectedShiftId} />
           </div>
+        </div>
         </div>
       </div>
 
@@ -1465,7 +1791,7 @@ export default function ShiftsPage() {
       <div className="flex-1 space-y-3 overflow-y-auto p-4 md:hidden">
         <div className="flex items-center gap-2">
           <input
-            className={cn(dashboardInputClass(loading), "min-w-0 flex-1")}
+            className={cn(dashboardInputClass(loading), "min-w-0 flex-1 rounded-none")}
             placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -1500,7 +1826,7 @@ export default function ShiftsPage() {
           )}
         </div>
         {selectedShiftId ? (
-          <div className={DASHBOARD_SECTION_SURFACE}>
+          <div className={cn(DASHBOARD_SECTION_SURFACE, "rounded-none")}>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold tracking-tight text-foreground">
                 Shift Details
