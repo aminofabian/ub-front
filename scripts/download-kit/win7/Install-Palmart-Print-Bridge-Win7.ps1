@@ -156,8 +156,8 @@ if ($ok) {
 
 Write-Warning "Files installed, but health check failed."
 Write-Warning ("Log file: " + $LogPath)
-Write-Warning ("Try: " + $StartCmdPath)
-Write-Warning "If URL reservation fails, open Command Prompt as Administrator and run:"
-Write-Warning ("  netsh http add urlacl url=http://127.0.0.1:19500/ user=" + $env:USERNAME)
-Write-Warning "Then run this installer again."
+Write-Warning ("Try double-click: " + $StartCmdPath)
+Write-Warning "Or open this in Internet Explorer on this PC:"
+Write-Warning "  http://127.0.0.1:19500/health"
+Write-Warning "You should see ok:true. If the page will not load, check bridge.log."
 throw "Bridge did not become healthy on http://127.0.0.1:19500"

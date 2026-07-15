@@ -1,11 +1,10 @@
 # Palmart Till Print Bridge for Windows 7 (PowerShell + .NET - no Node.js).
 # ASCII-only. Compatible with Windows PowerShell 2.0+.
+# Uses TcpListener (NOT HttpListener) so no netsh URL ACL / admin is required.
 # Listens on http://127.0.0.1:19500  (same API as the modern Node bridge)
 
 $ErrorActionPreference = "Stop"
 $Port = 19500
-$Prefix = "http://127.0.0.1:$Port/"
-# $PSScriptRoot is PS3+; Win7 stock is often PS2.
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LogFile = $env:TILL_PRINT_BRIDGE_LOG
 if (-not $LogFile) {
@@ -174,141 +173,221 @@ function Send-NetworkRaw([string]$HostName, [int]$PortNumber, [byte[]]$Bytes) {
   }
 }
 
-function Read-RequestBody($Request) {
-  $len = [int]$Request.ContentLength64
-  if ($len -gt 0) {
-    $buffer = New-Object byte[] $len
-    $read = 0
-    while ($read -lt $len) {
-      $n = $Request.InputStream.Read($buffer, $read, $len - $read)
-      if ($n -le 0) { break }
-      $read += $n
+function Get-HeaderValue($Headers, [string]$Name) {
+  foreach ($key in $Headers.Keys) {
+    if ([string]::Compare([string]$key, $Name, $true) -eq 0) {
+      return [string]$Headers[$key]
     }
-    if ($read -lt $len) {
-      $trim = New-Object byte[] $read
-      [Array]::Copy($buffer, $trim, $read)
-      return $trim
-    }
-    return $buffer
   }
-  # Avoid Stream.CopyTo (.NET 4+ only); Win7 may be on .NET 3.5.
+  return ""
+}
+
+function Read-HttpRequest($Stream) {
   $ms = New-Object System.IO.MemoryStream
   $buf = New-Object byte[] 4096
-  do {
-    $n = $Request.InputStream.Read($buf, 0, $buf.Length)
-    if ($n -gt 0) { $ms.Write($buf, 0, $n) }
-  } while ($n -gt 0)
-  return $ms.ToArray()
+  $headerText = ""
+  $bodyStart = -1
+
+  while ($true) {
+    $n = $Stream.Read($buf, 0, $buf.Length)
+    if ($n -le 0) { break }
+    $ms.Write($buf, 0, $n)
+    $headerText = [System.Text.Encoding]::ASCII.GetString($ms.ToArray())
+    $idx = $headerText.IndexOf("`r`n`r`n")
+    if ($idx -ge 0) {
+      $bodyStart = $idx + 4
+      break
+    }
+    if ($ms.Length -gt 65536) { throw "HTTP headers too large" }
+  }
+
+  if ($bodyStart -lt 0) { throw "Incomplete HTTP request" }
+
+  $all = $ms.ToArray()
+  $headerBytes = $bodyStart
+  $headerStr = [System.Text.Encoding]::ASCII.GetString($all, 0, $headerBytes)
+  $lines = $headerStr.Split([string[]]@("`r`n"), [StringSplitOptions]::None)
+  if ($lines.Length -lt 1) { throw "Empty HTTP request" }
+
+  $parts = $lines[0].Split(" ")
+  if ($parts.Length -lt 2) { throw "Bad HTTP request line" }
+  $method = $parts[0].ToUpper()
+  $path = $parts[1]
+  $q = $path.IndexOf("?")
+  if ($q -ge 0) { $path = $path.Substring(0, $q) }
+  $path = $path.TrimEnd("/")
+  if (-not $path) { $path = "/" }
+
+  $headers = @{}
+  for ($i = 1; $i -lt $lines.Length; $i++) {
+    $line = $lines[$i]
+    if (-not $line) { continue }
+    $colon = $line.IndexOf(":")
+    if ($colon -lt 1) { continue }
+    $hk = $line.Substring(0, $colon).Trim()
+    $hv = $line.Substring($colon + 1).Trim()
+    $headers[$hk] = $hv
+  }
+
+  $contentLength = 0
+  $cl = Get-HeaderValue $headers "Content-Length"
+  if ($cl) {
+    try { $contentLength = [int]$cl } catch { $contentLength = 0 }
+  }
+
+  $body = New-Object byte[] 0
+  if ($contentLength -gt 0) {
+    $have = $all.Length - $bodyStart
+    $bodyMs = New-Object System.IO.MemoryStream
+    if ($have -gt 0) {
+      $bodyMs.Write($all, $bodyStart, [Math]::Min($have, $contentLength))
+    }
+    while ($bodyMs.Length -lt $contentLength) {
+      $need = $contentLength - [int]$bodyMs.Length
+      $chunk = New-Object byte[] ([Math]::Min(4096, $need))
+      $rn = $Stream.Read($chunk, 0, $chunk.Length)
+      if ($rn -le 0) { break }
+      $bodyMs.Write($chunk, 0, $rn)
+    }
+    $body = $bodyMs.ToArray()
+  }
+
+  return @{
+    Method = $method
+    Path = $path
+    Headers = $headers
+    Body = $body
+  }
 }
 
-function Write-Response($Response, [int]$StatusCode, [string]$Body, [string]$ContentType) {
-  $Response.StatusCode = $StatusCode
-  $Response.Headers.Add("Access-Control-Allow-Origin", "*")
-  $Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-  $Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Printer-Cups-Name, X-Printer-Host, X-Printer-Port")
-  $Response.Headers.Add("Access-Control-Allow-Private-Network", "true")
+function Write-HttpResponse($Stream, [int]$StatusCode, [string]$Body, [string]$ContentType) {
   if (-not $ContentType) { $ContentType = "text/plain" }
-  $Response.ContentType = $ContentType
-  $bytes = [System.Text.Encoding]::UTF8.GetBytes($Body)
-  $Response.ContentLength64 = $bytes.Length
-  $Response.OutputStream.Write($bytes, 0, $bytes.Length)
-  $Response.OutputStream.Close()
+  $reason = "OK"
+  if ($StatusCode -eq 204) { $reason = "No Content" }
+  elseif ($StatusCode -eq 400) { $reason = "Bad Request" }
+  elseif ($StatusCode -eq 404) { $reason = "Not Found" }
+  elseif ($StatusCode -eq 413) { $reason = "Payload Too Large" }
+  elseif ($StatusCode -eq 500) { $reason = "Internal Server Error" }
+  elseif ($StatusCode -eq 502) { $reason = "Bad Gateway" }
+
+  $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($Body)
+  $sb = New-Object System.Text.StringBuilder
+  [void]$sb.Append("HTTP/1.1 $StatusCode $reason`r`n")
+  [void]$sb.Append("Access-Control-Allow-Origin: *`r`n")
+  [void]$sb.Append("Access-Control-Allow-Methods: GET, POST, OPTIONS`r`n")
+  [void]$sb.Append("Access-Control-Allow-Headers: Content-Type, X-Printer-Cups-Name, X-Printer-Host, X-Printer-Port`r`n")
+  [void]$sb.Append("Access-Control-Allow-Private-Network: true`r`n")
+  [void]$sb.Append("Access-Control-Max-Age: 86400`r`n")
+  [void]$sb.Append("Content-Type: $ContentType`r`n")
+  [void]$sb.Append("Content-Length: $($bodyBytes.Length)`r`n")
+  [void]$sb.Append("Connection: close`r`n")
+  [void]$sb.Append("`r`n")
+  $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($sb.ToString())
+  $Stream.Write($headerBytes, 0, $headerBytes.Length)
+  if ($bodyBytes.Length -gt 0) {
+    $Stream.Write($bodyBytes, 0, $bodyBytes.Length)
+  }
+  $Stream.Flush()
 }
 
-# Single-instance: fail cleanly if port taken
-$listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add($Prefix)
+function Handle-Request($Req, $Stream) {
+  $method = $Req.Method
+  $path = $Req.Path
+
+  if ($method -eq "OPTIONS") {
+    Write-HttpResponse $Stream 204 "" "text/plain"
+    return
+  }
+
+  if ($method -eq "GET" -and ($path -eq "/health" -or $path -eq "/")) {
+    $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"win7":true,"port":' + $Port + '}'
+    Write-HttpResponse $Stream 200 $body "application/json"
+    return
+  }
+
+  if ($method -eq "GET" -and $path -eq "/printers") {
+    try {
+      $rows = @(Get-PrinterRows)
+      $json = Convert-PrintersToJson $rows
+      Write-HttpResponse $Stream 200 $json "application/json"
+    } catch {
+      Write-HttpResponse $Stream 500 $_.Exception.Message "text/plain"
+    }
+    return
+  }
+
+  if ($method -eq "POST" -and $path -eq "/print") {
+    $bytes = $Req.Body
+    if ($null -eq $bytes -or $bytes.Length -eq 0) {
+      Write-HttpResponse $Stream 400 "empty body" "text/plain"
+      return
+    }
+    if ($bytes.Length -gt 256000) {
+      Write-HttpResponse $Stream 413 "payload too large" "text/plain"
+      return
+    }
+
+    $netHost = Get-HeaderValue $Req.Headers "X-Printer-Host"
+    $netPortRaw = Get-HeaderValue $Req.Headers "X-Printer-Port"
+    $cups = Get-HeaderValue $Req.Headers "X-Printer-Cups-Name"
+    if (-not $netPortRaw) { $netPortRaw = "9100" }
+    $netPort = 9100
+    try { $netPort = [int]$netPortRaw } catch { $netPort = 9100 }
+
+    try {
+      if ($netHost -and $netHost.Trim()) {
+        Send-NetworkRaw $netHost.Trim() $netPort $bytes
+        $body = '{"ok":true,"mode":"network","host":"' + (Escape-Json $netHost.Trim()) + '","port":' + $netPort + '}'
+        Write-HttpResponse $Stream 200 $body "application/json"
+      } elseif ($cups -and $cups.Trim()) {
+        Send-WindowsRaw $cups.Trim() $bytes
+        $body = '{"ok":true,"mode":"windows","name":"' + (Escape-Json $cups.Trim()) + '","platform":"win32"}'
+        Write-HttpResponse $Stream 200 $body "application/json"
+      } else {
+        Write-HttpResponse $Stream 400 "Missing or invalid X-Printer-Cups-Name (or X-Printer-Host)" "text/plain"
+      }
+    } catch {
+      Write-BridgeLog ("Print error: " + $_.Exception.Message)
+      Write-HttpResponse $Stream 502 $_.Exception.Message "text/plain"
+    }
+    return
+  }
+
+  Write-HttpResponse $Stream 404 "not found" "text/plain"
+}
+
+# ---- listen (TcpListener = no URL ACL / admin needed on Win7) ----
+$listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, $Port)
 try {
   $listener.Start()
 } catch {
-  Write-BridgeLog ("Port $Port already in use or URL ACL blocked: " + $_.Exception.Message)
-  Write-BridgeLog "If another Palmart bridge is running, that is OK."
-  exit 0
+  Write-BridgeLog ("FATAL: cannot bind 127.0.0.1:$Port - " + $_.Exception.Message)
+  Write-BridgeLog "Is another Palmart bridge already running? Check bridge.log / Task Manager for powershell."
+  exit 1
 }
 
-Write-BridgeLog "Till Print Bridge (Win7) listening on $Prefix"
+Write-BridgeLog "Till Print Bridge (Win7/TcpListener) listening on http://127.0.0.1:$Port/"
 Write-BridgeLog "No Node.js required. Log: $LogFile"
 
-while ($listener.IsListening) {
-  $ctx = $null
+while ($true) {
+  $client = $null
+  $stream = $null
   try {
-    $ctx = $listener.GetContext()
+    $client = $listener.AcceptTcpClient()
+    $stream = $client.GetStream()
+    $stream.ReadTimeout = 15000
+    $stream.WriteTimeout = 15000
+    $req = Read-HttpRequest $stream
+    Handle-Request $req $stream
   } catch {
-    Write-BridgeLog ("GetContext error: " + $_.Exception.Message)
-    continue
-  }
-
-  $req = $ctx.Request
-  $res = $ctx.Response
-  $method = $req.HttpMethod.ToUpper()
-  $path = $req.Url.AbsolutePath.TrimEnd("/")
-  if (-not $path) { $path = "/" }
-
-  try {
-    if ($method -eq "OPTIONS") {
-      Write-Response $res 204 "" "text/plain"
-      continue
-    }
-
-    if ($method -eq "GET" -and ($path -eq "/health" -or $path -eq "/")) {
-      $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"win7":true,"port":' + $Port + '}'
-      Write-Response $res 200 $body "application/json"
-      continue
-    }
-
-    if ($method -eq "GET" -and $path -eq "/printers") {
-      try {
-        $rows = @(Get-PrinterRows)
-        $json = Convert-PrintersToJson $rows
-        Write-Response $res 200 $json "application/json"
-      } catch {
-        Write-Response $res 500 $_.Exception.Message "text/plain"
-      }
-      continue
-    }
-
-    if ($method -eq "POST" -and $path -eq "/print") {
-      $bytes = Read-RequestBody $req
-      if ($null -eq $bytes -or $bytes.Length -eq 0) {
-        Write-Response $res 400 "empty body" "text/plain"
-        continue
-      }
-      if ($bytes.Length -gt 256000) {
-        Write-Response $res 413 "payload too large" "text/plain"
-        continue
-      }
-
-      $netHost = [string]$req.Headers["X-Printer-Host"]
-      $netPortRaw = [string]$req.Headers["X-Printer-Port"]
-      $cups = [string]$req.Headers["X-Printer-Cups-Name"]
-      if (-not $netPortRaw) { $netPortRaw = "9100" }
-      $netPort = 9100
-      try { $netPort = [int]$netPortRaw } catch { $netPort = 9100 }
-
-      try {
-        if ($netHost -and $netHost.Trim()) {
-          Send-NetworkRaw $netHost.Trim() $netPort $bytes
-          $body = '{"ok":true,"mode":"network","host":"' + (Escape-Json $netHost.Trim()) + '","port":' + $netPort + '}'
-          Write-Response $res 200 $body "application/json"
-        } elseif ($cups -and $cups.Trim()) {
-          Send-WindowsRaw $cups.Trim() $bytes
-          $body = '{"ok":true,"mode":"windows","name":"' + (Escape-Json $cups.Trim()) + '","platform":"win32"}'
-          Write-Response $res 200 $body "application/json"
-        } else {
-          Write-Response $res 400 "Missing or invalid X-Printer-Cups-Name (or X-Printer-Host)" "text/plain"
-        }
-      } catch {
-        Write-BridgeLog ("Print error: " + $_.Exception.Message)
-        Write-Response $res 502 $_.Exception.Message "text/plain"
-      }
-      continue
-    }
-
-    Write-Response $res 404 "not found" "text/plain"
-  } catch {
+    Write-BridgeLog ("Request error: " + $_.Exception.Message)
     try {
-      Write-BridgeLog ("Request error: " + $_.Exception.Message)
-      Write-Response $res 500 $_.Exception.Message "text/plain"
+      if ($stream) {
+        Write-HttpResponse $stream 500 $_.Exception.Message "text/plain"
+      }
     } catch { }
+  } finally {
+    try { if ($stream) { $stream.Close() } } catch { }
+    try { if ($client) { $client.Close() } } catch { }
   }
 }

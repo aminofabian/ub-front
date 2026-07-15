@@ -25,16 +25,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%"
 set "ERR=%ERRORLEVEL%"
 if not "%ERR%"=="0" (
   echo.
-  echo Install failed (exit %ERR%).
-  echo Try right-click this .cmd - Run as administrator.
-  echo If health check fails, run as admin once:
-  echo   netsh http add urlacl url=http://127.0.0.1:19500/ user=%USERNAME%
+  echo Install FAILED (exit %ERR%). The bridge is NOT running yet.
+  echo Open bridge.log in:
+  echo   %LOCALAPPDATA%\Palmart\till-print-bridge\bridge.log
+  echo Or try: %LOCALAPPDATA%\Palmart\till-print-bridge\start-till-print-bridge.cmd
+  echo Then open in Internet Explorer: http://127.0.0.1:19500/health
   pause
   exit /b %ERR%
 )
 echo.
-echo Done. Close this window - the bridge keeps running in the background.
-echo Next: Palmart Cashier - open Printer - Detect printers.
+echo SUCCESS - bridge is running. Close this window.
+echo Confirm in Internet Explorer: http://127.0.0.1:19500/health
+echo Then refresh Palmart Cashier and Detect printers.
 echo Use Chrome 109 if the cashier site will not load on this PC.
 pause
 exit /b 0
