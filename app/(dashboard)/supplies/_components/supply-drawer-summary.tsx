@@ -161,7 +161,7 @@ export function SupplyDrawerSummaryPanel({
       <div className="border-t border-border bg-muted/20 px-2.5 py-2">
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <TrendingUp className="size-3 shrink-0" aria-hidden />
-          Shelf prices apply when you post, not while drafting.
+          Draft shelf prices show here; they post when you save the supply.
         </div>
       </div>
     </aside>

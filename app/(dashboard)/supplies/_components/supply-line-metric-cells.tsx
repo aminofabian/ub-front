@@ -388,7 +388,7 @@ export function SupplyCostCell({
           onChange={(e) => onChange?.(e.target.value)}
           disabled={disabled}
           inputMode="decimal"
-          placeholder="0.00"
+          placeholder="—"
           aria-label="Buying price per unit"
         />
       </div>

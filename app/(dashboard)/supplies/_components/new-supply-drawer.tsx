@@ -180,6 +180,25 @@ function draftBuyingUnitFromPricingKey(
   return null;
 }
 
+/** Prefer last/default link cost; treat 0 / blank as unset so history can fill. */
+function linkSeedUnitCost(link: SupplierItemLinkRecord): string {
+  for (const raw of [link.lastCostPrice, link.defaultCostPrice]) {
+    if (raw == null || String(raw).trim() === "") {
+      continue;
+    }
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
+      return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    }
+  }
+  return "";
+}
+
+function unitCostMissing(unitStr: string): boolean {
+  const n = parseNonNeg(unitStr);
+  return n == null || n <= 0;
+}
+
 function rowItemId(row: SupplyDraftRow): string | null {
   if (row.source === "linked" && row.link) {
     return row.link.itemId;
@@ -369,14 +388,7 @@ export function NewSupplyDrawer({
           link,
           item: null,
           qtyStr: "",
-          unitStr:
-            link.lastCostPrice != null &&
-            String(link.lastCostPrice).trim() !== ""
-              ? String(link.lastCostPrice)
-              : link.defaultCostPrice != null &&
-                  String(link.defaultCostPrice).trim() !== ""
-                ? String(link.defaultCostPrice)
-                : "",
+          unitStr: linkSeedUnitCost(link),
           sellPriceStr: "",
           sellPriceTouched: false,
           expiry: "",
@@ -436,15 +448,24 @@ export function NewSupplyDrawer({
     setLineSearchQuery("");
   }, [supplier?.id]);
 
+  /** Only wipe draft shelf prices when the branch actually changes while open. */
+  const pricingBranchRef = useRef<string | null>(null);
   useEffect(() => {
-     
     if (!open) {
+      pricingBranchRef.current = null;
       return;
     }
+    if (pricingBranchRef.current === null) {
+      pricingBranchRef.current = branchId;
+      return;
+    }
+    if (pricingBranchRef.current === branchId) {
+      return;
+    }
+    pricingBranchRef.current = branchId;
     setRows((prev) =>
       prev.map((r) => ({ ...r, sellPriceStr: "", sellPriceTouched: false })),
     );
-     
   }, [branchId, open]);
 
   const rowItemIdsKey = useMemo(() => {
@@ -470,12 +491,7 @@ export function NewSupplyDrawer({
   }, [rows]);
 
   useEffect(() => {
-     
     if (!open || !supplier?.id || !branchId.trim()) {
-      return;
-    }
-    if (!canSetSellPrice) {
-      setRowPricing({});
       return;
     }
     const ids = rowItemIdsKey.split(",").filter(Boolean);
@@ -514,6 +530,7 @@ export function NewSupplyDrawer({
           }
           const cur = parseMoneyApi(rec.currentSellPrice);
           const sug = parseMoneyApi(rec.suggestedSellPrice);
+          const latestCost = parseMoneyApi(rec.latestUnitCost);
           setRowPricing((m) => ({
             ...m,
             [itemId]: {
@@ -525,17 +542,24 @@ export function NewSupplyDrawer({
           }));
           setRows((prev) =>
             prev.map((r) => {
-              if (rowItemId(r) !== itemId || r.sellPriceTouched) {
+              if (rowItemId(r) !== itemId) {
                 return r;
               }
-              if (r.sellPriceStr.trim() !== "") {
-                return r;
+              let next = r;
+              if (
+                unitCostMissing(r.unitStr) &&
+                latestCost != null &&
+                latestCost > 0
+              ) {
+                next = { ...next, unitStr: latestCost.toFixed(2) };
               }
-              const v = cur ?? sug;
-              if (v == null) {
-                return r;
+              if (!r.sellPriceTouched && r.sellPriceStr.trim() === "") {
+                const shelf = cur ?? sug;
+                if (shelf != null) {
+                  next = { ...next, sellPriceStr: shelf.toFixed(2) };
+                }
               }
-              return { ...r, sellPriceStr: v.toFixed(2) };
+              return next;
             }),
           );
         } catch {
@@ -560,8 +584,7 @@ export function NewSupplyDrawer({
       cancelled = true;
       pricingGenRef.current += 1;
     };
-     
-  }, [open, supplier?.id, branchId, rowItemIdsKey, rowPricingDepsKey, canSetSellPrice]);
+  }, [open, supplier?.id, branchId, rowItemIdsKey, rowPricingDepsKey]);
 
   const estimatedProfit = useMemo(() => {
     let cost = 0;
@@ -697,15 +720,12 @@ export function NewSupplyDrawer({
       throw new Error("Product linked but catalog row could not be loaded.");
     }
 
-    const defaultUnit =
-      link.lastCostPrice != null && String(link.lastCostPrice).trim() !== ""
-        ? String(link.lastCostPrice)
-        : link.defaultCostPrice != null &&
-            String(link.defaultCostPrice).trim() !== ""
-          ? String(link.defaultCostPrice)
-          : draft.defaultCostPrice != null
-            ? String(draft.defaultCostPrice)
-            : "";
+    const seeded = linkSeedUnitCost(link);
+    const draftCost =
+      draft.defaultCostPrice != null && draft.defaultCostPrice > 0
+        ? String(draft.defaultCostPrice)
+        : "";
+    const defaultUnit = seeded || draftCost;
 
     setRows((prev) => {
       const idx = prev.findIndex((row) => rowItemId(row) === draft.item.id);
