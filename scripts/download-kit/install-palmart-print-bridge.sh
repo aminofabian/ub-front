@@ -20,6 +20,7 @@ fi
 NODE_BIN="$(command -v node)"
 mkdir -p "$INSTALL_DIR" "$UNIT_DIR"
 cp -f "$PKG_DIR/till-print-bridge.mjs" "$INSTALL_DIR/till-print-bridge.mjs"
+cp -f "$PKG_DIR/windows-raw-print-embed.mjs" "$INSTALL_DIR/windows-raw-print-embed.mjs" 2>/dev/null || true
 
 cat > "$UNIT_DST" <<EOF
 [Unit]

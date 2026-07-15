@@ -7,6 +7,8 @@ $PkgDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $InstallDir = Join-Path $env:LOCALAPPDATA "Palmart\till-print-bridge"
 $BridgeSrc = Join-Path $PkgDir "till-print-bridge-win7.ps1"
 $BridgeDst = Join-Path $InstallDir "till-print-bridge-win7.ps1"
+$HelperSrc = Join-Path $PkgDir "windows-raw-print.ps1"
+$HelperDst = Join-Path $InstallDir "windows-raw-print.ps1"
 $VbsPath = Join-Path $InstallDir "run-hidden.vbs"
 $LogPath = Join-Path $InstallDir "bridge.log"
 $StartCmdPath = Join-Path $InstallDir "start-till-print-bridge.cmd"
@@ -69,6 +71,23 @@ function Install-StartupEntry([string]$SourceVbs) {
   return $dest
 }
 
+function Stop-OldBridge {
+  # Always restart so an updated bridge script is loaded (Win7 keeps one PS process).
+  try {
+    $procs = Get-WmiObject Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue
+    foreach ($p in @($procs)) {
+      $cmd = [string]$p.CommandLine
+      if ($cmd -and ($cmd -match 'till-print-bridge')) {
+        try {
+          Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+          Write-Step ("Stopped old bridge PID " + $p.ProcessId)
+        } catch { }
+      }
+    }
+  } catch { }
+  Start-Sleep -Milliseconds 500
+}
+
 function Start-BridgeHidden([string]$WscriptExe, [string]$VbsFile) {
   # Prefer shell execute so .vbs associates correctly on Windows 7.
   $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -82,6 +101,9 @@ function Start-BridgeHidden([string]$WscriptExe, [string]$VbsFile) {
 
 if (-not (Test-Path $BridgeSrc)) {
   throw "Missing till-print-bridge-win7.ps1 next to this installer."
+}
+if (-not (Test-Path $HelperSrc)) {
+  throw "Missing windows-raw-print.ps1 next to this installer. Re-download the full Windows 7 zip."
 }
 
 $psExe = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -101,6 +123,7 @@ Write-Step "No Node.js required on Windows 7."
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item -Force $BridgeSrc $BridgeDst
+Copy-Item -Force $HelperSrc $HelperDst
 Write-HiddenVbs -PowerShellExe $psExe -BridgeFile $BridgeDst -WorkDir $InstallDir -OutVbs $VbsPath -OutLog $LogPath
 if (-not (Test-Path $VbsPath)) {
   throw ("Failed to write launcher: " + $VbsPath)
@@ -131,17 +154,23 @@ try {
 # Startup folder is the supported autostart method.
 Write-Step "Autostart: Startup folder (no Task Scheduler on Windows 7)"
 
-if (Test-BridgeHealth) {
-  Write-Step ("Bridge already healthy on port " + $Port)
-} else {
-  Start-BridgeHidden -WscriptExe $Wscript -VbsFile $VbsPath
-  Write-Step "Started bridge in background (no window)"
-}
+Stop-OldBridge
+Start-BridgeHidden -WscriptExe $Wscript -VbsFile $VbsPath
+Write-Step "Started bridge in background (no window)"
 
 $ok = Wait-BridgeHealth
 Write-Host ""
 if ($ok) {
   Write-Host "OK - Windows 7 bridge installed and running at http://127.0.0.1:19500"
+  try {
+    $wc = New-Object System.Net.WebClient
+    $text = $wc.DownloadString($HealthUrl)
+    if ($text -notmatch 'v5-bypass-epson') {
+      Write-Warning "Health JSON missing printEngine v5-bypass-epson. Reboot PC and run installer again."
+    } else {
+      Write-Step "printEngine=v5-bypass-epson"
+    }
+  } catch { }
   Write-Host "It starts automatically when you sign in to Windows."
   Write-Host "No window to leave open. No Node.js. No Task Scheduler needed."
   if ($startupPath) {
@@ -150,6 +179,7 @@ if ($ok) {
   Write-Host ("Logs: " + $LogPath)
   Write-Host ""
   Write-Host "Go back to Palmart Cashier and click Detect printers."
+  Write-Host "Confirm: http://127.0.0.1:19500/health shows printEngine v5-bypass-epson"
   Write-Host "Tip: use Chrome 109 (last Chrome for Windows 7) for the cashier site."
   exit 0
 }

@@ -21,10 +21,15 @@
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { createConnection } from "node:net";
-import { appendFileSync, existsSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { unlink, writeFile } from "node:fs/promises";
 import { platform as osPlatform, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { WINDOWS_RAW_PRINT_PS1 } from "./windows-raw-print-embed.mjs";
+
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const PRINT_ENGINE = "v5-bypass-epson";
 
 const PORT = Number(process.env.TILL_PRINT_BRIDGE_PORT || 19500);
 const HOST = "127.0.0.1";
@@ -323,7 +328,30 @@ function sendCups(name, data) {
 }
 
 /**
- * Send RAW bytes to a Windows printer via Win32 WritePrinter (PowerShell).
+ * Always materialize the v5 print script (embedded in this bridge) so an old
+ * install folder missing windows-raw-print.ps1 still gets the fixed engine.
+ */
+async function materializeWindowsRawPrintPs1() {
+  const beside = join(SCRIPT_DIR, "windows-raw-print.ps1");
+  let source = WINDOWS_RAW_PRINT_PS1;
+  try {
+    if (existsSync(beside)) {
+      const disk = readFileSync(beside, "utf8");
+      if (disk.includes("v5-bypass-epson")) source = disk;
+    }
+  } catch {
+    // use embedded
+  }
+  const helper = join(
+    tmpdir(),
+    `palmart-windows-raw-print-${PRINT_ENGINE}.ps1`,
+  );
+  await writeFile(helper, source, "utf8");
+  return helper;
+}
+
+/**
+ * Send RAW bytes to a Windows printer (port/share first; spooler skipped for Epson).
  */
 async function sendWindowsRaw(name, data) {
   const file = join(
@@ -331,122 +359,7 @@ async function sendWindowsRaw(name, data) {
     `palmart-escpos-${process.pid}-${Date.now()}.bin`,
   );
   await writeFile(file, data);
-
-  // Escape for PowerShell single-quoted strings ('' = literal ')
-  const qName = name.replace(/'/g, "''");
-  const qFile = file.replace(/'/g, "''");
-
-  const ps = `
-$ErrorActionPreference = 'Stop'
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class PalmartRawPrint {
-  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-  public class DOCINFO {
-    public int cbSize;
-    public string pDocName;
-    public string pOutputFile;
-    public string pDatatype;
-  }
-  [DllImport("winspool.drv", SetLastError=true, CharSet=CharSet.Unicode)]
-  public static extern bool OpenPrinter(string src, out IntPtr hPrinter, IntPtr pd);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool ClosePrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true, CharSet=CharSet.Unicode)]
-  public static extern bool StartDocPrinter(IntPtr hPrinter, int level, [In] DOCINFO di);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool EndDocPrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool StartPagePrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool EndPagePrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
-}
-"@
-$requested = '${qName}'.Trim()
-$path = '${qFile}'
-$bytes = [System.IO.File]::ReadAllBytes($path)
-
-function Get-WindowsPrinterNames {
-  $names = @()
-  try { $names = @(Get-Printer | ForEach-Object { [string]$_.Name }) } catch { }
-  if ($names.Count -eq 0) {
-    try {
-      $names = @(Get-WmiObject Win32_Printer | ForEach-Object { [string]$_.Name })
-    } catch { }
-  }
-  return @($names | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() })
-}
-
-function Resolve-WindowsPrinterName([string]$Wanted) {
-  $h = [IntPtr]::Zero
-  if ([PalmartRawPrint]::OpenPrinter($Wanted, [ref]$h, [IntPtr]::Zero)) {
-    [void][PalmartRawPrint]::ClosePrinter($h)
-    return $Wanted
-  }
-  $names = @(Get-WindowsPrinterNames)
-  if ($names.Count -eq 0) {
-    throw "OpenPrinter failed for '$Wanted' - Windows lists no printers. Add the printer in Devices and Printers (try Generic / Text Only), then Detect printers again."
-  }
-  foreach ($n in $names) {
-    if ([string]::Compare($n, $Wanted, $true) -eq 0) { return $n }
-  }
-  $norm = ($Wanted -replace '\\s+', ' ').Trim().ToLower()
-  $hits = @($names | Where-Object { (($_.ToLower() -replace '\\s+', ' ').Trim()) -eq $norm })
-  if ($hits.Count -eq 1) { return $hits[0] }
-  $hits = @($names | Where-Object { $_.ToLower().Contains($norm) -or $norm.Contains(($_.ToLower() -replace '\\s+', ' ').Trim()) })
-  if ($hits.Count -eq 1) { return $hits[0] }
-  $list = [string]::Join(', ', $names)
-  throw "OpenPrinter failed for '$Wanted'. Exact queue name not found. Installed printers: $list. In Cashier Detect printers and pick the exact name (or rename/reinstall as Generic / Text Only)."
-}
-
-$printer = Resolve-WindowsPrinterName $requested
-$hPrinter = [IntPtr]::Zero
-if (-not [PalmartRawPrint]::OpenPrinter($printer, [ref]$hPrinter, [IntPtr]::Zero)) {
-  $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-  throw "OpenPrinter failed for '$printer' (Win32 $err). Printer may be offline or deleted - Detect printers again."
-}
-try {
-  $started = $false
-  $lastErr = 0
-  foreach ($dtype in @('RAW','TEXT',$null)) {
-    $di = New-Object PalmartRawPrint+DOCINFO
-    $di.pDocName = 'Palmart ESC/POS'
-    $di.pOutputFile = $null
-    $di.pDatatype = $dtype
-    $di.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($di)
-    if ([PalmartRawPrint]::StartDocPrinter($hPrinter, 1, $di)) {
-      $started = $true
-      break
-    }
-    $lastErr = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-  }
-  if (-not $started) {
-    throw ("StartDocPrinter failed for '$printer' (Win32 $lastErr). Reinstall the printer using Windows driver 'Generic / Text Only', set it Online, then Detect printers again.")
-  }
-  try {
-    [void][PalmartRawPrint]::StartPagePrinter($hPrinter)
-    $pinned = [System.Runtime.InteropServices.GCHandle]::Alloc($bytes, [System.Runtime.InteropServices.GCHandleType]::Pinned)
-    try {
-      $written = 0
-      $ptr = $pinned.AddrOfPinnedObject()
-      if (-not [PalmartRawPrint]::WritePrinter($hPrinter, $ptr, $bytes.Length, [ref]$written)) {
-        $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-        throw "WritePrinter failed (Win32 $err)"
-      }
-    } finally {
-      $pinned.Free()
-    }
-    [void][PalmartRawPrint]::EndPagePrinter($hPrinter)
-  } finally {
-    [void][PalmartRawPrint]::EndDocPrinter($hPrinter)
-  }
-} finally {
-  [void][PalmartRawPrint]::ClosePrinter($hPrinter)
-}
-`.trim();
+  const helper = await materializeWindowsRawPrintPs1();
 
   try {
     await runCmd("powershell.exe", [
@@ -454,14 +367,17 @@ try {
       "-NonInteractive",
       "-ExecutionPolicy",
       "Bypass",
-      "-Command",
-      ps,
+      "-File",
+      helper,
+      "-PrinterName",
+      name,
+      "-FilePath",
+      file,
     ]);
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     throw new Error(
-      e instanceof Error
-        ? e.message
-        : `Windows raw print failed for "${name}"`,
+      msg.trim() || `Windows raw print failed for "${name}"`,
     );
   } finally {
     unlink(file).catch(() => undefined);
@@ -520,6 +436,7 @@ const server = createServer(async (req, res) => {
         spooler: IS_WIN,
         powershell: IS_WIN,
         networkRaw: true,
+        printEngine: IS_WIN ? PRINT_ENGINE : "cups-or-network",
         port: PORT,
       },
       "application/json",

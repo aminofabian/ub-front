@@ -25,8 +25,13 @@ export type TillBridgeHealth = {
   spooler?: boolean;
   powershell?: boolean;
   networkRaw?: boolean;
+  /** Windows raw engine id, e.g. v5-bypass-epson */
+  printEngine?: string;
   port?: number;
 };
+
+/** Minimum Windows print engine required for Epson/ePOS USB receipts. */
+export const REQUIRED_WIN_PRINT_ENGINE = "v5-bypass-epson";
 
 export type TillCupsPrinter = {
   name: string;

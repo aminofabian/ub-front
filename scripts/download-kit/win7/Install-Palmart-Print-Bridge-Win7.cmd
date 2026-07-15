@@ -11,9 +11,11 @@ echo.
 
 set "PS1=%~dp0Install-Palmart-Print-Bridge-Win7.ps1"
 set "BRIDGE=%~dp0till-print-bridge-win7.ps1"
+set "RAW=%~dp0windows-raw-print.ps1"
 
 if not exist "%PS1%" goto :missingFiles
 if not exist "%BRIDGE%" goto :missingFiles
+if not exist "%RAW%" goto :missingFiles
 
 if not exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
   echo PowerShell not found. Windows 7 needs PowerShell 2.0 or later.
@@ -49,6 +51,7 @@ echo This folder: %CD%
 echo Looking for:
 echo   Install-Palmart-Print-Bridge-Win7.ps1
 echo   till-print-bridge-win7.ps1
+echo   windows-raw-print.ps1
 echo.
 echo Fix:
 echo   1. Open the unzipped folder named palmart-till-print-bridge-windows7

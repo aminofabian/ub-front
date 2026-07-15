@@ -17,9 +17,11 @@ import { patchBranch } from "@/lib/api";
 import { EMPTY_BRANCH_RECEIPT } from "@/lib/branch-receipt";
 import { IS_DESKTOP } from "@/lib/runtime";
 import {
+  fetchTillBridgeHealth,
   getLocalTillCupsName,
-  isTillPrintBridgeUp,
+  REQUIRED_WIN_PRINT_ENGINE,
   setLocalTillCupsName,
+  type TillBridgeHealth,
 } from "@/lib/till-print-bridge";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +51,7 @@ export function TillPrinterStatus({
   const branchName = cupsName?.trim() || null;
   const [localName, setLocalName] = useState<string | null>(null);
   const [bridgeUp, setBridgeUp] = useState<boolean | null>(null);
+  const [health, setHealth] = useState<TillBridgeHealth | null>(null);
   const [saving, setSaving] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
 
@@ -59,13 +62,16 @@ export function TillPrinterStatus({
   useEffect(() => {
     if (IS_DESKTOP) {
       setBridgeUp(null);
+      setHealth(null);
       return;
     }
     let cancelled = false;
 
     const check = async () => {
-      const up = await isTillPrintBridgeUp();
-      if (!cancelled) setBridgeUp(up);
+      const h = await fetchTillBridgeHealth();
+      if (cancelled) return;
+      setHealth(h);
+      setBridgeUp(Boolean(h?.ok));
     };
 
     void check();
@@ -77,6 +83,9 @@ export function TillPrinterStatus({
   }, []);
 
   const effectiveName = branchName || localName;
+  const winEngineStale =
+    health?.platform === "win32" &&
+    health.printEngine !== REQUIRED_WIN_PRINT_ENGINE;
 
   const handleSelect = useCallback(
     async (name: string) => {
@@ -116,7 +125,7 @@ export function TillPrinterStatus({
   if (IS_DESKTOP) return null;
   if (bridgeUp === null) return null;
 
-  if (!bridgeUp) {
+  if (!bridgeUp || winEngineStale) {
     return (
       <div
         role="alert"
@@ -133,11 +142,26 @@ export function TillPrinterStatus({
             aria-hidden
           />
           <div className="min-w-0 space-y-0.5">
-            <p className="font-semibold">Print bridge not installed on this PC</p>
+            <p className="font-semibold">
+              {winEngineStale
+                ? "Print bridge outdated on this PC"
+                : "Print bridge not installed on this PC"}
+            </p>
             <p className={cn(compact ? "text-destructive/80" : "text-destructive/90")}>
-              Download and run the installer once. On Windows 7 click{" "}
-              <strong className="font-semibold">Windows 7 (no Node)</strong>
-              {" - "}do not install Node.js. Then Detect printers.
+              {winEngineStale ? (
+                <>
+                  Re-download and reinstall the Windows bridge (need{" "}
+                  <strong className="font-semibold">{REQUIRED_WIN_PRINT_ENGINE}</strong>
+                  ). Then open http://127.0.0.1:19500/health and confirm printEngine
+                  matches. Epson ePOS cannot use the old StartDocPrinter path.
+                </>
+              ) : (
+                <>
+                  Download and run the installer once. On Windows 7 click{" "}
+                  <strong className="font-semibold">Windows 7 (no Node)</strong>
+                  {" - "}do not install Node.js. Then Detect printers.
+                </>
+              )}
             </p>
           </div>
         </div>

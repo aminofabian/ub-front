@@ -28,6 +28,7 @@ NODE_BIN="$(command -v node)"
 mkdir -p "$INSTALL_DIR" "$LOG_DIR" "$HOME/Library/LaunchAgents"
 
 cp -f "$PKG_DIR/till-print-bridge.mjs" "$INSTALL_DIR/till-print-bridge.mjs"
+cp -f "$PKG_DIR/windows-raw-print-embed.mjs" "$INSTALL_DIR/windows-raw-print-embed.mjs" 2>/dev/null || true
 cp -f "$PKG_DIR/start-till-print-bridge.command" "$INSTALL_DIR/start-till-print-bridge.command" 2>/dev/null || true
 chmod +x "$INSTALL_DIR/till-print-bridge.mjs" 2>/dev/null || true
 chmod +x "$INSTALL_DIR/start-till-print-bridge.command" 2>/dev/null || true

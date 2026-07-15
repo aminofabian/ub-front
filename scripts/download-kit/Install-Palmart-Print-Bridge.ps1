@@ -7,6 +7,10 @@ $PkgDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $InstallDir = Join-Path $env:LOCALAPPDATA "Palmart\till-print-bridge"
 $BridgeSrc = Join-Path $PkgDir "till-print-bridge.mjs"
 $BridgeDst = Join-Path $InstallDir "till-print-bridge.mjs"
+$HelperSrc = Join-Path $PkgDir "windows-raw-print.ps1"
+$HelperDst = Join-Path $InstallDir "windows-raw-print.ps1"
+$EmbedSrc = Join-Path $PkgDir "windows-raw-print-embed.mjs"
+$EmbedDst = Join-Path $InstallDir "windows-raw-print-embed.mjs"
 $VbsPath = Join-Path $InstallDir "run-hidden.vbs"
 $LogPath = Join-Path $InstallDir "bridge.log"
 $StartCmdPath = Join-Path $InstallDir "start-till-print-bridge.cmd"
@@ -147,6 +151,12 @@ if (-not $Node) {
 if (-not (Test-Path $BridgeSrc)) {
   throw "Missing till-print-bridge.mjs next to this installer."
 }
+if (-not (Test-Path $HelperSrc)) {
+  throw "Missing windows-raw-print.ps1 next to this installer. Re-download the full Windows zip."
+}
+if (-not (Test-Path $EmbedSrc)) {
+  throw "Missing windows-raw-print-embed.mjs next to this installer. Re-download the full Windows zip."
+}
 
 $Wscript = Join-Path $env:SystemRoot "System32\wscript.exe"
 if (-not (Test-Path $Wscript)) {
@@ -161,6 +171,8 @@ Write-Step ("Install dir: " + $InstallDir)
 # Copy files
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item -Force $BridgeSrc $BridgeDst
+Copy-Item -Force $HelperSrc $HelperDst
+Copy-Item -Force $EmbedSrc $EmbedDst
 Write-HiddenVbs -NodeExe $Node -BridgeFile $BridgeDst -WorkDir $InstallDir -OutVbs $VbsPath -OutLog $LogPath
 
 $startCmdLines = @(
@@ -213,21 +225,20 @@ try {
   Write-Warning ("Scheduled task not registered (Startup folder still used): " + $_.Exception.Message)
 }
 
-# Start now (hidden)
-$already = Test-BridgeHealth
-if ($already -and $already.ok) {
-  Write-Step ("Bridge already healthy on port " + $Port)
-} else {
-  Stop-BridgeOnPort
-  Start-Sleep -Milliseconds 400
-  Start-Process -FilePath $Wscript -ArgumentList ('"' + $VbsPath + '"') -WindowStyle Hidden | Out-Null
-  Write-Step "Started bridge in background (no window)"
-}
+# Always restart so updated bridge + windows-raw-print.ps1 are loaded.
+Stop-BridgeOnPort
+Start-Sleep -Milliseconds 500
+Start-Process -FilePath $Wscript -ArgumentList ('"' + $VbsPath + '"') -WindowStyle Hidden | Out-Null
+Write-Step "Started bridge in background (no window)"
 
 $health = Wait-BridgeHealth
 Write-Host ""
 if ($health -and $health.ok) {
-  Write-Host ("OK - installed once and running at http://127.0.0.1:19500 (platform=" + $health.platform + ")")
+  $engine = [string]$health.printEngine
+  Write-Host ("OK - installed once and running at http://127.0.0.1:19500 (platform=" + $health.platform + ", printEngine=" + $engine + ")")
+  if ($engine -ne "v5-bypass-epson") {
+    Write-Warning "printEngine is not v5-bypass-epson. Old bridge may still be running. Reboot the PC or run Uninstall-Autostart.ps1 then install again."
+  }
   Write-Host "It starts automatically when you sign in to Windows. You do NOT need to keep a window open."
   if ($taskOk) {
     Write-Host ("Autostart: Startup folder + Task Scheduler (" + $TaskName + ")")
@@ -238,6 +249,7 @@ if ($health -and $health.ok) {
   Write-Host ("To remove autostart later: " + $UninstallPath)
   Write-Host ""
   Write-Host "Go back to Palmart Cashier and click Detect printers."
+  Write-Host "Confirm in browser: http://127.0.0.1:19500/health shows printEngine v5-bypass-epson"
 } else {
   Write-Warning "Files installed, but health check failed."
   Write-Warning ('Check Node.js works: "' + $Node + '" -v')

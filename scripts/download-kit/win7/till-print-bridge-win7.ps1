@@ -90,125 +90,17 @@ function Convert-PrintersToJson($rows) {
   return ('{"ok":true,"platform":"win32","printers":' + $arr + ',"suggested":' + $sugJson + '}')
 }
 
-$RawPrintTypeReady = $false
-function Ensure-RawPrintType {
-  if ($script:RawPrintTypeReady) { return }
-  Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class PalmartRawPrintWin7 {
-  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-  public class DOCINFO {
-    public int cbSize;
-    public string pDocName;
-    public string pOutputFile;
-    public string pDatatype;
-  }
-  [DllImport("winspool.drv", SetLastError=true, CharSet=CharSet.Unicode)]
-  public static extern bool OpenPrinter(string src, out IntPtr hPrinter, IntPtr pd);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool ClosePrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true, CharSet=CharSet.Unicode)]
-  public static extern bool StartDocPrinter(IntPtr hPrinter, int level, [In] DOCINFO di);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool EndDocPrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool StartPagePrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool EndPagePrinter(IntPtr hPrinter);
-  [DllImport("winspool.drv", SetLastError=true)]
-  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
-}
-"@
-  $script:RawPrintTypeReady = $true
-}
-
-function Get-WindowsPrinterNames {
-  $names = @()
-  try {
-    $names = @(Get-WmiObject Win32_Printer | ForEach-Object { [string]$_.Name })
-  } catch { }
-  return @($names | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() })
-}
-
-function Resolve-WindowsPrinterName([string]$Wanted) {
-  $Wanted = $Wanted.Trim()
-  $h = [IntPtr]::Zero
-  if ([PalmartRawPrintWin7]::OpenPrinter($Wanted, [ref]$h, [IntPtr]::Zero)) {
-    [void][PalmartRawPrintWin7]::ClosePrinter($h)
-    return $Wanted
-  }
-  $names = @(Get-WindowsPrinterNames)
-  if ($names.Count -eq 0) {
-    throw ("OpenPrinter failed for '" + $Wanted + "' - Windows lists no printers. Add the printer in Devices and Printers (Generic / Text Only), then Detect printers again.")
-  }
-  foreach ($n in $names) {
-    if ([string]::Compare($n, $Wanted, $true) -eq 0) { return $n }
-  }
-  $norm = (($Wanted -replace "\s+", " ").Trim()).ToLower()
-  $hits = @()
-  foreach ($n in $names) {
-    $nn = (($n -replace "\s+", " ").Trim()).ToLower()
-    if ($nn -eq $norm) { $hits += $n }
-  }
-  if ($hits.Count -eq 1) { return $hits[0] }
-  $hits = @()
-  foreach ($n in $names) {
-    $nn = $n.ToLower()
-    if ($nn.Contains($norm) -or $norm.Contains((($n -replace "\s+", " ").Trim()).ToLower())) {
-      $hits += $n
-    }
-  }
-  if ($hits.Count -eq 1) { return $hits[0] }
-  $list = [string]::Join(", ", $names)
-  throw ("OpenPrinter failed for '" + $Wanted + "'. Exact queue name not found. Installed printers: " + $list + ". Detect printers in Cashier and pick the exact name.")
-}
-
 function Send-WindowsRaw([string]$PrinterName, [byte[]]$Bytes) {
-  Ensure-RawPrintType
-  $printer = Resolve-WindowsPrinterName $PrinterName
-  $hPrinter = [IntPtr]::Zero
-  if (-not [PalmartRawPrintWin7]::OpenPrinter($printer, [ref]$hPrinter, [IntPtr]::Zero)) {
-    $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-    throw ("OpenPrinter failed for '" + $printer + "' (Win32 " + $err + "). Printer may be offline or deleted - Detect printers again.")
+  $helper = Join-Path $PSScriptRoot "windows-raw-print.ps1"
+  if (-not (Test-Path -LiteralPath $helper)) {
+    throw "Missing windows-raw-print.ps1 next to the bridge. Re-download the Windows 7 zip and run the installer again."
   }
+  $tmp = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), ("palmart-escpos-" + [Guid]::NewGuid().ToString("n") + ".bin"))
+  [System.IO.File]::WriteAllBytes($tmp, $Bytes)
   try {
-    $started = $false
-    $lastErr = 0
-    foreach ($dtype in @("RAW", "TEXT", $null)) {
-      $di = New-Object PalmartRawPrintWin7+DOCINFO
-      $di.pDocName = "Palmart ESC/POS"
-      $di.pOutputFile = $null
-      $di.pDatatype = $dtype
-      $di.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($di)
-      if ([PalmartRawPrintWin7]::StartDocPrinter($hPrinter, 1, $di)) {
-        $started = $true
-        break
-      }
-      $lastErr = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-    }
-    if (-not $started) {
-      throw ("StartDocPrinter failed for '" + $PrinterName + "' (Win32 " + $lastErr + "). Reinstall printer as Windows driver 'Generic / Text Only', set Online, then Detect printers again.")
-    }
-    try {
-      [void][PalmartRawPrintWin7]::StartPagePrinter($hPrinter)
-      $pinned = [System.Runtime.InteropServices.GCHandle]::Alloc($Bytes, [System.Runtime.InteropServices.GCHandleType]::Pinned)
-      try {
-        $written = 0
-        $ptr = $pinned.AddrOfPinnedObject()
-        if (-not [PalmartRawPrintWin7]::WritePrinter($hPrinter, $ptr, $Bytes.Length, [ref]$written)) {
-          $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-          throw ("WritePrinter failed (Win32 " + $err + ")")
-        }
-      } finally {
-        $pinned.Free()
-      }
-      [void][PalmartRawPrintWin7]::EndPagePrinter($hPrinter)
-    } finally {
-      [void][PalmartRawPrintWin7]::EndDocPrinter($hPrinter)
-    }
+    & $helper -PrinterName $PrinterName -FilePath $tmp
   } finally {
-    [void][PalmartRawPrintWin7]::ClosePrinter($hPrinter)
+    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
   }
 }
 
@@ -354,7 +246,7 @@ function Handle-Request($Req, $Stream) {
   }
 
   if ($method -eq "GET" -and ($path -eq "/health" -or $path -eq "/")) {
-    $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"win7":true,"port":' + $Port + '}'
+    $body = '{"ok":true,"platform":"win32","spooler":true,"powershell":true,"networkRaw":true,"win7":true,"printEngine":"v5-bypass-epson","port":' + $Port + '}'
     Write-HttpResponse $Stream 200 $body "application/json"
     return
   }
