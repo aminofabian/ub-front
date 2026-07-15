@@ -25,7 +25,7 @@ import {
   resolveCatalogCategoryLabel,
   resolveCatalogItemName,
   resolveCatalogListSubtitle,
-  resolveCatalogVariantPrimaryName,
+  resolveCatalogVariantListTitle,
 } from "@/lib/catalog-display";
 import { CatalogListSkeleton } from "./CatalogListSkeleton";
 import { CatalogListThumb } from "./CatalogListThumb";
@@ -309,14 +309,24 @@ export const VirtualizedCatalogBody = forwardRef<
                 rows
                   .filter((r) => r.variantOfItemId?.trim() === row.id)
                   .map((r) => r.id);
+              const parentRow = row.variantOfItemId
+                ? rowById.get(row.variantOfItemId.trim())
+                : undefined;
+              const parentInList = parentRow != null;
+              const variantTitle = isVariant
+                ? resolveCatalogVariantListTitle(row, { parentInList, parentRow })
+                : null;
               const nameResolution = isVariant
-                ? resolveCatalogVariantPrimaryName(row)
+                ? {
+                    label: variantTitle!.combined,
+                    needsNameFix: variantTitle!.needsNameFix,
+                  }
                 : resolveCatalogItemName(row);
               const titleInitial =
                 (nameResolution.needsNameFix &&
                 nameResolution.label === CATALOG_FIX_NAME_LABEL
                   ? "?"
-                  : nameResolution.label.charAt(0)
+                  : (variantTitle?.family ?? nameResolution.label).charAt(0)
                 ).toUpperCase() || "?";
               const effectiveVariantCount = Math.max(
                 meta.variantCount,
@@ -332,14 +342,11 @@ export const VirtualizedCatalogBody = forwardRef<
               );
               const typeChip = catalogTypeChipLabel(meta.kind, effectiveVariantCount);
               const primaryName = nameResolution.label;
-              const parentRow = row.variantOfItemId
-                ? rowById.get(row.variantOfItemId.trim())
-                : undefined;
               const secondaryLine = resolveCatalogListSubtitle(row, {
                 isVariant,
                 isGroup,
                 variantCount: effectiveVariantCount,
-                primaryName,
+                primaryName: variantTitle?.option ?? primaryName,
                 parentRow,
               });
               const isDuplicateName = duplicateRowIds.has(row.id);
@@ -381,7 +388,7 @@ export const VirtualizedCatalogBody = forwardRef<
                     tabIndex={0}
                     aria-label={
                       isVariant
-                        ? `Variant ${primaryName}`
+                        ? `Variant ${variantTitle?.combined ?? primaryName}`
                         : isGroup
                           ? `Parent group: ${primaryName}`
                           : effectiveVariantCount > 0
@@ -469,6 +476,24 @@ export const VirtualizedCatalogBody = forwardRef<
                               ) : null}
                               <FixNamePill />
                             </>
+                          ) : isVariant && variantTitle?.family ? (
+                            <span
+                              className="min-w-0 truncate text-[13px] leading-tight tracking-tight"
+                              title={variantTitle.combined}
+                            >
+                              <span className="font-semibold text-foreground">
+                                {variantTitle.family}
+                              </span>
+                              <span
+                                className="mx-1 font-normal text-muted-foreground/45"
+                                aria-hidden
+                              >
+                                ·
+                              </span>
+                              <span className="font-medium text-foreground/90">
+                                {variantTitle.option}
+                              </span>
+                            </span>
                           ) : (
                             <span
                               className={cn(
@@ -481,7 +506,7 @@ export const VirtualizedCatalogBody = forwardRef<
                                 !isVariant && tone.text,
                               )}
                             >
-                              {primaryName}
+                              {isVariant ? (variantTitle?.option ?? primaryName) : primaryName}
                             </span>
                           )}
                           {typeChip ? (

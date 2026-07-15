@@ -1,4 +1,7 @@
-import { resolveCatalogItemName } from "@/lib/catalog-display";
+import {
+  resolveCatalogItemName,
+  resolveCatalogVariantListTitle,
+} from "@/lib/catalog-display";
 import type { ItemSummaryRecord } from "@/lib/api";
 
 export const CATALOG_LETTER_KEYS = [
@@ -35,8 +38,10 @@ export type CatalogLetterKey = (typeof CATALOG_LETTER_KEYS)[number];
 
 /** First character bucket for A–Z jump navigation (`#` = non-letter). */
 export function catalogRowLetterKey(row: ItemSummaryRecord): CatalogLetterKey {
-  const label = resolveCatalogItemName(row).label.trim();
-  const ch = label.charAt(0).toUpperCase();
+  const label = row.variantOfItemId
+    ? resolveCatalogVariantListTitle(row, { parentInList: false }).combined
+    : resolveCatalogItemName(row).label;
+  const ch = label.trim().charAt(0).toUpperCase();
   if (ch >= "A" && ch <= "Z") return ch as CatalogLetterKey;
   return "#";
 }

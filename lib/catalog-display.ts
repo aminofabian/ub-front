@@ -171,3 +171,97 @@ export function resolveCatalogVariantPrimaryName(input: {
   if (option) return { label: option, needsNameFix: false };
   return resolveCatalogItemName(input);
 }
+
+export type CatalogVariantListTitle = {
+  /** Parent / family name when it should be shown (search orphan variants). */
+  family: string | null;
+  /** Option / pack label (e.g. "Single 60 Sticks"). */
+  option: string;
+  /** Screen-reader / combined title: "Rhino Kubwa · Single 60 Sticks". */
+  combined: string;
+  needsNameFix: boolean;
+};
+
+function labelsMatch(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * How a variant should read in the catalog list.
+ *
+ * When the parent row is already on screen (browse), keep the compact option-only
+ * title under the parent. When the parent is missing (typical search hit), surface
+ * the family name so "Single 60 Sticks" becomes "Rhino Kubwa · Single 60 Sticks".
+ */
+export function resolveCatalogVariantListTitle(
+  row: {
+    name?: string | null;
+    sku?: string | null;
+    variantName?: string | null;
+    brand?: string | null;
+  },
+  opts?: {
+    parentInList?: boolean;
+    parentRow?: {
+      name?: string | null;
+      sku?: string | null;
+      variantName?: string | null;
+    } | null;
+  },
+): CatalogVariantListTitle {
+  const optionRes = resolveCatalogVariantPrimaryName(row);
+  const option = optionRes.label;
+
+  if (opts?.parentInList) {
+    return {
+      family: null,
+      option,
+      combined: option,
+      needsNameFix: optionRes.needsNameFix,
+    };
+  }
+
+  const fromParent = usableLabel(opts?.parentRow?.name);
+  const fromOwnName = usableLabel(row.name);
+  const fromBrand = usableLabel(row.brand);
+
+  // "Rhino Kubwa Single 60 Sticks" + option "Single 60 Sticks" → family "Rhino Kubwa".
+  const peeledFromName =
+    fromOwnName && fromOwnName.length > option.length
+      ? fromOwnName
+          .replace(new RegExp(`[\\s·•|-]+${escapeRegExp(option)}\\s*$`, "i"), "")
+          .trim()
+      : "";
+  const peeledFamily =
+    peeledFromName &&
+    peeledFromName.length < fromOwnName!.length &&
+    !labelsMatch(peeledFromName, option)
+      ? peeledFromName
+      : null;
+
+  const family =
+    fromParent ??
+    peeledFamily ??
+    (fromOwnName && !labelsMatch(fromOwnName, option) ? fromOwnName : null) ??
+    (fromBrand && !labelsMatch(fromBrand, option) ? fromBrand : null);
+
+  if (!family) {
+    return {
+      family: null,
+      option,
+      combined: option,
+      needsNameFix: optionRes.needsNameFix,
+    };
+  }
+
+  return {
+    family,
+    option,
+    combined: `${family} · ${option}`,
+    needsNameFix: optionRes.needsNameFix,
+  };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
