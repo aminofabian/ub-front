@@ -22,13 +22,19 @@ const nsdControlBase = cn(
   "disabled:cursor-not-allowed disabled:opacity-50",
 );
 
-export const nsdInput = cn(nsdControlBase, "h-8 px-2.5 text-sm");
+export const nsdInput = cn(
+  nsdControlBase,
+  "h-8 px-2.5 text-sm max-sm:h-11 max-sm:px-3 max-sm:text-base",
+);
 
-export const nsdSelect = cn(nsdControlBase, "h-8 cursor-pointer px-2.5 py-0 text-sm");
+export const nsdSelect = cn(
+  nsdControlBase,
+  "h-8 cursor-pointer px-2.5 py-0 text-sm max-sm:h-11 max-sm:px-3 max-sm:text-base",
+);
 
 export const nsdTextarea = cn(
   nsdControlBase,
-  "min-h-[2.75rem] resize-y px-2.5 py-1.5 text-sm",
+  "min-h-[2.75rem] resize-y px-2.5 py-1.5 text-sm max-sm:min-h-[3.25rem] max-sm:px-3 max-sm:py-2.5 max-sm:text-base",
 );
 
 export const nsdSectionShell = cn(
@@ -183,9 +189,9 @@ export function SupplyWorkflowRail({
           const isPast = step.done;
           return (
             <li key={step.id} className="flex items-center gap-1">
-              <span
+                  <span
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium",
+                  "inline-flex shrink-0 items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium max-sm:py-1.5",
                   isPast
                     ? "border-primary/35 bg-primary/10 text-primary"
                     : isCurrent
@@ -205,8 +211,7 @@ export function SupplyWorkflowRail({
                 >
                   {isPast ? <Check className="size-2.5" strokeWidth={3} /> : i + 1}
                 </span>
-                <span className="hidden sm:inline">{step.label}</span>
-                <span className="sr-only sm:hidden">{step.label}</span>
+                <span>{step.label}</span>
               </span>
               {i < steps.length - 1 ? (
                 <ChevronRight
@@ -300,7 +305,7 @@ export function SupplyLinesToolbar({
         />
         <input
           type="search"
-          className={cn(nsdInput, "h-8 bg-background pl-8")}
+          className={cn(nsdInput, "h-8 bg-background pl-8 max-sm:h-11")}
           placeholder="Filter lines…"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}

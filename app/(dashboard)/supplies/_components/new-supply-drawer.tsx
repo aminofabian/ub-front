@@ -907,29 +907,29 @@ export function NewSupplyDrawer({
       contextLabel="Purchasing"
       banner={error ? <FormDrawerMessageBanner text={error} sharp /> : undefined}
       footer={
-        <div className="flex w-full items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+        <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="flex min-w-0 items-center justify-between gap-3 sm:flex-row sm:items-baseline sm:justify-start sm:gap-2">
             <div className="flex items-baseline gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                 Payable
               </span>
-              <p className="font-mono text-base font-bold tabular-nums text-foreground">
+              <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-base">
                 {estimatedProfit.cost.toFixed(2)}
               </p>
             </div>
-            <p className="truncate text-[10px] text-muted-foreground">
-              {lineStats.valid} of {lineStats.totalRows} lines ready
+            <p className="truncate text-[11px] text-muted-foreground sm:text-[10px]">
+              {lineStats.valid}/{lineStats.totalRows} ready
               {supplier ? ` · ${supplier.name}` : ""}
               {canPost ? (
-                <span className="ml-1 font-semibold text-primary">· Ready to post</span>
+                <span className="ml-1 font-semibold text-primary">· Ready</span>
               ) : null}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="grid grid-cols-[auto_1fr] gap-2 sm:flex sm:shrink-0 sm:items-center sm:gap-1.5">
             <Button
               type="button"
               variant="outline"
-              className="h-7 rounded-sm px-2.5 text-xs"
+              className="h-12 rounded-xl px-4 text-sm touch-manipulation sm:h-7 sm:rounded-sm sm:px-2.5 sm:text-xs"
               disabled={busy}
               onClick={() => onOpenChange(false)}
             >
@@ -938,7 +938,10 @@ export function NewSupplyDrawer({
             <Button
               type="submit"
               form="new-supply-form"
-              className={cn(supBtnPrimary, "h-7 rounded-sm px-2.5 text-xs")}
+              className={cn(
+                supBtnPrimary,
+                "h-12 rounded-xl px-4 text-[15px] font-semibold touch-manipulation sm:h-7 sm:rounded-sm sm:px-2.5 sm:text-xs sm:font-medium",
+              )}
               disabled={busy || !canPost}
             >
               {busy ? "Posting…" : "Post supply"}
@@ -1025,7 +1028,7 @@ export function NewSupplyDrawer({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-7 gap-0.5 rounded-sm px-2 text-[10px]"
+                  className="h-9 gap-1 rounded-sm px-2.5 text-xs touch-manipulation sm:h-7 sm:gap-0.5 sm:px-2 sm:text-[10px]"
                   onClick={openLinkModal}
                   disabled={busy || !supplier}
                 >
@@ -1090,7 +1093,7 @@ export function NewSupplyDrawer({
                     </p>
                   ) : (
                   <>
-                  <div className="space-y-2 p-2 lg:hidden">
+                  <div className="space-y-2 p-2.5 lg:hidden">
                     {visibleRows.map((row) => {
                       const p = linePayload(row);
                       const stock = rowStock(row);
@@ -1423,7 +1426,7 @@ export function NewSupplyDrawer({
           </div>
 
           <SupplyDrawerSummaryPanel
-            className="hidden md:flex md:sticky md:top-0"
+            className="hidden lg:flex lg:sticky lg:top-0"
             supplierName={supplier?.name ?? null}
             branchName={selectedBranchName}
             lineStats={lineStats}

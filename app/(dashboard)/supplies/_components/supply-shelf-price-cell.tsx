@@ -140,6 +140,8 @@ type SupplyShelfPriceCellProps = {
   unitStr: string;
   sellPriceTouched?: boolean;
   compact?: boolean;
+  /** Mobile receiving: 44px fields + 16px type. */
+  touch?: boolean;
   /** When set, renders a field label above the control (mobile cards). */
   label?: string;
 };
@@ -153,6 +155,7 @@ export function SupplyShelfPriceCell({
   unitStr,
   sellPriceTouched = false,
   compact = false,
+  touch = false,
   label,
 }: SupplyShelfPriceCellProps) {
   const tone = resolveShelfTone(
@@ -186,8 +189,11 @@ export function SupplyShelfPriceCell({
     (cur == null || !sellPricesMatch(cur, sug)) &&
     tone === "suggested";
 
+  const h = touch ? "h-11" : compact ? "h-7" : "h-8";
+  const text = touch ? "text-base" : compact ? "text-xs" : "text-sm";
+
   return (
-    <div className={cn("flex min-w-0 flex-col", compact ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -197,7 +203,7 @@ export function SupplyShelfPriceCell({
       <div
         className={cn(
           "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          compact ? "h-7" : "h-8",
+          h,
           TONE_SHELL[tone],
         )}
         title={title}
@@ -208,7 +214,7 @@ export function SupplyShelfPriceCell({
               nsdInput,
               "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
               "text-right font-mono tabular-nums",
-              compact ? "text-xs" : "text-sm",
+              text,
               "focus-visible:ring-0 focus-visible:ring-offset-0",
               belowCost && "text-red-700 dark:text-red-300",
               tone === "current" && !belowCost && "text-primary",
@@ -225,7 +231,7 @@ export function SupplyShelfPriceCell({
           <span
             className={cn(
               "flex h-full w-full items-center justify-end px-1.5 font-mono tabular-nums text-muted-foreground",
-              compact ? "text-xs" : "text-sm",
+              text,
             )}
           >
             {value.trim() ? value : "—"}
@@ -237,7 +243,7 @@ export function SupplyShelfPriceCell({
             className="pointer-events-none absolute right-1 inline-flex items-center text-muted-foreground"
             aria-hidden
           >
-            <Loader2 className={cn("animate-spin", compact ? "size-3" : "size-3.5")} />
+            <Loader2 className={cn("animate-spin", compact && !touch ? "size-3" : "size-3.5")} />
           </span>
         ) : null}
       </div>

@@ -70,8 +70,22 @@ function formatQty(n: number): string {
 
 type CompactProps = {
   compact?: boolean;
+  /** Mobile receiving: 44px+ fields, 16px type (avoids iOS zoom). */
+  touch?: boolean;
   label?: string;
 };
+
+function metricHeight(compact: boolean, touch: boolean): string {
+  if (touch) return "h-11";
+  if (compact) return "h-7";
+  return "h-8";
+}
+
+function metricText(compact: boolean, touch: boolean): string {
+  if (touch) return "text-base";
+  if (compact) return "text-xs";
+  return "text-sm";
+}
 
 type SupplyQtyCellProps = CompactProps & {
   value: string;
@@ -86,6 +100,7 @@ export function SupplyQtyCell({
   disabled = false,
   isReady = false,
   compact = false,
+  touch = false,
   label,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
@@ -99,7 +114,7 @@ export function SupplyQtyCell({
         : "active";
 
   return (
-    <div className={cn("flex min-w-0 flex-col", compact ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -108,7 +123,7 @@ export function SupplyQtyCell({
       <div
         className={cn(
           "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          compact ? "h-7" : "h-8",
+          metricHeight(compact, touch),
           METRIC_SHELL[tone],
         )}
       >
@@ -116,8 +131,9 @@ export function SupplyQtyCell({
           className={cn(
             nsdInput,
             "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
-            "text-right font-mono tabular-nums",
-            compact ? "text-xs" : "text-sm",
+            "text-center font-mono tabular-nums",
+            metricText(compact, touch),
+            touch && "font-semibold tracking-tight",
             "focus-visible:ring-0 focus-visible:ring-offset-0",
             tone === "ready" && "font-semibold text-primary",
             tone === "invalid" && "text-amber-800 dark:text-amber-200",
@@ -130,21 +146,23 @@ export function SupplyQtyCell({
           aria-label="Quantity received"
         />
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-1 leading-none">
-        {tone === "invalid" ? (
-          <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
-            Enter qty &gt; 0
-          </span>
-        ) : tone === "ready" ? (
-          <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
-            Ready
-          </span>
-        ) : parsed != null ? (
-          <span className="text-[10px] text-muted-foreground">
-            +{formatQty(parsed)} units
-          </span>
-        ) : null}
-      </div>
+      {!touch ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-1 leading-none">
+          {tone === "invalid" ? (
+            <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
+              Enter qty &gt; 0
+            </span>
+          ) : tone === "ready" ? (
+            <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
+              Ready
+            </span>
+          ) : parsed != null ? (
+            <span className="text-[10px] text-muted-foreground">
+              +{formatQty(parsed)} units
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -178,12 +196,13 @@ export function SupplyStockCell({
   stock,
   reorderLevel = null,
   compact = false,
+  touch = false,
   label,
 }: SupplyStockCellProps) {
   const tone = resolveStockTone(stock, reorderLevel);
 
   return (
-    <div className={cn("flex min-w-0 flex-col", compact ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -192,7 +211,7 @@ export function SupplyStockCell({
       <div
         className={cn(
           "flex min-w-0 items-center justify-end rounded-sm border px-1.5 transition-[border-color,background-color,box-shadow] duration-150",
-          compact ? "h-7" : "h-8",
+          metricHeight(compact, touch),
           METRIC_SHELL[tone],
         )}
         title={
@@ -206,7 +225,7 @@ export function SupplyStockCell({
         <span
           className={cn(
             "font-mono tabular-nums",
-            compact ? "text-xs" : "text-sm",
+            metricText(compact, touch),
             stock == null && "text-muted-foreground/60",
             tone === "out" && "font-semibold text-red-700 dark:text-red-300",
             tone === "low" && "font-semibold text-amber-800 dark:text-amber-200",
@@ -249,6 +268,7 @@ export function SupplyStockAfterCell({
   stockAfter,
   qty,
   compact = false,
+  touch = false,
   label,
 }: SupplyStockAfterCellProps) {
   const tone: MetricTone =
@@ -256,7 +276,7 @@ export function SupplyStockAfterCell({
   const delta = qty != null ? qty : null;
 
   return (
-    <div className={cn("flex min-w-0 flex-col", compact ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -265,7 +285,7 @@ export function SupplyStockAfterCell({
       <div
         className={cn(
           "flex min-w-0 items-center justify-end rounded-sm border px-1.5 transition-[border-color,background-color,box-shadow] duration-150",
-          compact ? "h-7" : "h-8",
+          metricHeight(compact, touch),
           METRIC_SHELL[tone],
         )}
         title={
@@ -277,7 +297,7 @@ export function SupplyStockAfterCell({
         <span
           className={cn(
             "font-mono tabular-nums",
-            compact ? "text-xs" : "text-sm",
+            metricText(compact, touch),
             stockAfter == null
               ? "text-muted-foreground/60"
               : tone === "computed"
@@ -321,6 +341,7 @@ export function SupplyCostCell({
   disabled = false,
   referenceCost = null,
   compact = false,
+  touch = false,
   label,
 }: SupplyCostCellProps) {
   const parsed = parseNonNeg(value);
@@ -340,7 +361,7 @@ export function SupplyCostCell({
         : "active";
 
   return (
-    <div className={cn("flex min-w-0 flex-col", compact ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -349,7 +370,7 @@ export function SupplyCostCell({
       <div
         className={cn(
           "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          compact ? "h-7" : "h-8",
+          metricHeight(compact, touch),
           METRIC_SHELL[tone],
         )}
       >
@@ -358,7 +379,7 @@ export function SupplyCostCell({
             nsdInput,
             "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
             "text-right font-mono tabular-nums",
-            compact ? "text-xs" : "text-sm",
+            metricText(compact, touch),
             "focus-visible:ring-0 focus-visible:ring-offset-0",
             matchesRef && "text-primary",
             tone === "invalid" && "text-amber-800 dark:text-amber-200",
@@ -405,13 +426,14 @@ export function SupplyLineTotalCell({
   unitCost,
   isReady = false,
   compact = false,
+  touch = false,
   label,
 }: SupplyLineTotalCellProps) {
   const tone: MetricTone =
     total == null ? "empty" : isReady ? "ready" : "computed";
 
   return (
-    <div className={cn("flex min-w-0 flex-col", compact ? "gap-0.5" : "gap-1")}>
+    <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -419,8 +441,8 @@ export function SupplyLineTotalCell({
       ) : null}
       <div
         className={cn(
-          "flex min-w-0 items-center justify-end rounded-sm border px-1.5 transition-[border-color,background-color,box-shadow] duration-150",
-          compact ? "h-7" : "h-8",
+          "flex min-w-0 items-center justify-end rounded-sm border px-2 transition-[border-color,background-color,box-shadow] duration-150",
+          metricHeight(compact, touch),
           METRIC_SHELL[tone],
         )}
         title={
@@ -432,7 +454,7 @@ export function SupplyLineTotalCell({
         <span
           className={cn(
             "font-mono tabular-nums",
-            compact ? "text-xs" : "text-sm",
+            metricText(compact, touch),
             total == null
               ? "text-muted-foreground/60"
               : "font-semibold text-foreground",

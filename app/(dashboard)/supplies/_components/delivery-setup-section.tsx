@@ -128,7 +128,7 @@ export function DeliverySetupSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 shrink-0 rounded-sm px-2.5 text-[11px]"
+                className="h-9 shrink-0 rounded-sm px-3 text-xs touch-manipulation"
                 disabled={busy}
                 onClick={onClearSupplier}
               >
@@ -174,7 +174,7 @@ export function DeliverySetupSection({
                       <li key={s.id} role="option">
                         <button
                           type="button"
-                          className="flex w-full flex-col items-start px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50"
+                          className="flex w-full flex-col items-start px-3 py-3 text-left text-sm transition-colors touch-manipulation hover:bg-muted/50 active:bg-muted/60 sm:py-2"
                           onClick={() => onSelectSupplier(s)}
                         >
                           <span className="font-medium">{s.name}</span>
@@ -203,7 +203,7 @@ export function DeliverySetupSection({
               selectedBranchName ? (
                 <div className="flex flex-col gap-1">
                   <span className={nsdFieldLabel}>Branch</span>
-                  <div className="flex h-8 items-center gap-1.5 rounded-sm border border-border bg-background px-2.5">
+                  <div className="flex h-11 items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 sm:h-8">
                     <Building2
                       className="size-3.5 shrink-0 text-muted-foreground"
                       aria-hidden

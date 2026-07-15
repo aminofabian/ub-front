@@ -62,7 +62,7 @@ export function SuppliesPageHeader({
   ];
 
   return (
-    <header className="min-w-0 space-y-2 border-b border-border/50 pb-3 sm:space-y-3 sm:pb-4">
+    <header className="min-w-0 space-y-2.5 border-b border-border/50 pb-3 sm:space-y-3 sm:pb-4">
       <DashboardPageHero
         compact
         showActiveScope
@@ -76,12 +76,29 @@ export function SuppliesPageHeader({
         }
       />
 
+      {/* Mobile: full-width primary CTA — thumb zone */}
+      {canOpenNewSupply ? (
+        <Button
+          type="button"
+          className={cn(
+            supBtnPrimary,
+            "h-12 w-full gap-2 rounded-xl text-[15px] font-semibold touch-manipulation sm:hidden",
+            "shadow-[0_8px_24px_-10px_color-mix(in_srgb,var(--primary)_55%,transparent)]",
+            "active:scale-[0.98]",
+          )}
+          onClick={onNewSupply}
+        >
+          <PackagePlus className="size-5" aria-hidden />
+          Receive new supply
+        </Button>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 rounded-lg px-3 font-medium"
+          className="h-10 gap-1.5 rounded-lg px-3 font-medium touch-manipulation sm:h-9"
           disabled={listLoading}
           onClick={onRefresh}
         >
@@ -95,7 +112,7 @@ export function SuppliesPageHeader({
           <Button
             type="button"
             size="sm"
-            className={cn(supBtnPrimary, "h-9 px-3.5")}
+            className={cn(supBtnPrimary, "hidden h-9 px-3.5 sm:inline-flex")}
             onClick={onNewSupply}
           >
             <PackagePlus className="size-3.5" aria-hidden />
@@ -105,7 +122,32 @@ export function SuppliesPageHeader({
       </div>
 
       {canShowProcurementLinks && quickLinks.length > 0 ? (
-        <DashboardQuickLinks compact links={quickLinks} />
+        <div className="hidden sm:block">
+          <DashboardQuickLinks compact links={quickLinks} />
+        </div>
+      ) : null}
+
+      {/* Mobile quick links as horizontal snap chips */}
+      {canShowProcurementLinks && quickLinks.length > 0 ? (
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {quickLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2.5",
+                  "text-xs font-medium text-foreground shadow-sm touch-manipulation",
+                  "active:bg-muted/40",
+                )}
+              >
+                <Icon className="size-3.5 text-primary" aria-hidden />
+                {link.label}
+              </a>
+            );
+          })}
+        </div>
       ) : null}
     </header>
   );
