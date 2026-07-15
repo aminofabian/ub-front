@@ -64,22 +64,31 @@ function Install-StartupEntry([string]$SourceVbs) {
   return $dest
 }
 
-function Install-LogonTaskSchtasks([string]$WscriptExe, [string]$VbsFile) {
-  # schtasks works on Windows 7 without the ScheduledTasks PowerShell module.
-  $tr = $WscriptExe + ' "' + $VbsFile + '"'
-  Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Delete", "/TN", $TaskName, "/F") -Wait -NoNewWindow | Out-Null
+function Install-LogonTaskSchtasks([string]$VbsFile) {
+  # Windows 7 schtasks: pass ONLY the .vbs path as /TR (shell opens it with wscript).
+  # Do NOT put wscript.exe + quoted path in /TR - Start-Process splits it and
+  # schtasks treats the .vbs path as an invalid extra switch.
+  if (-not (Test-Path $VbsFile)) {
+    throw ("Missing launcher: " + $VbsFile)
+  }
+
+  # Ignore delete failure when the task does not exist yet.
+  Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Delete", "/TN", $TaskName, "/F") -Wait -NoNewWindow -ErrorAction SilentlyContinue | Out-Null
+
   $p = Start-Process -FilePath "schtasks.exe" -ArgumentList @(
     "/Create",
     "/TN", $TaskName,
-    "/TR", $tr,
+    "/TR", $VbsFile,
     "/SC", "ONLOGON",
-    "/RL", "LIMITED",
     "/F"
   ) -Wait -PassThru -NoNewWindow
-  if ($p.ExitCode -ne 0) {
-    throw ("schtasks create failed with exit " + $p.ExitCode)
+  if ($null -eq $p -or $p.ExitCode -ne 0) {
+    $code = 1
+    if ($p) { $code = $p.ExitCode }
+    throw ("schtasks create failed with exit " + $code)
   }
-  Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Run", "/TN", $TaskName) -Wait -NoNewWindow | Out-Null
+
+  Start-Process -FilePath "schtasks.exe" -ArgumentList @("/Run", "/TN", $TaskName) -Wait -NoNewWindow -ErrorAction SilentlyContinue | Out-Null
 }
 
 if (-not (Test-Path $BridgeSrc)) {
@@ -123,11 +132,12 @@ try {
 
 $taskOk = $false
 try {
-  Install-LogonTaskSchtasks -WscriptExe $Wscript -VbsFile $VbsPath
+  Install-LogonTaskSchtasks -VbsFile $VbsPath
   $taskOk = $true
   Write-Step ("Scheduled task: " + $TaskName + " (schtasks ONLOGON)")
 } catch {
-  Write-Warning ("Scheduled task not registered (Startup folder still used): " + $_.Exception.Message)
+  # Startup folder entry is enough for daily use on Windows 7.
+  Write-Warning ("Scheduled task skipped (Startup folder still used): " + $_.Exception.Message)
 }
 
 if (Test-BridgeHealth) {
