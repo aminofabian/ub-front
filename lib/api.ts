@@ -2729,6 +2729,15 @@ export async function createItem(
   return created;
 }
 
+export type PosQuickCreateVariantLinePayload = {
+  variantName: string;
+  barcode?: string;
+  unitPrice: number;
+  buyingPrice?: number;
+  /** Opening on-hand qty at the till branch (defaults to 1 on the server). */
+  initialStockQty?: number;
+};
+
 export type PosQuickCreateItemPayload = {
   name: string;
   itemTypeId: string;
@@ -2736,7 +2745,8 @@ export type PosQuickCreateItemPayload = {
   categoryId?: string;
   unitType?: string;
   branchId?: string;
-  unitPrice: number;
+  /** Required for standalone / link-as-variant; ignored when createAsGroup. */
+  unitPrice?: number;
   buyingPrice?: number;
   /** Opening on-hand qty at the till branch (defaults to 1 on the server). */
   initialStockQty?: number;
@@ -2747,6 +2757,12 @@ export type PosQuickCreateItemPayload = {
   relatedItemId?: string;
   /** Option label when linking as a variant (defaults to name on the server). */
   variantName?: string;
+  /**
+   * Create a non-sellable parent group named `name`, then each entry in `variants`.
+   * Response is the first sellable variant.
+   */
+  createAsGroup?: boolean;
+  variants?: PosQuickCreateVariantLinePayload[];
 };
 
 /** Cashier quick-create (sales.sell + admin-enabled flag, or catalog write). */
