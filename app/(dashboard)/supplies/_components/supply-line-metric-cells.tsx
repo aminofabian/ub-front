@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FocusEvent } from "react";
 import { ArrowRight } from "lucide-react";
 
-import { setOnHandStock } from "@/lib/set-on-hand-stock";
+import { YmdDateInput } from "@/components/ymd-date-input";
+import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
+import { addYmdDays } from "@/lib/ymd-date";
 
 import { nsdInput } from "./new-supply-drawer-ui";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
+
+function selectOnFocus(e: FocusEvent<HTMLInputElement>) {
+  e.currentTarget.select();
+}
 
 type MetricTone =
   | "empty"
@@ -127,6 +133,8 @@ type SupplyQtyCellProps = CompactProps & {
   stockAfter?: number | null;
   /** Jump focus to the next empty qty (receiving keyboard flow). */
   onEnterNext?: () => void;
+  /** When set, Enter focuses cost on the same row instead of the next empty qty. */
+  onEnterCost?: () => void;
 };
 
 export function SupplyQtyCell({
@@ -139,6 +147,7 @@ export function SupplyQtyCell({
   label,
   stockAfter = null,
   onEnterNext,
+  onEnterCost,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
   const hasText = value.trim().length > 0;
@@ -173,15 +182,20 @@ export function SupplyQtyCell({
           )}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
+          onFocus={selectOnFocus}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
+              if (onEnterCost) {
+                onEnterCost();
+                return;
+              }
               onEnterNext?.();
             }
           }}
           disabled={disabled}
           inputMode="decimal"
-          placeholder="0"
+          placeholder="Qty"
           aria-label="Quantity received"
           data-nsd-qty=""
         />
@@ -319,16 +333,18 @@ export function SupplyStockCell({
     setBusy(true);
     setError(null);
     try {
-      await setOnHandStock({
+      const nextDisplay = await setCatalogOnHandStock({
         itemId: itemId!.trim(),
         branchId: branchId!.trim(),
-        current,
-        target,
+        targetDisplay: target,
         unitCost: unitCostHint ?? 0,
         notes: "Stock set from new supply",
       });
-      baselineRef.current = target;
-      onStockChange?.(target);
+      baselineRef.current = nextDisplay;
+      setDraft(
+        Number.isInteger(nextDisplay) ? String(nextDisplay) : String(nextDisplay),
+      );
+      onStockChange?.(nextDisplay);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Update failed");
       setDraft(
@@ -356,7 +372,7 @@ export function SupplyStockCell({
         )}
         title={
           editable
-            ? "Edit on-hand stock (admin)"
+            ? "Edit on-hand stock (owner/admin) — saves immediately"
             : stock != null
               ? reorderLevel != null && reorderLevel > 0
                 ? `On hand ${formatQty(stock)} · reorder at ${formatQty(reorderLevel)}`
@@ -381,6 +397,7 @@ export function SupplyStockCell({
               setDraft(e.target.value);
               setError(null);
             }}
+            onFocus={selectOnFocus}
             onBlur={() => void commit()}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -403,6 +420,7 @@ export function SupplyStockCell({
             disabled={busy || disabled}
             inputMode="decimal"
             aria-label="On-hand stock"
+            data-nsd-stock=""
           />
         ) : (
           <span
@@ -436,7 +454,9 @@ export function SupplyStockCell({
               : ""}
           </span>
         ) : stock != null ? (
-          <span className="text-[10px] text-muted-foreground">On hand</span>
+          <span className="text-[10px] text-muted-foreground">
+            {editable ? "On hand · edit" : "On hand"}
+          </span>
         ) : (
           <span className="text-[10px] text-muted-foreground">No data</span>
         )}
@@ -519,6 +539,7 @@ type SupplyCostCellProps = CompactProps & {
   referenceCost?: number | null;
   /** Line total (qty × cost) — shown under cost when compact (replaces Total column). */
   lineTotal?: number | null;
+  onEnterNext?: () => void;
 };
 
 export function SupplyCostCell({
@@ -530,6 +551,7 @@ export function SupplyCostCell({
   compact = false,
   touch = false,
   label,
+  onEnterNext,
 }: SupplyCostCellProps) {
   const parsed = parseNonNeg(value);
   const hasText = value.trim().length > 0;
@@ -567,10 +589,18 @@ export function SupplyCostCell({
           )}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
+          onFocus={selectOnFocus}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onEnterNext?.();
+            }
+          }}
           disabled={disabled}
           inputMode="decimal"
           placeholder="—"
           aria-label="Buying price per unit"
+          data-nsd-cost=""
         />
       </div>
       {!touch ? (
@@ -698,3 +728,74 @@ export function linkReorderLevel(
 }
 
 export { rowReferenceCost, parsePositiveQty, parseNonNeg };
+
+const SHELF_LIFE_DAY_CHIPS = [7, 14, 30, 90] as const;
+
+type SupplyExpiryCellProps = CompactProps & {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  /** YYYY-MM-DD base for +N day chips (usually receive date). */
+  baseYmd: string;
+  onEnterNext?: () => void;
+};
+
+export function SupplyExpiryCell({
+  value,
+  onChange,
+  disabled = false,
+  baseYmd,
+  compact = false,
+  touch = false,
+  label = "Expiry",
+  onEnterNext,
+}: SupplyExpiryCellProps) {
+  const showLabel = Boolean(label) && (touch || !compact);
+
+  return (
+    <div
+      className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}
+      data-nsd-expiry=""
+    >
+      {showLabel ? (
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+          <span className="ml-1 font-normal normal-case text-muted-foreground/80">
+            shelf life
+          </span>
+        </span>
+      ) : null}
+      <YmdDateInput
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        compact={compact && !touch}
+        placeholder="Exp"
+        aria-label="Shelf life / expiry date"
+      />
+      <div className="flex min-w-0 flex-wrap gap-0.5">
+        {SHELF_LIFE_DAY_CHIPS.map((days) => (
+          <button
+            key={days}
+            type="button"
+            className={cn(
+              "rounded-sm border border-border/70 bg-background px-1 py-px text-[9px] font-semibold tabular-nums text-muted-foreground",
+              "hover:border-primary/40 hover:bg-primary/[0.06] hover:text-primary",
+              "disabled:pointer-events-none disabled:opacity-50",
+              touch && "px-1.5 py-0.5 text-[10px]",
+            )}
+            disabled={disabled}
+            title={`Set expiry to ${days} days from receive date`}
+            onClick={() => {
+              const base = baseYmd.trim().length >= 10 ? baseYmd.trim().slice(0, 10) : baseYmd;
+              onChange(addYmdDays(base, days));
+              onEnterNext?.();
+            }}
+          >
+            +{days}d
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

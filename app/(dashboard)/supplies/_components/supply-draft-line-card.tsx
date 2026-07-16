@@ -4,18 +4,17 @@ import { useState } from "react";
 import { ChevronDown, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { YmdDateInput } from "@/components/ymd-date-input";
 import type { ItemSummaryRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import {
-  nsdFieldLabel,
   nsdLineCardReady,
   nsdLineCardShell,
 } from "./new-supply-drawer-ui";
 import { ProductPickCell } from "./product-pick-cell";
 import {
   SupplyCostCell,
+  SupplyExpiryCell,
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
@@ -62,10 +61,15 @@ type SupplyDraftLineCardProps = {
   itemId?: string | null;
   onStockChange?: (nextStock: number) => void;
   onQtyEnterNext?: () => void;
+  onFocusCost?: () => void;
+  onFocusRetail?: () => void;
+  onFocusExpiry?: () => void;
+  /** Receive date YYYY-MM-DD for shelf-life chips. */
+  receivedYmd: string;
 };
 
 /**
- * Compact mobile receiving ticket — product header + Qty / Cost / Shelf triad.
+ * Compact mobile receiving ticket — stock + qty / cost / retail, expiry with +Nd.
  */
 export function SupplyDraftLineCard({
   row,
@@ -94,6 +98,10 @@ export function SupplyDraftLineCard({
   itemId = null,
   onStockChange,
   onQtyEnterNext,
+  onFocusCost,
+  onFocusRetail,
+  onFocusExpiry,
+  receivedYmd,
 }: SupplyDraftLineCardProps) {
   const [moreOpen, setMoreOpen] = useState(Boolean(row.expiry.trim()));
 
@@ -124,7 +132,7 @@ export function SupplyDraftLineCard({
             {barcode !== "—" ? (
               <span className="font-mono">{barcode}</span>
             ) : null}
-            {stock != null ? (
+            {stock != null && !canEditStock ? (
               <span>
                 Stock{" "}
                 <span
@@ -177,6 +185,23 @@ export function SupplyDraftLineCard({
         </div>
       </div>
 
+      {canEditStock ? (
+        <div className="border-t border-border/70 px-2 pb-1.5 pt-1.5">
+          <SupplyStockCell
+            touch
+            label="On hand"
+            stock={stock}
+            reorderLevel={reorderLevel}
+            canEdit={canEditStock}
+            itemId={itemId}
+            branchId={branchId}
+            unitCostHint={unitCost ?? referenceCost}
+            disabled={busy}
+            onStockChange={onStockChange}
+          />
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-3 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
         <SupplyQtyCell
           touch
@@ -185,6 +210,7 @@ export function SupplyDraftLineCard({
           onChange={onQtyChange}
           disabled={busy}
           isReady={isReady}
+          onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}
         />
         <SupplyCostCell
@@ -194,10 +220,11 @@ export function SupplyDraftLineCard({
           onChange={onUnitChange}
           disabled={busy}
           referenceCost={referenceCost}
+          onEnterNext={onFocusRetail}
         />
         <SupplyShelfPriceCell
           touch
-          label="Shelf"
+          label="Retail"
           value={row.sellPriceStr}
           onChange={onSellPriceChange}
           disabled={busy || !hasItemId}
@@ -205,6 +232,10 @@ export function SupplyDraftLineCard({
           hint={pricingHint}
           unitStr={row.unitStr}
           sellPriceTouched={row.sellPriceTouched}
+          onEnterNext={() => {
+            setMoreOpen(true);
+            onFocusExpiry?.();
+          }}
         />
       </div>
 
@@ -218,9 +249,7 @@ export function SupplyDraftLineCard({
           <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             {row.expiry.trim()
               ? `Expiry ${row.expiry}`
-              : canEditStock
-                ? "Stock · expiry"
-                : "Expiry"}
+              : "Expiry · shelf life"}
           </span>
           <ChevronDown
             className={cn(
@@ -231,31 +260,15 @@ export function SupplyDraftLineCard({
           />
         </button>
         {moreOpen ? (
-          <div className="space-y-2 border-t border-border/50 px-2.5 pb-2.5 pt-2">
-            {canEditStock ? (
-              <SupplyStockCell
-                touch
-                label="On hand"
-                stock={stock}
-                reorderLevel={reorderLevel}
-                canEdit={canEditStock}
-                itemId={itemId}
-                branchId={branchId}
-                unitCostHint={unitCost ?? referenceCost}
-                disabled={busy}
-                onStockChange={onStockChange}
-              />
-            ) : null}
-            <div className="space-y-1">
-              <p className={nsdFieldLabel}>Expiry</p>
-              <YmdDateInput
-                value={row.expiry}
-                onValueChange={onExpiryChange}
-                disabled={busy}
-                placeholder="YYYY-MM-DD"
-                aria-label="Expiry date"
-              />
-            </div>
+          <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2">
+            <SupplyExpiryCell
+              touch
+              value={row.expiry}
+              onChange={onExpiryChange}
+              disabled={busy}
+              baseYmd={receivedYmd}
+              onEnterNext={onQtyEnterNext}
+            />
           </div>
         ) : null}
       </div>

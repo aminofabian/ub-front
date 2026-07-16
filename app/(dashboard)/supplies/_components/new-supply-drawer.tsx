@@ -34,7 +34,7 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { canAdminEditOnHandStock } from "@/lib/set-on-hand-stock";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
-import { YmdDateInput } from "@/components/ymd-date-input";
+import { todayYmdLocal } from "@/lib/ymd-date";
 
 import { supBtnPrimary } from "../../suppliers/_components/supplier-ui-tokens";
 import { DeliverySetupSection } from "./delivery-setup-section";
@@ -62,6 +62,7 @@ import {
   linkReorderLevel,
   rowReferenceCost,
   SupplyCostCell,
+  SupplyExpiryCell,
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
@@ -70,6 +71,38 @@ import {
   type ShelfPriceHint,
 } from "./supply-shelf-price-cell";
 import { SupplyDrawerSummaryPanel } from "./supply-drawer-summary";
+
+function receivedLocalToYmd(receivedAtLocal: string): string {
+  const t = receivedAtLocal.trim();
+  if (t.length >= 10) {
+    return t.slice(0, 10);
+  }
+  return todayYmdLocal();
+}
+
+type NsdField = "qty" | "cost" | "retail" | "expiry";
+
+function focusNsdField(rowKey: string, field: NsdField) {
+  window.requestAnimationFrame(() => {
+    const root = document.querySelector(`[data-nsd-row="${rowKey}"]`);
+    if (!root) {
+      return;
+    }
+    const el = root.querySelector(
+      `[data-nsd-${field}]`,
+    ) as HTMLElement | null;
+    if (!el) {
+      return;
+    }
+    if (el instanceof HTMLInputElement) {
+      el.focus();
+      el.select();
+      return;
+    }
+    const nested = el.querySelector("button, input") as HTMLElement | null;
+    nested?.focus();
+  });
+}
 
 export type SupplyDraftRow = {
   key: string;
@@ -728,16 +761,40 @@ export function NewSupplyDrawer({
     for (let i = 1; i <= keys.length; i++) {
       const row = rows[(start + i) % keys.length];
       if (!row || parsePositiveQty(row.qtyStr) != null) continue;
-      window.requestAnimationFrame(() => {
-        const el = document.querySelector(
-          `[data-nsd-row="${row.key}"] [data-nsd-qty]`,
-        ) as HTMLInputElement | null;
-        el?.focus();
-        el?.select();
-      });
+      focusNsdField(row.key, "qty");
       return;
     }
   }, [rows]);
+
+  const receivedYmd = useMemo(
+    () => receivedLocalToYmd(receivedAtLocal),
+    [receivedAtLocal],
+  );
+
+  const didAutofocusQtyRef = useRef(false);
+
+  useEffect(() => {
+    if (!open) {
+      didAutofocusQtyRef.current = false;
+      return;
+    }
+    if (linksLoading) {
+      didAutofocusQtyRef.current = false;
+      return;
+    }
+    if (!supplier || rows.length === 0 || didAutofocusQtyRef.current) {
+      return;
+    }
+    const firstEmpty = rows.find((r) => parsePositiveQty(r.qtyStr) == null);
+    if (!firstEmpty) {
+      return;
+    }
+    didAutofocusQtyRef.current = true;
+    const id = window.setTimeout(() => {
+      focusNsdField(firstEmpty.key, "qty");
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [open, linksLoading, supplier, rows]);
 
   const workflowSteps = useMemo(
     () => [
@@ -1115,7 +1172,7 @@ export function NewSupplyDrawer({
             <SupplyDrawerSection
               step={2}
               title="Receive"
-              hint="Tab through qty → cost → shelf. Enter jumps to next empty qty."
+              hint="Tab: qty → cost → retail → expiry. Enter advances fields; +Nd sets shelf life. Post supply writes to the database."
               done={lineStats.valid > 0 && duplicateIds.length === 0}
               className="overflow-visible"
               action={
@@ -1192,7 +1249,7 @@ export function NewSupplyDrawer({
                         {lineSearchQuery.trim()
                           ? `No lines match “${lineSearchQuery.trim()}”.`
                           : lineFocus === "fill"
-                            ? "All quantities entered — switch to All to finish cost & shelf."
+                            ? "All quantities entered — switch to All to finish cost & retail."
                             : lineFocus === "ready"
                               ? "No ready lines yet — enter qty & cost."
                               : "No lines to show."}
@@ -1244,6 +1301,7 @@ export function NewSupplyDrawer({
                           branchId={branchId}
                           canEditStock={canEditOnHandStock && Boolean(iid)}
                           itemId={iid}
+                          receivedYmd={receivedYmd}
                           onStockChange={(next) => {
                             if (!iid) return;
                             setRows((prev) => applyOnHandToRows(prev, iid, next));
@@ -1298,6 +1356,9 @@ export function NewSupplyDrawer({
                           }
                           onRemove={() => removeRow(row.key)}
                           onQtyEnterNext={() => focusNextEmptyQty(row.key)}
+                          onFocusCost={() => focusNsdField(row.key, "cost")}
+                          onFocusRetail={() => focusNsdField(row.key, "retail")}
+                          onFocusExpiry={() => focusNsdField(row.key, "expiry")}
                         />
                         </div>
                       );
@@ -1305,12 +1366,12 @@ export function NewSupplyDrawer({
                   </div>
 
                   <div className="hidden overflow-x-auto border-t border-border lg:block">
-          <table className="w-full min-w-[44rem] border-collapse border border-border text-left text-xs">
+          <table className="w-full min-w-[48rem] border-collapse border border-border text-left text-xs">
             <thead>
               <tr className={nsdTableHead}>
                 <th className={cn(nsdTableTh, "min-w-[8rem]")}>Product</th>
                 <th className={cn(nsdTableTh, "min-w-[3.5rem] text-right")}>
-                  Stock
+                  On hand
                 </th>
                 <th className={cn(nsdTableTh, "min-w-[3.75rem] text-right")}>
                   Qty
@@ -1319,9 +1380,11 @@ export function NewSupplyDrawer({
                   Cost
                 </th>
                 <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>
-                  Shelf
+                  Retail
                 </th>
-                <th className={cn(nsdTableTh, "w-[6rem]")}>Expiry</th>
+                <th className={cn(nsdTableTh, "min-w-[7.5rem]")}>
+                  Expiry
+                </th>
                 <th className={cn(nsdTableTh, "w-7")} />
               </tr>
             </thead>
@@ -1415,6 +1478,7 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
+                        onEnterCost={() => focusNsdField(row.key, "cost")}
                         onEnterNext={() => focusNextEmptyQty(row.key)}
                         disabled={busy}
                         isReady={isReady}
@@ -1432,6 +1496,7 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
+                        onEnterNext={() => focusNsdField(row.key, "retail")}
                         disabled={busy}
                         referenceCost={referenceCost}
                       />
@@ -1453,6 +1518,7 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
+                        onEnterNext={() => focusNsdField(row.key, "expiry")}
                         disabled={busy || !iid}
                         canSetSellPrice={canSetSellPrice}
                         hint={hint}
@@ -1460,10 +1526,12 @@ export function NewSupplyDrawer({
                         sellPriceTouched={row.sellPriceTouched}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "p-0 align-middle")}>
-                      <YmdDateInput
+                    <td className={cn(nsdTableCell, "p-0 align-top")}>
+                      <SupplyExpiryCell
+                        compact
+                        label=""
                         value={row.expiry}
-                        onValueChange={(value) =>
+                        onChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
                               r.key === row.key ? { ...r, expiry: value } : r,
@@ -1471,9 +1539,8 @@ export function NewSupplyDrawer({
                           )
                         }
                         disabled={busy}
-                        compact
-                        placeholder="Exp"
-                        aria-label="Expiry date"
+                        baseYmd={receivedYmd}
+                        onEnterNext={() => focusNextEmptyQty(row.key)}
                       />
                     </td>
                     <td className={cn(nsdTableCell, "p-0 text-center align-middle")}>

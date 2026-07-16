@@ -8,7 +8,7 @@ import {
   fetchItemById,
   type SupplierItemLinkRecord,
 } from "@/lib/api";
-import { canAdminEditOnHandStock, setOnHandStock } from "@/lib/set-on-hand-stock";
+import { canAdminEditOnHandStock, setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "../../supplies/_components/new-supply-drawer-ui";
@@ -141,11 +141,10 @@ export function SupplierLinkStockCell({
     setBusy(true);
     setError(null);
     try {
-      await setOnHandStock({
+      await setCatalogOnHandStock({
         itemId: link.itemId,
         branchId: bid,
-        current,
-        target,
+        targetDisplay: target,
         unitCost: seedUnitCost(link),
         notes: "Stock set from supplier catalog",
       });

@@ -168,6 +168,7 @@ type SupplyShelfPriceCellProps = {
   touch?: boolean;
   /** When set, renders a field label above the control (mobile cards). */
   label?: string;
+  onEnterNext?: () => void;
 };
 
 export function SupplyShelfPriceCell({
@@ -181,6 +182,7 @@ export function SupplyShelfPriceCell({
   compact = false,
   touch = false,
   label,
+  onEnterNext,
 }: SupplyShelfPriceCellProps) {
   const tone = resolveShelfTone(
     value,
@@ -239,10 +241,18 @@ export function SupplyShelfPriceCell({
             )}
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onEnterNext?.();
+              }
+            }}
             disabled={disabled || hint?.loading}
             inputMode="decimal"
             placeholder="—"
-            aria-label="Shelf retail price"
+            aria-label="Retail sell price"
+            data-nsd-retail=""
           />
         ) : (
           <span
