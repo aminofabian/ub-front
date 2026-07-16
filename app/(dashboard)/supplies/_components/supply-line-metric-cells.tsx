@@ -94,6 +94,10 @@ type SupplyQtyCellProps = CompactProps & {
   onChange?: (value: string) => void;
   disabled?: boolean;
   isReady?: boolean;
+  /** Stock after receiving — shown under qty when compact (replaces separate After column). */
+  stockAfter?: number | null;
+  /** Jump focus to the next empty qty (receiving keyboard flow). */
+  onEnterNext?: () => void;
 };
 
 export function SupplyQtyCell({
@@ -104,6 +108,8 @@ export function SupplyQtyCell({
   compact = false,
   touch = false,
   label,
+  stockAfter = null,
+  onEnterNext,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
   const hasText = value.trim().length > 0;
@@ -142,17 +148,28 @@ export function SupplyQtyCell({
           )}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onEnterNext?.();
+            }
+          }}
           disabled={disabled}
           inputMode="decimal"
           placeholder="0"
           aria-label="Quantity received"
+          data-nsd-qty=""
         />
       </div>
       {!touch ? (
         <div className="flex min-w-0 flex-wrap items-center gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
-              Enter qty &gt; 0
+              Qty &gt; 0
+            </span>
+          ) : stockAfter != null && parsed != null ? (
+            <span className="text-[10px] font-medium text-primary">
+              → {formatQty(stockAfter)}
             </span>
           ) : tone === "ready" ? (
             <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
@@ -160,7 +177,7 @@ export function SupplyQtyCell({
             </span>
           ) : parsed != null ? (
             <span className="text-[10px] text-muted-foreground">
-              +{formatQty(parsed)} units
+              +{formatQty(parsed)}
             </span>
           ) : null}
         </div>
@@ -482,6 +499,8 @@ type SupplyCostCellProps = CompactProps & {
   disabled?: boolean;
   /** Last or default cost from supplier link, for hint badge. */
   referenceCost?: number | null;
+  /** Line total (qty × cost) — shown under cost when compact (replaces Total column). */
+  lineTotal?: number | null;
 };
 
 export function SupplyCostCell({
@@ -489,6 +508,7 @@ export function SupplyCostCell({
   onChange,
   disabled = false,
   referenceCost = null,
+  lineTotal = null,
   compact = false,
   touch = false,
   label,
@@ -541,23 +561,27 @@ export function SupplyCostCell({
           aria-label="Buying price per unit"
         />
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
-        {tone === "invalid" ? (
-          <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
-            Invalid cost
-          </span>
-        ) : matchesRef ? (
-          <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
-            Last cost {referenceCost!.toFixed(2)}
-          </span>
-        ) : referenceCost != null && referenceCost > 0 && !hasText ? (
-          <span className="text-[10px] text-muted-foreground">
-            Last {referenceCost.toFixed(2)}
-          </span>
-        ) : parsed != null ? (
-          <span className="text-[10px] text-muted-foreground">Per unit</span>
-        ) : null}
-      </div>
+      {!touch ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
+          {tone === "invalid" ? (
+            <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
+              Invalid
+            </span>
+          ) : lineTotal != null ? (
+            <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+              Σ {lineTotal.toFixed(2)}
+            </span>
+          ) : matchesRef ? (
+            <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
+              Last {referenceCost!.toFixed(2)}
+            </span>
+          ) : referenceCost != null && referenceCost > 0 && !hasText ? (
+            <span className="text-[10px] text-muted-foreground">
+              Last {referenceCost.toFixed(2)}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

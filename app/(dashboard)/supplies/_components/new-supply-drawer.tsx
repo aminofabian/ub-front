@@ -45,18 +45,15 @@ import {
   nsdAlert,
   nsdTableCell,
   nsdTableHead,
-  nsdTableInput,
   nsdTableRow,
   nsdTableRowReady,
   nsdTableTh,
   SupplyDrawerSection,
   SupplyEmptyState,
-  SupplyContextStrip,
   SupplyLinesToolbar,
   SupplyLoadingInline,
   SupplyTableSkeleton,
   SupplyWorkflowRail,
-  nsdTableGroupDivider,
 } from "./new-supply-drawer-ui";
 import { ProductPickCell } from "./product-pick-cell";
 import { SupplyDraftLineCard } from "./supply-draft-line-card";
@@ -64,9 +61,7 @@ import {
   linkReorderLevel,
   rowReferenceCost,
   SupplyCostCell,
-  SupplyLineTotalCell,
   SupplyQtyCell,
-  SupplyStockAfterCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
 import {
@@ -379,6 +374,8 @@ export function NewSupplyDrawer({
     null,
   );
   const [lineSearchQuery, setLineSearchQuery] = useState("");
+  const [lineFocus, setLineFocus] = useState<"all" | "fill" | "ready">("fill");
+  const [deliveryExpanded, setDeliveryExpanded] = useState(true);
   const pricingGenRef = useRef(0);
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
@@ -460,6 +457,8 @@ export function NewSupplyDrawer({
       setReceivedAtLocal(defaultReceived);
       setRowPricing({});
       setLineSearchQuery("");
+      setLineFocus("fill");
+      setDeliveryExpanded(true);
       setAddLineOpen(false);
       setLinkModalSupplierId(null);
       return;
@@ -468,6 +467,7 @@ export function NewSupplyDrawer({
       setSupplier(initialSupplier);
       setSupplierQuery("");
       setSupplierHits([]);
+      setDeliveryExpanded(false);
     }
      
   }, [open, defaultReceived, initialSupplier]);
@@ -698,13 +698,42 @@ export function NewSupplyDrawer({
     "A supply receipt draft is open with lines or delivery details.",
   );
 
+  const needsCount = useMemo(
+    () => rows.filter((row) => parsePositiveQty(row.qtyStr) == null).length,
+    [rows],
+  );
+
   const visibleRows = useMemo(() => {
+    let list = rows;
+    if (lineFocus === "fill") {
+      list = list.filter((row) => parsePositiveQty(row.qtyStr) == null);
+    } else if (lineFocus === "ready") {
+      list = list.filter((row) => linePayload(row) != null);
+    }
     const q = lineSearchQuery.trim();
     if (!q) {
-      return rows;
+      return list;
     }
-    return rows.filter((row) => rowMatchesLineSearch(row, q));
-  }, [rows, lineSearchQuery]);
+    return list.filter((row) => rowMatchesLineSearch(row, q));
+  }, [rows, lineSearchQuery, lineFocus]);
+
+  const focusNextEmptyQty = useCallback((afterKey: string) => {
+    const keys = rows.map((r) => r.key);
+    const start = keys.indexOf(afterKey);
+    if (start < 0) return;
+    for (let i = 1; i <= keys.length; i++) {
+      const row = rows[(start + i) % keys.length];
+      if (!row || parsePositiveQty(row.qtyStr) != null) continue;
+      window.requestAnimationFrame(() => {
+        const el = document.querySelector(
+          `[data-nsd-row="${row.key}"] [data-nsd-qty]`,
+        ) as HTMLInputElement | null;
+        el?.focus();
+        el?.select();
+      });
+      return;
+    }
+  }, [rows]);
 
   const workflowSteps = useMemo(
     () => [
@@ -1020,26 +1049,22 @@ export function NewSupplyDrawer({
       >
         <SupplyWorkflowRail steps={workflowSteps} />
 
-        <SupplyContextStrip
-          supplierName={supplier?.name ?? null}
-          branchName={selectedBranchName}
-          lineStats={lineStats}
-          payable={estimatedProfit.cost}
-          canPost={canPost}
-        />
-
-        <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(14rem,22%)] lg:items-start">
+        <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(13rem,20%)] lg:items-start">
           <div className="flex min-w-0 flex-col gap-2">
             <SupplyDrawerSection
               step={1}
-              title="Delivery setup"
-              hint="Vendor, receipt time, and optional references — then fill receiving lines below."
+              title="Delivery"
+              hint={
+                deliveryExpanded || !supplier
+                  ? "Pick vendor & receipt time — then fill lines."
+                  : undefined
+              }
               done={
                 supplier != null &&
                 Boolean(branchId.trim() && receivedAtLocal)
               }
               className="relative z-30 overflow-visible lg:z-20"
-              bodyClassName="overflow-visible p-2.5 sm:p-3"
+              bodyClassName="overflow-visible p-2 sm:p-2.5"
             >
               <DeliverySetupSection
                 busy={busy}
@@ -1052,10 +1077,12 @@ export function NewSupplyDrawer({
                   setSupplier(s);
                   setSupplierQuery("");
                   setSupplierHits([]);
+                  setDeliveryExpanded(false);
                 }}
                 onClearSupplier={() => {
                   setSupplier(null);
                   setSupplierQuery("");
+                  setDeliveryExpanded(true);
                 }}
                 branchId={branchId}
                 branches={branches}
@@ -1071,15 +1098,19 @@ export function NewSupplyDrawer({
                 onNotesChange={setNotes}
                 extras={extras}
                 onExtrasChange={setExtras}
-                showExtras={supplier != null}
+                showExtras={supplier != null && deliveryExpanded}
+                collapsed={!deliveryExpanded && supplier != null}
+                onToggleCollapsed={() =>
+                  setDeliveryExpanded((open) => !open)
+                }
               />
             </SupplyDrawerSection>
 
             <div ref={linesSectionRef}>
             <SupplyDrawerSection
               step={2}
-              title="Receiving lines"
-              hint="Enter qty and cost per line. Shelf price updates when you post."
+              title="Receive"
+              hint="Tab through qty → cost → shelf. Enter jumps to next empty qty."
               done={lineStats.valid > 0 && duplicateIds.length === 0}
               className="overflow-visible"
               action={
@@ -1093,7 +1124,7 @@ export function NewSupplyDrawer({
                   disabled={busy || !supplier}
                 >
                   <Plus className="size-3.5" aria-hidden />
-                  Link product
+                  Link
                 </Button>
                 ) : null
               }
@@ -1144,16 +1175,36 @@ export function NewSupplyDrawer({
                     visibleCount={visibleRows.length}
                     totalCount={rows.length}
                     readyCount={lineStats.valid}
+                    needsCount={needsCount}
+                    lineFocus={lineFocus}
+                    onLineFocusChange={setLineFocus}
                     disabled={busy}
                   />
 
                   {visibleRows.length === 0 ? (
-                    <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-                      No lines match &ldquo;{lineSearchQuery.trim()}&rdquo;.
-                    </p>
+                    <div className="px-3 py-6 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        {lineSearchQuery.trim()
+                          ? `No lines match “${lineSearchQuery.trim()}”.`
+                          : lineFocus === "fill"
+                            ? "All quantities entered — switch to All to finish cost & shelf."
+                            : lineFocus === "ready"
+                              ? "No ready lines yet — enter qty & cost."
+                              : "No lines to show."}
+                      </p>
+                      {lineFocus !== "all" && !lineSearchQuery.trim() ? (
+                        <button
+                          type="button"
+                          className="mt-2 text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                          onClick={() => setLineFocus("all")}
+                        >
+                          Show all lines
+                        </button>
+                      ) : null}
+                    </div>
                   ) : (
                   <>
-                  <div className="space-y-2 p-2.5 lg:hidden">
+                  <div className="space-y-1.5 p-2 lg:hidden">
                     {visibleRows.map((row) => {
                       const p = linePayload(row);
                       const stock = rowStock(row);
@@ -1168,8 +1219,8 @@ export function NewSupplyDrawer({
                       const reorderLevel =
                         row.source === "linked" ? linkReorderLevel(row.link) : null;
                       return (
+                        <div key={row.key} data-nsd-row={row.key}>
                         <SupplyDraftLineCard
-                          key={row.key}
                           row={row}
                           label={rowLabel(row)}
                           barcode={rowBarcode(row)}
@@ -1241,72 +1292,32 @@ export function NewSupplyDrawer({
                             )
                           }
                           onRemove={() => removeRow(row.key)}
+                          onQtyEnterNext={() => focusNextEmptyQty(row.key)}
                         />
+                        </div>
                       );
                     })}
                   </div>
 
                   <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[62rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
             <thead className={nsdTableHead}>
-              <tr className="border-b border-border/50 bg-muted/60 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                <th className="px-2 py-1 text-left font-semibold">
-                  Product
-                </th>
-                <th
-                  colSpan={3}
-                  className={cn(
-                    nsdTableGroupDivider,
-                    "px-2 py-1 text-center font-semibold",
-                  )}
-                >
-                  Inventory
-                </th>
-                <th
-                  colSpan={2}
-                  className={cn(
-                    nsdTableGroupDivider,
-                    "px-2 py-1 text-center font-semibold",
-                  )}
-                >
-                  Cost
-                </th>
-                <th
-                  className={cn(
-                    nsdTableGroupDivider,
-                    "px-2 py-1 text-center font-semibold",
-                  )}
-                >
-                  Retail
-                </th>
-                <th
-                  className={cn(
-                    nsdTableGroupDivider,
-                    "px-2 py-1 text-left font-semibold",
-                  )}
-                >
-                  Batch
-                </th>
-                <th className="w-7" />
-              </tr>
               <tr>
-                <th className={cn(nsdTableTh, "min-w-[9rem]")}>Product</th>
-                <th className={cn(nsdTableTh, "min-w-[4rem] text-right", nsdTableGroupDivider)}>
+                <th className={cn(nsdTableTh, "min-w-[8rem] py-1")}>Product</th>
+                <th className={cn(nsdTableTh, "min-w-[3.5rem] py-1 text-right")}>
                   Stock
                 </th>
-                <th className={cn(nsdTableTh, "min-w-[4rem] text-right")}>Qty</th>
-                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>After</th>
-                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right", nsdTableGroupDivider)}>
+                <th className={cn(nsdTableTh, "min-w-[3.75rem] py-1 text-right")}>
+                  Qty
+                </th>
+                <th className={cn(nsdTableTh, "min-w-[4rem] py-1 text-right")}>
                   Cost
                 </th>
-                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>Total</th>
-                <th className={cn(nsdTableTh, "min-w-[5.5rem] text-right", nsdTableGroupDivider)}>
+                <th className={cn(nsdTableTh, "min-w-[4.5rem] py-1 text-right")}>
                   Shelf
                 </th>
-                <th className={cn(nsdTableTh, "w-[6.75rem]", nsdTableGroupDivider)}>
-                  Expiry
-                </th>
-                <th className={cn(nsdTableTh, "w-7")} />
+                <th className={cn(nsdTableTh, "w-[6rem] py-1")}>Expiry</th>
+                <th className={cn(nsdTableTh, "w-7 py-1")} />
               </tr>
             </thead>
             <tbody>
@@ -1327,12 +1338,13 @@ export function NewSupplyDrawer({
                 return (
                   <tr
                     key={row.key}
+                    data-nsd-row={row.key}
                     className={cn(
                       nsdTableRow,
                       isReady && nsdTableRowReady,
                     )}
                   >
-                    <td className={nsdTableCell}>
+                    <td className={cn(nsdTableCell, "py-0.5")}>
                       <div className="min-w-0">
                         {row.source === "adhoc" ? (
                           <ProductPickCell
@@ -1357,20 +1369,20 @@ export function NewSupplyDrawer({
                           />
                         ) : (
                           <div
-                            className="max-w-[14rem] truncate text-sm font-medium leading-snug"
+                            className="max-w-[12rem] truncate text-[13px] font-medium leading-snug"
                             title={rowLabel(row)}
                           >
                             {rowLabel(row)}
                           </div>
                         )}
                         {rowBarcode(row) !== "—" ? (
-                          <p className="mt-0.5 break-all font-mono text-[10px] leading-snug text-muted-foreground">
+                          <p className="mt-0.5 break-all font-mono text-[9px] leading-snug text-muted-foreground">
                             {rowBarcode(row)}
                           </p>
                         ) : null}
                       </div>
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[4rem] align-top", nsdTableGroupDivider)}>
+                    <td className={cn(nsdTableCell, "min-w-[3.5rem] py-0.5 align-top")}>
                       <SupplyStockCell
                         compact
                         stock={stock}
@@ -1386,10 +1398,11 @@ export function NewSupplyDrawer({
                         }}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[4rem] align-top")}>
+                    <td className={cn(nsdTableCell, "min-w-[3.75rem] py-0.5 align-top")}>
                       <SupplyQtyCell
                         compact
                         value={row.qtyStr}
+                        stockAfter={stockAfter}
                         onChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
@@ -1397,22 +1410,16 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
+                        onEnterNext={() => focusNextEmptyQty(row.key)}
                         disabled={busy}
                         isReady={isReady}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[4.5rem] align-top")}>
-                      <SupplyStockAfterCell
-                        compact
-                        stock={stock}
-                        stockAfter={stockAfter}
-                        qty={qty}
-                      />
-                    </td>
-                    <td className={cn(nsdTableCell, "min-w-[4.5rem] align-top", nsdTableGroupDivider)}>
+                    <td className={cn(nsdTableCell, "min-w-[4rem] py-0.5 align-top")}>
                       <SupplyCostCell
                         compact
                         value={row.unitStr}
+                        lineTotal={p?.amountMoney ?? null}
                         onChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
@@ -1424,16 +1431,7 @@ export function NewSupplyDrawer({
                         referenceCost={referenceCost}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[4.5rem] align-top")}>
-                      <SupplyLineTotalCell
-                        compact
-                        total={p?.amountMoney ?? null}
-                        qty={qty}
-                        unitCost={unitCost}
-                        isReady={isReady}
-                      />
-                    </td>
-                    <td className={cn(nsdTableCell, "min-w-[5.5rem] align-top", nsdTableGroupDivider)}>
+                    <td className={cn(nsdTableCell, "min-w-[4.5rem] py-0.5 align-top")}>
                       <SupplyShelfPriceCell
                         compact
                         value={row.sellPriceStr}
@@ -1457,7 +1455,7 @@ export function NewSupplyDrawer({
                         sellPriceTouched={row.sellPriceTouched}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, nsdTableGroupDivider)}>
+                    <td className={cn(nsdTableCell, "py-0.5")}>
                       <YmdDateInput
                         value={row.expiry}
                         onValueChange={(value) =>
@@ -1469,16 +1467,16 @@ export function NewSupplyDrawer({
                         }
                         disabled={busy}
                         compact
-                        placeholder="Expiry"
+                        placeholder="Exp"
                         aria-label="Expiry date"
                       />
                     </td>
-                    <td className={nsdTableCell}>
+                    <td className={cn(nsdTableCell, "py-0.5")}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-destructive hover:bg-destructive/10"
+                        className="size-6 text-destructive hover:bg-destructive/10"
                         disabled={busy}
                         aria-label="Remove row"
                         onClick={() => removeRow(row.key)}
