@@ -405,8 +405,6 @@ export type ItemSummaryRecord = {
   size?: string | null;
   /** Shelf / bundle price on the item record. */
   bundlePrice?: number | string | null;
-  /** Reference buying / cost price on the item record. */
-  buyingPrice?: number | string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */
@@ -4049,23 +4047,6 @@ export type AdjustItemCostPayload = {
   reason?: string | null;
 };
 
-export type BulkAdjustItemCostPayload = {
-  itemIds: string[];
-  marginPct: number;
-  branchId?: string | null;
-  reason?: string | null;
-};
-
-export type BulkAdjustItemCostSkipped = {
-  itemId: string;
-  reason: string;
-};
-
-export type BulkAdjustItemCostResult = {
-  updated: CostIssueRowRecord[];
-  skipped: BulkAdjustItemCostSkipped[];
-};
-
 export async function fetchCostIssues(
   branchId?: string,
   thinMarginPct?: number,
@@ -4093,15 +4074,6 @@ export async function adjustItemCost(
 ): Promise<CostIssueRowRecord> {
   return request<CostIssueRowRecord>(
     `/api/v1/inventory/cost-issues/${encodeURIComponent(itemId)}/adjust`,
-    { method: "POST", body: payload },
-  );
-}
-
-export async function bulkAdjustItemCosts(
-  payload: BulkAdjustItemCostPayload,
-): Promise<BulkAdjustItemCostResult> {
-  return request<BulkAdjustItemCostResult>(
-    `/api/v1/inventory/cost-issues/bulk-adjust`,
     { method: "POST", body: payload },
   );
 }
