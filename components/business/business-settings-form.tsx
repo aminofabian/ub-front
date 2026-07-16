@@ -513,8 +513,9 @@ export function BusinessSettingsForm({
                   Allow cashiers to add suppliers
                 </span>
                 <span className={hintClass()}>
-                  When enabled, cashiers (including butcher cashiers) can create
-                  and edit supplier profiles.
+                  When enabled, cashiers get a Suppliers button on the till that
+                  opens a modal to create private supplier profiles. Butcher
+                  cashiers use the butcher suppliers screen.
                 </span>
               </span>
             </label>
@@ -536,8 +537,8 @@ export function BusinessSettingsForm({
                   Allow cashiers to link products
                 </span>
                 <span className={hintClass()}>
-                  When enabled, cashiers can link catalog products to suppliers
-                  from Suppliers, Products, or New Supply.
+                  When enabled, the till Suppliers modal can link catalog
+                  products to a supplier (optional buying price).
                 </span>
               </span>
             </label>

@@ -339,19 +339,13 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   }
 
   if (gate.roleKey === "cashier") {
-    const allowed: string[] = [
+    const allowed: readonly string[] = [
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
       APP_ROUTES.purchasingAddSupplies,
       APP_ROUTES.grocery,
       APP_ROUTES.groceryInvoices,
     ];
-    if (
-      gate.canViewSuppliers &&
-      (gate.canWriteSuppliers || gate.canLinkSupplierProducts)
-    ) {
-      allowed.push(APP_ROUTES.suppliers);
-    }
     return allowed.includes(item.href);
   }
 
@@ -805,7 +799,7 @@ export function AppShell({ children }: AppShellProps) {
       return tabs;
     }
     if (roleKey === "cashier") {
-      const tabs: BottomTab[] = BOTTOM_TABS.map((tab) => {
+      return BOTTOM_TABS.map((tab) => {
         if (tab.id === "sales") return { ...tab, href: APP_ROUTES.cashier };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
@@ -817,16 +811,6 @@ export function AppShell({ children }: AppShellProps) {
             tab.href === APP_ROUTES.shifts ||
             tab.id === "more"),
       );
-      if (supplierToolsEnabled) {
-        tabs.splice(1, 0, {
-          id: "suppliers",
-          label: "Vendors",
-          icon: Truck,
-          href: APP_ROUTES.suppliers,
-          matchSectionIds: ["procurement"],
-        });
-      }
-      return tabs;
     }
     if (roleKey === "butcher_cashier") {
       const tabs: BottomTab[] = [
@@ -952,14 +936,11 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     if (roleKey === "cashier") {
-      const allowed: string[] = [
+      const allowed = [
         APP_ROUTES.cashier,
         APP_ROUTES.shifts,
         APP_ROUTES.purchasingAddSupplies,
       ];
-      if (supplierToolsEnabled) {
-        allowed.push(APP_ROUTES.suppliers);
-      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );

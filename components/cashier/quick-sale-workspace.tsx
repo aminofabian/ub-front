@@ -47,6 +47,10 @@ import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { allowNegativeStockForSales } from "@/lib/inventory-access";
 import {
+  canLinkSupplierProducts,
+  canWriteSuppliers,
+} from "@/lib/supplier-access";
+import {
   countPendingSales,
   enqueuePendingSale,
   flushSaleOutbox,
@@ -260,6 +264,10 @@ export function QuickSaleWorkspace({
   const allowWeighedToggle =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     weighedToggleFlagEnabled;
+  const allowCreateSupplier =
+    variant === "cashier" && canWriteSuppliers(me, business);
+  const allowLinkSupplierProducts =
+    variant === "cashier" && canLinkSupplierProducts(me, business);
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -2783,6 +2791,8 @@ export function QuickSaleWorkspace({
         allowPriceEdit={allowPriceEdit}
         canPersistShelfPrice={canPersistShelfPrice}
         allowCreateProduct={allowCreateProduct}
+        allowCreateSupplier={allowCreateSupplier}
+        allowLinkSupplierProducts={allowLinkSupplierProducts}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={toggleLineWeighed}

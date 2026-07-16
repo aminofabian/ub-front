@@ -19,6 +19,7 @@ import {
   ScanLine,
   Search,
   ShoppingCart,
+  Truck,
   Wallet,
   X,
 } from "lucide-react";
@@ -71,6 +72,7 @@ import {
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
+import { CashierSuppliersModal } from "./cashier-suppliers-modal";
 import type { ItemTypeRecord } from "@/lib/api";
 
 const POS_SHIFT_CHIP_CLASS = cn(
@@ -205,6 +207,10 @@ export type CashierPosLayoutProps = {
   canPersistShelfPrice?: boolean;
   /** Quick-create products from POS. */
   allowCreateProduct?: boolean;
+  /** Create suppliers from POS (cashier modal). */
+  allowCreateSupplier?: boolean;
+  /** Link catalog products to suppliers from POS. */
+  allowLinkSupplierProducts?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
   allowWeighedToggle?: boolean;
   weighedToggleBusyItemId?: string | null;
@@ -733,6 +739,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowPriceEdit = false,
     canPersistShelfPrice = false,
     allowCreateProduct = false,
+    allowCreateSupplier = false,
+    allowLinkSupplierProducts = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
     onToggleWeighed,
@@ -748,7 +756,10 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [showScanner, setShowScanner] = useState(false);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [suppliersOpen, setSuppliersOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
+  const allowManageSuppliers =
+    allowCreateSupplier || allowLinkSupplierProducts;
   const [tileShelfPrices, setTileShelfPrices] = useState<
     Record<string, string>
   >({});
@@ -782,6 +793,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !modalOpen &&
       !showScanner &&
       !createProductOpen &&
+      !suppliersOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -1074,6 +1086,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               >
                 <PackagePlus className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 Add product
+              </button>
+            ) : null}
+            {allowManageSuppliers ? (
+              <button
+                type="button"
+                onClick={() => setSuppliersOpen(true)}
+                className={POS_PRIMARY_CHIP_CLASS}
+              >
+                <Truck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Suppliers
               </button>
             ) : null}
             {!online ? (
@@ -1858,6 +1880,17 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           const added = addLine(item, 1, unitPrice);
           if (added) markAdded(item.id);
         }}
+      />
+
+      <CashierSuppliersModal
+        open={suppliersOpen}
+        onOpenChange={(o) => {
+          setSuppliersOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
+        brandTheme={dialogBrandTheme}
+        canWrite={allowCreateSupplier}
+        canLink={allowLinkSupplierProducts}
       />
 
       <CashierEditPriceModal
