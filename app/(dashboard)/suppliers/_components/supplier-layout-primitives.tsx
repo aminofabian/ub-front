@@ -215,12 +215,11 @@ export function SupMobileSelectionBar({
         "sm:p-4",
       )}
     >
-      <div className="mb-3 flex items-center gap-2.5">
-        <span
-          className="flex size-2 shrink-0 rounded-full bg-primary"
-          aria-hidden
-        />
-        <p className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground">
+      <div className="mb-3 min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          Selected
+        </p>
+        <p className="mt-0.5 truncate text-sm font-semibold tracking-tight text-foreground">
           {name}
         </p>
       </div>

@@ -94,12 +94,12 @@ export const supDirectoryToolbar = cn(
 );
 
 export const supTableHead = cn(
-  "border-b border-border/40 bg-muted/25 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground",
+  "border-b border-border/50 bg-muted/30 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
 );
 
 export const supTableRow = cn(
-  "border-b border-border/25 transition-colors duration-100 last:border-0",
-  "hover:bg-muted/20",
+  "border-b border-border/30 transition-colors duration-75 last:border-0",
+  "hover:bg-muted/25 odd:bg-muted/[0.06]",
 );
 
 export const supPanelShell = cn(
