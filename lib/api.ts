@@ -6972,6 +6972,23 @@ export type OutstandingTabRowRecord = {
   balanceOwed: number | string;
 };
 
+export type TabPurchaseLineRecord = {
+  itemName: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  lineTotal: number | string;
+};
+
+export type TabPurchaseRowRecord = {
+  saleId: string;
+  receiptNo?: number | null;
+  soldAt: string;
+  status: string;
+  creditAmount: number | string;
+  grandTotal: number | string;
+  lines: TabPurchaseLineRecord[];
+};
+
 export async function fetchOutstandingTabs(
   q?: string,
 ): Promise<OutstandingTabRowRecord[]> {
@@ -6980,6 +6997,14 @@ export async function fetchOutstandingTabs(
   const qs = params.toString();
   return request<OutstandingTabRowRecord[]>(
     `/api/v1/customers/outstanding-tabs${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function fetchCustomerTabPurchases(
+  customerId: string,
+): Promise<TabPurchaseRowRecord[]> {
+  return request<TabPurchaseRowRecord[]>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/tab-purchases`,
   );
 }
 

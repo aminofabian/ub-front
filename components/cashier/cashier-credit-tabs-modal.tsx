@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import {
   ArrowLeft,
   Banknote,
+  ChevronDown,
+  ChevronRight,
   Loader2,
+  Printer,
+  Receipt,
   Search,
   Smartphone,
   Users,
@@ -22,10 +26,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  fetchCustomerTabPurchases,
   fetchOutstandingTabs,
   proposeTabClearance,
   type OutstandingTabRowRecord,
+  type TabPurchaseRowRecord,
 } from "@/lib/api";
+import {
+  printPosReceipt,
+  type LocalReceiptPrinterTarget,
+} from "@/lib/desktop-print";
 import { cn } from "@/lib/utils";
 
 type CashierCreditTabsModalProps = {
@@ -33,6 +43,7 @@ type CashierCreditTabsModalProps = {
   onOpenChange: (open: boolean) => void;
   brandTheme: CSSProperties;
   currency: string;
+  receiptPrinter?: LocalReceiptPrinterTarget | null;
 };
 
 const fieldClass = cn(
@@ -56,11 +67,27 @@ function money(amount: number | string, currency: string): string {
   }
 }
 
+function formatSoldAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function qtyLabel(q: number | string): string {
+  const n = Number(q);
+  if (!Number.isFinite(n)) return String(q);
+  return Number.isInteger(n) ? String(n) : n.toFixed(3).replace(/\.?0+$/, "");
+}
+
 export function CashierCreditTabsModal({
   open,
   onOpenChange,
   brandTheme,
   currency,
+  receiptPrinter,
 }: CashierCreditTabsModalProps) {
   const [rows, setRows] = useState<OutstandingTabRowRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,6 +99,12 @@ export function CashierCreditTabsModal({
   const [channel, setChannel] = useState<"cash" | "mpesa">("cash");
   const [reference, setReference] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [showPurchases, setShowPurchases] = useState(false);
+  const [purchases, setPurchases] = useState<TabPurchaseRowRecord[]>([]);
+  const [purchasesLoading, setPurchasesLoading] = useState(false);
+  const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
+  const [printingSaleId, setPrintingSaleId] = useState<string | null>(null);
 
   const load = useCallback(async (q?: string) => {
     setLoading(true);
@@ -87,6 +120,22 @@ export function CashierCreditTabsModal({
     }
   }, []);
 
+  const loadPurchases = useCallback(async (customerId: string) => {
+    setPurchasesLoading(true);
+    try {
+      setPurchases(await fetchCustomerTabPurchases(customerId));
+    } catch (error) {
+      setPurchases([]);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not load tab purchases.",
+      );
+    } finally {
+      setPurchasesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     setSelected(null);
@@ -94,6 +143,9 @@ export function CashierCreditTabsModal({
     setAmountStr("");
     setChannel("cash");
     setReference("");
+    setShowPurchases(false);
+    setPurchases([]);
+    setExpandedSaleId(null);
     void load();
   }, [open, load]);
 
@@ -119,6 +171,30 @@ export function CashierCreditTabsModal({
     setAmountStr(Number(row.balanceOwed).toFixed(2));
     setChannel("cash");
     setReference("");
+    setShowPurchases(false);
+    setPurchases([]);
+    setExpandedSaleId(null);
+  };
+
+  const togglePurchases = () => {
+    if (!selected) return;
+    if (showPurchases) {
+      setShowPurchases(false);
+      return;
+    }
+    setShowPurchases(true);
+    void loadPurchases(selected.customerId);
+  };
+
+  const printSale = async (saleId: string) => {
+    setPrintingSaleId(saleId);
+    try {
+      await printPosReceipt(saleId, 80, receiptPrinter ?? null);
+    } catch {
+      // printPosReceipt already toasts
+    } finally {
+      setPrintingSaleId(null);
+    }
   };
 
   const submit = async () => {
@@ -256,6 +332,131 @@ export function CashierCreditTabsModal({
                   {selected.primaryPhone?.trim() || "No phone on file"}
                 </p>
               </div>
+
+              <button
+                type="button"
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors",
+                  showPurchases
+                    ? "border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_10%,transparent)]"
+                    : "border-border/60 bg-background hover:bg-muted/40",
+                )}
+                onClick={togglePurchases}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Receipt className="size-4 text-[var(--pos-primary)]" />
+                  {showPurchases ? "Hide purchases" : "View purchases"}
+                </span>
+                {showPurchases ? (
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                )}
+              </button>
+
+              {showPurchases ? (
+                <div className="space-y-2">
+                  {purchasesLoading ? (
+                    <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" />
+                      Loading purchases…
+                    </div>
+                  ) : purchases.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
+                      No credit purchases on file for this tab.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/60">
+                      {purchases.map((purchase) => {
+                        const openRow = expandedSaleId === purchase.saleId;
+                        const printing = printingSaleId === purchase.saleId;
+                        return (
+                          <li key={purchase.saleId}>
+                            <div className="flex items-stretch gap-0">
+                              <button
+                                type="button"
+                                className="min-w-0 flex-1 px-3 py-2.5 text-left transition-colors hover:bg-muted/30"
+                                onClick={() =>
+                                  setExpandedSaleId(
+                                    openRow ? null : purchase.saleId,
+                                  )
+                                }
+                              >
+                                <span className="flex items-center gap-2">
+                                  {openRow ? (
+                                    <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+                                  )}
+                                  <span className="min-w-0">
+                                    <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                      <span className="font-mono text-[11px] font-semibold text-foreground/70">
+                                        #
+                                        {purchase.receiptNo ??
+                                          purchase.saleId.slice(0, 8)}
+                                      </span>
+                                      <span className="text-[11px] text-muted-foreground">
+                                        {formatSoldAt(purchase.soldAt)}
+                                      </span>
+                                    </span>
+                                    <span className="mt-0.5 block text-sm font-semibold tabular-nums">
+                                      {money(purchase.creditAmount, currency)}
+                                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                                        on tab
+                                      </span>
+                                    </span>
+                                  </span>
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="shrink-0 border-l border-border/50 px-3 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground disabled:opacity-50"
+                                title="Print receipt"
+                                disabled={printing}
+                                onClick={() => void printSale(purchase.saleId)}
+                              >
+                                {printing ? (
+                                  <Loader2 className="size-4 animate-spin" />
+                                ) : (
+                                  <Printer className="size-4" />
+                                )}
+                              </button>
+                            </div>
+                            {openRow ? (
+                              <ul className="space-y-1 border-t border-border/40 bg-muted/15 px-3 py-2.5 pl-9">
+                                {purchase.lines.map((line, idx) => (
+                                  <li
+                                    key={`${purchase.saleId}-${idx}`}
+                                    className="flex items-start justify-between gap-3 text-xs"
+                                  >
+                                    <span className="min-w-0">
+                                      <span className="block truncate font-medium text-foreground">
+                                        {line.itemName}
+                                      </span>
+                                      <span className="text-muted-foreground">
+                                        {qtyLabel(line.quantity)} ×{" "}
+                                        {money(line.unitPrice, currency)}
+                                      </span>
+                                    </span>
+                                    <span className="shrink-0 tabular-nums font-medium">
+                                      {money(line.lineTotal, currency)}
+                                    </span>
+                                  </li>
+                                ))}
+                                {purchase.lines.length === 0 ? (
+                                  <li className="text-xs text-muted-foreground">
+                                    No line items.
+                                  </li>
+                                ) : null}
+                              </ul>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">

@@ -13,6 +13,7 @@ import {
   ScanLine,
   Warehouse,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
@@ -32,6 +33,7 @@ import {
   fetchBranches,
   fetchItemById,
   fetchItemsPage,
+  patchItem,
   type BranchRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
@@ -39,7 +41,7 @@ import {
   canViewStockLevels,
   filterInventoryQuickLinksForUser,
 } from "@/lib/inventory-access";
-import { Permission } from "@/lib/permissions";
+import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 import {
@@ -117,6 +119,7 @@ async function loadParentMap(
 export default function InventoryMissingBarcodesPage() {
   const { me, business, setBranchId: setHeaderBranchId } = useDashboard();
   const allowed = canViewStockLevels(me, business);
+  const canWrite = hasPermission(me?.permissions, Permission.CatalogItemsWrite);
 
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [branchFilter, setBranchFilter] = useState("");
@@ -136,6 +139,10 @@ export default function InventoryMissingBarcodesPage() {
   const [capped, setCapped] = useState(false);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
+  const [barcodeDrafts, setBarcodeDrafts] = useState<Record<string, string>>(
+    {},
+  );
+  const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set());
 
   const onChangeBranch = useCallback(
     (id: string) => {
@@ -182,10 +189,14 @@ export default function InventoryMissingBarcodesPage() {
       setParents(parentMap);
       setTotalElements(total);
       setCapped(hitCap);
+      setBarcodeDrafts({});
+      setSavingIds(new Set());
     } catch (error) {
       setVariants([]);
       setParents(new Map());
       setTotalElements(0);
+      setBarcodeDrafts({});
+      setSavingIds(new Set());
       setMessage(
         error instanceof Error
           ? error.message
@@ -195,6 +206,61 @@ export default function InventoryMissingBarcodesPage() {
       setLoading(false);
     }
   }, []);
+
+  const setBarcodeDraft = useCallback((itemId: string, value: string) => {
+    setBarcodeDrafts((prev) => ({ ...prev, [itemId]: value }));
+  }, []);
+
+  const saveBarcode = useCallback(
+    async (row: ItemSummaryRecord) => {
+      if (!canWrite) {
+        toast.error("You do not have permission to update barcodes.");
+        return;
+      }
+      const code = (barcodeDrafts[row.id] ?? "").trim();
+      if (!code) {
+        toast.error("Enter a barcode first.");
+        return;
+      }
+
+      let alreadySaving = false;
+      setSavingIds((prev) => {
+        if (prev.has(row.id)) {
+          alreadySaving = true;
+          return prev;
+        }
+        const next = new Set(prev);
+        next.add(row.id);
+        return next;
+      });
+      if (alreadySaving) return;
+
+      try {
+        await patchItem(row.id, { barcode: code });
+        setVariants((prev) => prev.filter((v) => v.id !== row.id));
+        setTotalElements((prev) => Math.max(0, prev - 1));
+        setBarcodeDrafts((prev) => {
+          const next = { ...prev };
+          delete next[row.id];
+          return next;
+        });
+        toast.success(`Barcode saved for ${variantOptionLabel(row)}.`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to save barcode.",
+        );
+      } finally {
+        setSavingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(row.id);
+          return next;
+        });
+      }
+    },
+    [barcodeDrafts, canWrite],
+  );
 
   useEffect(() => {
     if (!allowed) return;
@@ -344,7 +410,7 @@ export default function InventoryMissingBarcodesPage() {
             icon={ScanLine}
             eyebrow="Inventory"
             title="Missing barcodes"
-            description="Variant SKUs with no barcode, grouped under their parent product so you can label the right pack or option."
+            description="Variant SKUs with no barcode, grouped under their parent. Scan or type a barcode and save it here — the row drops off once labeled."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
@@ -445,16 +511,16 @@ export default function InventoryMissingBarcodesPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[42rem] border-collapse border-0 text-left text-xs">
+            <table className="w-full min-w-[48rem] border-collapse border-0 text-left text-xs">
               <thead>
                 <tr className={supTableHead}>
-                  <th className={cn(supTableCell, "min-w-[14rem]")}>
+                  <th className={cn(supTableCell, "min-w-[12rem]")}>
                     Parent / variant
                   </th>
-                  <th className={cn(supTableCell, "min-w-[7rem]")}>SKU</th>
-                  <th className={cn(supTableCell, "min-w-[7rem]")}>Category</th>
+                  <th className={cn(supTableCell, "min-w-[6rem]")}>SKU</th>
                   <th className={cn(supTableCell, "text-right")}>Stock</th>
-                  <th className={cn(supTableCell, "text-right")}>Open</th>
+                  <th className={cn(supTableCell, "min-w-[14rem]")}>Barcode</th>
+                  <th className={cn(supTableCell, "text-right")}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -545,6 +611,8 @@ export default function InventoryMissingBarcodesPage() {
                       const stock = branchFilter
                         ? toNum(row.stockQty)
                         : null;
+                      const draft = barcodeDrafts[row.id] ?? "";
+                      const saving = savingIds.has(row.id);
                       return (
                         <tr key={row.id} className={supTableRow}>
                           <td className={supTableCell}>
@@ -573,9 +641,6 @@ export default function InventoryMissingBarcodesPage() {
                           >
                             {row.sku?.trim() || "—"}
                           </td>
-                          <td className={cn(supTableCell, "text-muted-foreground")}>
-                            {row.categoryName?.trim() || "—"}
-                          </td>
                           <td
                             className={cn(
                               supTableCell,
@@ -584,19 +649,60 @@ export default function InventoryMissingBarcodesPage() {
                           >
                             {branchFilter ? fmtQty(stock) : "—"}
                           </td>
+                          <td className={supTableCell}>
+                            {canWrite ? (
+                              <input
+                                className={cn(
+                                  supInput,
+                                  "h-8 w-full min-w-[10rem] bg-background font-mono text-xs",
+                                )}
+                                value={draft}
+                                disabled={saving}
+                                onChange={(e) =>
+                                  setBarcodeDraft(row.id, e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    void saveBarcode(row);
+                                  }
+                                }}
+                                placeholder="Scan or type…"
+                                aria-label={`Barcode for ${option}`}
+                                autoComplete="off"
+                              />
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">
+                                No write access
+                              </span>
+                            )}
+                          </td>
                           <td className={cn(supTableCell, "text-right")}>
-                            <Button
-                              asChild
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 rounded-none px-2.5 text-xs"
-                            >
-                              <Link
-                                href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.sku?.trim() || option)}`}
+                            {canWrite ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 rounded-none px-2.5 text-xs"
+                                disabled={saving || !draft.trim()}
+                                onClick={() => void saveBarcode(row)}
                               >
-                                Edit
-                              </Link>
-                            </Button>
+                                {saving ? "Saving…" : "Save"}
+                              </Button>
+                            ) : (
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 rounded-none px-2.5 text-xs"
+                              >
+                                <Link
+                                  href={`${APP_ROUTES.products}?search=${encodeURIComponent(row.sku?.trim() || option)}`}
+                                >
+                                  Open
+                                </Link>
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       );

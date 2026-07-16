@@ -1953,6 +1953,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         }}
         brandTheme={dialogBrandTheme}
         currency={currency}
+        receiptPrinter={cart.receiptPrinter}
       />
 
       <CashierEditPriceModal
