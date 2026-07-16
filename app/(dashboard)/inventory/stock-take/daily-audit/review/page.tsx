@@ -219,16 +219,20 @@ export default function DailyAuditReviewPage() {
               )}
             >
               <div className="flex flex-col gap-4 sm:flex-row">
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-32 sm:w-32">
                   {line.imageUrl ? (
                     <Image
                       src={line.imageUrl}
                       alt={line.itemName}
                       fill
-                      className="object-contain p-1"
+                      className="object-contain p-2"
                       unoptimized
                     />
-                  ) : null}
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                      No photo
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-start justify-between gap-2">

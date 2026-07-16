@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import {
   ArrowRight,
   CheckCircle2,
@@ -37,6 +36,7 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
+import { DailyAuditProductCard } from "../_components/DailyAuditProductCard";
 import { RestockDrawer } from "../_components/RestockDrawer";
 
 type SessionType = "morning" | "evening";
@@ -54,6 +54,8 @@ export default function DailyAuditPage() {
   const { me, business } = useDashboard();
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
+  const canUploadImage =
+    canRun || hasPermission(me?.permissions, Permission.CatalogItemsWrite);
   const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
 
   const [branchId, setBranchId] = useState("");
@@ -277,6 +279,18 @@ export default function DailyAuditPage() {
     await saveLine(true);
   };
 
+  const applyLineImage = useCallback((lineId: string, imageUrl: string) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        lines: prev.lines.map((line) =>
+          line.lineId === lineId ? { ...line, imageUrl } : line,
+        ),
+      };
+    });
+  }, []);
+
   if (!canRun && !canRead) {
     return (
       <DashboardAccessDenied
@@ -372,43 +386,29 @@ export default function DailyAuditPage() {
             />
           </div>
 
-          <article className="flex gap-2.5 rounded-xl border bg-card p-2.5 shadow-sm">
-            <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-muted">
-              {currentLine.imageUrl ? (
-                <Image
-                  src={currentLine.imageUrl}
-                  alt=""
-                  fill
-                  className="object-contain p-1"
-                  unoptimized
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
-                  —
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <h2 className="line-clamp-2 text-sm font-semibold leading-snug">
-                {currentLine.itemName}
-              </h2>
-              <p className="truncate text-[11px] text-muted-foreground">
-                {[
-                  currentLine.itemSku,
-                  currentLine.barcode,
-                  currentLine.categoryName,
-                  currentLine.unitType,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              {canSeeSystemStock && currentLine.systemStock != null ? (
-                <p className="text-[11px] font-medium text-primary">
-                  System {String(currentLine.systemStock)}
-                </p>
-              ) : null}
-            </div>
-          </article>
+          <DailyAuditProductCard
+            itemId={currentLine.itemId}
+            itemName={currentLine.itemName}
+            imageUrl={currentLine.imageUrl}
+            metaLine={[
+              currentLine.itemSku,
+              currentLine.barcode,
+              currentLine.categoryName,
+              currentLine.unitType,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            systemStockLabel={
+              canSeeSystemStock && currentLine.systemStock != null
+                ? `System ${String(currentLine.systemStock)}`
+                : null
+            }
+            canUpload={canUploadImage}
+            onImageUploaded={(url) =>
+              applyLineImage(currentLine.lineId, url)
+            }
+            onError={(message) => setError(message)}
+          />
 
           <label className="grid gap-1">
             <span className="text-[11px] font-medium text-muted-foreground">

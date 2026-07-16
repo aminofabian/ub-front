@@ -2937,6 +2937,26 @@ export async function uploadItemImageToCloudinary(
   });
 }
 
+/** Server-side multipart upload (preferred for stock managers / daily audit). */
+export async function uploadItemImageFile(
+  itemId: string,
+  file: File,
+  opts?: { altText?: string; primary?: boolean },
+): Promise<ItemImageRecord> {
+  const form = new FormData();
+  form.append("file", file);
+  if (opts?.altText?.trim()) {
+    form.append("altText", opts.altText.trim());
+  }
+  if (opts?.primary === false) {
+    form.append("primary", "false");
+  }
+  return requestMultipartJson<ItemImageRecord>(
+    `/api/v1/items/${encodeURIComponent(itemId.trim())}/images/upload`,
+    form,
+  );
+}
+
 function extractPredominantHex(result: unknown): string | undefined {
   if (typeof result !== "object" || result === null) return undefined;
   const r = result as Record<string, unknown>;
