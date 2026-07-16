@@ -32,6 +32,7 @@ import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canAdminEditOnHandStock } from "@/lib/set-on-hand-stock";
+import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
 import { YmdDateInput } from "@/components/ymd-date-input";
 
@@ -329,16 +330,13 @@ export function NewSupplyDrawer({
   onPosted,
   initialSupplier = null,
 }: NewSupplyDrawerProps) {
-  const { branches, branchId, setBranchId, branchesLoading, me } =
+  const { branches, branchId, setBranchId, branchesLoading, me, business } =
     useDashboard();
   const canSetSellPrice = hasPermission(
     me?.permissions,
     Permission.PricingSellPriceSet,
   );
-  const canLinkProducts = hasPermission(
-    me?.permissions,
-    Permission.CatalogItemsLinkSuppliers,
-  );
+  const canLinkProducts = canLinkSupplierProducts(me, business);
   const canEditOnHandStock = canAdminEditOnHandStock(me);
   const branchLocked = isBranchLockedRole(me?.role?.key);
 

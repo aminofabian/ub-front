@@ -43,6 +43,10 @@ import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
 import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { APP_ROUTES } from "@/lib/config";
 import { groceryClerkStockAccessEnabled } from "@/lib/inventory-access";
+import {
+  canLinkSupplierProducts,
+  canWriteSuppliers,
+} from "@/lib/supplier-access";
 import { BUTCHER_POS_FEATURE_FLAG, isButcherPosEnabled } from "@/lib/butcher-feature";
 import { logoutRemote } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
@@ -274,6 +278,8 @@ type NavGate = {
   canViewPaymentGateways: boolean;
   roleKey: string | undefined;
   groceryClerkStockAccess: boolean;
+  canWriteSuppliers: boolean;
+  canLinkSupplierProducts: boolean;
 };
 
 function featureFlagAllows(
@@ -316,24 +322,36 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
 
   // Restricted roles: only explicitly-allowed pages
   if (gate.roleKey === "stock_manager") {
-    const allowed: readonly string[] = [
+    const allowed: string[] = [
       APP_ROUTES.inventoryStockTake,
       APP_ROUTES.inventoryStockTakeDailyAudit,
       APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryRestock,
       APP_ROUTES.purchasingAddSupplies,
     ];
+    if (
+      gate.canViewSuppliers &&
+      (gate.canWriteSuppliers || gate.canLinkSupplierProducts)
+    ) {
+      allowed.push(APP_ROUTES.suppliers);
+    }
     return allowed.includes(item.href);
   }
 
   if (gate.roleKey === "cashier") {
-    const allowed: readonly string[] = [
+    const allowed: string[] = [
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
       APP_ROUTES.purchasingAddSupplies,
       APP_ROUTES.grocery,
       APP_ROUTES.groceryInvoices,
     ];
+    if (
+      gate.canViewSuppliers &&
+      (gate.canWriteSuppliers || gate.canLinkSupplierProducts)
+    ) {
+      allowed.push(APP_ROUTES.suppliers);
+    }
     return allowed.includes(item.href);
   }
 
@@ -637,6 +655,14 @@ export function AppShell({ children }: AppShellProps) {
 
   const canAddSupplies = canPathBWrite && canViewSuppliers && canViewCategories;
   const groceryClerkStockAccess = groceryClerkStockAccessEnabled(business);
+  const canWriteSuppliersDelegated = canWriteSuppliers(me, business);
+  const canLinkSupplierProductsDelegated = canLinkSupplierProducts(
+    me,
+    business,
+  );
+  const supplierToolsEnabled =
+    canViewSuppliers &&
+    (canWriteSuppliersDelegated || canLinkSupplierProductsDelegated);
 
   const visibleSections = useMemo(() => {
     const gate: NavGate = {
@@ -664,11 +690,13 @@ export function AppShell({ children }: AppShellProps) {
       canViewStorefrontOrders,
       canQuickSale,
       canViewPosDrafts,
-    canAccessGrocery,
+      canAccessGrocery,
       canManageImports,
       canViewPaymentGateways,
       roleKey: me?.role?.key?.trim().toLowerCase(),
       groceryClerkStockAccess,
+      canWriteSuppliers: canWriteSuppliersDelegated,
+      canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
     return NAV_SECTIONS.map((section) => ({
       ...section,
@@ -704,6 +732,8 @@ export function AppShell({ children }: AppShellProps) {
     canViewPaymentGateways,
     me?.role?.key,
     groceryClerkStockAccess,
+    canWriteSuppliersDelegated,
+    canLinkSupplierProductsDelegated,
   ]);
 
   const activeSectionId = useMemo(
@@ -762,10 +792,20 @@ export function AppShell({ children }: AppShellProps) {
   const visibleBottomTabs = useMemo(() => {
     const roleKey = me?.role?.key?.trim().toLowerCase();
     if (roleKey === "stock_manager") {
-      return [...STOCK_MANAGER_BOTTOM_TABS];
+      const tabs: BottomTab[] = [...STOCK_MANAGER_BOTTOM_TABS];
+      if (supplierToolsEnabled) {
+        tabs.splice(1, 0, {
+          id: "suppliers",
+          label: "Vendors",
+          icon: Truck,
+          href: APP_ROUTES.suppliers,
+          matchSectionIds: ["procurement"],
+        });
+      }
+      return tabs;
     }
     if (roleKey === "cashier") {
-      return BOTTOM_TABS.map((tab) => {
+      const tabs: BottomTab[] = BOTTOM_TABS.map((tab) => {
         if (tab.id === "sales") return { ...tab, href: APP_ROUTES.cashier };
         if (tab.id === "ops") return { ...tab, href: APP_ROUTES.shifts };
         return tab;
@@ -777,6 +817,16 @@ export function AppShell({ children }: AppShellProps) {
             tab.href === APP_ROUTES.shifts ||
             tab.id === "more"),
       );
+      if (supplierToolsEnabled) {
+        tabs.splice(1, 0, {
+          id: "suppliers",
+          label: "Vendors",
+          icon: Truck,
+          href: APP_ROUTES.suppliers,
+          matchSectionIds: ["procurement"],
+        });
+      }
+      return tabs;
     }
     if (roleKey === "butcher_cashier") {
       const tabs: BottomTab[] = [
@@ -851,7 +901,7 @@ export function AppShell({ children }: AppShellProps) {
       return groceryClerkTabs;
     }
     return BOTTOM_TABS;
-  }, [me, business, canViewSuppliers]);
+  }, [me, business, canViewSuppliers, supplierToolsEnabled]);
 
   // Which bottom tab is currently "active"
   const activeBottomTabId = useMemo(() => {
@@ -882,13 +932,16 @@ export function AppShell({ children }: AppShellProps) {
     const roleKey = me.role?.key?.trim().toLowerCase();
 
     if (roleKey === "stock_manager") {
-      const allowed = [
+      const allowed: string[] = [
         APP_ROUTES.inventoryStockTake,
         APP_ROUTES.inventoryStockTakeDailyAudit,
         APP_ROUTES.inventoryStock,
         APP_ROUTES.inventoryRestock,
         APP_ROUTES.purchasingAddSupplies,
       ];
+      if (supplierToolsEnabled) {
+        allowed.push(APP_ROUTES.suppliers);
+      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
@@ -899,11 +952,14 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     if (roleKey === "cashier") {
-      const allowed = [
+      const allowed: string[] = [
         APP_ROUTES.cashier,
         APP_ROUTES.shifts,
         APP_ROUTES.purchasingAddSupplies,
       ];
+      if (supplierToolsEnabled) {
+        allowed.push(APP_ROUTES.suppliers);
+      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
@@ -942,7 +998,7 @@ export function AppShell({ children }: AppShellProps) {
       }
       return;
     }
-  }, [me, pathname, router, business]);
+  }, [me, pathname, router, business, supplierToolsEnabled]);
 
   return (
     <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">

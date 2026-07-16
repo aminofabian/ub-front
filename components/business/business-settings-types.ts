@@ -26,6 +26,10 @@ export type InventoryForm = {
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
   allowNegativeStock: boolean;
+  allowSupplierWriteForStockManager: boolean;
+  allowSupplierWriteForCashier: boolean;
+  allowLinkProductsForStockManager: boolean;
+  allowLinkProductsForCashier: boolean;
 };
 
 export type PosDraftsForm = {
@@ -79,6 +83,10 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
   allowNegativeStock: false,
+  allowSupplierWriteForStockManager: false,
+  allowSupplierWriteForCashier: false,
+  allowLinkProductsForStockManager: false,
+  allowLinkProductsForCashier: false,
 };
 
 export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -149,6 +157,18 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     ),
     allowNegativeStock: Boolean(
       b?.inventory?.stockLevels?.allowNegativeStock,
+    ),
+    allowSupplierWriteForStockManager: Boolean(
+      b?.inventory?.suppliers?.allowSupplierWriteForStockManager,
+    ),
+    allowSupplierWriteForCashier: Boolean(
+      b?.inventory?.suppliers?.allowSupplierWriteForCashier,
+    ),
+    allowLinkProductsForStockManager: Boolean(
+      b?.inventory?.suppliers?.allowLinkProductsForStockManager,
+    ),
+    allowLinkProductsForCashier: Boolean(
+      b?.inventory?.suppliers?.allowLinkProductsForCashier,
     ),
   };
 }

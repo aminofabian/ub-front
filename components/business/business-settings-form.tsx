@@ -7,6 +7,7 @@ import {
   Loader2,
   Save,
   ShoppingCart,
+  Truck,
   Warehouse,
 } from "lucide-react";
 
@@ -435,6 +436,108 @@ export function BusinessSettingsForm({
                   When enabled, cashiers can complete sales even when on-hand
                   quantity is zero or below. Stock will go negative until you
                   receive more inventory.
+                </span>
+              </span>
+            </label>
+          </FormDrawerFields>
+        </div>
+      ) : null}
+
+      {canManageBusinessSettings ? (
+        <div id="suppliers-access-settings">
+          <FormDrawerFields
+            legend="Suppliers"
+            hint="Let stock managers or cashiers create suppliers and link catalog products to them."
+          >
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowSupplierWriteForStockManager}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowSupplierWriteForStockManager: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <Truck className="size-4 text-muted-foreground" />
+                  Allow stock managers to add suppliers
+                </span>
+                <span className={hintClass()}>
+                  When enabled, stock managers can create and edit supplier
+                  profiles (name, contacts, notes).
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowLinkProductsForStockManager}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowLinkProductsForStockManager: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <Truck className="size-4 text-muted-foreground" />
+                  Allow stock managers to link products
+                </span>
+                <span className={hintClass()}>
+                  When enabled, stock managers can link catalog SKUs to
+                  suppliers (including from New Supply).
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowSupplierWriteForCashier}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowSupplierWriteForCashier: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <Truck className="size-4 text-muted-foreground" />
+                  Allow cashiers to add suppliers
+                </span>
+                <span className={hintClass()}>
+                  When enabled, cashiers (including butcher cashiers) can create
+                  and edit supplier profiles.
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowLinkProductsForCashier}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowLinkProductsForCashier: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <Truck className="size-4 text-muted-foreground" />
+                  Allow cashiers to link products
+                </span>
+                <span className={hintClass()}>
+                  When enabled, cashiers can link catalog products to suppliers
+                  from Suppliers, Products, or New Supply.
                 </span>
               </span>
             </label>

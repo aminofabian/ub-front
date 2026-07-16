@@ -11,6 +11,7 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { cn } from "@/lib/utils";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { canLinkSupplierProducts } from "@/lib/supplier-access";
 import {
   type ProductDrawerId,
   emptyVariantDraft,
@@ -54,10 +55,7 @@ export function ProductsWorkspace() {
     me?.permissions,
     Permission.CatalogItemsWrite,
   );
-  const canLinkSupplier = hasPermission(
-    me?.permissions,
-    Permission.CatalogItemsLinkSuppliers,
-  );
+  const canLinkSupplier = canLinkSupplierProducts(me, business);
   const canListSuppliers = hasPermission(
     me?.permissions,
     Permission.SuppliersRead,

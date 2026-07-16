@@ -58,6 +58,7 @@ import {
 } from "@/lib/butcher-pos-chrome";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { canWriteSuppliers } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
 
 function supplierInitials(name: string): string {
@@ -131,7 +132,7 @@ export function ButcherSuppliersWorkspace() {
     useDashboard();
   const { dialogSurfaceClass } = useButcherTheme();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
-  const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
+  const canWrite = canWriteSuppliers(me, business);
   const currency = business?.currency?.trim() || "KES";
   const brandTheme = useMemo(
     () => posBrandThemeStyle(business?.branding ?? null),

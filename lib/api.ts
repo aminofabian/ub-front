@@ -590,9 +590,17 @@ export type StockLevelsSettingsRecord = {
   allowNegativeStock?: boolean;
 };
 
+export type SuppliersAccessSettingsRecord = {
+  allowSupplierWriteForStockManager?: boolean;
+  allowSupplierWriteForCashier?: boolean;
+  allowLinkProductsForStockManager?: boolean;
+  allowLinkProductsForCashier?: boolean;
+};
+
 export type InventorySettingsRecord = {
   stocktake?: StocktakeSettingsRecord;
   stockLevels?: StockLevelsSettingsRecord;
+  suppliers?: SuppliersAccessSettingsRecord;
 };
 
 export type BusinessRecord = {
@@ -689,9 +697,17 @@ export type StockLevelsPatchPayload = {
   allowNegativeStock?: boolean;
 };
 
+export type SuppliersAccessPatchPayload = {
+  allowSupplierWriteForStockManager?: boolean;
+  allowSupplierWriteForCashier?: boolean;
+  allowLinkProductsForStockManager?: boolean;
+  allowLinkProductsForCashier?: boolean;
+};
+
 export type InventoryPatchPayload = {
   stocktake?: StocktakePatchPayload;
   stockLevels?: StockLevelsPatchPayload;
+  suppliers?: SuppliersAccessPatchPayload;
 };
 
 export type PosDraftsFeatureFlagsPatch = {

@@ -47,6 +47,10 @@ import {
   type SupplierRecord,
 } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  canLinkSupplierProducts,
+  canWriteSuppliers,
+} from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
@@ -80,6 +84,7 @@ export default function SuppliersPage() {
   const searchParams = useSearchParams();
   const {
     me,
+    business,
     loading,
     canPathBWrite,
     canViewSuppliers,
@@ -87,17 +92,14 @@ export default function SuppliersPage() {
     canViewMarketplace,
   } = useDashboard();
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
-  const canWrite = hasPermission(me?.permissions, Permission.SuppliersWrite);
+  const canWrite = canWriteSuppliers(me, business);
   const canOpenNewSupply =
     canPathBWrite && canViewSuppliers && canViewCategories;
   const canReadCatalog = hasPermission(
     me?.permissions,
     Permission.CatalogItemsRead,
   );
-  const canLinkProducts = hasPermission(
-    me?.permissions,
-    Permission.CatalogItemsLinkSuppliers,
-  );
+  const canLinkProducts = canLinkSupplierProducts(me, business);
 
   const selectionRef = useRef<string | null>(null);
   const [feedback, setFeedback] = useState<{

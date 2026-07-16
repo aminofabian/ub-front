@@ -221,6 +221,16 @@ export default function BusinessSettingsPage() {
               inventory.allowStockEditForGroceryClerk,
             allowNegativeStock: inventory.allowNegativeStock,
           },
+          suppliers: {
+            allowSupplierWriteForStockManager:
+              inventory.allowSupplierWriteForStockManager,
+            allowSupplierWriteForCashier:
+              inventory.allowSupplierWriteForCashier,
+            allowLinkProductsForStockManager:
+              inventory.allowLinkProductsForStockManager,
+            allowLinkProductsForCashier:
+              inventory.allowLinkProductsForCashier,
+          },
         };
         body.featureFlags = {
           posDrafts: {
