@@ -1,6 +1,6 @@
 "use client";
 
-import { PackagePlus, TrendingUp, Truck } from "lucide-react";
+import { PackagePlus, Truck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,12 +13,10 @@ import {
 function SummaryMetric({
   label,
   value,
-  sub,
   accent,
 }: {
   label: string;
   value: string;
-  sub?: string;
   accent?: string;
 }) {
   return (
@@ -34,7 +32,6 @@ function SummaryMetric({
       >
         {value}
       </p>
-      {sub ? <p className="mt-px text-[10px] text-muted-foreground">{sub}</p> : null}
     </div>
   );
 }
@@ -75,10 +72,7 @@ export function SupplyDrawerSummaryPanel({
       )}
     >
       <div className="border-b border-border bg-[#e8eef5] px-2.5 py-2 dark:bg-muted/40">
-        <p className={nsdKicker}>Live summary</p>
-        <p className="mt-0.5 text-[10px] text-muted-foreground">
-          Updates as you fill receiving lines
-        </p>
+        <p className={nsdKicker}>Summary</p>
       </div>
 
       <div className="space-y-0 divide-y divide-border">
@@ -86,10 +80,10 @@ export function SupplyDrawerSummaryPanel({
           <Truck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-foreground">
-              {supplierName ?? "No supplier selected"}
+              {supplierName ?? "No supplier"}
             </p>
             <p className="truncate text-[10px] text-muted-foreground">
-              {branchName || "Branch not set"}
+              {branchName || "No branch"}
             </p>
           </div>
         </div>
@@ -97,7 +91,7 @@ export function SupplyDrawerSummaryPanel({
         <div className="space-y-1 px-2.5 py-2">
           <div className="flex items-center justify-between text-[10px]">
             <span className="font-semibold uppercase tracking-wide text-muted-foreground">
-              Lines complete
+              Ready
             </span>
             <span className="font-mono tabular-nums text-foreground">
               {lineStats.valid}/{lineStats.totalRows}
@@ -116,43 +110,43 @@ export function SupplyDrawerSummaryPanel({
             <SummaryMetric
               label="Payable"
               value={estimatedProfit.cost.toFixed(2)}
-              sub={`${lineStats.withQty} w/ qty`}
-              accent="text-foreground"
             />
           </div>
           <div className="p-2">
             <SummaryMetric
-              label="Retail est."
+              label="Sell total"
               value={estimatedProfit.revenue.toFixed(2)}
               accent="text-primary"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
-          <div className="p-2">
-            <SummaryMetric
-              label="Margin"
-              value={`${marginPct}%`}
-              sub={netProfit.toFixed(2)}
-              accent={
-                netProfit >= 0 ? "text-primary" : "text-red-600 dark:text-red-400"
-              }
-            />
+        {(extrasTotal > 0 || estimatedProfit.revenue > 0) && (
+          <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
+            <div className="p-2">
+              <SummaryMetric
+                label="Margin"
+                value={`${marginPct}%`}
+                accent={
+                  netProfit >= 0
+                    ? "text-primary"
+                    : "text-red-600 dark:text-red-400"
+                }
+              />
+            </div>
+            <div className="p-2">
+              <SummaryMetric
+                label="Extras"
+                value={extrasTotal.toFixed(2)}
+              />
+            </div>
           </div>
-          <div className="p-2">
-            {extrasTotal > 0 ? (
-              <SummaryMetric label="Extras" value={extrasTotal.toFixed(2)} />
-            ) : (
-              <SummaryMetric label="Extras" value="0.00" sub="Optional" />
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
       <div
         className={cn(
-          "mx-0 flex items-start gap-2 border-t px-2.5 py-2 text-[10px]",
+          "mt-auto flex items-start gap-2 border-t px-2.5 py-2 text-[10px]",
           canPost
             ? "border-primary/35 bg-primary/10 text-foreground"
             : "border-border bg-muted/20 text-muted-foreground",
@@ -161,16 +155,9 @@ export function SupplyDrawerSummaryPanel({
         <PackagePlus className="size-4 shrink-0 text-primary" aria-hidden />
         <p className="leading-snug">
           {canPost
-            ? "All set — post when the delivery matches your paperwork."
-            : "Select a supplier and enter qty + cost on at least one line."}
+            ? "Ready to post this delivery."
+            : "Enter qty and cost on at least one line."}
         </p>
-      </div>
-
-      <div className="border-t border-border bg-[#eef2f7] px-2.5 py-2 dark:bg-muted/25">
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <TrendingUp className="size-3 shrink-0" aria-hidden />
-          Draft shelf prices show here; they post when you save the supply.
-        </div>
       </div>
     </aside>
   );

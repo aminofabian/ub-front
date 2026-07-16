@@ -167,7 +167,7 @@ export function DeliverySetupSection({
       ) : null}
 
       <div className="grid gap-2 lg:grid-cols-2 lg:gap-2.5">
-        <SetupBlock step="1" title="Vendor" className="relative z-20 overflow-visible">
+        <SetupBlock step="1" title="Supplier" className="relative z-20 overflow-visible">
           {supplier ? (
             <div className="flex items-start gap-2 border border-primary/30 bg-primary/[0.05] px-2 py-1.5">
               <span className="flex size-7 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
@@ -183,7 +183,7 @@ export function DeliverySetupSection({
                   </p>
                 ) : (
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    Supplier selected
+                    Selected
                   </p>
                 )}
               </div>
@@ -207,7 +207,7 @@ export function DeliverySetupSection({
                 />
                 <input
                   className={cn(nsdInput, "bg-background pl-9")}
-                  placeholder="Search or pick a vendor…"
+                  placeholder="Search suppliers…"
                   value={supplierQuery}
                   onChange={(e) => onSupplierQueryChange(e.target.value)}
                   disabled={busy}
@@ -268,12 +268,6 @@ export function DeliverySetupSection({
                 <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <Loader2 className="size-3 animate-spin" aria-hidden />
                   Updating…
-                </p>
-              ) : supplierHits.length > 0 ? (
-                <p className="text-[10px] text-muted-foreground">
-                  {supplierQuery.trim()
-                    ? `${supplierHits.length} match${supplierHits.length === 1 ? "" : "es"}`
-                    : `${supplierHits.length} supplier${supplierHits.length === 1 ? "" : "s"} — type to filter`}
                 </p>
               ) : null}
             </div>

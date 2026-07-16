@@ -224,7 +224,7 @@ export function SupplyDraftLineCard({
         />
         <SupplyShelfPriceCell
           touch
-          label="Retail"
+          label="Sell"
           value={row.sellPriceStr}
           onChange={onSellPriceChange}
           disabled={busy || !hasItemId}
@@ -247,9 +247,7 @@ export function SupplyDraftLineCard({
           onClick={() => setMoreOpen((o) => !o)}
         >
           <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {row.expiry.trim()
-              ? `Expiry ${row.expiry}`
-              : "Expiry · shelf life"}
+            {row.expiry.trim() ? `Expires ${row.expiry}` : "Expiry (optional)"}
           </span>
           <ChevronDown
             className={cn(

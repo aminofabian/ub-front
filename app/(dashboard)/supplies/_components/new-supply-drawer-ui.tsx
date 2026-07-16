@@ -286,8 +286,8 @@ export function SupplyLinesToolbar({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-[#eef2f7] px-2 py-1.5 dark:bg-muted/25">
-      <div className="relative min-w-[8rem] flex-1">
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-[#eef2f7] px-2 py-1.5 dark:bg-muted/25">
+      <div className="relative min-w-[10rem] flex-1">
         <Search
           className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
           aria-hidden
@@ -295,7 +295,7 @@ export function SupplyLinesToolbar({
         <input
           type="search"
           className={cn(nsdInput, "h-7 bg-background pl-7 text-xs max-sm:h-9 max-sm:text-sm")}
-          placeholder="Filter…"
+          placeholder="Find a product…"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           disabled={disabled}
@@ -305,13 +305,13 @@ export function SupplyLinesToolbar({
       <div
         className="inline-flex border border-border bg-background p-0.5"
         role="group"
-        aria-label="Line focus"
+        aria-label="Which lines to show"
       >
         {(
           [
-            { id: "fill" as const, label: "Fill", count: needsCount },
-            { id: "ready" as const, label: "Ready", count: readyCount },
             { id: "all" as const, label: "All", count: totalCount },
+            { id: "fill" as const, label: "Need qty", count: needsCount },
+            { id: "ready" as const, label: "Ready", count: readyCount },
           ] as const
         ).map((opt) => (
           <button
@@ -321,7 +321,7 @@ export function SupplyLinesToolbar({
             aria-pressed={lineFocus === opt.id}
             onClick={() => onLineFocusChange(opt.id)}
             className={cn(
-              "inline-flex h-6 items-center gap-1 px-1.5 text-[10px] font-semibold transition-colors",
+              "inline-flex h-6 items-center gap-1 px-2 text-[10px] font-semibold transition-colors",
               lineFocus === opt.id
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -332,9 +332,11 @@ export function SupplyLinesToolbar({
           </button>
         ))}
       </div>
-      <span className="hidden text-[10px] tabular-nums text-muted-foreground sm:inline">
-        {visibleCount} shown
-      </span>
+      {visibleCount !== totalCount && lineFocus === "all" && searchQuery.trim() ? (
+        <span className="text-[10px] tabular-nums text-muted-foreground">
+          {visibleCount} match
+        </span>
+      ) : null}
     </div>
   );
 }

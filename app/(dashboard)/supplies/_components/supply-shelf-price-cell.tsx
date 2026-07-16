@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, TrendingDown, TrendingUp } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -201,20 +201,6 @@ export function SupplyShelfPriceCell({
   const belowCost =
     retail != null && unit != null && unit > 0 && retail < unit;
 
-  const cur = hint?.currentSellPrice;
-  const sug = hint?.suggestedSellPrice;
-  const showCurrentBadge =
-    !hint?.loading &&
-    !hint?.error &&
-    cur != null &&
-    (tone === "current" || (sug != null && sellPricesMatch(cur, sug)));
-  const showSuggestedBadge =
-    !hint?.loading &&
-    !hint?.error &&
-    sug != null &&
-    (cur == null || !sellPricesMatch(cur, sug)) &&
-    tone === "suggested";
-
   const h = touch ? "h-11" : compact ? "h-7" : "h-8";
   const text = touch ? "text-base" : compact ? "text-xs" : "text-sm";
 
@@ -275,55 +261,23 @@ export function SupplyShelfPriceCell({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-1 leading-none">
+      <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
         {hint?.loading ? (
-          <span className="text-[10px] text-muted-foreground">Pricing…</span>
-        ) : hint?.error ? (
-          <span className="text-[10px] text-muted-foreground">N/A</span>
-        ) : (
+          <span className="text-[10px] text-muted-foreground">…</span>
+        ) : belowCost ? (
+          <span className="text-[10px] font-medium text-red-700 dark:text-red-300">
+            Below cost
+          </span>
+        ) : !compact || touch ? (
           <>
-            {belowCost ? (
-              <span className="inline-flex items-center gap-0.5 rounded-sm bg-red-500/12 px-1 py-px text-[10px] font-medium text-red-700 dark:text-red-300">
-                <TrendingDown className="size-2.5 shrink-0" aria-hidden />
-                Below cost
-              </span>
-            ) : margin && retail != null && unit != null && retail >= unit ? (
-              <span className="inline-flex items-center gap-0.5 rounded-sm bg-primary/12 px-1 py-px text-[10px] font-medium text-primary">
-                <TrendingUp className="size-2.5 shrink-0" aria-hidden />
-                {margin}
-              </span>
+            {margin && retail != null && unit != null && retail >= unit ? (
+              <span className="text-[10px] font-medium text-primary">{margin}</span>
             ) : null}
-
-            {showCurrentBadge ? (
-              <span className="truncate rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
-                Current {cur!.toFixed(2)}
-              </span>
-            ) : null}
-
-            {showSuggestedBadge ? (
-              <span className="truncate rounded-sm bg-amber-500/12 px-1 py-px text-[10px] font-medium text-amber-800 dark:text-amber-200">
-                Suggested {sug!.toFixed(2)}
-              </span>
-            ) : null}
-
             {!canSetSellPrice ? (
-              <span className="truncate text-[10px] text-muted-foreground">
-                View only
-              </span>
-            ) : null}
-
-            {!belowCost &&
-            !showCurrentBadge &&
-            !showSuggestedBadge &&
-            !margin &&
-            canSetSellPrice &&
-            hint?.note?.trim() ? (
-              <span className="truncate text-[10px] text-muted-foreground">
-                {hint.note.trim()}
-              </span>
+              <span className="text-[10px] text-muted-foreground">View only</span>
             ) : null}
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

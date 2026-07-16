@@ -201,22 +201,14 @@ export function SupplyQtyCell({
         />
       </div>
       {!touch ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1 leading-none">
+        <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
-              Qty &gt; 0
+              Need qty
             </span>
           ) : stockAfter != null && parsed != null ? (
             <span className="text-[10px] font-medium text-primary">
               → {formatQty(stockAfter)}
-            </span>
-          ) : tone === "ready" ? (
-            <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
-              Ready
-            </span>
-          ) : parsed != null ? (
-            <span className="text-[10px] text-muted-foreground">
-              +{formatQty(parsed)}
             </span>
           ) : null}
         </div>
@@ -437,29 +429,20 @@ export function SupplyStockCell({
           </span>
         )}
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
+      <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
         {error ? (
           <span className="text-[10px] font-medium text-destructive">{error}</span>
         ) : busy ? (
           <span className="text-[10px] text-muted-foreground">Saving…</span>
         ) : tone === "out" ? (
-          <span className="rounded-sm bg-red-500/12 px-1 py-px text-[10px] font-medium text-red-700 dark:text-red-300">
-            Out of stock
+          <span className="text-[10px] font-medium text-red-700 dark:text-red-300">
+            Out
           </span>
         ) : tone === "low" ? (
-          <span className="rounded-sm bg-amber-500/12 px-1 py-px text-[10px] font-medium text-amber-800 dark:text-amber-200">
+          <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
             Low
-            {reorderLevel != null && reorderLevel > 0
-              ? ` · ≤${formatQty(reorderLevel)}`
-              : ""}
           </span>
-        ) : stock != null ? (
-          <span className="text-[10px] text-muted-foreground">
-            {editable ? "On hand · edit" : "On hand"}
-          </span>
-        ) : (
-          <span className="text-[10px] text-muted-foreground">No data</span>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -604,7 +587,7 @@ export function SupplyCostCell({
         />
       </div>
       {!touch ? (
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
+        <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
               Invalid
@@ -612,14 +595,6 @@ export function SupplyCostCell({
           ) : lineTotal != null ? (
             <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
               Σ {lineTotal.toFixed(2)}
-            </span>
-          ) : matchesRef ? (
-            <span className="rounded-sm bg-primary/10 px-1 py-px text-[10px] font-medium text-primary">
-              Last {referenceCost!.toFixed(2)}
-            </span>
-          ) : referenceCost != null && referenceCost > 0 && !hasText ? (
-            <span className="text-[10px] text-muted-foreground">
-              Last {referenceCost.toFixed(2)}
             </span>
           ) : null}
         </div>
@@ -747,22 +722,29 @@ export function SupplyExpiryCell({
   baseYmd,
   compact = false,
   touch = false,
-  label = "Expiry",
+  label = "Expires",
   onEnterNext,
 }: SupplyExpiryCellProps) {
   const showLabel = Boolean(label) && (touch || !compact);
+  const [showChips, setShowChips] = useState(false);
+  const chipsVisible = touch || showChips || !value.trim();
 
   return (
     <div
       className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}
       data-nsd-expiry=""
+      onFocusCapture={() => setShowChips(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setShowChips(false);
+        }
+      }}
+      onMouseEnter={() => setShowChips(true)}
+      onMouseLeave={() => setShowChips(false)}
     >
       {showLabel ? (
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
-          <span className="ml-1 font-normal normal-case text-muted-foreground/80">
-            shelf life
-          </span>
         </span>
       ) : null}
       <YmdDateInput
@@ -770,32 +752,39 @@ export function SupplyExpiryCell({
         onValueChange={onChange}
         disabled={disabled}
         compact={compact && !touch}
-        placeholder="Exp"
-        aria-label="Shelf life / expiry date"
+        placeholder="Date"
+        aria-label="Expiry date"
       />
-      <div className="flex min-w-0 flex-wrap gap-0.5">
-        {SHELF_LIFE_DAY_CHIPS.map((days) => (
-          <button
-            key={days}
-            type="button"
-            className={cn(
-              "rounded-sm border border-border/70 bg-background px-1 py-px text-[9px] font-semibold tabular-nums text-muted-foreground",
-              "hover:border-primary/40 hover:bg-primary/[0.06] hover:text-primary",
-              "disabled:pointer-events-none disabled:opacity-50",
-              touch && "px-1.5 py-0.5 text-[10px]",
-            )}
-            disabled={disabled}
-            title={`Set expiry to ${days} days from receive date`}
-            onClick={() => {
-              const base = baseYmd.trim().length >= 10 ? baseYmd.trim().slice(0, 10) : baseYmd;
-              onChange(addYmdDays(base, days));
-              onEnterNext?.();
-            }}
-          >
-            +{days}d
-          </button>
-        ))}
-      </div>
+      {chipsVisible ? (
+        <div className="flex min-w-0 flex-wrap gap-0.5">
+          {SHELF_LIFE_DAY_CHIPS.map((days) => (
+            <button
+              key={days}
+              type="button"
+              className={cn(
+                "rounded-sm border border-border/70 bg-background px-1 py-px text-[9px] font-semibold tabular-nums text-muted-foreground",
+                "hover:border-primary/40 hover:bg-primary/[0.06] hover:text-primary",
+                "disabled:pointer-events-none disabled:opacity-50",
+                touch && "px-1.5 py-0.5 text-[10px]",
+              )}
+              disabled={disabled}
+              title={`${days} days from receive date`}
+              onClick={() => {
+                const base =
+                  baseYmd.trim().length >= 10
+                    ? baseYmd.trim().slice(0, 10)
+                    : baseYmd;
+                onChange(addYmdDays(base, days));
+                onEnterNext?.();
+              }}
+            >
+              +{days}d
+            </button>
+          ))}
+        </div>
+      ) : value.trim() ? (
+        <div className="min-h-[0.875rem]" aria-hidden />
+      ) : null}
     </div>
   );
 }

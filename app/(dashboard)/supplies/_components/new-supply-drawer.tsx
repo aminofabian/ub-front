@@ -1108,17 +1108,19 @@ export function NewSupplyDrawer({
           void onSubmit();
         }}
       >
-        <SupplyWorkflowRail steps={workflowSteps} />
+        {!supplier ? <SupplyWorkflowRail steps={workflowSteps} /> : null}
 
         <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(13rem,20%)] lg:items-start">
           <div className="flex min-w-0 flex-col gap-2">
             <SupplyDrawerSection
-              step={1}
-              title="Delivery"
+              step={supplier ? undefined : 1}
+              title={supplier ? "Delivery" : "1 · Supplier"}
               hint={
-                deliveryExpanded || !supplier
-                  ? "Pick vendor & receipt time — then fill lines."
-                  : undefined
+                !supplier
+                  ? "Who delivered this stock?"
+                  : deliveryExpanded
+                    ? "Branch and receive time."
+                    : undefined
               }
               done={
                 supplier != null &&
@@ -1170,23 +1172,27 @@ export function NewSupplyDrawer({
 
             <div ref={linesSectionRef}>
             <SupplyDrawerSection
-              step={2}
-              title="Receive"
-              hint="Tab: qty → cost → retail → expiry. Enter advances fields; +Nd sets shelf life. Post supply writes to the database."
+              step={supplier ? undefined : 2}
+              title="Receive stock"
+              hint={
+                supplier
+                  ? "Fill qty and cost for what arrived. Optional: sell price & expiry."
+                  : undefined
+              }
               done={lineStats.valid > 0 && duplicateIds.length === 0}
               className="overflow-visible"
               action={
-                canLinkProducts ? (
+                canLinkProducts && supplier ? (
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
                   className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
                   onClick={openLinkModal}
-                  disabled={busy || !supplier}
+                  disabled={busy}
                 >
                   <Plus className="size-3.5" aria-hidden />
-                  Link
+                  Add product
                 </Button>
                 ) : null
               }
@@ -1195,19 +1201,19 @@ export function NewSupplyDrawer({
               {!supplier ? (
                 <SupplyEmptyState
                   icon={Truck}
-                  title="Choose a supplier first"
-                  description="Pick a vendor from the list above (or search to filter). Linked catalog products load automatically — or add lines manually."
+                  title="Pick a supplier above"
+                  description="Their linked products will appear here to receive."
                 />
               ) : linksLoading ? (
                 <>
-                  <SupplyLoadingInline label="Loading supplier catalog…" />
+                  <SupplyLoadingInline label="Loading products…" />
                   <SupplyTableSkeleton />
                 </>
               ) : rows.length === 0 ? (
                 <SupplyEmptyState
                   icon={PackagePlus}
-                  title="No linked products"
-                  description="Link SKUs on the supplier profile, or use Link product to add catalog items."
+                  title="No products linked yet"
+                  description="Add a catalog product to this supplier, then receive it here."
                   action={
                     canLinkProducts ? (
                     <Button
@@ -1218,7 +1224,7 @@ export function NewSupplyDrawer({
                       disabled={busy || !supplier}
                     >
                       <Plus className="size-3.5" aria-hidden />
-                      Link product
+                      Add product
                     </Button>
                     ) : null
                   }
@@ -1371,19 +1377,19 @@ export function NewSupplyDrawer({
               <tr className={nsdTableHead}>
                 <th className={cn(nsdTableTh, "min-w-[8rem]")}>Product</th>
                 <th className={cn(nsdTableTh, "min-w-[3.5rem] text-right")}>
-                  On hand
+                  Stock
                 </th>
                 <th className={cn(nsdTableTh, "min-w-[3.75rem] text-right")}>
-                  Qty
+                  Qty in
                 </th>
                 <th className={cn(nsdTableTh, "min-w-[4rem] text-right")}>
                   Cost
                 </th>
                 <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>
-                  Retail
+                  Sell
                 </th>
-                <th className={cn(nsdTableTh, "min-w-[7.5rem]")}>
-                  Expiry
+                <th className={cn(nsdTableTh, "min-w-[6.5rem]")}>
+                  Expires
                 </th>
                 <th className={cn(nsdTableTh, "w-7")} />
               </tr>
