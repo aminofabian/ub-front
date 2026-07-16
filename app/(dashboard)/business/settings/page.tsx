@@ -235,6 +235,9 @@ export default function BusinessSettingsPage() {
             allowReceiveForCashier: inventory.allowReceiveForCashier,
             allowReceiveForStockManager: inventory.allowReceiveForStockManager,
           },
+          creditTabs: {
+            allowCashierTabClearance: inventory.allowCashierTabClearance,
+          },
         };
         body.featureFlags = {
           posDrafts: {

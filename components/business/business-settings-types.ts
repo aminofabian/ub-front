@@ -32,6 +32,7 @@ export type InventoryForm = {
   allowLinkProductsForCashier: boolean;
   allowReceiveForCashier: boolean;
   allowReceiveForStockManager: boolean;
+  allowCashierTabClearance: boolean;
 };
 
 export type PosDraftsForm = {
@@ -92,6 +93,8 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   /** Match backend: receive stock defaults on for cashier / stock manager. */
   allowReceiveForCashier: true,
   allowReceiveForStockManager: true,
+  /** Match backend: cashier tab clearance defaults off. */
+  allowCashierTabClearance: false,
 };
 
 export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -179,6 +182,9 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.receiveStock?.allowReceiveForCashier !== false,
     allowReceiveForStockManager:
       b?.inventory?.receiveStock?.allowReceiveForStockManager !== false,
+    allowCashierTabClearance: Boolean(
+      b?.inventory?.creditTabs?.allowCashierTabClearance,
+    ),
   };
 }
 

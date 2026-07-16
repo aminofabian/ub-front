@@ -8,6 +8,7 @@ import {
   Save,
   ShoppingCart,
   Truck,
+  Users,
   Warehouse,
 } from "lucide-react";
 
@@ -492,6 +493,40 @@ export function BusinessSettingsForm({
                 <span className={hintClass()}>
                   When enabled, cashiers (including butcher cashiers) can receive
                   deliveries from the till or Receive supplies page.
+                </span>
+              </span>
+            </label>
+          </FormDrawerFields>
+        </div>
+      ) : null}
+
+      {canManageBusinessSettings ? (
+        <div id="credit-tabs-settings">
+          <FormDrawerFields
+            legend="Credit tabs"
+            hint="Let cashiers view customers who owe on tab and submit clearances for admin approval."
+          >
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowCashierTabClearance}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowCashierTabClearance: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <Users className="size-4 text-muted-foreground" />
+                  Allow cashiers to clear credit tabs
+                </span>
+                <span className={hintClass()}>
+                  When enabled, cashiers get a Tabs button on the till to list
+                  outstanding balances and submit cash/M-Pesa clearances. An
+                  admin must approve each clearance before the tab drops.
                 </span>
               </span>
             </label>

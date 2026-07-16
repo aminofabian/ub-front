@@ -20,6 +20,7 @@ import {
   Search,
   ShoppingCart,
   Truck,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -73,6 +74,7 @@ import {
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
+import { CashierCreditTabsModal } from "./cashier-credit-tabs-modal";
 import { CashierReceiveStockModal } from "./cashier-receive-stock-modal";
 import { CashierSuppliersModal } from "./cashier-suppliers-modal";
 
@@ -214,6 +216,8 @@ export type CashierPosLayoutProps = {
   allowLinkSupplierProducts?: boolean;
   /** Receive / post Path B supplies from POS. */
   allowReceiveSupply?: boolean;
+  /** View / propose credit tab clearances from POS. */
+  allowCreditTabs?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
   allowWeighedToggle?: boolean;
   weighedToggleBusyItemId?: string | null;
@@ -745,6 +749,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowCreateSupplier = false,
     allowLinkSupplierProducts = false,
     allowReceiveSupply = false,
+    allowCreditTabs = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
     onToggleWeighed,
@@ -764,6 +769,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [receiveStockOpen, setReceiveStockOpen] = useState(false);
   const [receiveStockSupplier, setReceiveStockSupplier] =
     useState<SupplierRecord | null>(null);
+  const [creditTabsOpen, setCreditTabsOpen] = useState(false);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
     allowCreateSupplier || allowLinkSupplierProducts || allowReceiveSupply;
@@ -802,6 +808,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !createProductOpen &&
       !suppliersOpen &&
       !receiveStockOpen &&
+      !creditTabsOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -1104,6 +1111,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
               >
                 <Truck className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 Suppliers
+              </button>
+            ) : null}
+            {allowCreditTabs ? (
+              <button
+                type="button"
+                onClick={() => setCreditTabsOpen(true)}
+                className={POS_PRIMARY_CHIP_CLASS}
+              >
+                <Users className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                Tabs
               </button>
             ) : null}
             {!online ? (
@@ -1926,6 +1943,16 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
           setReceiveStockSupplier(null);
           window.requestAnimationFrame(() => focusSearch());
         }}
+      />
+
+      <CashierCreditTabsModal
+        open={creditTabsOpen}
+        onOpenChange={(o) => {
+          setCreditTabsOpen(o);
+          if (!o) window.requestAnimationFrame(() => focusSearch());
+        }}
+        brandTheme={dialogBrandTheme}
+        currency={currency}
       />
 
       <CashierEditPriceModal

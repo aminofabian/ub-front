@@ -50,6 +50,7 @@ import {
   canLinkSupplierProducts,
   canWriteSuppliers,
 } from "@/lib/supplier-access";
+import { canCashierClearTabs } from "@/lib/credit-tabs-access";
 import {
   countPendingSales,
   enqueuePendingSale,
@@ -272,6 +273,8 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canLinkSupplierProducts(me, business);
   const allowReceiveSupply =
     variant === "cashier" && canPathBWrite && canViewSuppliers;
+  const allowCreditTabs =
+    variant === "cashier" && canCashierClearTabs(me, business);
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -2798,6 +2801,7 @@ export function QuickSaleWorkspace({
         allowCreateSupplier={allowCreateSupplier}
         allowLinkSupplierProducts={allowLinkSupplierProducts}
         allowReceiveSupply={allowReceiveSupply}
+        allowCreditTabs={allowCreditTabs}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={toggleLineWeighed}

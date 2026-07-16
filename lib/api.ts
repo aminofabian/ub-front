@@ -602,11 +602,16 @@ export type ReceiveStockSettingsRecord = {
   allowReceiveForStockManager?: boolean;
 };
 
+export type CreditTabsSettingsRecord = {
+  allowCashierTabClearance?: boolean;
+};
+
 export type InventorySettingsRecord = {
   stocktake?: StocktakeSettingsRecord;
   stockLevels?: StockLevelsSettingsRecord;
   suppliers?: SuppliersAccessSettingsRecord;
   receiveStock?: ReceiveStockSettingsRecord;
+  creditTabs?: CreditTabsSettingsRecord;
 };
 
 export type BusinessRecord = {
@@ -715,11 +720,16 @@ export type ReceiveStockPatchPayload = {
   allowReceiveForStockManager?: boolean;
 };
 
+export type CreditTabsPatchPayload = {
+  allowCashierTabClearance?: boolean;
+};
+
 export type InventoryPatchPayload = {
   stocktake?: StocktakePatchPayload;
   stockLevels?: StockLevelsPatchPayload;
   suppliers?: SuppliersAccessPatchPayload;
   receiveStock?: ReceiveStockPatchPayload;
+  creditTabs?: CreditTabsPatchPayload;
 };
 
 export type PosDraftsFeatureFlagsPatch = {
@@ -6937,15 +6947,56 @@ export type PublicPaymentClaimRecord = {
   id: string;
   businessId: string;
   creditAccountId: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
   status: string;
+  source?: string | null;
+  proposedChannel?: string | null;
   submittedAmount: number | string | null;
   submittedReference: string | null;
   creditNote: string | null;
+  submittedByUserId?: string | null;
   approvedJournalId: string | null;
   rejectionReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+export type OutstandingTabRowRecord = {
+  customerId: string;
+  name: string;
+  primaryPhone: string | null;
+  balanceOwed: number | string;
+};
+
+export async function fetchOutstandingTabs(
+  q?: string,
+): Promise<OutstandingTabRowRecord[]> {
+  const params = new URLSearchParams();
+  if (q?.trim()) params.set("q", q.trim());
+  const qs = params.toString();
+  return request<OutstandingTabRowRecord[]>(
+    `/api/v1/customers/outstanding-tabs${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function proposeTabClearance(body: {
+  customerId: string;
+  amount: number | string;
+  channel: "cash" | "mpesa";
+  reference?: string | null;
+}): Promise<{ claimId: string }> {
+  return request<{ claimId: string }>("/api/v1/credits/tab-clearances", {
+    method: "POST",
+    body: {
+      customerId: body.customerId,
+      amount: body.amount,
+      channel: body.channel,
+      reference: body.reference?.trim() || null,
+    },
+  });
+}
 
 export async function listSubmittedPaymentClaims(): Promise<
   PublicPaymentClaimRecord[]
@@ -6955,11 +7006,28 @@ export async function listSubmittedPaymentClaims(): Promise<
   );
 }
 
-export async function approvePaymentClaim(claimId: string): Promise<void> {
+export async function approvePaymentClaim(
+  claimId: string,
+  channel: "cash" | "mpesa",
+): Promise<void> {
   return request<void>(
     `/api/v1/credits/payment-claims/${encodeURIComponent(claimId)}/approve`,
     {
       method: "POST",
+      body: { channel },
+    },
+  );
+}
+
+export async function rejectPaymentClaim(
+  claimId: string,
+  reason?: string | null,
+): Promise<void> {
+  return request<void>(
+    `/api/v1/credits/payment-claims/${encodeURIComponent(claimId)}/reject`,
+    {
+      method: "POST",
+      body: { reason: reason?.trim() || null },
     },
   );
 }
