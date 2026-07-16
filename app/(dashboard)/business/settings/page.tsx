@@ -231,6 +231,10 @@ export default function BusinessSettingsPage() {
             allowLinkProductsForCashier:
               inventory.allowLinkProductsForCashier,
           },
+          receiveStock: {
+            allowReceiveForCashier: inventory.allowReceiveForCashier,
+            allowReceiveForStockManager: inventory.allowReceiveForStockManager,
+          },
         };
         body.featureFlags = {
           posDrafts: {

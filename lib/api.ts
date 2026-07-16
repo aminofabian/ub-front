@@ -597,10 +597,16 @@ export type SuppliersAccessSettingsRecord = {
   allowLinkProductsForCashier?: boolean;
 };
 
+export type ReceiveStockSettingsRecord = {
+  allowReceiveForCashier?: boolean;
+  allowReceiveForStockManager?: boolean;
+};
+
 export type InventorySettingsRecord = {
   stocktake?: StocktakeSettingsRecord;
   stockLevels?: StockLevelsSettingsRecord;
   suppliers?: SuppliersAccessSettingsRecord;
+  receiveStock?: ReceiveStockSettingsRecord;
 };
 
 export type BusinessRecord = {
@@ -704,10 +710,16 @@ export type SuppliersAccessPatchPayload = {
   allowLinkProductsForCashier?: boolean;
 };
 
+export type ReceiveStockPatchPayload = {
+  allowReceiveForCashier?: boolean;
+  allowReceiveForStockManager?: boolean;
+};
+
 export type InventoryPatchPayload = {
   stocktake?: StocktakePatchPayload;
   stockLevels?: StockLevelsPatchPayload;
   suppliers?: SuppliersAccessPatchPayload;
+  receiveStock?: ReceiveStockPatchPayload;
 };
 
 export type PosDraftsFeatureFlagsPatch = {

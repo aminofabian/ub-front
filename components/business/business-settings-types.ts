@@ -30,6 +30,8 @@ export type InventoryForm = {
   allowSupplierWriteForCashier: boolean;
   allowLinkProductsForStockManager: boolean;
   allowLinkProductsForCashier: boolean;
+  allowReceiveForCashier: boolean;
+  allowReceiveForStockManager: boolean;
 };
 
 export type PosDraftsForm = {
@@ -87,6 +89,9 @@ export const DEFAULT_INVENTORY: InventoryForm = {
   allowSupplierWriteForCashier: false,
   allowLinkProductsForStockManager: false,
   allowLinkProductsForCashier: false,
+  /** Match backend: receive stock defaults on for cashier / stock manager. */
+  allowReceiveForCashier: true,
+  allowReceiveForStockManager: true,
 };
 
 export const DEFAULT_POS_DRAFTS: PosDraftsForm = {
@@ -170,6 +175,10 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
     allowLinkProductsForCashier: Boolean(
       b?.inventory?.suppliers?.allowLinkProductsForCashier,
     ),
+    allowReceiveForCashier:
+      b?.inventory?.receiveStock?.allowReceiveForCashier !== false,
+    allowReceiveForStockManager:
+      b?.inventory?.receiveStock?.allowReceiveForStockManager !== false,
   };
 }
 

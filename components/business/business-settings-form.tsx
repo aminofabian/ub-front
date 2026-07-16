@@ -444,6 +444,62 @@ export function BusinessSettingsForm({
       ) : null}
 
       {canManageBusinessSettings ? (
+        <div id="receive-stock-settings">
+          <FormDrawerFields
+            legend="Receive stock"
+            hint="Control whether cashiers and stock managers can receive supplier deliveries (Path B supplies)."
+          >
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowReceiveForStockManager}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowReceiveForStockManager: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <Warehouse className="size-4 text-muted-foreground" />
+                  Allow stock managers to receive stock
+                </span>
+                <span className={hintClass()}>
+                  When enabled, stock managers can open Receive supplies and post
+                  deliveries. Owners and admins are unaffected.
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+                checked={inventory.allowReceiveForCashier}
+                onChange={(event) =>
+                  setInventory((previous) => ({
+                    ...previous,
+                    allowReceiveForCashier: event.target.checked,
+                  }))
+                }
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <ShoppingCart className="size-4 text-muted-foreground" />
+                  Allow cashiers to receive stock
+                </span>
+                <span className={hintClass()}>
+                  When enabled, cashiers (including butcher cashiers) can receive
+                  deliveries from the till or Receive supplies page.
+                </span>
+              </span>
+            </label>
+          </FormDrawerFields>
+        </div>
+      ) : null}
+
+      {canManageBusinessSettings ? (
         <div id="suppliers-access-settings">
           <FormDrawerFields
             legend="Suppliers"

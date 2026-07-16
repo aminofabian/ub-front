@@ -54,8 +54,7 @@ export function SupplierSupplyInvoicePanel({
   invoiceId: string | null;
   onUpdated?: () => void;
 }) {
-  const { me } = useDashboard();
-  const canPathBWrite = hasPermission(me?.permissions, Permission.PurchasingPathBWrite);
+  const { me, canPathBWrite } = useDashboard();
   const canPay = hasPermission(me?.permissions, Permission.PurchasingPaymentWrite);
   const canPaymentRead = hasPermission(me?.permissions, Permission.PurchasingPaymentRead);
   const canOpenReceipt = canPay || canPaymentRead;

@@ -24,6 +24,7 @@ import { persistTenantHostAfterAuth } from "@/lib/auth";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { confirmScopeChange } from "@/lib/scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { canReceiveStock } from "@/lib/receive-stock-access";
 import {
   writeSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -466,10 +467,7 @@ export function DashboardProvider({
         effectiveMe?.permissions,
         Permission.PurchasingPathBRead,
       ),
-      canPathBWrite: hasPermission(
-        effectiveMe?.permissions,
-        Permission.PurchasingPathBWrite,
-      ),
+      canPathBWrite: canReceiveStock(effectiveMe, effectiveBusiness),
       canPathARead: hasPermission(
         effectiveMe?.permissions,
         Permission.PurchasingPathARead,

@@ -327,8 +327,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       APP_ROUTES.inventoryStockTakeDailyAudit,
       APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryRestock,
-      APP_ROUTES.purchasingAddSupplies,
     ];
+    if (gate.canAddSupplies) {
+      allowed.push(APP_ROUTES.purchasingAddSupplies);
+    }
     if (
       gate.canViewSuppliers &&
       (gate.canWriteSuppliers || gate.canLinkSupplierProducts)
@@ -339,23 +341,27 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   }
 
   if (gate.roleKey === "cashier") {
-    const allowed: readonly string[] = [
+    const allowed: string[] = [
       APP_ROUTES.cashier,
       APP_ROUTES.shifts,
-      APP_ROUTES.purchasingAddSupplies,
       APP_ROUTES.grocery,
       APP_ROUTES.groceryInvoices,
     ];
+    if (gate.canAddSupplies) {
+      allowed.push(APP_ROUTES.purchasingAddSupplies);
+    }
     return allowed.includes(item.href);
   }
 
   if (gate.roleKey === "butcher_cashier") {
-    const allowed: readonly string[] = [
+    const allowed: string[] = [
       APP_ROUTES.butcher,
       APP_ROUTES.butcherSuppliers,
       APP_ROUTES.shifts,
-      APP_ROUTES.purchasingAddSupplies,
     ];
+    if (gate.canAddSupplies) {
+      allowed.push(APP_ROUTES.purchasingAddSupplies);
+    }
     if (!allowed.includes(item.href)) return false;
     if (item.href === APP_ROUTES.butcherSuppliers) return gate.canViewSuppliers;
     return true;
@@ -921,8 +927,10 @@ export function AppShell({ children }: AppShellProps) {
         APP_ROUTES.inventoryStockTakeDailyAudit,
         APP_ROUTES.inventoryStock,
         APP_ROUTES.inventoryRestock,
-        APP_ROUTES.purchasingAddSupplies,
       ];
+      if (canAddSupplies) {
+        allowed.push(APP_ROUTES.purchasingAddSupplies);
+      }
       if (supplierToolsEnabled) {
         allowed.push(APP_ROUTES.suppliers);
       }
@@ -939,7 +947,7 @@ export function AppShell({ children }: AppShellProps) {
       const allowed: string[] = [
         APP_ROUTES.cashier,
         APP_ROUTES.shifts,
-        APP_ROUTES.purchasingAddSupplies,
+        ...(canAddSupplies ? [APP_ROUTES.purchasingAddSupplies] : []),
         ...(canViewSuppliers ? [APP_ROUTES.suppliers] : []),
       ];
       const isAllowed = allowed.some(
@@ -956,7 +964,7 @@ export function AppShell({ children }: AppShellProps) {
         APP_ROUTES.butcher,
         APP_ROUTES.butcherSuppliers,
         APP_ROUTES.shifts,
-        APP_ROUTES.purchasingAddSupplies,
+        ...(canAddSupplies ? [APP_ROUTES.purchasingAddSupplies] : []),
       ];
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
@@ -980,7 +988,15 @@ export function AppShell({ children }: AppShellProps) {
       }
       return;
     }
-  }, [me, pathname, router, business, supplierToolsEnabled, canViewSuppliers]);
+  }, [
+    me,
+    pathname,
+    router,
+    business,
+    supplierToolsEnabled,
+    canViewSuppliers,
+    canAddSupplies,
+  ]);
 
   return (
     <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">
