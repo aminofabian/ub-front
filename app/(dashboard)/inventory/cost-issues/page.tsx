@@ -27,6 +27,7 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   fetchBranches,
   fetchCostIssues,
+  bulkAdjustItemCosts,
   type BranchRecord,
   type CostIssueRowRecord,
   type CostIssuesResponseRecord,
@@ -126,6 +127,12 @@ export default function InventoryCostIssuesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeRow, setActiveRow] = useState<CostIssueRowRecord | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkMarginPct, setBulkMarginPct] = useState("20");
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState("");
+
   const onChangeBranch = useCallback(
     (id: string) => {
       setBranchFilter(id);
@@ -136,10 +143,12 @@ export default function InventoryCostIssuesPage() {
 
   const runLoad = useCallback(async (branchId: string) => {
     setMessage("");
+    setBulkMessage("");
     setLoading(true);
     try {
       const row = await fetchCostIssues(branchId.trim() || undefined);
       setData(row);
+      setSelectedIds(new Set());
     } catch (error) {
       setData(null);
       setMessage(
@@ -188,6 +197,124 @@ export default function InventoryCostIssuesPage() {
     }
     return list;
   }, [data, issueFilter, inStockOnly]);
+
+  const visibleIds = useMemo(() => rows.map((r) => r.itemId), [rows]);
+
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+
+  const someVisibleSelected =
+    !allVisibleSelected && visibleIds.some((id) => selectedIds.has(id));
+
+  const selectedRows = useMemo(() => {
+    const items = data?.items ?? [];
+    return items.filter((r) => selectedIds.has(r.itemId));
+  }, [data, selectedIds]);
+
+  const selectedWithSellCount = useMemo(
+    () => selectedRows.filter((r) => (toNum(r.sellPrice) ?? 0) > 0).length,
+    [selectedRows],
+  );
+
+  const parsedBulkMargin = useMemo(() => {
+    const v = Number(bulkMarginPct);
+    return Number.isFinite(v) ? v : null;
+  }, [bulkMarginPct]);
+
+  const canBulkUpdate =
+    canAdjust &&
+    selectedWithSellCount > 0 &&
+    parsedBulkMargin != null &&
+    parsedBulkMargin >= 0 &&
+    parsedBulkMargin <= 99.99 &&
+    !bulkSaving;
+
+  const toggleSelectAllVisible = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        for (const id of visibleIds) next.delete(id);
+      } else {
+        for (const id of visibleIds) next.add(id);
+      }
+      return next;
+    });
+  }, [allVisibleSelected, visibleIds]);
+
+  const toggleSelectOne = useCallback((itemId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }, []);
+
+  const applyBulkResults = useCallback((updated: CostIssueRowRecord[]) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      let items = [...prev.items];
+      for (const updatedRow of updated) {
+        const stillAnIssue =
+          updatedRow.zeroCost ||
+          updatedRow.sellsAtLoss ||
+          updatedRow.thinMargin ||
+          updatedRow.highMargin;
+        if (stillAnIssue) {
+          items = items.map((r) =>
+            r.itemId === updatedRow.itemId ? updatedRow : r,
+          );
+        } else {
+          items = items.filter((r) => r.itemId !== updatedRow.itemId);
+        }
+      }
+      return recount({ ...prev, items });
+    });
+  }, []);
+
+  const runBulkAdjust = useCallback(async () => {
+    if (!canBulkUpdate || parsedBulkMargin == null) return;
+    const ids = selectedRows
+      .filter((r) => (toNum(r.sellPrice) ?? 0) > 0)
+      .map((r) => r.itemId);
+    if (ids.length === 0) return;
+
+    setBulkSaving(true);
+    setBulkMessage("");
+    setMessage("");
+    try {
+      const result = await bulkAdjustItemCosts({
+        itemIds: ids,
+        marginPct: parsedBulkMargin,
+        branchId: branchFilter.trim() || null,
+        reason: bulkReason.trim() || null,
+      });
+      applyBulkResults(result.updated);
+      setSelectedIds(new Set());
+      const skippedN = result.skipped?.length ?? 0;
+      const updatedN = result.updated?.length ?? 0;
+      setBulkMessage(
+        skippedN > 0
+          ? `Updated ${updatedN} item${updatedN === 1 ? "" : "s"}; skipped ${skippedN}.`
+          : `Updated ${updatedN} item${updatedN === 1 ? "" : "s"} to ${parsedBulkMargin}% margin.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to bulk-update costs.",
+      );
+    } finally {
+      setBulkSaving(false);
+    }
+  }, [
+    applyBulkResults,
+    branchFilter,
+    bulkReason,
+    canBulkUpdate,
+    parsedBulkMargin,
+    selectedRows,
+  ]);
 
   const quickLinks = useMemo(
     () =>
@@ -244,6 +371,12 @@ export default function InventoryCostIssuesPage() {
   }, []);
 
   const onSaved = useCallback((updated: CostIssueRowRecord) => {
+    setSelectedIds((prev) => {
+      if (!prev.has(updated.itemId)) return prev;
+      const next = new Set(prev);
+      next.delete(updated.itemId);
+      return next;
+    });
     setData((prev) => {
       if (!prev) return prev;
       const stillAnIssue =
@@ -405,6 +538,73 @@ export default function InventoryCostIssuesPage() {
           </p>
         ) : null}
 
+        {bulkMessage ? (
+          <p className="border-b border-emerald-600/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-200">
+            {bulkMessage}
+          </p>
+        ) : null}
+
+        {canAdjust && selectedIds.size > 0 ? (
+          <div className="flex flex-col gap-2 border-b border-border bg-[#eef2f7] px-3 py-2 dark:bg-muted/30 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="text-[11px] font-medium text-foreground">
+              {selectedIds.size} selected
+              {selectedWithSellCount < selectedIds.size ? (
+                <span className="ml-1 text-muted-foreground">
+                  · {selectedWithSellCount} with sell price
+                </span>
+              ) : null}
+            </div>
+            <label className="flex w-full max-w-[8rem] flex-col gap-1">
+              <span className={supFieldLabel}>Target margin %</span>
+              <input
+                type="number"
+                min={0}
+                max={99.99}
+                step={0.1}
+                className={cn(supInput, "h-8")}
+                value={bulkMarginPct}
+                onChange={(e) => setBulkMarginPct(e.target.value)}
+                aria-label="Target margin percent"
+              />
+            </label>
+            <label className="flex min-w-[12rem] flex-1 flex-col gap-1 sm:max-w-[18rem]">
+              <span className={supFieldLabel}>Reason (optional)</span>
+              <input
+                type="text"
+                className={cn(supInput, "h-8")}
+                value={bulkReason}
+                onChange={(e) => setBulkReason(e.target.value)}
+                placeholder="Bulk cost correction"
+                maxLength={500}
+              />
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 rounded-none px-3"
+                disabled={!canBulkUpdate}
+                onClick={() => void runBulkAdjust()}
+              >
+                {bulkSaving ? "Updating…" : "Update selected"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-none px-3"
+                disabled={bulkSaving}
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear
+              </Button>
+            </div>
+            <p className="w-full text-[10px] text-muted-foreground">
+              Sets cost to sell × (1 − margin%). Sell prices stay unchanged.
+            </p>
+          </div>
+        ) : null}
+
         <div className={cn(supWorkspaceShell, "border-0 border-t")}>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
             <h2 className="text-xs font-semibold tracking-tight text-foreground">
@@ -421,6 +621,21 @@ export default function InventoryCostIssuesPage() {
             <table className="w-full min-w-[46rem] border-collapse border-0 text-left text-xs">
               <thead>
                 <tr className={supTableHead}>
+                  {canAdjust ? (
+                    <th className={cn(supTableCell, "w-8")}>
+                      <input
+                        type="checkbox"
+                        className="size-3.5 rounded-none border-input accent-primary"
+                        checked={allVisibleSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someVisibleSelected;
+                        }}
+                        onChange={toggleSelectAllVisible}
+                        disabled={loading || visibleIds.length === 0}
+                        aria-label="Select all visible items"
+                      />
+                    </th>
+                  ) : null}
                   <th className={cn(supTableCell, "min-w-[12rem]")}>Item</th>
                   <th className={cn(supTableCell, "text-right")}>Stock</th>
                   <th className={cn(supTableCell, "text-right")}>Cost</th>
@@ -434,7 +649,7 @@ export default function InventoryCostIssuesPage() {
                 {loading ? (
                   <tr className={supTableRow}>
                     <td
-                      colSpan={7}
+                      colSpan={canAdjust ? 8 : 7}
                       className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                     >
                       Loading…
@@ -443,7 +658,7 @@ export default function InventoryCostIssuesPage() {
                 ) : !data ? (
                   <tr className={supTableRow}>
                     <td
-                      colSpan={7}
+                      colSpan={canAdjust ? 8 : 7}
                       className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                     >
                       Refresh to load cost issues.
@@ -452,7 +667,7 @@ export default function InventoryCostIssuesPage() {
                 ) : rows.length === 0 ? (
                   <tr className={supTableRow}>
                     <td
-                      colSpan={7}
+                      colSpan={canAdjust ? 8 : 7}
                       className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                     >
                       {data.total === 0
@@ -466,8 +681,23 @@ export default function InventoryCostIssuesPage() {
                     const sell = toNum(row.sellPrice);
                     const margin = toNum(row.marginPct);
                     const meta = ISSUE_META[row.primaryIssue];
+                    const selected = selectedIds.has(row.itemId);
                     return (
-                      <tr key={row.itemId} className={supTableRow}>
+                      <tr
+                        key={row.itemId}
+                        className={cn(supTableRow, selected && "bg-primary/5")}
+                      >
+                        {canAdjust ? (
+                          <td className={supTableCell}>
+                            <input
+                              type="checkbox"
+                              className="size-3.5 rounded-none border-input accent-primary"
+                              checked={selected}
+                              onChange={() => toggleSelectOne(row.itemId)}
+                              aria-label={`Select ${row.name}`}
+                            />
+                          </td>
+                        ) : null}
                         <td className={supTableCell}>
                           <div className="max-w-[16rem] truncate text-sm font-medium">
                             {row.name}
