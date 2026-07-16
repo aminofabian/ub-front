@@ -405,6 +405,8 @@ export type ItemSummaryRecord = {
   size?: string | null;
   /** Shelf / bundle price on the item record. */
   bundlePrice?: number | string | null;
+  /** Reference buying / cost price on the item record. */
+  buyingPrice?: number | string | null;
 };
 
 /** Resolved HTTPS URL for catalog lists / quick sale (prefers {@link ItemSummaryRecord.thumbnailUrl}). */

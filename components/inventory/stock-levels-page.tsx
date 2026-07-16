@@ -60,6 +60,13 @@ const PAGE_SIZE = 100;
 
 type StockStatusFilter = "all" | "in_stock" | "low" | "out";
 
+/** How the stock table is ordered after status/search filters. */
+type StockSort =
+  | "attention"
+  | "sell_desc"
+  | "buy_desc"
+  | "value_desc";
+
 type StockRow = {
   id: string;
   name: string;
@@ -67,6 +74,10 @@ type StockRow = {
   reorderLevel: number | null;
   categoryId: string | null;
   categoryName: string | null;
+  /** Catalog shelf / sell price (bundle price). */
+  sellPrice: number | null;
+  /** Reference buying / cost price. */
+  buyPrice: number | null;
   /** Package variants hold stock on a parent SKU, so inline editing is disabled. */
   editable: boolean;
 };
@@ -75,6 +86,65 @@ function toNum(n: number | string | null | undefined): number | null {
   if (n == null || n === "") return null;
   const v = typeof n === "number" ? n : Number(n);
   return Number.isFinite(v) ? v : null;
+}
+
+function fmtMoney(n: number | null, currency: string): string {
+  if (n == null) return "—";
+  try {
+    return n.toLocaleString(undefined, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  } catch {
+    return n.toFixed(2);
+  }
+}
+
+function compareNullableDesc(
+  a: number | null,
+  b: number | null,
+): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return b - a;
+}
+
+function sortStockRows(list: StockRow[], sort: StockSort): StockRow[] {
+  const next = [...list];
+  next.sort((a, b) => {
+    switch (sort) {
+      case "sell_desc": {
+        const bySell = compareNullableDesc(a.sellPrice, b.sellPrice);
+        return bySell !== 0 ? bySell : a.name.localeCompare(b.name);
+      }
+      case "buy_desc": {
+        const byBuy = compareNullableDesc(a.buyPrice, b.buyPrice);
+        return byBuy !== 0 ? byBuy : a.name.localeCompare(b.name);
+      }
+      case "value_desc": {
+        const aVal =
+          a.buyPrice != null && a.stock > 0 ? a.buyPrice * a.stock : null;
+        const bVal =
+          b.buyPrice != null && b.stock > 0 ? b.buyPrice * b.stock : null;
+        const byVal = compareNullableDesc(aVal, bVal);
+        return byVal !== 0 ? byVal : a.name.localeCompare(b.name);
+      }
+      case "attention":
+      default: {
+        const aOut = isOutOfStock(a.stock);
+        const bOut = isOutOfStock(b.stock);
+        if (aOut !== bOut) return aOut ? -1 : 1;
+        const aLow = isLowStock(a.stock, a.reorderLevel);
+        const bLow = isLowStock(b.stock, b.reorderLevel);
+        if (aLow !== bLow) return aLow ? -1 : 1;
+        return a.stock - b.stock;
+      }
+    }
+  });
+  return next;
 }
 
 function displayItemName(item: ItemSummaryRecord): string {
@@ -157,6 +227,7 @@ function StockStatCard({
 
 type StockRowItemProps = {
   row: StockRow;
+  currency: string;
   canWrite: boolean;
   editing: boolean;
   editQty: string;
@@ -171,6 +242,7 @@ type StockRowItemProps = {
 
 function StockRowItem({
   row,
+  currency,
   canWrite,
   editing,
   editQty,
@@ -246,6 +318,12 @@ function StockRowItem({
         {row.reorderLevel != null && row.reorderLevel > 0
           ? row.reorderLevel.toLocaleString("en-KE")
           : "—"}
+      </td>
+      <td className={cn(supTableCell, "w-[5.5rem] text-right font-mono tabular-nums")}>
+        {fmtMoney(row.buyPrice, currency)}
+      </td>
+      <td className={cn(supTableCell, "w-[5.5rem] text-right font-mono tabular-nums")}>
+        {fmtMoney(row.sellPrice, currency)}
       </td>
       <td className={cn(supTableCell, "w-[5.5rem] p-0 align-top")}>
         {showCost ? (
@@ -343,6 +421,7 @@ export function StockLevelsPage() {
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const allowed = canViewStockLevels(me, business);
   const canWrite = canEditStockLevels(me, business);
+  const currency = business?.currency?.trim() || "KES";
 
   const quickLinks = useMemo(() => inventoryQuickLinksForUser(me), [me]);
 
@@ -367,6 +446,7 @@ export function StockLevelsPage() {
   );
   const [categoryId, setCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState<StockStatusFilter>("all");
+  const [sortBy, setSortBy] = useState<StockSort>("attention");
   const [rows, setRows] = useState<StockRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -554,6 +634,8 @@ export function StockLevelsPage() {
               item.categoryName?.trim() ||
               categoryByItemId.get(item.id) ||
               null,
+            sellPrice: toNum(item.bundlePrice),
+            buyPrice: toNum(item.buyingPrice),
             editable: !item.packageVariant,
           });
         }
@@ -561,16 +643,6 @@ export function StockLevelsPage() {
         last = result.last;
         page += 1;
       }
-
-      collected.sort((a, b) => {
-        const aOut = isOutOfStock(a.stock);
-        const bOut = isOutOfStock(b.stock);
-        if (aOut !== bOut) return aOut ? -1 : 1;
-        const aLow = isLowStock(a.stock, a.reorderLevel);
-        const bLow = isLowStock(b.stock, b.reorderLevel);
-        if (aLow !== bLow) return aLow ? -1 : 1;
-        return a.stock - b.stock;
-      });
 
       setRows(collected);
     } catch (e) {
@@ -588,12 +660,13 @@ export function StockLevelsPage() {
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
+    const filtered = rows.filter((r) => {
       if (!matchesStockStatus(r, statusFilter)) return false;
       if (q && !r.name.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [rows, search, statusFilter]);
+    return sortStockRows(filtered, sortBy);
+  }, [rows, search, statusFilter, sortBy]);
 
   const stockCounts = useMemo(
     () => ({
@@ -638,7 +711,7 @@ export function StockLevelsPage() {
             icon={Warehouse}
             eyebrow="Inventory"
             title="Stock"
-            description="On-hand by branch — click a stat to filter."
+            description="On-hand by branch — filter by status, or sort by highest sell, buy, or stock value."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
@@ -743,6 +816,22 @@ export function StockLevelsPage() {
               </select>
             </label>
 
+            <label className="flex min-w-[11rem] flex-1 flex-col gap-1 sm:max-w-[14rem]">
+              <span className={supFieldLabel}>Sort</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as StockSort)}
+                className={cn(supSelect, "h-8 bg-background py-0 text-xs")}
+                aria-label="Sort stock"
+                disabled={!branchId}
+              >
+                <option value="attention">Needs attention</option>
+                <option value="sell_desc">Highest selling price</option>
+                <option value="buy_desc">Highest buying price</option>
+                <option value="value_desc">Costliest stock value</option>
+              </select>
+            </label>
+
             <Button
               type="button"
               variant="outline"
@@ -810,14 +899,16 @@ export function StockLevelsPage() {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[42rem] border-collapse border-0 text-left text-xs">
+                    <table className="w-full min-w-[52rem] border-collapse border-0 text-left text-xs">
                       <thead>
                         <tr className={supTableHead}>
                           <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
                           <th className={cn(supTableCell, "min-w-[6rem]")}>Category</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>On hand</th>
                           <th className={cn(supTableCell, "w-[5rem] text-right")}>Reorder</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Cost</th>
+                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Buy</th>
+                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Sell</th>
+                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Unit cost</th>
                           <th className={cn(supTableCell, "w-[5rem]")}>Status</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Edit</th>
                         </tr>
@@ -827,6 +918,7 @@ export function StockLevelsPage() {
                           <StockRowItem
                             key={row.id}
                             row={row}
+                            currency={currency}
                             canWrite={canWrite}
                             editing={editId === row.id}
                             editQty={editId === row.id ? editQty : ""}
@@ -845,7 +937,7 @@ export function StockLevelsPage() {
                   <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
                     <span className={supKicker}>Tip</span>
                     <span className="ml-2">
-                      Click edit to set on-hand qty — cost is required when increasing stock.
+                      Sort by sell, buy, or stock value (buy × on hand). Unit cost is only needed when increasing stock.
                     </span>
                   </div>
                 </>
