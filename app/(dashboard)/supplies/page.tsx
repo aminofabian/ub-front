@@ -52,8 +52,9 @@ export default function SuppliesPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { me, loading, canPathBWrite, canPathBRead, canViewSuppliers, canViewCategories, canViewApAging } =
+  const { me, business, loading, canPathBWrite, canPathBRead, canViewSuppliers, canViewCategories, canViewApAging } =
     useDashboard();
+  const currency = business?.currency?.trim() || "KES";
   const { branchId: headerBranchId, branchName: headerBranchName } =
     useSessionBranch();
 
@@ -222,6 +223,7 @@ export default function SuppliesPage() {
           <span className="mt-1 block font-mono text-base font-semibold tabular-nums sm:mt-0.5 sm:text-lg">
             {formatSupplyMoney(
               billFilter === "all" ? summary.totalInvoiced : filteredSummary.totalInvoiced,
+              currency,
             )}
           </span>
         </div>
@@ -240,7 +242,7 @@ export default function SuppliesPage() {
             Paid
           </span>
           <span className="mt-1 block font-mono text-base font-semibold tabular-nums text-emerald-700 dark:text-emerald-300 sm:mt-0.5 sm:text-lg">
-            {formatSupplyMoney(summary.totalPaid)}
+            {formatSupplyMoney(summary.totalPaid, currency)}
           </span>
         </button>
         <button
@@ -265,7 +267,7 @@ export default function SuppliesPage() {
                 : "text-foreground",
             )}
           >
-            {formatSupplyMoney(summary.openBalance)}
+            {formatSupplyMoney(summary.openBalance, currency)}
           </span>
         </button>
       </div>
@@ -400,13 +402,13 @@ export default function SuppliesPage() {
                             {r.lineCount}
                           </td>
                           <td className="px-4 py-3.5 text-right font-mono tabular-nums sm:px-5">
-                            {formatSupplyMoney(supplyN(r.grandTotal))}
+                            {formatSupplyMoney(supplyN(r.grandTotal), currency)}
                           </td>
                           <td className="px-4 py-3.5 text-right font-mono tabular-nums text-emerald-700 dark:text-emerald-300 sm:px-5">
-                            {formatSupplyMoney(supplyN(r.amountPaid))}
+                            {formatSupplyMoney(supplyN(r.amountPaid), currency)}
                           </td>
                           <td className="px-4 py-3.5 text-right font-mono font-semibold tabular-nums sm:px-5">
-                            {formatSupplyMoney(bal)}
+                            {formatSupplyMoney(bal, currency)}
                           </td>
                           <td className="px-4 py-3.5 sm:px-5">
                             <span

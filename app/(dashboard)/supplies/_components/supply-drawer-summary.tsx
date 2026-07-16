@@ -9,6 +9,7 @@ import {
   nsdKicker,
   nsdStatTile,
 } from "./new-supply-drawer-ui";
+import { formatSupplyMoneyCompact } from "./supplies-shared";
 
 function SummaryMetric({
   label,
@@ -43,6 +44,7 @@ export function SupplyDrawerSummaryPanel({
   estimatedProfit,
   extrasTotal,
   canPost,
+  currency = "KES",
   className,
 }: {
   supplierName: string | null;
@@ -51,6 +53,7 @@ export function SupplyDrawerSummaryPanel({
   estimatedProfit: { cost: number; revenue: number; profit: number };
   extrasTotal: number;
   canPost: boolean;
+  currency?: string;
   className?: string;
 }) {
   const netProfit = estimatedProfit.profit - extrasTotal;
@@ -62,6 +65,7 @@ export function SupplyDrawerSummaryPanel({
     lineStats.totalRows > 0
       ? Math.round((lineStats.valid / lineStats.totalRows) * 100)
       : 0;
+  const money = (n: number) => formatSupplyMoneyCompact(n, currency);
 
   return (
     <aside
@@ -94,7 +98,7 @@ export function SupplyDrawerSummaryPanel({
               Ready
             </span>
             <span className="font-mono tabular-nums text-foreground">
-              {lineStats.valid}/{lineStats.totalRows}
+              {lineStats.valid} of {lineStats.totalRows}
             </span>
           </div>
           <div className="h-1 overflow-hidden bg-muted">
@@ -107,15 +111,12 @@ export function SupplyDrawerSummaryPanel({
 
         <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
           <div className="p-2">
-            <SummaryMetric
-              label="Payable"
-              value={estimatedProfit.cost.toFixed(2)}
-            />
+            <SummaryMetric label="Payable" value={money(estimatedProfit.cost)} />
           </div>
           <div className="p-2">
             <SummaryMetric
               label="Sell total"
-              value={estimatedProfit.revenue.toFixed(2)}
+              value={money(estimatedProfit.revenue)}
               accent="text-primary"
             />
           </div>
@@ -135,10 +136,7 @@ export function SupplyDrawerSummaryPanel({
               />
             </div>
             <div className="p-2">
-              <SummaryMetric
-                label="Extras"
-                value={extrasTotal.toFixed(2)}
-              />
+              <SummaryMetric label="Extras" value={money(extrasTotal)} />
             </div>
           </div>
         )}

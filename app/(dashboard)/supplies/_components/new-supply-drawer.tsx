@@ -71,6 +71,7 @@ import {
   type ShelfPriceHint,
 } from "./supply-shelf-price-cell";
 import { SupplyDrawerSummaryPanel } from "./supply-drawer-summary";
+import { formatSupplyMoneyCompact } from "./supplies-shared";
 
 function receivedLocalToYmd(receivedAtLocal: string): string {
   const t = receivedAtLocal.trim();
@@ -365,6 +366,7 @@ export function NewSupplyDrawer({
 }: NewSupplyDrawerProps) {
   const { branches, branchId, setBranchId, branchesLoading, me, business } =
     useDashboard();
+  const currency = business?.currency?.trim() || "KES";
   const canSetSellPrice = hasPermission(
     me?.permissions,
     Permission.PricingSellPriceSet,
@@ -1064,11 +1066,11 @@ export function NewSupplyDrawer({
                 Payable
               </span>
               <p className="font-mono text-xl font-bold tabular-nums text-foreground sm:text-base">
-                {estimatedProfit.cost.toFixed(2)}
+                {formatSupplyMoneyCompact(estimatedProfit.cost, currency)}
               </p>
             </div>
             <p className="truncate text-[11px] text-muted-foreground sm:text-[10px]">
-              {lineStats.valid}/{lineStats.totalRows} ready
+              {lineStats.valid} of {lineStats.totalRows} ready
               {supplier ? ` · ${supplier.name}` : ""}
               {canPost ? (
                 <span className="ml-1 font-semibold text-primary">· Ready</span>
@@ -1584,6 +1586,7 @@ export function NewSupplyDrawer({
             estimatedProfit={estimatedProfit}
             extrasTotal={extrasTotal}
             canPost={canPost}
+            currency={currency}
           />
         </div>
       </form>
