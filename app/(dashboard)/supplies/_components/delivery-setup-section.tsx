@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 import { ExtraCostsBody, type ExtraRow } from "./extra-costs-section";
 import {
-  nsdDropdown,
   nsdFieldLabel,
   nsdInput,
   nsdSelect,
@@ -200,58 +199,82 @@ export function DeliverySetupSection({
               </Button>
             </div>
           ) : (
-            <div className="relative isolate">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <input
-                className={cn(nsdInput, "bg-background pl-9")}
-                placeholder="Search vendor…"
-                value={supplierQuery}
-                onChange={(e) => onSupplierQueryChange(e.target.value)}
-                disabled={busy}
-                autoComplete="off"
-                aria-autocomplete="list"
-                aria-expanded={supplierQuery.trim().length > 0}
-                aria-label="Search suppliers"
-              />
-              {supplierQuery.trim().length > 0 ? (
-                <ul className={nsdDropdown} role="listbox">
-                  {supplierLoading ? (
-                    <li
-                      className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground"
-                      role="presentation"
-                    >
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                      Searching…
+            <div className="flex flex-col gap-1.5">
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  className={cn(nsdInput, "bg-background pl-9")}
+                  placeholder="Search or pick a vendor…"
+                  value={supplierQuery}
+                  onChange={(e) => onSupplierQueryChange(e.target.value)}
+                  disabled={busy}
+                  autoComplete="off"
+                  autoFocus
+                  aria-autocomplete="list"
+                  aria-controls="new-supply-vendor-list"
+                  aria-expanded
+                  aria-label="Search suppliers"
+                />
+              </div>
+              <ul
+                id="new-supply-vendor-list"
+                className="max-h-44 overflow-auto border border-border bg-background"
+                role="listbox"
+                aria-label="Suppliers"
+              >
+                {supplierLoading && supplierHits.length === 0 ? (
+                  <li
+                    className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground"
+                    role="presentation"
+                  >
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Loading suppliers…
+                  </li>
+                ) : supplierHits.length === 0 ? (
+                  <li
+                    className="px-3 py-2.5 text-xs text-muted-foreground"
+                    role="presentation"
+                  >
+                    {supplierQuery.trim()
+                      ? "No suppliers match that search"
+                      : "No suppliers yet — add one on the Suppliers page"}
+                  </li>
+                ) : (
+                  supplierHits.map((s) => (
+                    <li key={s.id} role="option">
+                      <button
+                        type="button"
+                        className="flex w-full flex-col items-start border-b border-border/60 px-3 py-2.5 text-left text-sm transition-colors last:border-b-0 touch-manipulation hover:bg-muted/50 active:bg-muted/60 sm:py-2"
+                        onClick={() => onSelectSupplier(s)}
+                        disabled={busy}
+                      >
+                        <span className="font-medium leading-tight text-foreground">
+                          {s.name}
+                        </span>
+                        {s.code?.trim() ? (
+                          <span className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                            {s.code.trim()}
+                          </span>
+                        ) : null}
+                      </button>
                     </li>
-                  ) : supplierHits.length === 0 ? (
-                    <li
-                      className="px-3 py-2 text-xs text-muted-foreground"
-                      role="presentation"
-                    >
-                      No suppliers found
-                    </li>
-                  ) : (
-                    supplierHits.map((s) => (
-                      <li key={s.id} role="option">
-                        <button
-                          type="button"
-                          className="flex w-full flex-col items-start px-3 py-2.5 text-left text-sm transition-colors touch-manipulation hover:bg-muted/50 active:bg-muted/60 sm:py-1.5"
-                          onClick={() => onSelectSupplier(s)}
-                        >
-                          <span className="font-medium">{s.name}</span>
-                          {s.code ? (
-                            <span className="font-mono text-[10px] text-muted-foreground">
-                              {s.code}
-                            </span>
-                          ) : null}
-                        </button>
-                      </li>
-                    ))
-                  )}
-                </ul>
+                  ))
+                )}
+              </ul>
+              {supplierLoading && supplierHits.length > 0 ? (
+                <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" aria-hidden />
+                  Updating…
+                </p>
+              ) : supplierHits.length > 0 ? (
+                <p className="text-[10px] text-muted-foreground">
+                  {supplierQuery.trim()
+                    ? `${supplierHits.length} match${supplierHits.length === 1 ? "" : "es"}`
+                    : `${supplierHits.length} supplier${supplierHits.length === 1 ? "" : "s"} — type to filter`}
+                </p>
               ) : null}
             </div>
           )}

@@ -393,20 +393,26 @@ export function NewSupplyDrawer({
   );
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      const q = supplierQuery.trim();
-      if (q.length < 1) {
-        setSupplierHits([]);
-        return;
-      }
-      setSupplierLoading(true);
-      void fetchSuppliersPage({ search: q, page: 0, size: 25 })
-        .then((p) => setSupplierHits(p.content))
-        .catch(() => setSupplierHits([]))
-        .finally(() => setSupplierLoading(false));
-    }, 260);
+    if (!open || supplier) {
+      return;
+    }
+    const q = supplierQuery.trim();
+    const id = window.setTimeout(
+      () => {
+        setSupplierLoading(true);
+        void fetchSuppliersPage({
+          ...(q ? { search: q } : {}),
+          page: 0,
+          size: 50,
+        })
+          .then((p) => setSupplierHits(p.content))
+          .catch(() => setSupplierHits([]))
+          .finally(() => setSupplierLoading(false));
+      },
+      q.length > 0 ? 260 : 0,
+    );
     return () => window.clearTimeout(id);
-  }, [supplierQuery]);
+  }, [open, supplier, supplierQuery]);
 
   const loadLinks = useCallback(async (sid: string) => {
     setLinksLoading(true);
@@ -1080,6 +1086,7 @@ export function NewSupplyDrawer({
                 onClearSupplier={() => {
                   setSupplier(null);
                   setSupplierQuery("");
+                  setSupplierHits([]);
                   setDeliveryExpanded(true);
                 }}
                 branchId={branchId}
@@ -1132,7 +1139,7 @@ export function NewSupplyDrawer({
                 <SupplyEmptyState
                   icon={Truck}
                   title="Choose a supplier first"
-                  description="Search for your vendor above. Linked catalog products load automatically — or add lines manually."
+                  description="Pick a vendor from the list above (or search to filter). Linked catalog products load automatically — or add lines manually."
                 />
               ) : linksLoading ? (
                 <>
