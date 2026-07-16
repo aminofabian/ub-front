@@ -57,14 +57,8 @@ export function SupplierEditColumn({
       <SupEmptyState
         icon={Building2}
         title="No supplier selected"
-        description={
-          <>
-            Pick a vendor from the directory on the left, or use{" "}
-            <span className="font-medium text-foreground">New supplier</span> to
-            add one.
-          </>
-        }
-        className="min-h-56"
+        description="Choose a vendor from the directory to view profile, contacts, and purchase history."
+        className="min-h-48 border-0 bg-transparent"
       />
     );
   }
@@ -92,8 +86,8 @@ export function SupplierEditColumn({
       >
       <div
         className={cn(
-          "rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-muted/15 shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.05]",
-          compact ? "p-2" : "rounded-2xl p-4",
+          "rounded-xl border border-border/55 bg-card",
+          compact ? "p-2" : "p-4",
         )}
       >
         <div className={compact ? "space-y-1.5" : undefined}>

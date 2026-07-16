@@ -36,24 +36,28 @@ export function SupSection({
   return (
     <section
       className={cn(
-        "overflow-hidden border border-border/50 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/[0.05]",
-        compact ? "rounded-xl" : "rounded-2xl",
+        "overflow-hidden border border-border/55 bg-card",
+        compact ? "rounded-lg" : "rounded-xl",
         className,
       )}
     >
       <div
         className={cn(
-          "flex flex-wrap items-center justify-between gap-2 border-b border-border/40 bg-gradient-to-r from-primary/[0.04] via-muted/25 to-transparent",
-          compact ? "px-2.5 py-1.5" : "gap-3 px-4 py-3.5 sm:px-5",
+          "flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20",
+          compact ? "px-2.5 py-1.5" : "gap-3 px-4 py-3 sm:px-5",
         )}
       >
         <div className="min-w-0">
-          <h3 className={cn(supSectionTitle, compact && "text-xs font-semibold")}>{title}</h3>
+          <h3 className={cn(supSectionTitle, compact && "text-xs font-semibold")}>
+            {title}
+          </h3>
           {hint && !compact ? <p className={supSectionHint}>{hint}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn(compact ? "p-1.5" : "p-4 sm:p-5", bodyClassName)}>{children}</div>
+      <div className={cn(compact ? "p-1.5" : "p-4 sm:p-5", bodyClassName)}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -74,10 +78,10 @@ export function SupEmptyState({
   return (
     <div className={cn(supEmptyState, className)}>
       <div className={supEmptyIconWrap}>
-        <Icon className="size-7" aria-hidden />
+        <Icon className="size-5" aria-hidden />
       </div>
       <div className="max-w-sm space-y-1">
-        <p className="text-base font-semibold tracking-tight text-foreground">
+        <p className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -120,7 +124,7 @@ export function SupWorkflowRail({
     <nav
       className={cn(
         "flex shrink-0 flex-wrap items-center gap-3 rounded-lg border border-border/50",
-        "bg-muted/20 px-3 py-2.5 shadow-sm ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.03] sm:px-4 sm:py-3",
+        "bg-muted/15 px-3 py-2.5 sm:px-4 sm:py-3",
       )}
       aria-label="Workspace steps"
     >
@@ -130,9 +134,8 @@ export function SupWorkflowRail({
           <li key={n} className="flex items-center gap-1">
             <span
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-                "border-border/50 bg-background/90 text-foreground shadow-sm",
-                "ring-1 ring-black/[0.02] dark:ring-white/[0.04]",
+                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium",
+                "border-border/50 bg-background text-foreground",
               )}
             >
               <span className="flex size-4 shrink-0 items-center justify-center rounded-md bg-primary text-[9px] font-bold text-primary-foreground">
@@ -208,18 +211,16 @@ export function SupMobileSelectionBar({
   return (
     <div
       className={cn(
-        "shrink-0 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.08] via-card to-card p-4 shadow-md",
-        "ring-1 ring-primary/15 sm:p-4",
+        "shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 shadow-sm",
+        "sm:p-4",
       )}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex items-center gap-2.5">
         <span
-          className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/20"
+          className="flex size-2 shrink-0 rounded-full bg-primary"
           aria-hidden
-        >
-          <span className="size-2.5 rounded-full bg-primary shadow-[0_0_8px_-1px] shadow-primary/50" />
-        </span>
-        <p className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
+        />
+        <p className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground">
           {name}
         </p>
       </div>

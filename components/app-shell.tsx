@@ -941,6 +941,9 @@ export function AppShell({ children }: AppShellProps) {
         APP_ROUTES.shifts,
         APP_ROUTES.purchasingAddSupplies,
       ];
+      if (canViewSuppliers) {
+        allowed.push(APP_ROUTES.suppliers);
+      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );
@@ -979,7 +982,7 @@ export function AppShell({ children }: AppShellProps) {
       }
       return;
     }
-  }, [me, pathname, router, business, supplierToolsEnabled]);
+  }, [me, pathname, router, business, supplierToolsEnabled, canViewSuppliers]);
 
   return (
     <div className="tablet-app-root flex h-[100dvh] overflow-hidden bg-muted/30">

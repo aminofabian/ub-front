@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 /* ── Typography ─────────────────────────────────────────────────────────── */
 
 export const supKicker =
-  "text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground";
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground";
 
 export const supKickerPrimary =
-  "text-[11px] font-bold uppercase tracking-[0.14em] text-primary";
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-primary";
 
 /** @deprecated use {@link supKickerPrimary} — kept for imports; uses theme primary */
 export const supKickerViolet = supKickerPrimary;
@@ -23,9 +23,9 @@ export const supSectionHint =
 /* ── Controls ───────────────────────────────────────────────────────────── */
 
 const supControlBase = cn(
-  "w-full rounded-xl border border-input/70 bg-background text-sm shadow-sm",
-  "transition-[border-color,box-shadow,background-color] duration-200",
-  "placeholder:text-muted-foreground/45",
+  "w-full rounded-lg border border-input/80 bg-background text-sm",
+  "transition-[border-color,box-shadow,background-color] duration-150",
+  "placeholder:text-muted-foreground/50",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
   "disabled:cursor-not-allowed disabled:opacity-50",
 );
@@ -43,86 +43,77 @@ export const supPageRoot = cn(
 );
 
 export const supHeroSection = cn(
-  "relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm",
-  "ring-1 ring-black/[0.03] dark:ring-white/[0.05] sm:p-6",
+  "relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 shadow-sm sm:p-5",
 );
 
-export const supHeroGlowPrimary =
-  "pointer-events-none absolute -right-10 -top-12 size-44 rounded-full bg-primary/[0.08] blur-3xl";
+export const supHeroGlowPrimary = "hidden";
 
-export const supHeroGlowAccent =
-  "pointer-events-none absolute -bottom-14 left-1/4 size-36 rounded-full bg-primary/[0.06] blur-3xl";
+export const supHeroGlowAccent = "hidden";
 
 export const supWorkspaceShell = cn(
-  "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/55",
-  "bg-gradient-to-b from-card via-card to-muted/20 shadow-md",
-  "ring-1 ring-black/[0.04] dark:from-card dark:to-muted/15 dark:ring-white/[0.06]",
+  "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm",
 );
 
-export const supWorkspaceInner = "flex min-h-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-4 lg:gap-3 lg:p-3";
+export const supWorkspaceInner =
+  "flex min-h-0 flex-1 flex-col gap-0 p-0 sm:p-0";
 
 export const supCard = cn(
-  "rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm",
-  "ring-1 ring-black/[0.03] dark:bg-card dark:ring-white/[0.05]",
+  "rounded-xl border border-border/55 bg-card text-card-foreground shadow-sm",
 );
 
 export const supCardInset = cn(
-  "rounded-xl border border-border/40 bg-gradient-to-br from-muted/25 to-muted/10",
-  "ring-1 ring-inset ring-black/[0.02] dark:ring-white/[0.04]",
+  "rounded-lg border border-border/40 bg-muted/20",
 );
 
 export const supSectionCard = cn(supCard, "overflow-hidden");
 
 export const supSectionHeader = cn(
-  "flex flex-wrap items-start justify-between gap-3 border-b border-border/40",
-  "bg-gradient-to-r from-muted/40 via-muted/15 to-transparent px-4 py-3.5 sm:px-5",
+  "flex flex-wrap items-start justify-between gap-3 border-b border-border/50",
+  "bg-muted/25 px-4 py-3 sm:px-5",
 );
 
 export const supSectionBody = "p-4 sm:p-5";
 
 export const supStatTile = cn(
-  "rounded-xl border border-border/45 bg-background/95 px-3 py-2.5 shadow-sm",
-  "ring-1 ring-black/[0.02] transition-all duration-200 hover:border-border/70 hover:shadow-md dark:ring-white/[0.04]",
+  "rounded-lg border border-border/50 bg-background px-3 py-2.5",
+  "transition-colors duration-150 hover:border-border hover:bg-muted/20",
 );
 
 export const supFilterRail = cn(
-  "flex shrink-0 flex-wrap items-end gap-2 rounded-xl border border-border/45",
-  "bg-gradient-to-br from-muted/30 via-muted/15 to-background/80 px-2.5 py-2 shadow-sm",
-  "ring-1 ring-inset ring-black/[0.02] dark:from-muted/20 dark:to-muted/5 dark:ring-white/[0.04]",
+  "flex shrink-0 flex-wrap items-end gap-2 border-b border-border/50",
+  "bg-muted/15 px-2.5 py-2",
 );
 
 export const supDirectoryShell = cn(
-  "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/50",
-  "bg-card shadow-sm ring-1 ring-black/[0.03] dark:bg-card dark:ring-white/[0.05]",
+  "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card",
 );
 
 export const supDirectoryToolbar = cn(
-  "flex shrink-0 items-center justify-between gap-3 border-b border-border/40",
-  "bg-gradient-to-r from-primary/[0.04] via-muted/25 to-transparent px-4 py-2.5 backdrop-blur-sm",
+  "flex shrink-0 items-center justify-between gap-3 border-b border-border/50",
+  "bg-muted/20 px-3 py-2 sm:px-3.5",
 );
 
 export const supTableHead = cn(
-  "border-b border-border/40 bg-muted/30 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground",
+  "border-b border-border/40 bg-muted/25 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground",
 );
 
 export const supTableRow = cn(
-  "border-b border-border/25 transition-colors duration-150 last:border-0",
-  "hover:bg-muted/25",
+  "border-b border-border/25 transition-colors duration-100 last:border-0",
+  "hover:bg-muted/20",
 );
 
 export const supPanelShell = cn(
-  "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50",
-  "bg-card shadow-sm ring-1 ring-black/[0.03] dark:bg-card dark:ring-white/[0.05]",
+  "flex min-h-0 min-w-0 flex-col overflow-hidden border-border/50 bg-card",
 );
 
 export const supPanelHeader = cn(
-  "relative shrink-0 overflow-hidden border-b border-border/40 px-3 py-2 sm:px-3.5",
-  "bg-gradient-to-br from-primary/[0.05] via-muted/20 to-background",
+  "relative shrink-0 border-b border-border/50 px-3 py-2.5 sm:px-3.5",
+  "bg-muted/20",
 );
 
 export const supPanelHeaderIcon = (_accent: "primary" | "violet" = "primary") =>
   cn(
-    "flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary ring-1 ring-primary/20 shadow-sm sm:size-9",
+    "flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary sm:size-8",
   );
 
 export const supPanelBody =
@@ -138,23 +129,23 @@ export const supPanelKicker = supKickerPrimary;
 export const supPanelKickerViolet = supKickerViolet;
 
 export const supEmptyState = cn(
-  "flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/50",
-  "bg-gradient-to-b from-muted/20 via-muted/5 to-transparent px-6 py-12 text-center sm:py-14",
+  "flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/55",
+  "bg-muted/10 px-6 py-10 text-center sm:py-12",
 );
 
 export const supEmptyIconWrap = cn(
-  "flex size-16 items-center justify-center rounded-2xl border border-dashed",
-  "border-primary/25 bg-primary/[0.06] text-primary/60 shadow-sm",
+  "flex size-12 items-center justify-center rounded-xl border border-dashed",
+  "border-border/60 bg-muted/30 text-muted-foreground",
 );
 
 export const supChip = cn(
-  "inline-flex shrink-0 items-center rounded-lg px-2.5 py-1 text-xs font-medium",
-  "ring-1 ring-inset transition-all duration-150",
+  "inline-flex shrink-0 items-center rounded-md px-2.5 py-1 text-xs font-medium",
+  "ring-1 ring-inset transition-colors duration-100",
 );
 
 export const supChipActive = cn(
   supChip,
-  "bg-primary text-primary-foreground shadow-sm ring-primary/30",
+  "bg-primary text-primary-foreground shadow-sm ring-primary/25",
 );
 
 export const supChipIdle = cn(
@@ -167,35 +158,34 @@ export const supDrawerFooter = cn(
 );
 
 export const supBtnPrimary = cn(
-  "h-10 gap-2 rounded-xl px-5 font-semibold shadow-sm transition-all duration-200",
-  "hover:shadow-md active:scale-[0.98]",
+  "h-9 gap-1.5 rounded-lg px-4 font-semibold shadow-sm transition-all duration-150",
+  "hover:shadow active:scale-[0.98]",
 );
 
 export const supBtnOutline = cn(
-  "h-10 rounded-xl px-4 font-medium shadow-sm transition-colors duration-200",
+  "h-9 rounded-lg px-3.5 font-medium transition-colors duration-150",
 );
 
 export const supRowActive = cn(
-  "border-l-[3px] border-l-primary bg-primary/[0.08] pl-[calc(0.75rem-3px)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+  "border-l-[3px] border-l-primary bg-primary/[0.07] pl-[calc(0.75rem-3px)]",
   "dark:bg-primary/[0.12]",
 );
 
 export const supRowActiveCompact = cn(
-  "border-l-2 border-l-primary bg-primary/[0.08] pl-[calc(0.375rem-2px)]",
+  "border-l-2 border-l-primary bg-primary/[0.07] pl-[calc(0.5rem-2px)]",
   "dark:bg-primary/[0.12]",
 );
 
 export const supRowHover = cn(
-  "border-l-[3px] border-l-transparent hover:border-l-primary/35 hover:bg-muted/30",
-  "dark:hover:bg-muted/20",
+  "border-l-[3px] border-l-transparent hover:border-l-primary/30 hover:bg-muted/25",
 );
 
 export const supRowHoverCompact = cn(
-  "border-l-2 border-l-transparent hover:border-l-primary/30 hover:bg-muted/25",
+  "border-l-2 border-l-transparent hover:border-l-primary/25 hover:bg-muted/20",
 );
 
 export const supMotionIn =
-  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300";
+  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200";
 
 /* ── Status ─────────────────────────────────────────────────────────────── */
 

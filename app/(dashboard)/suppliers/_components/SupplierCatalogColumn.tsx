@@ -919,8 +919,8 @@ export function SupplierCatalogColumn({
       <SupEmptyState
         icon={Link2}
         title="Select a supplier"
-        description="Choose a vendor from the directory to manage linked products and browse your catalog."
-        className="min-h-[14rem]"
+        description="Pick a vendor to link products and manage catalog relationships."
+        className="min-h-[14rem] border-0 bg-transparent"
       />
     );
   }
