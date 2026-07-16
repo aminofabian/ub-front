@@ -31,6 +31,7 @@ import { isBranchLockedRole } from "@/lib/branch-access";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { canAdminEditOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 import { YmdDateInput } from "@/components/ymd-date-input";
 
@@ -264,7 +265,33 @@ function rowStock(row: SupplyDraftRow): number | null {
     const n = Number(row.link.currentStock);
     return Number.isFinite(n) ? n : null;
   }
+  if (row.item?.stockQty != null && String(row.item.stockQty).trim() !== "") {
+    const n = Number(row.item.stockQty);
+    return Number.isFinite(n) ? n : null;
+  }
   return null;
+}
+
+function applyOnHandToRows(
+  prev: SupplyDraftRow[],
+  itemId: string,
+  nextStock: number,
+): SupplyDraftRow[] {
+  return prev.map((r) => {
+    if (rowItemId(r) !== itemId) {
+      return r;
+    }
+    if (r.source === "linked" && r.link) {
+      return { ...r, link: { ...r.link, currentStock: nextStock } };
+    }
+    if (r.item) {
+      return {
+        ...r,
+        item: { ...r.item, stockQty: nextStock },
+      };
+    }
+    return r;
+  });
 }
 
 function linePayload(row: SupplyDraftRow): {
@@ -317,6 +344,7 @@ export function NewSupplyDrawer({
     me?.permissions,
     Permission.CatalogItemsLinkSuppliers,
   );
+  const canEditOnHandStock = canAdminEditOnHandStock(me);
   const branchLocked = isBranchLockedRole(me?.role?.key);
 
   const [supplierQuery, setSupplierQuery] = useState("");
@@ -1158,6 +1186,12 @@ export function NewSupplyDrawer({
                           pricingHint={hint}
                           hasItemId={Boolean(iid)}
                           branchId={branchId}
+                          canEditStock={canEditOnHandStock && Boolean(iid)}
+                          itemId={iid}
+                          onStockChange={(next) => {
+                            if (!iid) return;
+                            setRows((prev) => applyOnHandToRows(prev, iid, next));
+                          }}
                           onQtyChange={(value) =>
                             setRows((prev) =>
                               prev.map((r) =>
@@ -1341,6 +1375,15 @@ export function NewSupplyDrawer({
                         compact
                         stock={stock}
                         reorderLevel={reorderLevel}
+                        canEdit={canEditOnHandStock && Boolean(iid)}
+                        itemId={iid}
+                        branchId={branchId}
+                        unitCostHint={unitCost ?? referenceCost}
+                        disabled={busy}
+                        onStockChange={(next) => {
+                          if (!iid) return;
+                          setRows((prev) => applyOnHandToRows(prev, iid, next));
+                        }}
                       />
                     </td>
                     <td className={cn(nsdTableCell, "min-w-[4rem] align-top")}>

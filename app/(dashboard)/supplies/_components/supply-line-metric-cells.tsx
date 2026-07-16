@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
+import { setOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "./new-supply-drawer-ui";
@@ -170,6 +172,14 @@ export function SupplyQtyCell({
 type SupplyStockCellProps = CompactProps & {
   stock: number | null;
   reorderLevel?: number | null;
+  /** Admin-only: allow typing a new on-hand qty. */
+  canEdit?: boolean;
+  itemId?: string | null;
+  branchId?: string | null;
+  /** Unit cost used when increasing stock. */
+  unitCostHint?: number | null;
+  disabled?: boolean;
+  onStockChange?: (nextStock: number) => void;
 };
 
 function resolveStockTone(
@@ -198,8 +208,98 @@ export function SupplyStockCell({
   compact = false,
   touch = false,
   label,
+  canEdit = false,
+  itemId = null,
+  branchId = null,
+  unitCostHint = null,
+  disabled = false,
+  onStockChange,
 }: SupplyStockCellProps) {
   const tone = resolveStockTone(stock, reorderLevel);
+  const [draft, setDraft] = useState(
+    stock != null ? (Number.isInteger(stock) ? String(stock) : String(stock)) : "",
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const baselineRef = useRef(stock);
+
+  useEffect(() => {
+    if (busy) {
+      return;
+    }
+    baselineRef.current = stock;
+    setDraft(
+      stock != null
+        ? Number.isInteger(stock)
+          ? String(stock)
+          : String(stock)
+        : "",
+    );
+    setError(null);
+  }, [stock, busy]);
+
+  const editable =
+    canEdit && Boolean(itemId?.trim()) && Boolean(branchId?.trim()) && !disabled;
+
+  const commit = async () => {
+    if (!editable || busy) {
+      return;
+    }
+    const raw = draft.trim();
+    if (!raw) {
+      setDraft(
+        stock != null
+          ? Number.isInteger(stock)
+            ? String(stock)
+            : String(stock)
+          : "",
+      );
+      return;
+    }
+    const target = Number(raw);
+    if (!Number.isFinite(target) || target < 0) {
+      setError("Enter 0 or a positive qty");
+      setDraft(
+        stock != null
+          ? Number.isInteger(stock)
+            ? String(stock)
+            : String(stock)
+          : "",
+      );
+      return;
+    }
+    const current = baselineRef.current ?? stock ?? 0;
+    if (Math.abs(target - current) < 0.0001) {
+      setError(null);
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      await setOnHandStock({
+        itemId: itemId!.trim(),
+        branchId: branchId!.trim(),
+        current,
+        target,
+        unitCost: unitCostHint ?? 0,
+        notes: "Stock set from new supply",
+      });
+      baselineRef.current = target;
+      onStockChange?.(target);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+      setDraft(
+        stock != null
+          ? Number.isInteger(stock)
+            ? String(stock)
+            : String(stock)
+          : "",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
@@ -210,33 +310,82 @@ export function SupplyStockCell({
       ) : null}
       <div
         className={cn(
-          "flex min-w-0 items-center justify-end rounded-sm border px-1.5 transition-[border-color,background-color,box-shadow] duration-150",
+          "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
           metricHeight(compact, touch),
           METRIC_SHELL[tone],
+          editable && "bg-background",
         )}
         title={
-          stock != null
-            ? reorderLevel != null && reorderLevel > 0
-              ? `On hand ${formatQty(stock)} · reorder at ${formatQty(reorderLevel)}`
-              : `On hand ${formatQty(stock)}`
-            : "Stock level unavailable for this line"
+          editable
+            ? "Edit on-hand stock (admin)"
+            : stock != null
+              ? reorderLevel != null && reorderLevel > 0
+                ? `On hand ${formatQty(stock)} · reorder at ${formatQty(reorderLevel)}`
+                : `On hand ${formatQty(stock)}`
+              : "Stock level unavailable for this line"
         }
       >
-        <span
-          className={cn(
-            "font-mono tabular-nums",
-            metricText(compact, touch),
-            stock == null && "text-muted-foreground/60",
-            tone === "out" && "font-semibold text-red-700 dark:text-red-300",
-            tone === "low" && "font-semibold text-amber-800 dark:text-amber-200",
-            tone === "readonly" && "text-foreground",
-          )}
-        >
-          {stock != null ? formatQty(stock) : "—"}
-        </span>
+        {editable ? (
+          <input
+            className={cn(
+              nsdInput,
+              "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
+              "text-right font-mono tabular-nums",
+              metricText(compact, touch),
+              "focus-visible:ring-0 focus-visible:ring-offset-0",
+              tone === "out" && "font-semibold text-red-700 dark:text-red-300",
+              tone === "low" && "font-semibold text-amber-800 dark:text-amber-200",
+              busy && "opacity-60",
+            )}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setError(null);
+            }}
+            onBlur={() => void commit()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (e.target as HTMLInputElement).blur();
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setDraft(
+                  stock != null
+                    ? Number.isInteger(stock)
+                      ? String(stock)
+                      : String(stock)
+                    : "",
+                );
+                setError(null);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            disabled={busy || disabled}
+            inputMode="decimal"
+            aria-label="On-hand stock"
+          />
+        ) : (
+          <span
+            className={cn(
+              "flex h-full w-full items-center justify-end px-1.5 font-mono tabular-nums",
+              metricText(compact, touch),
+              stock == null && "text-muted-foreground/60",
+              tone === "out" && "font-semibold text-red-700 dark:text-red-300",
+              tone === "low" && "font-semibold text-amber-800 dark:text-amber-200",
+              tone === "readonly" && "text-foreground",
+            )}
+          >
+            {stock != null ? formatQty(stock) : "—"}
+          </span>
+        )}
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
-        {tone === "out" ? (
+        {error ? (
+          <span className="text-[10px] font-medium text-destructive">{error}</span>
+        ) : busy ? (
+          <span className="text-[10px] text-muted-foreground">Saving…</span>
+        ) : tone === "out" ? (
           <span className="rounded-sm bg-red-500/12 px-1 py-px text-[10px] font-medium text-red-700 dark:text-red-300">
             Out of stock
           </span>

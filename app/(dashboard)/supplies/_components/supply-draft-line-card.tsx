@@ -60,6 +60,9 @@ type SupplyDraftLineCardProps = {
   onRemove: () => void;
   hasItemId: boolean;
   branchId?: string;
+  canEditStock?: boolean;
+  itemId?: string | null;
+  onStockChange?: (nextStock: number) => void;
 };
 
 function bumpQty(raw: string, delta: number): string {
@@ -98,6 +101,9 @@ export function SupplyDraftLineCard({
   onRemove,
   hasItemId,
   branchId,
+  canEditStock = false,
+  itemId = null,
+  onStockChange,
 }: SupplyDraftLineCardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const showBatchHint = Boolean(row.expiry.trim()) || detailsOpen;
@@ -282,6 +288,12 @@ export function SupplyDraftLineCard({
                   label="Stock"
                   stock={stock}
                   reorderLevel={reorderLevel}
+                  canEdit={canEditStock}
+                  itemId={itemId}
+                  branchId={branchId}
+                  unitCostHint={unitCost ?? referenceCost}
+                  disabled={busy}
+                  onStockChange={onStockChange}
                 />
                 <SupplyStockAfterCell
                   touch

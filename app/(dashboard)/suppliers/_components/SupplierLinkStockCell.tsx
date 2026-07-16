@@ -5,28 +5,16 @@ import { Check, Loader2, Pencil, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  fetchAllocationPreview,
   fetchItemById,
-  postBatchDecrease,
-  postStockIncrease,
-  type MeResponse,
   type SupplierItemLinkRecord,
 } from "@/lib/api";
-import { hasPermission, Permission } from "@/lib/permissions";
+import { canAdminEditOnHandStock, setOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "../../supplies/_components/new-supply-drawer-ui";
 
-/** Owner/admin with inventory write — stock edits on supplier links. */
-export function canAdminEditSupplierLinkStock(
-  me: MeResponse | null | undefined,
-): boolean {
-  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
-  if (roleKey !== "owner" && roleKey !== "admin") {
-    return false;
-  }
-  return hasPermission(me?.permissions, Permission.InventoryWrite);
-}
+/** @deprecated use {@link canAdminEditOnHandStock} */
+export const canAdminEditSupplierLinkStock = canAdminEditOnHandStock;
 
 function parseStock(raw: number | string | null | undefined): number | null {
   if (raw == null || String(raw).trim() === "") {
@@ -153,43 +141,14 @@ export function SupplierLinkStockCell({
     setBusy(true);
     setError(null);
     try {
-      if (delta > 0) {
-        await postStockIncrease({
-          branchId: bid,
-          itemId: link.itemId,
-          quantity: delta,
-          unitCost: seedUnitCost(link),
-          notes: "Stock set from supplier catalog",
-        });
-      } else {
-        const decreaseQty = Math.abs(delta);
-        const allocations = await fetchAllocationPreview({
-          itemId: link.itemId,
-          branchId: bid,
-          quantity: decreaseQty,
-        });
-        if (!allocations.length) {
-          setError("No batches available to reduce stock.");
-          return;
-        }
-        let allocated = 0;
-        for (const line of allocations) {
-          const q = Number(line.quantity);
-          if (!Number.isFinite(q) || q <= 0) {
-            continue;
-          }
-          allocated += q;
-          await postBatchDecrease({
-            batchId: line.batchId,
-            quantity: q,
-            reason: "Stock set from supplier catalog",
-          });
-        }
-        if (allocated < decreaseQty - 0.0001) {
-          setError(`Only ${allocated} could be removed from batches.`);
-          return;
-        }
-      }
+      await setOnHandStock({
+        itemId: link.itemId,
+        branchId: bid,
+        current,
+        target,
+        unitCost: seedUnitCost(link),
+        notes: "Stock set from supplier catalog",
+      });
       setEditing(false);
       setDraft("");
       setBaseline(null);
