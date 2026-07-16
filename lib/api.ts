@@ -4021,19 +4021,22 @@ export type CostIssueRowRecord = {
   sellPrice: number | string | null;
   marginPct: number | string | null;
   costSource: "batch" | "reference" | "none";
-  primaryIssue: "zero_cost" | "sells_at_loss" | "thin_margin";
+  primaryIssue: "zero_cost" | "sells_at_loss" | "thin_margin" | "high_margin";
   zeroCost: boolean;
   sellsAtLoss: boolean;
   thinMargin: boolean;
+  highMargin: boolean;
 };
 
 export type CostIssuesResponseRecord = {
   branchId: string | null;
   thinMarginPct: number | string;
+  highMarginPct: number | string;
   total: number;
   zeroCostCount: number;
   sellsAtLossCount: number;
   thinMarginCount: number;
+  highMarginCount: number;
   items: CostIssueRowRecord[];
 };
 
@@ -4047,6 +4050,7 @@ export type AdjustItemCostPayload = {
 export async function fetchCostIssues(
   branchId?: string,
   thinMarginPct?: number,
+  highMarginPct?: number,
 ): Promise<CostIssuesResponseRecord> {
   const params = new URLSearchParams();
   if (branchId?.trim()) {
@@ -4054,6 +4058,9 @@ export async function fetchCostIssues(
   }
   if (thinMarginPct != null && Number.isFinite(thinMarginPct)) {
     params.set("thinMarginPct", String(thinMarginPct));
+  }
+  if (highMarginPct != null && Number.isFinite(highMarginPct)) {
+    params.set("highMarginPct", String(highMarginPct));
   }
   const q = params.toString();
   return request<CostIssuesResponseRecord>(

@@ -47,7 +47,12 @@ import {
   supWorkspaceShell,
 } from "../../suppliers/_components/supplier-ui-tokens";
 
-type IssueFilter = "all" | "zero_cost" | "sells_at_loss" | "thin_margin";
+type IssueFilter =
+  | "all"
+  | "zero_cost"
+  | "sells_at_loss"
+  | "thin_margin"
+  | "high_margin";
 
 function toNum(n: number | string | null | undefined): number | null {
   if (n == null || n === "") return null;
@@ -89,6 +94,10 @@ const ISSUE_META: Record<
   thin_margin: {
     label: "Thin margin",
     className: "border-amber-600/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  },
+  high_margin: {
+    label: "High margin",
+    className: "border-sky-600/30 bg-sky-500/10 text-sky-800 dark:text-sky-200",
   },
 };
 
@@ -238,7 +247,10 @@ export default function InventoryCostIssuesPage() {
     setData((prev) => {
       if (!prev) return prev;
       const stillAnIssue =
-        updated.zeroCost || updated.sellsAtLoss || updated.thinMargin;
+        updated.zeroCost ||
+        updated.sellsAtLoss ||
+        updated.thinMargin ||
+        updated.highMargin;
       const items = stillAnIssue
         ? prev.items.map((r) => (r.itemId === updated.itemId ? updated : r))
         : prev.items.filter((r) => r.itemId !== updated.itemId);
@@ -280,6 +292,11 @@ export default function InventoryCostIssuesPage() {
           label: "Thin margin",
           value: data.thinMarginCount,
         },
+        {
+          key: "high_margin" as const,
+          label: "High margin",
+          value: data.highMarginCount,
+        },
       ]
     : [];
 
@@ -293,7 +310,7 @@ export default function InventoryCostIssuesPage() {
             icon={AlertTriangle}
             eyebrow="Inventory"
             title="Cost issues"
-            description="Items with missing cost, cost above the sell price, or a thin margin. Fix the cost to correct future profit."
+            description="Items with missing cost, cost above the sell price, a thin margin, or an exaggerated margin above 50%. Fix the cost to correct future profit."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
@@ -485,7 +502,9 @@ export default function InventoryCostIssuesPage() {
                               ? "text-rose-600"
                               : margin != null && margin < 5
                                 ? "text-amber-600"
-                                : "",
+                                : margin != null && margin > 50
+                                  ? "text-sky-700 dark:text-sky-300"
+                                  : "",
                           )}
                         >
                           {margin == null ? "—" : `${margin.toFixed(1)}%`}
@@ -558,10 +577,12 @@ function recount(data: CostIssuesResponseRecord): CostIssuesResponseRecord {
   let zero = 0;
   let loss = 0;
   let thin = 0;
+  let high = 0;
   for (const r of data.items) {
     if (r.primaryIssue === "zero_cost") zero++;
     else if (r.primaryIssue === "sells_at_loss") loss++;
     else if (r.primaryIssue === "thin_margin") thin++;
+    else if (r.primaryIssue === "high_margin") high++;
   }
   return {
     ...data,
@@ -569,5 +590,6 @@ function recount(data: CostIssuesResponseRecord): CostIssuesResponseRecord {
     zeroCostCount: zero,
     sellsAtLossCount: loss,
     thinMarginCount: thin,
+    highMarginCount: high,
   };
 }
