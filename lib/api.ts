@@ -4946,6 +4946,23 @@ export async function postDailyAuditApprove(
   );
 }
 
+export async function postDailyAuditBulkApprove(
+  auditId: string,
+  itemIds: string[],
+  notes?: string | null,
+): Promise<DailyAuditReviewRecord> {
+  return request<DailyAuditReviewRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/${encodeURIComponent(auditId)}/approve-bulk`,
+    {
+      method: "POST",
+      body: {
+        itemIds,
+        ...(notes?.trim() ? { notes: notes.trim() } : {}),
+      },
+    },
+  );
+}
+
 export async function postDailyAuditEscalate(
   auditId: string,
   itemId: string,
