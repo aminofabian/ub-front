@@ -41,6 +41,10 @@ import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { sortCatalogRowsParentFirst } from "../../products/_components/catalog-list-styles";
 import { SupEmptyState, SupSection } from "./supplier-layout-primitives";
 import {
+  canAdminEditSupplierLinkStock,
+  SupplierLinkStockCell,
+} from "./SupplierLinkStockCell";
+import {
   supChipActive,
   supChipIdle,
   supFieldLabel,
@@ -138,10 +142,11 @@ export function SupplierCatalogColumn({
   onRefreshLinks?: () => void;
 }) {
   // Scope the product picker to the department chosen in the app header.
-  const { branchId: headerBranchId, itemTypeId: headerItemTypeId } =
+  const { branchId: headerBranchId, itemTypeId: headerItemTypeId, me } =
     useDashboard();
   const scopedBranchId = headerBranchId?.trim() || undefined;
   const scopedItemTypeId = headerItemTypeId?.trim() || undefined;
+  const canEditLinkStock = canAdminEditSupplierLinkStock(me);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [debouncedCatalogSearch, setDebouncedCatalogSearch] = useState("");
@@ -974,6 +979,9 @@ export function SupplierCatalogColumn({
               <thead className={cn("sticky top-0 z-10", supTableHead)}>
                 <tr>
                   <th className="px-2 py-1 font-semibold">Product</th>
+                  <th className="w-[4.25rem] px-2 py-1 text-right font-semibold">
+                    Stock
+                  </th>
                   <th className="w-20 px-2 py-1 text-right font-semibold">Cost</th>
                   {canLinkProducts ? (
                     <th className="w-[4.5rem] px-2 py-1 text-right font-semibold">
@@ -1002,6 +1010,15 @@ export function SupplierCatalogColumn({
                           </span>
                         ) : null}
                       </div>
+                    </td>
+                    <td className="px-2 py-1 text-right align-middle">
+                      <SupplierLinkStockCell
+                        link={row}
+                        branchId={scopedBranchId}
+                        canEdit={canEditLinkStock}
+                        disabled={linksBusy}
+                        onUpdated={() => onRefreshLinks?.()}
+                      />
                     </td>
                     <td className="px-2 py-1 text-right font-mono tabular-nums text-muted-foreground">
                       {row.defaultCostPrice != null && row.defaultCostPrice !== ""
