@@ -382,7 +382,7 @@ export type ItemSummaryRecord = {
   /** HTTPS URL for list thumbnails (from API: cover or first gallery image). */
   thumbnailUrl?: string | null;
   active?: boolean;
-  /** When true, row only groups option SKUs (full-tree catalog). Omitted when listing with catalogScope SKUS_ONLY. */
+  /** When true, non-sellable parent that only groups option SKUs. Sellable/stocked bases with children (e.g. Eggs) are false. Omitted when listing with catalogScope SKUS_ONLY. */
   groupLabelOnly?: boolean;
   /** True when sold by weight (kg/g/lb); fractional cart qty is allowed. */
   isWeighed?: boolean;

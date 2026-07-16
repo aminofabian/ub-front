@@ -178,8 +178,10 @@ export function ProductPickCell({
       setLoading(true);
       const bid = branchId?.trim();
       const exSup = excludeLinkedSupplierId?.trim();
+      // ALL (not SKUS_ONLY): keep stocked bases with package/option children
+      // (e.g. Eggs). Non-sellable group labels are still filtered client-side.
       void fetchItemsPage(q.trim(), {
-        catalogScope: "SKUS_ONLY",
+        catalogScope: "ALL",
         page: 0,
         size: 40,
         ...(bid ? { branchId: bid } : {}),

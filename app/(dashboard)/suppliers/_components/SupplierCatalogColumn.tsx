@@ -195,7 +195,9 @@ export function SupplierCatalogColumn({
     [catalogRows],
   );
 
-  const linkableOnPage = displayCatalogRows.filter((r) => !linkedIds.has(r.id));
+  const linkableOnPage = displayCatalogRows.filter(
+    (r) => !r.groupLabelOnly && !linkedIds.has(r.id),
+  );
   const allLinkableSelected =
     linkableOnPage.length > 0 && linkableOnPage.every((r) => selectedIds.has(r.id));
 
@@ -405,7 +407,9 @@ export function SupplierCatalogColumn({
   );
 
   const toggleSelectAllOnPage = () => {
-    const linkable = catalogRows.filter((r) => !linkedIds.has(r.id)).map((r) => r.id);
+    const linkable = catalogRows
+      .filter((r) => !r.groupLabelOnly && !linkedIds.has(r.id))
+      .map((r) => r.id);
     if (linkable.length === 0) {
       return;
     }
@@ -867,7 +871,7 @@ export function SupplierCatalogColumn({
                         </td>
                         {canLinkProducts ? (
                           <td className="px-1 py-1 align-middle">
-                            {!linked ? (
+                            {!linked && !isGroupLabel ? (
                               <Button
                                 type="button"
                                 size="sm"
