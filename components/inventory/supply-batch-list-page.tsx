@@ -518,8 +518,8 @@ export function SupplyBatchListPage() {
 
   return (
     <div className={DASHBOARD_MAX_WIDE}>
-      <div className="space-y-4">
-        <header className="space-y-2 border-b border-border/50 pb-4">
+      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-card">
+        <header className="space-y-2 border-b border-border px-3 py-3">
           <DashboardPageHero
             compact
             showActiveScope
@@ -533,108 +533,64 @@ export function SupplyBatchListPage() {
           ) : null}
         </header>
 
-        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+        <div className={cn(supFilterRail, "flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end")}>
           {(batches.length > 0 || loading) && (
             <div
-              className="flex flex-wrap gap-1.5 sm:flex-nowrap"
+              className="inline-flex flex-wrap border border-border bg-background p-0.5"
               role="group"
               aria-label="Batch summary"
             >
-              <button
-                type="button"
+              <StatusFilterBtn
+                label="All"
+                value={batchCounts.total}
+                active={!statusFilter}
                 onClick={() => setStatusFilter("")}
-                className={cn(
-                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
-                  !statusFilter
-                    ? "border-primary/35 bg-primary/5 ring-1 ring-primary/15"
-                    : "border-border/60 bg-background hover:bg-muted/30",
-                )}
-              >
-                <span className="truncate text-[11px] font-medium text-muted-foreground">
-                  All
-                </span>
-                <span className="shrink-0 text-base font-bold tabular-nums leading-none">
-                  {batchCounts.total.toLocaleString("en-KE")}
-                </span>
-              </button>
-              <button
-                type="button"
+              />
+              <StatusFilterBtn
+                label="Active"
+                value={batchCounts.active}
+                active={statusFilter === "active"}
+                tone="success"
                 onClick={() => setStatusFilterQuick("active")}
-                className={cn(
-                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
-                  statusFilter === "active"
-                    ? "border-emerald-500/35 bg-emerald-500/5 ring-1 ring-emerald-500/15"
-                    : "border-border/60 bg-background hover:bg-muted/30",
-                )}
-              >
-                <span className="truncate text-[11px] font-medium text-muted-foreground">
-                  Active
-                </span>
-                <span className="shrink-0 text-base font-bold tabular-nums leading-none text-emerald-700 dark:text-emerald-400">
-                  {batchCounts.active.toLocaleString("en-KE")}
-                </span>
-              </button>
-              <button
-                type="button"
+              />
+              <StatusFilterBtn
+                label="Sold out"
+                value={batchCounts.soldout}
+                active={statusFilter === "soldout"}
+                tone="info"
                 onClick={() => setStatusFilterQuick("soldout")}
-                className={cn(
-                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
-                  statusFilter === "soldout"
-                    ? "border-blue-500/35 bg-blue-500/5 ring-1 ring-blue-500/15"
-                    : "border-border/60 bg-background hover:bg-muted/30",
-                )}
-              >
-                <span className="truncate text-[11px] font-medium text-muted-foreground">
-                  Sold out
-                </span>
-                <span className="shrink-0 text-base font-bold tabular-nums leading-none text-blue-700 dark:text-blue-400">
-                  {batchCounts.soldout.toLocaleString("en-KE")}
-                </span>
-              </button>
-              <button
-                type="button"
+              />
+              <StatusFilterBtn
+                label="Closed"
+                value={batchCounts.closed}
+                active={statusFilter === "closed"}
+                tone="muted"
                 onClick={() => setStatusFilterQuick("closed")}
-                className={cn(
-                  "flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all sm:px-3",
-                  statusFilter === "closed"
-                    ? "border-border bg-muted/50 ring-1 ring-border"
-                    : "border-border/60 bg-background hover:bg-muted/30",
-                )}
-              >
-                <span className="truncate text-[11px] font-medium text-muted-foreground">
-                  Closed
-                </span>
-                <span className="shrink-0 text-base font-bold tabular-nums leading-none text-muted-foreground">
-                  {batchCounts.closed.toLocaleString("en-KE")}
-                </span>
-              </button>
+              />
             </div>
           )}
 
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="flex min-w-[10rem] flex-[2] flex-col gap-0.5 text-xs">
-              <span className="text-muted-foreground">Search</span>
+          <div className="flex flex-1 flex-wrap items-end gap-2">
+            <label className="flex min-w-[10rem] flex-[2] flex-col gap-1">
+              <span className={supFieldLabel}>Search</span>
               <span className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="search"
                   placeholder="Batch #, name, supplier…"
-                  className={cn(
-                    dashboardInputClass(),
-                    "h-9 w-full py-1.5 pl-8 text-sm",
-                  )}
+                  className={cn(supInput, "h-8 w-full bg-background py-0 pl-8 text-xs")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Search batches"
                 />
               </span>
             </label>
-            <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
-              <span className="text-muted-foreground">Branch</span>
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-1 sm:max-w-[10rem]">
+              <span className={supFieldLabel}>Branch</span>
               <select
                 className={cn(
-                  dashboardSelectClass(),
-                  "h-9 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
+                  supSelect,
+                  "h-8 bg-background py-0 text-xs disabled:cursor-not-allowed disabled:opacity-60",
                 )}
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
@@ -651,10 +607,10 @@ export function SupplyBatchListPage() {
                   ))}
               </select>
             </label>
-            <label className="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[10rem]">
-              <span className="text-muted-foreground">Supplier</span>
+            <label className="flex min-w-[9rem] flex-1 flex-col gap-1 sm:max-w-[10rem]">
+              <span className={supFieldLabel}>Supplier</span>
               <select
-                className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+                className={cn(supSelect, "h-8 bg-background py-0 text-xs")}
                 value={supplierFilter}
                 onChange={(e) => setSupplierFilter(e.target.value)}
                 aria-label="Supplier filter"
@@ -672,7 +628,7 @@ export function SupplyBatchListPage() {
                 variant="outline"
                 size="sm"
                 type="button"
-                className="h-9 shrink-0 gap-1 px-2.5 text-xs"
+                className="h-8 shrink-0 gap-1 rounded-none px-2.5 text-xs"
                 onClick={() => {
                   setBranchFilter("");
                   setSupplierFilter("");
@@ -688,7 +644,7 @@ export function SupplyBatchListPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 shrink-0 gap-1.5"
+              className="h-8 shrink-0 gap-1.5 rounded-none px-3"
               disabled={loading}
               onClick={load}
             >
@@ -700,7 +656,7 @@ export function SupplyBatchListPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 shrink-0 gap-1.5"
+              className="h-8 shrink-0 gap-1.5 rounded-none px-3"
               onClick={exportCSV}
               disabled={filtered.length === 0}
             >
@@ -711,18 +667,20 @@ export function SupplyBatchListPage() {
         </div>
 
         {message ? (
-          <p className="text-xs text-destructive">{message}</p>
+          <p className="border-b border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {message}
+          </p>
         ) : null}
         {clearResult ? (
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-emerald-700 dark:text-emerald-400">
+          <div className="flex items-center justify-between gap-2 border-b border-emerald-600/30 bg-emerald-500/10 px-3 py-2">
+            <p className="text-xs text-emerald-800 dark:text-emerald-300">
               {clearResult}
             </p>
             <Button
               variant="ghost"
               size="sm"
               type="button"
-              className="h-7 shrink-0 px-2 text-xs"
+              className="h-7 shrink-0 rounded-none px-2 text-xs"
               onClick={() => setClearResult(null)}
             >
               Dismiss
@@ -730,9 +688,9 @@ export function SupplyBatchListPage() {
           </div>
         ) : null}
 
-        <section className={DASHBOARD_TABLE_SURFACE}>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
-            <h2 className="text-xs font-semibold sm:text-sm">
+        <section className={cn(supWorkspaceShell, "border-0 border-t")}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+            <h2 className="text-xs font-semibold tracking-tight text-foreground">
               {loading ? (
                 <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" />
@@ -750,100 +708,101 @@ export function SupplyBatchListPage() {
             </h2>
           </div>
 
-        <table className="hidden sm:table w-full border-collapse text-left text-sm">
-          <thead className="border-b border-border/50 bg-muted/25">
-            <tr>
+        <div className="overflow-x-auto">
+        <table className="hidden sm:table w-full min-w-[56rem] border-collapse border-0 text-left text-xs">
+          <thead>
+            <tr className={supTableHead}>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "cursor-pointer select-none")}
                 onClick={() => handleSort("batchNumber")}
               >
                 Batch #{sortIndicator("batchNumber")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "cursor-pointer select-none")}
                 onClick={() => handleSort("batchName")}
               >
                 Name{sortIndicator("batchName")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "cursor-pointer select-none")}
                 onClick={() => handleSort("supplierName")}
               >
                 Supplier{sortIndicator("supplierName")}
               </th>
               <th
                 scope="col"
-                className="hidden md:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "hidden cursor-pointer select-none text-right md:table-cell")}
                 onClick={() => handleSort("itemCount")}
               >
                 Items{sortIndicator("itemCount")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "cursor-pointer select-none text-right")}
                 onClick={() => handleSort("soldPercentage")}
               >
                 Sold{sortIndicator("soldPercentage")}
               </th>
               <th
                 scope="col"
-                className="hidden lg:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "hidden cursor-pointer select-none text-right lg:table-cell")}
                 onClick={() => handleSort("totalCost")}
               >
                 Cost{sortIndicator("totalCost")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "cursor-pointer select-none text-right")}
                 onClick={() => handleSort("totalRevenue")}
               >
                 Revenue{sortIndicator("totalRevenue")}
               </th>
               <th
                 scope="col"
-                className="hidden lg:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "hidden cursor-pointer select-none text-right lg:table-cell")}
                 onClick={() => handleSort("totalAssociatedCosts")}
               >
                 Extras{sortIndicator("totalAssociatedCosts")}
               </th>
               <th
                 scope="col"
-                className="hidden md:table-cell cursor-pointer select-none px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "hidden cursor-pointer select-none text-right md:table-cell")}
                 onClick={() => handleSort("totalRemainingQuantity")}
               >
                 Left{sortIndicator("totalRemainingQuantity")}
               </th>
               <th
                 scope="col"
-                className="cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "cursor-pointer select-none")}
                 onClick={() => handleSort("status")}
               >
                 Status{sortIndicator("status")}
               </th>
               <th
                 scope="col"
-                className="hidden lg:table-cell cursor-pointer select-none px-3 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+                className={cn(supTableCell, "hidden cursor-pointer select-none lg:table-cell")}
                 onClick={() => handleSort("receivedAt")}
               >
                 Received{sortIndicator("receivedAt")}
               </th>
               <th
                 scope="col"
-                className="px-3 py-2 text-right font-sans text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4"
+                className={cn(supTableCell, "text-right")}
               >
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40 text-[13px]">
+          <tbody>
             {loading ? (
-              <tr>
+              <tr className={supTableRow}>
                 <td
                   colSpan={13}
-                  className="px-3 py-8 text-center text-sm text-muted-foreground"
+                  className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -852,10 +811,10 @@ export function SupplyBatchListPage() {
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
-              <tr>
+              <tr className={supTableRow}>
                 <td
                   colSpan={13}
-                  className="px-3 py-8 text-center text-sm text-muted-foreground"
+                  className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                 >
                   {hasFilters
                     ? "No supply batches match your filters."
@@ -872,28 +831,23 @@ export function SupplyBatchListPage() {
                 const st = statusBadge(b.status);
 
                 return (
-                  <tr
-                    key={b.id}
-                    className="transition-colors hover:bg-muted/30"
-                  >
-                    {/* Batch # */}
-                    <td className="px-3 py-2.5 sm:px-4">
+                  <tr key={b.id} className={supTableRow}>
+                    <td className={supTableCell}>
                       <Link
                         href={`/inventory/supply-batches/${b.id}`}
-                        className="font-medium text-foreground hover:text-primary decoration-1 underline-offset-4 hover:underline"
+                        className="font-medium text-foreground hover:text-primary hover:underline"
                       >
                         {b.batchNumber}
                       </Link>
                     </td>
 
-                    {/* Name */}
-                    <td className="px-3 py-2.5 sm:px-4">
+                    <td className={supTableCell}>
                       {editingId === b.id ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-0 border border-border">
                           <input
-                            className={dashboardInputClass(
-                              false,
-                              "w-40 py-1.5 text-sm",
+                            className={cn(
+                              supFormCellInput,
+                              "h-8 w-36 border-0 text-sm",
                             )}
                             value={editDraft}
                             onChange={(e) => setEditDraft(e.target.value)}
@@ -903,89 +857,81 @@ export function SupplyBatchListPage() {
                             }}
                             autoFocus
                           />
-                          <Button
-                            size="sm"
-                            className="h-6 px-1.5"
+                          <button
+                            type="button"
+                            className="inline-flex size-8 items-center justify-center border-l border-border bg-primary text-primary-foreground disabled:opacity-40"
                             onClick={() => handleSaveName(b.id)}
                             disabled={savingId === b.id}
                           >
-                            <CheckCircle2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5"
+                            <CheckCircle2 className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex size-8 items-center justify-center border-l border-border text-muted-foreground hover:bg-muted/40"
                             onClick={() => setEditingId(null)}
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
+                            <X className="size-3.5" />
+                          </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm">{b.batchName ?? "—"}</span>
                           {canAct && (
                             <button
+                              type="button"
                               className="text-muted-foreground hover:text-foreground"
                               onClick={() => {
                                 setEditingId(b.id);
                                 setEditDraft(b.batchName ?? "");
                               }}
                             >
-                              <Pencil className="h-3 w-3" />
+                              <Pencil className="size-3" />
                             </button>
                           )}
                         </div>
                       )}
                     </td>
 
-                    {/* Supplier */}
-                    <td className="px-3 py-2.5 text-muted-foreground sm:px-4">
+                    <td className={cn(supTableCell, "text-muted-foreground")}>
                       {b.supplierName ?? "—"}
                     </td>
 
-                    {/* Items */}
-                    <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums text-muted-foreground sm:px-4">
+                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums text-muted-foreground md:table-cell")}>
                       {b.itemCount}
                     </td>
 
-                    {/* Sold % */}
-                    <td className="px-3 py-2.5 text-right sm:px-4">
-                      {soldBar(b.soldPercentage)}
+                    <td className={cn(supTableCell, "text-right")}>
+                      {soldPct(b.soldPercentage)}
                     </td>
 
-                    {/* Cost */}
-                    <td className="hidden lg:table-cell px-3 py-2.5 text-right font-mono tabular-nums sm:px-4">
+                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums lg:table-cell")}>
                       {formatMoneyShort(b.totalCost)}
                     </td>
 
-                    {/* Revenue */}
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300 sm:px-4">
+                    <td className={cn(supTableCell, "text-right font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300")}>
                       {formatMoneyShort(b.totalRevenue)}
                     </td>
 
-                    {/* Extras */}
-                    <td className="hidden lg:table-cell px-3 py-2.5 text-right font-mono tabular-nums text-muted-foreground sm:px-4">
+                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums text-muted-foreground lg:table-cell")}>
                       {formatMoneyShort(b.totalAssociatedCosts)}
                     </td>
 
-                    {/* Left */}
-                    <td className="hidden md:table-cell px-3 py-2.5 text-right tabular-nums sm:px-4">
+                    <td className={cn(supTableCell, "hidden text-right font-mono tabular-nums md:table-cell")}>
                       <span
                         className={cn(
                           Number(b.totalRemainingQuantity) <= 0
                             ? "text-muted-foreground"
-                            : "font-medium",
+                            : "font-medium text-foreground",
                         )}
                       >
                         {formatQty(b.totalRemainingQuantity)}
                       </span>
                     </td>
 
-                    {/* Status */}
-                    <td className="px-3 py-2.5 sm:px-4">
+                    <td className={supTableCell}>
                       <span
                         className={cn(
-                          "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                          "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
                           st.className,
                         )}
                       >
@@ -993,22 +939,20 @@ export function SupplyBatchListPage() {
                       </span>
                     </td>
 
-                    {/* Received */}
-                    <td className="hidden lg:table-cell px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
+                    <td className={cn(supTableCell, "hidden text-xs text-muted-foreground lg:table-cell")}>
                       {new Date(b.receivedAt).toLocaleDateString(undefined, {
                         dateStyle: "medium",
                       })}
                     </td>
 
-                    {/* Actions */}
-                    <td className="px-3 py-2.5 text-right sm:px-4">
-                      <div className="flex flex-wrap justify-end gap-1.5">
+                    <td className={cn(supTableCell, "text-right")}>
+                      <div className="flex flex-wrap justify-end gap-1">
                         <Link href={`/inventory/supply-batches/${b.id}`}>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1"
+                            className="h-7 gap-1 rounded-none px-2 text-xs"
                           >
                             <Eye className="size-3.5" />
                             View
@@ -1019,7 +963,7 @@ export function SupplyBatchListPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1"
+                            className="h-7 gap-1 rounded-none px-2 text-xs"
                             onClick={() => handleRecalculate(b.id)}
                             disabled={recalcId === b.id}
                           >
@@ -1037,7 +981,7 @@ export function SupplyBatchListPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1 text-rose-600 hover:text-rose-700"
+                            className="h-7 gap-1 rounded-none px-2 text-xs text-rose-600 hover:text-rose-700"
                             onClick={() =>
                               setClearDialog({
                                 id: b.id,
@@ -1063,9 +1007,9 @@ export function SupplyBatchListPage() {
             )}
           </tbody>
         </table>
+        </div>
 
-        {/* ── Mobile card layout (< sm breakpoint) ───────────────── */}
-        <div className="flex flex-col gap-3 sm:hidden">
+        <div className="flex flex-col divide-y divide-border sm:hidden">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1089,19 +1033,18 @@ export function SupplyBatchListPage() {
               return (
                 <div
                   key={b.id}
-                  className="rounded-lg border border-border/60 bg-card p-3 shadow-sm"
+                  className="bg-card p-3"
                 >
-                  {/* Top row: Batch # + Status badge */}
                   <div className="flex items-center justify-between gap-2">
                     <Link
                       href={`/inventory/supply-batches/${b.id}`}
-                      className="font-medium text-foreground hover:text-primary decoration-1 underline-offset-4 hover:underline"
+                      className="font-medium text-foreground hover:text-primary hover:underline"
                     >
                       {b.batchNumber}
                     </Link>
                     <span
                       className={cn(
-                        "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        "inline-flex border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
                         st.className,
                       )}
                     >
@@ -1109,27 +1052,24 @@ export function SupplyBatchListPage() {
                     </span>
                   </div>
 
-                  {/* Second row: Supplier */}
                   <div className="mt-2 text-sm text-muted-foreground">
                     {b.supplierName ?? "—"}
                   </div>
 
-                  {/* Third row: Revenue | Sold % */}
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <span className="font-mono tabular-nums font-medium text-emerald-700 dark:text-emerald-300">
-                      KES {formatMoneyShort(b.totalRevenue)}
+                      {formatMoneyShort(b.totalRevenue)}
                     </span>
-                    {soldBar(b.soldPercentage)}
+                    {soldPct(b.soldPercentage)}
                   </div>
 
-                  {/* Fourth row: Action buttons */}
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-3 flex flex-wrap gap-1">
                     <Link href={`/inventory/supply-batches/${b.id}`}>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1"
+                        className="h-8 gap-1 rounded-none px-2 text-xs"
                       >
                         <Eye className="size-3.5" />
                         View
@@ -1140,7 +1080,7 @@ export function SupplyBatchListPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1"
+                        className="h-8 gap-1 rounded-none px-2 text-xs"
                         onClick={() => handleRecalculate(b.id)}
                         disabled={recalcId === b.id}
                       >
@@ -1158,7 +1098,7 @@ export function SupplyBatchListPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1 text-rose-600 hover:text-rose-700"
+                        className="h-8 gap-1 rounded-none px-2 text-xs text-rose-600 hover:text-rose-700"
                         onClick={() =>
                           setClearDialog({
                             id: b.id,
@@ -1182,30 +1122,38 @@ export function SupplyBatchListPage() {
             })
           )}
         </div>
+
+        {!loading && filtered.length > 0 ? (
+          <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
+            <span className={supKicker}>Tip</span>
+            <span className="ml-2">
+              Click column headers to sort. Export CSV for spreadsheet analysis.
+            </span>
+          </div>
+        ) : null}
       </section>
 
-      {/* ── Clear confirmation dialog ────────────────────────────────── */}
       {clearDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-border/70 bg-card p-6 shadow-lg ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
-            <h2 className="text-lg font-semibold">
-              {clearDialog.hasRemaining
-                ? "Clear Supply Batch?"
-                : "Close Supply Batch?"}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              You are about to close <strong>{clearDialog.batchNumber}</strong>.
-              This action cannot be undone.
-            </p>
+          <div className="w-full max-w-lg overflow-hidden border border-border bg-card shadow-lg">
+            <div className="border-b border-border bg-[#e8eef5] px-4 py-3 dark:bg-muted/40">
+              <h2 className="text-base font-semibold tracking-tight">
+                {clearDialog.hasRemaining
+                  ? "Clear Supply Batch?"
+                  : "Close Supply Batch?"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                You are about to close <strong>{clearDialog.batchNumber}</strong>.
+                This action cannot be undone.
+              </p>
+            </div>
 
             {clearDialog.hasRemaining ? (
-              <div className="mt-4 space-y-4">
-                <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-xs text-muted-foreground">
-                    Reason for write-off
-                  </span>
+              <div className="space-y-3 px-4 py-4">
+                <label className="flex flex-col gap-1">
+                  <span className={supFieldLabel}>Reason for write-off</span>
                   <select
-                    className={dashboardSelectClass(false)}
+                    className={cn(supSelect, "h-8 bg-background text-sm")}
                     value={clearReason}
                     onChange={(e) => setClearReason(e.target.value)}
                   >
@@ -1216,21 +1164,24 @@ export function SupplyBatchListPage() {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-xs text-muted-foreground">Notes</span>
+                <label className="flex flex-col gap-1">
+                  <span className={supFieldLabel}>Notes</span>
                   <input
-                    className={dashboardInputClass(false)}
+                    className={cn(supInput, "h-8 bg-background text-sm")}
                     value={clearNotes}
                     onChange={(e) => setClearNotes(e.target.value)}
                     placeholder="Optional notes…"
                   />
                 </label>
               </div>
-            ) : null}
+            ) : (
+              <div className="px-4 py-4" />
+            )}
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 border-t border-border bg-[#eef2f7] px-4 py-3 dark:bg-muted/25">
               <Button
                 variant="outline"
+                className="rounded-none"
                 onClick={() => setClearDialog(null)}
                 disabled={clearing}
               >
@@ -1238,6 +1189,7 @@ export function SupplyBatchListPage() {
               </Button>
               <Button
                 variant="destructive"
+                className="rounded-none"
                 onClick={handleClear}
                 disabled={clearing}
               >
