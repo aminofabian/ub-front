@@ -405,7 +405,7 @@ export function NewSupplyDrawer({
     null,
   );
   const [lineSearchQuery, setLineSearchQuery] = useState("");
-  const [lineFocus, setLineFocus] = useState<"all" | "fill" | "ready">("fill");
+  const [lineFocus, setLineFocus] = useState<"all" | "fill" | "ready">("all");
   const [deliveryExpanded, setDeliveryExpanded] = useState(true);
   const pricingGenRef = useRef(0);
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
@@ -494,7 +494,7 @@ export function NewSupplyDrawer({
       setReceivedAtLocal(defaultReceived);
       setRowPricing({});
       setLineSearchQuery("");
-      setLineFocus("fill");
+      setLineFocus("all");
       setDeliveryExpanded(true);
       setAddLineOpen(false);
       setLinkModalSupplierId(null);
