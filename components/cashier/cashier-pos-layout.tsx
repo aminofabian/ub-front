@@ -54,8 +54,6 @@ import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-
 import {
   CashierProductModal,
   type CashierProductModalSubmit,
@@ -75,8 +73,8 @@ import {
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
+import { CashierReceiveStockModal } from "./cashier-receive-stock-modal";
 import { CashierSuppliersModal } from "./cashier-suppliers-modal";
-import { NewSupplyDrawer } from "@/app/(dashboard)/supplies/_components/new-supply-drawer";
 
 const POS_SHIFT_CHIP_CLASS = cn(
   "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
@@ -763,8 +761,8 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [suppliersOpen, setSuppliersOpen] = useState(false);
-  const [newSupplyOpen, setNewSupplyOpen] = useState(false);
-  const [newSupplySupplier, setNewSupplySupplier] =
+  const [receiveStockOpen, setReceiveStockOpen] = useState(false);
+  const [receiveStockSupplier, setReceiveStockSupplier] =
     useState<SupplierRecord | null>(null);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
@@ -803,7 +801,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !showScanner &&
       !createProductOpen &&
       !suppliersOpen &&
-      !newSupplyOpen &&
+      !receiveStockOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -1904,25 +1902,28 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         canReceive={allowReceiveSupply}
         onReceiveSupply={(supplier) => {
           setSuppliersOpen(false);
-          setNewSupplySupplier(supplier ?? null);
-          setNewSupplyOpen(true);
+          setReceiveStockSupplier(supplier ?? null);
+          setReceiveStockOpen(true);
         }}
       />
 
-      <NewSupplyDrawer
-        open={newSupplyOpen}
+      <CashierReceiveStockModal
+        open={receiveStockOpen}
         onOpenChange={(o) => {
-          setNewSupplyOpen(o);
+          setReceiveStockOpen(o);
           if (!o) {
-            setNewSupplySupplier(null);
+            setReceiveStockSupplier(null);
             window.requestAnimationFrame(() => focusSearch());
           }
         }}
-        initialSupplier={newSupplySupplier}
+        brandTheme={dialogBrandTheme}
+        branchId={branchId}
+        currency={currency}
+        canSetSellPrice={canPersistShelfPrice}
+        initialSupplier={receiveStockSupplier}
         onPosted={() => {
-          toast.success("Supply posted");
-          setNewSupplyOpen(false);
-          setNewSupplySupplier(null);
+          setReceiveStockOpen(false);
+          setReceiveStockSupplier(null);
           window.requestAnimationFrame(() => focusSearch());
         }}
       />

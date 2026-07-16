@@ -303,8 +303,8 @@ export function CashierSuppliersModal({
             >
               <PackagePlus className="size-3.5" />
               {supplier
-                ? `Receive supply · ${supplier.name}`
-                : "Receive new supply"}
+                ? `Receive stock · ${supplier.name}`
+                : "Receive stock"}
             </Button>
           ) : null}
 
