@@ -29,6 +29,8 @@ import {
   itemListThumbnailUrl,
   type CategoryTreeNodeRecord,
   type ItemSummaryRecord,
+  type ItemTypeRecord,
+  type SupplierRecord,
 } from "@/lib/api";
 import { fetchPosShelfPrice } from "@/lib/pos-shelf-price";
 import type { CashierPosUiCopy } from "@/lib/cashier-pos-copy";
@@ -52,6 +54,7 @@ import { usePosBarcodeWedge } from "@/hooks/use-pos-barcode-wedge";
 import { usePosEvents } from "@/hooks/use-pos-events";
 import { type TopProductRecord } from "@/lib/top-products";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 import {
   CashierProductModal,
@@ -73,7 +76,7 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import { CashierCreateProductModal } from "./cashier-create-product-modal";
 import { CashierEditPriceModal } from "./cashier-edit-price-modal";
 import { CashierSuppliersModal } from "./cashier-suppliers-modal";
-import type { ItemTypeRecord } from "@/lib/api";
+import { NewSupplyDrawer } from "@/app/(dashboard)/supplies/_components/new-supply-drawer";
 
 const POS_SHIFT_CHIP_CLASS = cn(
   "inline-flex items-center gap-1.5 rounded-md border border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_10%,transparent)] bg-transparent px-2.5 py-1.5 text-xs font-medium tracking-tight text-foreground",
@@ -211,6 +214,8 @@ export type CashierPosLayoutProps = {
   allowCreateSupplier?: boolean;
   /** Link catalog products to suppliers from POS. */
   allowLinkSupplierProducts?: boolean;
+  /** Receive / post Path B supplies from POS. */
+  allowReceiveSupply?: boolean;
   /** Mark cart lines as sold by weight (permission or admin flag). */
   allowWeighedToggle?: boolean;
   weighedToggleBusyItemId?: string | null;
@@ -741,6 +746,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     allowCreateProduct = false,
     allowCreateSupplier = false,
     allowLinkSupplierProducts = false,
+    allowReceiveSupply = false,
     allowWeighedToggle = false,
     weighedToggleBusyItemId = null,
     onToggleWeighed,
@@ -757,9 +763,12 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const [suppliersOpen, setSuppliersOpen] = useState(false);
+  const [newSupplyOpen, setNewSupplyOpen] = useState(false);
+  const [newSupplySupplier, setNewSupplySupplier] =
+    useState<SupplierRecord | null>(null);
   const [editPriceKey, setEditPriceKey] = useState<string | null>(null);
   const allowManageSuppliers =
-    allowCreateSupplier || allowLinkSupplierProducts;
+    allowCreateSupplier || allowLinkSupplierProducts || allowReceiveSupply;
   const [tileShelfPrices, setTileShelfPrices] = useState<
     Record<string, string>
   >({});
@@ -794,6 +803,7 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
       !showScanner &&
       !createProductOpen &&
       !suppliersOpen &&
+      !newSupplyOpen &&
       editPriceKey == null,
     onScan: applyBarcodeSearch,
     searchInputRef,
@@ -1891,6 +1901,30 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
         brandTheme={dialogBrandTheme}
         canWrite={allowCreateSupplier}
         canLink={allowLinkSupplierProducts}
+        canReceive={allowReceiveSupply}
+        onReceiveSupply={(supplier) => {
+          setSuppliersOpen(false);
+          setNewSupplySupplier(supplier ?? null);
+          setNewSupplyOpen(true);
+        }}
+      />
+
+      <NewSupplyDrawer
+        open={newSupplyOpen}
+        onOpenChange={(o) => {
+          setNewSupplyOpen(o);
+          if (!o) {
+            setNewSupplySupplier(null);
+            window.requestAnimationFrame(() => focusSearch());
+          }
+        }}
+        initialSupplier={newSupplySupplier}
+        onPosted={() => {
+          toast.success("Supply posted");
+          setNewSupplyOpen(false);
+          setNewSupplySupplier(null);
+          window.requestAnimationFrame(() => focusSearch());
+        }}
       />
 
       <CashierEditPriceModal

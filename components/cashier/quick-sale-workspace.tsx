@@ -204,6 +204,8 @@ export function QuickSaleWorkspace({
     itemTypes,
     itemTypeId: headerItemTypeId,
     refreshSession,
+    canPathBWrite,
+    canViewSuppliers,
   } = useDashboard();
   const online = useOnlineStatus();
   const posDraftsEnabled = useFeatureFlag(POS_DRAFT_FLAGS.enabled);
@@ -268,6 +270,8 @@ export function QuickSaleWorkspace({
     variant === "cashier" && canWriteSuppliers(me, business);
   const allowLinkSupplierProducts =
     variant === "cashier" && canLinkSupplierProducts(me, business);
+  const allowReceiveSupply =
+    variant === "cashier" && canPathBWrite && canViewSuppliers;
 
   const branchLockedRole =
     me?.role?.key?.trim().toLowerCase() === "stock_manager" ||
@@ -2793,6 +2797,7 @@ export function QuickSaleWorkspace({
         allowCreateProduct={allowCreateProduct}
         allowCreateSupplier={allowCreateSupplier}
         allowLinkSupplierProducts={allowLinkSupplierProducts}
+        allowReceiveSupply={allowReceiveSupply}
         allowWeighedToggle={allowWeighedToggle}
         weighedToggleBusyItemId={weighedToggleBusyItemId}
         onToggleWeighed={toggleLineWeighed}
