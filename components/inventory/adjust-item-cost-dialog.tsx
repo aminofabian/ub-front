@@ -11,12 +11,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { dashboardInputClass } from "@/components/dashboard-page-ui";
 import {
   adjustItemCost,
   type CostIssueRowRecord,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+import {
+  supFieldLabel,
+  supInput,
+  supKvLabel,
+  supKvTable,
+  supKvValue,
+} from "@/app/(dashboard)/suppliers/_components/supplier-ui-tokens";
 
 function toNum(n: number | string | null | undefined): number | null {
   if (n == null || n === "") return null;
@@ -118,63 +125,63 @@ export function AdjustItemCostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 p-0 sm:max-w-lg">
-        <DialogHeader className="space-y-1.5 border-b border-border/50 px-6 py-5">
-          <DialogTitle className="text-lg tracking-tight">
+      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-none border border-border p-0 sm:max-w-lg">
+        <DialogHeader className="space-y-1 border-b border-border bg-[#e8eef5] px-4 py-3 dark:bg-muted/40">
+          <DialogTitle className="text-base font-semibold tracking-tight">
             Adjust cost
           </DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed">
+          <DialogDescription className="text-xs leading-relaxed">
             {row ? row.name : ""}
             {branchLabel ? ` · ${branchLabel}` : ""}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="space-y-3 px-4 py-4">
           {row ? (
             <>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Current cost
-                  </p>
-                  <p className="mt-1 text-base font-semibold tabular-nums tracking-tight text-foreground">
-                    {fmtMoney(currentCost, currency)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Sell price
-                  </p>
-                  <p className="mt-1 text-base font-semibold tabular-nums tracking-tight text-foreground">
-                    {fmtMoney(currentSell, currency)}
-                  </p>
-                </div>
-              </div>
+              <table className={supKvTable}>
+                <tbody>
+                  <tr>
+                    <th className={supKvLabel}>Current cost</th>
+                    <td className={cn(supKvValue, "font-mono tabular-nums font-semibold")}>
+                      {fmtMoney(currentCost, currency)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className={supKvLabel}>Sell price</th>
+                    <td className={cn(supKvValue, "font-mono tabular-nums font-semibold")}>
+                      {fmtMoney(currentSell, currency)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-              <label className="block text-xs font-medium text-muted-foreground">
-                New unit cost ({currency})
+              <label className="block">
+                <span className={supFieldLabel}>New unit cost ({currency})</span>
                 <input
                   type="number"
                   min={0}
                   step="0.01"
                   autoFocus
-                  className={cn(dashboardInputClass(), "mt-1.5")}
+                  className={cn(supInput, "mt-1")}
                   value={cost}
                   placeholder="e.g. 45.00"
                   onChange={(e) => setCost(e.target.value)}
                 />
               </label>
 
-              <label className="block text-xs font-medium text-muted-foreground">
-                Sell price ({currency}){" "}
-                <span className="font-normal text-muted-foreground/70">
-                  · optional
+              <label className="block">
+                <span className={supFieldLabel}>
+                  Sell price ({currency}){" "}
+                  <span className="font-normal normal-case tracking-normal text-muted-foreground/70">
+                    optional
+                  </span>
                 </span>
                 <input
                   type="number"
                   min={0}
                   step="0.01"
-                  className={cn(dashboardInputClass(), "mt-1.5")}
+                  className={cn(supInput, "mt-1")}
                   value={sellPrice}
                   placeholder="Leave blank to keep current"
                   onChange={(e) => setSellPrice(e.target.value)}
@@ -184,34 +191,36 @@ export function AdjustItemCostDialog({
               {previewMargin != null ? (
                 <p
                   className={cn(
-                    "text-xs font-medium",
+                    "border px-2 py-1.5 text-xs font-medium",
                     previewMargin < 0
-                      ? "text-rose-600"
+                      ? "border-rose-600/30 bg-rose-500/10 text-rose-600"
                       : previewMargin < 5
-                        ? "text-amber-600"
-                        : "text-emerald-600",
+                        ? "border-amber-600/30 bg-amber-500/10 text-amber-600"
+                        : "border-emerald-600/30 bg-emerald-500/10 text-emerald-600",
                   )}
                 >
                   Resulting margin: {previewMargin.toFixed(1)}%
                 </p>
               ) : null}
 
-              <label className="block text-xs font-medium text-muted-foreground">
-                Reason{" "}
-                <span className="font-normal text-muted-foreground/70">
-                  · optional
+              <label className="block">
+                <span className={supFieldLabel}>
+                  Reason{" "}
+                  <span className="font-normal normal-case tracking-normal text-muted-foreground/70">
+                    optional
+                  </span>
                 </span>
                 <input
                   type="text"
                   maxLength={500}
-                  className={cn(dashboardInputClass(), "mt-1.5")}
+                  className={cn(supInput, "mt-1")}
                   value={reason}
                   placeholder="e.g. Pack price recorded as unit cost"
                   onChange={(e) => setReason(e.target.value)}
                 />
               </label>
 
-              <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+              <p className="border border-border bg-muted/15 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
                 Updates the reference cost and rewrites{" "}
                 {activeBatches > 0 ? (
                   <>
@@ -226,7 +235,7 @@ export function AdjustItemCostDialog({
               </p>
 
               {error ? (
-                <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                <p className="border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-sm text-destructive">
                   {error}
                 </p>
               ) : null}
@@ -234,10 +243,11 @@ export function AdjustItemCostDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/50 px-6 py-4 sm:gap-2">
+        <DialogFooter className="gap-2 border-t border-border bg-[#eef2f7] px-4 py-3 sm:gap-2 dark:bg-muted/25">
           <Button
             type="button"
             variant="outline"
+            className="rounded-none"
             onClick={() => onOpenChange(false)}
             disabled={saving}
           >
@@ -245,7 +255,7 @@ export function AdjustItemCostDialog({
           </Button>
           <Button
             type="button"
-            className="bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
+            className="rounded-none bg-[#B08D48] text-white hover:bg-[#9A7A3F]"
             onClick={() => void onSave()}
             disabled={!canSave}
           >

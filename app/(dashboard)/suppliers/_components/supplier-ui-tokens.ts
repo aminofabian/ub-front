@@ -36,6 +36,25 @@ export const supSelect = cn(supControlBase, "h-9 cursor-pointer px-2.5 py-0");
 
 export const supTextarea = cn(supControlBase, "min-h-[5rem] resize-y px-2.5 py-2");
 
+/** Borderless controls for label|value form tables */
+export const supFormCellInput = cn(
+  "h-8 w-full rounded-none border-0 bg-transparent px-2 py-1 text-sm",
+  "placeholder:text-muted-foreground/50",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40",
+  "disabled:cursor-not-allowed disabled:opacity-50",
+);
+
+export const supFormCellSelect = cn(
+  supFormCellInput,
+  "cursor-pointer appearance-none",
+);
+
+export const supFormCellTextarea = cn(
+  "min-h-[4.5rem] w-full resize-y rounded-none border-0 bg-transparent px-2 py-1.5 text-sm",
+  "placeholder:text-muted-foreground/50",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40",
+);
+
 /* ── Surfaces (Excel-like: square, hairline grid) ───────────────────────── */
 
 export const supPageRoot = cn(

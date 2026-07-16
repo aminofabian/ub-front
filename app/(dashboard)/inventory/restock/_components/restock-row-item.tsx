@@ -4,6 +4,13 @@ import { Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ItemSummaryRecord } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+import {
+  supFormCellInput,
+  supTableCell,
+  supTableRow,
+} from "../../../suppliers/_components/supplier-ui-tokens";
 
 export type RestockRow = {
   item: ItemSummaryRecord;
@@ -32,9 +39,9 @@ export function RestockRowItem({
   const variant = row.item.variantName?.trim();
 
   return (
-    <div className="flex min-w-0 items-center gap-2 px-2.5 py-1.5 sm:gap-3 sm:px-3">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium leading-tight text-foreground">
+    <tr className={supTableRow}>
+      <td className={cn(supTableCell, "min-w-[10rem] align-top")}>
+        <p className="max-w-[18rem] truncate text-sm font-medium leading-tight text-foreground">
           {name}
           {variant ? (
             <span className="ml-1 font-normal text-muted-foreground">
@@ -47,15 +54,17 @@ export function RestockRowItem({
             {sku}
           </p>
         ) : null}
-      </div>
-
-      <div className="flex shrink-0 items-center gap-1">
+      </td>
+      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-top")}>
         <input
           type="number"
           inputMode="decimal"
           min={0}
           step="any"
-          className="h-8 w-[3.25rem] rounded-md border border-border bg-background px-1.5 text-right text-xs tabular-nums disabled:opacity-60 sm:w-14 sm:text-sm"
+          className={cn(
+            supFormCellInput,
+            "h-8 w-full text-right tabular-nums disabled:opacity-60",
+          )}
           placeholder="Qty"
           value={row.qty}
           disabled={!canWrite || row.saving}
@@ -65,12 +74,17 @@ export function RestockRowItem({
           }}
           aria-label={`Quantity for ${name}`}
         />
+      </td>
+      <td className={cn(supTableCell, "w-[5.5rem] p-0 align-top")}>
         <input
           type="number"
           inputMode="decimal"
           min={0}
           step="any"
-          className="h-8 w-[3.25rem] rounded-md border border-border bg-background px-1.5 text-right text-xs tabular-nums disabled:opacity-60 sm:w-14 sm:text-sm"
+          className={cn(
+            supFormCellInput,
+            "h-8 w-full text-right tabular-nums disabled:opacity-60",
+          )}
           placeholder="Cost"
           value={row.cost}
           disabled={!canWrite || row.saving}
@@ -80,24 +94,26 @@ export function RestockRowItem({
           }}
           aria-label={`Unit cost for ${name}`}
         />
+      </td>
+      <td className={cn(supTableCell, "w-[4.5rem] p-0 text-right align-middle")}>
         <Button
           type="button"
           size="sm"
-          className="h-8 w-8 shrink-0 p-0 sm:w-auto sm:px-2.5"
+          className="h-8 w-full rounded-none px-2 text-xs sm:w-auto"
           onClick={onSave}
           disabled={!canWrite || row.saving || !row.qty.trim()}
           aria-label={`Save restock for ${name}`}
         >
           {row.saving ? (
-            <span className="text-xs">…</span>
+            <span>…</span>
           ) : (
             <>
-              <Check className="size-3.5 sm:hidden" aria-hidden />
-              <span className="hidden text-xs sm:inline">Save</span>
+              <Check className="size-3.5 sm:mr-1" aria-hidden />
+              <span className="hidden sm:inline">Save</span>
             </>
           )}
         </Button>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }

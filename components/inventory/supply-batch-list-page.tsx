@@ -24,12 +24,9 @@ import {
 
 import {
   DASHBOARD_MAX_WIDE,
-  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardPageHero,
   DashboardQuickLinks,
-  dashboardInputClass,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -49,6 +46,19 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
+
+import {
+  supFieldLabel,
+  supFilterRail,
+  supFormCellInput,
+  supInput,
+  supKicker,
+  supSelect,
+  supTableCell,
+  supTableHead,
+  supTableRow,
+  supWorkspaceShell,
+} from "@/app/(dashboard)/suppliers/_components/supplier-ui-tokens";
 
 // ── Formatters ──────────────────────────────────────────────────────────
 
@@ -104,39 +114,63 @@ function statusBadge(status: string): { label: string; className: string } {
   };
 }
 
-// ── Sold progress bar ───────────────────────────────────────────────────
-
-function soldBar(pct: number | string) {
+function soldPct(pct: number | string) {
   const p = typeof pct === "number" ? pct : Number(pct);
   const val = Number.isNaN(p) ? 0 : Math.min(100, Math.max(0, p));
-  const barColor =
-    val >= 90 ? "bg-emerald-500" : val >= 50 ? "bg-amber-500" : "bg-slate-300";
-  const textColor =
-    val >= 90
-      ? "text-emerald-700"
-      : val >= 50
-        ? "text-amber-700"
-        : "text-muted-foreground";
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted/70">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            barColor,
-          )}
-          style={{ width: `${val}%` }}
-        />
-      </div>
+    <span
+      className={cn(
+        "font-mono tabular-nums text-xs",
+        val >= 90
+          ? "font-semibold text-emerald-700 dark:text-emerald-400"
+          : val >= 50
+            ? "text-amber-700 dark:text-amber-400"
+            : "text-muted-foreground",
+      )}
+    >
+      {val.toFixed(0)}%
+    </span>
+  );
+}
+
+type StatusFilterBtnProps = {
+  label: string;
+  value: number;
+  active: boolean;
+  tone?: "default" | "success" | "info" | "muted";
+  onClick: () => void;
+};
+
+function StatusFilterBtn({
+  label,
+  value,
+  active,
+  tone = "default",
+  onClick,
+}: StatusFilterBtnProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 items-center gap-2 px-2.5 text-left text-[11px] font-semibold transition-colors",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+      )}
+    >
+      <span>{label}</span>
       <span
         className={cn(
-          "min-w-[2.25rem] text-right text-[11px] font-semibold tabular-nums",
-          textColor,
+          "font-mono tabular-nums",
+          !active && tone === "success" && "text-emerald-700 dark:text-emerald-400",
+          !active && tone === "info" && "text-blue-700 dark:text-blue-400",
+          !active && tone === "muted" && "text-muted-foreground",
         )}
       >
-        {val.toFixed(0)}%
+        {value.toLocaleString("en-KE")}
       </span>
-    </div>
+    </button>
   );
 }
 

@@ -18,7 +18,6 @@ import {
   DashboardAccessDenied,
   DashboardPageHero,
   DashboardQuickLinks,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { AdjustItemCostDialog } from "@/components/inventory/adjust-item-cost-dialog";
 import { Button } from "@/components/ui/button";
@@ -35,6 +34,18 @@ import {
 import { hasPermission, Permission } from "@/lib/permissions";
 import { filterInventoryQuickLinksForUser } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
+
+import {
+  supFieldLabel,
+  supFilterRail,
+  supInput,
+  supKicker,
+  supSelect,
+  supTableCell,
+  supTableHead,
+  supTableRow,
+  supWorkspaceShell,
+} from "../../suppliers/_components/supplier-ui-tokens";
 
 type IssueFilter = "all" | "zero_cost" | "sells_at_loss" | "thin_margin";
 
@@ -69,15 +80,15 @@ const ISSUE_META: Record<
 > = {
   zero_cost: {
     label: "No cost",
-    className: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    className: "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
   },
   sells_at_loss: {
     label: "Sells at loss",
-    className: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    className: "border-rose-600/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
   },
   thin_margin: {
     label: "Thin margin",
-    className: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+    className: "border-amber-600/30 bg-amber-500/10 text-amber-800 dark:text-amber-200",
   },
 };
 
@@ -274,8 +285,8 @@ export default function InventoryCostIssuesPage() {
 
   return (
     <div className={DASHBOARD_MAX}>
-      <div className="space-y-4">
-        <header className="space-y-2 border-b border-border/50 pb-4">
+      <div className="flex min-h-0 flex-col gap-0 overflow-hidden border border-border bg-card">
+        <header className="space-y-2 border-b border-border px-3 py-3">
           <DashboardPageHero
             compact
             showActiveScope
@@ -289,9 +300,13 @@ export default function InventoryCostIssuesPage() {
           ) : null}
         </header>
 
-        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/15 p-3">
+        <div className={cn(supFilterRail, "flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-end")}>
           {counts.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
+            <div
+              className="inline-flex flex-wrap border border-border bg-background p-0.5"
+              role="group"
+              aria-label="Issue type filter"
+            >
               {counts.map((c) => {
                 const active = issueFilter === c.key;
                 return (
@@ -300,16 +315,14 @@ export default function InventoryCostIssuesPage() {
                     type="button"
                     onClick={() => setIssueFilter(c.key)}
                     className={cn(
-                      "flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors sm:px-3",
+                      "inline-flex h-8 items-center gap-2 px-2.5 text-left text-[11px] font-semibold transition-colors",
                       active
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-border/60 bg-background hover:bg-muted/40",
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                     )}
                   >
-                    <span className="truncate text-[11px] font-medium text-muted-foreground">
-                      {c.label}
-                    </span>
-                    <span className="shrink-0 text-base font-bold tabular-nums leading-none">
+                    <span>{c.label}</span>
+                    <span className="font-mono tabular-nums">
                       {c.value.toLocaleString("en-KE")}
                     </span>
                   </button>
@@ -318,13 +331,13 @@ export default function InventoryCostIssuesPage() {
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-0.5 text-xs sm:max-w-[14rem]">
-              <span className="text-muted-foreground">Branch</span>
+          <div className="flex flex-1 flex-wrap items-end gap-2">
+            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 sm:max-w-[14rem]">
+              <span className={supFieldLabel}>Branch</span>
               <select
                 className={cn(
-                  dashboardSelectClass(),
-                  "h-9 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
+                  supSelect,
+                  "h-8 bg-background disabled:cursor-not-allowed disabled:opacity-60",
                 )}
                 value={branchFilter}
                 disabled={isBranchLockedRole}
@@ -345,10 +358,10 @@ export default function InventoryCostIssuesPage() {
               </select>
             </label>
 
-            <label className="flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-background px-3 text-xs font-medium text-muted-foreground">
+            <label className="flex h-8 items-center gap-2 border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground">
               <input
                 type="checkbox"
-                className="size-3.5 accent-[#B08D48]"
+                className="size-3.5 rounded-none border-input accent-primary"
                 checked={inStockOnly}
                 onChange={(e) => setInStockOnly(e.target.checked)}
               />
@@ -359,7 +372,7 @@ export default function InventoryCostIssuesPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 shrink-0 gap-1.5"
+              className="h-8 shrink-0 gap-1.5 rounded-none px-3"
               disabled={loading || (isBranchLockedRole && !me?.branchId?.trim())}
               onClick={() => void runLoad(branchFilter)}
             >
@@ -370,58 +383,60 @@ export default function InventoryCostIssuesPage() {
         </div>
 
         {message ? (
-          <p className="text-xs text-destructive">{message}</p>
+          <p className="border-b border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {message}
+          </p>
         ) : null}
 
-        <div className="overflow-hidden rounded-xl border border-border/60">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2">
-            <h2 className="text-xs font-semibold sm:text-sm">
+        <div className={cn(supWorkspaceShell, "border-0 border-t")}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+            <h2 className="text-xs font-semibold tracking-tight text-foreground">
               {loading ? "Loading…" : `Flagged items · ${activeBranchName}`}
             </h2>
             {data && !loading ? (
-              <span className="text-xs tabular-nums text-muted-foreground">
+              <span className="text-[11px] tabular-nums text-muted-foreground">
                 {rows.length} shown
               </span>
             ) : null}
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[46rem] text-left text-sm">
-              <thead className="border-b border-border/60 bg-background text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Item</th>
-                  <th className="px-3 py-2 text-right font-medium">Stock</th>
-                  <th className="px-3 py-2 text-right font-medium">Cost</th>
-                  <th className="px-3 py-2 text-right font-medium">Sell</th>
-                  <th className="px-3 py-2 text-right font-medium">Margin</th>
-                  <th className="px-3 py-2 font-medium">Issue</th>
-                  <th className="px-3 py-2 text-right font-medium">Action</th>
+            <table className="w-full min-w-[46rem] border-collapse border-0 text-left text-xs">
+              <thead>
+                <tr className={supTableHead}>
+                  <th className={cn(supTableCell, "min-w-[12rem]")}>Item</th>
+                  <th className={cn(supTableCell, "text-right")}>Stock</th>
+                  <th className={cn(supTableCell, "text-right")}>Cost</th>
+                  <th className={cn(supTableCell, "text-right")}>Sell</th>
+                  <th className={cn(supTableCell, "text-right")}>Margin</th>
+                  <th className={supTableCell}>Issue</th>
+                  <th className={cn(supTableCell, "text-right")}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/60">
+              <tbody>
                 {loading ? (
-                  <tr>
+                  <tr className={supTableRow}>
                     <td
                       colSpan={7}
-                      className="px-3 py-8 text-center text-sm text-muted-foreground"
+                      className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                     >
                       Loading…
                     </td>
                   </tr>
                 ) : !data ? (
-                  <tr>
+                  <tr className={supTableRow}>
                     <td
                       colSpan={7}
-                      className="px-3 py-8 text-center text-sm text-muted-foreground"
+                      className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                     >
                       Refresh to load cost issues.
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
-                  <tr>
+                  <tr className={supTableRow}>
                     <td
                       colSpan={7}
-                      className="px-3 py-8 text-center text-sm text-muted-foreground"
+                      className={cn(supTableCell, "py-8 text-center text-sm text-muted-foreground")}
                     >
                       {data.total === 0
                         ? "No cost issues. Every stocked item has a sensible cost."
@@ -435,12 +450,12 @@ export default function InventoryCostIssuesPage() {
                     const margin = toNum(row.marginPct);
                     const meta = ISSUE_META[row.primaryIssue];
                     return (
-                      <tr key={row.itemId} className="hover:bg-muted/20">
-                        <td className="px-3 py-2">
+                      <tr key={row.itemId} className={supTableRow}>
+                        <td className={supTableCell}>
                           <div className="max-w-[16rem] truncate text-sm font-medium">
                             {row.name}
                           </div>
-                          <div className="text-[11px] text-muted-foreground">
+                          <div className="text-[10px] text-muted-foreground">
                             {row.sku}
                             {row.costSource === "reference"
                               ? " · reference cost"
@@ -449,22 +464,23 @@ export default function InventoryCostIssuesPage() {
                                 : ""}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
+                        <td className={cn(supTableCell, "text-right font-mono tabular-nums")}>
                           {fmtQty(toNum(row.activeQty))}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
+                        <td className={cn(supTableCell, "text-right font-mono tabular-nums")}>
                           {cost == null || cost <= 0 ? (
                             <span className="text-rose-600">—</span>
                           ) : (
                             fmtMoney(cost, currency)
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
+                        <td className={cn(supTableCell, "text-right font-mono tabular-nums")}>
                           {fmtMoney(sell, currency)}
                         </td>
                         <td
                           className={cn(
-                            "px-3 py-2 text-right tabular-nums",
+                            supTableCell,
+                            "text-right font-mono tabular-nums",
                             margin != null && margin < 0
                               ? "text-rose-600"
                               : margin != null && margin < 5
@@ -474,23 +490,23 @@ export default function InventoryCostIssuesPage() {
                         >
                           {margin == null ? "—" : `${margin.toFixed(1)}%`}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className={supTableCell}>
                           <span
                             className={cn(
-                              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                              "inline-flex items-center border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
                               meta.className,
                             )}
                           >
                             {meta.label}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-right">
+                        <td className={cn(supTableCell, "text-right")}>
                           {canAdjust ? (
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-8"
+                              className="h-7 rounded-none px-2.5 text-xs"
                               onClick={() => openAdjust(row)}
                             >
                               Fix cost
@@ -508,6 +524,20 @@ export default function InventoryCostIssuesPage() {
               </tbody>
             </table>
           </div>
+
+          {data && !loading && rows.length > 0 ? (
+            <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
+              <span className={supKicker}>Summary</span>
+              <span className="ml-2 font-mono tabular-nums text-foreground">
+                {rows.length}
+              </span>{" "}
+              items shown ·{" "}
+              <span className="font-mono tabular-nums text-foreground">
+                {data.total}
+              </span>{" "}
+              total flagged
+            </div>
+          ) : null}
         </div>
       </div>
 

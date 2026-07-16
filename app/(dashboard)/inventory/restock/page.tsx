@@ -8,8 +8,6 @@ import {
   DASHBOARD_MAX,
   DashboardAccessDenied,
   DashboardFeedback,
-  dashboardInputClass,
-  dashboardSelectClass,
 } from "@/components/dashboard-page-ui";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSyncBranchFilter } from "@/hooks/use-session-scope";
@@ -28,6 +26,16 @@ import {
 } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
 
+import {
+  supFieldLabel,
+  supFilterRail,
+  supInput,
+  supKicker,
+  supSelect,
+  supTableCell,
+  supTableHead,
+  supWorkspaceShell,
+} from "../../suppliers/_components/supplier-ui-tokens";
 import { RestockPageHeader } from "./_components/restock-page-header";
 import { RestockRowItem, type RestockRow } from "./_components/restock-row-item";
 
@@ -50,20 +58,20 @@ function onHandOf(row: ItemSummaryRecord): number {
 
 function RestockListSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border border-border/60 bg-card">
+    <div className="border-t border-border">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5 last:border-0 sm:px-3"
+          className="flex items-center gap-2 border-b border-border px-2.5 py-2 last:border-b-0"
         >
           <div className="min-w-0 flex-1 space-y-1">
-            <div className="h-3 w-32 animate-pulse rounded bg-muted" />
-            <div className="h-2 w-20 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-32 animate-pulse bg-muted" />
+            <div className="h-2 w-20 animate-pulse bg-muted" />
           </div>
           <div className="flex gap-1">
-            <div className="h-8 w-[3.25rem] animate-pulse rounded-md bg-muted" />
-            <div className="h-8 w-[3.25rem] animate-pulse rounded-md bg-muted" />
-            <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
+            <div className="h-8 w-14 animate-pulse bg-muted" />
+            <div className="h-8 w-14 animate-pulse bg-muted" />
+            <div className="h-8 w-14 animate-pulse bg-muted" />
           </div>
         </div>
       ))}
@@ -81,7 +89,6 @@ export default function InventoryRestockPage() {
   );
   const [branchId, setBranchId] = useState("");
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
-  // Follow the global header branch selection (and stay pinned for locked roles).
   const { branchLocked: isBranchLockedRole } = useSyncBranchFilter({
     value: branchId,
     setValue: setBranchId,
@@ -114,8 +121,6 @@ export default function InventoryRestockPage() {
     };
   }, [canRead]);
 
-  // When the header has no branch yet (non-locked role, nothing persisted),
-  // fall back to the first active branch on this page so it isn't blank.
   useEffect(() => {
     if (isBranchLockedRole || branchId || branches.length === 0) return;
     const fallback =
@@ -184,7 +189,6 @@ export default function InventoryRestockPage() {
     }
   }, [branchId, isBranchLockedRole]);
 
-  // Auto-load whenever the working branch resolves/changes.
   useEffect(() => {
     if (!canRead || !branchId.trim()) return;
     void loadOutOfStock();
@@ -297,98 +301,106 @@ export default function InventoryRestockPage() {
   }
 
   return (
-    <div
-      className={cn(
-        DASHBOARD_MAX,
-        "min-w-0 max-w-full space-y-2 overflow-x-hidden pb-12",
-      )}
-    >
-      <RestockPageHeader
-        me={me}
-        canShowQuickLinks={canShowQuickLinks}
-        loading={loading}
-        onRefresh={() => void loadOutOfStock()}
-      />
-
-      {/* Toolbar */}
-      <section className="flex min-w-0 flex-wrap items-center gap-2">
-        {(loaded || loading) && branchId ? (
-          <span
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-destructive/25 bg-destructive/5 px-2 py-1 text-[11px] font-medium tabular-nums"
-            aria-live="polite"
-          >
-            <span className="text-muted-foreground">Out</span>
-            <span className="font-bold text-destructive">
-              {rows.length.toLocaleString("en-KE")}
-            </span>
-          </span>
-        ) : null}
-
-        {!isBranchLockedRole ? (
-          <select
-            className={cn(
-              dashboardSelectClass(),
-              "h-8 min-w-[7.5rem] max-w-[9rem] shrink-0 py-1 text-xs sm:text-sm",
-            )}
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            aria-label="Branch"
-          >
-            <option value="">Branch…</option>
-            {branches
-              .filter((b) => b.active || b.id === branchId)
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-          </select>
-        ) : activeBranchName ? (
-          <span className="shrink-0 truncate text-[11px] text-muted-foreground">
-            {activeBranchName}
-          </span>
-        ) : null}
-
-        <input
-          type="search"
-          className={cn(
-            dashboardInputClass(),
-            "h-8 min-w-0 flex-1 py-1 text-xs sm:text-sm",
-          )}
-          placeholder="Search name, SKU…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          disabled={!branchId.trim()}
-          aria-label="Search out-of-stock products"
+    <div className={cn(DASHBOARD_MAX, "min-w-0 max-w-full overflow-x-hidden pb-12")}>
+      <div className="flex min-h-0 flex-col overflow-hidden border border-border bg-card">
+        <RestockPageHeader
+          me={me}
+          canShowQuickLinks={canShowQuickLinks}
+          loading={loading}
+          onRefresh={() => void loadOutOfStock()}
         />
-      </section>
 
-      {message ? (
-        <DashboardFeedback kind={messageKind} text={message} />
-      ) : null}
-      {capped ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
-          Scanned first {MAX_SCAN_PAGES * PAGE_SIZE} products — search for more.
-        </p>
-      ) : null}
-      {!canWrite && rows.length > 0 ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
-          View-only — enable stock editing in Business settings to restock.
-        </p>
-      ) : null}
+        <div className={cn(supFilterRail, "flex-wrap items-center gap-2")}>
+          {(loaded || loading) && branchId ? (
+            <span
+              className="inline-flex shrink-0 items-center gap-1.5 border border-destructive/30 bg-destructive/5 px-2 py-1 text-[11px] font-medium tabular-nums"
+              aria-live="polite"
+            >
+              <span className="text-muted-foreground">Out</span>
+              <span className="font-bold text-destructive">
+                {rows.length.toLocaleString("en-KE")}
+              </span>
+            </span>
+          ) : null}
 
-      {/* Product list */}
-      {!branchId.trim() ? (
-        <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-6 text-center">
-          <Package className="size-6 text-muted-foreground/40" aria-hidden />
-          <p className="text-xs text-muted-foreground">{emptyMessage}</p>
+          {!isBranchLockedRole ? (
+            <label className="flex shrink-0 flex-col gap-1">
+              <span className={supFieldLabel}>Branch</span>
+              <select
+                className={cn(supSelect, "h-8 min-w-[7.5rem] max-w-[10rem] bg-background py-0 text-xs")}
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                aria-label="Branch"
+              >
+                <option value="">Branch…</option>
+                {branches
+                  .filter((b) => b.active || b.id === branchId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          ) : activeBranchName ? (
+            <span className="shrink-0 truncate text-[11px] text-muted-foreground">
+              {activeBranchName}
+            </span>
+          ) : null}
+
+          <label className="flex min-w-[10rem] flex-1 flex-col gap-1">
+            <span className={supFieldLabel}>Search</span>
+            <input
+              type="search"
+              className={cn(supInput, "h-8 min-w-0 bg-background py-0 text-xs")}
+              placeholder="Name, SKU, barcode…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              disabled={!branchId.trim()}
+              aria-label="Search out-of-stock products"
+            />
+          </label>
         </div>
-      ) : loading && !loaded ? (
-        <RestockListSkeleton />
-      ) : (
-        <div className="min-w-0 overflow-hidden rounded-lg border border-border/60">
-          {filteredRows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-6 text-center">
+
+        {message ? (
+          <div className="border-b border-border px-3 py-2">
+            <DashboardFeedback kind={messageKind} text={message} />
+          </div>
+        ) : null}
+
+        {capped ? (
+          <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] leading-snug text-muted-foreground">
+            Scanned first {MAX_SCAN_PAGES * PAGE_SIZE} products — search for more.
+          </p>
+        ) : null}
+
+        {!canWrite && rows.length > 0 ? (
+          <p className="border-b border-border bg-muted/10 px-3 py-1.5 text-[11px] leading-snug text-muted-foreground">
+            View-only — enable stock editing in Business settings to restock.
+          </p>
+        ) : null}
+
+        <div className={cn(supWorkspaceShell, "border-0 border-t")}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+            <h2 className="text-xs font-semibold tracking-tight text-foreground">
+              {loading ? "Loading…" : "Out-of-stock products"}
+            </h2>
+            {loaded && !loading ? (
+              <span className="text-[11px] tabular-nums text-muted-foreground">
+                {filteredRows.length} shown
+              </span>
+            ) : null}
+          </div>
+
+          {!branchId.trim() ? (
+            <div className="flex flex-col items-center justify-center gap-1.5 border-b border-border px-3 py-8 text-center">
+              <Package className="size-6 text-muted-foreground/40" aria-hidden />
+              <p className="text-xs text-muted-foreground">{emptyMessage}</p>
+            </div>
+          ) : loading && !loaded ? (
+            <RestockListSkeleton />
+          ) : filteredRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-1.5 px-3 py-8 text-center">
               <PackageX
                 className="size-6 text-muted-foreground/40"
                 aria-hidden
@@ -400,30 +412,48 @@ export default function InventoryRestockPage() {
           ) : (
             <>
               {search.trim() && filteredRows.length !== rows.length ? (
-                <div className="border-b border-border/60 bg-muted/25 px-2.5 py-1 text-[10px] text-muted-foreground sm:px-3">
+                <div className="border-b border-border bg-[#eef2f7] px-2.5 py-1 text-[10px] text-muted-foreground dark:bg-muted/25">
                   {filteredRows.length} of {rows.length} match
                 </div>
               ) : null}
-              <div className="divide-y divide-border/60 bg-card">
-                {filteredRows.map((r) => (
-                  <RestockRowItem
-                    key={r.item.id}
-                    row={r}
-                    canWrite={canWrite}
-                    onQtyChange={(value) =>
-                      setRowField(r.item.id, "qty", value)
-                    }
-                    onCostChange={(value) =>
-                      setRowField(r.item.id, "cost", value)
-                    }
-                    onSave={() => void saveRow(r.item.id)}
-                  />
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[28rem] border-collapse border-0 text-left text-xs">
+                  <thead>
+                    <tr className={supTableHead}>
+                      <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
+                      <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Qty</th>
+                      <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Cost</th>
+                      <th className={cn(supTableCell, "w-[4.5rem] text-right")}>Save</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((r) => (
+                      <RestockRowItem
+                        key={r.item.id}
+                        row={r}
+                        canWrite={canWrite}
+                        onQtyChange={(value) =>
+                          setRowField(r.item.id, "qty", value)
+                        }
+                        onCostChange={(value) =>
+                          setRowField(r.item.id, "cost", value)
+                        }
+                        onSave={() => void saveRow(r.item.id)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-border bg-[#eef2f7] px-2.5 py-1.5 text-[10px] text-muted-foreground dark:bg-muted/25">
+                <span className={supKicker}>Tip</span>
+                <span className="ml-2">
+                  Enter qty and cost, then Save — row removes when stock is posted.
+                </span>
               </div>
             </>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

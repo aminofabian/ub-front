@@ -210,6 +210,85 @@ export function SupMobileSelectionBar({
   );
 }
 
+/** Bordered form section with spreadsheet header bar */
+export function SupFormSection({
+  title,
+  hint,
+  children,
+  className,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("bg-card", className)}>
+      <div className="border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+        <h3 className={supSectionTitle}>{title}</h3>
+        {hint ? <p className={supSectionHint}>{hint}</p> : null}
+      </div>
+      <div className="p-0">{children}</div>
+    </section>
+  );
+}
+
+export function SupFormTable({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <table
+      className={cn(
+        "w-full border-collapse border-0 text-left text-xs",
+        className,
+      )}
+    >
+      <tbody>{children}</tbody>
+    </table>
+  );
+}
+
+export function SupFormRow({
+  label,
+  required,
+  hint,
+  children,
+  labelClassName,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+  labelClassName?: string;
+}) {
+  return (
+    <tr>
+      <th
+        scope="row"
+        className={cn(
+          "w-[38%] border border-border bg-[#eef2f7] px-2 py-1.5 text-left align-top font-medium text-muted-foreground dark:bg-muted/35",
+          labelClassName,
+        )}
+      >
+        <span className={supKicker}>
+          {label}
+          {required ? <span className="text-destructive"> *</span> : null}
+        </span>
+        {hint ? (
+          <p className="mt-0.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground/80">
+            {hint}
+          </p>
+        ) : null}
+      </th>
+      <td className="border border-border bg-background p-0 align-top">{children}</td>
+    </tr>
+  );
+}
+
 /** Excel-style label | value field table */
 export function SupFieldTable({
   rows,

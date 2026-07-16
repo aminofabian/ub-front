@@ -1016,7 +1016,7 @@ export function NewSupplyDrawer({
             <Button
               type="button"
               variant="outline"
-              className="h-12 rounded-xl px-4 text-sm touch-manipulation sm:h-7 sm:rounded-sm sm:px-2.5 sm:text-xs"
+              className="h-12 rounded-none px-4 text-sm touch-manipulation sm:h-8 sm:px-3 sm:text-xs"
               disabled={busy}
               onClick={() => onOpenChange(false)}
             >
@@ -1027,7 +1027,7 @@ export function NewSupplyDrawer({
               form="new-supply-form"
               className={cn(
                 supBtnPrimary,
-                "h-12 rounded-xl px-4 text-[15px] font-semibold touch-manipulation sm:h-7 sm:rounded-sm sm:px-2.5 sm:text-xs sm:font-medium",
+                "h-12 rounded-none px-4 text-[15px] font-semibold touch-manipulation sm:h-8 sm:px-4 sm:text-xs",
               )}
               disabled={busy || !canPost}
             >
@@ -1117,7 +1117,7 @@ export function NewSupplyDrawer({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-9 gap-1 rounded-sm px-2.5 text-xs touch-manipulation sm:h-7 sm:gap-0.5 sm:px-2 sm:text-[10px]"
+                  className="h-9 gap-1 rounded-none px-2.5 text-xs touch-manipulation sm:h-8 sm:px-2 sm:text-[10px]"
                   onClick={openLinkModal}
                   disabled={busy || !supplier}
                 >
@@ -1149,7 +1149,7 @@ export function NewSupplyDrawer({
                     <Button
                       type="button"
                       size="sm"
-                      className="gap-1 rounded-lg"
+                      className="gap-1 rounded-none"
                       onClick={openLinkModal}
                       disabled={busy || !supplier}
                     >
@@ -1297,25 +1297,25 @@ export function NewSupplyDrawer({
                     })}
                   </div>
 
-                  <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
-            <thead className={nsdTableHead}>
-              <tr>
-                <th className={cn(nsdTableTh, "min-w-[8rem] py-1")}>Product</th>
-                <th className={cn(nsdTableTh, "min-w-[3.5rem] py-1 text-right")}>
+                  <div className="hidden overflow-x-auto border-t border-border lg:block">
+          <table className="w-full min-w-[44rem] border-collapse border border-border text-left text-xs">
+            <thead>
+              <tr className={nsdTableHead}>
+                <th className={cn(nsdTableTh, "min-w-[8rem]")}>Product</th>
+                <th className={cn(nsdTableTh, "min-w-[3.5rem] text-right")}>
                   Stock
                 </th>
-                <th className={cn(nsdTableTh, "min-w-[3.75rem] py-1 text-right")}>
+                <th className={cn(nsdTableTh, "min-w-[3.75rem] text-right")}>
                   Qty
                 </th>
-                <th className={cn(nsdTableTh, "min-w-[4rem] py-1 text-right")}>
+                <th className={cn(nsdTableTh, "min-w-[4rem] text-right")}>
                   Cost
                 </th>
-                <th className={cn(nsdTableTh, "min-w-[4.5rem] py-1 text-right")}>
+                <th className={cn(nsdTableTh, "min-w-[4.5rem] text-right")}>
                   Shelf
                 </th>
-                <th className={cn(nsdTableTh, "w-[6rem] py-1")}>Expiry</th>
-                <th className={cn(nsdTableTh, "w-7 py-1")} />
+                <th className={cn(nsdTableTh, "w-[6rem]")}>Expiry</th>
+                <th className={cn(nsdTableTh, "w-7")} />
               </tr>
             </thead>
             <tbody>
@@ -1342,7 +1342,7 @@ export function NewSupplyDrawer({
                       isReady && nsdTableRowReady,
                     )}
                   >
-                    <td className={cn(nsdTableCell, "py-0.5")}>
+                    <td className={cn(nsdTableCell, "py-1 align-top")}>
                       <div className="min-w-0">
                         {row.source === "adhoc" ? (
                           <ProductPickCell
@@ -1380,7 +1380,7 @@ export function NewSupplyDrawer({
                         ) : null}
                       </div>
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[3.5rem] py-0.5 align-top")}>
+                    <td className={cn(nsdTableCell, "min-w-[3.5rem] p-0 align-top")}>
                       <SupplyStockCell
                         compact
                         stock={stock}
@@ -1396,7 +1396,7 @@ export function NewSupplyDrawer({
                         }}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[3.75rem] py-0.5 align-top")}>
+                    <td className={cn(nsdTableCell, "min-w-[3.75rem] p-0 align-top")}>
                       <SupplyQtyCell
                         compact
                         value={row.qtyStr}
@@ -1413,7 +1413,7 @@ export function NewSupplyDrawer({
                         isReady={isReady}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[4rem] py-0.5 align-top")}>
+                    <td className={cn(nsdTableCell, "min-w-[4rem] p-0 align-top")}>
                       <SupplyCostCell
                         compact
                         value={row.unitStr}
@@ -1429,7 +1429,7 @@ export function NewSupplyDrawer({
                         referenceCost={referenceCost}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "min-w-[4.5rem] py-0.5 align-top")}>
+                    <td className={cn(nsdTableCell, "min-w-[4.5rem] p-0 align-top")}>
                       <SupplyShelfPriceCell
                         compact
                         value={row.sellPriceStr}
@@ -1453,7 +1453,7 @@ export function NewSupplyDrawer({
                         sellPriceTouched={row.sellPriceTouched}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "py-0.5")}>
+                    <td className={cn(nsdTableCell, "p-0 align-middle")}>
                       <YmdDateInput
                         value={row.expiry}
                         onValueChange={(value) =>
@@ -1469,12 +1469,12 @@ export function NewSupplyDrawer({
                         aria-label="Expiry date"
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "py-0.5")}>
+                    <td className={cn(nsdTableCell, "p-0 text-center align-middle")}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-6 text-destructive hover:bg-destructive/10"
+                        className="size-7 rounded-none text-destructive hover:bg-destructive/10"
                         disabled={busy}
                         aria-label="Remove row"
                         onClick={() => removeRow(row.key)}

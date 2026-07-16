@@ -7,6 +7,7 @@ import { setOnHandStock } from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "./new-supply-drawer-ui";
+import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
 
 type MetricTone =
   | "empty"
@@ -21,22 +22,50 @@ type MetricTone =
 
 const METRIC_SHELL: Record<MetricTone, string> = {
   empty: "border-border/70 bg-muted/15",
-  invalid:
-    "border-amber-500/40 bg-amber-500/[0.07] shadow-[inset_0_0_0_1px_rgba(245,158,11,0.08)]",
-  active:
-    "border-foreground/20 bg-background shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)]",
-  ready:
-    "border-primary/45 bg-primary/[0.07] shadow-[inset_0_0_0_1px_rgba(40,167,69,0.1)]",
-  computed:
-    "border-primary/40 bg-primary/[0.06] shadow-[inset_0_0_0_1px_rgba(40,167,69,0.08)]",
-  matched:
-    "border-primary/35 bg-primary/[0.05] shadow-[inset_0_0_0_1px_rgba(40,167,69,0.06)]",
+  invalid: "border-amber-500/40 bg-amber-500/[0.07]",
+  active: "border-foreground/20 bg-background",
+  ready: "border-primary/45 bg-primary/[0.07]",
+  computed: "border-primary/40 bg-primary/[0.06]",
+  matched: "border-primary/35 bg-primary/[0.05]",
   readonly: "border-border/50 bg-muted/25",
-  low:
-    "border-amber-500/40 bg-amber-500/[0.07] shadow-[inset_0_0_0_1px_rgba(245,158,11,0.08)]",
-  out:
-    "border-red-500/45 bg-red-500/[0.07] shadow-[inset_0_0_0_1px_rgba(239,68,68,0.08)]",
+  low: "border-amber-500/40 bg-amber-500/[0.07]",
+  out: "border-red-500/45 bg-red-500/[0.07]",
 };
+
+/** Spreadsheet cell fill — no inner border (table cell provides grid lines). */
+const METRIC_COMPACT_BG: Record<MetricTone, string> = {
+  empty: "bg-background",
+  invalid: "bg-amber-500/[0.08]",
+  active: "bg-background",
+  ready: "bg-[#cfe2f3] dark:bg-primary/15",
+  computed: "bg-primary/[0.06]",
+  matched: "bg-primary/[0.05]",
+  readonly: "bg-muted/20",
+  low: "bg-amber-500/[0.08]",
+  out: "bg-red-500/[0.07]",
+};
+
+function metricShellClass(
+  compact: boolean,
+  touch: boolean,
+  tone: MetricTone,
+  extra?: string,
+): string {
+  if (compact && !touch) {
+    return cn(
+      "flex min-w-0 items-center px-1.5",
+      "h-7",
+      METRIC_COMPACT_BG[tone],
+      extra,
+    );
+  }
+  return cn(
+    "relative flex min-w-0 items-center border transition-[border-color,background-color] duration-100",
+    metricHeight(compact, touch),
+    METRIC_SHELL[tone],
+    extra,
+  );
+}
 
 function parsePositiveQty(raw: string): number | null {
   const t = raw.trim();
@@ -128,18 +157,14 @@ export function SupplyQtyCell({
           {label}
         </span>
       ) : null}
-      <div
-        className={cn(
-          "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          metricHeight(compact, touch),
-          METRIC_SHELL[tone],
-        )}
-      >
+      <div className={metricShellClass(compact, touch, tone)}>
         <input
           className={cn(
-            nsdInput,
-            "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
-            "text-center font-mono tabular-nums",
+            compact && !touch ? supFormCellInput : nsdInput,
+            "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none",
+            compact && !touch ? "px-1.5" : "px-1.5",
+            compact && !touch ? "text-center" : "text-center",
+            "font-mono tabular-nums",
             metricText(compact, touch),
             touch && "font-semibold tracking-tight",
             "focus-visible:ring-0 focus-visible:ring-offset-0",
@@ -327,10 +352,7 @@ export function SupplyStockCell({
       ) : null}
       <div
         className={cn(
-          "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          metricHeight(compact, touch),
-          METRIC_SHELL[tone],
-          editable && "bg-background",
+          metricShellClass(compact, touch, tone, editable && !compact ? "bg-background" : undefined),
         )}
         title={
           editable
@@ -345,8 +367,8 @@ export function SupplyStockCell({
         {editable ? (
           <input
             className={cn(
-              nsdInput,
-              "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
+              compact && !touch ? supFormCellInput : nsdInput,
+              "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none",
               "text-right font-mono tabular-nums",
               metricText(compact, touch),
               "focus-visible:ring-0 focus-visible:ring-offset-0",
@@ -449,11 +471,7 @@ export function SupplyStockAfterCell({
         </span>
       ) : null}
       <div
-        className={cn(
-          "flex min-w-0 items-center justify-end rounded-sm border px-1.5 transition-[border-color,background-color,box-shadow] duration-150",
-          metricHeight(compact, touch),
-          METRIC_SHELL[tone],
-        )}
+        className={metricShellClass(compact, touch, tone, "justify-end")}
         title={
           stock != null && stockAfter != null
             ? `Stock ${formatQty(stock)} → ${formatQty(stockAfter)} after receiving`
@@ -536,17 +554,11 @@ export function SupplyCostCell({
           {label}
         </span>
       ) : null}
-      <div
-        className={cn(
-          "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          metricHeight(compact, touch),
-          METRIC_SHELL[tone],
-        )}
-      >
+      <div className={metricShellClass(compact, touch, tone)}>
         <input
           className={cn(
-            nsdInput,
-            "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
+            compact && !touch ? supFormCellInput : nsdInput,
+            "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none",
             "text-right font-mono tabular-nums",
             metricText(compact, touch),
             "focus-visible:ring-0 focus-visible:ring-offset-0",
@@ -613,11 +625,7 @@ export function SupplyLineTotalCell({
         </span>
       ) : null}
       <div
-        className={cn(
-          "flex min-w-0 items-center justify-end rounded-sm border px-2 transition-[border-color,background-color,box-shadow] duration-150",
-          metricHeight(compact, touch),
-          METRIC_SHELL[tone],
-        )}
+        className={metricShellClass(compact, touch, tone, "justify-end")}
         title={
           qty != null && unitCost != null && total != null
             ? `${formatQty(qty)} × ${unitCost.toFixed(2)} = ${total.toFixed(2)}`

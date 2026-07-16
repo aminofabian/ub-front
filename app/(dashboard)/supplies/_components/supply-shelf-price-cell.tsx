@@ -5,6 +5,7 @@ import { Loader2, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "./new-supply-drawer-ui";
+import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
 
 export type ShelfPriceHint = {
   loading: boolean;
@@ -26,15 +27,38 @@ type ShelfTone =
 const TONE_SHELL: Record<ShelfTone, string> = {
   empty: "border-border/70 bg-muted/15",
   loading: "border-border/70 bg-muted/20",
-  "below-cost":
-    "border-red-500/45 bg-red-500/[0.07] shadow-[inset_0_0_0_1px_rgba(239,68,68,0.08)]",
-  suggested:
-    "border-amber-500/40 bg-amber-500/[0.07] shadow-[inset_0_0_0_1px_rgba(245,158,11,0.08)]",
-  current:
-    "border-primary/40 bg-primary/[0.06] shadow-[inset_0_0_0_1px_rgba(40,167,69,0.1)]",
+  "below-cost": "border-red-500/45 bg-red-500/[0.07]",
+  suggested: "border-amber-500/40 bg-amber-500/[0.07]",
+  current: "border-primary/40 bg-primary/[0.06]",
   edited: "border-foreground/20 bg-background",
   readonly: "border-border/50 bg-muted/25",
 };
+
+const TONE_COMPACT_BG: Record<ShelfTone, string> = {
+  empty: "bg-background",
+  loading: "bg-muted/20",
+  "below-cost": "bg-red-500/[0.07]",
+  suggested: "bg-amber-500/[0.08]",
+  current: "bg-primary/[0.06]",
+  edited: "bg-background",
+  readonly: "bg-muted/20",
+};
+
+function shelfShellClass(
+  compact: boolean,
+  touch: boolean,
+  tone: ShelfTone,
+  h: string,
+): string {
+  if (compact && !touch) {
+    return cn("relative flex min-w-0 items-center px-1.5", h, TONE_COMPACT_BG[tone]);
+  }
+  return cn(
+    "relative flex min-w-0 items-center border transition-[border-color,background-color] duration-100",
+    h,
+    TONE_SHELL[tone],
+  );
+}
 
 function sellPricesMatch(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.005;
@@ -200,19 +224,12 @@ export function SupplyShelfPriceCell({
         </span>
       ) : null}
 
-      <div
-        className={cn(
-          "relative flex min-w-0 items-center rounded-sm border transition-[border-color,background-color,box-shadow] duration-150",
-          h,
-          TONE_SHELL[tone],
-        )}
-        title={title}
-      >
+      <div className={shelfShellClass(compact, touch, tone, h)} title={title}>
         {canSetSellPrice ? (
           <input
             className={cn(
-              nsdInput,
-              "h-full min-w-0 flex-1 border-0 bg-transparent px-1.5 shadow-none",
+              compact && !touch ? supFormCellInput : nsdInput,
+              "h-full min-w-0 flex-1 border-0 bg-transparent shadow-none",
               "text-right font-mono tabular-nums",
               text,
               "focus-visible:ring-0 focus-visible:ring-offset-0",

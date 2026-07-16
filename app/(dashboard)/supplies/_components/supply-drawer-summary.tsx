@@ -69,20 +69,20 @@ export function SupplyDrawerSummaryPanel({
   return (
     <aside
       className={cn(
-        "flex flex-col gap-1.5 rounded-sm bg-card shadow-sm",
+        "flex flex-col gap-0 overflow-hidden rounded-none bg-card",
         nsdBorder,
         className,
       )}
     >
-      <div className="border-b border-border bg-muted/40 px-2.5 py-2">
+      <div className="border-b border-border bg-[#e8eef5] px-2.5 py-2 dark:bg-muted/40">
         <p className={nsdKicker}>Live summary</p>
         <p className="mt-0.5 text-[10px] text-muted-foreground">
           Updates as you fill receiving lines
         </p>
       </div>
 
-      <div className="space-y-2 px-2.5 pb-1">
-        <div className="flex items-start gap-2 rounded-sm border border-border bg-muted/20 px-2 py-2">
+      <div className="space-y-0 divide-y divide-border">
+        <div className="flex items-start gap-2 px-2.5 py-2">
           <Truck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-foreground">
@@ -94,7 +94,7 @@ export function SupplyDrawerSummaryPanel({
           </div>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 px-2.5 py-2">
           <div className="flex items-center justify-between text-[10px]">
             <span className="font-semibold uppercase tracking-wide text-muted-foreground">
               Lines complete
@@ -103,51 +103,59 @@ export function SupplyDrawerSummaryPanel({
               {lineStats.valid}/{lineStats.totalRows}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-1 overflow-hidden bg-muted">
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              className="h-full bg-primary transition-[width] duration-300"
               style={{ width: `${lineProgress}%` }}
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5">
-          <SummaryMetric
-            label="Payable"
-            value={estimatedProfit.cost.toFixed(2)}
-            sub={`${lineStats.withQty} w/ qty`}
-            accent="text-foreground"
-          />
-          <SummaryMetric
-            label="Retail est."
-            value={estimatedProfit.revenue.toFixed(2)}
-            accent="text-primary"
-          />
+        <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
+          <div className="p-2">
+            <SummaryMetric
+              label="Payable"
+              value={estimatedProfit.cost.toFixed(2)}
+              sub={`${lineStats.withQty} w/ qty`}
+              accent="text-foreground"
+            />
+          </div>
+          <div className="p-2">
+            <SummaryMetric
+              label="Retail est."
+              value={estimatedProfit.revenue.toFixed(2)}
+              accent="text-primary"
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5">
-          <SummaryMetric
-            label="Margin"
-            value={`${marginPct}%`}
-            sub={netProfit.toFixed(2)}
-            accent={
-              netProfit >= 0 ? "text-primary" : "text-red-600 dark:text-red-400"
-            }
-          />
-          {extrasTotal > 0 ? (
-            <SummaryMetric label="Extras" value={extrasTotal.toFixed(2)} />
-          ) : (
-            <SummaryMetric label="Extras" value="0.00" sub="Optional" />
-          )}
+        <div className="grid grid-cols-2 gap-0 divide-x divide-border border-t border-border">
+          <div className="p-2">
+            <SummaryMetric
+              label="Margin"
+              value={`${marginPct}%`}
+              sub={netProfit.toFixed(2)}
+              accent={
+                netProfit >= 0 ? "text-primary" : "text-red-600 dark:text-red-400"
+              }
+            />
+          </div>
+          <div className="p-2">
+            {extrasTotal > 0 ? (
+              <SummaryMetric label="Extras" value={extrasTotal.toFixed(2)} />
+            ) : (
+              <SummaryMetric label="Extras" value="0.00" sub="Optional" />
+            )}
+          </div>
         </div>
       </div>
 
       <div
         className={cn(
-          "mx-2.5 mb-2.5 flex items-start gap-2 rounded-sm border px-2.5 py-2 text-[10px]",
+          "mx-0 flex items-start gap-2 border-t px-2.5 py-2 text-[10px]",
           canPost
             ? "border-primary/35 bg-primary/10 text-foreground"
-            : "border-border bg-muted/25 text-muted-foreground",
+            : "border-border bg-muted/20 text-muted-foreground",
         )}
       >
         <PackagePlus className="size-4 shrink-0 text-primary" aria-hidden />
@@ -158,7 +166,7 @@ export function SupplyDrawerSummaryPanel({
         </p>
       </div>
 
-      <div className="border-t border-border bg-muted/20 px-2.5 py-2">
+      <div className="border-t border-border bg-[#eef2f7] px-2.5 py-2 dark:bg-muted/25">
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <TrendingUp className="size-3 shrink-0" aria-hidden />
           Draft shelf prices show here; they post when you save the supply.

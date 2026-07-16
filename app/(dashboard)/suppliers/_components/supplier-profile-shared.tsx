@@ -5,12 +5,14 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 import {
-  supCardInset,
-  supFieldLabel,
-  supInput,
-  supKicker,
-  supSelect,
-  supTextarea,
+  SupFormRow,
+  SupFormSection,
+  SupFormTable,
+} from "./supplier-layout-primitives";
+import {
+  supFormCellInput,
+  supFormCellSelect,
+  supFormCellTextarea,
 } from "./supplier-ui-tokens";
 
 const SUPPLIER_STATUS_OPTIONS = ["active", "inactive", "blocked"] as const;
@@ -107,86 +109,74 @@ export function SupplierProfileFields({
   slotAfterIdentity?: ReactNode;
 }) {
   return (
-    <div className="space-y-8">
-      <section className="space-y-4">
-        <div>
-          <p className={supKicker}>Identity &amp; status</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            How this vendor appears in your directory and records.
-          </p>
-        </div>
-        <div className={cn(supCardInset, "grid gap-3 p-4 sm:grid-cols-2")}>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
-            <span className={supFieldLabel}>
-              Legal / display name <span className="text-destructive">*</span>
-            </span>
+    <div>
+      <SupFormSection
+        title="Identity & status"
+        hint="How this vendor appears in your directory and records."
+      >
+        <SupFormTable>
+          <SupFormRow label="Legal / display name" required>
             <input
-              className={supInput}
+              className={supFormCellInput}
               value={draft.name}
               onChange={(e) => onDraftChange({ name: e.target.value })}
               placeholder="e.g. Acacia Distributors Ltd"
               required
             />
-          </label>
+          </SupFormRow>
           {mode === "create" ? (
             <>
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                <span className={supFieldLabel}>Primary contact phone</span>
+              <SupFormRow label="Primary contact phone">
                 <input
-                  className={supInput}
+                  className={supFormCellInput}
                   value={draft.contactPhone}
                   onChange={(e) => onDraftChange({ contactPhone: e.target.value })}
                   placeholder="For duplicate check & PO follow-up"
                   inputMode="tel"
                   maxLength={32}
                 />
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-                <span className={supFieldLabel}>Primary contact email</span>
+              </SupFormRow>
+              <SupFormRow label="Primary contact email">
                 <input
-                  className={supInput}
+                  className={supFormCellInput}
                   type="email"
                   value={draft.contactEmail}
                   onChange={(e) => onDraftChange({ contactEmail: e.target.value })}
                   placeholder="orders@supplier.co.ke"
                   maxLength={255}
                 />
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
-                <span className={supFieldLabel}>Contact person</span>
+              </SupFormRow>
+              <SupFormRow label="Contact person">
                 <input
-                  className={supInput}
+                  className={supFormCellInput}
                   value={draft.contactName}
                   onChange={(e) => onDraftChange({ contactName: e.target.value })}
                   placeholder="Optional — saved as primary contact after create"
                   maxLength={255}
                 />
-              </label>
+              </SupFormRow>
             </>
           ) : null}
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>Vendor code</span>
+          <SupFormRow label="Vendor code">
             <input
-              className={supInput}
+              className={supFormCellInput}
               value={draft.code}
               onChange={(e) => onDraftChange({ code: e.target.value })}
               maxLength={64}
               placeholder="Optional reference"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>Supplier type</span>
+          </SupFormRow>
+          <SupFormRow label="Supplier type">
             <input
-              className={supInput}
+              className={supFormCellInput}
               value={draft.supplierType}
               onChange={(e) => onDraftChange({ supplierType: e.target.value })}
               placeholder="e.g. distributor, manufacturer"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>Status</span>
+          </SupFormRow>
+          <SupFormRow label="Status">
             <select
-              className={supSelect}
+              className={supFormCellSelect}
               value={draft.status}
               onChange={(e) => onDraftChange({ status: e.target.value })}
             >
@@ -201,53 +191,52 @@ export function SupplierProfileFields({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
-            <span className={supFieldLabel}>Internal notes</span>
+          </SupFormRow>
+          <SupFormRow label="Internal notes">
             <textarea
-              className={supTextarea}
+              className={supFormCellTextarea}
               value={draft.notes}
               onChange={(e) => onDraftChange({ notes: e.target.value })}
               placeholder="Buyer notes, reminders, or negotiation context…"
               maxLength={5000}
             />
-          </label>
-        </div>
-      </section>
+          </SupFormRow>
+        </SupFormTable>
+      </SupFormSection>
 
       {slotAfterIdentity}
 
-      <section className="space-y-4 border-t border-border/45 pt-8">
-        <div>
-          <p className={supKicker}>Commercial &amp; payments</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Credit, tax, and how you settle invoices with this supplier.
-          </p>
-        </div>
-        <div className={cn(supCardInset, "grid gap-3 p-4 sm:grid-cols-2")}>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>VAT / tax ID</span>
+      <SupFormSection
+        title="Commercial & payments"
+        hint="Credit, tax, and how you settle invoices with this supplier."
+      >
+        <SupFormTable>
+          <SupFormRow
+            label="VAT / tax ID"
+            hint={mode === "create" ? "Helps match existing vendors" : undefined}
+          >
             <input
-              className={supInput}
+              className={supFormCellInput}
               value={draft.vatPin}
               onChange={(e) => onDraftChange({ vatPin: e.target.value })}
               maxLength={64}
-              placeholder={mode === "create" ? "Helps match existing vendors" : "Optional"}
+              placeholder={mode === "create" ? "Optional" : "Optional"}
             />
-          </label>
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/50 bg-background/80 px-3 py-2.5 sm:mt-5">
+          </SupFormRow>
+          <SupFormRow label="Tax exempt">
+            <label className="flex h-8 cursor-pointer items-center gap-2 px-2">
+              <input
+                type="checkbox"
+                className="size-3.5 rounded-none border-input text-primary focus-visible:ring-1 focus-visible:ring-primary/40"
+                checked={draft.taxExempt}
+                onChange={(e) => onDraftChange({ taxExempt: e.target.checked })}
+              />
+              <span className="text-sm text-foreground">Tax exempt vendor</span>
+            </label>
+          </SupFormRow>
+          <SupFormRow label="Credit terms (days)" hint="Leave blank to keep current value.">
             <input
-              type="checkbox"
-              className="size-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-              checked={draft.taxExempt}
-              onChange={(e) => onDraftChange({ taxExempt: e.target.checked })}
-            />
-            <span className="text-sm text-foreground">Tax exempt vendor</span>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>Credit terms (days)</span>
-            <input
-              className={cn(supInput, "tabular-nums")}
+              className={cn(supFormCellInput, "tabular-nums")}
               inputMode="numeric"
               value={draft.creditTermsDays}
               onChange={(e) =>
@@ -257,24 +246,19 @@ export function SupplierProfileFields({
               }
               placeholder="e.g. 30"
             />
-            <span className="text-[10px] text-muted-foreground">
-              Leave blank to keep current value.
-            </span>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>Credit limit</span>
+          </SupFormRow>
+          <SupFormRow label="Credit limit">
             <input
-              className={cn(supInput, "tabular-nums")}
+              className={cn(supFormCellInput, "tabular-nums")}
               inputMode="decimal"
               value={draft.creditLimit}
               onChange={(e) => onDraftChange({ creditLimit: e.target.value })}
               placeholder="Optional"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
-            <span className={supFieldLabel}>Preferred payment method</span>
+          </SupFormRow>
+          <SupFormRow label="Preferred payment method">
             <input
-              className={supInput}
+              className={supFormCellInput}
               value={draft.paymentMethodPreferred}
               onChange={(e) =>
                 onDraftChange({ paymentMethodPreferred: e.target.value })
@@ -282,13 +266,10 @@ export function SupplierProfileFields({
               maxLength={32}
               placeholder="Bank transfer, card on file, cheque…"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
-            <span className={supFieldLabel}>
-              Payment &amp; remittance details
-            </span>
+          </SupFormRow>
+          <SupFormRow label="Payment & remittance details">
             <textarea
-              className={cn(supTextarea, "min-h-28")}
+              className={cn(supFormCellTextarea, "min-h-[5.5rem]")}
               value={draft.paymentDetails}
               onChange={(e) =>
                 onDraftChange({ paymentDetails: e.target.value })
@@ -296,36 +277,34 @@ export function SupplierProfileFields({
               maxLength={2000}
               placeholder="Bank account, IBAN, SWIFT, PO references…"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            <span className={supFieldLabel}>KopoKopo payout</span>
+          </SupFormRow>
+          <SupFormRow label="KopoKopo payout">
             <select
-              className={supSelect}
+              className={supFormCellSelect}
               value={draft.payoutType}
               onChange={(e) => onDraftChange({ payoutType: e.target.value })}
             >
               <option value="manual">Manual (record payment yourself)</option>
               <option value="mobile_wallet">M-Pesa via KopoKopo Send Money</option>
             </select>
-          </label>
+          </SupFormRow>
           {draft.payoutType === "mobile_wallet" ? (
-            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-              <span className={supFieldLabel}>M-Pesa payout phone</span>
+            <SupFormRow
+              label="M-Pesa payout phone"
+              hint="Used when paying supplies via KopoKopo Send Money."
+            >
               <input
-                className={cn(supInput, "font-mono")}
+                className={cn(supFormCellInput, "font-mono")}
                 value={draft.payoutPhone}
                 onChange={(e) => onDraftChange({ payoutPhone: e.target.value })}
                 maxLength={32}
                 placeholder="2547XXXXXXXX"
                 inputMode="tel"
               />
-              <span className="text-[10px] text-muted-foreground">
-                Used when paying supplies via KopoKopo Send Money.
-              </span>
-            </label>
+            </SupFormRow>
           ) : null}
-        </div>
-      </section>
+        </SupFormTable>
+      </SupFormSection>
     </div>
   );
 }

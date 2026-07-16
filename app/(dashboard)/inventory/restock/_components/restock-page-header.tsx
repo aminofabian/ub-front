@@ -31,7 +31,7 @@ export function RestockPageHeader({
   );
 
   return (
-    <header className="min-w-0 space-y-1.5 border-b border-border/50 pb-2">
+    <header className="min-w-0 space-y-1.5 border-b border-border px-3 py-3">
       <div className="flex min-w-0 items-center gap-2">
         <PackageX
           className="size-4 shrink-0 text-muted-foreground"
@@ -44,7 +44,7 @@ export function RestockPageHeader({
           type="button"
           variant="outline"
           size="sm"
-          className="h-7 shrink-0 gap-1 rounded-md px-2 text-[11px] font-medium"
+          className="h-8 shrink-0 gap-1 rounded-none px-2.5 text-[11px] font-medium"
           disabled={loading}
           onClick={onRefresh}
           aria-label="Refresh out-of-stock list"

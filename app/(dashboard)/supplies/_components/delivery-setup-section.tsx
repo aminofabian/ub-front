@@ -16,7 +16,7 @@ import {
 } from "./new-supply-drawer-ui";
 
 const nsdSetupBlock = cn(
-  "rounded-sm border border-border/80 bg-muted/[0.18] p-2 sm:p-2.5",
+  "overflow-hidden border border-border bg-card",
 );
 
 function SetupBlock({
@@ -32,9 +32,9 @@ function SetupBlock({
 }) {
   return (
     <div className={cn(nsdSetupBlock, className)}>
-      <div className="mb-2 flex items-center gap-2 border-b border-border/50 pb-1.5">
+      <div className="flex items-center gap-2 border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
         <span
-          className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-primary/12 text-[9px] font-bold tabular-nums text-primary"
+          className="flex size-4 shrink-0 items-center justify-center border border-primary/30 bg-primary/10 text-[9px] font-bold tabular-nums text-primary"
           aria-hidden
         >
           {step}
@@ -43,7 +43,7 @@ function SetupBlock({
           {title}
         </span>
       </div>
-      {children}
+      <div className="p-2 sm:p-2.5">{children}</div>
     </div>
   );
 }
@@ -120,8 +120,8 @@ export function DeliverySetupSection({
 
   if (collapsed && supplier) {
     return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm border border-primary/25 bg-primary/[0.04] px-2.5 py-2">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-primary/25 bg-background text-primary">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border border-primary/25 bg-primary/[0.04] px-2.5 py-2">
+        <span className="flex size-6 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
           <Truck className="size-3" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -142,7 +142,7 @@ export function DeliverySetupSection({
           type="button"
           variant="outline"
           size="sm"
-          className="h-8 shrink-0 gap-1 rounded-sm px-2 text-[11px] touch-manipulation"
+          className="h-8 shrink-0 gap-1 rounded-none px-2 text-[11px] touch-manipulation"
           disabled={busy}
           onClick={onToggleCollapsed}
         >
@@ -170,8 +170,8 @@ export function DeliverySetupSection({
       <div className="grid gap-2 lg:grid-cols-2 lg:gap-2.5">
         <SetupBlock step="1" title="Vendor" className="relative z-20 overflow-visible">
           {supplier ? (
-            <div className="flex items-start gap-2 rounded-sm border border-primary/30 bg-primary/[0.05] px-2 py-1.5">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-sm border border-primary/25 bg-background text-primary">
+            <div className="flex items-start gap-2 border border-primary/30 bg-primary/[0.05] px-2 py-1.5">
+              <span className="flex size-7 shrink-0 items-center justify-center border border-primary/25 bg-background text-primary">
                 <Truck className="size-3.5" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export function DeliverySetupSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 shrink-0 rounded-sm px-2.5 text-xs touch-manipulation"
+                className="h-8 shrink-0 rounded-none px-2.5 text-xs touch-manipulation"
                 disabled={busy}
                 onClick={onClearSupplier}
               >
@@ -263,7 +263,7 @@ export function DeliverySetupSection({
               selectedBranchName ? (
                 <div className="flex flex-col gap-1">
                   <span className={nsdFieldLabel}>Branch</span>
-                  <div className="flex h-9 items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 sm:h-8">
+                  <div className="flex h-9 items-center gap-1.5 border border-border bg-background px-2.5 sm:h-8">
                     <Building2
                       className="size-3.5 shrink-0 text-muted-foreground"
                       aria-hidden

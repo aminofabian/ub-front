@@ -1200,22 +1200,17 @@ export default function SuppliersPage() {
             className="space-y-8"
             onSubmit={onCreate}
           >
-            <FormDrawerFields
-              legend="New supplier"
-              hint="Marketplace suppliers are connected, not re-created. Private suppliers need only a name."
-            >
-              <NewSupplierForm
-                draft={createDraft}
-                onDraftChange={(partial) =>
-                  setCreateDraft((d) => ({ ...d, ...partial }))
-                }
-                canViewMarketplace={canViewMarketplace}
-                onBrowseMarketplace={() => {
-                  setCreateDrawerOpen(false);
-                  router.push(APP_ROUTES.marketplace);
-                }}
-              />
-            </FormDrawerFields>
+            <NewSupplierForm
+              draft={createDraft}
+              onDraftChange={(partial) =>
+                setCreateDraft((d) => ({ ...d, ...partial }))
+              }
+              canViewMarketplace={canViewMarketplace}
+              onBrowseMarketplace={() => {
+                setCreateDrawerOpen(false);
+                router.push(APP_ROUTES.marketplace);
+              }}
+            />
           </form>
         </FormDrawer>
       ) : null}
