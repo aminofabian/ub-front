@@ -6,6 +6,7 @@ import {
   Layers,
   Package,
   PackageX,
+  ScanLine,
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
@@ -25,6 +26,12 @@ export const STOCK_PAGE_QUICK_LINKS: readonly InventoryQuickLink[] = [
     label: "Out of stock",
     desc: "Restock zeros",
     icon: PackageX,
+  },
+  {
+    href: APP_ROUTES.inventoryMissingBarcodes,
+    label: "Missing barcodes",
+    desc: "Variants to label",
+    icon: ScanLine,
   },
   {
     href: APP_ROUTES.inventoryStockTake,
@@ -61,6 +68,7 @@ export const STOCK_PAGE_QUICK_LINKS: readonly InventoryQuickLink[] = [
 const STOCK_MANAGER_INVENTORY_HREFS: readonly string[] = [
   APP_ROUTES.inventoryStock,
   APP_ROUTES.inventoryRestock,
+  APP_ROUTES.inventoryMissingBarcodes,
   APP_ROUTES.inventoryStockTake,
   APP_ROUTES.inventoryStockTakeDailyAudit,
   APP_ROUTES.purchasingAddSupplies,

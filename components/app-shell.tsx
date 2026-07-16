@@ -163,6 +163,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: APP_ROUTES.inventoryRestock, label: "Out of stock" },
       { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
       { href: APP_ROUTES.inventoryCostIssues, label: "Cost issues" },
+      {
+        href: APP_ROUTES.inventoryMissingBarcodes,
+        label: "Missing barcodes",
+      },
       { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       {
         href: APP_ROUTES.inventoryStockTakeInvestigations,
@@ -327,6 +331,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
       APP_ROUTES.inventoryStockTakeDailyAudit,
       APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryRestock,
+      APP_ROUTES.inventoryMissingBarcodes,
     ];
     if (gate.canAddSupplies) {
       allowed.push(APP_ROUTES.purchasingAddSupplies);
@@ -426,6 +431,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.inventoryStockTakeReconciliation)
     return gate.canApproveStockTake;
   if (item.href === APP_ROUTES.inventoryCostIssues) return gate.canViewPricing;
+  if (item.href === APP_ROUTES.inventoryMissingBarcodes)
+    return gate.canViewInventoryValuation;
   if (item.href === APP_ROUTES.pricing) return gate.canViewPricing;
   if (item.href === APP_ROUTES.shifts) return gate.canViewShifts;
   if (item.href === APP_ROUTES.analytics) return gate.canViewAnalytics;
