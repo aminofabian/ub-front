@@ -936,14 +936,12 @@ export function AppShell({ children }: AppShellProps) {
     }
 
     if (roleKey === "cashier") {
-      const allowed = [
+      const allowed: string[] = [
         APP_ROUTES.cashier,
         APP_ROUTES.shifts,
         APP_ROUTES.purchasingAddSupplies,
+        ...(canViewSuppliers ? [APP_ROUTES.suppliers] : []),
       ];
-      if (canViewSuppliers) {
-        allowed.push(APP_ROUTES.suppliers);
-      }
       const isAllowed = allowed.some(
         (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
       );

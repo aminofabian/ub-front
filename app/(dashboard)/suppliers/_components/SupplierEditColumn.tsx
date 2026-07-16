@@ -1,17 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  Building2,
-  Clock,
-  CreditCard,
-  Mail,
-  Phone,
-  PencilLine,
-  Smartphone,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { Building2, PencilLine, UserPlus } from "lucide-react";
 
 import type {
   SupplierContactRecord,
@@ -21,13 +11,17 @@ import type {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-import { SupEmptyState, SupSection } from "./supplier-layout-primitives";
+import {
+  SupEmptyState,
+  SupFieldTable,
+  SupSection,
+} from "./supplier-layout-primitives";
 import { SupplierPurchaseHistorySection } from "./SupplierPurchaseHistorySection";
 import {
   statusBadgeClass,
-  supCardInset,
-  supMotionIn,
-  supStatTile,
+  supKvLabel,
+  supKvTable,
+  supKvValue,
 } from "./supplier-ui-tokens";
 
 export function SupplierEditColumn({
@@ -74,149 +68,193 @@ export function SupplierEditColumn({
   return (
     <div
       className={cn(
-        compact ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-3",
-        !compact && supMotionIn,
-        compact && "gap-0",
+        compact ? "flex min-h-0 flex-1 flex-col gap-0" : "flex flex-col gap-2",
       )}
     >
       <div
         className={cn(
-          compact ? "min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pb-1" : "contents",
+          compact
+            ? "min-h-0 flex-1 space-y-0 overflow-y-auto overscroll-contain"
+            : "contents",
         )}
       >
-      <div
-        className={cn(
-          "rounded-xl border border-border/55 bg-card",
-          compact ? "p-2" : "p-4",
-        )}
-      >
-        <div className={compact ? "space-y-1.5" : undefined}>
-          {compact ? (
-            <div className="flex flex-wrap items-center gap-1">
-              <span
-                className={cn(
-                  "inline-flex items-center rounded px-1.5 py-px text-xs font-semibold capitalize",
-                  statusBadgeClass(detail.status),
-                )}
-              >
-                {detail.status}
-              </span>
-              {detail.supplierType ? (
-                <span className="inline-flex items-center rounded border border-border/50 bg-muted/40 px-1.5 py-px text-xs font-medium capitalize text-muted-foreground">
-                  {detail.supplierType}
-                </span>
-              ) : null}
-              {detail.taxExempt ? (
-                <span className="inline-flex items-center rounded border border-primary/25 bg-primary/10 px-1.5 py-px text-xs font-semibold text-primary">
-                  Tax exempt
-                </span>
-              ) : null}
-            </div>
-          ) : (
-            <>
-              <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold capitalize",
-                    statusBadgeClass(detail.status),
-                  )}
-                >
-                  {detail.status}
-                </span>
-                {detail.supplierType ? (
-                  <span className="inline-flex items-center rounded-md border border-border/50 bg-muted/40 px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">
-                    {detail.supplierType}
+      {compact ? (
+        <div className="space-y-0">
+          <SupFieldTable
+            rows={[
+              { label: "Name", value: detail.name },
+              {
+                label: "Code",
+                value: (
+                  <span className="font-mono">
+                    {detail.code?.trim() || "—"}
                   </span>
-                ) : null}
-                {detail.taxExempt ? (
-                  <span className="inline-flex items-center rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                    Tax exempt
-                  </span>
-                ) : null}
-              </div>
-
-              <h3 className="font-heading text-base font-bold tracking-tight text-foreground">
-                {detail.name}
-              </h3>
-              {detail.code?.trim() ? (
-                <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                  {detail.code.trim()}
-                </p>
-              ) : null}
-            </>
-          )}
-
-          {showPrimaryInTopCard && primaryContact ? (
-            <div className={cn(supCardInset, "mt-3 px-2.5 py-2")}>
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Primary contact
-              </p>
-              <div className={cn("flex flex-col text-muted-foreground", "mt-1 gap-0.5 text-xs")}>
-                {primaryContact.name?.trim() ? (
-                  <span className="font-semibold text-foreground">
-                    {primaryContact.name.trim()}
-                  </span>
-                ) : null}
-                {primaryContact.roleLabel?.trim() ? (
-                  <span>{primaryContact.roleLabel.trim()}</span>
-                ) : null}
-                {primaryContact.email?.trim() ? (
-                  <a
-                    href={`mailto:${primaryContact.email.trim()}`}
-                    className="truncate font-medium text-primary underline-offset-2 hover:underline"
+                ),
+              },
+              {
+                label: "Status",
+                value: (
+                  <span
+                    className={cn(
+                      "inline-flex px-1 py-px text-[10px] font-semibold capitalize",
+                      statusBadgeClass(detail.status),
+                    )}
                   >
-                    {primaryContact.email.trim()}
-                  </a>
-                ) : null}
-                {primaryContact.phone?.trim() ? (
-                  <a
-                    href={`tel:${primaryContact.phone.trim().replace(/\s+/g, "")}`}
-                    className="font-medium text-primary underline-offset-2 hover:underline"
-                  >
-                    {primaryContact.phone.trim()}
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
+                    {detail.status}
+                  </span>
+                ),
+              },
+              {
+                label: "Type",
+                value: detail.supplierType?.trim() || "—",
+              },
+              {
+                label: "Tax",
+                value: detail.taxExempt ? "Exempt" : "Standard",
+              },
+            ]}
+          />
           {canWrite && onEditProfile && onAddContact ? (
-            <div
-              className={cn(
-                "border-t border-border/40",
-                compact
-                  ? "mt-1.5 grid grid-cols-2 gap-1 pt-1.5"
-                  : "mt-3 flex flex-col gap-1.5 pt-3",
-              )}
-            >
+            <div className="grid grid-cols-2 border-x border-b border-border">
               <Button
                 type="button"
                 size="sm"
-                className={cn(
-                  "gap-1 font-semibold shadow-sm",
-                  compact ? "h-8 rounded-md px-2 text-xs" : "h-8 w-full gap-1.5 rounded-lg text-sm",
-                )}
+                variant="ghost"
+                className="h-7 gap-1 rounded-none border-r border-border text-xs font-semibold"
                 onClick={onEditProfile}
               >
-                <PencilLine className={compact ? "size-3" : "size-3.5"} aria-hidden />
-                {compact ? "Edit" : "Edit profile"}
+                <PencilLine className="size-3" aria-hidden />
+                Edit
               </Button>
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
-                className={cn(
-                  compact ? "h-8 rounded-md px-2 text-xs" : "h-8 w-full gap-1.5 rounded-lg text-sm",
-                )}
+                variant="ghost"
+                className="h-7 gap-1 rounded-none text-xs font-semibold"
                 onClick={onAddContact}
               >
-                <UserPlus className={compact ? "size-3" : "size-3.5"} aria-hidden />
-                {compact ? "Contact" : "Add contact"}
+                <UserPlus className="size-3" aria-hidden />
+                Contact
               </Button>
             </div>
           ) : null}
         </div>
-      </div>
+      ) : (
+        <div className="border border-border">
+          <table className={supKvTable}>
+            <tbody>
+              <tr>
+                <th scope="row" className={supKvLabel}>
+                  Name
+                </th>
+                <td className={cn(supKvValue, "font-semibold")}>{detail.name}</td>
+              </tr>
+              <tr>
+                <th scope="row" className={supKvLabel}>
+                  Code
+                </th>
+                <td className={cn(supKvValue, "font-mono")}>
+                  {detail.code?.trim() || "—"}
+                </td>
+              </tr>
+              <tr>
+                <th scope="row" className={supKvLabel}>
+                  Status
+                </th>
+                <td className={supKvValue}>
+                  <span
+                    className={cn(
+                      "inline-flex px-1 py-px text-[10px] font-semibold capitalize",
+                      statusBadgeClass(detail.status),
+                    )}
+                  >
+                    {detail.status}
+                  </span>
+                  {detail.supplierType ? (
+                    <span className="ml-2 text-muted-foreground capitalize">
+                      {detail.supplierType}
+                    </span>
+                  ) : null}
+                  {detail.taxExempt ? (
+                    <span className="ml-2 text-[10px] font-semibold text-primary">
+                      Tax exempt
+                    </span>
+                  ) : null}
+                </td>
+              </tr>
+              {showPrimaryInTopCard && primaryContact ? (
+                <>
+                  <tr>
+                    <th scope="row" className={supKvLabel}>
+                      Contact
+                    </th>
+                    <td className={supKvValue}>
+                      {primaryContact.name?.trim() || "—"}
+                      {primaryContact.roleLabel?.trim()
+                        ? ` · ${primaryContact.roleLabel.trim()}`
+                        : ""}
+                    </td>
+                  </tr>
+                  {primaryContact.email?.trim() ? (
+                    <tr>
+                      <th scope="row" className={supKvLabel}>
+                        Email
+                      </th>
+                      <td className={supKvValue}>
+                        <a
+                          href={`mailto:${primaryContact.email.trim()}`}
+                          className="text-primary underline-offset-2 hover:underline"
+                        >
+                          {primaryContact.email.trim()}
+                        </a>
+                      </td>
+                    </tr>
+                  ) : null}
+                  {primaryContact.phone?.trim() ? (
+                    <tr>
+                      <th scope="row" className={supKvLabel}>
+                        Phone
+                      </th>
+                      <td className={supKvValue}>
+                        <a
+                          href={`tel:${primaryContact.phone.trim().replace(/\s+/g, "")}`}
+                          className="text-primary underline-offset-2 hover:underline"
+                        >
+                          {primaryContact.phone.trim()}
+                        </a>
+                      </td>
+                    </tr>
+                  ) : null}
+                </>
+              ) : null}
+            </tbody>
+          </table>
+          {canWrite && onEditProfile && onAddContact ? (
+            <div className="grid grid-cols-2 border-t border-border">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1.5 rounded-none border-r border-border text-sm font-semibold"
+                onClick={onEditProfile}
+              >
+                <PencilLine className="size-3.5" aria-hidden />
+                Edit profile
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1.5 rounded-none text-sm font-semibold"
+                onClick={onAddContact}
+              >
+                <UserPlus className="size-3.5" aria-hidden />
+                Add contact
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {!compact ? <SupplierCommercialSection s={detail} compact={compact} /> : null}
       <SupplierPurchaseHistorySection
@@ -233,14 +271,18 @@ export function SupplierEditColumn({
       ) : null}
 
       {detail.notes?.trim() && compact ? (
-        <section className="overflow-hidden rounded-xl border border-dashed border-border/45 bg-muted/15 px-3 py-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-            Notes
-          </p>
-          <p className="mt-0.5 whitespace-pre-wrap text-xs leading-snug text-foreground">
-            {detail.notes.trim()}
-          </p>
-        </section>
+        <SupFieldTable
+          rows={[
+            {
+              label: "Notes",
+              value: (
+                <span className="whitespace-pre-wrap">
+                  {detail.notes.trim()}
+                </span>
+              ),
+            },
+          ]}
+        />
       ) : null}
       </div>
 
@@ -253,15 +295,19 @@ export function SupplierEditColumn({
       ) : null}
 
       {detail.notes?.trim() && !compact ? (
-        <SupSection compact={compact} title="Notes">
-          <p
-            className={cn(
-              "whitespace-pre-wrap text-foreground",
-              compact ? "text-sm leading-snug" : "text-base leading-relaxed",
-            )}
-          >
-            {detail.notes.trim()}
-          </p>
+        <SupSection compact={compact} title="Notes" bodyClassName="p-0">
+          <SupFieldTable
+            rows={[
+              {
+                label: "Notes",
+                value: (
+                  <span className="whitespace-pre-wrap">
+                    {detail.notes.trim()}
+                  </span>
+                ),
+              },
+            ]}
+          />
         </SupSection>
       ) : null}
 
@@ -270,14 +316,14 @@ export function SupplierEditColumn({
         compact={compact}
         title="Contacts"
         action={
-          <span className="rounded-md bg-muted/60 px-2 py-0.5 text-sm font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
+          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
             {contacts.length}
           </span>
         }
-        bodyClassName={compact ? undefined : "p-3"}
+        bodyClassName="p-0"
       >
         {contacts.length === 0 ? (
-          <p className={cn("text-center text-xs text-muted-foreground", compact ? "py-3" : "py-6")}>
+          <p className="px-2 py-4 text-center text-xs text-muted-foreground">
             No contacts on file yet.
             {canWrite && onAddContact ? (
               <>
@@ -293,70 +339,60 @@ export function SupplierEditColumn({
             ) : null}
           </p>
         ) : (
-          <div className="space-y-2">
-            {contacts.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-lg border border-border/45 bg-background/90 px-3 py-2.5 shadow-sm transition-colors hover:border-border/65"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {c.name?.trim() || "Unnamed"}
-                    </p>
-                    {c.roleLabel?.trim() ? (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {c.roleLabel.trim()}
-                      </p>
+          <table className="w-full border-collapse text-left text-xs">
+            <thead className="bg-[#dce6f0] dark:bg-muted/50">
+              <tr>
+                <th className="border border-border px-2 py-1 font-semibold">Name</th>
+                <th className="border border-border px-2 py-1 font-semibold">Role</th>
+                <th className="border border-border px-2 py-1 font-semibold">Phone</th>
+                <th className="border border-border px-2 py-1 font-semibold">Email</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contacts.map((c) => (
+                <tr key={c.id} className="hover:bg-[#e8f0fe] dark:hover:bg-muted/30">
+                  <td className="border border-border/70 px-2 py-1 font-medium">
+                    {c.name?.trim() || "Unnamed"}
+                    {c.primaryContact ? (
+                      <span className="ml-1 text-[10px] font-bold text-primary">*</span>
                     ) : null}
-                  </div>
-                  {c.primaryContact ? (
-                    <span className="shrink-0 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-primary ring-1 ring-primary/20">
-                      Primary
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                  {c.email?.trim() ? (
-                    <a
-                      href={`mailto:${c.email.trim()}`}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {c.email.trim()}
-                    </a>
-                  ) : null}
-                  {c.phone?.trim() ? (
-                    <a
-                      href={`tel:${c.phone.trim().replace(/\s+/g, "")}`}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {c.phone.trim()}
-                    </a>
-                  ) : null}
-                  {!c.email?.trim() && !c.phone?.trim() ? (
-                    <span className="text-muted-foreground">
-                      No contact details
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
+                  </td>
+                  <td className="border border-border/70 px-2 py-1 text-muted-foreground">
+                    {c.roleLabel?.trim() || "—"}
+                  </td>
+                  <td className="border border-border/70 px-2 py-1">
+                    {c.phone?.trim() ? (
+                      <a
+                        href={`tel:${c.phone.trim().replace(/\s+/g, "")}`}
+                        className="text-primary hover:underline"
+                      >
+                        {c.phone.trim()}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="border border-border/70 px-2 py-1">
+                    {c.email?.trim() ? (
+                      <a
+                        href={`mailto:${c.email.trim()}`}
+                        className="text-primary hover:underline"
+                      >
+                        {c.email.trim()}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </SupSection>
       ) : null}
     </div>
   );
-}
-
-function contactInitials(name: string | null | undefined): string {
-  const n = name?.trim();
-  if (!n) return "?";
-  const parts = n.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
-  }
-  return n.slice(0, 2).toUpperCase();
 }
 
 function formatCreditTerms(days: number | null | undefined): string | null {
@@ -380,109 +416,96 @@ function SupplierSidebarContactsDock({
   });
 
   return (
-    <section
-      className={cn(
-        "-mx-2 -mb-2 shrink-0 border-t border-border/50 bg-card/95 shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]",
-        "backdrop-blur-sm dark:shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.35)]",
-      )}
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-border/40 px-2 py-1">
+    <section className="shrink-0 border-t border-border bg-card">
+      <div className="flex items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-2 py-1 dark:bg-muted/40">
+        <h3 className="text-[11px] font-semibold tracking-tight text-foreground">
+          Contacts
+        </h3>
         <div className="flex items-center gap-1.5">
-          <Users className="size-3 text-muted-foreground" aria-hidden />
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">
-            Contacts
-          </h3>
-        </div>
-        {contacts.length > 0 ? (
-          <span className="rounded bg-muted/50 px-1.5 py-px text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
-            {contacts.length}
-          </span>
-        ) : null}
-      </div>
-
-      {sorted.length === 0 ? (
-        <div className="px-2.5 py-2.5 text-center">
-          <p className="text-xs text-muted-foreground">No contacts on file.</p>
+          {contacts.length > 0 ? (
+            <span className="text-[10px] tabular-nums text-muted-foreground">
+              {contacts.length}
+            </span>
+          ) : null}
           {canWrite && onAddContact ? (
             <button
               type="button"
-              className="mt-1 text-xs font-semibold text-primary underline-offset-2 hover:underline"
+              className="text-[10px] font-semibold text-primary underline-offset-2 hover:underline"
               onClick={onAddContact}
             >
-              Add a contact
+              + Add
             </button>
           ) : null}
         </div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="px-2 py-2 text-center text-[11px] text-muted-foreground">
+          No contacts on file.
+        </p>
       ) : (
-        <ul className="max-h-[min(9.5rem,28vh)] divide-y divide-border/35 overflow-y-auto overscroll-contain">
-          {sorted.map((c) => {
-            const phone = c.phone?.trim();
-            const email = c.email?.trim();
-            const name = c.name?.trim() || "Unnamed";
-            return (
-              <li
-                key={c.id}
-                className="flex items-start gap-2 px-2.5 py-1.5 transition-colors hover:bg-muted/20"
-              >
-                <span
-                  className={cn(
-                    "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                    c.primaryContact
-                      ? "bg-primary/12 text-primary ring-1 ring-primary/20"
-                      : "bg-muted/60 text-muted-foreground ring-1 ring-border/50",
-                  )}
-                  aria-hidden
-                >
-                  {contactInitials(c.name)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-1">
-                    <p className="truncate text-xs font-semibold text-foreground">
-                      {name}
-                    </p>
-                    {c.primaryContact ? (
-                      <span className="shrink-0 text-[8px] font-bold uppercase tracking-wide text-primary">
-                        Primary
+        <div className="max-h-[min(9rem,26vh)] overflow-y-auto overscroll-contain">
+          <table className="w-full border-collapse text-left text-[11px]">
+            <thead className="sticky top-0 bg-[#dce6f0] dark:bg-muted/50">
+              <tr>
+                <th className="border border-border px-1.5 py-0.5 font-semibold">
+                  Name
+                </th>
+                <th className="border border-border px-1.5 py-0.5 font-semibold">
+                  Phone
+                </th>
+                <th className="border border-border px-1.5 py-0.5 font-semibold">
+                  Email
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((c) => {
+                const phone = c.phone?.trim();
+                const email = c.email?.trim();
+                const name = c.name?.trim() || "Unnamed";
+                return (
+                  <tr key={c.id} className="hover:bg-[#e8f0fe] dark:hover:bg-muted/30">
+                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                      <span className="block truncate font-medium">
+                        {name}
+                        {c.primaryContact ? (
+                          <span className="ml-1 text-[9px] font-bold text-primary">
+                            *
+                          </span>
+                        ) : null}
                       </span>
-                    ) : null}
-                  </div>
-                  {c.roleLabel?.trim() ? (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.roleLabel.trim()}
-                    </p>
-                  ) : null}
-                  <div className="mt-0.5 flex flex-wrap gap-1">
-                    {phone ? (
-                      <a
-                        href={`tel:${phone.replace(/\s+/g, "")}`}
-                        className="inline-flex max-w-full items-center gap-1 rounded-md border border-border/50 bg-background/80 px-1.5 py-px text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
-                        title={`Call ${phone}`}
-                      >
-                        <Phone className="size-2.5 shrink-0 text-primary" aria-hidden />
-                        <span className="truncate">{phone}</span>
-                      </a>
-                    ) : null}
-                    {email ? (
-                      <a
-                        href={`mailto:${email}`}
-                        className="inline-flex max-w-full items-center gap-1 rounded-md border border-border/50 bg-background/80 px-1.5 py-px text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
-                        title={`Email ${email}`}
-                      >
-                        <Mail className="size-2.5 shrink-0 text-primary" aria-hidden />
-                        <span className="truncate">{email}</span>
-                      </a>
-                    ) : null}
-                    {!phone && !email ? (
-                      <span className="text-xs text-muted-foreground">
-                        No phone or email
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    </td>
+                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                      {phone ? (
+                        <a
+                          href={`tel:${phone.replace(/\s+/g, "")}`}
+                          className="block truncate text-primary hover:underline"
+                        >
+                          {phone}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
+                      {email ? (
+                        <a
+                          href={`mailto:${email}`}
+                          className="block truncate text-primary hover:underline"
+                        >
+                          {email}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
@@ -499,94 +522,54 @@ function SupplierSidebarPaymentSection({ detail }: { detail: SupplierRecord }) {
       ? detail.creditLimit.toLocaleString(undefined, { maximumFractionDigits: 0 })
       : null;
 
-  const payChips = [
-    creditTerms ? { label: creditTerms, tone: "default" as const } : null,
-    preferredPay ? { label: preferredPay, tone: "primary" as const } : null,
+  const rows: { label: string; value: ReactNode }[] = [
+    creditTerms ? { label: "Terms", value: creditTerms } : null,
+    preferredPay ? { label: "Method", value: preferredPay } : null,
+    creditLimit ? { label: "Limit", value: creditLimit } : null,
     detail.rating != null
-      ? { label: `${detail.rating}★`, tone: "muted" as const }
+      ? { label: "Rating", value: String(detail.rating) }
       : null,
-    creditLimit ? { label: `Limit ${creditLimit}`, tone: "muted" as const } : null,
-  ].filter(Boolean) as { label: string; tone: "default" | "primary" | "muted" }[];
+    vatPin
+      ? {
+          label: "VAT / tax ID",
+          value: <span className="font-mono">{vatPin}</span>,
+        }
+      : null,
+    payoutPhone
+      ? {
+          label: detail.payoutType?.trim() || "Payout",
+          value: (
+            <a
+              href={`tel:${payoutPhone.replace(/\s+/g, "")}`}
+              className="font-mono text-primary hover:underline"
+            >
+              {payoutPhone}
+            </a>
+          ),
+        }
+      : null,
+    paymentDetails
+      ? {
+          label: "Remittance",
+          value: (
+            <span className="whitespace-pre-wrap font-mono text-[11px]">
+              {paymentDetails}
+            </span>
+          ),
+        }
+      : null,
+  ].filter(Boolean) as { label: string; value: ReactNode }[];
 
-  const hasPaymentBlock =
-    payChips.length > 0 ||
-    Boolean(paymentDetails) ||
-    Boolean(payoutPhone) ||
-    Boolean(vatPin);
-
-  if (!hasPaymentBlock) return null;
+  if (rows.length === 0) return null;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border/55 bg-card/90 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.04]">
-      <div className="flex items-center gap-1.5 border-b border-border/45 bg-gradient-to-r from-muted/30 to-transparent px-2.5 py-1.5">
-        <CreditCard className="size-3 text-muted-foreground" aria-hidden />
-        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+    <section>
+      <div className="border border-b-0 border-border bg-[#e8eef5] px-2 py-1 dark:bg-muted/40">
+        <h3 className="text-[11px] font-semibold tracking-tight text-foreground">
           Payment
         </h3>
       </div>
-      <div className="space-y-2 p-2.5">
-        {payChips.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {payChips.map(({ label, tone }) => (
-              <span
-                key={label}
-                className={cn(
-                  "inline-flex rounded-md px-1.5 py-0.5 text-xs font-semibold ring-1 ring-inset",
-                  tone === "primary" &&
-                    "bg-primary/10 text-primary ring-primary/20",
-                  tone === "default" &&
-                    "bg-muted/50 text-foreground ring-border/50",
-                  tone === "muted" &&
-                    "bg-background text-muted-foreground ring-border/45",
-                )}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {vatPin ? (
-          <div className="flex items-baseline justify-between gap-2 text-xs">
-            <span className="shrink-0 font-semibold uppercase tracking-wide text-muted-foreground">
-              VAT / tax ID
-            </span>
-            <span className="truncate font-mono font-medium text-foreground">
-              {vatPin}
-            </span>
-          </div>
-        ) : null}
-
-        {payoutPhone ? (
-          <a
-            href={`tel:${payoutPhone.replace(/\s+/g, "")}`}
-            className="flex items-center gap-2 rounded-md border border-border/45 bg-muted/20 px-2 py-1.5 transition-colors hover:border-primary/25 hover:bg-primary/[0.04]"
-          >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Smartphone className="size-3" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
-                {detail.payoutType?.trim() || "Payout"}
-              </span>
-              <span className="block truncate font-mono text-xs font-semibold text-foreground">
-                {payoutPhone}
-              </span>
-            </span>
-          </a>
-        ) : null}
-
-        {paymentDetails ? (
-          <div className={cn(supCardInset, "px-2 py-1.5")}>
-            <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              Remittance details
-            </p>
-            <p className="mt-0.5 whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">
-              {paymentDetails}
-            </p>
-          </div>
-        ) : null}
-      </div>
+      <SupFieldTable rows={rows} />
     </section>
   );
 }
@@ -639,41 +622,31 @@ function SupplierCommercialSection({
     return null;
   }
 
+  const rows = [
+    ...financials.filter(({ value }) => value !== "—" && value != null && value !== ""),
+    ...(paymentDetails
+      ? [
+          {
+            label: "Payment & remittance",
+            value: (
+              <span className="whitespace-pre-wrap">{paymentDetails}</span>
+            ),
+          },
+        ]
+      : []),
+    {
+      label: "Updated",
+      value: formatShortDate(s.updatedAt),
+    },
+    {
+      label: "Created",
+      value: formatShortDate(s.createdAt),
+    },
+  ];
+
   return (
-    <SupSection compact={compact} title="Commercial" bodyClassName={compact ? "space-y-2" : undefined}>
-      <div className="grid grid-cols-1 gap-1.5">
-        {financials.map(({ label, value }) =>
-          value === "—" ? null : (
-            <div key={label} className={supStatTile}>
-              <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {label}
-              </span>
-              <span className="mt-0.5 block text-sm font-medium text-foreground">
-                {value}
-              </span>
-            </div>
-          ),
-        )}
-      </div>
-
-      {paymentDetails ? (
-        <div className={cn(supStatTile, "mt-1.5")}>
-          <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Payment &amp; remittance
-          </span>
-          <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {paymentDetails}
-          </p>
-        </div>
-      ) : null}
-
-      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <Clock className="size-3 shrink-0 opacity-60" aria-hidden />
-        <span>
-          Updated {formatShortDate(s.updatedAt)} · Created{" "}
-          {formatShortDate(s.createdAt)}
-        </span>
-      </div>
+    <SupSection compact={compact} title="Commercial" bodyClassName="p-0">
+      <SupFieldTable rows={rows} />
     </SupSection>
   );
 }

@@ -687,24 +687,20 @@ export default function SuppliersPage() {
           >
             <div
               className={cn(
-                "flex shrink-0 flex-col gap-2 border-b border-border/50 bg-muted/15 px-3 py-2.5",
-                isXl && "gap-1.5 px-2.5 py-2",
+                "flex shrink-0 flex-col gap-1.5 border-b border-border bg-[#eef2f7] px-2 py-1.5 dark:bg-muted/25",
+                isXl && "gap-1 px-2 py-1.5",
               )}
             >
               <div className="relative">
                 <Search
-                  className={cn(
-                    "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground/70",
-                    isXl ? "left-2 size-3.5" : "left-2.5 size-4",
-                  )}
+                  className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70"
                   aria-hidden
                 />
                 <input
                   id="supplier-directory-search"
                   className={cn(
                     dashboardInputClass(listLoadingInitial),
-                    "rounded-lg bg-background focus-visible:ring-primary/20",
-                    isXl ? "h-9 pl-8 text-sm" : "h-10 pl-9 text-sm",
+                    "h-8 rounded-none border-border bg-background pl-8 text-sm focus-visible:ring-1 focus-visible:ring-primary/30",
                   )}
                   placeholder="Search name or code…"
                   value={listSearch}
@@ -712,13 +708,13 @@ export default function SuppliersPage() {
                   aria-label="Search suppliers"
                 />
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <div
-                  className="flex min-w-0 flex-1 flex-wrap gap-1"
+                  className="flex min-w-0 flex-1 flex-wrap"
                   role="group"
                   aria-label="Filter by status"
                 >
-                  {statusOptions.map((opt) => {
+                  {statusOptions.map((opt, i) => {
                     const active = statusFilter === opt.value;
                     return (
                       <button
@@ -727,10 +723,11 @@ export default function SuppliersPage() {
                         disabled={listLoadingInitial}
                         onClick={() => setStatusFilter(opt.value)}
                         className={cn(
-                          "rounded-md px-2 py-1 text-[11px] font-semibold transition-colors",
+                          "border border-border px-2 py-0.5 text-[11px] font-semibold transition-colors",
+                          i > 0 && "-ml-px",
                           active
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-background text-muted-foreground ring-1 ring-border/55 hover:text-foreground",
+                            ? "relative z-[1] border-primary/40 bg-primary text-primary-foreground"
+                            : "bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground",
                         )}
                       >
                         {opt.label}
@@ -743,8 +740,8 @@ export default function SuppliersPage() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "shrink-0 rounded-md px-2 text-muted-foreground hover:text-foreground",
-                    isXl ? "h-8 w-8" : "h-8 gap-1.5 px-2.5 text-xs",
+                    "shrink-0 rounded-none border border-border bg-background px-1.5 text-muted-foreground hover:text-foreground",
+                    isXl ? "size-7" : "h-7 gap-1 px-2 text-xs",
                   )}
                   disabled={listLoadingInitial}
                   onClick={() => void refreshFullDirectory()}
@@ -830,21 +827,21 @@ export default function SuppliersPage() {
                 )}
               >
                 <div className={cn(supPanelHeader)}>
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span className={supPanelHeaderIcon()}>
-                      <Building2 className="size-3.5" aria-hidden />
+                      <Building2 className="size-3" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                         Profile
                       </p>
-                      <p className="truncate text-sm font-semibold leading-tight tracking-tight text-foreground">
+                      <p className="truncate text-xs font-semibold leading-tight text-foreground">
                         {detail?.name ?? "Select a supplier"}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2">
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
                   <SupplierEditColumn
                     variant="sidebar"
                     detail={detail}
@@ -918,7 +915,7 @@ export default function SuppliersPage() {
                     )}
                   </div>
                 </div>
-                <div className={cn(supPanelBodyFill, "p-2")}>
+                <div className={cn(supPanelBodyFill, "p-0")}>
                   {selectedInvoice ? (
                     <SupplierSupplyInvoicePanel
                       invoiceId={selectedInvoice.supplierInvoiceId}

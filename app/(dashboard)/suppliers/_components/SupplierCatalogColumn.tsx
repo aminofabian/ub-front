@@ -974,17 +974,21 @@ export function SupplierCatalogColumn({
             No links yet. Browse to attach products.
           </p>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-border/45">
-            <table className="w-full text-left text-sm">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <table className="w-full border-collapse text-left text-xs">
               <thead className={cn("sticky top-0 z-10", supTableHead)}>
                 <tr>
-                  <th className="px-2 py-1 font-semibold">Product</th>
-                  <th className="w-[4.25rem] px-2 py-1 text-right font-semibold">
+                  <th className="border border-border px-1.5 py-1 font-semibold">
+                    Product
+                  </th>
+                  <th className="w-[4.25rem] border border-border px-1.5 py-1 text-right font-semibold">
                     Stock
                   </th>
-                  <th className="w-20 px-2 py-1 text-right font-semibold">Cost</th>
+                  <th className="w-20 border border-border px-1.5 py-1 text-right font-semibold">
+                    Cost
+                  </th>
                   {canLinkProducts ? (
-                    <th className="w-[4.5rem] px-2 py-1 text-right font-semibold">
+                    <th className="w-[4.5rem] border border-border px-1.5 py-1 text-right font-semibold">
                       <span className="sr-only">Actions</span>
                     </th>
                   ) : null}
@@ -993,7 +997,7 @@ export function SupplierCatalogColumn({
               <tbody>
                 {itemLinks.map((row) => (
                   <tr key={row.id} className={supTableRow}>
-                    <td className="max-w-0 px-2 py-1">
+                    <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
                       <div className="flex min-w-0 items-center gap-1">
                         <span
                           className="truncate font-medium text-foreground"
@@ -1003,7 +1007,7 @@ export function SupplierCatalogColumn({
                         </span>
                         {row.primary ? (
                           <span
-                            className="shrink-0 rounded bg-primary/15 px-1 py-px text-[8px] font-bold uppercase tracking-wide text-primary"
+                            className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-bold uppercase text-primary"
                             title="Primary supplier for this product"
                           >
                             1°
@@ -1011,7 +1015,7 @@ export function SupplierCatalogColumn({
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-2 py-1 text-right align-middle">
+                    <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
                       <SupplierLinkStockCell
                         link={row}
                         branchId={scopedBranchId}
@@ -1020,19 +1024,19 @@ export function SupplierCatalogColumn({
                         onUpdated={() => onRefreshLinks?.()}
                       />
                     </td>
-                    <td className="px-2 py-1 text-right font-mono tabular-nums text-muted-foreground">
+                    <td className="border border-border/70 px-1.5 py-0.5 text-right font-mono tabular-nums text-muted-foreground">
                       {row.defaultCostPrice != null && row.defaultCostPrice !== ""
                         ? String(row.defaultCostPrice)
                         : "—"}
                     </td>
                     {canLinkProducts ? (
-                      <td className="px-2 py-1">
+                      <td className="border border-border/70 px-1.5 py-0.5">
                         <div className="flex items-center justify-end gap-0.5">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="size-6 p-0 text-muted-foreground"
+                            className="size-6 rounded-none p-0 text-muted-foreground"
                             title="Edit link"
                             onClick={() => openEditLinkDrawer(row)}
                           >
@@ -1044,7 +1048,7 @@ export function SupplierCatalogColumn({
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="size-6 p-0 text-muted-foreground"
+                              className="size-6 rounded-none p-0 text-muted-foreground"
                               title="Set as primary supplier"
                               disabled={linksBusy || !row.active}
                               onClick={() => void onSetPrimaryLink(row)}
@@ -1057,7 +1061,7 @@ export function SupplierCatalogColumn({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="size-6 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            className="size-6 rounded-none p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             title="Remove link"
                             disabled={linksBusy}
                             onClick={() => void onRemoveLink(row)}

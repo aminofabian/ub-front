@@ -36,28 +36,23 @@ export function SupSection({
   return (
     <section
       className={cn(
-        "overflow-hidden border border-border/55 bg-card",
-        compact ? "rounded-lg" : "rounded-xl",
+        "overflow-hidden border border-border bg-card",
         className,
       )}
     >
       <div
         className={cn(
-          "flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20",
-          compact ? "px-2.5 py-1.5" : "gap-3 px-4 py-3 sm:px-5",
+          "flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[#e8eef5] dark:bg-muted/40",
+          compact ? "px-2 py-1" : "px-2.5 py-1.5",
         )}
       >
         <div className="min-w-0">
-          <h3 className={cn(supSectionTitle, compact && "text-xs font-semibold")}>
-            {title}
-          </h3>
+          <h3 className={cn(supSectionTitle, compact && "text-[11px]")}>{title}</h3>
           {hint && !compact ? <p className={supSectionHint}>{hint}</p> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn(compact ? "p-1.5" : "p-4 sm:p-5", bodyClassName)}>
-        {children}
-      </div>
+      <div className={cn(compact ? "p-0" : "p-0", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -78,13 +73,13 @@ export function SupEmptyState({
   return (
     <div className={cn(supEmptyState, className)}>
       <div className={supEmptyIconWrap}>
-        <Icon className="size-5" aria-hidden />
+        <Icon className="size-4" aria-hidden />
       </div>
-      <div className="max-w-sm space-y-1">
+      <div className="max-w-sm space-y-0.5">
         <p className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </p>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>
@@ -103,11 +98,11 @@ export function SupLoadingBlock({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 py-14 text-sm text-muted-foreground",
+        "flex flex-col items-center justify-center gap-2 py-10 text-xs text-muted-foreground",
         className,
       )}
     >
-      <Loader2 className="size-5 animate-spin text-primary/70" aria-hidden />
+      <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
       <span>{label}</span>
     </div>
   );
@@ -122,23 +117,15 @@ export function SupWorkflowRail({
 }) {
   return (
     <nav
-      className={cn(
-        "flex shrink-0 flex-wrap items-center gap-3 rounded-lg border border-border/50",
-        "bg-muted/15 px-3 py-2.5 sm:px-4 sm:py-3",
-      )}
+      className="flex shrink-0 flex-wrap items-center gap-2 border border-border bg-muted/15 px-2.5 py-2"
       aria-label="Workspace steps"
     >
       <span className={supKicker}>Workspace</span>
       <ol className="flex flex-1 flex-wrap items-center gap-1">
         {steps.map(({ n, label }, i, arr) => (
           <li key={n} className="flex items-center gap-1">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium",
-                "border-border/50 bg-background text-foreground",
-              )}
-            >
-              <span className="flex size-4 shrink-0 items-center justify-center rounded-md bg-primary text-[9px] font-bold text-primary-foreground">
+            <span className="inline-flex items-center gap-1.5 border border-border bg-background px-2 py-0.5 text-xs font-medium text-foreground">
+              <span className="flex size-4 shrink-0 items-center justify-center bg-primary text-[9px] font-bold text-primary-foreground">
                 {n}
               </span>
               {label}
@@ -153,7 +140,7 @@ export function SupWorkflowRail({
         ))}
       </ol>
       {activeLabel ? (
-        <span className="max-w-[12rem] truncate rounded-md bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary ring-1 ring-primary/15">
+        <span className="max-w-[12rem] truncate border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
           {activeLabel}
         </span>
       ) : null}
@@ -180,7 +167,7 @@ export function SupDrawerFooter({
 
   return (
     <div className={supDrawerFooter}>
-      <Button type="button" variant="outline" className="h-10 px-4" onClick={onCancel}>
+      <Button type="button" variant="outline" className="h-9 rounded-none px-3" onClick={onCancel}>
         {cancelLabel}
       </Button>
       {hasCustomActions
@@ -190,7 +177,7 @@ export function SupDrawerFooter({
               <Button
                 type="submit"
                 form={submitForm}
-                className="h-10 gap-2 px-5 font-semibold shadow-sm"
+                className="h-9 gap-2 rounded-none px-4 font-semibold"
                 disabled={submitDisabled}
               >
                 {submitLabel}
@@ -209,21 +196,45 @@ export function SupMobileSelectionBar({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        "shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 shadow-sm",
-        "sm:p-4",
-      )}
-    >
-      <div className="mb-3 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+    <div className="shrink-0 overflow-hidden border border-border bg-card">
+      <div className="border-b border-border bg-[#e8eef5] px-2.5 py-1.5 dark:bg-muted/40">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Selected
         </p>
-        <p className="mt-0.5 truncate text-sm font-semibold tracking-tight text-foreground">
+        <p className="truncate text-sm font-semibold tracking-tight text-foreground">
           {name}
         </p>
       </div>
-      <div className="flex flex-wrap gap-2">{children}</div>
+      <div className="flex flex-wrap gap-1.5 p-2">{children}</div>
     </div>
+  );
+}
+
+/** Excel-style label | value field table */
+export function SupFieldTable({
+  rows,
+  className,
+}: {
+  rows: { label: string; value: React.ReactNode }[];
+  className?: string;
+}) {
+  return (
+    <table className={cn("w-full border-collapse border border-border text-left text-xs", className)}>
+      <tbody>
+        {rows.map(({ label, value }) => (
+          <tr key={label}>
+            <th
+              scope="row"
+              className="w-[36%] border border-border bg-[#eef2f7] px-2 py-1 text-left font-medium text-muted-foreground dark:bg-muted/35"
+            >
+              {label}
+            </th>
+            <td className="border border-border bg-background px-2 py-1 text-foreground">
+              {value ?? "—"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

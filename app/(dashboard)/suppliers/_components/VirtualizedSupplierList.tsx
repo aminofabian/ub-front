@@ -12,15 +12,17 @@ import {
   statusBadgeClass,
   supDirectoryShell,
   supDirectoryToolbar,
+  supTableCell,
   supTableHead,
+  supTableRowActive,
 } from "./supplier-ui-tokens";
 
-const ROW_PX_DEFAULT = 40;
-const ROW_PX_COMPACT = 34;
+const ROW_PX_DEFAULT = 28;
+const ROW_PX_COMPACT = 26;
 
 const COLS_DEFAULT =
-  "grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(4.5rem,auto)]";
-const COLS_COMPACT = "grid-cols-[minmax(0,1fr)_auto]";
+  "grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(4.25rem,auto)]";
+const COLS_COMPACT = "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)]";
 
 export type VirtualizedSupplierListProps = {
   rows: SupplierRecord[];
@@ -56,7 +58,7 @@ export function VirtualizedSupplierList({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => rowPx,
-    overscan: 12,
+    overscan: 16,
   });
 
   useEffect(() => {
@@ -81,29 +83,19 @@ export function VirtualizedSupplierList({
       <div
         className={cn(
           supDirectoryToolbar,
-          compact ? "gap-2 px-2.5 py-1.5" : "px-3 py-2 sm:px-3.5",
+          compact ? "px-2 py-1" : "px-2.5 py-1",
         )}
       >
-        <span
-          className={cn(
-            "min-w-0 font-medium text-muted-foreground",
-            compact ? "text-[11px]" : "text-xs",
-          )}
-        >
+        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           Directory
         </span>
         {totalElements > 0 ? (
-          <span
-            className={cn(
-              "shrink-0 tabular-nums text-muted-foreground",
-              compact ? "text-[11px]" : "text-xs",
-            )}
-          >
+          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
             <span className="font-semibold text-foreground">{totalLoaded}</span>
             {totalElements > totalLoaded ? (
               <>
                 {" "}
-                of{" "}
+                /{" "}
                 <span className="font-semibold text-foreground">
                   {totalElements}
                 </span>
@@ -116,20 +108,22 @@ export function VirtualizedSupplierList({
       <div
         className={cn(
           supTableHead,
-          "grid items-center gap-x-3",
+          "sticky top-0 z-10 grid items-stretch",
           cols,
-          compact ? "px-2.5 py-1.5 text-[10px]" : "px-3 py-2 sm:px-3.5",
         )}
+        role="row"
       >
-        <span>Name</span>
-        {!compact ? <span>Code</span> : null}
-        <span className={cn(!compact && "text-right")}>Status</span>
+        <span className={cn(supTableCell, "flex items-center py-1")}>Name</span>
+        {!compact ? (
+          <span className={cn(supTableCell, "flex items-center py-1")}>Code</span>
+        ) : null}
+        <span className={cn(supTableCell, "flex items-center py-1")}>Status</span>
       </div>
 
       <div
         ref={parentRef}
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth",
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain",
           compact
             ? "xl:min-h-[8rem]"
             : "max-lg:max-h-[calc(100dvh-13.5rem)] xl:min-h-[12rem]",
@@ -139,17 +133,17 @@ export function VirtualizedSupplierList({
         aria-label="Suppliers directory"
       >
         {loadingInitial && rows.length === 0 ? (
-          <SupLoadingBlock label="Loading suppliers…" />
+          <SupLoadingBlock label="Loading suppliers…" className="py-8" />
         ) : rows.length === 0 ? (
           <SupEmptyState
             icon={BookUser}
             title="No suppliers match"
             description='Try a different search, or set status to "All".'
-            className="m-3 border-0 bg-transparent sm:m-4"
+            className="m-0 border-0 bg-transparent"
           />
         ) : (
           <div
-            className="relative w-full min-w-0"
+            className="relative w-full min-w-0 border-l border-border/40"
             style={{ height: virtualizer.getTotalSize() }}
             role="rowgroup"
           >
@@ -167,17 +161,17 @@ export function VirtualizedSupplierList({
                   aria-label={`Supplier ${row.name}`}
                   aria-selected={active}
                   className={cn(
-                    "absolute left-0 top-0 grid w-full min-w-0 items-center gap-x-3 border-b border-border/30 text-left",
+                    "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-border/70 text-left",
                     cols,
-                    compact
-                      ? "h-[34px] px-2.5 text-xs"
-                      : "h-10 px-3 text-sm sm:px-3.5",
-                    "cursor-pointer transition-colors duration-75",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30",
+                    compact ? "h-[26px] text-[12px]" : "h-7 text-[13px]",
+                    "cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40",
                     active
-                      ? "bg-primary/[0.08] text-foreground"
-                      : "hover:bg-muted/35",
-                    vi.index % 2 === 1 && !active && "bg-muted/10",
+                      ? supTableRowActive
+                      : cn(
+                          "hover:bg-[#e8f0fe] dark:hover:bg-muted/30",
+                          vi.index % 2 === 1 && "bg-[#fafbfd] dark:bg-muted/[0.08]",
+                        ),
                   )}
                   style={{ transform: `translateY(${vi.start}px)` }}
                   onClick={() => onRowClick(row.id)}
@@ -191,8 +185,9 @@ export function VirtualizedSupplierList({
                   <span
                     role="cell"
                     className={cn(
-                      "min-w-0 truncate font-medium tracking-tight",
-                      active ? "text-primary" : "text-foreground",
+                      supTableCell,
+                      "flex min-w-0 items-center truncate font-medium",
+                      active ? "text-foreground" : "text-foreground",
                     )}
                   >
                     {row.name}
@@ -200,21 +195,21 @@ export function VirtualizedSupplierList({
                   {!compact ? (
                     <span
                       role="cell"
-                      className="min-w-0 truncate font-mono text-[11px] text-muted-foreground"
+                      className={cn(
+                        supTableCell,
+                        "flex min-w-0 items-center truncate font-mono text-[11px] text-muted-foreground",
+                      )}
                     >
                       {code || "—"}
                     </span>
                   ) : null}
                   <span
                     role="cell"
-                    className={cn(
-                      "shrink-0",
-                      !compact && "justify-self-end",
-                    )}
+                    className={cn(supTableCell, "flex items-center")}
                   >
                     <span
                       className={cn(
-                        "inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold capitalize leading-none",
+                        "inline-flex px-1 py-px text-[10px] font-semibold capitalize leading-none",
                         statusBadgeClass(row.status),
                       )}
                     >
@@ -227,19 +222,8 @@ export function VirtualizedSupplierList({
           </div>
         )}
         {loadingMore ? (
-          <div
-            className={cn(
-              "sticky bottom-0 flex items-center justify-center gap-1.5 border-t border-border/40 bg-background/95 font-medium text-muted-foreground backdrop-blur-md",
-              compact ? "py-1.5 text-xs" : "gap-2 py-2.5 text-sm",
-            )}
-          >
-            <Loader2
-              className={cn(
-                "animate-spin text-primary/70",
-                compact ? "size-3.5" : "size-4",
-              )}
-              aria-hidden
-            />
+          <div className="sticky bottom-0 flex items-center justify-center gap-1.5 border-t border-border bg-background/95 py-1.5 text-[11px] font-medium text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
             Loading more…
           </div>
         ) : null}

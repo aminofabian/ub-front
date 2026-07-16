@@ -57,8 +57,8 @@ export function SupplierPageHeader({
   return (
     <header
       className={cn(
-        "flex shrink-0 flex-col gap-2 border border-border/70 bg-card px-3 py-2.5 shadow-sm",
-        "rounded-xl sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-3.5",
+        "flex shrink-0 flex-col gap-1.5 border border-border bg-card px-2.5 py-2",
+        "sm:flex-row sm:items-center sm:justify-between sm:gap-3",
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
@@ -114,7 +114,7 @@ export function SupplierPageHeader({
               type="button"
               size="sm"
               variant="outline"
-              className="h-9 gap-1.5 rounded-lg px-3 text-sm font-medium"
+              className="h-8 gap-1.5 rounded-none px-3 text-sm font-medium"
               onClick={onNewSupply}
             >
               <PackagePlus className="size-4" aria-hidden />
