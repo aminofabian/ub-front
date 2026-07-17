@@ -26,6 +26,7 @@ import {
 } from "@/components/business/business-settings-nav";
 import {
   applyBusinessSnapshot,
+  clampDailyAuditSampleSize,
   DEFAULT_CASHIER_CAPABILITIES,
   DEFAULT_EDITABLE,
   DEFAULT_INVENTORY,
@@ -255,7 +256,9 @@ export default function BusinessSettingsPage() {
           stocktake: {
             showSystemStockToStockManager:
               inventory.showSystemStockToStockManager,
-            dailyAuditSampleSize: inventory.dailyAuditSampleSize,
+            dailyAuditSampleSize: clampDailyAuditSampleSize(
+              inventory.dailyAuditSampleSize,
+            ),
           },
           stockLevels: {
             allowStockEditForStockManager:

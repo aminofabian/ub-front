@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import {
   AlertCircle,
   Banknote,
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
   TIER_SUGGESTIONS,
+  DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
   MAX_DAILY_AUDIT_SAMPLE_SIZE,
   MIN_DAILY_AUDIT_SAMPLE_SIZE,
   clampDailyAuditSampleSize,
@@ -148,6 +150,13 @@ export function BusinessSettingsForm({
   onCancel: () => void;
 }) {
   const storefrontRef = useRef<HTMLDivElement>(null);
+  const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
+    String(inventory.dailyAuditSampleSize),
+  );
+
+  useEffect(() => {
+    setDailyAuditSampleDraft(String(inventory.dailyAuditSampleSize));
+  }, [inventory.dailyAuditSampleSize]);
 
   useEffect(() => {
     if (!focusStorefrontOnMount) {
@@ -156,11 +165,30 @@ export function BusinessSettingsForm({
     storefrontRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [focusStorefrontOnMount]);
 
+  function commitDailyAuditSampleSize(raw: string) {
+    const parsed = Number(raw.trim());
+    const next = clampDailyAuditSampleSize(
+      Number.isFinite(parsed) && raw.trim() !== ""
+        ? parsed
+        : DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
+    );
+    setInventory((previous) => ({
+      ...previous,
+      dailyAuditSampleSize: next,
+    }));
+    setDailyAuditSampleDraft(String(next));
+  }
+
   return (
     <form
       id="business-settings-form"
       className="space-y-6"
-      onSubmit={onSubmit}
+      onSubmit={(event) => {
+        flushSync(() => {
+          commitDailyAuditSampleSize(dailyAuditSampleDraft);
+        });
+        onSubmit(event);
+      }}
     >
       <SettingsGroupLabel>Business</SettingsGroupLabel>
 
@@ -432,24 +460,31 @@ export function BusinessSettingsForm({
                 </label>
                 <input
                   id="daily-audit-sample-size"
-                  type="number"
-                  min={MIN_DAILY_AUDIT_SAMPLE_SIZE}
-                  max={MAX_DAILY_AUDIT_SAMPLE_SIZE}
-                  step={1}
+                  type="text"
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   className={inputClass()}
-                  value={inventory.dailyAuditSampleSize}
+                  value={dailyAuditSampleDraft}
                   onChange={(event) => {
-                    const next = Number(event.target.value);
+                    const raw = event.target.value;
+                    if (raw !== "" && !/^\d+$/.test(raw)) {
+                      return;
+                    }
+                    setDailyAuditSampleDraft(raw);
+                    // Keep inventory in sync while typing, but allow a blank field
+                    // (do not snap empty → 1 mid-edit).
+                    if (raw === "") {
+                      return;
+                    }
                     setInventory((previous) => ({
                       ...previous,
                       dailyAuditSampleSize: clampDailyAuditSampleSize(
-                        Number.isFinite(next)
-                          ? next
-                          : previous.dailyAuditSampleSize,
+                        Number(raw),
                       ),
                     }));
                   }}
+                  onBlur={() => commitDailyAuditSampleSize(dailyAuditSampleDraft)}
                 />
                 <p className="text-xs text-muted-foreground">
                   Each morning the daily audit randomly picks this many unique
