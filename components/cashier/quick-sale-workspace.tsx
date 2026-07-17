@@ -254,6 +254,8 @@ export function QuickSaleWorkspace({
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true;
   const weighedToggleFlagEnabled =
     featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false;
+  const addPhotoFlagEnabled =
+    featureFlags[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true;
   const allowPriceEdit =
     hasPermission(me?.permissions, Permission.PricingSellPriceSet) ||
     priceEditFlagEnabled;
@@ -267,6 +269,13 @@ export function QuickSaleWorkspace({
   const allowWeighedToggle =
     hasPermission(me?.permissions, Permission.CatalogItemsWrite) ||
     weighedToggleFlagEnabled;
+  const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+  const isOwnerOrAdmin = roleKey === "owner" || roleKey === "admin";
+  /** Setting on + owner/admin with catalog write — not exposed to cashiers. */
+  const allowAddPhoto =
+    addPhotoFlagEnabled &&
+    isOwnerOrAdmin &&
+    hasPermission(me?.permissions, Permission.CatalogItemsWrite);
   const allowCreateSupplier =
     variant === "cashier" && canWriteSuppliers(me, business);
   const allowLinkSupplierProducts =
@@ -2798,6 +2807,21 @@ export function QuickSaleWorkspace({
         allowPriceEdit={allowPriceEdit}
         canPersistShelfPrice={canPersistShelfPrice}
         allowCreateProduct={allowCreateProduct}
+        allowAddPhoto={allowAddPhoto}
+        onProductPhotoUploaded={(itemId, imageUrl) => {
+          setTopProducts((prev) =>
+            prev.map((p) =>
+              p.id === itemId ? { ...p, thumbnailUrl: imageUrl } : p,
+            ),
+          );
+          setHits((prev) =>
+            prev.map((h) =>
+              h.id === itemId
+                ? { ...h, thumbnailUrl: imageUrl, imageKey: imageUrl }
+                : h,
+            ),
+          );
+        }}
         allowCreateSupplier={allowCreateSupplier}
         allowLinkSupplierProducts={allowLinkSupplierProducts}
         allowReceiveSupply={allowReceiveSupply}

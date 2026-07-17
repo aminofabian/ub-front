@@ -275,6 +275,9 @@ export function CashierShell({ children }: CashierShellProps) {
           weighedToggleEnabled={
             featureFlags[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false
           }
+          addPhotoEnabled={
+            featureFlags[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true
+          }
           onSaved={() => refreshSession()}
         />
       ) : null}

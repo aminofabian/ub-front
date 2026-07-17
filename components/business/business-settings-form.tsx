@@ -638,6 +638,17 @@ export function BusinessSettingsForm({
                 title="Allow cashiers to mark items as weighted"
                 description="Toggle sell-by-weight on a cart line so quantity can be entered in kg."
               />
+              <ToggleRow
+                checked={cashierCapabilities.addPhoto}
+                onChange={(checked) =>
+                  setCashierCapabilities((previous) => ({
+                    ...previous,
+                    addPhoto: checked,
+                  }))
+                }
+                title="Add product photos from the till"
+                description="Owners and admins can upload product photos from the cashier shelf (for items missing a photo)."
+              />
             </FormDrawerFields>
           </SettingsAnchor>
 

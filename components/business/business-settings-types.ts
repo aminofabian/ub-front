@@ -47,6 +47,7 @@ export type CashierCapabilitiesForm = {
   priceEdit: boolean;
   createProduct: boolean;
   weighedToggle: boolean;
+  addPhoto: boolean;
 };
 
 export type ShiftSettingsForm = {
@@ -58,6 +59,7 @@ export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   createProduct: false,
   /** Default on — cashiers need this for produce/kg sales; admin can still disable. */
   weighedToggle: true,
+  addPhoto: false,
 };
 
 export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
@@ -73,6 +75,7 @@ export function cashierCapabilitiesFromRecord(
     createProduct: ff[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true,
     // Absent flag → enabled (matches DEFAULT_CASHIER_CAPABILITIES).
     weighedToggle: ff[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false,
+    addPhoto: ff[POS_CASHIER_CAPABILITY_FLAGS.addPhoto] === true,
   };
 }
 

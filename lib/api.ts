@@ -747,6 +747,7 @@ export type FeatureFlagsPatchPayload = {
   posCashierPriceEdit?: boolean;
   posCashierCreateProduct?: boolean;
   posCashierWeighedToggle?: boolean;
+  posCashierAddPhoto?: boolean;
   shiftsPrefillOpeningFromLastClose?: boolean;
 };
 

@@ -24,6 +24,7 @@ type CashierAdminCapabilitiesModalProps = {
   priceEditEnabled: boolean;
   createProductEnabled: boolean;
   weighedToggleEnabled: boolean;
+  addPhotoEnabled: boolean;
   onSaved: () => Promise<void> | void;
 };
 
@@ -34,11 +35,13 @@ export function CashierAdminCapabilitiesModal({
   priceEditEnabled,
   createProductEnabled,
   weighedToggleEnabled,
+  addPhotoEnabled,
   onSaved,
 }: CashierAdminCapabilitiesModalProps) {
   const [priceEdit, setPriceEdit] = useState(priceEditEnabled);
   const [createProduct, setCreateProduct] = useState(createProductEnabled);
   const [weighedToggle, setWeighedToggle] = useState(weighedToggleEnabled);
+  const [addPhoto, setAddPhoto] = useState(addPhotoEnabled);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -46,7 +49,14 @@ export function CashierAdminCapabilitiesModal({
     setPriceEdit(priceEditEnabled);
     setCreateProduct(createProductEnabled);
     setWeighedToggle(weighedToggleEnabled);
-  }, [open, priceEditEnabled, createProductEnabled, weighedToggleEnabled]);
+    setAddPhoto(addPhotoEnabled);
+  }, [
+    open,
+    priceEditEnabled,
+    createProductEnabled,
+    weighedToggleEnabled,
+    addPhotoEnabled,
+  ]);
 
   const onSave = async () => {
     setSaving(true);
@@ -56,6 +66,7 @@ export function CashierAdminCapabilitiesModal({
           posCashierPriceEdit: priceEdit,
           posCashierCreateProduct: createProduct,
           posCashierWeighedToggle: weighedToggle,
+          posCashierAddPhoto: addPhoto,
         },
       });
       await onSaved();
@@ -85,8 +96,9 @@ export function CashierAdminCapabilitiesModal({
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">
               Allow cashiers on this business to edit prices, add products, or
-              mark items as weighted from the POS. Managers with
-              pricing/catalog permissions always can.
+              mark items as weighted from the POS. Photo upload is for owners
+              and admins only. Managers with pricing/catalog permissions always
+              can use the cashier tools that match their permissions.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -154,6 +166,28 @@ export function CashierAdminCapabilitiesModal({
               <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
                 Cashiers may toggle sell-by-weight on a cart line (kg qty). Flag:{" "}
                 {POS_CASHIER_CAPABILITY_FLAGS.weighedToggle}
+              </span>
+            </span>
+          </label>
+
+          <label
+            className={cn(
+              "flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-3",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-[var(--pos-primary)]"
+              checked={addPhoto}
+              onChange={(e) => setAddPhoto(e.target.checked)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Add product photos from the till
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Owners and admins can upload photos on shelf tiles missing an
+                image. Flag: {POS_CASHIER_CAPABILITY_FLAGS.addPhoto}
               </span>
             </span>
           </label>

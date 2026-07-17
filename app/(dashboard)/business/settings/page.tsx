@@ -291,6 +291,7 @@ export default function BusinessSettingsPage() {
           posCashierPriceEdit: cashierCapabilities.priceEdit,
           posCashierCreateProduct: cashierCapabilities.createProduct,
           posCashierWeighedToggle: cashierCapabilities.weighedToggle,
+          posCashierAddPhoto: cashierCapabilities.addPhoto,
           shiftsPrefillOpeningFromLastClose:
             shiftSettings.prefillOpeningFromLastClose,
         };
