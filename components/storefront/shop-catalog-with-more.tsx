@@ -14,10 +14,9 @@ import type {
 } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 24;
-const LOAD_MARGIN = "0px 0px 300px 0px";
+const PAGE_SIZE = 48;
+const LOAD_MARGIN = "0px 0px 800px 0px";
 const MAX_AUTO_RETRIES = 2;
-const MIN_REQUEST_INTERVAL_MS = 400;
 
 type CatalogSort = "default" | "name_asc" | "price_asc" | "price_desc";
 
@@ -118,7 +117,6 @@ export default function ShopCatalogWithMore({
   const busyRef = useRef(false);
   const retryTimerRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
-  const lastRequestAtRef = useRef(0);
   const abortCtrlRef = useRef<AbortController | null>(null);
   const unmountedRef = useRef(false);
 
@@ -212,14 +210,6 @@ export default function ShopCatalogWithMore({
       retryTimerRef.current = null;
     }
 
-    // Space out requests so a short viewport doesn't fire pages as fast as
-    // the browser can render them.
-    const now = Date.now();
-    const wait = MIN_REQUEST_INTERVAL_MS - (now - lastRequestAtRef.current);
-    if (wait > 0) {
-      await new Promise<void>((resolve) => window.setTimeout(resolve, wait));
-    }
-
     if (unmountedRef.current) {
       busyRef.current = false;
       setBusy(false);
@@ -253,7 +243,6 @@ export default function ShopCatalogWithMore({
 
       retryCountRef.current = 0;
       setWillAutoRetry(false);
-      lastRequestAtRef.current = Date.now();
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         return;
@@ -420,7 +409,7 @@ export default function ShopCatalogWithMore({
         </div>
       ) : null}
 
-      {busy ? <ShopProductGridSkeleton count={8} /> : null}
+      {busy ? <ShopProductGridSkeleton count={4} /> : null}
 
       {next ? (
         <div

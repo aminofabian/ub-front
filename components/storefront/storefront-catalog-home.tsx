@@ -64,7 +64,7 @@ export async function StorefrontCatalogHome({
 
   const [list, categoriesPayload, typesPayload, storefront] = await Promise.all([
     fetchPublicCatalogItems(slug, {
-      limit: 24,
+      limit: 48,
       q,
       categoryId,
       departmentId: resolvedTypeId,
@@ -151,7 +151,7 @@ export async function StorefrontCatalogHome({
                 currency={list.currency}
                 initialItems={list.items}
                 initialNextCursor={list.nextCursor}
-                initialTotalCount={list.totalCount}
+                initialTotalCount={list.totalCount ?? undefined}
                 q={q}
                 categoryId={categoryId}
                 typeId={resolvedTypeId}

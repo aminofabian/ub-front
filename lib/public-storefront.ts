@@ -108,7 +108,8 @@ export type PublicCatalogListPayload = {
   currency: string;
   items: PublicCatalogItemCard[];
   nextCursor: string | null;
-  totalCount: number;
+  /** Present on the first page; omitted on cursor pages (clients keep the initial total). */
+  totalCount?: number | null;
 };
 
 export type PublicCategory = {
