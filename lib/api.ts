@@ -6658,6 +6658,13 @@ export async function patchPathBSupplyInvoice(
   );
 }
 
+export async function deletePathBSupplyInvoice(invoiceId: string): Promise<void> {
+  await request(
+    `/api/v1/purchasing/supplies/${encodeURIComponent(invoiceId.trim())}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function fetchSupplyPaymentHistory(
   invoiceId: string,
 ): Promise<SupplyPaymentHistoryRecord[]> {

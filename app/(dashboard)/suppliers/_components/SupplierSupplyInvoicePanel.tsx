@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CreditCard, FileEdit } from "lucide-react";
+import { CreditCard, FileEdit, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
+  deletePathBSupplyInvoice,
   fetchPathBSupplyInvoiceDetail,
   type PathBSupplyInvoiceDetailRecord,
   type PathBSupplyListRowRecord,
@@ -64,6 +66,7 @@ export function SupplierSupplyInvoicePanel({
   const [error, setError] = useState<string | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async (id: string) => {
     setLoading(true);
@@ -91,6 +94,32 @@ export function SupplierSupplyInvoicePanel({
   const listRow = useMemo(() => (detail ? toListRow(detail) : null), [detail]);
   const balance = detail ? supplyN(detail.balanceOpen) : 0;
   const statusBadge = detail ? supplyPaymentStatusBadge(detail.paymentStatus) : null;
+
+  const onDelete = useCallback(async () => {
+    if (!detail) return;
+    if (supplyN(detail.amountPaid) >= 0.005) {
+      toast.error("Remove payments from this invoice before deleting it.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete supply ${detail.invoiceNumber}? This reverses stock and cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deletePathBSupplyInvoice(detail.supplierInvoiceId);
+      toast.success(`Deleted ${detail.invoiceNumber}.`);
+      setDetail(null);
+      onUpdated?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete supply.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [detail, onUpdated]);
 
   if (!invoiceId) {
     return (
@@ -211,7 +240,7 @@ export function SupplierSupplyInvoicePanel({
             onClick={() => setPayOpen(true)}
           >
             <CreditCard className="size-3" aria-hidden />
-            {balance > 0.009 && canPay ? "Pay" : "Payment"}
+            {balance > 0.009 && canPay ? "Pay" : "Payment details"}
           </Button>
         ) : null}
         {canPathBWrite && listRow ? (
@@ -224,6 +253,19 @@ export function SupplierSupplyInvoicePanel({
           >
             <FileEdit className="size-3" aria-hidden />
             Edit
+          </Button>
+        ) : null}
+        {canPathBWrite && listRow && supplyN(detail.amountPaid) < 0.005 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1 rounded-md text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={deleting}
+            onClick={() => void onDelete()}
+          >
+            <Trash2 className="size-3" aria-hidden />
+            Delete
           </Button>
         ) : null}
       </div>

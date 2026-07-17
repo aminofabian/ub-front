@@ -372,14 +372,26 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     return `Confirm payment · ${formatSupplyMoney(balanceOpen)}`;
   };
 
+  const viewingPaymentDetailsOnly = !(balanceOpen > 0.009 && canPay);
+
   return (
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={row ? `Pay ${row.supplierName}` : "Pay supply"}
+      title={
+        row
+          ? viewingPaymentDetailsOnly
+            ? `Payment details · ${row.supplierName}`
+            : `Pay ${row.supplierName}`
+          : viewingPaymentDetailsOnly
+            ? "Payment details"
+            : "Pay supply"
+      }
       description={
         row
-          ? `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
+          ? viewingPaymentDetailsOnly
+            ? `Remittance details and payment history for ${row.invoiceNumber}.`
+            : `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
           : undefined
       }
       width="wide"

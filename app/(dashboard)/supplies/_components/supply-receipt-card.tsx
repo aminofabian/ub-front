@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, FileEdit } from "lucide-react";
+import { CreditCard, FileEdit, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { PathBSupplyListRowRecord } from "@/lib/api";
@@ -17,7 +17,9 @@ type SupplyReceiptCardProps = {
   canEditSupplyBill: boolean;
   canPay: boolean;
   canOpenReceiptDrawer: boolean;
-  onManage: () => void;
+  deleting?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
   onPayOrDetails: () => void;
 };
 
@@ -26,12 +28,15 @@ export function SupplyReceiptCard({
   canEditSupplyBill,
   canPay,
   canOpenReceiptDrawer,
-  onManage,
+  deleting = false,
+  onEdit,
+  onDelete,
   onPayOrDetails,
 }: SupplyReceiptCardProps) {
   const st = supplyPaymentStatusBadge(row.paymentStatus);
   const bal = supplyN(row.balanceOpen);
   const needsPay = bal > 0.009 && canPay;
+  const canDelete = canEditSupplyBill && supplyN(row.amountPaid) < 0.005;
   const created = new Date(row.createdAt).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -124,17 +129,30 @@ export function SupplyReceiptCard({
           <span className="shrink-0 text-[11px] text-muted-foreground">
             {row.lineCount} line{row.lineCount === 1 ? "" : "s"}
           </span>
-          <div className="ml-auto flex min-w-0 flex-1 justify-end gap-2">
+          <div className="ml-auto flex min-w-0 flex-1 flex-wrap justify-end gap-2">
             {canEditSupplyBill ? (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 className="h-10 min-w-[4.5rem] flex-1 gap-1.5 rounded-lg text-xs touch-manipulation sm:flex-none"
-                onClick={onManage}
+                onClick={onEdit}
               >
                 <FileEdit className="size-3.5" aria-hidden />
-                Manage
+                Edit
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-10 min-w-[4.5rem] flex-1 gap-1.5 rounded-lg text-xs text-destructive touch-manipulation hover:bg-destructive/10 hover:text-destructive sm:flex-none"
+                disabled={deleting}
+                onClick={onDelete}
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                Delete
               </Button>
             ) : null}
             <Button
@@ -146,7 +164,7 @@ export function SupplyReceiptCard({
               onClick={onPayOrDetails}
             >
               <CreditCard className="size-3.5" aria-hidden />
-              {needsPay ? "Pay" : "Details"}
+              {needsPay ? "Pay" : "Payment details"}
             </Button>
           </div>
         </div>

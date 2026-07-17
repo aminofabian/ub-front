@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CreditCard, FileEdit, Package, Receipt } from "lucide-react";
+import { CreditCard, FileEdit, Package, Receipt, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DASHBOARD_MAX,
@@ -13,7 +14,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
-import { fetchPathBSupplies, type PathBSupplyListRowRecord } from "@/lib/api";
+import {
+  deletePathBSupplyInvoice,
+  fetchPathBSupplies,
+  type PathBSupplyListRowRecord,
+} from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -74,6 +79,7 @@ export default function SuppliesPage() {
   const [payRow, setPayRow] = useState<PathBSupplyListRowRecord | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState<PathBSupplyListRowRecord | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!canListSupplies) return;
@@ -96,6 +102,33 @@ export default function SuppliesPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const onDeleteSupply = useCallback(
+    async (row: PathBSupplyListRowRecord) => {
+      if (supplyN(row.amountPaid) >= 0.005) {
+        toast.error("Remove payments from this invoice before deleting it.");
+        return;
+      }
+      if (
+        !window.confirm(
+          `Delete supply ${row.invoiceNumber} from ${row.supplierName || "supplier"}? This reverses stock and cannot be undone.`,
+        )
+      ) {
+        return;
+      }
+      setDeletingId(row.supplierInvoiceId);
+      try {
+        await deletePathBSupplyInvoice(row.supplierInvoiceId);
+        toast.success(`Deleted ${row.invoiceNumber}.`);
+        await refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not delete supply.");
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [refresh],
+  );
 
   useEffect(() => {
     if (searchParams.get("onboarding") === "create-supply" && canOpenNewSupply) {
@@ -358,10 +391,12 @@ export default function SuppliesPage() {
                       canEditSupplyBill={canEditSupplyBill}
                       canPay={canPay}
                       canOpenReceiptDrawer={canOpenReceiptDrawer}
-                      onManage={() => {
+                      deleting={deletingId === r.supplierInvoiceId}
+                      onEdit={() => {
                         setEditRow(r);
                         setEditOpen(true);
                       }}
+                      onDelete={() => void onDeleteSupply(r)}
                       onPayOrDetails={() => {
                         setPayRow(r);
                         setPayOpen(true);
@@ -440,7 +475,20 @@ export default function SuppliesPage() {
                                   }}
                                 >
                                   <FileEdit className="size-3.5" aria-hidden />
-                                  Manage
+                                  Edit
+                                </Button>
+                              ) : null}
+                              {canEditSupplyBill && supplyN(r.amountPaid) < 0.005 ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1 rounded-lg text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  disabled={deletingId === r.supplierInvoiceId}
+                                  onClick={() => void onDeleteSupply(r)}
+                                >
+                                  <Trash2 className="size-3.5" aria-hidden />
+                                  Delete
                                 </Button>
                               ) : null}
                               <Button
@@ -455,7 +503,7 @@ export default function SuppliesPage() {
                                 }}
                               >
                                 <CreditCard className="size-3.5" aria-hidden />
-                                {bal > 0.009 && canPay ? "Pay" : "Details"}
+                                {bal > 0.009 && canPay ? "Pay" : "Payment details"}
                               </Button>
                             </div>
                           </td>

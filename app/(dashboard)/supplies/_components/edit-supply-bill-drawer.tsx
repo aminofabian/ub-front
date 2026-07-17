@@ -175,7 +175,7 @@ export function EditSupplyBillDrawer({ open, onOpenChange, row, onSaved }: EditS
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={row ? `Manage supply · ${row.invoiceNumber}` : "Manage supply"}
+      title={row ? `Edit supply · ${row.invoiceNumber}` : "Edit supply"}
       description="Update invoice details and receiving lines. Quantities and line totals lock after any supplier payment is recorded."
       contextLabel="Supply bill"
       width="extraWide"
