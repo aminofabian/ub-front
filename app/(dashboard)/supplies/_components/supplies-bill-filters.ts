@@ -40,7 +40,7 @@ export function parseSupplyBillFilter(
   if (raw && SUPPLY_BILL_FILTERS.some((f) => f.id === raw)) {
     return raw as SupplyBillFilterId;
   }
-  return "all";
+  return "today";
 }
 
 export function isSupplyRowUnpaid(row: PathBSupplyListRowRecord): boolean {

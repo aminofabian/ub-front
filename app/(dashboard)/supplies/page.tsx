@@ -144,16 +144,25 @@ export default function SuppliesPage() {
     (next: SupplyBillFilterId) => {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("unpaid");
-      if (next === "all") {
-        params.delete("filter");
-      } else {
-        params.set("filter", next);
-      }
+      params.set("filter", next);
       const q = params.toString();
       router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
     },
     [pathname, router, searchParams],
   );
+
+  // Default landing: /supplies → /supplies?filter=today
+  useEffect(() => {
+    const filter = searchParams.get("filter");
+    const unpaid = searchParams.get("unpaid");
+    if (filter != null || unpaid === "1") return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("filter", "today");
+    const q = params.toString();
+    router.replace(q ? `${pathname}?${q}` : `${pathname}?filter=today`, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParams]);
 
   const displayRows = useMemo(
     () => filterAndSortSupplyRows(rows, billFilter),
