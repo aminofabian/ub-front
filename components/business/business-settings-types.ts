@@ -1,6 +1,7 @@
 import type { BusinessRecord } from "@/lib/api";
 import { POS_DRAFT_FLAGS } from "@/lib/pos-draft-api";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import { SHIFT_SETTINGS_FLAGS } from "@/lib/shift-settings";
 import type { BranchRecord } from "@/lib/api";
 
 export const MAX_FEATURED = 12;
@@ -48,11 +49,19 @@ export type CashierCapabilitiesForm = {
   weighedToggle: boolean;
 };
 
+export type ShiftSettingsForm = {
+  prefillOpeningFromLastClose: boolean;
+};
+
 export const DEFAULT_CASHIER_CAPABILITIES: CashierCapabilitiesForm = {
   priceEdit: false,
   createProduct: false,
   /** Default on — cashiers need this for produce/kg sales; admin can still disable. */
   weighedToggle: true,
+};
+
+export const DEFAULT_SHIFT_SETTINGS: ShiftSettingsForm = {
+  prefillOpeningFromLastClose: false,
 };
 
 export function cashierCapabilitiesFromRecord(
@@ -64,6 +73,16 @@ export function cashierCapabilitiesFromRecord(
     createProduct: ff[POS_CASHIER_CAPABILITY_FLAGS.createProduct] === true,
     // Absent flag → enabled (matches DEFAULT_CASHIER_CAPABILITIES).
     weighedToggle: ff[POS_CASHIER_CAPABILITY_FLAGS.weighedToggle] !== false,
+  };
+}
+
+export function shiftSettingsFromRecord(
+  b: BusinessRecord | null,
+): ShiftSettingsForm {
+  const ff = b?.featureFlags ?? {};
+  return {
+    prefillOpeningFromLastClose:
+      ff[SHIFT_SETTINGS_FLAGS.prefillOpeningFromLastClose] === true,
   };
 }
 
@@ -197,6 +216,7 @@ export function applyBusinessSnapshot(
   inventory: InventoryForm;
   posDrafts: PosDraftsForm;
   cashierCapabilities: CashierCapabilitiesForm;
+  shiftSettings: ShiftSettingsForm;
 } {
   return {
     editable: {
@@ -208,5 +228,6 @@ export function applyBusinessSnapshot(
     inventory: inventoryFromRecord(payload),
     posDrafts: posDraftsFromRecord(payload),
     cashierCapabilities: cashierCapabilitiesFromRecord(payload),
+    shiftSettings: shiftSettingsFromRecord(payload),
   };
 }

@@ -26,6 +26,7 @@ import {
   DEFAULT_EDITABLE,
   DEFAULT_INVENTORY,
   DEFAULT_POS_DRAFTS,
+  DEFAULT_SHIFT_SETTINGS,
   DEFAULT_STOREFRONT,
   defaultCatalogBranchId,
   parseFeaturedLines,
@@ -33,6 +34,7 @@ import {
   type EditableBusiness,
   type InventoryForm,
   type PosDraftsForm,
+  type ShiftSettingsForm,
   type StorefrontForm,
 } from "@/components/business/business-settings-types";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -76,6 +78,9 @@ export default function BusinessSettingsPage() {
   const [posDrafts, setPosDrafts] = useState<PosDraftsForm>(DEFAULT_POS_DRAFTS);
   const [cashierCapabilities, setCashierCapabilities] =
     useState<CashierCapabilitiesForm>(DEFAULT_CASHIER_CAPABILITIES);
+  const [shiftSettings, setShiftSettings] = useState<ShiftSettingsForm>(
+    DEFAULT_SHIFT_SETTINGS,
+  );
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -108,6 +113,7 @@ export default function BusinessSettingsPage() {
         setInventory(next.inventory);
         setPosDrafts(next.posDrafts);
         setCashierCapabilities(next.cashierCapabilities);
+        setShiftSettings(next.shiftSettings);
       })
       .catch((error) => {
         if (hydratedFromBootstrap.current) {
@@ -136,6 +142,7 @@ export default function BusinessSettingsPage() {
       setInventory(next.inventory);
       setPosDrafts(next.posDrafts);
       setCashierCapabilities(next.cashierCapabilities);
+      setShiftSettings(next.shiftSettings);
     }
     void load();
   }, [load, bootstrapBusiness]);
@@ -187,6 +194,7 @@ export default function BusinessSettingsPage() {
     setInventory(next.inventory);
     setPosDrafts(next.posDrafts);
     setCashierCapabilities(next.cashierCapabilities);
+    setShiftSettings(next.shiftSettings);
   }, [effectiveSnapshot, branches]);
 
   const onSave = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -249,6 +257,8 @@ export default function BusinessSettingsPage() {
           posCashierPriceEdit: cashierCapabilities.priceEdit,
           posCashierCreateProduct: cashierCapabilities.createProduct,
           posCashierWeighedToggle: cashierCapabilities.weighedToggle,
+          shiftsPrefillOpeningFromLastClose:
+            shiftSettings.prefillOpeningFromLastClose,
         };
       }
       await updateBusiness(body);
@@ -262,6 +272,7 @@ export default function BusinessSettingsPage() {
       setInventory(applied.inventory);
       setPosDrafts(applied.posDrafts);
       setCashierCapabilities(applied.cashierCapabilities);
+      setShiftSettings(applied.shiftSettings);
       setFeedback({ kind: "success", text: "Your changes were saved." });
     } catch (error) {
       setFeedback({
@@ -549,6 +560,8 @@ export default function BusinessSettingsPage() {
             setPosDrafts={setPosDrafts}
             cashierCapabilities={cashierCapabilities}
             setCashierCapabilities={setCashierCapabilities}
+            shiftSettings={shiftSettings}
+            setShiftSettings={setShiftSettings}
             activeBranches={activeBranches}
             canManageBusinessSettings={canManageBusinessSettings}
             isSaving={isSaving}

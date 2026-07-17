@@ -20,7 +20,9 @@ import {
   dashboardSelectClass,
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
+import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
+  fetchLastClosedShiftFloat,
   initiateDrawout,
   postCloseShift,
   postOpenShift,
@@ -29,6 +31,7 @@ import {
   type DenominationRecord,
   type ShiftRecord,
 } from "@/lib/api";
+import { isPrefillOpeningFromLastCloseEnabled } from "@/lib/shift-settings";
 import { cn } from "@/lib/utils";
 
 /** Centered shift / cash modals — dense layout to avoid inner scrolling on common viewports. */
@@ -259,6 +262,10 @@ export function OpenShiftModal({
   /** When set (e.g. cashier), branch/register cannot be changed. */
   lockBranchSelectionTo?: string | null;
 }) {
+  const featureFlags = useFeatureFlags();
+  const prefillFromLastClose =
+    isPrefillOpeningFromLastCloseEnabled(featureFlags);
+
   const [branchId, setBranchId] = useState("");
   const [notes, setNotes] = useState("");
   const [quantities, setQuantities] = useState<Record<number, number>>(
@@ -266,6 +273,8 @@ export function OpenShiftModal({
   );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [prefillBusy, setPrefillBusy] = useState(false);
+  const [prefillHint, setPrefillHint] = useState<string | null>(null);
 
   const lockedBranch = lockBranchSelectionTo?.trim() ?? "";
 
@@ -284,8 +293,52 @@ export function OpenShiftModal({
       setQuantities(createEmptyDenominationQuantities());
       setError("");
       setLoading(false);
+      setPrefillHint(null);
+      setPrefillBusy(false);
     }
   }, [open, preferredBranchId, branches, lockedBranch]);
+
+  // Prefill from last closed shift when admin has enabled the option.
+  useEffect(() => {
+    if (!open || !prefillFromLastClose || !branchId) {
+      return;
+    }
+    let cancelled = false;
+    setPrefillBusy(true);
+    setPrefillHint(null);
+    void fetchLastClosedShiftFloat(branchId)
+      .then((last) => {
+        if (cancelled) return;
+        const denoms = last.closingDenominations ?? [];
+        if (!last.shiftId || denoms.length === 0) {
+          setQuantities(createEmptyDenominationQuantities());
+          setPrefillHint(
+            "No previous closing count found for this register — enter the float manually.",
+          );
+          return;
+        }
+        setQuantities(denomsToQuantities(denoms));
+        const when = last.closedAt
+          ? new Date(last.closedAt).toLocaleString()
+          : "last close";
+        setPrefillHint(
+          `Pre-filled from last closing count (${when}). Edit any denomination if needed.`,
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setQuantities(createEmptyDenominationQuantities());
+        setPrefillHint(
+          "Could not load last closing count — enter the float manually.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setPrefillBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, prefillFromLastClose, branchId]);
 
   const totalCash = useMemo(
     () =>
@@ -342,7 +395,9 @@ export function OpenShiftModal({
                 Open New Shift
               </DialogTitle>
               <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
-                Count the opening float by denomination below.
+                {prefillFromLastClose
+                  ? "Review the opening float (pre-filled from last close) and edit if needed."
+                  : "Count the opening float by denomination below."}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -356,7 +411,7 @@ export function OpenShiftModal({
                 Register / Branch
               </label>
               <select
-                className={dashboardSelectClass(loading)}
+                className={dashboardSelectClass(loading || prefillBusy)}
                 value={branchId}
                 disabled={!!lockedBranch}
                 onChange={(e) => setBranchId(e.target.value)}
@@ -381,6 +436,15 @@ export function OpenShiftModal({
                 quantities={quantities}
                 onChange={setQuantities}
               />
+              {prefillBusy ? (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Loading last closing count…
+                </p>
+              ) : prefillHint ? (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  {prefillHint}
+                </p>
+              ) : null}
             </div>
 
             {/* Opening notes */}
@@ -410,7 +474,11 @@ export function OpenShiftModal({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" disabled={loading} onClick={handleOpen}>
+          <Button
+            type="button"
+            disabled={loading || prefillBusy}
+            onClick={handleOpen}
+          >
             {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash)})`}
           </Button>
         </DialogFooter>

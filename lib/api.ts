@@ -747,6 +747,7 @@ export type FeatureFlagsPatchPayload = {
   posCashierPriceEdit?: boolean;
   posCashierCreateProduct?: boolean;
   posCashierWeighedToggle?: boolean;
+  shiftsPrefillOpeningFromLastClose?: boolean;
 };
 
 export type PatchBusinessPayload = {
@@ -5515,6 +5516,24 @@ export async function fetchShifts(params?: {
   query.set("page", String(params?.page ?? 0));
   query.set("size", String(params?.size ?? 50));
   return request<ShiftListResponse>(`/api/v1/shifts?${query.toString()}`);
+}
+
+export type LastClosedShiftFloatRecord = {
+  shiftId: string | null;
+  branchId: string;
+  closedAt: string | null;
+  countedClosingCash: number | string | null;
+  closingDenominations: DenominationRecord[];
+};
+
+/** Closing float from the most recently closed shift at a branch (for opening prefill). */
+export async function fetchLastClosedShiftFloat(
+  branchId: string,
+): Promise<LastClosedShiftFloatRecord> {
+  const query = new URLSearchParams({ branchId });
+  return request<LastClosedShiftFloatRecord>(
+    `/api/v1/shifts/last-closed?${query.toString()}`,
+  );
 }
 
 /** Raw type matching the backend's ShiftDetailResponse field names (openingFloat, expectedCash, etc.). */

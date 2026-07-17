@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import {
   AlertCircle,
+  Banknote,
   ClipboardList,
   Loader2,
   Save,
@@ -21,6 +22,7 @@ import {
   type EditableBusiness,
   type InventoryForm,
   type PosDraftsForm,
+  type ShiftSettingsForm,
   type StorefrontForm,
 } from "@/components/business/business-settings-types";
 import type { BranchRecord } from "@/lib/api";
@@ -54,6 +56,8 @@ export function BusinessSettingsForm({
   setPosDrafts,
   cashierCapabilities,
   setCashierCapabilities,
+  shiftSettings,
+  setShiftSettings,
   activeBranches,
   canManageBusinessSettings,
   isSaving,
@@ -74,6 +78,8 @@ export function BusinessSettingsForm({
   setCashierCapabilities: React.Dispatch<
     React.SetStateAction<CashierCapabilitiesForm>
   >;
+  shiftSettings: ShiftSettingsForm;
+  setShiftSettings: React.Dispatch<React.SetStateAction<ShiftSettingsForm>>;
   activeBranches: BranchRecord[];
   canManageBusinessSettings: boolean;
   isSaving: boolean;
@@ -635,6 +641,38 @@ export function BusinessSettingsForm({
             </label>
           </FormDrawerFields>
         </div>
+      ) : null}
+
+      {canManageBusinessSettings ? (
+        <FormDrawerFields
+          legend="Shifts & cash drawer"
+          hint="Controls how opening float is prepared when a cashier starts a new shift."
+        >
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/80 bg-background px-3 py-3 text-sm shadow-sm transition-colors hover:bg-accent/50">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+              checked={shiftSettings.prefillOpeningFromLastClose}
+              onChange={(event) =>
+                setShiftSettings((previous) => ({
+                  ...previous,
+                  prefillOpeningFromLastClose: event.target.checked,
+                }))
+              }
+            />
+            <span className="space-y-1">
+              <span className="flex items-center gap-2 font-medium">
+                <Banknote className="size-4 text-muted-foreground" />
+                Prefill opening float from last close
+              </span>
+              <span className={hintClass()}>
+                When opening a shift, fill denomination quantities from the
+                previous night&apos;s closing count so the cashier can review and
+                edit instead of starting from zero.
+              </span>
+            </span>
+          </label>
+        </FormDrawerFields>
       ) : null}
 
       {canManageBusinessSettings ? (
