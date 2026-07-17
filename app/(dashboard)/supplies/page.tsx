@@ -523,6 +523,8 @@ export default function SuppliesPage() {
         }}
         row={payRow}
         onPaid={() => void refresh()}
+        canDeleteSupply={canEditSupplyBill}
+        onDeleteSupply={onDeleteSupply}
       />
 
       <EditSupplyBillDrawer

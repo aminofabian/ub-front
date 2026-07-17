@@ -6776,6 +6776,7 @@ export type SupplierRecord = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 };
 
 export type SupplierContactRecord = {
@@ -6874,8 +6875,16 @@ export async function fetchSuppliers(): Promise<SupplierRecord[]> {
 
 export async function fetchSupplierById(
   supplierId: string,
+  opts?: { includeDeleted?: boolean },
 ): Promise<SupplierRecord> {
-  return request<SupplierRecord>(`/api/v1/suppliers/${supplierId}`);
+  const params = new URLSearchParams();
+  if (opts?.includeDeleted) {
+    params.set("includeDeleted", "true");
+  }
+  const qs = params.toString();
+  return request<SupplierRecord>(
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export async function createSupplier(

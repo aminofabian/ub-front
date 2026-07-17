@@ -86,9 +86,19 @@ type PaySupplyDrawerProps = {
   onOpenChange: (open: boolean) => void;
   row: PathBSupplyListRowRecord | null;
   onPaid: () => void;
+  /** Optional: allow clearing unpaid supplies (e.g. after supplier was deleted). */
+  onDeleteSupply?: (row: PathBSupplyListRowRecord) => void | Promise<void>;
+  canDeleteSupply?: boolean;
 };
 
-export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDrawerProps) {
+export function PaySupplyDrawer({
+  open,
+  onOpenChange,
+  row,
+  onPaid,
+  onDeleteSupply,
+  canDeleteSupply = false,
+}: PaySupplyDrawerProps) {
   const { me } = useDashboard();
   const canPay = hasPermission(me?.permissions, Permission.PurchasingPaymentWrite);
   const canHistory = hasPermission(me?.permissions, Permission.PurchasingPaymentRead);
@@ -97,6 +107,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
   const [supplierLoading, setSupplierLoading] = useState(false);
   const [supplierError, setSupplierError] = useState<string | null>(null);
+  const [deletingSupply, setDeletingSupply] = useState(false);
   const [history, setHistory] = useState<SupplyPaymentHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -120,6 +131,12 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
   const paidFull = row ? row.paymentStatus === "PAID" : false;
   const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
   const preferredMethod = resolvePaymentMethod(supplier?.paymentMethodPreferred);
+  const supplierDeleted = Boolean(supplier?.deletedAt);
+  const canClearUnpaid =
+    Boolean(row) &&
+    canDeleteSupply &&
+    Boolean(onDeleteSupply) &&
+    supplyN(row?.amountPaid ?? 0) < 0.005;
 
   useEffect(() => {
     if (!open || !row || !canReadSupplier) {
@@ -129,7 +146,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
     }
     setSupplierLoading(true);
     setSupplierError(null);
-    void fetchSupplierById(row.supplierId)
+    void fetchSupplierById(row.supplierId, { includeDeleted: true })
       .then((s) => {
         setSupplier(s);
         setPaymentMethod(resolvePaymentMethod(s.paymentMethodPreferred));
@@ -399,9 +416,33 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
       banner={error ? <FormDrawerMessageBanner text={error} /> : undefined}
       footer={
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy || deletingSupply}>
             Cancel
           </Button>
+          {canClearUnpaid && row ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={busy || deletingSupply}
+              onClick={() => {
+                void (async () => {
+                  setDeletingSupply(true);
+                  try {
+                    await onDeleteSupply?.(row);
+                    onOpenChange(false);
+                  } finally {
+                    setDeletingSupply(false);
+                  }
+                })();
+              }}
+            >
+              {deletingSupply ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
+              Delete supply
+            </Button>
+          ) : null}
           {kopokopoPhase === "pending" ? (
             <Button
               type="button"
@@ -423,7 +464,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
               onClick={() => void onConfirmPay()}
               disabled={
                 busy ||
-                supplierLoading ||
+                deletingSupply ||
                 payOptionsLoading ||
                 kopokopoPhase === "pending" ||
                 kopokopoPhase === "sending"
@@ -516,7 +557,7 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                       </p>
                     </div>
                   </div>
-                  {row.supplierId ? (
+                  {row.supplierId && !supplierDeleted ? (
                     <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 gap-1" asChild>
                       <Link href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}>
                         Edit
@@ -525,6 +566,13 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                     </Button>
                   ) : null}
                 </div>
+
+                {supplierDeleted ? (
+                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                    This supplier was deleted. You can still pay or delete this unpaid supply to clear the payable.
+                  </p>
+                ) : null}
 
                 {supplierLoading ? (
                   <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -535,6 +583,9 @@ export function PaySupplyDrawer({ open, onOpenChange, row, onPaid }: PaySupplyDr
                   <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
                     <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                     {supplierError}
+                    {canClearUnpaid
+                      ? " Use Delete supply below to clear this unpaid receipt."
+                      : ""}
                   </p>
                 ) : paymentDetails || payoutPhone ? (
                   <div className="mt-3 space-y-3">
