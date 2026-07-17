@@ -80,6 +80,8 @@ export const APP_ROUTES = {
   shopCheckout: "/shop/checkout",
   barcode: "/barcode",
   paymentsSettings: "/payments/settings",
+  /** Day tender tape — chronological sale payments for reconciling / following along. */
+  paymentsDayLedger: "/payments/day",
   /** Desktop SKU: license, LAN sharing, local backups (DESKTOP_INSTALLATION.md). */
   desktopSettings: "/settings/desktop",
   tenantSuspended: "/_status/suspended",

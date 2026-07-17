@@ -519,134 +519,145 @@ export function PaySupplyDrawer({
               You need <code className="text-xs">{Permission.PurchasingPaymentWrite}</code> to post
               payments.
             </p>
-          ) : (
-            <>
-              <section
-                className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card p-4 shadow-sm ring-1 ring-primary/10"
-                aria-labelledby="supplier-payment-heading"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                      {preferredMethod === "mpesa" ? (
-                        <Smartphone className="size-5" aria-hidden />
-                      ) : (
-                        <CreditCard className="size-5" aria-hidden />
-                      )}
+          ) : null}
+
+          {/* Always show remittance details — including when the bill is already paid */}
+          <section
+            className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] via-card to-card p-4 shadow-sm ring-1 ring-primary/10"
+            aria-labelledby="supplier-payment-heading"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  {preferredMethod === "mpesa" ? (
+                    <Smartphone className="size-5" aria-hidden />
+                  ) : (
+                    <CreditCard className="size-5" aria-hidden />
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <h3
+                    id="supplier-payment-heading"
+                    className="text-sm font-bold text-foreground"
+                  >
+                    {paidFull ? "Supplier remittance details" : "How to pay this supplier"}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Preferred:{" "}
+                    <span className="font-semibold text-foreground">
+                      {paymentMethodLabel(preferredMethod)}
                     </span>
-                    <div className="min-w-0">
-                      <h3
-                        id="supplier-payment-heading"
-                        className="text-sm font-bold text-foreground"
-                      >
-                        How to pay this supplier
-                      </h3>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Preferred:{" "}
-                        <span className="font-semibold text-foreground">
-                          {paymentMethodLabel(preferredMethod)}
-                        </span>
-                        {supplier?.paymentMethodPreferred?.trim() &&
-                        supplier.paymentMethodPreferred.trim().toLowerCase() !==
-                          preferredMethod ? (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            ({supplier.paymentMethodPreferred})
-                          </span>
-                        ) : null}
-                      </p>
-                    </div>
-                  </div>
-                  {row.supplierId && !supplierDeleted ? (
-                    <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 gap-1" asChild>
-                      <Link href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}>
-                        Edit
-                        <ExternalLink className="size-3" aria-hidden />
-                      </Link>
-                    </Button>
-                  ) : null}
+                    {supplier?.paymentMethodPreferred?.trim() &&
+                    supplier.paymentMethodPreferred.trim().toLowerCase() !==
+                      preferredMethod ? (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        ({supplier.paymentMethodPreferred})
+                      </span>
+                    ) : null}
+                  </p>
                 </div>
+              </div>
+              {row.supplierId && !supplierDeleted ? (
+                <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 gap-1" asChild>
+                  <Link href={`${APP_ROUTES.suppliers}?supplier=${encodeURIComponent(row.supplierId)}`}>
+                    Edit
+                    <ExternalLink className="size-3" aria-hidden />
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
 
-                {supplierDeleted ? (
-                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    This supplier was deleted. You can still pay or delete this unpaid supply to clear the payable.
-                  </p>
+            {supplierDeleted ? (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                This supplier was deleted.
+                {!paidFull
+                  ? " You can still pay or delete this unpaid supply to clear the payable."
+                  : null}
+              </p>
+            ) : null}
+
+            {supplierLoading ? (
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Loading payment details…
+              </div>
+            ) : !canReadSupplier ? (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-xs text-muted-foreground">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                You need supplier read access to view remittance details.
+              </p>
+            ) : supplierError ? (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                {supplierError}
+                {canClearUnpaid
+                  ? " Use Delete supply below to clear this unpaid receipt."
+                  : ""}
+              </p>
+            ) : paymentDetails || payoutPhone ? (
+              <div className="mt-3 space-y-3">
+                {payoutPhone ? (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                      KopoKopo M-Pesa payout
+                    </p>
+                    <p className="mt-1 font-mono text-sm font-semibold text-foreground">{payoutPhone}</p>
+                    {!paidFull && kopokopoEligible ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Confirm below to send {formatSupplyMoney(balanceOpen)} via KopoKopo Send Money.
+                      </p>
+                    ) : !paidFull && payOptions && !payOptions.supplierPayoutEnabled ? (
+                      <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                        Supplier payouts are off.{" "}
+                        <Link
+                          href={APP_ROUTES.paymentsSettings}
+                          className="font-semibold underline"
+                        >
+                          Enable under Payments
+                        </Link>
+                        .
+                      </p>
+                    ) : !paidFull && payOptions && !payOptions.supplierPayoutGatewayReady ? (
+                      <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                        Choose an active payout gateway in{" "}
+                        <Link
+                          href={APP_ROUTES.paymentsSettings}
+                          className="font-semibold underline"
+                        >
+                          Payments settings
+                        </Link>
+                        .
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
-
-                {supplierLoading ? (
-                  <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                    Loading payment details…
+                {paymentDetails ? (
+                  <div className={cn(supCardInset, "px-3.5 py-3")}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Payment &amp; remittance
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
+                      {paymentDetails}
+                    </p>
                   </div>
-                ) : supplierError ? (
-                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    {supplierError}
-                    {canClearUnpaid
-                      ? " Use Delete supply below to clear this unpaid receipt."
-                      : ""}
-                  </p>
-                ) : paymentDetails || payoutPhone ? (
-                  <div className="mt-3 space-y-3">
-                    {payoutPhone ? (
-                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
-                          KopoKopo M-Pesa payout
-                        </p>
-                        <p className="mt-1 font-mono text-sm font-semibold text-foreground">{payoutPhone}</p>
-                        {kopokopoEligible ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Confirm below to send {formatSupplyMoney(balanceOpen)} via KopoKopo Send Money.
-                          </p>
-                        ) : payOptions && !payOptions.supplierPayoutEnabled ? (
-                          <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
-                            Supplier payouts are off.{" "}
-                            <Link
-                              href={APP_ROUTES.paymentsSettings}
-                              className="font-semibold underline"
-                            >
-                              Enable under Payments
-                            </Link>
-                            .
-                          </p>
-                        ) : payOptions && !payOptions.supplierPayoutGatewayReady ? (
-                          <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
-                            Choose an active payout gateway in{" "}
-                            <Link
-                              href={APP_ROUTES.paymentsSettings}
-                              className="font-semibold underline"
-                            >
-                              Payments settings
-                            </Link>
-                            .
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {paymentDetails ? (
-                      <div className={cn(supCardInset, "px-3.5 py-3")}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Payment &amp; remittance
-                        </p>
-                        <p className="mt-2 whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground">
-                          {paymentDetails}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-amber-300/80 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    No payment details on file for this supplier. Add paybill, till, or bank info under{" "}
-                    <Link href={APP_ROUTES.suppliers} className="font-semibold underline">
-                      Suppliers
-                    </Link>{" "}
-                    before sending money.
-                  </p>
-                )}
-              </section>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-amber-300/80 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                No payment details on file for this supplier. Add paybill, till, or bank info under{" "}
+                <Link href={APP_ROUTES.suppliers} className="font-semibold underline">
+                  Suppliers
+                </Link>
+                .
+              </p>
+            )}
+          </section>
 
+          {!paidFull && canPay ? (
+            <>
               {kopokopoPhase === "pending" ? (
                 <p className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-center text-sm text-foreground">
                   <Loader2 className="mr-2 inline size-4 animate-spin align-[-2px]" aria-hidden />
@@ -792,7 +803,7 @@ export function PaySupplyDrawer({
                 ) : null}
               </div>
             </>
-          )}
+          ) : null}
 
           <div>
             <h4 className="text-sm font-semibold text-foreground">Payment history</h4>
@@ -814,21 +825,32 @@ export function PaySupplyDrawer({
                     <tr>
                       <th className="px-2 py-1.5">When</th>
                       <th className="px-2 py-1.5">Method</th>
+                      <th className="px-2 py-1.5 text-right">Cash</th>
                       <th className="px-2 py-1.5 text-right">Applied</th>
-                      <th className="px-2 py-1.5">Ref</th>
+                      <th className="px-2 py-1.5">Ref / notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.map((h) => (
-                      <tr key={h.allocationId} className="border-t">
-                        <td className="px-2 py-1.5 text-muted-foreground">
+                      <tr key={h.allocationId} className="border-t align-top">
+                        <td className="whitespace-nowrap px-2 py-1.5 text-muted-foreground">
                           {new Date(h.paidAt).toLocaleString()}
                         </td>
-                        <td className="px-2 py-1.5 font-mono">{h.paymentMethod}</td>
+                        <td className="px-2 py-1.5 font-mono capitalize">{h.paymentMethod}</td>
+                        <td className="px-2 py-1.5 text-right font-mono tabular-nums">
+                          {formatSupplyMoney(supplyN(h.paymentCashAmount))}
+                        </td>
                         <td className="px-2 py-1.5 text-right font-mono tabular-nums">
                           {formatSupplyMoney(supplyN(h.amountAppliedToInvoice))}
                         </td>
-                        <td className="max-w-[220px] truncate px-2 py-1.5">{h.reference ?? "—"}</td>
+                        <td className="max-w-[14rem] px-2 py-1.5">
+                          <span className="block truncate">{h.reference?.trim() || "—"}</span>
+                          {h.notes?.trim() ? (
+                            <span className="mt-0.5 block whitespace-pre-wrap text-[11px] text-muted-foreground">
+                              {h.notes.trim()}
+                            </span>
+                          ) : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

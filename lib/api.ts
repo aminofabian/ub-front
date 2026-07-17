@@ -3685,6 +3685,42 @@ export async function fetchPaymentsByMethod(
   );
 }
 
+/** One tender line for the day payment ledger. */
+export type PaymentLedgerRow = {
+  paymentId: string;
+  saleId: string;
+  receiptNo?: number | null;
+  soldAt: string;
+  method: string;
+  amount: number | string;
+  reference: string | null;
+  sortOrder: number;
+  status: string;
+  branchId: string;
+  cashierName: string;
+  customerName: string;
+  saleGrandTotal: number | string;
+};
+
+/**
+ * Chronological sale payment tenders for a day (or short date range).
+ * GET /api/v1/sales/intelligence/payment-ledger
+ */
+export async function fetchPaymentLedger(
+  from?: string,
+  to?: string,
+  branchId?: string,
+): Promise<PaymentLedgerRow[]> {
+  const params = new URLSearchParams();
+  if (from?.trim()) params.set("from", from.trim());
+  if (to?.trim()) params.set("to", to.trim());
+  if (branchId?.trim()) params.set("branchId", branchId.trim());
+  const qs = params.toString();
+  return request<PaymentLedgerRow[]>(
+    `/api/v1/sales/intelligence/payment-ledger${qs ? `?${qs}` : ""}`,
+  );
+}
+
 export type StaffPerformanceRow = {
   userId: string;
   userName: string;

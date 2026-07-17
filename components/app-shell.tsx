@@ -194,10 +194,13 @@ const NAV_SECTIONS: readonly NavSection[] = [
     id: "payments",
     title: "Payments",
     shortLabel: "Pay",
-    blurb: "Checkout gateways and methods",
+    blurb: "Day ledger and checkout gateways",
     icon: CreditCard,
-    entryHref: APP_ROUTES.paymentsSettings,
-    items: [{ href: APP_ROUTES.paymentsSettings, label: "Gateway settings" }],
+    entryHref: APP_ROUTES.paymentsDayLedger,
+    items: [
+      { href: APP_ROUTES.paymentsDayLedger, label: "Day ledger" },
+      { href: APP_ROUTES.paymentsSettings, label: "Gateway settings" },
+    ],
   },
   {
     id: "credits",
@@ -439,6 +442,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.sales) return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.paymentsSettings)
     return gate.canViewPaymentGateways;
+  if (item.href === APP_ROUTES.paymentsDayLedger)
+    return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesTransactions)
     return gate.canViewSalesIntelligence;
   if (item.href === APP_ROUTES.salesPendingCarts)
@@ -705,10 +710,14 @@ export function AppShell({ children }: AppShellProps) {
       canWriteSuppliers: canWriteSuppliersDelegated,
       canLinkSupplierProducts: canLinkSupplierProductsDelegated,
     };
-    return NAV_SECTIONS.map((section) => ({
-      ...section,
-      items: section.items.filter((item) => isNavItemVisible(item, gate)),
-    })).filter((s) => s.items.length > 0);
+    return NAV_SECTIONS.map((section) => {
+      const items = section.items.filter((item) => isNavItemVisible(item, gate));
+      return {
+        ...section,
+        items,
+        entryHref: items[0]?.href ?? section.entryHref,
+      };
+    }).filter((s) => s.items.length > 0);
   }, [
     mergedFeatureFlags,
     canListUsers,
