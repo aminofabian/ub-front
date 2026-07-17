@@ -23,9 +23,9 @@ type Props = {
 };
 
 const THUMB_SIZES: Record<CatalogRowKind, string> = {
-  group: "32px",
-  standalone: "28px",
-  variant: "24px",
+  group: "24px",
+  standalone: "24px",
+  variant: "20px",
 };
 
 export function CatalogListThumb({

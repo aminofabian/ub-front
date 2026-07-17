@@ -362,12 +362,50 @@ export function ProductsWorkspace() {
             itemTypeCount={catalog.itemTypes.length}
             totalProducts={catalog.listTotalElements}
             attentionStats={[
-              { count: catalog.catalogStats.missingBarcode, label: "missing barcode" },
-              { count: catalog.catalogStats.missingPrice, label: "no price" },
-              { count: catalog.catalogStats.zeroStock, label: "zero stock" },
-              { count: catalog.catalogStats.lowStock, label: "low stock" },
-              { count: catalog.catalogStats.inactive, label: "inactive" },
+              {
+                id: "missingBarcode",
+                count: catalog.catalogStats.missingBarcode,
+                label: "missing barcode",
+                active: catalog.filterNoBarcode,
+              },
+              {
+                id: "noPrice",
+                count: catalog.catalogStats.missingPrice,
+                label: "no price",
+                active: catalog.filterNoPrice,
+              },
+              {
+                id: "zeroStock",
+                count: catalog.catalogStats.zeroStock,
+                label: "zero stock",
+                active: catalog.filterZeroStock,
+              },
+              {
+                id: "lowStock",
+                count: catalog.catalogStats.lowStock,
+                label: "low stock",
+                active: catalog.filterLowStock,
+              },
+              {
+                id: "inactive",
+                count: catalog.catalogStats.inactive,
+                label: "inactive",
+                active: catalog.filterInactiveOnly,
+              },
             ]}
+            onAttentionToggle={(id) => {
+              if (id === "missingBarcode") {
+                catalog.setFilterNoBarcode((v) => !v);
+              } else if (id === "noPrice") {
+                catalog.setFilterNoPrice((v) => !v);
+              } else if (id === "zeroStock") {
+                catalog.setFilterZeroStock((v) => !v);
+              } else if (id === "lowStock") {
+                catalog.setFilterLowStock((v) => !v);
+              } else {
+                catalog.setFilterInactiveOnly((v) => !v);
+              }
+            }}
             onCreateNew={() => setActiveDrawer("create-parent")}
             onAddVariant={
               canCatalogWrite

@@ -47,8 +47,6 @@ import {
   catalogRowInteractionClasses,
   catalogRowTone,
   catalogStockTone,
-  catalogTypeChipClass,
-  catalogTypeChipLabel,
   isCatalogParentSelectorRow,
 } from "./catalog-list-styles";
 
@@ -286,7 +284,6 @@ export const VirtualizedCatalogBody = forwardRef<
                 startsParentBlock: false,
               };
               const tone = catalogRowTone(meta.kind, meta.variantCount);
-              const TypeIcon = tone.icon;
               const category =
                 row.categoryId != null && row.categoryId !== ""
                   ? categoryById.get(row.categoryId)
@@ -340,7 +337,6 @@ export const VirtualizedCatalogBody = forwardRef<
                 row,
                 effectiveVariantCount,
               );
-              const typeChip = catalogTypeChipLabel(meta.kind, effectiveVariantCount);
               const primaryName = nameResolution.label;
               const secondaryLine = resolveCatalogListSubtitle(row, {
                 isVariant,
@@ -461,12 +457,6 @@ export const VirtualizedCatalogBody = forwardRef<
 
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center gap-1">
-                          {!isVariant && !isGroup ? (
-                            <TypeIcon
-                              className={cn("size-3 shrink-0", tone.muted)}
-                              aria-hidden
-                            />
-                          ) : null}
                           {nameResolution.needsNameFix ? (
                             <>
                               {nameResolution.label !== CATALOG_FIX_NAME_LABEL ? (
@@ -498,27 +488,16 @@ export const VirtualizedCatalogBody = forwardRef<
                             <span
                               className={cn(
                                 "min-w-0 truncate leading-tight tracking-tight",
-                                isGroup
-                                  ? "text-sm font-semibold"
+                                isParentSelector
+                                  ? "text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
                                   : isVariant
                                     ? "text-[13px] font-medium text-foreground"
-                                    : "text-sm font-semibold",
-                                !isVariant && tone.text,
+                                    : "text-sm font-semibold text-foreground",
                               )}
                             >
                               {isVariant ? (variantTitle?.option ?? primaryName) : primaryName}
                             </span>
                           )}
-                          {typeChip ? (
-                            <span
-                              className={cn(
-                                "hidden shrink-0 border px-1 py-px text-[9px] font-bold uppercase tracking-wide sm:inline",
-                                catalogTypeChipClass(meta.kind, effectiveVariantCount),
-                              )}
-                            >
-                              {typeChip}
-                            </span>
-                          ) : null}
                           {row.packageVariant ? (
                             <span className="inline-flex shrink-0 items-center gap-0.5 border border-primary/25 bg-primary/8 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-primary">
                               <Boxes className="size-2.5" aria-hidden />
@@ -537,7 +516,7 @@ export const VirtualizedCatalogBody = forwardRef<
                           ) : null}
                         </div>
 
-                        {(secondaryLine || categoryLabel) && (
+                        {!isParentSelector && (secondaryLine || categoryLabel) ? (
                           <div className="mt-px flex min-w-0 items-center gap-1.5 truncate text-[10px] text-muted-foreground">
                             {secondaryLine ? (
                               <span
@@ -570,12 +549,24 @@ export const VirtualizedCatalogBody = forwardRef<
                               </span>
                             ) : null}
                           </div>
-                        )}
+                        ) : isParentSelector && effectiveVariantCount > 0 ? (
+                          <div className="mt-px truncate text-[10px] text-muted-foreground">
+                            {effectiveVariantCount.toLocaleString()}{" "}
+                            {effectiveVariantCount === 1 ? "variant" : "variants"}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
                     <span className={cn(catalogListMetricCellClass, catalogGridCol.stock)}>
-                      {stock.label !== "—" ? (
+                      {isParentSelector ? (
+                        <span
+                          className="whitespace-nowrap text-[10px] tabular-nums text-muted-foreground/50"
+                          title="Stock on variants"
+                        >
+                          —
+                        </span>
+                      ) : stock.label !== "—" ? (
                         <span
                           className={cn(
                             "whitespace-nowrap border px-1 py-px text-[10px] font-bold tabular-nums",
@@ -593,7 +584,9 @@ export const VirtualizedCatalogBody = forwardRef<
                     </span>
 
                     <span className={cn(catalogListMetricCellClass, catalogGridCol.sell)}>
-                      {sell.kind === "empty" ? (
+                      {isParentSelector ? (
+                        <span className="sr-only">Price on variants</span>
+                      ) : sell.kind === "empty" ? (
                         <NoPricePill />
                       ) : sell.kind === "price" ? (
                         <span
@@ -608,7 +601,7 @@ export const VirtualizedCatalogBody = forwardRef<
                     </span>
 
                     <span className={cn(catalogListMetricCellClass, catalogGridCol.category)}>
-                      {categoryLabel ? (
+                      {!isParentSelector && categoryLabel ? (
                         <span
                           className={cn(
                             "inline-block max-w-full truncate border px-1 py-px text-[9px] font-semibold uppercase leading-snug tracking-wide",

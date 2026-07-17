@@ -186,7 +186,9 @@ export function ProductFilterSidebar({ catalog }: Props) {
 
         <div className="flex flex-col gap-1.5 border-t border-border/60 pt-2">
           <span className={catalogFilterLabelClass}>Needs attention</span>
-          <p className={catalogFilterHintClass}>Combine any — all checked apply together.</p>
+          <p className={catalogFilterHintClass}>
+            Same filters as the chips in the header — combine any.
+          </p>
           <label className={catalogFilterOptionClass}>
             <input
               type="checkbox"

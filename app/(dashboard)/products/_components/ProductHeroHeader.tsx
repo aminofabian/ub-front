@@ -15,15 +15,25 @@ import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
+export type AttentionFilterId =
+  | "missingBarcode"
+  | "noPrice"
+  | "zeroStock"
+  | "lowStock"
+  | "inactive";
+
 type AttentionStat = {
+  id: AttentionFilterId;
   count: number;
   label: string;
+  active: boolean;
 };
 
 type Props = {
   itemTypeCount: number;
   totalProducts?: number;
   attentionStats?: AttentionStat[];
+  onAttentionToggle?: (id: AttentionFilterId) => void;
   onCreateNew: () => void;
   onAddVariant?: () => void;
   canAddVariant?: boolean;
@@ -41,6 +51,7 @@ export function ProductHeroHeader({
   itemTypeCount,
   totalProducts,
   attentionStats = [],
+  onAttentionToggle,
   onCreateNew,
   onAddVariant,
   canAddVariant = true,
@@ -95,47 +106,65 @@ export function ProductHeroHeader({
         </nav>
 
         {visibleAttention.length > 0 ? (
-          <p className="text-[10px] leading-snug text-muted-foreground">
-            {visibleAttention.map((stat, index) => (
-              <span key={stat.label}>
-                {index > 0 ? (
-                  <span className="mx-1.5 text-border">·</span>
-                ) : null}
-                <span className="tabular-nums font-semibold text-foreground">
+          <div
+            className="flex min-w-0 flex-wrap items-center gap-1"
+            role="group"
+            aria-label="Needs attention filters"
+          >
+            {visibleAttention.map((stat) => (
+              <button
+                key={stat.id}
+                type="button"
+                onClick={() => onAttentionToggle?.(stat.id)}
+                aria-pressed={stat.active}
+                title={
+                  stat.active
+                    ? `Clear “${stat.label}” filter`
+                    : `Filter: ${stat.label}`
+                }
+                className={cn(
+                  "inline-flex h-6 items-center gap-1 border px-1.5 text-[10px] transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  stat.active
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
+                )}
+              >
+                <span className="tabular-nums font-semibold">
                   {stat.count.toLocaleString()}
-                </span>{" "}
-                {stat.label}
-              </span>
+                </span>
+                <span>{stat.label}</span>
+              </button>
             ))}
-          </p>
+          </div>
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
         {onAddVariant ? (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             disabled={!canCreate || !canAddVariant}
             onClick={onAddVariant}
-            className="h-8 gap-1.5 rounded-none border-border px-2.5 text-xs shadow-none"
+            className="h-8 gap-1.5 rounded-none px-2 text-xs text-muted-foreground shadow-none hover:text-foreground"
           >
             <Layers className="size-3.5" aria-hidden />
-            Add variant
+            <span className="hidden sm:inline">Add variant</span>
           </Button>
         ) : null}
         {onAddFromCatalog ? (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             disabled={!canCreate || !canAddFromCatalog}
             onClick={onAddFromCatalog}
-            className="h-8 gap-1.5 rounded-none border-border px-2.5 text-xs shadow-none"
+            className="h-8 gap-1.5 rounded-none px-2 text-xs text-muted-foreground shadow-none hover:text-foreground"
           >
             <Library className="size-3.5" aria-hidden />
-            Add from catalog
+            <span className="hidden sm:inline">From catalog</span>
           </Button>
         ) : null}
         <Button

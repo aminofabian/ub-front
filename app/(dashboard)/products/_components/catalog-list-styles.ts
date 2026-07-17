@@ -179,24 +179,21 @@ export function catalogTypeChipClass(
   variantCount: number,
 ): string {
   if (kind === "group") {
-    return "border border-amber-500/25 bg-amber-500/12 text-amber-900 dark:bg-amber-500/15 dark:text-amber-100";
+    return "border border-border bg-muted/60 text-muted-foreground";
   }
   if (kind === "variant") {
     return "border border-border bg-muted/50 text-foreground";
   }
   if (variantCount > 0) {
-    return "border border-teal-500/25 bg-teal-500/12 text-teal-900 dark:bg-teal-500/15 dark:text-teal-100";
+    return "border border-border bg-muted/60 text-muted-foreground";
   }
   return "border border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:bg-emerald-500/12 dark:text-emerald-100";
 }
 
 export function catalogTypeChipLabel(
-  kind: CatalogRowKind,
-  variantCount: number,
+  _kind: CatalogRowKind,
+  _variantCount: number,
 ): string | null {
-  if (kind === "group") return null;
-  if (kind === "variant") return null;
-  if (variantCount > 0) return `Parent · ${variantCount}`;
   return null;
 }
 
@@ -227,22 +224,18 @@ export function catalogListCheckboxClass(
   if (kind === "group") {
     return cn(
       catalogListCheckboxBaseClass,
-      "border-amber-400/45",
-      "checked:border-amber-600 checked:bg-amber-600",
-      "indeterminate:border-amber-600 indeterminate:bg-amber-600",
-      "dark:checked:border-amber-500 dark:checked:bg-amber-500",
-      "dark:indeterminate:border-amber-500 dark:indeterminate:bg-amber-500",
+      "border-foreground/30",
+      "checked:border-foreground checked:bg-foreground",
+      "indeterminate:border-foreground indeterminate:bg-foreground",
     );
   }
   const parentish = variantCount > 0;
   if (parentish) {
     return cn(
       catalogListCheckboxBaseClass,
-      "border-teal-400/45",
-      "checked:border-teal-600 checked:bg-teal-600",
-      "indeterminate:border-teal-600 indeterminate:bg-teal-600",
-      "dark:checked:border-teal-500 dark:checked:bg-teal-500",
-      "dark:indeterminate:border-teal-500 dark:indeterminate:bg-teal-500",
+      "border-foreground/30",
+      "checked:border-foreground checked:bg-foreground",
+      "indeterminate:border-foreground indeterminate:bg-foreground",
     );
   }
   return cn(
@@ -292,7 +285,7 @@ export function catalogListThumbFrameClass(
   return cn(
     "relative block shrink-0 overflow-hidden border border-border bg-muted/70",
     "transition-[border-color,opacity] duration-150",
-    kind === "group" && "size-7 border-amber-500/25",
+    kind === "group" && "size-6",
     kind === "variant" && "size-5",
     kind === "standalone" && "size-6",
     state?.active && "z-[1] border-primary/40",
@@ -546,16 +539,16 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
     return {
       label: "Parent group",
       icon: Tag,
-      accent: "bg-amber-500",
-      accentLight: "bg-amber-500/12 text-amber-900 dark:bg-amber-500/15 dark:text-amber-100",
-      border: "border-amber-500/35",
-      text: "text-amber-950 dark:text-amber-50",
-      muted: "text-amber-800/70 dark:text-amber-300/70",
-      gradient: "bg-amber-500/[0.06] dark:bg-amber-500/[0.08]",
-      rowHover: "hover:bg-amber-500/10 dark:hover:bg-amber-500/12",
-      rowChecked: "bg-amber-500/12",
-      rowBulk: "bg-amber-500/10",
-      rowDetailActive: "z-[2] bg-amber-500/14",
+      accent: "bg-muted-foreground",
+      accentLight: "bg-muted text-muted-foreground",
+      border: "border-border",
+      text: "text-foreground",
+      muted: "text-muted-foreground",
+      gradient: "bg-muted/45",
+      rowHover: "hover:bg-muted/60",
+      rowChecked: "bg-muted/55",
+      rowBulk: "bg-muted/50",
+      rowDetailActive: "z-[2] bg-muted/70",
     };
   }
   if (kind === "variant") {
@@ -575,35 +568,36 @@ export function catalogRowTone(kind: CatalogRowKind, variantCount: number): Cata
     };
   }
   const parentish = variantCount > 0;
+  if (parentish) {
+    return {
+      label: "Parent product",
+      icon: Package,
+      accent: "bg-muted-foreground",
+      accentLight: "bg-muted text-muted-foreground",
+      border: "border-border",
+      text: "text-foreground",
+      muted: "text-muted-foreground",
+      gradient: "bg-muted/40",
+      rowHover: "hover:bg-muted/55",
+      rowChecked: "bg-muted/50",
+      rowBulk: "bg-muted/45",
+      rowDetailActive: "z-[2] bg-muted/65",
+    };
+  }
   return {
-    label: parentish ? "Parent product" : "Product",
+    label: "Product",
     icon: Package,
-    accent: parentish ? "bg-teal-500" : "bg-emerald-500",
-    accentLight: parentish
-      ? "bg-teal-500/12 text-teal-900 dark:bg-teal-500/15 dark:text-teal-100"
-      : "bg-emerald-500/12 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100",
-    border: parentish ? "border-teal-500/30" : "border-emerald-500/30",
-    text: parentish
-      ? "text-teal-950 dark:text-teal-50"
-      : "text-emerald-950 dark:text-emerald-50",
-    muted: parentish
-      ? "text-teal-800/70 dark:text-teal-300/70"
-      : "text-emerald-800/70 dark:text-emerald-300/70",
-    gradient: parentish
-      ? "bg-teal-500/[0.05] dark:bg-teal-500/[0.07]"
-      : "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06]",
-    rowHover: parentish
-      ? "hover:bg-teal-500/10 dark:hover:bg-teal-500/12"
-      : "hover:bg-emerald-500/10 dark:hover:bg-emerald-500/12",
-    rowChecked: parentish
-      ? "bg-teal-500/12"
-      : "bg-emerald-500/12",
-    rowBulk: parentish
-      ? "bg-teal-500/10"
-      : "bg-emerald-500/10",
-    rowDetailActive: parentish
-      ? "z-[2] bg-teal-500/14"
-      : "z-[2] bg-emerald-500/14",
+    accent: "bg-emerald-500",
+    accentLight:
+      "bg-emerald-500/12 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100",
+    border: "border-emerald-500/30",
+    text: "text-emerald-950 dark:text-emerald-50",
+    muted: "text-emerald-800/70 dark:text-emerald-300/70",
+    gradient: "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06]",
+    rowHover: "hover:bg-emerald-500/10 dark:hover:bg-emerald-500/12",
+    rowChecked: "bg-emerald-500/12",
+    rowBulk: "bg-emerald-500/10",
+    rowDetailActive: "z-[2] bg-emerald-500/14",
   };
 }
 

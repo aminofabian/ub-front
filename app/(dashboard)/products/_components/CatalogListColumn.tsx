@@ -11,7 +11,6 @@ import type { ItemSummaryRecord } from "@/lib/api";
 import {
   catalogListToolbarClass,
   catalogListToolbarMetaClass,
-  catalogListToolbarFilterCheckboxClass,
   type CatalogListDisplayType,
 } from "./catalog-list-styles";
 import { CatalogLetterJumpRail } from "./CatalogLetterJumpRail";
@@ -33,14 +32,13 @@ type Props = {
   canAddFromCatalog?: boolean;
 };
 
-const ROW_TYPE_FILTERS: {
+const ROW_TYPE_LEGEND: {
   id: CatalogListDisplayType;
   label: string;
-  swatch: string;
 }[] = [
-  { id: "parent", label: "Parents", swatch: "bg-teal-500" },
-  { id: "variant", label: "Variants", swatch: "bg-foreground" },
-  { id: "standalone", label: "Standalones", swatch: "bg-emerald-500" },
+  { id: "parent", label: "Parents" },
+  { id: "variant", label: "Variants" },
+  { id: "standalone", label: "Standalones" },
 ];
 
 export function CatalogListColumn({
@@ -68,8 +66,7 @@ export function CatalogListColumn({
       !!catalog.filterCategoryId.trim() ||
       catalog.catalogScope !== "ALL" ||
       !!catalog.barcodeExact.trim() ||
-      catalog.attentionFiltersActive ||
-      catalog.rowTypeFilterActive
+      catalog.attentionFiltersActive
     );
   }, [
     catalog.debouncedSearch,
@@ -77,7 +74,6 @@ export function CatalogListColumn({
     catalog.catalogScope,
     catalog.barcodeExact,
     catalog.attentionFiltersActive,
-    catalog.rowTypeFilterActive,
   ]);
 
   const loadedHint =
@@ -135,38 +131,27 @@ export function CatalogListColumn({
               </span>
             ) : null}
           </p>
-          <div
-            className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-l border-border/40 pl-2"
-            role="group"
-            aria-label="Filter by row type"
+          <p
+            className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-l border-border/40 pl-2 text-[10px] text-muted-foreground"
+            aria-label="Row type counts"
           >
-            {ROW_TYPE_FILTERS.map(({ id, label, swatch }) => {
-              const checked = catalog.rowTypeFilter.has(id);
+            {ROW_TYPE_LEGEND.map(({ id, label }, index) => {
               const count = catalog.rowTypeCounts[id];
               return (
-                <label
-                  key={id}
-                  className={cn(
-                    "inline-flex cursor-pointer items-center gap-1.5 text-[10px] text-muted-foreground",
-                    checked && "text-foreground",
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    className={catalogListToolbarFilterCheckboxClass(id)}
-                    checked={checked}
-                    onChange={() => catalog.toggleRowTypeFilter(id)}
-                    aria-label={`${label}: ${count.toLocaleString()}`}
-                  />
-                  <span className={cn("size-1.5 shrink-0", swatch)} aria-hidden />
+                <span key={id} className="inline-flex items-center gap-1">
+                  {index > 0 ? (
+                    <span className="text-border" aria-hidden>
+                      ·
+                    </span>
+                  ) : null}
                   <span className="tabular-nums font-semibold text-foreground">
                     {count.toLocaleString()}
                   </span>
                   <span>{label}</span>
-                </label>
+                </span>
               );
             })}
-          </div>
+          </p>
         </div>
       </div>
 
