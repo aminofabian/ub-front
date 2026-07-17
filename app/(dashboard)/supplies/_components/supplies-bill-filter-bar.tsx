@@ -25,94 +25,86 @@ export function SuppliesBillFilterBar({
 
   return (
     <div
-      className="flex flex-col gap-2.5 border-b border-border/45 bg-muted/15 px-3 py-3 sm:px-4"
+      className="flex flex-col gap-1.5 border-b border-border bg-[#eef2f7] px-3 py-1.5 dark:bg-muted/25 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1 sm:px-4"
       role="toolbar"
       aria-label="Filter supply receipts"
     >
-      {/* Status first on mobile — most used */}
-      <div className="space-y-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Status
-        </span>
-        <div className="-mx-0.5 flex gap-1.5 overflow-x-auto px-0.5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
-          {statusFilters.map((f) => (
-            <FilterChip
-              key={f.id}
-              label={f.label}
-              count={counts[f.id]}
-              active={value === f.id}
-              disabled={disabled}
-              onClick={() => onChange(f.id)}
-              emphasize
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Period
-        </span>
-        <div className="-mx-0.5 flex gap-1.5 overflow-x-auto px-0.5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
-          {periodFilters.map((f) => (
-            <FilterChip
-              key={f.id}
-              label={f.label}
-              count={counts[f.id]}
-              active={value === f.id}
-              disabled={disabled}
-              onClick={() => onChange(f.id)}
-            />
-          ))}
-        </div>
-      </div>
+      <FilterGroup
+        label="Status"
+        filters={statusFilters}
+        value={value}
+        counts={counts}
+        disabled={disabled}
+        onChange={onChange}
+      />
+      <span className="hidden h-4 w-px bg-border sm:block" aria-hidden />
+      <FilterGroup
+        label="Period"
+        filters={periodFilters}
+        value={value}
+        counts={counts}
+        disabled={disabled}
+        onChange={onChange}
+      />
     </div>
   );
 }
 
-function FilterChip({
+function FilterGroup({
   label,
-  count,
-  active,
+  filters,
+  value,
+  counts,
   disabled,
-  onClick,
-  emphasize,
+  onChange,
 }: {
   label: string;
-  count?: number;
-  active: boolean;
+  filters: { id: SupplyBillFilterId; label: string }[];
+  value: SupplyBillFilterId;
+  counts: Partial<Record<SupplyBillFilterId, number>>;
   disabled?: boolean;
-  onClick: () => void;
-  emphasize?: boolean;
+  onChange: (filter: SupplyBillFilterId) => void;
 }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 font-medium transition-colors touch-manipulation",
-        emphasize ? "h-10 text-[13px]" : "h-9 text-[12px]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-        "active:scale-[0.97]",
-        active
-          ? "border-primary/40 bg-primary/12 text-primary shadow-sm"
-          : "border-border bg-background text-muted-foreground hover:border-primary/25 hover:bg-muted/40 hover:text-foreground",
-        disabled && "pointer-events-none opacity-50",
-      )}
-    >
-      {label}
-      {count != null ? (
-        <span
-          className={cn(
-            "rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums",
-            active ? "bg-primary/15" : "bg-muted/60 text-muted-foreground",
-          )}
-        >
-          {count}
-        </span>
-      ) : null}
-    </button>
+    <div className="flex min-w-0 items-center gap-1.5">
+      <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+        {label}
+      </span>
+      <div className="-mx-0.5 flex min-w-0 gap-0.5 overflow-x-auto px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {filters.map((f) => {
+          const active = value === f.id;
+          const count = counts[f.id];
+          return (
+            <button
+              key={f.id}
+              type="button"
+              disabled={disabled}
+              aria-pressed={active}
+              onClick={() => onChange(f.id)}
+              className={cn(
+                "inline-flex h-6 shrink-0 items-center gap-1 border px-1.5 text-[11px] font-medium tabular-nums transition-colors",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
+                active
+                  ? "border-primary/45 bg-primary/12 text-primary"
+                  : "border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground",
+                disabled && "pointer-events-none opacity-50",
+              )}
+            >
+              {f.label}
+              {count != null ? (
+                <span
+                  className={cn(
+                    "font-mono text-[10px]",
+                    active ? "text-primary" : "text-muted-foreground/80",
+                  )}
+                >
+                  {count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

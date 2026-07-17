@@ -48,7 +48,6 @@ import {
   SupLoadingBlock,
 } from "../suppliers/_components/supplier-layout-primitives";
 import {
-  supStatTile,
   supTableHead,
   supTableRow,
 } from "../suppliers/_components/supplier-ui-tokens";
@@ -207,136 +206,120 @@ export default function SuppliesPage() {
   const canShowProcurementLinks = !isStockManager;
 
   return (
-    <div className={cn(DASHBOARD_MAX, "relative min-w-0 max-w-full overflow-x-hidden")}>
-      <div className="min-w-0 space-y-3 pb-20 sm:pb-0">
+    <div className={cn(DASHBOARD_MAX, "relative flex min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden")}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-16 sm:pb-0">
         <SuppliesPageHeader
-        canViewApAging={canViewApAging}
-        canShowProcurementLinks={canShowProcurementLinks}
-        canOpenNewSupply={canOpenNewSupply}
-        listLoading={listLoading}
-        branchScopeLabel={headerBranchName || undefined}
-        onRefresh={() => void refresh()}
-        onNewSupply={() => setNewOpen(true)}
-      />
-
-      {listError ? <DashboardFeedback kind="error" text={listError} /> : null}
-
-      <div
-        className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:snap-none sm:grid-cols-4 sm:overflow-visible sm:px-0 sm:pb-0"
-        role="group"
-        aria-label="Supply summary"
-      >
-        <button
-          type="button"
-          onClick={() => setBillFilter("all")}
-          className={cn(
-            supStatTile,
-            "min-w-[42%] shrink-0 snap-start px-3 py-3 text-left transition-colors touch-manipulation sm:min-w-0 sm:py-2.5",
-            billFilter === "all"
-              ? "border-primary/40 bg-primary/[0.06] ring-1 ring-primary/25"
-              : "hover:bg-muted/30 active:bg-muted/40",
-          )}
-        >
-          <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Total
-          </span>
-          <span className="mt-1 block text-xl font-bold tabular-nums text-foreground sm:mt-0.5 sm:text-xl">
-            {summary.count}
-          </span>
-        </button>
-        <div
-          className={cn(
-            supStatTile,
-            "min-w-[42%] shrink-0 snap-start px-3 py-3 sm:min-w-0 sm:py-2.5",
-          )}
-        >
-          <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Invoiced
-          </span>
-          <span className="mt-1 block font-mono text-base font-semibold tabular-nums sm:mt-0.5 sm:text-lg">
-            {formatSupplyMoney(
-              billFilter === "all" ? summary.totalInvoiced : filteredSummary.totalInvoiced,
-              currency,
-            )}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setBillFilter("paid")}
-          className={cn(
-            supStatTile,
-            "min-w-[42%] shrink-0 snap-start px-3 py-3 text-left transition-colors touch-manipulation sm:min-w-0 sm:py-2.5",
-            billFilter === "paid"
-              ? "border-primary/40 bg-primary/[0.06] ring-1 ring-primary/25"
-              : "hover:bg-muted/30 active:bg-muted/40",
-          )}
-        >
-          <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Paid
-          </span>
-          <span className="mt-1 block font-mono text-base font-semibold tabular-nums text-emerald-700 dark:text-emerald-300 sm:mt-0.5 sm:text-lg">
-            {formatSupplyMoney(summary.totalPaid, currency)}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setBillFilter("unpaid")}
-          className={cn(
-            supStatTile,
-            "min-w-[42%] shrink-0 snap-start px-3 py-3 text-left transition-colors touch-manipulation sm:min-w-0 sm:py-2.5",
-            billFilter === "unpaid"
-              ? "border-primary/40 bg-primary/[0.06] ring-1 ring-primary/25"
-              : "hover:bg-muted/30 active:bg-muted/40",
-          )}
-        >
-          <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Unpaid ({summary.unpaidCount})
-          </span>
-          <span
-            className={cn(
-              "mt-1 block font-mono text-base font-semibold tabular-nums sm:mt-0.5 sm:text-lg",
-              summary.openBalance > 0.009
-                ? "text-amber-800 dark:text-amber-200"
-                : "text-foreground",
-            )}
-          >
-            {formatSupplyMoney(summary.openBalance, currency)}
-          </span>
-        </button>
-      </div>
-
-      <section className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm max-sm:rounded-none max-sm:border-x-0 max-sm:-mx-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/45 bg-muted/25 px-3 py-3 sm:px-4 sm:py-2.5">
-          <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold tracking-tight text-foreground sm:text-sm">
-              {billFilter === "all" ? "All receipts" : supplyBillFilterLabel(billFilter)}
-            </h2>
-            <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">
-              {billFilter === "all"
-                ? "Unpaid bills first, then newest — use filters to narrow the list."
-                : billFilter === "unpaid"
-                  ? "Open balances — use Pay on each row."
-                  : "Filtered receipt list — newest first."}
-            </p>
-          </div>
-          {!listLoading ? (
-            <span className="shrink-0 rounded-md bg-background/80 px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground ring-1 ring-border/50">
-              {displayRows.length} shown
-              {billFilter !== "all" && rows.length !== displayRows.length
-                ? ` · ${rows.length} total`
-                : ""}
-            </span>
-          ) : null}
-        </div>
-
-        <SuppliesBillFilterBar
-          value={billFilter}
-          onChange={setBillFilter}
-          counts={filterCounts}
-          disabled={listLoading}
+          canViewApAging={canViewApAging}
+          canShowProcurementLinks={canShowProcurementLinks}
+          canOpenNewSupply={canOpenNewSupply}
+          listLoading={listLoading}
+          branchScopeLabel={headerBranchName || undefined}
+          onRefresh={() => void refresh()}
+          onNewSupply={() => setNewOpen(true)}
         />
 
-        <div className="min-w-0 lg:overflow-x-auto">
+        {listError ? (
+          <div className="px-3 pt-2 sm:px-4">
+            <DashboardFeedback kind="error" text={listError} />
+          </div>
+        ) : null}
+
+        <div
+          className="grid grid-cols-2 border-b border-border sm:grid-cols-4"
+          role="group"
+          aria-label="Supply summary"
+        >
+          <button
+            type="button"
+            onClick={() => setBillFilter("all")}
+            className={cn(
+              "border-r border-border px-3 py-1.5 text-left transition-colors",
+              billFilter === "all" ? "bg-primary/[0.07]" : "bg-card hover:bg-muted/25",
+            )}
+          >
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              Total
+            </span>
+            <span className="mt-0.5 block text-base font-bold tabular-nums leading-none text-foreground">
+              {summary.count}
+            </span>
+          </button>
+          <div className="border-r border-border bg-card px-3 py-1.5">
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              Invoiced
+            </span>
+            <span className="mt-0.5 block font-mono text-[13px] font-semibold tabular-nums leading-none">
+              {formatSupplyMoney(
+                billFilter === "all" ? summary.totalInvoiced : filteredSummary.totalInvoiced,
+                currency,
+              )}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBillFilter("paid")}
+            className={cn(
+              "border-r border-border border-t px-3 py-1.5 text-left transition-colors sm:border-t-0",
+              billFilter === "paid" ? "bg-primary/[0.07]" : "bg-card hover:bg-muted/25",
+            )}
+          >
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              Paid
+            </span>
+            <span className="mt-0.5 block font-mono text-[13px] font-semibold tabular-nums leading-none text-emerald-700 dark:text-emerald-300">
+              {formatSupplyMoney(summary.totalPaid, currency)}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillFilter("unpaid")}
+            className={cn(
+              "border-t border-border px-3 py-1.5 text-left transition-colors sm:border-t-0",
+              billFilter === "unpaid" ? "bg-primary/[0.07]" : "bg-card hover:bg-muted/25",
+            )}
+          >
+            <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              Unpaid · {summary.unpaidCount}
+            </span>
+            <span
+              className={cn(
+                "mt-0.5 block font-mono text-[13px] font-semibold tabular-nums leading-none",
+                summary.openBalance > 0.009
+                  ? "text-amber-800 dark:text-amber-200"
+                  : "text-foreground",
+              )}
+            >
+              {formatSupplyMoney(summary.openBalance, currency)}
+            </span>
+          </button>
+        </div>
+
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-b border-border bg-card">
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-[#e8eef5] px-3 py-1 dark:bg-muted/40 sm:px-4">
+            <h2 className="truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-foreground/80">
+              {billFilter === "all" ? "All receipts" : supplyBillFilterLabel(billFilter)}
+              <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+                unpaid first · newest after
+              </span>
+            </h2>
+            {!listLoading ? (
+              <span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+                {displayRows.length}
+                {billFilter !== "all" && rows.length !== displayRows.length
+                  ? ` / ${rows.length}`
+                  : ""}
+              </span>
+            ) : null}
+          </div>
+
+          <SuppliesBillFilterBar
+            value={billFilter}
+            onChange={setBillFilter}
+            counts={filterCounts}
+            disabled={listLoading}
+          />
+
+          <div className="min-h-0 min-w-0 flex-1 lg:overflow-auto">
             {listLoading && rows.length === 0 ? (
               <SupLoadingBlock label="Loading supplies…" />
             ) : displayRows.length === 0 ? (
@@ -351,9 +334,9 @@ export default function SuppliesPage() {
                   billFilter === "unpaid"
                     ? "All posted supplies are fully paid, or nothing has been received yet."
                     : billFilter === "all" && canOpenNewSupply
-                      ? "Record your first vendor delivery with New supply — stock and payables post together."
+                      ? "Record your first vendor delivery with New supply."
                       : billFilter === "all"
-                        ? "Supplies appear here after posted Path B receipts."
+                        ? "Supplies appear here after posted receipts."
                         : "Try a different date range or status filter."
                 }
                 action={
@@ -362,24 +345,24 @@ export default function SuppliesPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="rounded-lg"
+                      className="h-7 rounded-none text-xs"
                       onClick={() => setBillFilter("all")}
                     >
-                      Show all receipts
+                      Show all
                     </Button>
                   ) : canOpenNewSupply ? (
                     <Button
                       type="button"
                       size="sm"
-                      className="gap-1.5 rounded-lg font-semibold"
+                      className="h-7 gap-1 rounded-none text-xs font-semibold"
                       onClick={() => setNewOpen(true)}
                     >
-                      <Package className="size-3.5" aria-hidden />
+                      <Package className="size-3" aria-hidden />
                       New supply
                     </Button>
                   ) : undefined
                 }
-                className="m-4 border-0 bg-transparent"
+                className="m-3 border-0 bg-transparent"
               />
             ) : (
               <>
@@ -405,105 +388,117 @@ export default function SuppliesPage() {
                   ))}
                 </div>
 
-                <table className="hidden w-full min-w-[64rem] border-collapse text-left text-sm lg:table">
-                  <thead className={supTableHead}>
+                <table className="hidden w-full border-collapse text-left text-[13px] lg:table">
+                  <thead className={cn(supTableHead, "sticky top-0 z-10")}>
                     <tr>
-                      <th className="px-4 py-3 font-semibold sm:px-5">Supplier</th>
-                      <th className="px-4 py-3 font-semibold sm:px-5">Invoice</th>
-                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Lines</th>
-                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Total</th>
-                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Paid</th>
-                      <th className="px-4 py-3 text-right font-semibold sm:px-5">Balance</th>
-                      <th className="px-4 py-3 font-semibold sm:px-5">Status</th>
-                      <th className="px-4 py-3 font-semibold sm:px-5">Created</th>
-                      <th className="px-4 py-3 text-right sm:px-5" />
+                      <th className="px-3 py-1.5 font-semibold">Supplier</th>
+                      <th className="px-2 py-1.5 font-semibold">Invoice</th>
+                      <th className="w-12 px-2 py-1.5 text-right font-semibold">Ln</th>
+                      <th className="px-2 py-1.5 text-right font-semibold">Total</th>
+                      <th className="px-2 py-1.5 text-right font-semibold">Paid</th>
+                      <th className="px-2 py-1.5 text-right font-semibold">Balance</th>
+                      <th className="w-[4.5rem] px-2 py-1.5 font-semibold">Status</th>
+                      <th className="w-[7.5rem] px-2 py-1.5 font-semibold">Created</th>
+                      <th className="w-[7.25rem] px-2 py-1.5 text-right font-semibold">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayRows.map((r) => {
+                    {displayRows.map((r, idx) => {
                       const st = supplyPaymentStatusBadge(r.paymentStatus);
                       const bal = supplyN(r.balanceOpen);
+                      const needsPay = bal > 0.009 && canPay;
                       return (
-                        <tr key={r.supplierInvoiceId} className={supTableRow}>
-                          <td className="px-4 py-3.5 sm:px-5">
-                            <span className="font-medium text-foreground">
-                              {r.supplierName || "—"}
-                            </span>
+                        <tr
+                          key={r.supplierInvoiceId}
+                          className={cn(
+                            supTableRow,
+                            idx % 2 === 1 && "bg-[#fafbfd] dark:bg-muted/[0.06]",
+                          )}
+                        >
+                          <td className="max-w-[14rem] truncate px-3 py-1.5 font-medium text-foreground">
+                            {r.supplierName || "—"}
                           </td>
-                          <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground sm:px-5">
+                          <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground">
                             {r.invoiceNumber}
                           </td>
-                          <td className="px-4 py-3.5 text-right tabular-nums sm:px-5">
+                          <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
                             {r.lineCount}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono tabular-nums sm:px-5">
+                          <td className="px-2 py-1.5 text-right font-mono text-[12px] tabular-nums">
                             {formatSupplyMoney(supplyN(r.grandTotal), currency)}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono tabular-nums text-emerald-700 dark:text-emerald-300 sm:px-5">
+                          <td className="px-2 py-1.5 text-right font-mono text-[12px] tabular-nums text-emerald-700 dark:text-emerald-300">
                             {formatSupplyMoney(supplyN(r.amountPaid), currency)}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-semibold tabular-nums sm:px-5">
+                          <td className="px-2 py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums">
                             {formatSupplyMoney(bal, currency)}
                           </td>
-                          <td className="px-4 py-3.5 sm:px-5">
+                          <td className="px-2 py-1.5">
                             <span
                               className={cn(
-                                "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                "inline-flex border px-1 py-px text-[9px] font-bold uppercase tracking-wide",
                                 st.className,
                               )}
                             >
                               {st.label}
                             </span>
                           </td>
-                          <td className="px-4 py-3.5 text-xs text-muted-foreground sm:px-5">
+                          <td className="whitespace-nowrap px-2 py-1.5 text-[11px] text-muted-foreground">
                             {new Date(r.createdAt).toLocaleString(undefined, {
-                              dateStyle: "medium",
-                              timeStyle: "short",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
                             })}
                           </td>
-                          <td className="px-4 py-3.5 text-right sm:px-5">
-                            <div className="flex flex-wrap justify-end gap-1.5">
+                          <td className="px-2 py-1 text-right">
+                            <div className="inline-flex items-center justify-end gap-0.5">
                               {canEditSupplyBill ? (
                                 <Button
                                   type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 gap-1 rounded-lg text-xs"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="size-6 rounded-none text-muted-foreground hover:text-foreground"
+                                  aria-label={`Edit ${r.invoiceNumber}`}
                                   onClick={() => {
                                     setEditRow(r);
                                     setEditOpen(true);
                                   }}
                                 >
-                                  <FileEdit className="size-3.5" aria-hidden />
-                                  Edit
+                                  <FileEdit className="size-3" aria-hidden />
                                 </Button>
                               ) : null}
                               {canEditSupplyBill && supplyN(r.amountPaid) < 0.005 ? (
                                 <Button
                                   type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 gap-1 rounded-lg text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="size-6 rounded-none text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                  aria-label={`Delete ${r.invoiceNumber}`}
                                   disabled={deletingId === r.supplierInvoiceId}
                                   onClick={() => void onDeleteSupply(r)}
                                 >
-                                  <Trash2 className="size-3.5" aria-hidden />
-                                  Delete
+                                  <Trash2 className="size-3" aria-hidden />
                                 </Button>
                               ) : null}
                               <Button
                                 type="button"
                                 size="sm"
-                                variant={bal > 0.009 && canPay ? "default" : "outline"}
-                                className="h-8 gap-1 rounded-lg text-xs"
+                                variant={needsPay ? "default" : "outline"}
+                                className={cn(
+                                  "h-6 gap-1 rounded-none px-1.5 text-[10px] font-semibold",
+                                  !needsPay && "border-border",
+                                )}
                                 disabled={!canOpenReceiptDrawer}
                                 onClick={() => {
                                   setPayRow(r);
                                   setPayOpen(true);
                                 }}
                               >
-                                <CreditCard className="size-3.5" aria-hidden />
-                                {bal > 0.009 && canPay ? "Pay" : "Payment details"}
+                                <CreditCard className="size-3" aria-hidden />
+                                {needsPay ? "Pay" : "Details"}
                               </Button>
                             </div>
                           </td>
@@ -514,8 +509,9 @@ export default function SuppliesPage() {
                 </table>
               </>
             )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
 
       <NewSupplyDrawer open={newOpen} onOpenChange={setNewOpen} onPosted={() => void refresh()} />
 
@@ -538,9 +534,7 @@ export default function SuppliesPage() {
         row={editRow}
         onSaved={() => void refresh()}
       />
-      </div>
 
-      {/* Floating receive FAB — sits above the app bottom nav */}
       {canOpenNewSupply && !newOpen ? (
         <button
           type="button"
@@ -550,10 +544,7 @@ export default function SuppliesPage() {
             "fixed z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground",
             "shadow-[0_12px_32px_-8px_color-mix(in_srgb,var(--primary)_65%,transparent)]",
             "right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]",
-            "active:scale-95 touch-manipulation",
-            "motion-safe:transition-transform motion-safe:duration-150",
-            "sm:hidden",
-            "2xl:bottom-6",
+            "active:scale-95 touch-manipulation sm:hidden",
           )}
         >
           <Package className="size-5" aria-hidden />
