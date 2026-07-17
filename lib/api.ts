@@ -6894,6 +6894,12 @@ export async function patchSupplier(
   });
 }
 
+export async function deleteSupplier(supplierId: string): Promise<void> {
+  await request(`/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}`, {
+    method: "DELETE",
+  });
+}
+
 export async function fetchSupplierContacts(
   supplierId: string,
 ): Promise<SupplierContactRecord[]> {

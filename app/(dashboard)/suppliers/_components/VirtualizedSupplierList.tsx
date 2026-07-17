@@ -2,10 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { BookUser, Loader2 } from "lucide-react";
+import { BookUser, Loader2, Pencil, Trash2 } from "lucide-react";
 
 import type { SupplierRecord } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+import { Button } from "@/components/ui/button";
 
 import { SupEmptyState, SupLoadingBlock } from "./supplier-layout-primitives";
 import {
@@ -17,12 +19,16 @@ import {
   supTableRowActive,
 } from "./supplier-ui-tokens";
 
-const ROW_PX_DEFAULT = 28;
-const ROW_PX_COMPACT = 26;
+const ROW_PX_DEFAULT = 32;
+const ROW_PX_COMPACT = 30;
 
 const COLS_DEFAULT =
   "grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(4.25rem,auto)]";
+const COLS_DEFAULT_ACTIONS =
+  "grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(4.25rem,auto)_minmax(4.5rem,auto)]";
 const COLS_COMPACT = "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)]";
+const COLS_COMPACT_ACTIONS =
+  "grid-cols-[minmax(0,1fr)_minmax(3.75rem,auto)_minmax(4.5rem,auto)]";
 
 export type VirtualizedSupplierListProps = {
   rows: SupplierRecord[];
@@ -30,6 +36,10 @@ export type VirtualizedSupplierListProps = {
   totalLoaded: number;
   totalElements: number;
   onRowClick: (id: string) => void;
+  onEdit?: (id: string) => void;
+  onDelete?: (row: SupplierRecord) => void;
+  canWrite?: boolean;
+  deletingId?: string | null;
   loadingInitial: boolean;
   loadingMore: boolean;
   hasMore: boolean;
@@ -43,6 +53,10 @@ export function VirtualizedSupplierList({
   totalLoaded,
   totalElements,
   onRowClick,
+  onEdit,
+  onDelete,
+  canWrite = false,
+  deletingId = null,
   loadingInitial,
   loadingMore,
   hasMore,
@@ -51,7 +65,14 @@ export function VirtualizedSupplierList({
 }: VirtualizedSupplierListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowPx = compact ? ROW_PX_COMPACT : ROW_PX_DEFAULT;
-  const cols = compact ? COLS_COMPACT : COLS_DEFAULT;
+  const showActions = canWrite && Boolean(onEdit || onDelete);
+  const cols = compact
+    ? showActions
+      ? COLS_COMPACT_ACTIONS
+      : COLS_COMPACT
+    : showActions
+      ? COLS_DEFAULT_ACTIONS
+      : COLS_DEFAULT;
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual list
   const virtualizer = useVirtualizer({
@@ -118,6 +139,11 @@ export function VirtualizedSupplierList({
           <span className={cn(supTableCell, "flex items-center py-1")}>Code</span>
         ) : null}
         <span className={cn(supTableCell, "flex items-center py-1")}>Status</span>
+        {showActions ? (
+          <span className={cn(supTableCell, "flex items-center justify-end py-1")}>
+            Actions
+          </span>
+        ) : null}
       </div>
 
       <div
@@ -151,6 +177,7 @@ export function VirtualizedSupplierList({
               const row = rows[vi.index];
               const active = selectedId === row.id;
               const code = row.code?.trim();
+              const isSystem = code === "SYS-UNASSIGNED";
               return (
                 <div
                   key={row.id}
@@ -163,7 +190,7 @@ export function VirtualizedSupplierList({
                   className={cn(
                     "absolute left-0 top-0 grid w-full min-w-0 items-stretch border-b border-border/70 text-left",
                     cols,
-                    compact ? "h-[26px] text-[12px]" : "h-7 text-[13px]",
+                    compact ? "h-[30px] text-[12px]" : "h-8 text-[13px]",
                     "cursor-pointer",
                     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/40",
                     active
@@ -216,6 +243,43 @@ export function VirtualizedSupplierList({
                       {row.status}
                     </span>
                   </span>
+                  {showActions ? (
+                    <span
+                      role="cell"
+                      className={cn(
+                        supTableCell,
+                        "flex items-center justify-end gap-0.5",
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {onEdit ? (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="size-6 rounded-md text-muted-foreground hover:text-foreground"
+                          aria-label={`Edit ${row.name}`}
+                          onClick={() => onEdit(row.id)}
+                        >
+                          <Pencil className="size-3" aria-hidden />
+                        </Button>
+                      ) : null}
+                      {onDelete && !isSystem ? (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="size-6 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={`Delete ${row.name}`}
+                          disabled={deletingId === row.id}
+                          onClick={() => onDelete(row)}
+                        >
+                          <Trash2 className="size-3" aria-hidden />
+                        </Button>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </div>
               );
             })}

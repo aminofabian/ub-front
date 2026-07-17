@@ -31,6 +31,7 @@ import {
   createSupplier,
   createSupplierContact,
   deleteItemSupplierLink,
+  deleteSupplier,
   fetchSupplierById,
   fetchSupplierContacts,
   fetchSupplierItemLinks,
@@ -50,6 +51,7 @@ import {
   canWriteSuppliers,
 } from "@/lib/supplier-access";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 import { SupplierCatalogColumn } from "./_components/SupplierCatalogColumn";
 import { SupplierSupplyInvoicePanel } from "./_components/SupplierSupplyInvoicePanel";
@@ -141,6 +143,9 @@ export default function SuppliersPage() {
   const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false);
   const [profileEditDrawerOpen, setProfileEditDrawerOpen] = useState(false);
   const [addContactDrawerOpen, setAddContactDrawerOpen] = useState(false);
+  const [deletingSupplierId, setDeletingSupplierId] = useState<string | null>(
+    null,
+  );
   const skipCreateDrawerResetAfterCreate = useRef(false);
 
   const resetCreateDraft = useCallback(() => {
@@ -341,6 +346,55 @@ export default function SuppliersPage() {
       }
     }
   };
+
+  const onEditSupplierFromList = useCallback(
+    async (id: string) => {
+      if (!canWrite) return;
+      await onSelectSupplier(id);
+      setProfileEditDrawerOpen(true);
+    },
+    // onSelectSupplier closes over latest canReadCatalog / stockBranchId via render
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- select uses current scope
+    [canWrite],
+  );
+
+  const onDeleteSupplierFromList = useCallback(
+    async (row: SupplierRecord) => {
+      if (!canWrite) return;
+      if (row.code?.trim() === "SYS-UNASSIGNED") {
+        toast.error("Cannot delete the system unassigned supplier.");
+        return;
+      }
+      if (
+        !window.confirm(
+          `Delete supplier "${row.name}"? They will be removed from the directory. This cannot be undone from here.`,
+        )
+      ) {
+        return;
+      }
+      setDeletingSupplierId(row.id);
+      try {
+        await deleteSupplier(row.id);
+        toast.success(`Deleted ${row.name}.`);
+        if (selectedId === row.id) {
+          selectionRef.current = null;
+          setSelectedId(null);
+          setDetail(null);
+          setContacts([]);
+          setItemLinks([]);
+          setSelectedInvoice(null);
+          setProfileEditDrawerOpen(false);
+          setEditDrawerOpen(false);
+        }
+        await refreshFullDirectory();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not delete supplier.");
+      } finally {
+        setDeletingSupplierId(null);
+      }
+    },
+    [canWrite, refreshFullDirectory, selectedId],
+  );
 
   const onCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -788,6 +842,10 @@ export default function SuppliersPage() {
               totalLoaded={rows.length}
               totalElements={listTotalElements}
               onRowClick={(id) => void onSelectSupplier(id)}
+              canWrite={canWrite}
+              deletingId={deletingSupplierId}
+              onEdit={(id) => void onEditSupplierFromList(id)}
+              onDelete={(row) => void onDeleteSupplierFromList(row)}
               loadingInitial={listLoadingInitial}
               loadingMore={listLoadingMore}
               hasMore={!listLast}
