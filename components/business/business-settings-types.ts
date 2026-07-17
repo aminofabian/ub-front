@@ -24,6 +24,7 @@ export type StorefrontForm = {
 
 export type InventoryForm = {
   showSystemStockToStockManager: boolean;
+  dailyAuditSampleSize: number;
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
   allowNegativeStock: boolean;
@@ -103,8 +104,13 @@ export const DEFAULT_STOREFRONT: StorefrontForm = {
   featuredLines: "",
 };
 
+export const DEFAULT_DAILY_AUDIT_SAMPLE_SIZE = 25;
+export const MIN_DAILY_AUDIT_SAMPLE_SIZE = 1;
+export const MAX_DAILY_AUDIT_SAMPLE_SIZE = 200;
+
 export const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
+  dailyAuditSampleSize: DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
   allowNegativeStock: false,
@@ -174,10 +180,26 @@ export function storefrontFromRecord(
   };
 }
 
+export function clampDailyAuditSampleSize(raw: number): number {
+  if (!Number.isFinite(raw)) {
+    return DEFAULT_DAILY_AUDIT_SAMPLE_SIZE;
+  }
+  return Math.max(
+    MIN_DAILY_AUDIT_SAMPLE_SIZE,
+    Math.min(MAX_DAILY_AUDIT_SAMPLE_SIZE, Math.round(raw)),
+  );
+}
+
 export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
+  const configuredSample = b?.inventory?.stocktake?.dailyAuditSampleSize;
   return {
     showSystemStockToStockManager: Boolean(
       b?.inventory?.stocktake?.showSystemStockToStockManager,
+    ),
+    dailyAuditSampleSize: clampDailyAuditSampleSize(
+      typeof configuredSample === "number"
+        ? configuredSample
+        : DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
     ),
     allowStockEditForStockManager: Boolean(
       b?.inventory?.stockLevels?.allowStockEditForStockManager,

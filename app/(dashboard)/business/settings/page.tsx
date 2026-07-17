@@ -255,6 +255,7 @@ export default function BusinessSettingsPage() {
           stocktake: {
             showSystemStockToStockManager:
               inventory.showSystemStockToStockManager,
+            dailyAuditSampleSize: inventory.dailyAuditSampleSize,
           },
           stockLevels: {
             allowStockEditForStockManager:

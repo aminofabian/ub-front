@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
   TIER_SUGGESTIONS,
+  MAX_DAILY_AUDIT_SAMPLE_SIZE,
+  MIN_DAILY_AUDIT_SAMPLE_SIZE,
+  clampDailyAuditSampleSize,
   type CashierCapabilitiesForm,
   type EditableBusiness,
   type InventoryForm,
@@ -404,7 +407,7 @@ export function BusinessSettingsForm({
           <SettingsAnchor id="settings-stock-take">
             <FormDrawerFields
               legend="Stock take"
-              hint="What stock managers see while counting."
+              hint="Daily audit sample size and what stock managers see while counting."
             >
               <ToggleRow
                 checked={inventory.showSystemStockToStockManager}
@@ -420,6 +423,41 @@ export function BusinessSettingsForm({
                 title="Show system stock to stock managers"
                 description="Stock managers see on-hand quantity during general stock take and daily audit. Owners and admins always see it."
               />
+              <div className="space-y-1.5 pt-1">
+                <label
+                  htmlFor="daily-audit-sample-size"
+                  className={labelClass()}
+                >
+                  Daily audit sample size
+                </label>
+                <input
+                  id="daily-audit-sample-size"
+                  type="number"
+                  min={MIN_DAILY_AUDIT_SAMPLE_SIZE}
+                  max={MAX_DAILY_AUDIT_SAMPLE_SIZE}
+                  step={1}
+                  inputMode="numeric"
+                  className={inputClass()}
+                  value={inventory.dailyAuditSampleSize}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setInventory((previous) => ({
+                      ...previous,
+                      dailyAuditSampleSize: clampDailyAuditSampleSize(
+                        Number.isFinite(next)
+                          ? next
+                          : previous.dailyAuditSampleSize,
+                      ),
+                    }));
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Each morning the daily audit randomly picks this many unique
+                  products sold yesterday ({MIN_DAILY_AUDIT_SAMPLE_SIZE}–
+                  {MAX_DAILY_AUDIT_SAMPLE_SIZE}). Takes effect on the next
+                  generated audit.
+                </p>
+              </div>
             </FormDrawerFields>
           </SettingsAnchor>
 

@@ -108,6 +108,10 @@ export default function StockTakePage() {
   const { itemTypeId: headerItemTypeId } = useSessionItemType();
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
   const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
+  const dailyAuditSampleSize =
+    typeof business?.inventory?.stocktake?.dailyAuditSampleSize === "number"
+      ? business.inventory.stocktake.dailyAuditSampleSize
+      : 25;
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
   const canApprove = hasPermission(
@@ -613,7 +617,7 @@ export default function StockTakePage() {
       {
         href: APP_ROUTES.inventoryStockTakeDailyAudit,
         label: "Daily audit",
-        desc: "Random 25",
+        desc: `Random ${dailyAuditSampleSize}`,
         icon: ClipboardCheck,
       },
       ...(canApprove
@@ -654,7 +658,7 @@ export default function StockTakePage() {
           ]),
     ];
     return filterInventoryQuickLinksForUser(me, links);
-  }, [canApprove, branchLocked, me]);
+  }, [canApprove, branchLocked, me, dailyAuditSampleSize]);
 
   // ── Permissions guard
   if (!allowed) {

@@ -584,6 +584,8 @@ export type BrandingRecord = {
 
 export type StocktakeSettingsRecord = {
   showSystemStockToStockManager?: boolean;
+  /** How many unique yesterday-sold products to pick for daily audit (1–200). Default 25. */
+  dailyAuditSampleSize?: number;
 };
 
 export type StockLevelsSettingsRecord = {
@@ -702,6 +704,7 @@ export type StorefrontPatchPayload = {
 
 export type StocktakePatchPayload = {
   showSystemStockToStockManager?: boolean;
+  dailyAuditSampleSize?: number;
 };
 
 export type StockLevelsPatchPayload = {
