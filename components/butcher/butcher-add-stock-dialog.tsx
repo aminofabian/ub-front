@@ -497,7 +497,9 @@ export function ButcherAddStockDialog({
     }
     let cancelled = false;
     setLinksLoading(true);
-    void fetchSupplierItemLinks(supplierId.trim())
+    void fetchSupplierItemLinks(supplierId.trim(), {
+      branchId: branchId?.trim() || undefined,
+    })
       .then((links) => {
         if (cancelled) return;
         const active = links.filter((l) => l.active);
@@ -517,7 +519,7 @@ export function ButcherAddStockDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, supplierId, hydrateSession]);
+  }, [open, supplierId, branchId, hydrateSession]);
 
   useEffect(() => {
     if (!open || !supplierId.trim() || (!canPathBRead && !canPathARead)) {

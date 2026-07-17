@@ -2895,9 +2895,15 @@ export async function setPosItemWeighed(
 
 export async function fetchSupplierItemLinks(
   supplierId: string,
+  opts?: { branchId?: string | null },
 ): Promise<SupplierItemLinkRecord[]> {
+  const branchId = opts?.branchId?.trim();
+  const q =
+    branchId != null && branchId !== ""
+      ? `?branchId=${encodeURIComponent(branchId)}`
+      : "";
   return request<SupplierItemLinkRecord[]>(
-    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/item-links`,
+    `/api/v1/suppliers/${encodeURIComponent(supplierId.trim())}/item-links${q}`,
   );
 }
 

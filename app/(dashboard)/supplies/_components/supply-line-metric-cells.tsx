@@ -430,7 +430,7 @@ export function SupplyStockCell({
         )}
         title={
           editable
-            ? "Edit on-hand stock (owner/admin) — saves immediately"
+            ? "Set on-hand stock (absolute total at this branch — not add)"
             : stock != null
               ? reorderLevel != null && reorderLevel > 0
                 ? `On hand ${formatQty(stock)} · reorder at ${formatQty(reorderLevel)}`

@@ -292,12 +292,13 @@ function rowMatchesLineSearch(row: SupplyDraftRow, query: string): boolean {
 }
 
 function rowStock(row: SupplyDraftRow): number | null {
-  if (row.source === "linked" && row.link?.currentStock != null) {
-    const n = Number(row.link.currentStock);
-    return Number.isFinite(n) ? n : null;
-  }
+  // Prefer branch on-hand from catalog detail when hydrated.
   if (row.item?.stockQty != null && String(row.item.stockQty).trim() !== "") {
     const n = Number(row.item.stockQty);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (row.source === "linked" && row.link?.currentStock != null) {
+    const n = Number(row.link.currentStock);
     return Number.isFinite(n) ? n : null;
   }
   return null;
@@ -468,7 +469,9 @@ export function NewSupplyDrawer({
     setLinksLoading(true);
     setError(null);
     try {
-      const list = await fetchSupplierItemLinks(sid);
+      const list = await fetchSupplierItemLinks(sid, {
+        branchId: branchId.trim() || undefined,
+      });
       const active = list.filter((l) => l.active);
       setRows(
         active.map((link) => ({
@@ -496,7 +499,7 @@ export function NewSupplyDrawer({
     } finally {
       setLinksLoading(false);
     }
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
      
@@ -858,7 +861,9 @@ export function NewSupplyDrawer({
       defaultCostPrice: draft.defaultCostPrice,
     });
 
-    const links = await fetchSupplierItemLinks(supplierId);
+    const links = await fetchSupplierItemLinks(supplierId, {
+      branchId: branchId.trim() || undefined,
+    });
     const link = links.find(
       (l) => l.itemId === draft.item.id && l.active,
     );

@@ -81,11 +81,13 @@ export default function SuppliersPage() {
     me,
     business,
     loading,
+    branchId: headerBranchId,
     canPathBWrite,
     canViewSuppliers,
     canViewCategories,
     canViewMarketplace,
   } = useDashboard();
+  const stockBranchId = headerBranchId?.trim() || undefined;
   const canRead = hasPermission(me?.permissions, Permission.SuppliersRead);
   const canWrite = canWriteSuppliers(me, business);
   const canOpenNewSupply =
@@ -315,7 +317,9 @@ export default function SuppliersPage() {
       const [d, c, links] = await Promise.all([
         fetchSupplierById(id),
         fetchSupplierContacts(id),
-        canReadCatalog ? fetchSupplierItemLinks(id) : Promise.resolve([]),
+        canReadCatalog
+          ? fetchSupplierItemLinks(id, { branchId: stockBranchId })
+          : Promise.resolve([]),
       ]);
       if (selectionRef.current !== id) {
         return;
@@ -491,11 +495,23 @@ export default function SuppliersPage() {
       return;
     }
     try {
-      setItemLinks(await fetchSupplierItemLinks(selectedId));
+      setItemLinks(
+        await fetchSupplierItemLinks(selectedId, { branchId: stockBranchId }),
+      );
     } catch {
       /* keep existing list */
     }
-  }, [selectedId, canReadCatalog]);
+  }, [selectedId, canReadCatalog, stockBranchId]);
+
+  const prevStockBranchRef = useRef(stockBranchId);
+  useEffect(() => {
+    const prev = prevStockBranchRef.current;
+    prevStockBranchRef.current = stockBranchId;
+    if (prev === stockBranchId || !selectedId || !canReadCatalog) {
+      return;
+    }
+    void refreshItemLinks();
+  }, [stockBranchId, selectedId, canReadCatalog, refreshItemLinks]);
 
   const onLinkCatalogItems = async (
     itemIds: string[],

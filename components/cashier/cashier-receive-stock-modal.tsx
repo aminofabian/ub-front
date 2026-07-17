@@ -185,7 +185,7 @@ export function CashierReceiveStockModal({
     }
     let cancelled = false;
     setLinesBusy(true);
-    void fetchSupplierItemLinks(supplier.id)
+    void fetchSupplierItemLinks(supplier.id, { branchId })
       .then((list) => {
         if (cancelled) return;
         setLines(list.filter((l) => l.active).map(linkToDraft));
@@ -202,7 +202,7 @@ export function CashierReceiveStockModal({
     return () => {
       cancelled = true;
     };
-  }, [open, supplier]);
+  }, [open, supplier, branchId]);
 
   const visibleLines = useMemo(() => {
     const q = filter.trim().toLowerCase();

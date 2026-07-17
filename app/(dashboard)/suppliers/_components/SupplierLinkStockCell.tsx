@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Pencil, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { type SupplierItemLinkRecord } from "@/lib/api";
 import {
-  fetchItemById,
-  type SupplierItemLinkRecord,
-} from "@/lib/api";
-import { canAdminEditOnHandStock, setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
+  canAdminEditOnHandStock,
+  resolveStockHolderForEdit,
+  setCatalogOnHandStock,
+} from "@/lib/set-on-hand-stock";
 import { cn } from "@/lib/utils";
 
 import { nsdInput } from "../../supplies/_components/new-supply-drawer-ui";
@@ -92,14 +93,12 @@ export function SupplierLinkStockCell({
     }
     setBusy(true);
     try {
-      const detail = await fetchItemById(link.itemId, { branchId: bid });
-      const onHand =
-        detail.stockQty != null && String(detail.stockQty).trim() !== ""
-          ? Number(detail.stockQty)
-          : detail.currentStock != null && String(detail.currentStock).trim() !== ""
-            ? Number(detail.currentStock)
-            : displayStock ?? 0;
-      const current = Number.isFinite(onHand) ? onHand : 0;
+      // Same resolution path as save — avoids denormalized currentStock vs branch drift.
+      const resolved = await resolveStockHolderForEdit({
+        itemId: link.itemId,
+        branchId: bid,
+      });
+      const current = resolved.displayCurrent;
       setBaseline(current);
       setDraft(Number.isInteger(current) ? String(current) : current.toFixed(2));
       setEditing(true);
@@ -185,7 +184,7 @@ export function SupplierLinkStockCell({
             onChange={(e) => setDraft(e.target.value)}
             disabled={busy}
             inputMode="decimal"
-            aria-label={`On-hand stock for ${link.itemName || link.sku}`}
+            aria-label={`Set on-hand stock for ${link.itemName || link.sku}`}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -231,7 +230,9 @@ export function SupplierLinkStockCell({
             {error}
           </p>
         ) : (
-          <p className="text-[9px] text-muted-foreground">Enter · Esc</p>
+          <p className="text-[9px] text-muted-foreground">
+            Set total on hand · Enter
+          </p>
         )}
       </div>
     );
@@ -252,7 +253,7 @@ export function SupplierLinkStockCell({
             ? "font-semibold text-red-700 dark:text-red-300"
             : "text-foreground",
         )}
-        title="Edit on-hand stock (admin)"
+        title="Set on-hand stock (absolute total, not add)"
       >
         {busy ? (
           <Loader2 className="size-3 animate-spin text-muted-foreground" aria-hidden />
