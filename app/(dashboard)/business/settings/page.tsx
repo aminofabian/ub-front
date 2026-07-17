@@ -312,7 +312,12 @@ export default function BusinessSettingsPage() {
       setPosDrafts(applied.posDrafts);
       setCashierCapabilities(applied.cashierCapabilities);
       setShiftSettings(applied.shiftSettings);
-      setFeedback({ kind: "success", text: "Your changes were saved." });
+      setFeedback({
+        kind: "success",
+        text: canManageBusinessSettings
+          ? `Saved. Daily audit will sample ${applied.inventory.dailyAuditSampleSize} products sold yesterday.`
+          : "Your changes were saved.",
+      });
     } catch (error) {
       setFeedback({
         kind: "error",

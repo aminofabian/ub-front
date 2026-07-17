@@ -486,11 +486,23 @@ export function BusinessSettingsForm({
                   }}
                   onBlur={() => commitDailyAuditSampleSize(dailyAuditSampleDraft)}
                 />
+                <p className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground">
+                  Daily audit currently picks{" "}
+                  <span className="font-semibold tabular-nums">
+                    {inventory.dailyAuditSampleSize}
+                  </span>{" "}
+                  unique products sold yesterday
+                  {dailyAuditSampleDraft !== "" &&
+                  Number(dailyAuditSampleDraft) !==
+                    inventory.dailyAuditSampleSize
+                    ? ` (editing to ${dailyAuditSampleDraft})`
+                    : null}
+                  .
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Each morning the daily audit randomly picks this many unique
-                  products sold yesterday ({MIN_DAILY_AUDIT_SAMPLE_SIZE}–
-                  {MAX_DAILY_AUDIT_SAMPLE_SIZE}). Takes effect on the next
-                  generated audit.
+                  Range {MIN_DAILY_AUDIT_SAMPLE_SIZE}–
+                  {MAX_DAILY_AUDIT_SAMPLE_SIZE}. Takes effect on the next
+                  generated audit (not today’s existing list).
                 </p>
               </div>
             </FormDrawerFields>

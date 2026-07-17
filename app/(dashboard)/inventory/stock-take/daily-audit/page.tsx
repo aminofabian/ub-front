@@ -68,6 +68,10 @@ export default function DailyAuditPage() {
   const canUploadImage =
     canRun || hasPermission(me?.permissions, Permission.CatalogItemsWrite);
   const canSeeSystemStock = canStockManagerSeeSystemStockDuringCount(me, business);
+  const configuredSampleSize =
+    typeof business?.inventory?.stocktake?.dailyAuditSampleSize === "number"
+      ? business.inventory.stocktake.dailyAuditSampleSize
+      : 25;
 
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState<BranchRecord[]>([]);
@@ -450,6 +454,9 @@ export default function DailyAuditPage() {
               </p>
               <p className="text-sm text-muted-foreground">
                 items ready for {sessionType} count
+                {configuredSampleSize !== today.itemCount
+                  ? ` (target sample ${configuredSampleSize})`
+                  : ` · sample size ${configuredSampleSize}`}
               </p>
             </div>
             <Button

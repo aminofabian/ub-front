@@ -112,6 +112,10 @@ export default function StockTakePage() {
     typeof business?.inventory?.stocktake?.dailyAuditSampleSize === "number"
       ? business.inventory.stocktake.dailyAuditSampleSize
       : 25;
+  const canManageSettings = hasPermission(
+    me?.permissions,
+    Permission.BusinessManageSettings,
+  );
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
   const canRead = hasPermission(me?.permissions, Permission.StocktakeRead);
   const canApprove = hasPermission(
@@ -693,6 +697,38 @@ export default function StockTakePage() {
             />
             <DashboardQuickLinks compact links={stockTakeQuickLinks} />
           </header>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-3.5 py-3">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Daily audit sample
+              </p>
+              <p className="text-sm text-foreground">
+                <span className="text-2xl font-semibold tabular-nums tracking-tight">
+                  {dailyAuditSampleSize}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  products picked from yesterday&apos;s sales
+                </span>
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="secondary" size="sm" className="h-9">
+                <Link href={APP_ROUTES.inventoryStockTakeDailyAudit}>
+                  Open daily audit
+                </Link>
+              </Button>
+              {canManageSettings ? (
+                <Button asChild variant="outline" size="sm" className="h-9">
+                  <Link
+                    href={`${APP_ROUTES.businessSettings}#settings-stock-take`}
+                  >
+                    Change size
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+          </div>
 
           {hasStaleSession ? (
             <p className="text-xs text-destructive">
