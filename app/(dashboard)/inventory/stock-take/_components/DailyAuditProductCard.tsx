@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, ImagePlus, Loader2, Package } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { uploadItemImageFile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -66,54 +65,78 @@ export function DailyAuditProductCard({
   };
 
   return (
-    <article className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="relative aspect-[5/4] w-full bg-muted/60 sm:aspect-[16/10]">
+    <article className="flex min-w-0 items-center gap-3">
+      <div
+        className={cn(
+          "relative size-[4.5rem] shrink-0 overflow-hidden rounded-2xl",
+          "bg-gradient-to-br from-muted/80 via-muted/40 to-background",
+          "ring-1 ring-border/70 shadow-sm",
+        )}
+      >
         {shownUrl ? (
           <Image
             src={shownUrl}
             alt={itemName}
             fill
-            className="object-contain p-3"
+            className="object-contain p-1.5"
             unoptimized
-            sizes="(max-width: 512px) 100vw, 512px"
+            sizes="72px"
             priority
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-            <Package className="size-10 opacity-40" aria-hidden />
-            <p className="text-xs font-medium">No product photo yet</p>
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            <Package className="size-7 opacity-35" aria-hidden />
           </div>
         )}
 
         {uploading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/55 backdrop-blur-[1px]">
-            <Loader2 className="size-7 animate-spin text-primary" />
+          <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+            <Loader2 className="size-5 animate-spin text-primary" />
           </div>
+        ) : null}
+      </div>
+
+      <div className="min-w-0 flex-1 space-y-1">
+        <h2 className="line-clamp-2 text-[1.05rem] font-semibold leading-snug tracking-tight text-foreground">
+          {itemName}
+        </h2>
+        {metaLine ? (
+          <p className="truncate text-[11px] text-muted-foreground">{metaLine}</p>
+        ) : null}
+        {systemStockLabel ? (
+          <p className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+            {systemStockLabel}
+          </p>
         ) : null}
 
         {canUpload ? (
-          <div className="absolute inset-x-0 bottom-0 flex gap-1.5 bg-gradient-to-t from-black/55 via-black/25 to-transparent p-2.5 pt-8">
-            <Button
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <button
               type="button"
-              size="sm"
-              className="h-9 flex-1 gap-1.5 rounded-lg bg-background/95 text-foreground shadow-sm hover:bg-background"
               disabled={uploading}
               onClick={() => cameraInputRef.current?.click()}
+              className={cn(
+                "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
+                "bg-foreground text-background shadow-sm transition active:scale-[0.97]",
+                "disabled:opacity-50",
+              )}
             >
               <Camera className="size-3.5" aria-hidden />
-              Take photo
-            </Button>
-            <Button
+              Photo
+            </button>
+            <button
               type="button"
-              size="sm"
-              variant="outline"
-              className="h-9 flex-1 gap-1.5 rounded-lg border-white/40 bg-background/80 text-foreground shadow-sm"
               disabled={uploading}
               onClick={() => libraryInputRef.current?.click()}
+              className={cn(
+                "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
+                "border border-border/80 bg-background/80 text-foreground",
+                "transition active:scale-[0.97] disabled:opacity-50",
+              )}
             >
               <ImagePlus className="size-3.5" aria-hidden />
               Upload
-            </Button>
+            </button>
             <input
               ref={cameraInputRef}
               type="file"
@@ -140,23 +163,6 @@ export function DailyAuditProductCard({
               }}
             />
           </div>
-        ) : null}
-      </div>
-
-      <div className="space-y-1 px-3 py-2.5">
-        <h2
-          className={cn(
-            "text-base font-semibold leading-snug tracking-tight text-foreground",
-            "text-balance",
-          )}
-        >
-          {itemName}
-        </h2>
-        {metaLine ? (
-          <p className="truncate text-[11px] text-muted-foreground">{metaLine}</p>
-        ) : null}
-        {systemStockLabel ? (
-          <p className="text-[11px] font-medium text-primary">{systemStockLabel}</p>
         ) : null}
       </div>
     </article>

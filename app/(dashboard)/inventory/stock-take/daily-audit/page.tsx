@@ -6,7 +6,12 @@ import {
   CheckCircle2,
   ChevronLeft,
   Loader2,
+  Minus,
   PackagePlus,
+  Plus,
+  StickyNote,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 import {
@@ -50,6 +55,12 @@ function sortedLines(session: DailyAuditSessionRecord): DailyAuditLineRecord[] {
   return [...session.lines].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+function nudgeQty(raw: string, delta: number): string {
+  const n = raw.trim() === "" ? 0 : Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  return String(Math.max(0, Math.round((n + delta) * 1000) / 1000));
+}
+
 export default function DailyAuditPage() {
   const { me, business } = useDashboard();
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
@@ -66,10 +77,13 @@ export default function DailyAuditPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [countInput, setCountInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countInputRef = useRef<HTMLInputElement | null>(null);
   const [restockOpen, setRestockOpen] = useState(false);
   const [restockLoading, setRestockLoading] = useState(false);
   const [restockOptions, setRestockOptions] = useState<
@@ -90,6 +104,10 @@ export default function DailyAuditPage() {
     [session],
   );
   const currentLine = lines[currentIndex] ?? null;
+  const progressPct = lines.length
+    ? ((currentIndex + 1) / lines.length) * 100
+    : 0;
+  const isLastItem = lines.length > 0 && currentIndex >= lines.length - 1;
 
   const loadToday = useCallback(async () => {
     if (!branchId) return;
@@ -110,12 +128,14 @@ export default function DailyAuditPage() {
         if (line) {
           setCountInput(parseQty(line.countedQty));
           setNoteInput(line.note ?? "");
+          setNoteOpen(Boolean(line.note));
         }
       } else {
         setSession(null);
         setCurrentIndex(0);
         setCountInput("");
         setNoteInput("");
+        setNoteOpen(false);
       }
     } catch (e) {
       setToday(null);
@@ -145,6 +165,7 @@ export default function DailyAuditPage() {
     if (!currentLine) return;
     setCountInput(parseQty(currentLine.countedQty));
     setNoteInput(currentLine.note ?? "");
+    setNoteOpen(Boolean(currentLine.note));
   }, [currentLine?.lineId]);
 
   useEffect(() => {
@@ -193,6 +214,7 @@ export default function DailyAuditPage() {
       const qty = countInput.trim();
       if (qty === "" || Number.isNaN(Number(qty)) || Number(qty) < 0) {
         setError("Enter a valid physical count.");
+        countInputRef.current?.focus();
         return;
       }
       setSaving(true);
@@ -210,7 +232,8 @@ export default function DailyAuditPage() {
         const nextIndex = advance
           ? Math.min(currentIndex + 1, lines.length - 1)
           : currentIndex;
-        if (advance) {
+        if (advance && nextIndex !== currentIndex) {
+          setSlideDir("next");
           setCurrentIndex(nextIndex);
           await persistProgress(nextIndex);
         }
@@ -271,6 +294,7 @@ export default function DailyAuditPage() {
   const goPrevious = async () => {
     if (currentIndex <= 0) return;
     const next = currentIndex - 1;
+    setSlideDir("prev");
     setCurrentIndex(next);
     await persistProgress(next);
   };
@@ -301,15 +325,36 @@ export default function DailyAuditPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-2.5 pb-16">
-      <div className="flex flex-wrap items-end gap-2">
-        {!branchLocked ? (
-          <label className="flex min-w-[8rem] flex-1 flex-col gap-0.5">
-            <span className="text-[11px] text-muted-foreground">Branch</span>
+    <div
+      className={cn(
+        /* Fill the shell main (incl. padding box) so one item fits on screen */
+        "absolute inset-0 z-0 mx-auto flex min-h-0 w-full max-w-lg flex-col overflow-hidden",
+        "px-3 pt-3 pb-[calc(5.35rem+env(safe-area-inset-bottom,0px))]",
+        "2xl:static 2xl:h-full 2xl:max-w-lg 2xl:overflow-visible 2xl:p-0",
+      )}
+    >
+      {/* Soft app atmosphere */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[1.35rem]"
+      >
+        <div className="absolute -left-16 top-0 size-44 rounded-full bg-primary/[0.07] blur-3xl" />
+        <div className="absolute -right-10 bottom-24 size-52 rounded-full bg-emerald-400/[0.08] blur-3xl" />
+        <div className="absolute inset-x-6 top-1/3 h-40 rounded-full bg-primary/[0.03] blur-2xl" />
+      </div>
+
+      {/* Top chrome */}
+      <header className="shrink-0 space-y-2.5 px-0.5 pb-1">
+        <div className="flex items-center gap-2">
+          {!branchLocked ? (
             <select
-              className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
+              className={cn(
+                dashboardSelectClass(),
+                "h-9 min-w-0 flex-1 rounded-full py-1.5 text-xs font-medium",
+              )}
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
+              aria-label="Branch"
             >
               <option value="">Branch…</option>
               {branches.map((b) => (
@@ -318,210 +363,320 @@ export default function DailyAuditPage() {
                 </option>
               ))}
             </select>
-          </label>
-        ) : null}
-        <label
-          className={cn(
-            "flex flex-col gap-0.5",
-            branchLocked ? "min-w-0 flex-1" : "min-w-[7rem] flex-1",
-          )}
-        >
-          <span className="text-[11px] text-muted-foreground">Session</span>
-          <select
-            className={cn(dashboardSelectClass(), "h-9 py-1.5 text-sm")}
-            value={sessionType}
-            onChange={(e) => setSessionType(e.target.value as SessionType)}
-          >
-            <option value="morning">Morning</option>
-            <option value="evening">Evening</option>
-          </select>
-        </label>
-      </div>
+          ) : null}
 
-      {error ? <DashboardFeedback kind="error" text={error} /> : null}
-
-      {loading ? (
-        <div className="flex items-center justify-center py-10 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      ) : !today ? (
-        <div className="rounded-xl border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
-          No audit today
-        </div>
-      ) : !session && canRun ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
-          <p className="text-sm tabular-nums text-muted-foreground">
-            <span className="font-semibold text-foreground">{today.itemCount}</span>{" "}
-            items
-          </p>
-          <Button
-            size="sm"
-            className="h-9 shrink-0"
-            onClick={() => void startSession()}
-            disabled={saving}
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Start"
+          <div
+            className={cn(
+              "inline-flex h-9 shrink-0 items-center rounded-full bg-muted/70 p-0.5 ring-1 ring-border/60",
+              branchLocked ? "flex-1" : "",
             )}
-          </Button>
+            role="tablist"
+            aria-label="Session"
+          >
+            {(
+              [
+                { id: "morning", label: "AM", icon: Sun },
+                { id: "evening", label: "PM", icon: Moon },
+              ] as const
+            ).map(({ id, label, icon: Icon }) => {
+              const active = sessionType === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setSessionType(id)}
+                  className={cn(
+                    "inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-3 text-xs font-semibold transition-all",
+                    active
+                      ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                      : "text-muted-foreground active:scale-[0.98]",
+                  )}
+                >
+                  <Icon className="size-3.5 opacity-80" aria-hidden />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      ) : session && currentLine ? (
-        <>
-          <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
-            <span className="font-medium">
-              {currentIndex + 1}/{lines.length}
-            </span>
-            <span className="text-muted-foreground">
-              {session.submittedCount}/{session.totalCount} saved
-            </span>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{
-                width: `${lines.length ? ((currentIndex + 1) / lines.length) * 100 : 0}%`,
-              }}
-            />
-          </div>
 
-          <DailyAuditProductCard
-            itemId={currentLine.itemId}
-            itemName={currentLine.itemName}
-            imageUrl={currentLine.imageUrl}
-            metaLine={[
-              currentLine.itemSku,
-              currentLine.barcode,
-              currentLine.categoryName,
-              currentLine.unitType,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-            systemStockLabel={
-              canSeeSystemStock && currentLine.systemStock != null
-                ? `System ${String(currentLine.systemStock)}`
-                : null
-            }
-            canUpload={canUploadImage}
-            onImageUploaded={(url) =>
-              applyLineImage(currentLine.lineId, url)
-            }
-            onError={(message) => setError(message)}
-          />
+        {session && currentLine ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-[11px] tabular-nums">
+              <span className="font-semibold tracking-tight">
+                Item {currentIndex + 1}
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  of {lines.length}
+                </span>
+              </span>
+              <span className="rounded-full bg-muted/80 px-2 py-0.5 font-medium text-muted-foreground">
+                {session.submittedCount}/{session.totalCount} saved
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted/80">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+      </header>
 
-          <label className="grid gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Count
-            </span>
-            <input
-              type="number"
-              min={0}
-              step="any"
-              inputMode="decimal"
-              className={cn(
-                dashboardInputClass(),
-                "h-12 text-center text-2xl font-semibold tabular-nums",
+      {error ? (
+        <div className="shrink-0 px-0.5 pt-1">
+          <DashboardFeedback kind="error" text={error} />
+        </div>
+      ) : null}
+
+      {/* Main stage */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pt-2">
+        {loading ? (
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : !today ? (
+          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed px-4 text-center text-sm text-muted-foreground">
+            No audit today
+          </div>
+        ) : !session && canRun ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-border/70 bg-card/70 px-5 py-8 text-center shadow-sm backdrop-blur-sm">
+            <div className="space-y-1.5">
+              <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+                {today.itemCount}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                items ready for {sessionType} count
+              </p>
+            </div>
+            <Button
+              size="lg"
+              className="h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
+              onClick={() => void startSession()}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Start counting"
               )}
-              value={countInput}
-              onChange={(e) => setCountInput(e.target.value)}
-              disabled={!canRun}
-              placeholder="0"
-            />
-          </label>
+            </Button>
+          </div>
+        ) : session && currentLine ? (
+          <div
+            key={currentLine.lineId}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-3",
+              "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
+              slideDir === "next"
+                ? "motion-safe:slide-in-from-right-3"
+                : "motion-safe:slide-in-from-left-3",
+            )}
+          >
+            <div className="shrink-0 rounded-2xl border border-border/60 bg-card/80 px-3 py-3 shadow-sm backdrop-blur-sm">
+              <DailyAuditProductCard
+                itemId={currentLine.itemId}
+                itemName={currentLine.itemName}
+                imageUrl={currentLine.imageUrl}
+                metaLine={[
+                  currentLine.itemSku,
+                  currentLine.barcode,
+                  currentLine.categoryName,
+                  currentLine.unitType,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                systemStockLabel={
+                  canSeeSystemStock && currentLine.systemStock != null
+                    ? `System ${String(currentLine.systemStock)}`
+                    : null
+                }
+                canUpload={canUploadImage}
+                onImageUploaded={(url) =>
+                  applyLineImage(currentLine.lineId, url)
+                }
+                onError={(message) => setError(message)}
+              />
+            </div>
 
-          <label className="grid gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Note
-            </span>
-            <input
-              type="text"
-              className={cn(dashboardInputClass(), "h-9 text-sm")}
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              disabled={!canRun}
-              placeholder="Optional"
-            />
-          </label>
+            {/* Count hero — fills remaining space */}
+            <div
+              className={cn(
+                "relative flex min-h-0 flex-1 flex-col items-center justify-center",
+                "rounded-[1.35rem] border border-border/50 bg-gradient-to-b from-card/90 via-card/60 to-muted/30",
+                "px-3 py-4 shadow-sm",
+              )}
+            >
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Physical count
+              </p>
 
-          {canRun ? (
-            <div>
-              {restockLoading ? (
-                <div className="flex items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Checking suppliers…
-                </div>
-              ) : restockOptions.length === 0 ? null : pendingRestock ? (
+              <div className="flex w-full max-w-sm items-center gap-2.5">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-2 text-left text-xs hover:bg-primary/10"
-                  onClick={() => setRestockOpen(true)}
-                >
-                  <span className="flex items-center gap-1.5 font-medium text-primary">
-                    <PackagePlus className="h-3.5 w-3.5 shrink-0" />
-                    On restock list
-                  </span>
-                  <span className="truncate text-muted-foreground">
-                    {pendingRestock.supplierName} · {String(pendingRestock.suggestedQty)}
-                  </span>
-                </button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 w-full text-xs"
-                  onClick={() => setRestockOpen(true)}
-                >
-                  <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
-                  Add to restock
-                </Button>
-              )}
-            </div>
-          ) : null}
-
-          {canRun ? (
-            <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 border-t bg-background/95 px-3 py-2 backdrop-blur">
-              <div className="mx-auto flex w-full max-w-lg gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-10 flex-1"
-                  disabled={currentIndex === 0 || saving}
-                  onClick={() => void goPrevious()}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="sr-only">Previous</span>
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-10 flex-[3]"
-                  disabled={saving}
-                  onClick={() => void goNext()}
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      Next
-                      <ArrowRight className="ml-1.5 h-4 w-4" />
-                    </>
+                  disabled={!canRun || saving}
+                  aria-label="Decrease count"
+                  onClick={() => setCountInput((v) => nudgeQty(v, -1))}
+                  className={cn(
+                    "flex size-14 shrink-0 items-center justify-center rounded-2xl",
+                    "border border-border/70 bg-background/90 text-foreground shadow-sm",
+                    "transition active:scale-95 disabled:opacity-40",
                   )}
-                </Button>
+                >
+                  <Minus className="size-6" strokeWidth={2.25} />
+                </button>
+
+                <input
+                  ref={countInputRef}
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  className={cn(
+                    dashboardInputClass(),
+                    "h-16 flex-1 rounded-2xl border-primary/25 bg-background/95 text-center",
+                    "text-4xl font-semibold tabular-nums tracking-tight shadow-inner",
+                    "focus-visible:ring-primary/30",
+                  )}
+                  value={countInput}
+                  onChange={(e) => setCountInput(e.target.value)}
+                  disabled={!canRun}
+                  placeholder="0"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canRun) {
+                      e.preventDefault();
+                      void goNext();
+                    }
+                  }}
+                />
+
+                <button
+                  type="button"
+                  disabled={!canRun || saving}
+                  aria-label="Increase count"
+                  onClick={() => setCountInput((v) => nudgeQty(v, 1))}
+                  className={cn(
+                    "flex size-14 shrink-0 items-center justify-center rounded-2xl",
+                    "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                    "transition active:scale-95 disabled:opacity-40",
+                  )}
+                >
+                  <Plus className="size-6" strokeWidth={2.25} />
+                </button>
               </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={!canRun}
+                  onClick={() => {
+                    setNoteOpen((o) => !o);
+                  }}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
+                    "border border-border/70 bg-background/70 transition active:scale-[0.98]",
+                    noteOpen || noteInput
+                      ? "border-primary/35 text-primary"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <StickyNote className="size-3.5" aria-hidden />
+                  {noteInput ? "Note" : "Add note"}
+                </button>
+
+                {canRun && !restockLoading && restockOptions.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setRestockOpen(true)}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
+                      "border transition active:scale-[0.98]",
+                      pendingRestock
+                        ? "border-primary/35 bg-primary/10 text-primary"
+                        : "border-border/70 bg-background/70 text-muted-foreground",
+                    )}
+                  >
+                    <PackagePlus className="size-3.5" aria-hidden />
+                    {pendingRestock ? "On restock" : "Restock"}
+                  </button>
+                ) : null}
+
+                {restockLoading ? (
+                  <span className="inline-flex h-8 items-center gap-1 px-2 text-[11px] text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Suppliers…
+                  </span>
+                ) : null}
+              </div>
+
+              {noteOpen ? (
+                <label className="mt-2 w-full max-w-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-150">
+                  <span className="sr-only">Note</span>
+                  <input
+                    type="text"
+                    className={cn(
+                      dashboardInputClass(),
+                      "h-10 rounded-xl text-sm",
+                    )}
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                    disabled={!canRun}
+                    placeholder="Optional note…"
+                    autoFocus
+                  />
+                </label>
+              ) : null}
             </div>
-          ) : null}
-        </>
-      ) : session ? (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 dark:border-emerald-900 dark:bg-emerald-950/30">
-          <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
-          <div className="min-w-0 text-sm">
-            <p className="font-medium">Done</p>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {session.submittedCount}/{session.totalCount} saved
-            </p>
+          </div>
+        ) : session ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
+            <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+            <div>
+              <p className="text-lg font-semibold">Session complete</p>
+              <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
+                {session.submittedCount}/{session.totalCount} counts saved
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Thumb dock */}
+      {session && currentLine && canRun ? (
+        <div className="shrink-0 pt-3">
+          <div className="flex gap-2 rounded-2xl border border-border/60 bg-background/95 p-1.5 shadow-lg shadow-black/5 backdrop-blur-md">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-14 shrink-0 rounded-xl px-0 active:scale-[0.98]"
+              disabled={currentIndex === 0 || saving}
+              onClick={() => void goPrevious()}
+              aria-label="Previous item"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              type="button"
+              className="h-12 flex-[2.4] rounded-xl text-base font-semibold shadow-md shadow-primary/20 active:scale-[0.98]"
+              disabled={saving}
+              onClick={() => void goNext()}
+            >
+              {saving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  {isLastItem ? "Save" : "Next"}
+                  {!isLastItem ? (
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
+                  ) : (
+                    <CheckCircle2 className="ml-1.5 h-4 w-4" />
+                  )}
+                </>
+              )}
+            </Button>
           </div>
         </div>
       ) : null}
