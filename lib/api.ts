@@ -2685,6 +2685,72 @@ export async function fetchItemById(
   );
 }
 
+export type ItemTimelineEntryRecord = {
+  id: string;
+  kind: "audit" | "stock" | string;
+  eventType: string;
+  title: string;
+  summary: string | null;
+  actorName: string | null;
+  branchId: string | null;
+  source: string | null;
+  quantityDelta: number | string | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  metadata: string | null;
+  createdAt: string;
+};
+
+export type ItemTimelineRecord = {
+  itemId: string;
+  entries: ItemTimelineEntryRecord[];
+};
+
+export type ItemScanSource =
+  | "catalog"
+  | "stock_take"
+  | "missing_barcodes"
+  | "camera"
+  | "daily_audit";
+
+export async function fetchItemTimeline(
+  itemId: string,
+  opts?: { limit?: number },
+): Promise<ItemTimelineRecord> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) {
+    params.set("limit", String(opts.limit));
+  }
+  const qs = params.toString();
+  return request<ItemTimelineRecord>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/timeline${qs ? `?${qs}` : ""}`,
+  );
+}
+
+/** Fire-and-forget friendly: records intentional non-POS scans on an item timeline. */
+export async function recordItemScan(
+  itemId: string,
+  body: {
+    source: ItemScanSource;
+    barcode?: string | null;
+    branchId?: string | null;
+    sessionId?: string | null;
+  },
+): Promise<void> {
+  await request<void>(
+    `${API_ROUTES.items}/${encodeURIComponent(itemId.trim())}/scans`,
+    {
+      method: "POST",
+      body: {
+        source: body.source,
+        barcode: body.barcode?.trim() || undefined,
+        branchId: body.branchId?.trim() || undefined,
+        sessionId: body.sessionId?.trim() || undefined,
+      },
+    },
+  );
+}
+
 export async function fetchItemSupplierLinks(
   itemId: string,
 ): Promise<ItemSupplierLinkRecord[]> {

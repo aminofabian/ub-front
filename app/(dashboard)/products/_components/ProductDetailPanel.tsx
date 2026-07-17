@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import {
   itemListThumbnailUrl,
+  recordItemScan,
   type ItemDetailRecord,
   type ItemSummaryRecord,
   type ItemSupplierLinkRecord,
@@ -51,6 +52,7 @@ import {
   productFormLabelClass,
   productFormSelectClass,
 } from "./product-form-styles";
+import { ProductItemTimeline } from "./ProductItemTimeline";
 import {
   detailCollapsibleTriggerClass,
   detailFieldRowClass,
@@ -1699,6 +1701,8 @@ export function ProductDetailPanel(props: Props) {
         </section>
       ) : null}
 
+      <ProductItemTimeline itemId={detail.id} />
+
       {/* Mobile sticky actions */}
       <div className={detailStickyBarClass}>
         <div className="mx-auto flex max-w-lg gap-2">
@@ -1749,6 +1753,12 @@ export function ProductDetailPanel(props: Props) {
             setQuickBarcode(barcode);
             setScannerOpen(false);
             openQuickEdit("barcode");
+            void recordItemScan(detail.id, {
+              source: "catalog",
+              barcode,
+            }).catch(() => {
+              /* non-blocking timeline note */
+            });
           }}
           onClose={() => setScannerOpen(false)}
         />

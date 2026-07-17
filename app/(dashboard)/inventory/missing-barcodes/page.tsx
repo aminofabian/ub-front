@@ -34,6 +34,7 @@ import {
   fetchItemById,
   fetchItemsPage,
   patchItem,
+  recordItemScan,
   type BranchRecord,
   type ItemSummaryRecord,
 } from "@/lib/api";
@@ -237,6 +238,12 @@ export default function InventoryMissingBarcodesPage() {
 
       try {
         await patchItem(row.id, { barcode: code });
+        void recordItemScan(row.id, {
+          source: "missing_barcodes",
+          barcode: code,
+        }).catch(() => {
+          /* non-blocking timeline note */
+        });
         setVariants((prev) => prev.filter((v) => v.id !== row.id));
         setTotalElements((prev) => Math.max(0, prev - 1));
         setBarcodeDrafts((prev) => {

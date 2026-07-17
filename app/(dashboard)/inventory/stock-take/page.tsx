@@ -46,6 +46,7 @@ import {
   postStockTakeAddLine,
   postStockTakeCreateItemAndAddLine,
   postStockTakeStart,
+  recordItemScan,
   type BranchRecord,
   type CategoryRecord,
   type ItemSummaryRecord,
@@ -162,6 +163,7 @@ export default function StockTakePage() {
 
   // ── Scanner
   const [showScanner, setShowScanner] = useState(false);
+  const lastScannedBarcode = useRef<string | null>(null);
 
   // ── Count modal
   const [countItem, setCountItem] = useState<ItemSummaryRecord | null>(null);
@@ -275,6 +277,39 @@ export default function StockTakePage() {
     };
   }, [canApprove, canRead, session]);
 
+  // ── Open count modal
+  const openCountModal = useCallback(
+    (item: ItemSummaryRecord) => {
+      const line = session
+        ? getLineByItemId(session.lines, item.id)
+        : undefined;
+      setCountItem(
+        canSeeSystemStock ? item : { ...item, stockQty: undefined },
+      );
+      setCountQty(formatCountedQty(line));
+      setCountAisle(line?.aisle ?? "");
+
+      const scanned = lastScannedBarcode.current?.trim();
+      const itemBarcode = item.barcode?.trim();
+      if (
+        scanned &&
+        itemBarcode &&
+        scanned.toLowerCase() === itemBarcode.toLowerCase()
+      ) {
+        lastScannedBarcode.current = null;
+        void recordItemScan(item.id, {
+          source: "stock_take",
+          barcode: scanned,
+          branchId: session?.branchId,
+          sessionId: session?.id,
+        }).catch(() => {
+          /* non-blocking timeline note */
+        });
+      }
+    },
+    [session, canSeeSystemStock],
+  );
+
   // ── Search (debounced)
   const doSearch = useCallback(
     (q: string, barcode?: string) => {
@@ -283,8 +318,9 @@ export default function StockTakePage() {
         return;
       }
       setSearching(true);
+      const barcodeQuery = barcode?.trim() || undefined;
       fetchItemsPage(q.trim() || undefined, {
-        barcode: barcode?.trim() || undefined,
+        barcode: barcodeQuery,
         branchId: session?.branchId,
         catalogScope: "SKUS_ONLY",
         page: 0,
@@ -293,12 +329,23 @@ export default function StockTakePage() {
         .then((page) => {
           setSearchHits(page.content);
           setSearching(false);
+          // Exact barcode hit → open count immediately and record scan
+          if (barcodeQuery && page.content.length === 1) {
+            const hit = page.content[0];
+            const hitBarcode = hit.barcode?.trim();
+            if (
+              hitBarcode &&
+              hitBarcode.toLowerCase() === barcodeQuery.toLowerCase()
+            ) {
+              openCountModal(hit);
+            }
+          }
         })
         .catch(() => {
           setSearching(false);
         });
     },
-    [session?.branchId],
+    [session?.branchId, openCountModal],
   );
 
   const onSearchChange = useCallback(
@@ -354,21 +401,6 @@ export default function StockTakePage() {
       setLoading(false);
     }
   }, []);
-
-  // ── Open count modal
-  const openCountModal = useCallback(
-    (item: ItemSummaryRecord) => {
-      const line = session
-        ? getLineByItemId(session.lines, item.id)
-        : undefined;
-      setCountItem(
-        canSeeSystemStock ? item : { ...item, stockQty: undefined },
-      );
-      setCountQty(formatCountedQty(line));
-      setCountAisle(line?.aisle ?? "");
-    },
-    [session, canSeeSystemStock],
-  );
 
   // ── Submit count
   const onSubmitCount = useCallback(async () => {
@@ -515,6 +547,7 @@ export default function StockTakePage() {
   // ── Scanner
   const onBarcodeScanned = useCallback(
     (barcode: string) => {
+      lastScannedBarcode.current = barcode;
       setSearch(barcode);
       setShowScanner(false);
       doSearch(barcode, barcode);
