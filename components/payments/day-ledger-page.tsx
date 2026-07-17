@@ -14,8 +14,6 @@ import {
 
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import {
-  DASHBOARD_MAX,
-  DASHBOARD_TABLE_HEAD,
   DASHBOARD_TABLE_SURFACE,
   DashboardFeedback,
   dashboardInputClass,
@@ -45,13 +43,13 @@ type MarkFilter = "all" | "unreviewed" | "flagged" | "reviewed";
 
 type MethodChipId = "cash" | "mpesa" | "card" | "credit" | "wallet" | "loyalty";
 
-const METHOD_CHIPS: { id: MethodChipId; label: string }[] = [
-  { id: "cash", label: "Cash" },
-  { id: "mpesa", label: "M-Pesa" },
-  { id: "card", label: "Card" },
-  { id: "credit", label: "Credit" },
-  { id: "wallet", label: "Wallet" },
-  { id: "loyalty", label: "Loyalty" },
+const METHOD_CHIPS: { id: MethodChipId; label: string; short: string }[] = [
+  { id: "cash", label: "Cash", short: "Cash" },
+  { id: "mpesa", label: "M-Pesa", short: "M-Pesa" },
+  { id: "card", label: "Card", short: "Card" },
+  { id: "credit", label: "Credit", short: "Credit" },
+  { id: "wallet", label: "Wallet", short: "Wallet" },
+  { id: "loyalty", label: "Loyalty", short: "Loyalty" },
 ];
 
 function toNum(n: number | string | null | undefined): number {
@@ -64,6 +62,15 @@ function fmtKes(n: number | string | null | undefined): string {
   return new Intl.NumberFormat("en-KE", {
     style: "currency",
     currency: "KES",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(v);
+}
+
+/** Compact amount without currency symbol for dense rows. */
+function fmtAmt(n: number | string | null | undefined): string {
+  const v = toNum(n);
+  return new Intl.NumberFormat("en-KE", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(v);
@@ -87,19 +94,17 @@ function shiftDay(iso: string, delta: number): string {
   return `${yy}-${mm}-${dd}`;
 }
 
-function formatDayHeading(iso: string): string {
+function formatDayShort(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y!, m! - 1, d!);
   const today = todayIsoLocal();
-  const label = dt.toLocaleDateString("en-KE", {
-    weekday: "long",
+  if (iso === today) return "Today";
+  if (iso === shiftDay(today, -1)) return "Yesterday";
+  return dt.toLocaleDateString("en-KE", {
+    weekday: "short",
     day: "numeric",
-    month: "long",
-    year: "numeric",
+    month: "short",
   });
-  if (iso === today) return `Today · ${label}`;
-  if (iso === shiftDay(today, -1)) return `Yesterday · ${label}`;
-  return label;
 }
 
 function formatTime(iso: string): string {
@@ -125,59 +130,27 @@ function hourKey(iso: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
 }
 
-function methodAccent(method: string): {
-  bar: string;
-  chip: string;
-  soft: string;
-} {
+function methodAccent(method: string): { bar: string; chip: string } {
   const cats = salePaymentCategories(method, method);
   if (cats.has("cash")) {
-    return {
-      bar: "bg-emerald-600",
-      chip: "bg-emerald-50 text-emerald-900 ring-emerald-200/80",
-      soft: "bg-emerald-500/10",
-    };
+    return { bar: "bg-emerald-600", chip: "text-emerald-800 bg-emerald-50" };
   }
   if (cats.has("mpesa")) {
-    return {
-      bar: "bg-teal-600",
-      chip: "bg-teal-50 text-teal-900 ring-teal-200/80",
-      soft: "bg-teal-500/10",
-    };
+    return { bar: "bg-teal-600", chip: "text-teal-800 bg-teal-50" };
   }
   if (cats.has("credit")) {
-    return {
-      bar: "bg-amber-600",
-      chip: "bg-amber-50 text-amber-950 ring-amber-200/80",
-      soft: "bg-amber-500/10",
-    };
+    return { bar: "bg-amber-600", chip: "text-amber-900 bg-amber-50" };
   }
   if (cats.has("wallet")) {
-    return {
-      bar: "bg-sky-600",
-      chip: "bg-sky-50 text-sky-950 ring-sky-200/80",
-      soft: "bg-sky-500/10",
-    };
+    return { bar: "bg-sky-600", chip: "text-sky-900 bg-sky-50" };
   }
   if (cats.has("loyalty")) {
-    return {
-      bar: "bg-rose-600",
-      chip: "bg-rose-50 text-rose-950 ring-rose-200/80",
-      soft: "bg-rose-500/10",
-    };
+    return { bar: "bg-rose-600", chip: "text-rose-900 bg-rose-50" };
   }
   if (method.toLowerCase().includes("card")) {
-    return {
-      bar: "bg-slate-600",
-      chip: "bg-slate-100 text-slate-800 ring-slate-200/80",
-      soft: "bg-slate-500/10",
-    };
+    return { bar: "bg-slate-600", chip: "text-slate-800 bg-slate-100" };
   }
-  return {
-    bar: "bg-stone-500",
-    chip: "bg-stone-100 text-stone-800 ring-stone-200/80",
-    soft: "bg-stone-500/10",
-  };
+  return { bar: "bg-stone-500", chip: "text-stone-800 bg-stone-100" };
 }
 
 function matchesMethodChip(method: string, chip: MethodChipId): boolean {
@@ -204,6 +177,14 @@ function rowSearchBlob(row: PaymentLedgerRow): string {
   ]
     .join(" ")
     .toLowerCase();
+}
+
+function methodFilterValue(chip: MethodChipId): string {
+  if (chip === "mpesa") return "mpesa_manual";
+  if (chip === "credit") return "customer_credit";
+  if (chip === "wallet") return "customer_wallet";
+  if (chip === "loyalty") return "loyalty_redeem";
+  return chip;
 }
 
 export function DayLedgerPage() {
@@ -280,18 +261,6 @@ export function DayLedgerPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  const totalsByMethod = useMemo(() => {
-    const map = new Map<string, { count: number; total: number }>();
-    for (const row of rows) {
-      const key = row.method.trim().toLowerCase() || "unknown";
-      const cur = map.get(key) ?? { count: 0, total: 0 };
-      cur.count += 1;
-      cur.total += toNum(row.amount);
-      map.set(key, cur);
-    }
-    return map;
-  }, [rows]);
 
   const chipTotals = useMemo(() => {
     const out: Record<MethodChipId, { count: number; total: number }> = {
@@ -378,6 +347,11 @@ export function DayLedgerPage() {
     [filtered],
   );
 
+  const visibleChips = useMemo(
+    () => METHOD_CHIPS.filter((c) => chipTotals[c.id].count > 0),
+    [chipTotals],
+  );
+
   const toggleMethod = (id: MethodChipId) => {
     setMethodFilters((prev) => {
       const next = new Set(prev);
@@ -396,13 +370,9 @@ export function DayLedgerPage() {
     persistMarks(next);
   };
 
-  const clearMarksForDay = () => {
-    persistMarks({});
-  };
-
   if (!allowed) {
     return (
-      <div className={DASHBOARD_MAX}>
+      <div className="mx-auto w-full max-w-4xl space-y-4 pb-16">
         <DashboardFeedback
           kind="warning"
           text="You need sales intelligence access to view the day payment ledger."
@@ -414,80 +384,56 @@ export function DayLedgerPage() {
   const isToday = day === todayIsoLocal();
   const progress =
     rows.length === 0 ? 0 : Math.round((reviewedCount / rows.length) * 100);
+  const openCount = rows.length - reviewedCount;
 
   return (
-    <div className={DASHBOARD_MAX}>
-      <header className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0 space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Payments
-            </p>
-            <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+    <div className="mx-auto w-full max-w-4xl space-y-3 pb-16">
+      {/* Compact header + day nav */}
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
               Day ledger
             </h1>
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Follow every tender as it lands — cash, M-Pesa, credit — then tick
-              each one off as you reconcile.
-            </p>
-            <ActiveScopeSubtitle className="mt-0.5" />
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {rows.length} · {fmtKes(grandTotal)}
+            </span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void load({ silent: true })}
-              disabled={refreshing || loading}
-            >
-              {refreshing ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="size-3.5" />
-              )}
-              Refresh
-            </Button>
-          </div>
+          <ActiveScopeSubtitle className="text-[11px] text-muted-foreground" />
         </div>
 
-        {/* Date navigator */}
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-gradient-to-br from-muted/40 via-background to-emerald-50/40 px-3 py-3 sm:px-4">
+        <div className="flex items-center gap-1">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 shrink-0"
+            className="size-8"
             onClick={() => setDay((d) => shiftDay(d, -1))}
             aria-label="Previous day"
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <div className="min-w-0 flex-1 text-center sm:text-left">
-            <p className="truncate text-base font-semibold tracking-tight text-foreground">
-              {formatDayHeading(day)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {rows.length} tender{rows.length === 1 ? "" : "s"} ·{" "}
-              {fmtKes(grandTotal)} taken
-            </p>
-          </div>
-          <input
-            type="date"
-            value={day}
-            max={todayIsoLocal()}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v) setDay(v);
-            }}
-            className={cn(dashboardInputClass(), "w-auto shrink-0 py-1.5 text-sm")}
-            aria-label="Pick day"
-          />
+          <label className="relative">
+            <span className="sr-only">Pick day</span>
+            <input
+              type="date"
+              value={day}
+              max={todayIsoLocal()}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v) setDay(v);
+              }}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+            <span className="inline-flex min-w-[7.5rem] items-center justify-center rounded-md border border-border/70 bg-card px-2.5 py-1.5 text-sm font-semibold tabular-nums">
+              {formatDayShort(day)}
+            </span>
+          </label>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9 shrink-0"
+            className="size-8"
             disabled={isToday}
             onClick={() => setDay((d) => shiftDay(d, 1))}
             aria-label="Next day"
@@ -499,173 +445,120 @@ export function DayLedgerPage() {
               type="button"
               variant="secondary"
               size="sm"
+              className="h-8 px-2 text-xs"
               onClick={() => setDay(todayIsoLocal())}
             >
               Today
             </Button>
           ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => void load({ silent: true })}
+            disabled={refreshing || loading}
+            aria-label="Refresh"
+          >
+            {refreshing ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="size-3.5" />
+            )}
+          </Button>
         </div>
       </header>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
 
-      {/* Method totals + filters */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {METHOD_CHIPS.map((chip) => {
+      {/* Method pills — only methods with activity */}
+      {visibleChips.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {visibleChips.map((chip) => {
             const stats = chipTotals[chip.id];
-            const active =
-              methodFilters.size === 0 || methodFilters.has(chip.id);
             const selected = methodFilters.has(chip.id);
-            const accent = methodAccent(
-              chip.id === "mpesa"
-                ? "mpesa_manual"
-                : chip.id === "credit"
-                  ? "customer_credit"
-                  : chip.id === "wallet"
-                    ? "customer_wallet"
-                    : chip.id === "loyalty"
-                      ? "loyalty_redeem"
-                      : chip.id,
-            );
+            const accent = methodAccent(methodFilterValue(chip.id));
             return (
               <button
                 key={chip.id}
                 type="button"
                 onClick={() => toggleMethod(chip.id)}
                 className={cn(
-                  "min-w-[7.5rem] flex-1 rounded-xl border px-3 py-2.5 text-left transition-all sm:flex-none",
+                  "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
                   selected
-                    ? "border-foreground/25 bg-foreground text-background shadow-sm"
-                    : active
-                      ? "border-border/70 bg-card hover:border-foreground/20"
-                      : "border-border/40 bg-muted/20 opacity-50",
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border/70 bg-card text-foreground hover:border-foreground/25",
                 )}
               >
-                <p
+                <span
                   className={cn(
-                    "text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    selected ? "text-background/70" : "text-muted-foreground",
+                    "size-1.5 rounded-full",
+                    selected ? "bg-background/80" : accent.bar,
+                  )}
+                  aria-hidden
+                />
+                <span className="font-medium">{chip.short}</span>
+                <span
+                  className={cn(
+                    "tabular-nums",
+                    selected ? "text-background/75" : "text-muted-foreground",
                   )}
                 >
-                  {chip.label}
-                </p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums tracking-tight">
-                  {fmtKes(stats.total)}
-                </p>
-                <p
-                  className={cn(
-                    "text-[11px]",
-                    selected ? "text-background/65" : "text-muted-foreground",
-                  )}
-                >
-                  {stats.count} payment{stats.count === 1 ? "" : "s"}
-                </p>
-                {!selected ? (
-                  <span
-                    className={cn(
-                      "mt-2 block h-0.5 w-8 rounded-full",
-                      accent.bar,
-                    )}
-                    aria-hidden
-                  />
-                ) : null}
+                  {fmtAmt(stats.total)}
+                  <span className="opacity-60"> · {stats.count}</span>
+                </span>
               </button>
             );
           })}
+          {methodFilters.size > 0 ? (
+            <button
+              type="button"
+              className="px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={() => setMethodFilters(new Set())}
+            >
+              Clear
+            </button>
+          ) : null}
         </div>
-        {methodFilters.size > 0 ? (
-          <button
-            type="button"
-            className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            onClick={() => setMethodFilters(new Set())}
-          >
-            Clear method filters
-          </button>
-        ) : null}
-      </section>
+      ) : null}
 
-      {/* Follow-along progress */}
-      <section
-        className={cn(
-          DASHBOARD_TABLE_SURFACE,
-          "bg-gradient-to-r from-card via-card to-emerald-50/30",
-        )}
-      >
-        <div className={cn(DASHBOARD_TABLE_HEAD, "flex flex-wrap items-center justify-between gap-3")}>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Follow along
-            </p>
-            <p className="mt-0.5 text-sm text-foreground">
-              <span className="font-semibold tabular-nums">{reviewedCount}</span>
-              {" of "}
-              <span className="font-semibold tabular-nums">{rows.length}</span>
-              {" reviewed"}
+      {/* Toolbar: progress + search + status filters */}
+      <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-card px-2.5 py-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="min-w-[4.5rem] shrink-0">
+            <p className="text-[10px] font-medium tabular-nums text-muted-foreground">
+              {reviewedCount}/{rows.length}
               {flaggedCount > 0 ? (
-                <>
-                  {" · "}
-                  <span className="font-semibold text-amber-800">
-                    {flaggedCount} flagged
-                  </span>
-                </>
+                <span className="text-amber-700"> · {flaggedCount}⚑</span>
               ) : null}
             </p>
+            <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-emerald-600 transition-[width] duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={filtered.length === 0}
-              onClick={markAllVisibleReviewed}
-            >
-              <Check className="size-3.5" />
-              Mark visible done
-            </Button>
-            {reviewedCount > 0 || flaggedCount > 0 ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clearMarksForDay}
-              >
-                Clear marks
-              </Button>
-            ) : null}
-          </div>
-        </div>
-        <div className="px-5 py-3 sm:px-6">
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-emerald-600 transition-[width] duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Receipt, cashier, ref…"
+              className={cn(
+                dashboardInputClass(),
+                "h-8 border-border/50 py-1 pl-7 text-xs",
+              )}
             />
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Marks stay on this device for this day — handy while you count the
-            drawer or match M-Pesa statements.
-          </p>
         </div>
-      </section>
 
-      {/* Search + mark filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search receipt, cashier, reference…"
-            className={cn(dashboardInputClass(), "pl-9")}
-          />
-        </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1">
           {(
             [
               ["all", "All"],
-              ["unreviewed", "Open"],
+              ["unreviewed", `Open${openCount > 0 ? ` ${openCount}` : ""}`],
               ["reviewed", "Done"],
               ["flagged", "Flagged"],
             ] as const
@@ -675,62 +568,60 @@ export function DayLedgerPage() {
               type="button"
               onClick={() => setMarkFilter(id)}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                "rounded px-2 py-1 text-[11px] font-medium transition-colors",
                 markFilter === id
                   ? "bg-foreground text-background"
-                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            disabled={filtered.length === 0}
+            onClick={markAllVisibleReviewed}
+            className="ml-0.5 rounded px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+          >
+            Mark all
+          </button>
         </div>
       </div>
 
-      {/* Tape / timeline */}
+      {/* Dense tender list */}
       <section className={DASHBOARD_TABLE_SURFACE}>
-        <div
-          className={cn(
-            DASHBOARD_TABLE_HEAD,
-            "flex flex-wrap items-baseline justify-between gap-2",
-          )}
-        >
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Tender tape
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Showing {filtered.length}
-              {filtered.length !== rows.length ? ` of ${rows.length}` : ""} ·{" "}
-              {fmtKes(filteredTotal)}
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-1.5">
+          <p className="text-[11px] text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {filtered.length}
+            </span>
+            {filtered.length !== rows.length ? ` / ${rows.length}` : ""}{" "}
+            payments · {fmtKes(filteredTotal)}
+          </p>
           <Link
             href={APP_ROUTES.salesTransactions}
-            className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
           >
-            Full transactions →
+            Transactions
           </Link>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 px-5 py-16 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Loading payments…
+          <div className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" />
+            Loading…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-5 py-16 text-center">
-            <p className="text-sm font-medium text-foreground">
-              No payments match
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+          <div className="px-3 py-10 text-center">
+            <p className="text-sm font-medium text-foreground">No payments</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               {rows.length === 0
                 ? "Nothing recorded for this day yet."
-                : "Try clearing filters or searching differently."}
+                : "Clear filters to see more."}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/40">
+          <div>
             {hourGroups.map((group) => {
               const hourTotal = group.rows.reduce(
                 (s, r) => s + toNum(r.amount),
@@ -738,15 +629,15 @@ export function DayLedgerPage() {
               );
               return (
                 <div key={group.key}>
-                  <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-border/30 bg-muted/50 px-4 py-1.5 backdrop-blur-sm sm:px-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <div className="sticky top-0 z-[1] flex items-center justify-between gap-2 bg-muted/80 px-3 py-1 backdrop-blur-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       {group.label}
                     </p>
-                    <p className="text-[11px] tabular-nums text-muted-foreground">
-                      {group.rows.length} · {fmtKes(hourTotal)}
+                    <p className="text-[10px] tabular-nums text-muted-foreground">
+                      {group.rows.length} · {fmtAmt(hourTotal)}
                     </p>
                   </div>
-                  <ul className="divide-y divide-border/30">
+                  <ul>
                     {group.rows.map((row) => {
                       const mark = getMark(marks, row.paymentId);
                       const accent = methodAccent(row.method);
@@ -754,24 +645,35 @@ export function DayLedgerPage() {
                         .toLowerCase()
                         .includes("refund");
                       const noteOpen = noteDraftId === row.paymentId;
+                      const meta = [
+                        receiptLabel(row),
+                        row.cashierName?.trim() || null,
+                        row.customerName?.trim() || null,
+                        row.reference?.trim()
+                          ? `ref ${row.reference.trim()}`
+                          : null,
+                        toNum(row.saleGrandTotal) !== toNum(row.amount)
+                          ? `of ${fmtAmt(row.saleGrandTotal)}`
+                          : null,
+                      ].filter(Boolean);
+
                       return (
                         <li
                           key={row.paymentId}
                           className={cn(
-                            "relative transition-colors",
-                            mark.reviewed && "bg-emerald-50/40",
-                            mark.flagged && !mark.reviewed && "bg-amber-50/50",
-                            refunded && "opacity-80",
+                            "group relative border-b border-border/30 last:border-0",
+                            mark.reviewed && "bg-emerald-50/35",
+                            mark.flagged && !mark.reviewed && "bg-amber-50/40",
                           )}
                         >
                           <span
                             className={cn(
-                              "absolute top-0 bottom-0 left-0 w-0.5",
+                              "absolute top-0 bottom-0 left-0 w-[2px]",
                               accent.bar,
                             )}
                             aria-hidden
                           />
-                          <div className="flex items-start gap-3 py-3 pr-4 pl-4 sm:gap-4 sm:pr-5 sm:pl-5">
+                          <div className="flex items-center gap-2 py-1.5 pr-2 pl-2.5 sm:gap-2.5 sm:pr-3 sm:pl-3">
                             <button
                               type="button"
                               onClick={() =>
@@ -780,10 +682,10 @@ export function DayLedgerPage() {
                                 })
                               }
                               className={cn(
-                                "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors",
+                                "flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
                                 mark.reviewed
                                   ? "border-emerald-600 bg-emerald-600 text-white"
-                                  : "border-border bg-background text-transparent hover:border-emerald-600/60",
+                                  : "border-border/80 bg-background text-transparent hover:border-emerald-600/70",
                               )}
                               aria-label={
                                 mark.reviewed
@@ -792,103 +694,60 @@ export function DayLedgerPage() {
                               }
                               aria-pressed={mark.reviewed}
                             >
-                              <Check className="size-3.5" strokeWidth={3} />
+                              <Check className="size-3" strokeWidth={3} />
                             </button>
 
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                                <span className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
-                                  {formatTime(row.soldAt)}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-xl font-semibold tracking-tight tabular-nums sm:text-2xl",
-                                    mark.reviewed
-                                      ? "text-foreground/55 line-through decoration-foreground/25"
-                                      : "text-foreground",
-                                  )}
-                                >
-                                  {fmtKes(row.amount)}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset",
-                                    accent.chip,
-                                  )}
-                                >
-                                  {formatPaymentMethodLabel(row.method)}
-                                </span>
-                                {refunded ? (
-                                  <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-                                    Refunded sale
-                                  </span>
-                                ) : null}
-                              </div>
-                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
-                                <Link
-                                  href={APP_ROUTES.salesTransactions}
-                                  className="font-mono font-medium text-foreground/70 hover:text-foreground hover:underline"
-                                >
-                                  {receiptLabel(row)}
-                                </Link>
-                                {row.cashierName?.trim() ? (
-                                  <span>· {row.cashierName.trim()}</span>
-                                ) : null}
-                                {row.customerName?.trim() ? (
-                                  <span>· {row.customerName.trim()}</span>
-                                ) : null}
-                                {row.reference?.trim() ? (
-                                  <span className="font-mono">
-                                    · ref {row.reference.trim()}
-                                  </span>
-                                ) : null}
-                                {toNum(row.saleGrandTotal) !==
-                                  toNum(row.amount) ? (
-                                  <span>
-                                    · of {fmtKes(row.saleGrandTotal)} sale
-                                  </span>
-                                ) : null}
-                              </div>
-                              {noteOpen || mark.note ? (
-                                <div className="pt-1">
-                                  {noteOpen ? (
-                                    <input
-                                      autoFocus
-                                      type="text"
-                                      value={mark.note}
-                                      placeholder="Note for this tender…"
-                                      onChange={(e) =>
-                                        patchMark(row.paymentId, {
-                                          note: e.target.value,
-                                        })
-                                      }
-                                      onBlur={() => setNoteDraftId(null)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === "Escape") {
-                                          setNoteDraftId(null);
-                                        }
-                                      }}
-                                      className={cn(
-                                        dashboardInputClass(),
-                                        "py-1.5 text-xs",
-                                      )}
-                                    />
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="text-left text-[11px] text-muted-foreground italic hover:text-foreground"
-                                      onClick={() =>
-                                        setNoteDraftId(row.paymentId)
-                                      }
-                                    >
-                                      {mark.note}
-                                    </button>
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
+                            <span className="w-[4.25rem] shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                              {formatTime(row.soldAt)}
+                            </span>
 
-                            <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span
+                              className={cn(
+                                "w-[5.5rem] shrink-0 text-right text-sm font-semibold tabular-nums tracking-tight sm:w-[6.25rem] sm:text-[15px]",
+                                mark.reviewed
+                                  ? "text-foreground/45 line-through decoration-foreground/20"
+                                  : "text-foreground",
+                              )}
+                            >
+                              {fmtAmt(row.amount)}
+                            </span>
+
+                            <span
+                              className={cn(
+                                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                accent.chip,
+                              )}
+                            >
+                              {formatPaymentMethodLabel(row.method)}
+                            </span>
+
+                            {refunded ? (
+                              <span className="shrink-0 rounded bg-destructive/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-destructive">
+                                Refund
+                              </span>
+                            ) : null}
+
+                            <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                              {meta.join(" · ")}
+                            </p>
+
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setNoteDraftId(
+                                    noteOpen ? null : row.paymentId,
+                                  )
+                                }
+                                className={cn(
+                                  "rounded px-1 py-0.5 text-[10px] font-medium transition-colors",
+                                  mark.note || noteOpen
+                                    ? "text-foreground"
+                                    : "text-transparent group-hover:text-muted-foreground hover:!text-foreground",
+                                )}
+                              >
+                                Note
+                              </button>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -897,34 +756,64 @@ export function DayLedgerPage() {
                                   })
                                 }
                                 className={cn(
-                                  "flex size-8 items-center justify-center rounded-md transition-colors",
+                                  "flex size-6 items-center justify-center rounded transition-colors",
                                   mark.flagged
-                                    ? "bg-amber-100 text-amber-800"
-                                    : "text-muted-foreground/50 hover:bg-muted hover:text-amber-700",
+                                    ? "text-amber-700"
+                                    : "text-muted-foreground/35 hover:text-amber-700",
                                 )}
                                 aria-label={
-                                  mark.flagged ? "Remove flag" : "Flag for follow-up"
+                                  mark.flagged
+                                    ? "Remove flag"
+                                    : "Flag for follow-up"
                                 }
                                 aria-pressed={mark.flagged}
                               >
                                 <Flag
-                                  className="size-3.5"
+                                  className="size-3"
                                   fill={mark.flagged ? "currentColor" : "none"}
                                 />
                               </button>
-                              {!mark.note && !noteOpen ? (
-                                <button
-                                  type="button"
-                                  className="px-1 text-[10px] font-medium text-muted-foreground/70 hover:text-foreground"
-                                  onClick={() =>
-                                    setNoteDraftId(row.paymentId)
-                                  }
-                                >
-                                  Note
-                                </button>
-                              ) : null}
                             </div>
                           </div>
+
+                          {noteOpen || mark.note ? (
+                            <div className="border-t border-border/20 bg-muted/20 px-3 py-1.5 pl-9">
+                              {noteOpen ? (
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={mark.note}
+                                  placeholder="Note…"
+                                  onChange={(e) =>
+                                    patchMark(row.paymentId, {
+                                      note: e.target.value,
+                                    })
+                                  }
+                                  onBlur={() => setNoteDraftId(null)}
+                                  onKeyDown={(e) => {
+                                    if (
+                                      e.key === "Enter" ||
+                                      e.key === "Escape"
+                                    ) {
+                                      setNoteDraftId(null);
+                                    }
+                                  }}
+                                  className={cn(
+                                    dashboardInputClass(),
+                                    "h-7 py-1 text-xs",
+                                  )}
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="w-full text-left text-[11px] text-muted-foreground italic hover:text-foreground"
+                                  onClick={() => setNoteDraftId(row.paymentId)}
+                                >
+                                  {mark.note}
+                                </button>
+                              )}
+                            </div>
+                          ) : null}
                         </li>
                       );
                     })}
@@ -935,20 +824,6 @@ export function DayLedgerPage() {
           </div>
         )}
       </section>
-
-      {/* Raw method breakdown for card / other */}
-      {totalsByMethod.size > 0 ? (
-        <p className="text-center text-[11px] text-muted-foreground">
-          Methods in play:{" "}
-          {[...totalsByMethod.entries()]
-            .sort((a, b) => b[1].total - a[1].total)
-            .map(
-              ([method, stats]) =>
-                `${formatPaymentMethodLabel(method)} ${fmtKes(stats.total)} (${stats.count})`,
-            )
-            .join(" · ")}
-        </p>
-      ) : null}
     </div>
   );
 }
