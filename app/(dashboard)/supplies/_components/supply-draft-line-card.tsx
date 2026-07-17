@@ -18,6 +18,7 @@ import {
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
+import type { SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
 import {
   SupplyShelfPriceCell,
   type ShelfPriceHint,
@@ -66,6 +67,8 @@ type SupplyDraftLineCardProps = {
   onFocusExpiry?: () => void;
   /** Receive date YYYY-MM-DD for shelf-life chips. */
   receivedYmd: string;
+  packDefaults?: SupplyPackQtyDefaults | null;
+  onPackModalOpenChange?: (open: boolean) => void;
 };
 
 /**
@@ -102,6 +105,8 @@ export function SupplyDraftLineCard({
   onFocusRetail,
   onFocusExpiry,
   receivedYmd,
+  packDefaults = null,
+  onPackModalOpenChange,
 }: SupplyDraftLineCardProps) {
   const [moreOpen, setMoreOpen] = useState(Boolean(row.expiry.trim()));
 
@@ -210,6 +215,8 @@ export function SupplyDraftLineCard({
           onChange={onQtyChange}
           disabled={busy}
           isReady={isReady}
+          packDefaults={packDefaults}
+          onPackModalOpenChange={onPackModalOpenChange}
           onEnterCost={onFocusCost}
           onEnterNext={onQtyEnterNext}
         />

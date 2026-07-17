@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FocusEvent } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Package } from "lucide-react";
 
 import { YmdDateInput } from "@/components/ymd-date-input";
 import { setCatalogOnHandStock } from "@/lib/set-on-hand-stock";
@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import { addYmdDays } from "@/lib/ymd-date";
 
 import { nsdInput } from "./new-supply-drawer-ui";
+import {
+  formatPackQtyHint,
+  SupplyPackQtyModal,
+  type SupplyPackQtyDefaults,
+} from "./supply-pack-qty-modal";
 import { supFormCellInput } from "../../suppliers/_components/supplier-ui-tokens";
 
 function selectOnFocus(e: FocusEvent<HTMLInputElement>) {
@@ -105,6 +110,10 @@ function formatQty(n: number): string {
   return Number.isInteger(n) ? n.toLocaleString() : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
+function formatQtyInput(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 10000) / 10000);
+}
+
 type CompactProps = {
   compact?: boolean;
   /** Mobile receiving: 44px+ fields, 16px type (avoids iOS zoom). */
@@ -135,6 +144,10 @@ type SupplyQtyCellProps = CompactProps & {
   onEnterNext?: () => void;
   /** When set, Enter focuses cost on the same row instead of the next empty qty. */
   onEnterCost?: () => void;
+  /** Prefill pack unit / size from supplier link or product packaging. */
+  packDefaults?: SupplyPackQtyDefaults | null;
+  /** Notify parent when pack modal opens so nested drawers don't dismiss. */
+  onPackModalOpenChange?: (open: boolean) => void;
 };
 
 export function SupplyQtyCell({
@@ -148,6 +161,8 @@ export function SupplyQtyCell({
   stockAfter = null,
   onEnterNext,
   onEnterCost,
+  packDefaults = null,
+  onPackModalOpenChange,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
   const hasText = value.trim().length > 0;
@@ -159,6 +174,14 @@ export function SupplyQtyCell({
         ? "ready"
         : "active";
 
+  const [packOpen, setPackOpen] = useState(false);
+  const [packHint, setPackHint] = useState<string | null>(null);
+
+  const setPackModalOpen = (open: boolean) => {
+    setPackOpen(open);
+    onPackModalOpenChange?.(open);
+  };
+
   return (
     <div className={cn("flex min-w-0 flex-col", touch || !compact ? "gap-1" : "gap-0.5")}>
       {label ? (
@@ -166,7 +189,7 @@ export function SupplyQtyCell({
           {label}
         </span>
       ) : null}
-      <div className={metricShellClass(compact, touch, tone)}>
+      <div className={cn(metricShellClass(compact, touch, tone), "gap-0.5 pr-0.5")}>
         <input
           className={cn(
             compact && !touch ? supFormCellInput : nsdInput,
@@ -181,7 +204,10 @@ export function SupplyQtyCell({
             tone === "invalid" && "text-amber-800 dark:text-amber-200",
           )}
           value={value}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={(e) => {
+            setPackHint(null);
+            onChange?.(e.target.value);
+          }}
           onFocus={selectOnFocus}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -199,6 +225,21 @@ export function SupplyQtyCell({
           aria-label="Quantity received"
           data-nsd-qty=""
         />
+        <button
+          type="button"
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center rounded-sm text-muted-foreground",
+            "hover:bg-primary/10 hover:text-primary",
+            "disabled:pointer-events-none disabled:opacity-40",
+            touch ? "size-8" : compact ? "size-5" : "size-6",
+          )}
+          disabled={disabled}
+          title="Enter by pack / tray"
+          aria-label="Enter quantity by pack or tray"
+          onClick={() => setPackModalOpen(true)}
+        >
+          <Package className={touch ? "size-3.5" : "size-3"} aria-hidden />
+        </button>
       </div>
       {!touch ? (
         <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
@@ -206,13 +247,38 @@ export function SupplyQtyCell({
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
               Need qty
             </span>
-          ) : stockAfter != null && parsed != null ? (
-            <span className="text-[10px] font-medium text-primary">
-              → {formatQty(stockAfter)}
-            </span>
-          ) : null}
+          ) : (
+            <>
+              {packHint ? (
+                <span
+                  className="text-[10px] font-medium text-muted-foreground"
+                  title={packHint}
+                >
+                  {packHint}
+                </span>
+              ) : null}
+              {stockAfter != null && parsed != null ? (
+                <span className="text-[10px] font-medium text-primary">
+                  → {formatQty(stockAfter)}
+                </span>
+              ) : null}
+            </>
+          )}
         </div>
+      ) : packHint ? (
+        <span className="text-[10px] font-medium text-muted-foreground">{packHint}</span>
       ) : null}
+
+      <SupplyPackQtyModal
+        open={packOpen}
+        onOpenChange={setPackModalOpen}
+        defaults={packDefaults}
+        onApply={(result) => {
+          setPackHint(formatPackQtyHint(result));
+          onChange?.(formatQtyInput(result.totalQty));
+          onEnterCost?.();
+        }}
+      />
     </div>
   );
 }

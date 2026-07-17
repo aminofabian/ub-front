@@ -66,6 +66,7 @@ import {
   SupplyQtyCell,
   SupplyStockCell,
 } from "./supply-line-metric-cells";
+import { resolveSupplyPackDefaults } from "./supply-pack-qty-modal";
 import {
   SupplyShelfPriceCell,
   type ShelfPriceHint,
@@ -302,6 +303,15 @@ function rowStock(row: SupplyDraftRow): number | null {
   return null;
 }
 
+function rowPackDefaults(row: SupplyDraftRow) {
+  return resolveSupplyPackDefaults({
+    productLabel: rowLabel(row) === "—" ? null : rowLabel(row),
+    packUnit: row.link?.packUnit,
+    packSize: row.link?.packSize,
+    packageUnitsPerSale: row.item?.packageUnitsPerSale,
+  });
+}
+
 function applyOnHandToRows(
   prev: SupplyDraftRow[],
   itemId: string,
@@ -412,6 +422,7 @@ export function NewSupplyDrawer({
   const pricingGenRef = useRef(0);
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
+  const packModalOpenRef = useRef(false);
 
   useEffect(() => {
     addLineOpenRef.current = addLineOpen;
@@ -419,13 +430,17 @@ export function NewSupplyDrawer({
 
   const handleDrawerOpenChange = useCallback(
     (next: boolean) => {
-      if (!next && addLineOpenRef.current) {
+      if (!next && (addLineOpenRef.current || packModalOpenRef.current)) {
         return;
       }
       onOpenChange(next);
     },
     [onOpenChange],
   );
+
+  const handlePackModalOpenChange = useCallback((open: boolean) => {
+    packModalOpenRef.current = open;
+  }, []);
 
   useEffect(() => {
     if (!open || supplier) {
@@ -1321,6 +1336,8 @@ export function NewSupplyDrawer({
                               ),
                             )
                           }
+                          packDefaults={rowPackDefaults(row)}
+                          onPackModalOpenChange={handlePackModalOpenChange}
                           onUnitChange={(value) =>
                             setRows((prev) =>
                               prev.map((r) =>
@@ -1479,6 +1496,8 @@ export function NewSupplyDrawer({
                         compact
                         value={row.qtyStr}
                         stockAfter={stockAfter}
+                        packDefaults={rowPackDefaults(row)}
+                        onPackModalOpenChange={handlePackModalOpenChange}
                         onChange={(value) =>
                           setRows((prev) =>
                             prev.map((r) =>
