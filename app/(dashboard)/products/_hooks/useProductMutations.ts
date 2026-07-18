@@ -672,21 +672,18 @@ export function useProductMutations(d: Dependencies) {
         return;
       try {
         await patchItem(selectedId, body as never);
-        // If buying price was set, also sync to primary supplier link
+        // Commerce Cost prefers supplier default/last over catalog buyingPrice.
         if (body.buyingPrice != null) {
           const links = await fetchItemSupplierLinks(selectedId);
-          const primary = links.find((l) => l.primary);
-          if (primary) {
-            const bpNum = Number(body.buyingPrice);
-            if (Number.isFinite(bpNum)) {
-              try {
-                await patchItemSupplierLink(selectedId, primary.id, {
-                  defaultCostPrice: bpNum,
-                });
-              } catch {
-                // non-critical
-              }
-            }
+          const target =
+            links.find((l) => l.primary) ??
+            links.find((l) => l.active) ??
+            links[0];
+          const bpNum = Number(body.buyingPrice);
+          if (target && Number.isFinite(bpNum)) {
+            await patchItemSupplierLink(selectedId, target.id, {
+              defaultCostPrice: bpNum,
+            });
           }
         }
         const updated = await refreshSelectedDetail();

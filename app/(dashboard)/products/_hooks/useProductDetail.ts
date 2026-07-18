@@ -219,7 +219,13 @@ export function useProductDetail(branchIdForPricing?: string | null) {
   const catalogShelfPrice = detail ? toNumber(detail.bundlePrice) : null;
   /** Branch selling price from pricing module, then catalog bundle price. */
   const sellPrice = currentSellPrice ?? catalogShelfPrice;
-  const primaryLink = supplierLinks.find((l) => l.primary);
+  // Prefer explicit primary; fall back to first active link so Cost still resolves
+  // when primary flags are missing after imports/legacy data.
+  const primaryLink =
+    supplierLinks.find((l) => l.primary) ??
+    supplierLinks.find((l) => l.active) ??
+    supplierLinks[0] ??
+    null;
   const primaryCost = effectiveSupplierUnitCost(
     primaryLink,
     detail?.buyingPrice,

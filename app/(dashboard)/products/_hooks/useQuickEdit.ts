@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import {
   ApiRequestError,
   fetchAllocationPreview,
@@ -12,6 +18,7 @@ import {
   postStockIncrease,
   type ItemDetailRecord,
   type ItemSummaryRecord,
+  type ItemSupplierLinkRecord,
   type PatchItemPayload,
 } from "@/lib/api";
 import { isGarbageProductName, normalizeProductDisplayName } from "@/lib/catalog-display";
@@ -29,6 +36,9 @@ type Params = {
   detail: ItemDetailRecord | null;
   /** Effective unit cost: supplier default, last purchase, or item buying price. */
   primaryCost: number | null;
+  /** Link that currently drives Commerce Cost (primary, else first active). */
+  primaryLink: ItemSupplierLinkRecord | null;
+  setSupplierLinks: Dispatch<SetStateAction<ItemSupplierLinkRecord[]>>;
   canCatalogWrite: boolean;
   canInventoryWrite: boolean;
   branches: { id: string; name: string }[];
@@ -44,6 +54,8 @@ export function useQuickEdit({
   selectedId,
   detail,
   primaryCost,
+  primaryLink,
+  setSupplierLinks,
   canCatalogWrite,
   canInventoryWrite,
   branches,
@@ -89,21 +101,35 @@ export function useQuickEdit({
   const [qeaSaving, setQeaSaving] = useState(false);
   const [qeaError, setQeaError] = useState("");
 
-  /** Keep primary supplier cost in sync — Commerce "Cost" reads supplier default/last first. */
+  /**
+   * Commerce Cost prefers supplier defaultCostPrice, then lastCostPrice, then
+   * catalog buyingPrice. Editing Cost must update the supplier default or the
+   * number on screen will not change after a purchase cost is recorded.
+   */
   const syncPrimarySupplierCost = useCallback(
     async (itemId: string, unitCost: number) => {
-      try {
+      let linkId = primaryLink?.id?.trim() || "";
+      if (!linkId) {
         const links = await fetchItemSupplierLinks(itemId);
-        const primary = links.find((l) => l.primary);
-        if (!primary) return;
-        await patchItemSupplierLink(itemId, primary.id, {
-          defaultCostPrice: unitCost,
-        });
-      } catch {
-        // Catalog buying price already saved; supplier sync is best-effort.
+        const target =
+          links.find((l) => l.primary) ??
+          links.find((l) => l.active) ??
+          links[0];
+        linkId = target?.id?.trim() || "";
       }
+      if (!linkId) return false;
+
+      await patchItemSupplierLink(itemId, linkId, {
+        defaultCostPrice: unitCost,
+      });
+      setSupplierLinks((prev) =>
+        prev.map((l) =>
+          l.id === linkId ? { ...l, defaultCostPrice: unitCost } : l,
+        ),
+      );
+      return true;
     },
-    [],
+    [primaryLink?.id, setSupplierLinks],
   );
 
   const runQuickPatch = useCallback(
@@ -290,15 +316,15 @@ export function useQuickEdit({
   const saveQuickBuyingPrice = useCallback(() => {
     const r = quickBuyingPrice.trim();
     if (!r) {
-      setMessage("Enter a buying price or cancel.");
+      setMessage("Enter a cost or cancel.");
       return;
     }
     const n = Number(r);
     if (!Number.isFinite(n) || n < 0) {
-      setMessage("Buying price must be a valid non-negative number.");
+      setMessage("Cost must be a valid non-negative number.");
       return;
     }
-    void runQuickPatch({ buyingPrice: n }, "Buying price updated.");
+    void runQuickPatch({ buyingPrice: n }, "Cost updated.");
   }, [quickBuyingPrice, runQuickPatch, setMessage]);
 
   const saveQuickMargin = useCallback(() => {

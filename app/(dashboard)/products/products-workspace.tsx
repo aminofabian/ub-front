@@ -80,6 +80,8 @@ export function ProductsWorkspace() {
     selectedId: detail.selectedId,
     detail: detail.detail,
     primaryCost: detail.primaryCost,
+    primaryLink: detail.primaryLink ?? null,
+    setSupplierLinks: detail.setSupplierLinks,
     canCatalogWrite,
     canInventoryWrite,
     branches: branches,

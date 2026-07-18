@@ -467,7 +467,7 @@ export function ProductDetailPanel(props: Props) {
               {display}
             </p>
             {opts.canEdit ? (
-              <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-medium text-primary/80 opacity-0 transition-opacity group-hover/stat:opacity-100 group-focus-visible/stat:opacity-100">
+              <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-medium text-primary/80 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/stat:opacity-100 sm:group-focus-visible/stat:opacity-100">
                 <Pencil className="size-2.5" aria-hidden />
                 Tap to edit
               </span>
