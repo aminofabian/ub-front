@@ -7,8 +7,13 @@ import { cn } from "@/lib/utils";
 
 export function HubAllClear() {
   return (
-    <section className="space-y-4">
-      <h2 className={cn("text-sm font-medium", HUB_MUTED)}>Needs attention</h2>
+    <section className="space-y-3">
+      <div>
+        <h2 className={cn("text-sm font-medium", HUB_MUTED)}>Needs attention</h2>
+        <p className="mt-1 text-sm text-[#666666]">
+          No fires — you can stay on the numbers.
+        </p>
+      </div>
       <div
         className={cn(
           HUB_SURFACE,

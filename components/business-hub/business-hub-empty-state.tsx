@@ -18,14 +18,27 @@ export function BusinessHubEmptyState({
 
   return (
     <section
-      className={cn(HUB_SURFACE, "px-5 py-8 sm:px-8")}
+      className={cn(HUB_SURFACE, "relative overflow-hidden px-5 py-8 sm:px-8")}
       aria-label="No sales yet"
     >
-      <div className="mx-auto max-w-lg text-center">
-        <p className="text-base font-semibold text-black">No sales {label} yet</p>
+      <div
+        className="pointer-events-none absolute -right-10 top-0 size-40 rounded-full opacity-70"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(176,141,72,0.18) 0%, transparent 70%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto max-w-lg text-center">
+        <p
+          className="text-2xl font-medium tracking-tight text-black"
+          style={{ fontFamily: "var(--font-heading), Georgia, serif" }}
+        >
+          No sales {label} yet
+        </p>
         <p className={cn("mt-2 text-sm leading-relaxed", HUB_MUTED)}>
-          Once you start selling, revenue, orders, and trends will show up here.
-          Add products to your catalogue, then record your first sale.
+          This board wakes up the moment money moves. Add products, open the
+          till, and the pulse, runway, and movers will fill in.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link

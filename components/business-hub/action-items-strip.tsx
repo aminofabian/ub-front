@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle, Info } from "lucide-react";
 
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
-import { fmtCount } from "@/lib/business-hub/formatters";
 import { cn } from "@/lib/utils";
 
 export type ActionItem = {
@@ -21,36 +20,54 @@ export function ActionItemsStrip({ items }: { items: ActionItem[] }) {
   }
 
   return (
-    <section className="space-y-4">
-      <h2 className={cn("text-sm font-medium", HUB_MUTED)}>Needs attention</h2>
-      <div className={cn(HUB_SURFACE, "divide-y divide-[#EEEEEE]")}>
-        {items.map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9F6F0]/60"
-          >
-            <AlertTriangle
+    <section className="space-y-3">
+      <div>
+        <h2 className={cn("text-sm font-medium", HUB_MUTED)}>Needs attention</h2>
+        <p className="mt-1 text-sm text-[#666666]">
+          {items.length === 1
+            ? "One thing to clear before the day runs away."
+            : `${items.length} things worth a look before you dig into reports.`}
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {items.map((item) => {
+          const Icon = item.tone === "info" ? Info : AlertTriangle;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
               className={cn(
-                "size-4 shrink-0",
-                item.tone === "warning"
-                  ? "text-[#C47A5A]"
-                  : "text-[#B08D48]",
+                HUB_SURFACE,
+                "group flex items-start gap-3 px-4 py-4 transition-colors hover:border-[#E8DFD0]",
               )}
-              aria-hidden
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-black">{item.label}</p>
-              {item.detail ? (
-                <p className="text-xs text-[#888888]">{item.detail}</p>
-              ) : null}
-            </div>
-            <ArrowRight
-              className="size-4 shrink-0 text-[#CCCCCC]"
-              aria-hidden
-            />
-          </Link>
-        ))}
+            >
+              <span
+                className={cn(
+                  "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg",
+                  item.tone === "warning"
+                    ? "bg-[#C47A5A]/10 text-[#C47A5A]"
+                    : "bg-[#F9F6F0] text-[#B08D48]",
+                )}
+              >
+                <Icon className="size-4" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-black">
+                  {item.label}
+                </span>
+                {item.detail ? (
+                  <span className="mt-0.5 block text-xs leading-relaxed text-[#888888]">
+                    {item.detail}
+                  </span>
+                ) : null}
+              </span>
+              <ArrowRight
+                className="mt-1 size-4 shrink-0 text-[#DDDDDD] transition-colors group-hover:text-[#B08D48]"
+                aria-hidden
+              />
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

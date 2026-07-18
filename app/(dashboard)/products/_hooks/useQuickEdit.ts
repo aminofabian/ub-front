@@ -5,7 +5,9 @@ import {
   ApiRequestError,
   fetchAllocationPreview,
   fetchItemById,
+  fetchItemSupplierLinks,
   patchItem,
+  patchItemSupplierLink,
   postBatchDecrease,
   postStockIncrease,
   type ItemDetailRecord,
@@ -87,6 +89,23 @@ export function useQuickEdit({
   const [qeaSaving, setQeaSaving] = useState(false);
   const [qeaError, setQeaError] = useState("");
 
+  /** Keep primary supplier cost in sync — Commerce "Cost" reads supplier default/last first. */
+  const syncPrimarySupplierCost = useCallback(
+    async (itemId: string, unitCost: number) => {
+      try {
+        const links = await fetchItemSupplierLinks(itemId);
+        const primary = links.find((l) => l.primary);
+        if (!primary) return;
+        await patchItemSupplierLink(itemId, primary.id, {
+          defaultCostPrice: unitCost,
+        });
+      } catch {
+        // Catalog buying price already saved; supplier sync is best-effort.
+      }
+    },
+    [],
+  );
+
   const runQuickPatch = useCallback(
     async (body: PatchItemPayload, successMsg: string) => {
       if (!selectedId) return;
@@ -98,6 +117,12 @@ export function useQuickEdit({
       setMessage("");
       try {
         await patchItem(selectedId, body);
+        if (body.buyingPrice != null) {
+          const bpNum = Number(body.buyingPrice);
+          if (Number.isFinite(bpNum)) {
+            await syncPrimarySupplierCost(selectedId, bpNum);
+          }
+        }
         const updated = await refreshSelectedDetail();
         if (updated) syncListRowFromDetail(updated);
         setQuickEdit(null);
@@ -111,6 +136,7 @@ export function useQuickEdit({
     [
       selectedId,
       canCatalogWrite,
+      syncPrimarySupplierCost,
       syncListRowFromDetail,
       refreshSelectedDetail,
       setMessage,
@@ -553,6 +579,12 @@ export function useQuickEdit({
     setQeaError("");
     try {
       await patchItem(selectedId, body);
+      if (body.buyingPrice != null) {
+        const bpNum = Number(body.buyingPrice);
+        if (Number.isFinite(bpNum)) {
+          await syncPrimarySupplierCost(selectedId, bpNum);
+        }
+      }
       const updated = await refreshSelectedDetail();
       if (updated) syncListRowFromDetail(updated);
       setQuickEditAllOpen(false);
@@ -576,6 +608,7 @@ export function useQuickEdit({
     qeaReorderQty,
     qeaDescription,
     detail,
+    syncPrimarySupplierCost,
     syncListRowFromDetail,
     refreshSelectedDetail,
     setMessage,
