@@ -34,11 +34,6 @@ export function toNum(n: number | string | null | undefined): number {
   return typeof n === "number" ? n : Number(n);
 }
 
-export function padChartValues(values: number[], size = 12): number[] {
-  if (values.length >= size) return values.slice(-size);
-  return [...Array(size - values.length).fill(0), ...values];
-}
-
 export function fmtTrendPct(current: number, previous: number): string | null {
   if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
   if (previous === 0) {

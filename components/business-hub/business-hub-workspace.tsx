@@ -36,6 +36,10 @@ import {
 } from "@/lib/business-hub/build-action-items";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
 import {
+  buildDailyRevenueSeries,
+  type DailyRevenuePoint,
+} from "@/lib/business-hub/build-daily-revenue-series";
+import {
   fmtCount,
   fmtKes,
   fmtPct,
@@ -118,7 +122,7 @@ export function BusinessHubWorkspace() {
   const [expiryPipeline, setExpiryPipeline] =
     useState<InventoryExpiryPipelineResponse | null>(null);
   const [catalogueCount, setCatalogueCount] = useState<number | null>(null);
-  const [chartRevenue, setChartRevenue] = useState<number[]>([]);
+  const [chartPoints, setChartPoints] = useState<DailyRevenuePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -216,7 +220,9 @@ export function BusinessHubWorkspace() {
       setBatchDashboard(batchDash);
       setExpiryPipeline(expiryRes);
       setCatalogueCount(itemsPage?.totalElements ?? null);
-      setChartRevenue((chartReg?.days ?? []).map((d) => toNum(d.revenue)));
+      setChartPoints(
+        buildDailyRevenueSeries(chartReg?.days ?? [], chartFrom, chartTo),
+      );
     } catch {
       /* gracefully degrade */
     } finally {
@@ -332,15 +338,15 @@ export function BusinessHubWorkspace() {
     canManageBusinessSettings ||
     canViewApAging;
 
+  const chartRevenue = chartPoints.map((p) => p.value);
   const salesEmpty = isHubSalesEmpty(revenue, orders, chartRevenue);
 
   const pulseSectionTitle = isToday ? "Today's pulse" : "This week's pulse";
   const revenueLabel = isToday ? "Revenue today" : "Revenue this week";
   const ordersLabel = isToday ? "Orders" : "Units sold";
-  const chartBarCount = isToday ? 12 : 7;
   const chartAriaLabel = isToday
-    ? "Revenue over the last twelve days"
-    : "Revenue over the last seven days";
+    ? "Daily revenue over the last twelve days"
+    : "Daily revenue over the last seven days";
 
   if (loading) return <BusinessHubSkeleton />;
 
@@ -463,11 +469,7 @@ export function BusinessHubWorkspace() {
       </section>
 
       <div className="space-y-2">
-        <RevenueBarChart
-          values={chartRevenue}
-          barCount={chartBarCount}
-          ariaLabel={chartAriaLabel}
-        />
+        <RevenueBarChart points={chartPoints} ariaLabel={chartAriaLabel} />
         {salesEmpty ? (
           <p className={cn("text-center text-xs", HUB_MUTED)}>
             Revenue trend will appear after your first sale.
