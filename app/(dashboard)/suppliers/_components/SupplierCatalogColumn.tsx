@@ -117,6 +117,36 @@ function collectVariantIdsUnderParent(
   return ids;
 }
 
+/** Prefer link default, then last purchase, then catalog buying price. */
+function resolveLinkDisplayCost(link: SupplierItemLinkRecord): {
+  value: number;
+  source: "default" | "last" | "catalog";
+} | null {
+  const candidates: Array<{
+    raw: number | string | null | undefined;
+    source: "default" | "last" | "catalog";
+  }> = [
+    { raw: link.defaultCostPrice, source: "default" },
+    { raw: link.lastCostPrice, source: "last" },
+    { raw: link.catalogBuyingPrice, source: "catalog" },
+  ];
+  for (const { raw, source } of candidates) {
+    if (raw == null || String(raw).trim() === "") continue;
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0) {
+      return { value: n, source };
+    }
+  }
+  return null;
+}
+
+function formatLinkCost(n: number): string {
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function SupplierCatalogColumn({
   detail,
   canReadCatalog,
@@ -482,9 +512,8 @@ export function SupplierCatalogColumn({
   const openEditLinkDrawer = (row: SupplierItemLinkRecord) => {
     setEditLinkDrawerRow(row);
     setEditLinkDrawerSku(row.supplierSku ?? "");
-    setEditLinkDrawerCost(
-      row.defaultCostPrice != null ? String(row.defaultCostPrice) : "",
-    );
+    const cost = resolveLinkDisplayCost(row);
+    setEditLinkDrawerCost(cost != null ? String(cost.value) : "");
     setEditLinkDrawerPackUnit(row.packUnit ?? "");
     setEditLinkDrawerPackSize(
       row.packSize != null ? String(row.packSize) : "",
@@ -988,7 +1017,10 @@ export function SupplierCatalogColumn({
                   <th className="w-[4.25rem] border border-border px-1.5 py-1 text-right font-semibold">
                     Stock
                   </th>
-                  <th className="w-20 border border-border px-1.5 py-1 text-right font-semibold">
+                  <th
+                    className="w-20 border border-border px-1.5 py-1 text-right font-semibold"
+                    title="Supplier default cost, else last purchase, else catalog buying price"
+                  >
                     Cost
                   </th>
                   {canLinkProducts ? (
@@ -1062,10 +1094,41 @@ export function SupplierCatalogColumn({
                         onUpdated={() => onRefreshLinks?.()}
                       />
                     </td>
-                    <td className="border border-border/70 px-1.5 py-0.5 text-right font-mono tabular-nums text-muted-foreground">
-                      {row.defaultCostPrice != null && row.defaultCostPrice !== ""
-                        ? String(row.defaultCostPrice)
-                        : "—"}
+                    <td className="border border-border/70 px-1.5 py-0.5 text-right align-middle">
+                      {(() => {
+                        const cost = resolveLinkDisplayCost(row);
+                        if (!cost) {
+                          return (
+                            <span
+                              className="font-mono text-xs tabular-nums text-muted-foreground/60"
+                              title="No default cost, last purchase, or catalog buying price"
+                            >
+                              —
+                            </span>
+                          );
+                        }
+                        const sourceLabel =
+                          cost.source === "default"
+                            ? "Supplier default cost"
+                            : cost.source === "last"
+                              ? "Last purchase cost"
+                              : "Catalog buying price";
+                        return (
+                          <div
+                            className="flex flex-col items-end leading-tight"
+                            title={sourceLabel}
+                          >
+                            <span className="font-mono text-xs tabular-nums text-foreground">
+                              {formatLinkCost(cost.value)}
+                            </span>
+                            {cost.source !== "default" ? (
+                              <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {cost.source === "last" ? "Last" : "Catalog"}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </td>
                     {canLinkProducts ? (
                       <td className="border border-border/70 px-1.5 py-0.5">
