@@ -30,8 +30,9 @@ import {
   isDailyAuditScheduleOrdered,
   normalizeDailyAuditTime,
   DEFAULT_MORNING_STARTS_AT,
+  DEFAULT_MORNING_ENDS_AT,
   DEFAULT_EVENING_STARTS_AT,
-  DEFAULT_COUNTING_ENDS_AT,
+  DEFAULT_EVENING_ENDS_AT,
   DEFAULT_CASHIER_CAPABILITIES,
   DEFAULT_EDITABLE,
   DEFAULT_INVENTORY,
@@ -246,25 +247,30 @@ export default function BusinessSettingsPage() {
         inventory.morningStartsAt,
         DEFAULT_MORNING_STARTS_AT,
       );
+      const morningEndsAt = normalizeDailyAuditTime(
+        inventory.morningEndsAt,
+        DEFAULT_MORNING_ENDS_AT,
+      );
       const eveningStartsAt = normalizeDailyAuditTime(
         inventory.eveningStartsAt,
         DEFAULT_EVENING_STARTS_AT,
       );
-      const countingEndsAt = normalizeDailyAuditTime(
-        inventory.countingEndsAt,
-        DEFAULT_COUNTING_ENDS_AT,
+      const eveningEndsAt = normalizeDailyAuditTime(
+        inventory.eveningEndsAt,
+        DEFAULT_EVENING_ENDS_AT,
       );
       if (
         canManageBusinessSettings &&
         !isDailyAuditScheduleOrdered(
           morningStartsAt,
+          morningEndsAt,
           eveningStartsAt,
-          countingEndsAt,
+          eveningEndsAt,
         )
       ) {
         setFeedback({
           kind: "error",
-          text: "Daily audit times must be in order: morning start < evening start < counting end.",
+          text: "Daily audit windows must satisfy morning start < morning end ≤ evening start < evening end.",
         });
         setIsSaving(false);
         return;
@@ -293,8 +299,9 @@ export default function BusinessSettingsPage() {
               inventory.dailyAuditSampleSize,
             ),
             morningStartsAt,
+            morningEndsAt,
             eveningStartsAt,
-            countingEndsAt,
+            eveningEndsAt,
           },
           stockLevels: {
             allowStockEditForStockManager:

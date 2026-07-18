@@ -146,6 +146,8 @@ export default function DailyAuditPage() {
   const todaySessionSummary =
     sessionType === "morning" ? today?.morningSession : today?.eveningSession;
   const todaySessionDone = todaySessionSummary?.status === "closed";
+  const morningSessionDone = today?.morningSession?.status === "closed";
+  const eveningSessionDone = today?.eveningSession?.status === "closed";
   const doneType: SessionType = completedType ?? sessionType;
   const doneLabel =
     doneType === "morning" ? "Morning count done" : "Evening count done";
@@ -157,10 +159,22 @@ export default function DailyAuditPage() {
       : null;
   const countingOpen = activeSessionType === sessionType;
   const canCount = Boolean(canRun && countingOpen && !sessionDone);
+  const eveningWindowOpen = activeSessionType === "evening";
+  const canStartEvening =
+    Boolean(canRun) &&
+    morningSessionDone &&
+    !eveningSessionDone &&
+    eveningWindowOpen;
 
   const phaseRemainingMs = msUntil(today?.phaseEndsAt, nowMs);
   const nextOpenMs = msUntil(today?.nextOpensAt, nowMs);
   const ONE_HOUR_MS = 60 * 60 * 1000;
+  const nextOpenIsEvening =
+    morningSessionDone ||
+    (today?.morningSession != null &&
+      activeSessionType === null &&
+      nextOpenMs != null &&
+      nextOpenMs > 0);
 
   const scheduleBanner = useMemo(() => {
     if (!today) return null;
@@ -183,22 +197,25 @@ export default function DailyAuditPage() {
       };
     }
     if (nextOpenMs != null && nextOpenMs > 0) {
-      const opensLabel =
-        today.morningStartsAt && nextOpenMs > 0
-          ? `Morning opens in ${formatCountdown(nextOpenMs)}`
-          : `Opens in ${formatCountdown(nextOpenMs)}`;
+      const phase = nextOpenIsEvening ? "Evening" : "Morning";
       return {
-        label: `${opensLabel}${tz}`,
+        label: `${phase} opens in ${formatCountdown(nextOpenMs)}${tz}`,
         tone: urgentTone(nextOpenMs) ?? ("soon" as const),
       };
     }
     return {
       label: `Counting ended for today${
-        today.countingEndsAt ? ` · closed ${today.countingEndsAt}` : ""
+        today.eveningEndsAt ? ` · closed ${today.eveningEndsAt}` : ""
       }${tz}`,
       tone: "closed" as const,
     };
-  }, [today, activeSessionType, phaseRemainingMs, nextOpenMs]);
+  }, [
+    today,
+    activeSessionType,
+    phaseRemainingMs,
+    nextOpenMs,
+    nextOpenIsEvening,
+  ]);
 
   const loadToday = useCallback(async () => {
     if (!branchId) return;
@@ -257,15 +274,23 @@ export default function DailyAuditPage() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Auto-select the open session when the schedule reports one — but never
-  // yank away from a just-finished count (keeps "Morning count done" correct).
+  // Auto-select the open session when the schedule reports one.
+  // After morning finishes, jump to evening once that window opens.
   useEffect(() => {
     if (!activeSessionType) return;
+    if (
+      session?.status === "closed" &&
+      session.sessionType === "morning" &&
+      activeSessionType === "evening"
+    ) {
+      setSessionType("evening");
+      return;
+    }
     if (session?.status === "closed") return;
     if (sessionType !== activeSessionType) {
       setSessionType(activeSessionType);
     }
-  }, [activeSessionType, session?.status, sessionType]);
+  }, [activeSessionType, session?.status, session?.sessionType, sessionType]);
 
   // Refresh schedule once when a phase boundary is crossed.
   useEffect(() => {
@@ -408,14 +433,16 @@ export default function DailyAuditPage() {
     };
   }, [countInput, noteInput, session, currentLine, canCount]);
 
-  const startSession = async () => {
-    if (!branchId || !countingOpen) return;
+  const startSession = async (type: SessionType = sessionType) => {
+    const windowOpen = activeSessionType === type;
+    if (!branchId || !windowOpen) return;
     setSaving(true);
     setError(null);
+    setSessionType(type);
     try {
       const created = await postDailyAuditSession({
         branchId,
-        sessionType,
+        sessionType: type,
       });
       setSession(created);
       setCurrentIndex(0);
@@ -517,15 +544,24 @@ export default function DailyAuditPage() {
             ).map(({ id, label, icon: Icon }) => {
               const active = sessionType === id;
               const open = activeSessionType === id;
+              // After morning is finished, always allow switching to PM
+              // (start when the evening window is open; otherwise show wait UI).
+              const allowAfterMorningDone =
+                id === "evening" && morningSessionDone;
+              const locked =
+                Boolean(today) &&
+                !open &&
+                activeSessionType != null &&
+                !allowAfterMorningDone;
               return (
                 <button
                   key={id}
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  disabled={Boolean(today) && !open && activeSessionType != null}
+                  disabled={locked}
                   onClick={() => {
-                    if (today && activeSessionType && !open) return;
+                    if (locked) return;
                     setSessionType(id);
                   }}
                   className={cn(
@@ -533,9 +569,7 @@ export default function DailyAuditPage() {
                     active
                       ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
                       : "text-muted-foreground active:scale-[0.98]",
-                    today && !open && activeSessionType != null
-                      ? "opacity-40"
-                      : "",
+                    locked ? "opacity-40" : "",
                   )}
                 >
                   <Icon className="size-3.5 opacity-80" aria-hidden />
@@ -631,12 +665,48 @@ export default function DailyAuditPage() {
                 {(session ?? todaySessionSummary)?.totalCount ?? today.itemCount}{" "}
                 counts saved
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {doneType === "morning"
-                  ? "Come back for the evening count when PM opens."
-                  : "Admin can review this day’s counts when ready."}
-              </p>
+              {doneType === "morning" && !eveningSessionDone ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {canStartEvening
+                    ? "Evening counting is open — start when ready."
+                    : nextOpenMs != null && nextOpenMs > 0 && nextOpenIsEvening
+                      ? `Evening opens in ${formatCountdown(nextOpenMs)}${
+                          today.eveningStartsAt
+                            ? ` (${today.eveningStartsAt}${
+                                today.eveningEndsAt
+                                  ? `–${today.eveningEndsAt}`
+                                  : ""
+                              })`
+                            : ""
+                        }.`
+                      : scheduleBanner?.tone === "closed"
+                        ? "Counting has ended for today."
+                        : "Come back for the evening count when PM opens."}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Admin can review this day’s counts when ready.
+                </p>
+              )}
             </div>
+            {doneType === "morning" && !eveningSessionDone && canRun ? (
+              <Button
+                size="lg"
+                className="mt-1 h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
+                disabled={saving || !canStartEvening}
+                onClick={() => void startSession("evening")}
+              >
+                {saving ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : canStartEvening ? (
+                  "Start evening count"
+                ) : nextOpenMs != null && nextOpenMs > 0 && nextOpenIsEvening ? (
+                  `Evening opens in ${formatCountdown(nextOpenMs)}`
+                ) : (
+                  "Evening count locked"
+                )}
+              </Button>
+            ) : null}
           </div>
         ) : !session && canRun && !countingOpen ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed px-5 py-8 text-center">
@@ -646,15 +716,32 @@ export default function DailyAuditPage() {
                 : activeSessionType === "evening"
                   ? "Evening count is open — switch to PM"
                   : nextOpenMs != null && nextOpenMs > 0
-                    ? `Morning opens in ${formatCountdown(nextOpenMs)}`
+                    ? `${nextOpenIsEvening ? "Evening" : "Morning"} opens in ${formatCountdown(nextOpenMs)}`
                     : "Counting is closed"}
             </p>
             <p className="text-sm text-muted-foreground">
-              {today.morningStartsAt && today.eveningStartsAt && today.countingEndsAt
-                ? `Windows ${today.morningStartsAt} → ${today.eveningStartsAt} → ${today.countingEndsAt}`
+              {today.morningStartsAt &&
+              today.morningEndsAt &&
+              today.eveningStartsAt &&
+              today.eveningEndsAt
+                ? `Windows ${today.morningStartsAt}–${today.morningEndsAt} · ${today.eveningStartsAt}–${today.eveningEndsAt}`
                 : "Ask an admin to set daily audit count windows."}
               {today.timezone ? ` (${today.timezone})` : ""}
             </p>
+            {canStartEvening ? (
+              <Button
+                size="lg"
+                className="mt-1 h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
+                disabled={saving}
+                onClick={() => void startSession("evening")}
+              >
+                {saving ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  "Start evening count"
+                )}
+              </Button>
+            ) : null}
           </div>
         ) : !session && canRun ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-border/70 bg-card/70 px-5 py-8 text-center shadow-sm backdrop-blur-sm">

@@ -21,8 +21,9 @@ import {
   TIER_SUGGESTIONS,
   DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
   DEFAULT_MORNING_STARTS_AT,
+  DEFAULT_MORNING_ENDS_AT,
   DEFAULT_EVENING_STARTS_AT,
-  DEFAULT_COUNTING_ENDS_AT,
+  DEFAULT_EVENING_ENDS_AT,
   MAX_DAILY_AUDIT_SAMPLE_SIZE,
   MIN_DAILY_AUDIT_SAMPLE_SIZE,
   clampDailyAuditSampleSize,
@@ -513,10 +514,10 @@ export function BusinessSettingsForm({
               <div className="space-y-2 pt-2">
                 <p className={labelClass()}>Daily audit count windows</p>
                 <p className={hintClass()}>
-                  Morning is open until evening starts; evening until counting
-                  ends. Times use the business timezone.
+                  Separate start and end for morning and evening. Times use the
+                  business timezone.
                 </p>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {(
                     [
                       {
@@ -526,16 +527,22 @@ export function BusinessSettingsForm({
                         fallback: DEFAULT_MORNING_STARTS_AT,
                       },
                       {
+                        id: "morningEndsAt",
+                        label: "Morning ends",
+                        value: inventory.morningEndsAt,
+                        fallback: DEFAULT_MORNING_ENDS_AT,
+                      },
+                      {
                         id: "eveningStartsAt",
                         label: "Evening starts",
                         value: inventory.eveningStartsAt,
                         fallback: DEFAULT_EVENING_STARTS_AT,
                       },
                       {
-                        id: "countingEndsAt",
-                        label: "Counting ends",
-                        value: inventory.countingEndsAt,
-                        fallback: DEFAULT_COUNTING_ENDS_AT,
+                        id: "eveningEndsAt",
+                        label: "Evening ends",
+                        value: inventory.eveningEndsAt,
+                        fallback: DEFAULT_EVENING_ENDS_AT,
                       },
                     ] as const
                   ).map((field) => (
@@ -574,22 +581,27 @@ export function BusinessSettingsForm({
                     DEFAULT_MORNING_STARTS_AT,
                   ),
                   normalizeDailyAuditTime(
+                    inventory.morningEndsAt,
+                    DEFAULT_MORNING_ENDS_AT,
+                  ),
+                  normalizeDailyAuditTime(
                     inventory.eveningStartsAt,
                     DEFAULT_EVENING_STARTS_AT,
                   ),
                   normalizeDailyAuditTime(
-                    inventory.countingEndsAt,
-                    DEFAULT_COUNTING_ENDS_AT,
+                    inventory.eveningEndsAt,
+                    DEFAULT_EVENING_ENDS_AT,
                   ),
                 ) ? (
                   <p className="text-xs text-destructive">
-                    Morning start must be before evening start, and evening
-                    start before counting end.
+                    Each window needs start before end, and morning must end at
+                    or before evening starts.
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Defaults {DEFAULT_MORNING_STARTS_AT} /{" "}
-                    {DEFAULT_EVENING_STARTS_AT} / {DEFAULT_COUNTING_ENDS_AT}.
+                    Defaults {DEFAULT_MORNING_STARTS_AT}–
+                    {DEFAULT_MORNING_ENDS_AT} / {DEFAULT_EVENING_STARTS_AT}–
+                    {DEFAULT_EVENING_ENDS_AT}.
                   </p>
                 )}
               </div>

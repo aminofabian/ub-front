@@ -26,8 +26,9 @@ export type InventoryForm = {
   showSystemStockToStockManager: boolean;
   dailyAuditSampleSize: number;
   morningStartsAt: string;
+  morningEndsAt: string;
   eveningStartsAt: string;
-  countingEndsAt: string;
+  eveningEndsAt: string;
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
   allowNegativeStock: boolean;
@@ -111,16 +112,18 @@ export const DEFAULT_DAILY_AUDIT_SAMPLE_SIZE = 25;
 export const MIN_DAILY_AUDIT_SAMPLE_SIZE = 1;
 export const MAX_DAILY_AUDIT_SAMPLE_SIZE = 200;
 
-export const DEFAULT_MORNING_STARTS_AT = "06:00";
-export const DEFAULT_EVENING_STARTS_AT = "17:00";
-export const DEFAULT_COUNTING_ENDS_AT = "21:00";
+export const DEFAULT_MORNING_STARTS_AT = "08:00";
+export const DEFAULT_MORNING_ENDS_AT = "09:00";
+export const DEFAULT_EVENING_STARTS_AT = "20:00";
+export const DEFAULT_EVENING_ENDS_AT = "21:00";
 
 export const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
   dailyAuditSampleSize: DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
   morningStartsAt: DEFAULT_MORNING_STARTS_AT,
+  morningEndsAt: DEFAULT_MORNING_ENDS_AT,
   eveningStartsAt: DEFAULT_EVENING_STARTS_AT,
-  countingEndsAt: DEFAULT_COUNTING_ENDS_AT,
+  eveningEndsAt: DEFAULT_EVENING_ENDS_AT,
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
   allowNegativeStock: false,
@@ -220,16 +223,18 @@ export function normalizeDailyAuditTime(
 
 export function isDailyAuditScheduleOrdered(
   morningStartsAt: string,
+  morningEndsAt: string,
   eveningStartsAt: string,
-  countingEndsAt: string,
+  eveningEndsAt: string,
 ): boolean {
   const toMinutes = (t: string) => {
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
   };
   return (
-    toMinutes(morningStartsAt) < toMinutes(eveningStartsAt) &&
-    toMinutes(eveningStartsAt) < toMinutes(countingEndsAt)
+    toMinutes(morningStartsAt) < toMinutes(morningEndsAt) &&
+    toMinutes(morningEndsAt) <= toMinutes(eveningStartsAt) &&
+    toMinutes(eveningStartsAt) < toMinutes(eveningEndsAt)
   );
 }
 
@@ -248,13 +253,19 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       b?.inventory?.stocktake?.morningStartsAt,
       DEFAULT_MORNING_STARTS_AT,
     ),
+    morningEndsAt: normalizeDailyAuditTime(
+      b?.inventory?.stocktake?.morningEndsAt ??
+        b?.inventory?.stocktake?.eveningStartsAt,
+      DEFAULT_MORNING_ENDS_AT,
+    ),
     eveningStartsAt: normalizeDailyAuditTime(
       b?.inventory?.stocktake?.eveningStartsAt,
       DEFAULT_EVENING_STARTS_AT,
     ),
-    countingEndsAt: normalizeDailyAuditTime(
-      b?.inventory?.stocktake?.countingEndsAt,
-      DEFAULT_COUNTING_ENDS_AT,
+    eveningEndsAt: normalizeDailyAuditTime(
+      b?.inventory?.stocktake?.eveningEndsAt ??
+        b?.inventory?.stocktake?.countingEndsAt,
+      DEFAULT_EVENING_ENDS_AT,
     ),
     allowStockEditForStockManager: Boolean(
       b?.inventory?.stockLevels?.allowStockEditForStockManager,

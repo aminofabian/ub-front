@@ -588,9 +588,13 @@ export type StocktakeSettingsRecord = {
   dailyAuditSampleSize?: number;
   /** Local wall-clock time when morning counting opens (HH:mm). */
   morningStartsAt?: string;
+  /** Local wall-clock time when morning counting closes (HH:mm). */
+  morningEndsAt?: string;
   /** Local wall-clock time when evening counting opens (HH:mm). */
   eveningStartsAt?: string;
-  /** Local wall-clock time when counting closes for the day (HH:mm). */
+  /** Local wall-clock time when evening counting closes (HH:mm). */
+  eveningEndsAt?: string;
+  /** @deprecated Legacy 3-time model; prefer eveningEndsAt. */
   countingEndsAt?: string;
 };
 
@@ -712,8 +716,9 @@ export type StocktakePatchPayload = {
   showSystemStockToStockManager?: boolean;
   dailyAuditSampleSize?: number;
   morningStartsAt?: string;
+  morningEndsAt?: string;
   eveningStartsAt?: string;
-  countingEndsAt?: string;
+  eveningEndsAt?: string;
 };
 
 export type StockLevelsPatchPayload = {
@@ -4954,8 +4959,9 @@ export type DailyAuditTodayRecord = {
   morningSession: DailyAuditSessionSummary | null;
   eveningSession: DailyAuditSessionSummary | null;
   morningStartsAt?: string;
+  morningEndsAt?: string;
   eveningStartsAt?: string;
-  countingEndsAt?: string;
+  eveningEndsAt?: string;
   timezone?: string;
   activeSessionType?: "morning" | "evening" | null;
   phaseEndsAt?: string | null;
