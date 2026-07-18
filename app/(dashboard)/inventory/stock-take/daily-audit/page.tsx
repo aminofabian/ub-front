@@ -146,20 +146,26 @@ export default function DailyAuditPage() {
 
   const phaseRemainingMs = msUntil(today?.phaseEndsAt, nowMs);
   const nextOpenMs = msUntil(today?.nextOpensAt, nowMs);
+  const ONE_HOUR_MS = 60 * 60 * 1000;
 
   const scheduleBanner = useMemo(() => {
     if (!today) return null;
     const tz = today.timezone ? ` · ${today.timezone}` : "";
+    const urgentTone = (remainingMs: number) =>
+      remainingMs > 0 && remainingMs < ONE_HOUR_MS
+        ? ("urgent" as const)
+        : null;
+
     if (activeSessionType === "morning" && phaseRemainingMs != null) {
       return {
         label: `Morning ends in ${formatCountdown(phaseRemainingMs)}${tz}`,
-        tone: "open" as const,
+        tone: urgentTone(phaseRemainingMs) ?? ("open" as const),
       };
     }
     if (activeSessionType === "evening" && phaseRemainingMs != null) {
       return {
         label: `Evening ends in ${formatCountdown(phaseRemainingMs)}${tz}`,
-        tone: "open" as const,
+        tone: urgentTone(phaseRemainingMs) ?? ("open" as const),
       };
     }
     if (nextOpenMs != null && nextOpenMs > 0) {
@@ -167,7 +173,10 @@ export default function DailyAuditPage() {
         today.morningStartsAt && nextOpenMs > 0
           ? `Morning opens in ${formatCountdown(nextOpenMs)}`
           : `Opens in ${formatCountdown(nextOpenMs)}`;
-      return { label: `${opensLabel}${tz}`, tone: "soon" as const };
+      return {
+        label: `${opensLabel}${tz}`,
+        tone: urgentTone(nextOpenMs) ?? ("soon" as const),
+      };
     }
     return {
       label: `Counting ended for today${
@@ -516,6 +525,8 @@ export default function DailyAuditPage() {
                   "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
                 scheduleBanner.tone === "soon" &&
                   "bg-amber-500/15 text-amber-900 dark:text-amber-100",
+                scheduleBanner.tone === "urgent" &&
+                  "animate-pulse bg-red-500/20 text-red-700 ring-1 ring-red-500/40 dark:text-red-300",
                 scheduleBanner.tone === "closed" &&
                   "bg-muted text-muted-foreground",
               )}
