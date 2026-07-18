@@ -999,23 +999,57 @@ export function SupplierCatalogColumn({
                 </tr>
               </thead>
               <tbody>
-                {itemLinks.map((row) => (
+                {[...itemLinks]
+                  .sort((a, b) => {
+                    const ap = (a.parentItemName || a.itemName || "").toLowerCase();
+                    const bp = (b.parentItemName || b.itemName || "").toLowerCase();
+                    if (ap !== bp) return ap.localeCompare(bp);
+                    return (a.itemName || "").localeCompare(b.itemName || "");
+                  })
+                  .map((row) => (
                   <tr key={row.id} className={supTableRow}>
                     <td className="max-w-0 border border-border/70 px-1.5 py-0.5">
-                      <div className="flex min-w-0 items-center gap-1">
-                        <span
-                          className="truncate font-medium text-foreground"
-                          title={row.itemName || row.itemId}
-                        >
-                          {row.itemName || row.itemId}
-                        </span>
-                        {row.primary ? (
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <div className="flex min-w-0 items-center gap-1">
+                          {row.variantOfItemId ? (
+                            <CornerDownRight
+                              className="size-3 shrink-0 text-primary/70"
+                              aria-hidden
+                            />
+                          ) : null}
                           <span
-                            className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-bold uppercase text-primary"
-                            title="Primary supplier for this product"
+                            className="truncate font-medium text-foreground"
+                            title={row.itemName || row.itemId}
                           >
-                            1°
+                            {row.itemName || row.itemId}
                           </span>
+                          {row.packageVariant ? (
+                            <span
+                              className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-bold uppercase text-primary"
+                              title="Package / pack variant"
+                            >
+                              Pack
+                            </span>
+                          ) : null}
+                          {row.primary ? (
+                            <span
+                              className="shrink-0 border border-primary/25 bg-primary/10 px-1 py-px text-[8px] font-bold uppercase text-primary"
+                              title="Primary supplier for this product"
+                            >
+                              1°
+                            </span>
+                          ) : null}
+                        </div>
+                        {row.parentItemName?.trim() ? (
+                          <p
+                            className="truncate pl-4 text-[10px] text-muted-foreground"
+                            title={`Parent product: ${row.parentItemName.trim()}`}
+                          >
+                            Parent · {row.parentItemName.trim()}
+                            {row.variantName?.trim()
+                              ? ` · ${row.variantName.trim()}`
+                              : ""}
+                          </p>
                         ) : null}
                       </div>
                     </td>

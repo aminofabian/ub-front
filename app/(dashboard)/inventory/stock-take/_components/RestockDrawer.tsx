@@ -285,7 +285,14 @@ export function RestockDrawer({
                     </tr>
                   </thead>
                   <tbody>
-                    {activeLinked.map((link) => {
+                    {[...activeLinked]
+                      .sort((a, b) => {
+                        const ap = (a.parentItemName || a.itemName || "").toLowerCase();
+                        const bp = (b.parentItemName || b.itemName || "").toLowerCase();
+                        if (ap !== bp) return ap.localeCompare(bp);
+                        return (a.itemName || "").localeCompare(b.itemName || "");
+                      })
+                      .map((link) => {
                       const isCurrent = link.itemId === itemId;
                       const pack =
                         link.packSize != null && link.packUnit
@@ -317,6 +324,11 @@ export function RestockDrawer({
                                   This item
                                 </span>
                               ) : null}
+                              {link.packageVariant ? (
+                                <span className="shrink-0 text-[9px] font-bold uppercase text-primary">
+                                  Pack
+                                </span>
+                              ) : null}
                               {link.primary ? (
                                 <span
                                   className="shrink-0 text-[9px] font-bold uppercase text-muted-foreground"
@@ -326,7 +338,11 @@ export function RestockDrawer({
                                 </span>
                               ) : null}
                             </div>
-                            {link.sku ? (
+                            {link.parentItemName?.trim() ? (
+                              <p className="truncate text-[10px] text-muted-foreground">
+                                Parent · {link.parentItemName.trim()}
+                              </p>
+                            ) : link.sku ? (
                               <p className="truncate font-mono text-[10px] text-muted-foreground">
                                 {link.sku}
                               </p>

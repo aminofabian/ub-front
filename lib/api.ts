@@ -957,6 +957,13 @@ export type SupplierItemLinkRecord = {
   packSize?: number | string | null;
   packUnit?: string | null;
   active: boolean;
+  /** When set, this catalog row is a variant/pack of another product. */
+  variantOfItemId?: string | null;
+  /** Display name of the parent product when this row is a variant. */
+  parentItemName?: string | null;
+  /** Variant option label (e.g. Medium, Pink). */
+  variantName?: string | null;
+  packageVariant?: boolean;
   version?: number;
   createdAt?: string;
   updatedAt?: string;
