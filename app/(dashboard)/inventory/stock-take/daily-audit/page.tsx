@@ -137,11 +137,18 @@ export default function DailyAuditPage() {
     : 0;
   const isLastItem = lines.length > 0 && currentIndex >= lines.length - 1;
   const sessionDone = session?.status === "closed";
+  // Prefer the completed session's own type — AM/PM toggle can flip to the
+  // schedule's open window and must not relabel a finished morning as evening.
+  const completedType: SessionType | null =
+    session?.sessionType === "morning" || session?.sessionType === "evening"
+      ? session.sessionType
+      : null;
   const todaySessionSummary =
     sessionType === "morning" ? today?.morningSession : today?.eveningSession;
   const todaySessionDone = todaySessionSummary?.status === "closed";
+  const doneType: SessionType = completedType ?? sessionType;
   const doneLabel =
-    sessionType === "morning" ? "Morning count done" : "Evening count done";
+    doneType === "morning" ? "Morning count done" : "Evening count done";
 
   const activeSessionType =
     today?.activeSessionType === "morning" ||
@@ -250,13 +257,15 @@ export default function DailyAuditPage() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Auto-select the open session when the schedule reports one.
+  // Auto-select the open session when the schedule reports one — but never
+  // yank away from a just-finished count (keeps "Morning count done" correct).
   useEffect(() => {
     if (!activeSessionType) return;
+    if (session?.status === "closed") return;
     if (sessionType !== activeSessionType) {
       setSessionType(activeSessionType);
     }
-  }, [activeSessionType]);
+  }, [activeSessionType, session?.status, sessionType]);
 
   // Refresh schedule once when a phase boundary is crossed.
   useEffect(() => {
@@ -347,6 +356,9 @@ export default function DailyAuditPage() {
           advance && currentIndex >= lines.length - 1;
         if (finishing) {
           updated = await postDailyAuditComplete(session.sessionId);
+          const finishedType =
+            updated.sessionType === "evening" ? "evening" : "morning";
+          setSessionType(finishedType);
           setSession(updated);
           await loadToday();
           return;
@@ -620,7 +632,7 @@ export default function DailyAuditPage() {
                 counts saved
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {sessionType === "morning"
+                {doneType === "morning"
                   ? "Come back for the evening count when PM opens."
                   : "Admin can review this day’s counts when ready."}
               </p>
