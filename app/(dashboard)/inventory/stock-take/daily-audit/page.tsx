@@ -991,7 +991,9 @@ export default function DailyAuditPage() {
           onOpenChange={setRestockOpen}
           sessionId={session.sessionId}
           lineId={currentLine.lineId}
+          itemId={currentLine.itemId}
           itemName={currentLine.itemName}
+          branchId={branchId}
           options={restockOptions}
           pendingSuggestion={pendingRestock}
           onSaved={setPendingRestock}
