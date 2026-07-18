@@ -233,7 +233,9 @@ export function SupplyPackQtyModal({
       amountSpent: spent,
       unitCost: unit,
     });
-    onOpenChange(false);
+    // Delay close so the Apply click cannot fall through onto
+    // "Post supply" under the dialog (same bottom-right area).
+    window.setTimeout(() => onOpenChange(false), 0);
   };
 
   const knownUnitSelected = PACK_UNIT_OPTIONS.some(
@@ -266,6 +268,7 @@ export function SupplyPackQtyModal({
           className="flex min-h-0 flex-1 flex-col"
           onSubmit={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             handleApply();
           }}
         >
@@ -461,7 +464,15 @@ export function SupplyPackQtyModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!canApply}>
+            <Button
+              type="button"
+              disabled={!canApply}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleApply();
+              }}
+            >
               {applyLabel}
             </Button>
           </DialogFooter>

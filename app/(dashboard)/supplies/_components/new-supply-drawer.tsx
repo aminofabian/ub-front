@@ -424,6 +424,8 @@ export function NewSupplyDrawer({
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
   const packModalOpenRef = useRef(false);
+  /** Ignore Post supply briefly after pack modal closes (click-through guard). */
+  const suppressPostUntilRef = useRef(0);
 
   useEffect(() => {
     addLineOpenRef.current = addLineOpen;
@@ -440,6 +442,9 @@ export function NewSupplyDrawer({
   );
 
   const handlePackModalOpenChange = useCallback((open: boolean) => {
+    if (packModalOpenRef.current && !open) {
+      suppressPostUntilRef.current = Date.now() + 400;
+    }
     packModalOpenRef.current = open;
   }, []);
 
@@ -1127,6 +1132,9 @@ export function NewSupplyDrawer({
         className="flex flex-col gap-2 pb-0"
         onSubmit={(e) => {
           e.preventDefault();
+          if (Date.now() < suppressPostUntilRef.current) {
+            return;
+          }
           void onSubmit();
         }}
       >
