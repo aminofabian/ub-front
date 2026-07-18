@@ -169,6 +169,8 @@ type SupplyShelfPriceCellProps = {
   /** When set, renders a field label above the control (mobile cards). */
   label?: string;
   onEnterNext?: () => void;
+  /** Hide under-cell “Below cost” / margin chrome. */
+  quiet?: boolean;
 };
 
 export function SupplyShelfPriceCell({
@@ -183,6 +185,7 @@ export function SupplyShelfPriceCell({
   touch = false,
   label,
   onEnterNext,
+  quiet = false,
 }: SupplyShelfPriceCellProps) {
   const tone = resolveShelfTone(
     value,
@@ -261,24 +264,26 @@ export function SupplyShelfPriceCell({
         ) : null}
       </div>
 
-      <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
-        {hint?.loading ? (
-          <span className="text-[10px] text-muted-foreground">…</span>
-        ) : belowCost ? (
-          <span className="text-[10px] font-medium text-red-700 dark:text-red-300">
-            Below cost
-          </span>
-        ) : !compact || touch ? (
-          <>
-            {margin && retail != null && unit != null && retail >= unit ? (
-              <span className="text-[10px] font-medium text-primary">{margin}</span>
-            ) : null}
-            {!canSetSellPrice ? (
-              <span className="text-[10px] text-muted-foreground">View only</span>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+      {!quiet ? (
+        <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
+          {hint?.loading ? (
+            <span className="text-[10px] text-muted-foreground">…</span>
+          ) : belowCost ? (
+            <span className="text-[10px] font-medium text-red-700 dark:text-red-300">
+              Below cost
+            </span>
+          ) : !compact || touch ? (
+            <>
+              {margin && retail != null && unit != null && retail >= unit ? (
+                <span className="text-[10px] font-medium text-primary">{margin}</span>
+              ) : null}
+              {!canSetSellPrice ? (
+                <span className="text-[10px] text-muted-foreground">View only</span>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

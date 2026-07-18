@@ -150,6 +150,8 @@ type SupplyQtyCellProps = CompactProps & {
   packDefaults?: SupplyPackQtyDefaults | null;
   /** Notify parent when pack modal opens so nested drawers don't dismiss. */
   onPackModalOpenChange?: (open: boolean) => void;
+  /** Hide under-cell hints for a denser receiving grid. */
+  quiet?: boolean;
 };
 
 export function SupplyQtyCell({
@@ -166,6 +168,7 @@ export function SupplyQtyCell({
   onEnterCost,
   packDefaults = null,
   onPackModalOpenChange,
+  quiet = false,
 }: SupplyQtyCellProps) {
   const parsed = parsePositiveQty(value);
   const hasText = value.trim().length > 0;
@@ -244,7 +247,7 @@ export function SupplyQtyCell({
           <Package className={touch ? "size-3.5" : "size-3"} aria-hidden />
         </button>
       </div>
-      {!touch ? (
+      {!quiet && !touch ? (
         <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
@@ -268,7 +271,7 @@ export function SupplyQtyCell({
             </>
           )}
         </div>
-      ) : packHint ? (
+      ) : !quiet && packHint ? (
         <span className="text-[10px] font-medium text-muted-foreground">{packHint}</span>
       ) : null}
 
@@ -597,6 +600,8 @@ type SupplyCostCellProps = CompactProps & {
   /** Line total (qty × cost) — shown under cost when compact (replaces Total column). */
   lineTotal?: number | null;
   onEnterNext?: () => void;
+  /** Hide under-cell totals for a denser receiving grid. */
+  quiet?: boolean;
 };
 
 export function SupplyCostCell({
@@ -609,6 +614,7 @@ export function SupplyCostCell({
   touch = false,
   label,
   onEnterNext,
+  quiet = false,
 }: SupplyCostCellProps) {
   const parsed = parseNonNeg(value);
   const hasText = value.trim().length > 0;
@@ -660,7 +666,7 @@ export function SupplyCostCell({
           data-nsd-cost=""
         />
       </div>
-      {!touch ? (
+      {!quiet && !touch ? (
         <div className="flex min-h-[0.875rem] min-w-0 flex-wrap items-center justify-end gap-1 leading-none">
           {tone === "invalid" ? (
             <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
@@ -787,6 +793,8 @@ type SupplyExpiryCellProps = CompactProps & {
   /** YYYY-MM-DD base for +N day chips (usually receive date). */
   baseYmd: string;
   onEnterNext?: () => void;
+  /** Only show +Nd chips while focused (keeps the grid calm). */
+  quiet?: boolean;
 };
 
 export function SupplyExpiryCell({
@@ -798,10 +806,13 @@ export function SupplyExpiryCell({
   touch = false,
   label = "Expires",
   onEnterNext,
+  quiet = false,
 }: SupplyExpiryCellProps) {
   const showLabel = Boolean(label) && (touch || !compact);
   const [showChips, setShowChips] = useState(false);
-  const chipsVisible = touch || showChips || !value.trim();
+  const chipsVisible = quiet
+    ? showChips
+    : touch || showChips || !value.trim();
 
   return (
     <div

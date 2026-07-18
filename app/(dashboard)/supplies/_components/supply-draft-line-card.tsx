@@ -69,10 +69,12 @@ type SupplyDraftLineCardProps = {
   receivedYmd: string;
   packDefaults?: SupplyPackQtyDefaults | null;
   onPackModalOpenChange?: (open: boolean) => void;
+  /** When false, sell stays in the More section so the card is qty + cost first. */
+  showSellExpiry?: boolean;
 };
 
 /**
- * Compact mobile receiving ticket — stock + qty / cost / retail, expiry with +Nd.
+ * Compact mobile receiving ticket — qty / cost first; sell & expiry optional.
  */
 export function SupplyDraftLineCard({
   row,
@@ -107,8 +109,11 @@ export function SupplyDraftLineCard({
   receivedYmd,
   packDefaults = null,
   onPackModalOpenChange,
+  showSellExpiry = false,
 }: SupplyDraftLineCardProps) {
-  const [moreOpen, setMoreOpen] = useState(Boolean(row.expiry.trim()));
+  const [moreOpen, setMoreOpen] = useState(
+    Boolean(row.expiry.trim()) || showSellExpiry,
+  );
 
   return (
     <article
@@ -207,9 +212,15 @@ export function SupplyDraftLineCard({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
+      <div
+        className={cn(
+          "grid gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5",
+          showSellExpiry ? "grid-cols-3" : "grid-cols-2",
+        )}
+      >
         <SupplyQtyCell
           touch
+          quiet
           label="Qty"
           value={row.qtyStr}
           onChange={onQtyChange}
@@ -223,28 +234,36 @@ export function SupplyDraftLineCard({
         />
         <SupplyCostCell
           touch
+          quiet
           label="Cost"
           value={row.unitStr}
           onChange={onUnitChange}
           disabled={busy}
           referenceCost={referenceCost}
-          onEnterNext={onFocusRetail}
+          onEnterNext={
+            showSellExpiry
+              ? onFocusRetail
+              : onQtyEnterNext
+          }
         />
-        <SupplyShelfPriceCell
-          touch
-          label="Sell"
-          value={row.sellPriceStr}
-          onChange={onSellPriceChange}
-          disabled={busy || !hasItemId}
-          canSetSellPrice={canSetSellPrice}
-          hint={pricingHint}
-          unitStr={row.unitStr}
-          sellPriceTouched={row.sellPriceTouched}
-          onEnterNext={() => {
-            setMoreOpen(true);
-            onFocusExpiry?.();
-          }}
-        />
+        {showSellExpiry ? (
+          <SupplyShelfPriceCell
+            touch
+            quiet
+            label="Sell"
+            value={row.sellPriceStr}
+            onChange={onSellPriceChange}
+            disabled={busy || !hasItemId}
+            canSetSellPrice={canSetSellPrice}
+            hint={pricingHint}
+            unitStr={row.unitStr}
+            sellPriceTouched={row.sellPriceTouched}
+            onEnterNext={() => {
+              setMoreOpen(true);
+              onFocusExpiry?.();
+            }}
+          />
+        ) : null}
       </div>
 
       <div className="border-t border-border/50">
@@ -255,7 +274,13 @@ export function SupplyDraftLineCard({
           onClick={() => setMoreOpen((o) => !o)}
         >
           <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {row.expiry.trim() ? `Expires ${row.expiry}` : "Expiry (optional)"}
+            {row.expiry.trim()
+              ? `Expires ${row.expiry}`
+              : showSellExpiry
+                ? "Expiry (optional)"
+                : row.sellPriceStr.trim()
+                  ? `Sell ${row.sellPriceStr} · more`
+                  : "Sell / expiry (optional)"}
           </span>
           <ChevronDown
             className={cn(
@@ -266,9 +291,25 @@ export function SupplyDraftLineCard({
           />
         </button>
         {moreOpen ? (
-          <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2">
+          <div className="space-y-2 border-t border-border/50 px-2.5 pb-2.5 pt-2">
+            {!showSellExpiry ? (
+              <SupplyShelfPriceCell
+                touch
+                quiet
+                label="Sell"
+                value={row.sellPriceStr}
+                onChange={onSellPriceChange}
+                disabled={busy || !hasItemId}
+                canSetSellPrice={canSetSellPrice}
+                hint={pricingHint}
+                unitStr={row.unitStr}
+                sellPriceTouched={row.sellPriceTouched}
+                onEnterNext={onFocusExpiry}
+              />
+            ) : null}
             <SupplyExpiryCell
               touch
+              quiet
               value={row.expiry}
               onChange={onExpiryChange}
               disabled={busy}
