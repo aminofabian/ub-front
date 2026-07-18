@@ -543,7 +543,7 @@ export function CloseShiftModal({
     }
     if (showVarianceReason && !varianceReason.trim()) {
       setError(
-        `Variance of ${moneyStr(variance)} exceeds the threshold. Please provide a reason.`,
+        "Counted amount does not match the expected amount. Please provide a reason.",
       );
       return;
     }
@@ -573,7 +573,6 @@ export function CloseShiftModal({
     showVarianceReason,
     onClosed,
     onClose,
-    variance,
   ]);
 
   return (
