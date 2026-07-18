@@ -32,6 +32,7 @@ import {
   fetchDailyAuditToday,
   patchDailyAuditLine,
   patchDailyAuditProgress,
+  postDailyAuditComplete,
   postDailyAuditSession,
   type BranchRecord,
   type DailyAuditLineRecord,
@@ -135,6 +136,12 @@ export default function DailyAuditPage() {
     ? ((currentIndex + 1) / lines.length) * 100
     : 0;
   const isLastItem = lines.length > 0 && currentIndex >= lines.length - 1;
+  const sessionDone = session?.status === "closed";
+  const todaySessionSummary =
+    sessionType === "morning" ? today?.morningSession : today?.eveningSession;
+  const todaySessionDone = todaySessionSummary?.status === "closed";
+  const doneLabel =
+    sessionType === "morning" ? "Morning count done" : "Evening count done";
 
   const activeSessionType =
     today?.activeSessionType === "morning" ||
@@ -142,7 +149,7 @@ export default function DailyAuditPage() {
       ? today.activeSessionType
       : null;
   const countingOpen = activeSessionType === sessionType;
-  const canCount = Boolean(canRun && countingOpen);
+  const canCount = Boolean(canRun && countingOpen && !sessionDone);
 
   const phaseRemainingMs = msUntil(today?.phaseEndsAt, nowMs);
   const nextOpenMs = msUntil(today?.nextOpensAt, nowMs);
@@ -326,7 +333,7 @@ export default function DailyAuditPage() {
       setSaving(true);
       setError(null);
       try {
-        const updated = await patchDailyAuditLine(
+        let updated = await patchDailyAuditLine(
           session.sessionId,
           currentLine.lineId,
           {
@@ -335,6 +342,16 @@ export default function DailyAuditPage() {
           },
         );
         setSession(updated);
+
+        const finishing =
+          advance && currentIndex >= lines.length - 1;
+        if (finishing) {
+          updated = await postDailyAuditComplete(session.sessionId);
+          setSession(updated);
+          await loadToday();
+          return;
+        }
+
         const nextIndex = advance
           ? Math.min(currentIndex + 1, lines.length - 1)
           : currentIndex;
@@ -357,6 +374,7 @@ export default function DailyAuditPage() {
       currentIndex,
       lines.length,
       persistProgress,
+      loadToday,
     ],
   );
 
@@ -589,6 +607,25 @@ export default function DailyAuditPage() {
           <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed px-4 text-center text-sm text-muted-foreground">
             No audit today
           </div>
+        ) : sessionDone || todaySessionDone ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
+            <CheckCircle2 className="h-12 w-12 text-emerald-600" />
+            <div>
+              <p className="text-lg font-semibold">{doneLabel}</p>
+              <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
+                {(session ?? todaySessionSummary)?.submittedCount ??
+                  today.itemCount}
+                /
+                {(session ?? todaySessionSummary)?.totalCount ?? today.itemCount}{" "}
+                counts saved
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {sessionType === "morning"
+                  ? "Come back for the evening count when PM opens."
+                  : "Admin can review this day’s counts when ready."}
+              </p>
+            </div>
+          </div>
         ) : !session && canRun && !countingOpen ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed px-5 py-8 text-center">
             <p className="text-base font-semibold text-foreground">
@@ -633,7 +670,7 @@ export default function DailyAuditPage() {
               )}
             </Button>
           </div>
-        ) : session && currentLine ? (
+        ) : session && currentLine && !sessionDone ? (
           <div
             key={currentLine.lineId}
             className={cn(
@@ -805,21 +842,11 @@ export default function DailyAuditPage() {
               ) : null}
             </div>
           </div>
-        ) : session ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-5 text-center dark:border-emerald-900 dark:bg-emerald-950/30">
-            <CheckCircle2 className="h-12 w-12 text-emerald-600" />
-            <div>
-              <p className="text-lg font-semibold">Session complete</p>
-              <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
-                {session.submittedCount}/{session.totalCount} counts saved
-              </p>
-            </div>
-          </div>
         ) : null}
       </div>
 
       {/* Thumb dock */}
-      {session && currentLine && canCount ? (
+      {session && currentLine && canCount && !sessionDone ? (
         <div className="shrink-0 pt-3">
           <div className="flex gap-2 rounded-2xl border border-border/60 bg-background/95 p-1.5 shadow-lg shadow-black/5 backdrop-blur-md">
             <Button
@@ -842,7 +869,11 @@ export default function DailyAuditPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  {isLastItem ? "Save" : "Next"}
+                  {isLastItem
+                    ? sessionType === "morning"
+                      ? "Finish morning"
+                      : "Finish evening"
+                    : "Next"}
                   {!isLastItem ? (
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   ) : (

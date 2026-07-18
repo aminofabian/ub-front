@@ -5089,6 +5089,15 @@ export async function patchDailyAuditProgress(
   );
 }
 
+export async function postDailyAuditComplete(
+  sessionId: string,
+): Promise<DailyAuditSessionRecord> {
+  return request<DailyAuditSessionRecord>(
+    `/api/v1/inventory/stock-take/daily-audits/sessions/${encodeURIComponent(sessionId)}/complete`,
+    { method: "POST" },
+  );
+}
+
 export async function fetchDailyAuditReview(
   branchId: string,
   auditDate?: string,
