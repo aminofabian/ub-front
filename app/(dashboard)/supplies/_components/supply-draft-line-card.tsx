@@ -213,6 +213,7 @@ export function SupplyDraftLineCard({
           label="Qty"
           value={row.qtyStr}
           onChange={onQtyChange}
+          onUnitCostChange={onUnitChange}
           disabled={busy}
           isReady={isReady}
           packDefaults={packDefaults}

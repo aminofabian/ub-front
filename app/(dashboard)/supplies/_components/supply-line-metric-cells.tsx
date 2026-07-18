@@ -136,6 +136,8 @@ function metricText(compact: boolean, touch: boolean): string {
 type SupplyQtyCellProps = CompactProps & {
   value: string;
   onChange?: (value: string) => void;
+  /** Set buying price when pack modal includes amount spent. */
+  onUnitCostChange?: (value: string) => void;
   disabled?: boolean;
   isReady?: boolean;
   /** Stock after receiving — shown under qty when compact (replaces separate After column). */
@@ -153,6 +155,7 @@ type SupplyQtyCellProps = CompactProps & {
 export function SupplyQtyCell({
   value,
   onChange,
+  onUnitCostChange,
   disabled = false,
   isReady = false,
   compact = false,
@@ -276,7 +279,12 @@ export function SupplyQtyCell({
         onApply={(result) => {
           setPackHint(formatPackQtyHint(result));
           onChange?.(formatQtyInput(result.totalQty));
-          onEnterCost?.();
+          if (result.unitCost != null) {
+            onUnitCostChange?.(result.unitCost.toFixed(2));
+            onEnterNext?.();
+          } else {
+            onEnterCost?.();
+          }
         }}
       />
     </div>

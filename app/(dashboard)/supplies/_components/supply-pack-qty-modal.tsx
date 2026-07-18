@@ -39,6 +39,10 @@ export type SupplyPackQtyApply = {
   packCount: number;
   unitsPerPack: number;
   packUnit: string;
+  /** Total money paid for these packs (optional). */
+  amountSpent: number | null;
+  /** Buying price per stock unit when amount spent was provided. */
+  unitCost: number | null;
 };
 
 type SupplyPackQtyModalProps = {
@@ -54,10 +58,24 @@ function toPositiveNumber(raw: string | number | null | undefined): number | nul
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function toNonNegNumber(raw: string | number | null | undefined): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 function formatQty(n: number): string {
   return Number.isInteger(n)
     ? String(n)
     : String(Math.round(n * 10000) / 10000);
+}
+
+function formatMoney(n: number): string {
+  return n.toFixed(2);
+}
+
+function roundMoney2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 function pluralizePack(unit: string, count: number): string {
@@ -69,7 +87,11 @@ function pluralizePack(unit: string, count: number): string {
 
 export function formatPackQtyHint(result: SupplyPackQtyApply): string {
   const unit = result.packUnit.trim() || "pack";
-  return `${formatQty(result.packCount)} × ${formatQty(result.unitsPerPack)} / ${unit}`;
+  const packPart = `${formatQty(result.packCount)} × ${formatQty(result.unitsPerPack)} / ${unit}`;
+  if (result.unitCost != null) {
+    return `${packPart} · @ ${formatMoney(result.unitCost)}`;
+  }
+  return packPart;
 }
 
 /** Prefill pack calculator from supplier link and/or catalog packaging. */
@@ -120,6 +142,7 @@ export function SupplyPackQtyModal({
   const [customUnit, setCustomUnit] = useState("");
   const [packsStr, setPacksStr] = useState("");
   const [unitsPerPackStr, setUnitsPerPackStr] = useState(initialSize);
+  const [amountSpentStr, setAmountSpentStr] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -140,6 +163,7 @@ export function SupplyPackQtyModal({
     }
     setPacksStr("");
     setUnitsPerPackStr(initialSize);
+    setAmountSpentStr("");
     setError(null);
     return () => window.clearTimeout(timer);
   }, [open, initialUnit, initialSize]);
@@ -157,10 +181,28 @@ export function SupplyPackQtyModal({
 
   const packs = toPositiveNumber(packsStr);
   const unitsPerPack = toPositiveNumber(unitsPerPackStr);
+  const amountSpentRaw = amountSpentStr.trim();
+  const amountSpentParsed =
+    amountSpentRaw === "" ? null : toNonNegNumber(amountSpentStr);
+  const amountSpentInvalid =
+    amountSpentRaw !== "" && amountSpentParsed == null;
+
   const totalQty =
     packs != null && unitsPerPack != null
       ? Math.round(packs * unitsPerPack * 10000) / 10000
       : null;
+
+  const unitCost =
+    totalQty != null && amountSpentParsed != null && totalQty > 0
+      ? roundMoney2(amountSpentParsed / totalQty)
+      : null;
+
+  const costPerPack =
+    packs != null && amountSpentParsed != null && packs > 0
+      ? roundMoney2(amountSpentParsed / packs)
+      : null;
+
+  const canApply = totalQty != null && !amountSpentInvalid;
 
   const handleApply = () => {
     if (packs == null) {
@@ -175,12 +217,21 @@ export function SupplyPackQtyModal({
       setError("Choose a pack name (tray, crate, …).");
       return;
     }
+    if (amountSpentInvalid) {
+      setError("Amount spent must be 0 or a positive number.");
+      return;
+    }
     const total = Math.round(packs * unitsPerPack * 10000) / 10000;
+    const spent = amountSpentParsed;
+    const unit =
+      spent != null && total > 0 ? roundMoney2(spent / total) : null;
     onApply({
       totalQty: total,
       packCount: packs,
       unitsPerPack,
       packUnit: resolvedUnit,
+      amountSpent: spent,
+      unitCost: unit,
     });
     onOpenChange(false);
   };
@@ -191,10 +242,17 @@ export function SupplyPackQtyModal({
   const selectValue =
     packUnit === "__custom__" || !knownUnitSelected ? "__custom__" : packUnit;
 
+  const applyLabel =
+    totalQty == null
+      ? "Use qty"
+      : unitCost != null
+        ? `Use ${formatQty(totalQty)} @ ${formatMoney(unitCost)}`
+        : `Use ${formatQty(totalQty)}`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-[300] flex max-h-[min(92dvh,28rem)] w-[calc(100vw-1.5rem)] max-w-sm flex-col gap-0 overflow-hidden p-0 sm:w-full"
+        className="z-[300] flex max-h-[min(92dvh,36rem)] w-[calc(100vw-1.5rem)] max-w-sm flex-col gap-0 overflow-hidden p-0 sm:w-full"
         overlayClassName="z-[295]"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => {
@@ -223,10 +281,11 @@ export function SupplyPackQtyModal({
                   <span className="font-medium text-foreground">
                     {defaults.productLabel.trim()}
                   </span>
-                  . Enter packs and units per pack — we fill qty in units.
+                  . Enter packs, units per pack, and what you paid — we fill qty
+                  and unit cost.
                 </>
               ) : (
-                "Enter packs and units per pack — we fill qty in units."
+                "Enter packs, units per pack, and what you paid — we fill qty and unit cost."
               )}
             </DialogDescription>
           </DialogHeader>
@@ -309,35 +368,88 @@ export function SupplyPackQtyModal({
               </label>
             </div>
 
+            <label className="flex flex-col gap-1">
+              <span className={nsdFieldLabel}>Amount spent (total)</span>
+              <input
+                className={cn(nsdInput, "text-right font-mono tabular-nums")}
+                value={amountSpentStr}
+                onChange={(e) => {
+                  setAmountSpentStr(e.target.value);
+                  setError(null);
+                }}
+                inputMode="decimal"
+                placeholder="e.g. 4500"
+                autoComplete="off"
+                aria-invalid={amountSpentInvalid || undefined}
+              />
+              <span className="text-[11px] text-muted-foreground">
+                What you paid for all {pluralizePack(resolvedUnit, packs ?? 2)}{" "}
+                — used to calculate unit cost.
+              </span>
+            </label>
+
             <div
               className={cn(
-                "rounded-sm border px-3 py-2.5",
+                "space-y-2 rounded-sm border px-3 py-2.5",
                 totalQty != null
                   ? "border-primary/35 bg-primary/[0.06]"
                   : "border-border/70 bg-muted/20",
               )}
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Qty in (units)
-              </p>
-              <p
-                className={cn(
-                  "mt-0.5 font-mono text-lg font-semibold tabular-nums",
-                  totalQty != null ? "text-primary" : "text-muted-foreground/50",
-                )}
-              >
-                {totalQty != null ? formatQty(totalQty) : "—"}
-              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Qty in (units)
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-0.5 font-mono text-lg font-semibold tabular-nums",
+                      totalQty != null
+                        ? "text-primary"
+                        : "text-muted-foreground/50",
+                    )}
+                  >
+                    {totalQty != null ? formatQty(totalQty) : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Unit cost
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-0.5 font-mono text-lg font-semibold tabular-nums",
+                      unitCost != null
+                        ? "text-primary"
+                        : "text-muted-foreground/50",
+                    )}
+                  >
+                    {unitCost != null ? formatMoney(unitCost) : "—"}
+                  </p>
+                </div>
+              </div>
               {totalQty != null ? (
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground">
                   {formatQty(packs!)} {pluralizePack(resolvedUnit, packs!)} ×{" "}
                   {formatQty(unitsPerPack!)} units
+                  {amountSpentParsed != null
+                    ? ` · spent ${formatMoney(amountSpentParsed)}`
+                    : ""}
+                  {costPerPack != null
+                    ? ` · ${formatMoney(costPerPack)} / ${resolvedUnit}`
+                    : ""}
                 </p>
               ) : (
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Fill both fields to calculate total units.
+                <p className="text-[11px] text-muted-foreground">
+                  Fill packs and units per pack to calculate qty. Add amount
+                  spent to fill unit cost on the line.
                 </p>
               )}
+              {amountSpentInvalid ? (
+                <p className="text-[11px] font-medium text-amber-800 dark:text-amber-200">
+                  Enter a valid amount spent (0 or more).
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -349,8 +461,8 @@ export function SupplyPackQtyModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={totalQty == null}>
-              Use {totalQty != null ? formatQty(totalQty) : "qty"}
+            <Button type="submit" disabled={!canApply}>
+              {applyLabel}
             </Button>
           </DialogFooter>
         </form>

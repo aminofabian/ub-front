@@ -1510,6 +1510,13 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
+                        onUnitCostChange={(value) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key ? { ...r, unitStr: value } : r,
+                            ),
+                          )
+                        }
                         onEnterCost={() => focusNsdField(row.key, "cost")}
                         onEnterNext={() => focusNextEmptyQty(row.key)}
                         disabled={busy}
