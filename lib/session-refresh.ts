@@ -122,6 +122,17 @@ function clearRefreshTimer() {
   }
 }
 
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+    return true;
+  }
+  return target.isContentEditable;
+}
+
 function onActivity() {
   const exp = getAccessTokenExpiry();
   if (!exp) return;
@@ -143,7 +154,7 @@ function onActivity() {
   }
 }
 
-const ACTIVITY_EVENTS = ["mousedown", "keydown", "touchstart", "focus"];
+const ACTIVITY_EVENTS = ["mousedown", "keydown", "touchstart", "focus"] as const;
 
 export function startSessionRefresh(): () => void {
   if (typeof window === "undefined") {
@@ -175,7 +186,17 @@ export function startSessionRefresh(): () => void {
     scheduleNextRefresh();
   }
 
-  const handler = () => onActivity();
+  /*
+   * Skip keydown from inputs/textareas so POS product search typing does not
+   * race activity-triggered refresh against search 401 recovery.
+   * Clicks / touch / focus still count as activity.
+   */
+  const handler = (event: Event) => {
+    if (event.type === "keydown" && isTypingTarget(event.target)) {
+      return;
+    }
+    onActivity();
+  };
   for (const event of ACTIVITY_EVENTS) {
     window.addEventListener(event, handler, { passive: true });
   }

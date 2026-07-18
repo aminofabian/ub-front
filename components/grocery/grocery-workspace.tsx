@@ -446,6 +446,7 @@ export function GroceryWorkspace() {
       size: 50,
       catalogScope: "SKUS_ONLY",
       sort: [{ property: "name", direction: "asc" }],
+      softAuth: true,
     })
       .then((items) => {
         if (cancelled) return;
@@ -521,6 +522,7 @@ export function GroceryWorkspace() {
         page: 0,
         size: 50,
         catalogScope: "SKUS_ONLY",
+        softAuth: true,
       })
         .then((items) => {
           if (cancelled) return;

@@ -154,7 +154,7 @@ export function CashierCreateProductModal({
     let cancelled = false;
     setRelatedBusy(true);
     const t = window.setTimeout(() => {
-      void fetchItems(q, { size: 8, catalogScope: "ALL" })
+      void fetchItems(q, { size: 8, catalogScope: "ALL", softAuth: true })
         .then((rows) => {
           if (!cancelled) setRelatedHits(rows);
         })

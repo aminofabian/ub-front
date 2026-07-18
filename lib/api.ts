@@ -58,6 +58,14 @@ type RequestOptions = {
   toast?: boolean;
   /** Override client fetch abort timeout (default 25s). STK retries may need longer. */
   timeoutMs?: number;
+  /**
+   * High-frequency / best-effort calls (e.g. POS catalog search). Still attempts
+   * token refresh on 401, but never hard-redirects to login on session failure —
+   * the caller surfaces a soft error instead.
+   */
+  softAuth?: boolean;
+  /** Abort in-flight request (e.g. superseded POS search). */
+  signal?: AbortSignal;
 };
 
 /** Thrown for non-OK API responses; message includes validation field errors when present. */
@@ -104,9 +112,13 @@ function failRequest(
 function signOutClientForProblem(
   status: number,
   payload: unknown,
-  options?: { requiresAuth?: boolean },
+  options?: { requiresAuth?: boolean; softAuth?: boolean },
 ): boolean {
   if (!isSessionRelatedProblem(status, payload, options)) {
+    return false;
+  }
+  if (options?.softAuth) {
+    // Soft-auth callers (POS search) keep the tab on the till and show a banner.
     return false;
   }
   signOutClientAndRedirectToLogin("session-related API problem");
@@ -123,7 +135,7 @@ function signOutClientForProblem(
 async function resolveUnauthorizedResponse(
   response: Response,
   execute: () => Promise<Response>,
-  options?: { requiresAuth?: boolean; toast?: boolean },
+  options?: { requiresAuth?: boolean; toast?: boolean; softAuth?: boolean },
 ): Promise<Response> {
   const payload = await response
     .clone()
@@ -132,14 +144,18 @@ async function resolveUnauthorizedResponse(
   const problem = parseProblem(payload);
 
   // Definitive dead-account signals: the user record itself is gone / locked.
-  // No refresh can recover from these — sign out immediately.
+  // No refresh can recover from these — sign out immediately (even softAuth).
   if (
     problem?.title === "User not found" ||
     problem?.title === "Account is not active" ||
     problem?.title === "Account is temporarily locked" ||
     problem?.title === "Invalid token claims"
   ) {
-    signOutClientForProblem(response.status, payload, options);
+    signOutClientForProblem(response.status, payload, {
+      requiresAuth: options?.requiresAuth,
+      // Dead-account must always hard-logout.
+      softAuth: false,
+    });
     throw new ApiRequestError(
       formatApiProblemMessage(payload),
       response.status,
@@ -160,6 +176,10 @@ async function resolveUnauthorizedResponse(
     );
     if (recovered) {
       return execute();
+    }
+    if (options?.softAuth) {
+      // Keep the cashier on the till; caller shows a soft banner / cache.
+      failRequest(response.status, payload, options);
     }
     // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
     signOutClientAndRedirectToLogin("401 after refresh rejected");
@@ -202,13 +222,31 @@ function fetchWithClientTimeout(
   );
   const { signal: existingSignal, ...rest } = init;
   if (existingSignal) {
-    existingSignal.addEventListener("abort", () => controller.abort(), {
-      once: true,
-    });
+    if (existingSignal.aborted) {
+      window.clearTimeout(timer);
+      controller.abort();
+    } else {
+      existingSignal.addEventListener("abort", () => controller.abort(), {
+        once: true,
+      });
+    }
   }
-  return fetch(url, { ...rest, signal: controller.signal }).finally(() => {
-    window.clearTimeout(timer);
-  });
+  return fetch(url, { ...rest, signal: controller.signal })
+    .catch((error: unknown) => {
+      if (error instanceof Error && error.name === "AbortError") {
+        // Caller cancelled (e.g. superseded POS search) — preserve AbortError.
+        if (existingSignal?.aborted) {
+          throw error;
+        }
+        throw new Error(
+          "Request timed out. Check your connection and try again.",
+        );
+      }
+      throw error;
+    })
+    .finally(() => {
+      window.clearTimeout(timer);
+    });
 }
 
 const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
@@ -1240,9 +1278,17 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
     } catch {
       return { kind: "network" };
     }
+
+    // Only a definitive 401 after recovery means the refresh token is dead.
+    return { kind: "rejected" };
   }
 
-  return { kind: "rejected" };
+  /*
+   * Non-401 failures (tenant context missing, host mismatch, misconfig) are
+   * not proof the refresh cookie is revoked. Treat as transient so background
+   * refresh / POS search cannot hard-logout the cashier.
+   */
+  return { kind: "network" };
 }
 
 /*
@@ -1287,6 +1333,8 @@ async function request<T>(
     idempotencyKey: explicitIdempotencyKey,
     toast: suppressToast,
     timeoutMs,
+    softAuth = false,
+    signal,
   }: RequestOptions = {},
 ): Promise<T> {
   if (isDesktopLicenseWriteBlocked(method, path)) {
@@ -1304,6 +1352,9 @@ async function request<T>(
   }
 
   const execute = async () => {
+    if (signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
     let session = requiresAuth ? getSessionTokens() : null;
     if (requiresAuth && !session?.accessToken) {
       await restoreClientSessionFromCookie();
@@ -1336,14 +1387,13 @@ async function request<T>(
           headers,
           credentials: AUTH_FETCH_CREDENTIALS,
           body: body ? JSON.stringify(body) : undefined,
+          signal,
         },
         timeoutMs ?? CLIENT_FETCH_TIMEOUT_MS,
       );
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new Error(
-          "Request timed out. Check your connection and try again.",
-        );
+        throw error;
       }
       throw new Error(getNetworkErrorMessage());
     }
@@ -1351,15 +1401,24 @@ async function request<T>(
 
   let response = await execute();
   if (requiresAuth && response.status === 401) {
+    if (signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
     response = await resolveUnauthorizedResponse(response, execute, {
       requiresAuth,
       toast: suppressToast,
+      softAuth,
     });
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    if (signOutClientForProblem(response.status, payload, { requiresAuth })) {
+    if (
+      signOutClientForProblem(response.status, payload, {
+        requiresAuth,
+        softAuth,
+      })
+    ) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -2522,6 +2581,13 @@ export type FetchItemsOpts = {
   excludeLinkedSupplierId?: string;
   /** Spring Data sort tuples, e.g. `[{ property: 'name', direction: 'asc' }]`. */
   sort?: Array<{ property: string; direction: "asc" | "desc" }>;
+  /**
+   * POS catalog search: attempt refresh on 401 but never hard-redirect to login.
+   * Implies toast suppression.
+   */
+  softAuth?: boolean;
+  /** Abort superseded catalog searches. */
+  signal?: AbortSignal;
 };
 
 export type ItemsPageResult<T> = {
@@ -2597,7 +2663,11 @@ export async function fetchItemsPage(
     params.append("sort", `${p},${d}`);
   }
   const path = `${API_ROUTES.items}?${params.toString()}`;
-  const raw = await request<unknown>(path);
+  const raw = await request<unknown>(path, {
+    softAuth: opts?.softAuth,
+    signal: opts?.signal,
+    toast: opts?.softAuth ? false : undefined,
+  });
   const content = extractPageContent<ItemSummaryRecord>(raw);
   const meta = extractSpringPageMeta(raw);
   if (!meta) {

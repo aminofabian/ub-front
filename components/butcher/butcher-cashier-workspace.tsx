@@ -258,6 +258,7 @@ export function ButcherCashierWorkspace() {
         branchId: bid,
         catalogScope: "SKUS_ONLY",
         itemTypeId: categoryId ?? undefined,
+        softAuth: true,
       });
       const sellable = rows.filter((r) => r.groupLabelOnly !== true);
       setItems(sellable);

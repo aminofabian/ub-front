@@ -145,7 +145,7 @@ export function CashierSuppliersModal({
     let cancelled = false;
     setProductBusy(true);
     const t = window.setTimeout(() => {
-      void fetchItems(q, { size: 16, catalogScope: "ALL" })
+      void fetchItems(q, { size: 16, catalogScope: "ALL", softAuth: true })
         .then((rows) => {
           if (!cancelled) {
             setProductHits(rows.filter((r) => !r.groupLabelOnly));

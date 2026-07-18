@@ -1354,6 +1354,7 @@ export function QuickSaleWorkspace({
       }, 0);
       return () => window.clearTimeout(t0);
     }
+    const controller = new AbortController();
     const t = window.setTimeout(() => {
       if (!online) {
         if (!q && (cat || typ)) {
@@ -1376,11 +1377,16 @@ export function QuickSaleWorkspace({
       }
       fetchItems(q || undefined, {
         catalogScope: "SKUS_ONLY",
+        softAuth: true,
+        signal: controller.signal,
         ...(cat ? { categoryId: cat, includeCategoryDescendants: true } : {}),
         ...(typ ? { itemTypeId: typ } : {}),
         ...(branchId?.trim() ? { branchId: branchId.trim() } : {}),
       })
         .then((items) => {
+          if (controller.signal.aborted) {
+            return;
+          }
           const sellable = items.filter((row) => row.groupLabelOnly !== true);
           setHits(sellable);
           if (q) {
@@ -1388,7 +1394,13 @@ export function QuickSaleWorkspace({
           }
           setSearchBanner(null);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          if (
+            controller.signal.aborted ||
+            (err instanceof Error && err.name === "AbortError")
+          ) {
+            return;
+          }
           if (!q) {
             setHits([]);
             setSearchBanner(
@@ -1409,7 +1421,10 @@ export function QuickSaleWorkspace({
           );
         });
     }, looksLikePosBarcodeQuery(q) ? 40 : 320);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
   }, [canSell, search, online, categoryFilterId, branchId, posItemTypeId]);
 
   const visibleCategoryTiles = useMemo(() => {
