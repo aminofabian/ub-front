@@ -331,6 +331,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (gate.roleKey === "stock_manager") {
     const allowed: string[] = [
       APP_ROUTES.inventoryStockTake,
+      APP_ROUTES.inventoryStockTakeMyStats,
       APP_ROUTES.inventoryStockTakeDailyAudit,
       APP_ROUTES.inventoryStock,
       APP_ROUTES.inventoryRestock,

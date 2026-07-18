@@ -15,6 +15,7 @@ import {
   ScanLine,
   Search,
   Warehouse,
+  Award,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -623,6 +624,12 @@ export default function StockTakePage() {
         label: "Daily audit",
         desc: `Random ${dailyAuditSampleSize}`,
         icon: ClipboardCheck,
+      },
+      {
+        href: APP_ROUTES.inventoryStockTakeMyStats,
+        label: "My month",
+        desc: "Your count stats",
+        icon: Award,
       },
       ...(canApprove
         ? [

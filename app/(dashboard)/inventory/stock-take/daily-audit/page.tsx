@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
+  Award,
   CheckCircle2,
   ChevronLeft,
   Loader2,
@@ -38,6 +40,7 @@ import {
   type StockTakeRestockItemRecord,
   type StockTakeRestockSupplierOptionRecord,
 } from "@/lib/api";
+import { APP_ROUTES } from "@/lib/config";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canStockManagerSeeSystemStockDuringCount } from "@/lib/inventory-access";
 import { cn } from "@/lib/utils";
@@ -504,21 +507,36 @@ export default function DailyAuditPage() {
           </div>
         </div>
 
-        {scheduleBanner ? (
-          <div
+        <div className="flex items-center gap-2">
+          {scheduleBanner ? (
+            <div
+              className={cn(
+                "min-w-0 flex-1 rounded-full px-3 py-1.5 text-center text-[11px] font-semibold tabular-nums tracking-tight",
+                scheduleBanner.tone === "open" &&
+                  "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+                scheduleBanner.tone === "soon" &&
+                  "bg-amber-500/15 text-amber-900 dark:text-amber-100",
+                scheduleBanner.tone === "closed" &&
+                  "bg-muted text-muted-foreground",
+              )}
+            >
+              {scheduleBanner.label}
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
+          <Link
+            href={APP_ROUTES.inventoryStockTakeMyStats}
             className={cn(
-              "rounded-full px-3 py-1.5 text-center text-[11px] font-semibold tabular-nums tracking-tight",
-              scheduleBanner.tone === "open" &&
-                "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
-              scheduleBanner.tone === "soon" &&
-                "bg-amber-500/15 text-amber-900 dark:text-amber-100",
-              scheduleBanner.tone === "closed" &&
-                "bg-muted text-muted-foreground",
+              "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2.5",
+              "text-[11px] font-semibold text-muted-foreground",
+              "border border-border/70 bg-background/80 transition active:scale-[0.98]",
             )}
           >
-            {scheduleBanner.label}
-          </div>
-        ) : null}
+            <Award className="size-3.5" aria-hidden />
+            Stats
+          </Link>
+        </div>
 
         {session && currentLine ? (
           <div className="space-y-1.5">

@@ -47,6 +47,7 @@ export const APP_ROUTES = {
   inventoryValuation: "/inventory/valuation",
   inventoryTransfers: "/inventory/transfers",
   inventoryStockTake: "/inventory/stock-take",
+  inventoryStockTakeMyStats: "/inventory/stock-take/my-stats",
   inventoryStockTakeDailyAudit: "/inventory/stock-take/daily-audit",
   inventoryStockTakeDailyAuditReview: "/inventory/stock-take/daily-audit/review",
   inventoryStockTakeInvestigations: "/inventory/stock-take/investigations",

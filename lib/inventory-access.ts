@@ -70,6 +70,7 @@ const STOCK_MANAGER_INVENTORY_HREFS: readonly string[] = [
   APP_ROUTES.inventoryRestock,
   APP_ROUTES.inventoryMissingBarcodes,
   APP_ROUTES.inventoryStockTake,
+  APP_ROUTES.inventoryStockTakeMyStats,
   APP_ROUTES.inventoryStockTakeDailyAudit,
   APP_ROUTES.purchasingAddSupplies,
 ];

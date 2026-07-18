@@ -4794,6 +4794,42 @@ export async function fetchStockTakeSessions(params?: {
   );
 }
 
+export type StockTakeMyStatsRecord = {
+  month: string;
+  timezone: string;
+  from: string;
+  to: string;
+  daysInPeriod: number;
+  itemsCounted: number;
+  sessionsStarted: number;
+  morningSessions: number;
+  eveningSessions: number;
+  dailyAuditSessions: number;
+  daysActive: number;
+  coveragePct: number;
+  approvedCounts: number;
+  escalatedCounts: number;
+  pendingReview: number;
+  cleanRatePct: number | null;
+  currentStreakDays: number;
+  bestStreakDays: number;
+  restockFlags: number;
+  notesLeft: number;
+  title: string;
+  highlight: string;
+};
+
+export async function fetchStockTakeMyStats(
+  month?: string,
+): Promise<StockTakeMyStatsRecord> {
+  const qs = new URLSearchParams();
+  if (month?.trim()) qs.set("month", month.trim());
+  const query = qs.toString();
+  return request<StockTakeMyStatsRecord>(
+    `/api/v1/inventory/stock-take/my-stats${query ? `?${query}` : ""}`,
+  );
+}
+
 export async function postStockTakeAddLine(
   sessionId: string,
   itemId: string,
