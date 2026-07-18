@@ -164,11 +164,12 @@ export function canStockManagerSeeSystemStockDuringCount(
   if (roleKey === "owner" || roleKey === "admin") {
     return true;
   }
-  if (hasPermission(me?.permissions, Permission.StocktakeApprove)) {
-    return true;
-  }
+  // Stock managers ship with stocktake.approve; that must not bypass the toggle.
   if (roleKey === "stock_manager") {
     return Boolean(business?.inventory?.stocktake?.showSystemStockToStockManager);
+  }
+  if (hasPermission(me?.permissions, Permission.StocktakeApprove)) {
+    return true;
   }
   return false;
 }

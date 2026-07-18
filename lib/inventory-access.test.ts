@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { APP_ROUTES } from "@/lib/config";
 import {
   canEditStockLevels,
+  canStockManagerSeeSystemStockDuringCount,
   canViewStockLevels,
   filterInventoryQuickLinksForUser,
   inventoryQuickLinksForUser,
@@ -16,6 +17,24 @@ const businessWithStockEdits: BusinessRecord = {
     stockLevels: {
       allowStockEditForStockManager: true,
       allowStockEditForGroceryClerk: true,
+    },
+  },
+};
+
+const businessHideSystemStock: BusinessRecord = {
+  name: "Test",
+  inventory: {
+    stocktake: {
+      showSystemStockToStockManager: false,
+    },
+  },
+};
+
+const businessShowSystemStock: BusinessRecord = {
+  name: "Test",
+  inventory: {
+    stocktake: {
+      showSystemStockToStockManager: true,
     },
   },
 };
@@ -63,6 +82,34 @@ describe("inventory-access", () => {
       (link) => link.href,
     );
     expect(clerkLinks).toEqual([APP_ROUTES.inventoryRestock]);
+  });
+
+  it("hides system stock for stock managers when the toggle is off even with approve", () => {
+    const me: MeResponse = {
+      role: { key: "stock_manager" },
+      permissions: ["stocktake.run", "stocktake.approve"],
+    };
+    expect(canStockManagerSeeSystemStockDuringCount(me, businessHideSystemStock)).toBe(
+      false,
+    );
+    expect(canStockManagerSeeSystemStockDuringCount(me, businessShowSystemStock)).toBe(
+      true,
+    );
+  });
+
+  it("still shows system stock to admins and other approve roles", () => {
+    expect(
+      canStockManagerSeeSystemStockDuringCount(
+        { role: { key: "admin" }, permissions: [] },
+        businessHideSystemStock,
+      ),
+    ).toBe(true);
+    expect(
+      canStockManagerSeeSystemStockDuringCount(
+        { role: { key: "manager" }, permissions: ["stocktake.approve"] },
+        businessHideSystemStock,
+      ),
+    ).toBe(true);
   });
 
   it("filters stock take quick links for stock managers", () => {
