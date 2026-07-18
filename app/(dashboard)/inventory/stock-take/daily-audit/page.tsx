@@ -61,6 +61,24 @@ function nudgeQty(raw: string, delta: number): string {
   return String(Math.max(0, Math.round((n + delta) * 1000) / 1000));
 }
 
+function formatCountdown(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function msUntil(iso: string | null | undefined, nowMs: number): number | null {
+  if (!iso) return null;
+  const target = Date.parse(iso);
+  if (!Number.isFinite(target)) return null;
+  return target - nowMs;
+}
+
 export default function DailyAuditPage() {
   const { me, business } = useDashboard();
   const canRun = hasPermission(me?.permissions, Permission.StocktakeRun);
@@ -88,6 +106,7 @@ export default function DailyAuditPage() {
   const [error, setError] = useState<string | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInputRef = useRef<HTMLInputElement | null>(null);
+  const lastScheduleRefreshAt = useRef(0);
   const [restockOpen, setRestockOpen] = useState(false);
   const [restockLoading, setRestockLoading] = useState(false);
   const [restockOptions, setRestockOptions] = useState<
@@ -95,6 +114,7 @@ export default function DailyAuditPage() {
   >([]);
   const [pendingRestock, setPendingRestock] =
     useState<StockTakeRestockItemRecord | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const branchIds = useMemo(() => branches.map((b) => b.id), [branches]);
   const { branchLocked } = useSyncBranchFilter({
@@ -112,6 +132,47 @@ export default function DailyAuditPage() {
     ? ((currentIndex + 1) / lines.length) * 100
     : 0;
   const isLastItem = lines.length > 0 && currentIndex >= lines.length - 1;
+
+  const activeSessionType =
+    today?.activeSessionType === "morning" ||
+    today?.activeSessionType === "evening"
+      ? today.activeSessionType
+      : null;
+  const countingOpen = activeSessionType === sessionType;
+  const canCount = Boolean(canRun && countingOpen);
+
+  const phaseRemainingMs = msUntil(today?.phaseEndsAt, nowMs);
+  const nextOpenMs = msUntil(today?.nextOpensAt, nowMs);
+
+  const scheduleBanner = useMemo(() => {
+    if (!today) return null;
+    const tz = today.timezone ? ` · ${today.timezone}` : "";
+    if (activeSessionType === "morning" && phaseRemainingMs != null) {
+      return {
+        label: `Morning ends in ${formatCountdown(phaseRemainingMs)}${tz}`,
+        tone: "open" as const,
+      };
+    }
+    if (activeSessionType === "evening" && phaseRemainingMs != null) {
+      return {
+        label: `Evening ends in ${formatCountdown(phaseRemainingMs)}${tz}`,
+        tone: "open" as const,
+      };
+    }
+    if (nextOpenMs != null && nextOpenMs > 0) {
+      const opensLabel =
+        today.morningStartsAt && nextOpenMs > 0
+          ? `Morning opens in ${formatCountdown(nextOpenMs)}`
+          : `Opens in ${formatCountdown(nextOpenMs)}`;
+      return { label: `${opensLabel}${tz}`, tone: "soon" as const };
+    }
+    return {
+      label: `Counting ended for today${
+        today.countingEndsAt ? ` · closed ${today.countingEndsAt}` : ""
+      }${tz}`,
+      tone: "closed" as const,
+    };
+  }, [today, activeSessionType, phaseRemainingMs, nextOpenMs]);
 
   const loadToday = useCallback(async () => {
     if (!branchId) return;
@@ -164,6 +225,35 @@ export default function DailyAuditPage() {
   useEffect(() => {
     if (branchId && (canRun || canRead)) void loadToday();
   }, [branchId, sessionType, canRun, canRead, loadToday]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Auto-select the open session when the schedule reports one.
+  useEffect(() => {
+    if (!activeSessionType) return;
+    if (sessionType !== activeSessionType) {
+      setSessionType(activeSessionType);
+    }
+  }, [activeSessionType]);
+
+  // Refresh schedule once when a phase boundary is crossed.
+  useEffect(() => {
+    if (!today || !branchId) return;
+    const targets = [today.phaseEndsAt, today.nextOpensAt].filter(
+      (v): v is string => Boolean(v),
+    );
+    if (targets.length === 0) return;
+    const crossed = targets.find((iso) => {
+      const t = Date.parse(iso);
+      return Number.isFinite(t) && t <= nowMs && t > lastScheduleRefreshAt.current;
+    });
+    if (!crossed) return;
+    lastScheduleRefreshAt.current = Date.parse(crossed);
+    void loadToday();
+  }, [nowMs, today?.phaseEndsAt, today?.nextOpensAt, branchId, loadToday]);
 
   useEffect(() => {
     if (!currentLine) return;
@@ -259,7 +349,7 @@ export default function DailyAuditPage() {
   );
 
   useEffect(() => {
-    if (!session || !currentLine || !canRun) return;
+    if (!session || !currentLine || !canCount) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       const qty = countInput.trim();
@@ -274,10 +364,10 @@ export default function DailyAuditPage() {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [countInput, noteInput, session, currentLine, canRun]);
+  }, [countInput, noteInput, session, currentLine, canCount]);
 
   const startSession = async () => {
-    if (!branchId) return;
+    if (!branchId || !countingOpen) return;
     setSaving(true);
     setError(null);
     try {
@@ -384,18 +474,26 @@ export default function DailyAuditPage() {
               ] as const
             ).map(({ id, label, icon: Icon }) => {
               const active = sessionType === id;
+              const open = activeSessionType === id;
               return (
                 <button
                   key={id}
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setSessionType(id)}
+                  disabled={Boolean(today) && !open && activeSessionType != null}
+                  onClick={() => {
+                    if (today && activeSessionType && !open) return;
+                    setSessionType(id);
+                  }}
                   className={cn(
                     "inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-3 text-xs font-semibold transition-all",
                     active
                       ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
                       : "text-muted-foreground active:scale-[0.98]",
+                    today && !open && activeSessionType != null
+                      ? "opacity-40"
+                      : "",
                   )}
                 >
                   <Icon className="size-3.5 opacity-80" aria-hidden />
@@ -405,6 +503,22 @@ export default function DailyAuditPage() {
             })}
           </div>
         </div>
+
+        {scheduleBanner ? (
+          <div
+            className={cn(
+              "rounded-full px-3 py-1.5 text-center text-[11px] font-semibold tabular-nums tracking-tight",
+              scheduleBanner.tone === "open" &&
+                "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+              scheduleBanner.tone === "soon" &&
+                "bg-amber-500/15 text-amber-900 dark:text-amber-100",
+              scheduleBanner.tone === "closed" &&
+                "bg-muted text-muted-foreground",
+            )}
+          >
+            {scheduleBanner.label}
+          </div>
+        ) : null}
 
         {session && currentLine ? (
           <div className="space-y-1.5">
@@ -446,6 +560,24 @@ export default function DailyAuditPage() {
           <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed px-4 text-center text-sm text-muted-foreground">
             No audit today
           </div>
+        ) : !session && canRun && !countingOpen ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed px-5 py-8 text-center">
+            <p className="text-base font-semibold text-foreground">
+              {scheduleBanner?.tone === "closed"
+                ? "Counting ended for today"
+                : activeSessionType === "evening"
+                  ? "Evening count is open — switch to PM"
+                  : nextOpenMs != null && nextOpenMs > 0
+                    ? `Morning opens in ${formatCountdown(nextOpenMs)}`
+                    : "Counting is closed"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {today.morningStartsAt && today.eveningStartsAt && today.countingEndsAt
+                ? `Windows ${today.morningStartsAt} → ${today.eveningStartsAt} → ${today.countingEndsAt}`
+                : "Ask an admin to set daily audit count windows."}
+              {today.timezone ? ` (${today.timezone})` : ""}
+            </p>
+          </div>
         ) : !session && canRun ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-border/70 bg-card/70 px-5 py-8 text-center shadow-sm backdrop-blur-sm">
             <div className="space-y-1.5">
@@ -463,7 +595,7 @@ export default function DailyAuditPage() {
               size="lg"
               className="h-12 w-full max-w-xs rounded-full text-base font-semibold shadow-md active:scale-[0.98]"
               onClick={() => void startSession()}
-              disabled={saving}
+              disabled={saving || !countingOpen}
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -521,10 +653,16 @@ export default function DailyAuditPage() {
                 Physical count
               </p>
 
+              {!countingOpen ? (
+                <p className="mb-3 max-w-sm text-center text-xs font-medium text-amber-800 dark:text-amber-200">
+                  Counting is closed for this window. Changes are locked.
+                </p>
+              ) : null}
+
               <div className="flex w-full max-w-sm items-center gap-2.5">
                 <button
                   type="button"
-                  disabled={!canRun || saving}
+                  disabled={!canCount || saving}
                   aria-label="Decrease count"
                   onClick={() => setCountInput((v) => nudgeQty(v, -1))}
                   className={cn(
@@ -550,10 +688,10 @@ export default function DailyAuditPage() {
                   )}
                   value={countInput}
                   onChange={(e) => setCountInput(e.target.value)}
-                  disabled={!canRun}
+                  disabled={!canCount}
                   placeholder="0"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && canRun) {
+                    if (e.key === "Enter" && canCount) {
                       e.preventDefault();
                       void goNext();
                     }
@@ -562,7 +700,7 @@ export default function DailyAuditPage() {
 
                 <button
                   type="button"
-                  disabled={!canRun || saving}
+                  disabled={!canCount || saving}
                   aria-label="Increase count"
                   onClick={() => setCountInput((v) => nudgeQty(v, 1))}
                   className={cn(
@@ -578,7 +716,7 @@ export default function DailyAuditPage() {
               <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
                 <button
                   type="button"
-                  disabled={!canRun}
+                  disabled={!canCount}
                   onClick={() => {
                     setNoteOpen((o) => !o);
                   }}
@@ -594,7 +732,7 @@ export default function DailyAuditPage() {
                   {noteInput ? "Note" : "Add note"}
                 </button>
 
-                {canRun && !restockLoading && restockOptions.length > 0 ? (
+                {canCount && !restockLoading && restockOptions.length > 0 ? (
                   <button
                     type="button"
                     onClick={() => setRestockOpen(true)}
@@ -630,7 +768,7 @@ export default function DailyAuditPage() {
                     )}
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
-                    disabled={!canRun}
+                    disabled={!canCount}
                     placeholder="Optional note…"
                     autoFocus
                   />
@@ -652,7 +790,7 @@ export default function DailyAuditPage() {
       </div>
 
       {/* Thumb dock */}
-      {session && currentLine && canRun ? (
+      {session && currentLine && canCount ? (
         <div className="shrink-0 pt-3">
           <div className="flex gap-2 rounded-2xl border border-border/60 bg-background/95 p-1.5 shadow-lg shadow-black/5 backdrop-blur-md">
             <Button

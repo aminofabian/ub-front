@@ -20,9 +20,14 @@ import {
   MAX_FEATURED,
   TIER_SUGGESTIONS,
   DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
+  DEFAULT_MORNING_STARTS_AT,
+  DEFAULT_EVENING_STARTS_AT,
+  DEFAULT_COUNTING_ENDS_AT,
   MAX_DAILY_AUDIT_SAMPLE_SIZE,
   MIN_DAILY_AUDIT_SAMPLE_SIZE,
   clampDailyAuditSampleSize,
+  isDailyAuditScheduleOrdered,
+  normalizeDailyAuditTime,
   type CashierCapabilitiesForm,
   type EditableBusiness,
   type InventoryForm,
@@ -435,7 +440,7 @@ export function BusinessSettingsForm({
           <SettingsAnchor id="settings-stock-take">
             <FormDrawerFields
               legend="Stock take"
-              hint="Daily audit sample size and what stock managers see while counting."
+              hint="Daily audit sample size, count windows, and what stock managers see while counting."
             >
               <ToggleRow
                 checked={inventory.showSystemStockToStockManager}
@@ -504,6 +509,89 @@ export function BusinessSettingsForm({
                   {MAX_DAILY_AUDIT_SAMPLE_SIZE}. Takes effect on the next
                   generated audit (not today’s existing list).
                 </p>
+              </div>
+              <div className="space-y-2 pt-2">
+                <p className={labelClass()}>Daily audit count windows</p>
+                <p className={hintClass()}>
+                  Morning is open until evening starts; evening until counting
+                  ends. Times use the business timezone.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      {
+                        id: "morningStartsAt",
+                        label: "Morning starts",
+                        value: inventory.morningStartsAt,
+                        fallback: DEFAULT_MORNING_STARTS_AT,
+                      },
+                      {
+                        id: "eveningStartsAt",
+                        label: "Evening starts",
+                        value: inventory.eveningStartsAt,
+                        fallback: DEFAULT_EVENING_STARTS_AT,
+                      },
+                      {
+                        id: "countingEndsAt",
+                        label: "Counting ends",
+                        value: inventory.countingEndsAt,
+                        fallback: DEFAULT_COUNTING_ENDS_AT,
+                      },
+                    ] as const
+                  ).map((field) => (
+                    <div key={field.id} className="space-y-1.5">
+                      <label htmlFor={field.id} className={labelClass()}>
+                        {field.label}
+                      </label>
+                      <input
+                        id={field.id}
+                        type="time"
+                        className={inputClass()}
+                        value={field.value}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          setInventory((previous) => ({
+                            ...previous,
+                            [field.id]: next,
+                          }));
+                        }}
+                        onBlur={() => {
+                          setInventory((previous) => ({
+                            ...previous,
+                            [field.id]: normalizeDailyAuditTime(
+                              previous[field.id],
+                              field.fallback,
+                            ),
+                          }));
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {!isDailyAuditScheduleOrdered(
+                  normalizeDailyAuditTime(
+                    inventory.morningStartsAt,
+                    DEFAULT_MORNING_STARTS_AT,
+                  ),
+                  normalizeDailyAuditTime(
+                    inventory.eveningStartsAt,
+                    DEFAULT_EVENING_STARTS_AT,
+                  ),
+                  normalizeDailyAuditTime(
+                    inventory.countingEndsAt,
+                    DEFAULT_COUNTING_ENDS_AT,
+                  ),
+                ) ? (
+                  <p className="text-xs text-destructive">
+                    Morning start must be before evening start, and evening
+                    start before counting end.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Defaults {DEFAULT_MORNING_STARTS_AT} /{" "}
+                    {DEFAULT_EVENING_STARTS_AT} / {DEFAULT_COUNTING_ENDS_AT}.
+                  </p>
+                )}
               </div>
             </FormDrawerFields>
           </SettingsAnchor>

@@ -586,6 +586,12 @@ export type StocktakeSettingsRecord = {
   showSystemStockToStockManager?: boolean;
   /** How many unique yesterday-sold products to pick for daily audit (1–200). Default 25. */
   dailyAuditSampleSize?: number;
+  /** Local wall-clock time when morning counting opens (HH:mm). */
+  morningStartsAt?: string;
+  /** Local wall-clock time when evening counting opens (HH:mm). */
+  eveningStartsAt?: string;
+  /** Local wall-clock time when counting closes for the day (HH:mm). */
+  countingEndsAt?: string;
 };
 
 export type StockLevelsSettingsRecord = {
@@ -705,6 +711,9 @@ export type StorefrontPatchPayload = {
 export type StocktakePatchPayload = {
   showSystemStockToStockManager?: boolean;
   dailyAuditSampleSize?: number;
+  morningStartsAt?: string;
+  eveningStartsAt?: string;
+  countingEndsAt?: string;
 };
 
 export type StockLevelsPatchPayload = {
@@ -4908,6 +4917,13 @@ export type DailyAuditTodayRecord = {
   items: DailyAuditItemSummary[];
   morningSession: DailyAuditSessionSummary | null;
   eveningSession: DailyAuditSessionSummary | null;
+  morningStartsAt?: string;
+  eveningStartsAt?: string;
+  countingEndsAt?: string;
+  timezone?: string;
+  activeSessionType?: "morning" | "evening" | null;
+  phaseEndsAt?: string | null;
+  nextOpensAt?: string | null;
 };
 
 export type DailyAuditLineRecord = {

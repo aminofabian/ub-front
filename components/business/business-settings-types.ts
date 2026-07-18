@@ -25,6 +25,9 @@ export type StorefrontForm = {
 export type InventoryForm = {
   showSystemStockToStockManager: boolean;
   dailyAuditSampleSize: number;
+  morningStartsAt: string;
+  eveningStartsAt: string;
+  countingEndsAt: string;
   allowStockEditForStockManager: boolean;
   allowStockEditForGroceryClerk: boolean;
   allowNegativeStock: boolean;
@@ -108,9 +111,16 @@ export const DEFAULT_DAILY_AUDIT_SAMPLE_SIZE = 25;
 export const MIN_DAILY_AUDIT_SAMPLE_SIZE = 1;
 export const MAX_DAILY_AUDIT_SAMPLE_SIZE = 200;
 
+export const DEFAULT_MORNING_STARTS_AT = "06:00";
+export const DEFAULT_EVENING_STARTS_AT = "17:00";
+export const DEFAULT_COUNTING_ENDS_AT = "21:00";
+
 export const DEFAULT_INVENTORY: InventoryForm = {
   showSystemStockToStockManager: false,
   dailyAuditSampleSize: DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
+  morningStartsAt: DEFAULT_MORNING_STARTS_AT,
+  eveningStartsAt: DEFAULT_EVENING_STARTS_AT,
+  countingEndsAt: DEFAULT_COUNTING_ENDS_AT,
   allowStockEditForStockManager: false,
   allowStockEditForGroceryClerk: false,
   allowNegativeStock: false,
@@ -190,6 +200,39 @@ export function clampDailyAuditSampleSize(raw: number): number {
   );
 }
 
+/** Normalize to HH:mm; invalid/blank → fallback. */
+export function normalizeDailyAuditTime(
+  raw: string | null | undefined,
+  fallback: string,
+): string {
+  const value = (raw ?? "").trim();
+  if (!/^\d{1,2}:\d{2}$/.test(value)) {
+    return fallback;
+  }
+  const [hRaw, mRaw] = value.split(":");
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+    return fallback;
+  }
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function isDailyAuditScheduleOrdered(
+  morningStartsAt: string,
+  eveningStartsAt: string,
+  countingEndsAt: string,
+): boolean {
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  return (
+    toMinutes(morningStartsAt) < toMinutes(eveningStartsAt) &&
+    toMinutes(eveningStartsAt) < toMinutes(countingEndsAt)
+  );
+}
+
 export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
   const configuredSample = b?.inventory?.stocktake?.dailyAuditSampleSize;
   return {
@@ -200,6 +243,18 @@ export function inventoryFromRecord(b: BusinessRecord | null): InventoryForm {
       typeof configuredSample === "number"
         ? configuredSample
         : DEFAULT_DAILY_AUDIT_SAMPLE_SIZE,
+    ),
+    morningStartsAt: normalizeDailyAuditTime(
+      b?.inventory?.stocktake?.morningStartsAt,
+      DEFAULT_MORNING_STARTS_AT,
+    ),
+    eveningStartsAt: normalizeDailyAuditTime(
+      b?.inventory?.stocktake?.eveningStartsAt,
+      DEFAULT_EVENING_STARTS_AT,
+    ),
+    countingEndsAt: normalizeDailyAuditTime(
+      b?.inventory?.stocktake?.countingEndsAt,
+      DEFAULT_COUNTING_ENDS_AT,
     ),
     allowStockEditForStockManager: Boolean(
       b?.inventory?.stockLevels?.allowStockEditForStockManager,

@@ -27,6 +27,11 @@ import {
 import {
   applyBusinessSnapshot,
   clampDailyAuditSampleSize,
+  isDailyAuditScheduleOrdered,
+  normalizeDailyAuditTime,
+  DEFAULT_MORNING_STARTS_AT,
+  DEFAULT_EVENING_STARTS_AT,
+  DEFAULT_COUNTING_ENDS_AT,
   DEFAULT_CASHIER_CAPABILITIES,
   DEFAULT_EDITABLE,
   DEFAULT_INVENTORY,
@@ -237,6 +242,34 @@ export default function BusinessSettingsPage() {
     setIsSaving(true);
     setFeedback(null);
     try {
+      const morningStartsAt = normalizeDailyAuditTime(
+        inventory.morningStartsAt,
+        DEFAULT_MORNING_STARTS_AT,
+      );
+      const eveningStartsAt = normalizeDailyAuditTime(
+        inventory.eveningStartsAt,
+        DEFAULT_EVENING_STARTS_AT,
+      );
+      const countingEndsAt = normalizeDailyAuditTime(
+        inventory.countingEndsAt,
+        DEFAULT_COUNTING_ENDS_AT,
+      );
+      if (
+        canManageBusinessSettings &&
+        !isDailyAuditScheduleOrdered(
+          morningStartsAt,
+          eveningStartsAt,
+          countingEndsAt,
+        )
+      ) {
+        setFeedback({
+          kind: "error",
+          text: "Daily audit times must be in order: morning start < evening start < counting end.",
+        });
+        setIsSaving(false);
+        return;
+      }
+
       const body: PatchBusinessPayload = {
         name: editable.name,
         subscriptionTier: editable.subscriptionTier,
@@ -259,6 +292,9 @@ export default function BusinessSettingsPage() {
             dailyAuditSampleSize: clampDailyAuditSampleSize(
               inventory.dailyAuditSampleSize,
             ),
+            morningStartsAt,
+            eveningStartsAt,
+            countingEndsAt,
           },
           stockLevels: {
             allowStockEditForStockManager:
