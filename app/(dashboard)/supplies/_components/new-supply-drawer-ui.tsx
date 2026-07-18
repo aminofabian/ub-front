@@ -273,8 +273,8 @@ export function SupplyLinesToolbar({
   needsCount,
   lineFocus,
   onLineFocusChange,
-  showSellExpiry = false,
-  onShowSellExpiryChange,
+  showExpiry = false,
+  onShowExpiryChange,
   disabled,
 }: {
   searchQuery: string;
@@ -285,8 +285,8 @@ export function SupplyLinesToolbar({
   needsCount: number;
   lineFocus: "all" | "fill" | "ready";
   onLineFocusChange: (focus: "all" | "fill" | "ready") => void;
-  showSellExpiry?: boolean;
-  onShowSellExpiryChange?: (show: boolean) => void;
+  showExpiry?: boolean;
+  onShowExpiryChange?: (show: boolean) => void;
   disabled?: boolean;
 }) {
   return (
@@ -336,22 +336,22 @@ export function SupplyLinesToolbar({
           </button>
         ))}
       </div>
-      {onShowSellExpiryChange ? (
+      {onShowExpiryChange ? (
         <button
           type="button"
           disabled={disabled}
-          aria-pressed={showSellExpiry}
-          onClick={() => onShowSellExpiryChange(!showSellExpiry)}
+          aria-pressed={showExpiry}
+          onClick={() => onShowExpiryChange(!showExpiry)}
           className={cn(
             "inline-flex h-6 items-center px-2 text-[10px] font-semibold transition-colors",
             "border border-border bg-background",
-            showSellExpiry
+            showExpiry
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
-          title="Show sell price and expiry columns"
+          title="Show expiry date column"
         >
-          {showSellExpiry ? "Hide sell / expiry" : "Sell / expiry"}
+          {showExpiry ? "Hide expiry" : "Expiry"}
         </button>
       ) : null}
       {visibleCount !== totalCount && lineFocus === "all" && searchQuery.trim() ? (

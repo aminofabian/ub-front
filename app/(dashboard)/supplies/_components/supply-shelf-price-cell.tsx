@@ -114,7 +114,7 @@ function resolveShelfTone(
   return retail != null ? "edited" : "empty";
 }
 
-function formatMargin(retail: number, cost: number): string | null {
+export function formatSupplyMargin(retail: number, cost: number): string | null {
   if (cost <= 0) {
     return null;
   }
@@ -124,6 +124,11 @@ function formatMargin(retail: number, cost: number): string | null {
   }
   const sign = pct >= 0 ? "+" : "";
   return `${sign}${pct.toFixed(1)}%`;
+}
+
+/** @deprecated Prefer {@link formatSupplyMargin} */
+function formatMargin(retail: number, cost: number): string | null {
+  return formatSupplyMargin(retail, cost);
 }
 
 export function shelfPriceHintTitle(

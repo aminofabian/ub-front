@@ -67,6 +67,7 @@ import {
 } from "./supply-line-metric-cells";
 import { resolveSupplyPackDefaults } from "./supply-pack-qty-modal";
 import {
+  formatSupplyMargin,
   SupplyShelfPriceCell,
   type ShelfPriceHint,
 } from "./supply-shelf-price-cell";
@@ -418,8 +419,8 @@ export function NewSupplyDrawer({
   );
   const [lineSearchQuery, setLineSearchQuery] = useState("");
   const [lineFocus, setLineFocus] = useState<"all" | "fill" | "ready">("all");
-  /** Optional sell/expiry columns — off by default so receiving stays qty + cost. */
-  const [showSellExpiry, setShowSellExpiry] = useState(false);
+  /** Optional expiry column — sell + margin stay visible. */
+  const [showExpiry, setShowExpiry] = useState(false);
   const [deliveryExpanded, setDeliveryExpanded] = useState(true);
   const pricingGenRef = useRef(0);
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
@@ -521,7 +522,7 @@ export function NewSupplyDrawer({
       setRowPricing({});
       setLineSearchQuery("");
       setLineFocus("all");
-      setShowSellExpiry(false);
+      setShowExpiry(false);
       setDeliveryExpanded(true);
       setAddLineOpen(false);
       setLinkModalSupplierId(null);
@@ -1208,7 +1209,7 @@ export function NewSupplyDrawer({
               title="Receive stock"
               hint={
                 supplier
-                  ? "Enter qty and cost. Open Sell / expiry only if you need them."
+                  ? "Qty, cost, sell, and margin. Turn on Expiry only if needed."
                   : undefined
               }
               done={lineStats.valid > 0 && duplicateIds.length === 0}
@@ -1278,8 +1279,8 @@ export function NewSupplyDrawer({
                     needsCount={needsCount}
                     lineFocus={lineFocus}
                     onLineFocusChange={setLineFocus}
-                    showSellExpiry={showSellExpiry}
-                    onShowSellExpiryChange={setShowSellExpiry}
+                    showExpiry={showExpiry}
+                    onShowExpiryChange={setShowExpiry}
                     disabled={busy}
                   />
 
@@ -1342,7 +1343,8 @@ export function NewSupplyDrawer({
                           canEditStock={canEditOnHandStock && Boolean(iid)}
                           itemId={iid}
                           receivedYmd={receivedYmd}
-                          showSellExpiry={showSellExpiry}
+                          showSellExpiry
+                          showExpiryColumn={showExpiry}
                           onStockChange={(next) => {
                             if (!iid) return;
                             setRows((prev) => applyOnHandToRows(prev, iid, next));
@@ -1412,27 +1414,20 @@ export function NewSupplyDrawer({
           <table
             className={cn(
               "w-full border-collapse border border-border text-left text-xs",
-              showSellExpiry ? "min-w-[42rem]" : "min-w-[28rem]",
+              showExpiry ? "min-w-[44rem]" : "min-w-[36rem]",
             )}
           >
             <thead>
               <tr className={nsdTableHead}>
                 <th className={cn(nsdTableTh, "min-w-[10rem]")}>Product</th>
-                <th className={cn(nsdTableTh, "w-[5.5rem] text-right")}>
-                  Qty
+                <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Qty</th>
+                <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Cost</th>
+                <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Sell</th>
+                <th className={cn(nsdTableTh, "w-[4.25rem] text-right")}>
+                  Margin
                 </th>
-                <th className={cn(nsdTableTh, "w-[5.5rem] text-right")}>
-                  Cost
-                </th>
-                {showSellExpiry ? (
-                  <>
-                    <th className={cn(nsdTableTh, "w-[5rem] text-right")}>
-                      Sell
-                    </th>
-                    <th className={cn(nsdTableTh, "min-w-[6rem]")}>
-                      Expires
-                    </th>
-                  </>
+                {showExpiry ? (
+                  <th className={cn(nsdTableTh, "min-w-[6rem]")}>Expires</th>
                 ) : null}
                 <th className={cn(nsdTableTh, "w-7")} />
               </tr>
@@ -1447,6 +1442,19 @@ export function NewSupplyDrawer({
                 const iid = rowItemId(row);
                 const hint = iid ? rowPricing[iid] : undefined;
                 const isReady = p != null;
+                const unitCost = parseNonNeg(row.unitStr);
+                const sellPrice = parseNonNeg(row.sellPriceStr);
+                const marginLabel =
+                  unitCost != null &&
+                  unitCost > 0 &&
+                  sellPrice != null
+                    ? formatSupplyMargin(sellPrice, unitCost)
+                    : null;
+                const belowCost =
+                  unitCost != null &&
+                  sellPrice != null &&
+                  unitCost > 0 &&
+                  sellPrice < unitCost;
                 const referenceCost =
                   row.source === "linked" ? rowReferenceCost(row.link) : null;
                 return (
@@ -1497,7 +1505,8 @@ export function NewSupplyDrawer({
                                 "font-medium text-red-700 dark:text-red-300",
                             )}
                           >
-                            Stock {Number.isInteger(stock) ? stock : stock.toFixed(1)}
+                            Stock{" "}
+                            {Number.isInteger(stock) ? stock : stock.toFixed(1)}
                             {stockAfter != null && qty != null
                               ? ` → ${
                                   Number.isInteger(stockAfter)
@@ -1548,62 +1557,88 @@ export function NewSupplyDrawer({
                             ),
                           )
                         }
-                        onEnterNext={() =>
-                          showSellExpiry
-                            ? focusNsdField(row.key, "retail")
-                            : focusNextEmptyQty(row.key)
-                        }
+                        onEnterNext={() => focusNsdField(row.key, "retail")}
                         disabled={busy}
                         referenceCost={referenceCost}
                       />
                     </td>
-                    {showSellExpiry ? (
-                      <>
-                        <td className={cn(nsdTableCell, "p-0 align-middle")}>
-                          <SupplyShelfPriceCell
-                            compact
-                            quiet
-                            value={row.sellPriceStr}
-                            onChange={(value) =>
-                              setRows((prev) =>
-                                prev.map((r) =>
-                                  r.key === row.key
-                                    ? {
-                                        ...r,
-                                        sellPriceStr: value,
-                                        sellPriceTouched: true,
-                                      }
-                                    : r,
-                                ),
-                              )
-                            }
-                            onEnterNext={() => focusNsdField(row.key, "expiry")}
-                            disabled={busy || !iid}
-                            canSetSellPrice={canSetSellPrice}
-                            hint={hint}
-                            unitStr={row.unitStr}
-                            sellPriceTouched={row.sellPriceTouched}
-                          />
-                        </td>
-                        <td className={cn(nsdTableCell, "p-0 align-middle")}>
-                          <SupplyExpiryCell
-                            compact
-                            quiet
-                            label=""
-                            value={row.expiry}
-                            onChange={(value) =>
-                              setRows((prev) =>
-                                prev.map((r) =>
-                                  r.key === row.key ? { ...r, expiry: value } : r,
-                                ),
-                              )
-                            }
-                            disabled={busy}
-                            baseYmd={receivedYmd}
-                            onEnterNext={() => focusNextEmptyQty(row.key)}
-                          />
-                        </td>
-                      </>
+                    <td className={cn(nsdTableCell, "p-0 align-middle")}>
+                      <SupplyShelfPriceCell
+                        compact
+                        quiet
+                        value={row.sellPriceStr}
+                        onChange={(value) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.key === row.key
+                                ? {
+                                    ...r,
+                                    sellPriceStr: value,
+                                    sellPriceTouched: true,
+                                  }
+                                : r,
+                            ),
+                          )
+                        }
+                        onEnterNext={() =>
+                          showExpiry
+                            ? focusNsdField(row.key, "expiry")
+                            : focusNextEmptyQty(row.key)
+                        }
+                        disabled={busy || !iid}
+                        canSetSellPrice={canSetSellPrice}
+                        hint={hint}
+                        unitStr={row.unitStr}
+                        sellPriceTouched={row.sellPriceTouched}
+                      />
+                    </td>
+                    <td
+                      className={cn(
+                        nsdTableCell,
+                        "px-2 py-1.5 text-right align-middle",
+                      )}
+                      title={
+                        belowCost
+                          ? "Sell is below cost"
+                          : marginLabel
+                            ? `Margin on cost: ${marginLabel}`
+                            : "Enter cost and sell to see margin"
+                      }
+                    >
+                      <span
+                        className={cn(
+                          "font-mono text-xs tabular-nums",
+                          belowCost
+                            ? "font-semibold text-red-700 dark:text-red-300"
+                            : marginLabel
+                              ? "text-primary"
+                              : "text-muted-foreground/50",
+                        )}
+                      >
+                        {belowCost
+                          ? marginLabel ?? "Loss"
+                          : (marginLabel ?? "—")}
+                      </span>
+                    </td>
+                    {showExpiry ? (
+                      <td className={cn(nsdTableCell, "p-0 align-middle")}>
+                        <SupplyExpiryCell
+                          compact
+                          quiet
+                          label=""
+                          value={row.expiry}
+                          onChange={(value) =>
+                            setRows((prev) =>
+                              prev.map((r) =>
+                                r.key === row.key ? { ...r, expiry: value } : r,
+                              ),
+                            )
+                          }
+                          disabled={busy}
+                          baseYmd={receivedYmd}
+                          onEnterNext={() => focusNextEmptyQty(row.key)}
+                        />
+                      </td>
                     ) : null}
                     <td className={cn(nsdTableCell, "p-0 text-center align-middle")}>
                       <Button

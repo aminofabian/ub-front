@@ -20,6 +20,7 @@ import {
 } from "./supply-line-metric-cells";
 import type { SupplyPackQtyDefaults } from "./supply-pack-qty-modal";
 import {
+  formatSupplyMargin,
   SupplyShelfPriceCell,
   type ShelfPriceHint,
 } from "./supply-shelf-price-cell";
@@ -69,8 +70,9 @@ type SupplyDraftLineCardProps = {
   receivedYmd: string;
   packDefaults?: SupplyPackQtyDefaults | null;
   onPackModalOpenChange?: (open: boolean) => void;
-  /** When false, sell stays in the More section so the card is qty + cost first. */
+  /** Always show sell in the main grid; expiry can stay optional. */
   showSellExpiry?: boolean;
+  showExpiryColumn?: boolean;
 };
 
 /**
@@ -109,11 +111,26 @@ export function SupplyDraftLineCard({
   receivedYmd,
   packDefaults = null,
   onPackModalOpenChange,
-  showSellExpiry = false,
+  showSellExpiry = true,
+  showExpiryColumn = false,
 }: SupplyDraftLineCardProps) {
   const [moreOpen, setMoreOpen] = useState(
-    Boolean(row.expiry.trim()) || showSellExpiry,
+    Boolean(row.expiry.trim()) || showExpiryColumn,
   );
+  const marginLabel =
+    unitCost != null && unitCost > 0 && row.sellPriceStr.trim()
+      ? (() => {
+          const sell = Number(row.sellPriceStr);
+          return Number.isFinite(sell) && sell >= 0
+            ? formatSupplyMargin(sell, unitCost)
+            : null;
+        })()
+      : null;
+  const belowCost =
+    unitCost != null &&
+    unitCost > 0 &&
+    row.sellPriceStr.trim() !== "" &&
+    Number(row.sellPriceStr) < unitCost;
 
   return (
     <article
@@ -173,6 +190,18 @@ export function SupplyDraftLineCard({
                 Σ {lineTotal.toFixed(2)}
               </span>
             ) : null}
+            {marginLabel ? (
+              <span
+                className={cn(
+                  "font-mono tabular-nums",
+                  belowCost
+                    ? "font-semibold text-red-700 dark:text-red-300"
+                    : "text-primary",
+                )}
+              >
+                {marginLabel} margin
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -212,12 +241,7 @@ export function SupplyDraftLineCard({
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "grid gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5",
-          showSellExpiry ? "grid-cols-3" : "grid-cols-2",
-        )}
-      >
+      <div className="grid grid-cols-3 gap-1.5 border-t border-border/70 px-2 pb-2 pt-1.5">
         <SupplyQtyCell
           touch
           quiet
@@ -240,30 +264,28 @@ export function SupplyDraftLineCard({
           onChange={onUnitChange}
           disabled={busy}
           referenceCost={referenceCost}
-          onEnterNext={
-            showSellExpiry
-              ? onFocusRetail
-              : onQtyEnterNext
-          }
+          onEnterNext={onFocusRetail}
         />
-        {showSellExpiry ? (
-          <SupplyShelfPriceCell
-            touch
-            quiet
-            label="Sell"
-            value={row.sellPriceStr}
-            onChange={onSellPriceChange}
-            disabled={busy || !hasItemId}
-            canSetSellPrice={canSetSellPrice}
-            hint={pricingHint}
-            unitStr={row.unitStr}
-            sellPriceTouched={row.sellPriceTouched}
-            onEnterNext={() => {
+        <SupplyShelfPriceCell
+          touch
+          quiet
+          label="Sell"
+          value={row.sellPriceStr}
+          onChange={onSellPriceChange}
+          disabled={busy || !hasItemId}
+          canSetSellPrice={canSetSellPrice}
+          hint={pricingHint}
+          unitStr={row.unitStr}
+          sellPriceTouched={row.sellPriceTouched}
+          onEnterNext={() => {
+            if (showExpiryColumn || row.expiry.trim()) {
               setMoreOpen(true);
               onFocusExpiry?.();
-            }}
-          />
-        ) : null}
+              return;
+            }
+            onQtyEnterNext?.();
+          }}
+        />
       </div>
 
       <div className="border-t border-border/50">
@@ -276,11 +298,7 @@ export function SupplyDraftLineCard({
           <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             {row.expiry.trim()
               ? `Expires ${row.expiry}`
-              : showSellExpiry
-                ? "Expiry (optional)"
-                : row.sellPriceStr.trim()
-                  ? `Sell ${row.sellPriceStr} · more`
-                  : "Sell / expiry (optional)"}
+              : "Expiry (optional)"}
           </span>
           <ChevronDown
             className={cn(
@@ -291,22 +309,7 @@ export function SupplyDraftLineCard({
           />
         </button>
         {moreOpen ? (
-          <div className="space-y-2 border-t border-border/50 px-2.5 pb-2.5 pt-2">
-            {!showSellExpiry ? (
-              <SupplyShelfPriceCell
-                touch
-                quiet
-                label="Sell"
-                value={row.sellPriceStr}
-                onChange={onSellPriceChange}
-                disabled={busy || !hasItemId}
-                canSetSellPrice={canSetSellPrice}
-                hint={pricingHint}
-                unitStr={row.unitStr}
-                sellPriceTouched={row.sellPriceTouched}
-                onEnterNext={onFocusExpiry}
-              />
-            ) : null}
+          <div className="border-t border-border/50 px-2.5 pb-2.5 pt-2">
             <SupplyExpiryCell
               touch
               quiet
