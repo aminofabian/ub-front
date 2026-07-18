@@ -10,6 +10,11 @@ import {
   PLATFORM_TITLE,
 } from "@/lib/platform-seo";
 import type { TenantContext } from "@/lib/public-storefront";
+import {
+  defaultStorefrontMetaDescription,
+  defaultStorefrontMetaKeywords,
+  defaultStorefrontMetaTitle,
+} from "@/lib/storefront-seo-defaults";
 import { resolveTenantFaviconHref } from "@/lib/tenant-favicon-path";
 
 const BRAND_THEME_COLOR = PLATFORM_THEME_COLOR;
@@ -133,9 +138,9 @@ export function metadataFromTenantAndHost(
   const ogImage = tenant.branding.ogImage?.trim();
   const metaKeywords = tenant.branding.metaKeywords?.trim();
 
+  const title = metaTitle || defaultStorefrontMetaTitle(displayName);
   const description =
-    metaDescription ||
-    `${displayName} — a Kiosk-powered store. Browse products, scan barcodes, and check out at the cashier counter — your digital storefront and POS, all in one place.`;
+    metaDescription || defaultStorefrontMetaDescription(displayName);
   const logo = tenant.branding.logoUrl?.trim();
 
   const faviconHref = resolveTenantFaviconHref({
@@ -163,24 +168,13 @@ export function metadataFromTenantAndHost(
   return {
     ...platform,
     title: {
-      default: metaTitle || displayName,
-      template: metaTitle ? `%s · ${metaTitle}` : `%s · ${displayName}`,
+      default: title,
+      template: `%s · ${title}`,
     },
     description,
     applicationName: displayName,
     other: {
-      keywords:
-        metaKeywords ||
-        [
-          displayName,
-          "storefront",
-          "shop online",
-          "POS",
-          "point of sale",
-          "products",
-          "prices",
-          "in stock",
-        ].join(", "),
+      keywords: metaKeywords || defaultStorefrontMetaKeywords(displayName),
     },
     appleWebApp: {
       capable: true,
@@ -189,7 +183,7 @@ export function metadataFromTenantAndHost(
     icons,
     openGraph: {
       type: "website",
-      title: metaTitle || displayName,
+      title,
       description,
       siteName: displayName,
       ...(metadataBase ? { url: metadataBase.href } : {}),
@@ -197,7 +191,7 @@ export function metadataFromTenantAndHost(
     },
     twitter: {
       card: ogImageUrl ? "summary_large_image" : "summary",
-      title: metaTitle || displayName,
+      title,
       description,
       ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },

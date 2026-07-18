@@ -39,8 +39,12 @@ import {
   brandingPresetMatches,
   type BrandingColorPreset,
 } from "@/lib/branding-color-presets";
-import { APP_ROUTES } from "@/lib/config";
+import { APP_ROUTES, PLATFORM_DOMAIN } from "@/lib/config";
 import { setDocumentFavicon } from "@/lib/document-favicon";
+import {
+  defaultStorefrontMetaDescription,
+  defaultStorefrontMetaTitle,
+} from "@/lib/storefront-seo-defaults";
 import { resolveBusinessFaviconHref } from "@/lib/tenant-favicon-path";
 import { cn } from "@/lib/utils";
 import {
@@ -338,12 +342,79 @@ function ColorField({
   );
 }
 
+function storefrontHostLabel(business: BusinessRecord | null): string {
+  const custom = business?.primaryDomain?.trim();
+  if (custom) {
+    return custom.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  }
+  const slug = business?.slug?.trim();
+  if (slug) {
+    return `${slug}.${PLATFORM_DOMAIN}`;
+  }
+  return PLATFORM_DOMAIN;
+}
+
+function SerpPreview({
+  form,
+  business,
+  compact = false,
+}: {
+  form: FormState;
+  business: BusinessRecord | null;
+  compact?: boolean;
+}) {
+  const display =
+    form.displayName.trim() || business?.name?.trim() || "Your storefront";
+  const title =
+    form.metaTitle.trim() || defaultStorefrontMetaTitle(display);
+  const description =
+    form.metaDescription.trim() || defaultStorefrontMetaDescription(display);
+  const host = storefrontHostLabel(business);
+  const usingDefaults = !form.metaTitle.trim() || !form.metaDescription.trim();
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 shadow-sm",
+        compact ? "p-4" : "p-5 sm:p-6",
+      )}
+    >
+      <div className="flex items-center gap-2 text-primary">
+        <Globe className="size-4" aria-hidden />
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">
+          Search preview
+        </h2>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        How your storefront can appear in Google. Edit title and description
+        below — leave blank to use the neighborhood-shop defaults.
+      </p>
+      <div className="mt-4 rounded-xl border border-border/70 bg-background p-4 shadow-inner">
+        <p className="truncate text-xs text-muted-foreground">{host}</p>
+        <p className="mt-1 line-clamp-2 text-lg font-medium leading-snug text-[#8ab4f8]">
+          {title}
+        </p>
+        <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      {usingDefaults ? (
+        <p className={cn(hintClass(), "mt-2")}>
+          Empty fields use defaults until you save custom copy.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function BrandingPreview({
   form,
   logoUrl,
+  business,
 }: {
   form: FormState;
   logoUrl: string | null | undefined;
+  business: BusinessRecord | null;
 }) {
   const display = form.displayName.trim() || "Your storefront";
   const primary = HEX_REGEX.test(form.primaryColor)
@@ -354,38 +425,41 @@ function BrandingPreview({
     : DEFAULT_ACCENT;
   const faviconPreview = form.faviconUrl.trim() || null;
   return (
-    <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-sm sm:p-6">
-      <div className="flex items-center gap-2 text-primary">
-        <Sparkles className="size-4" aria-hidden />
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">
-          Live preview
-        </h2>
-      </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Approximates your public shop header.
-      </p>
-      <div
-        className="mt-4 rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
-        style={{ borderColor: `${primary}55` }}
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <TenantLogo
-            brand={display}
-            logoUrl={logoUrl}
-            faviconUrl={faviconPreview}
-            primaryColor={primary}
-            variant="preview"
-            tagline="Header + favicon as shoppers see them"
-            className="flex-1 min-w-0"
-          />
-          <span
-            className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm shrink-0"
-            style={{ backgroundColor: accent }}
-          >
-            Sale
-          </span>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 shadow-sm sm:p-6">
+        <div className="flex items-center gap-2 text-primary">
+          <Sparkles className="size-4" aria-hidden />
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-primary/90">
+            Live preview
+          </h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Approximates your public shop header.
+        </p>
+        <div
+          className="mt-4 rounded-xl border-2 bg-background/80 p-4 shadow-inner backdrop-blur-sm"
+          style={{ borderColor: `${primary}55` }}
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <TenantLogo
+              brand={display}
+              logoUrl={logoUrl}
+              faviconUrl={faviconPreview}
+              primaryColor={primary}
+              variant="preview"
+              tagline="Header + favicon as shoppers see them"
+              className="flex-1 min-w-0"
+            />
+            <span
+              className="rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm shrink-0"
+              style={{ backgroundColor: accent }}
+            >
+              Sale
+            </span>
+          </div>
         </div>
       </div>
+      <SerpPreview form={form} business={business} />
     </div>
   );
 }
@@ -1135,9 +1209,9 @@ export default function BrandingPage() {
               title="Branding"
               description={
                 <>
-                  Logo, colors, and display name for your storefront, sign-in
-                  screens, and tenant emails. Logo and favicon uploads apply
-                  immediately; display name and colors save from the drawer with{" "}
+                  Logo, colors, display name, and search appearance for your
+                  storefront. Logo and favicon uploads apply immediately;
+                  display name, colors, and SEO fields save from the drawer with{" "}
                   <span className="font-medium text-foreground">
                     Save branding
                   </span>
@@ -1169,7 +1243,7 @@ export default function BrandingPage() {
             />
           ) : null}
 
-          <BrandingPreview form={form} logoUrl={logoUrl} />
+          <BrandingPreview form={form} logoUrl={logoUrl} business={snapshot} />
         </div>
       </div>
 
@@ -1180,12 +1254,9 @@ export default function BrandingPage() {
         title="Edit branding"
         description={
           <>
-            Logo and favicon files upload right away. Display name, colors, and
-            favicon URL use{" "}
-            <span className="font-mono text-xs">
-              PATCH …/businesses/me/branding
-            </span>{" "}
-            when you save.
+            Logo and favicon files upload right away. Display name, colors,
+            search title/description, and favicon URL save together when you
+            click Save branding.
           </>
         }
         contextLabel="Appearance"
@@ -1338,15 +1409,22 @@ export default function BrandingPage() {
 
           <FormDrawerFields
             legend="Search & social"
-            hint="Customise how search engines and social platforms see your storefront. These override the defaults derived from your business name and logo."
+            hint="Customise how Google and social apps see your neighborhood shop. Empty fields use the defaults shown in the preview."
           >
+            <SerpPreview form={form} business={snapshot} compact />
+
             <div className="space-y-2">
-              <label className={labelClass()} htmlFor="branding-meta-title">
-                Meta title{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
+              <div className="flex items-baseline justify-between gap-3">
+                <label className={labelClass()} htmlFor="branding-meta-title">
+                  Search title{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {form.metaTitle.length}/255
                 </span>
-              </label>
+              </div>
               <input
                 id="branding-meta-title"
                 className={inputClass()}
@@ -1355,37 +1433,50 @@ export default function BrandingPage() {
                 onChange={(e) =>
                   setForm((s) => ({ ...s, metaTitle: e.target.value }))
                 }
-                placeholder="Overrides the browser tab / SERP title"
+                placeholder={defaultStorefrontMetaTitle(
+                  form.displayName.trim() ||
+                    snapshot?.name?.trim() ||
+                    "Your store",
+                )}
               />
               <p className={hintClass()}>
-                Shown in search-engine result titles and browser tabs. Falls
-                back to your display name when empty.
+                Blue link text in search results. Aim for about 50–60
+                characters. Example: Palmart | Neighborhood Shop.
               </p>
             </div>
 
             <div className="space-y-2">
-              <label
-                className={labelClass()}
-                htmlFor="branding-meta-description"
-              >
-                Meta description{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
+              <div className="flex items-baseline justify-between gap-3">
+                <label
+                  className={labelClass()}
+                  htmlFor="branding-meta-description"
+                >
+                  Search description{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {form.metaDescription.length}/320
                 </span>
-              </label>
+              </div>
               <textarea
                 id="branding-meta-description"
-                className={cn(inputClass(), "min-h-[80px] resize-y")}
+                className={cn(inputClass(), "min-h-[96px] resize-y")}
                 value={form.metaDescription}
                 maxLength={320}
                 onChange={(e) =>
                   setForm((s) => ({ ...s, metaDescription: e.target.value }))
                 }
-                placeholder="Brief storefront summary for search snippets"
+                placeholder={defaultStorefrontMetaDescription(
+                  form.displayName.trim() ||
+                    snapshot?.name?.trim() ||
+                    "Your store",
+                )}
               />
               <p className={hintClass()}>
-                Aim for 50–160 characters. Search engines may show longer
-                snippets in some cases.
+                Grey snippet under the title. Aim for about 140–160 characters.
+                Mention your neighborhood, products, pickup, or delivery.
               </p>
             </div>
 
