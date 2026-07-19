@@ -13,7 +13,7 @@ import {
 import { TenantLogo } from "@/components/brand/tenant-logo";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
-import { logoutRemote } from "@/lib/api";
+import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { APP_ROUTES } from "@/lib/config";
 import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
@@ -146,9 +146,7 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
               className="size-8 text-[rgb(var(--bp-fg-faint))] hover:bg-[rgb(var(--bp-hover))] hover:text-[rgb(var(--bp-fg))]"
               aria-label="Sign out"
               onClick={() => {
-                void logoutRemote().finally(() => {
-                  router.replace(APP_ROUTES.login);
-                });
+                void logoutRemoteAndRedirectToLogin().catch(() => undefined);
               }}
             >
               <LogOut className="size-4" />

@@ -2,6 +2,7 @@
 
 import {
   API_ROUTES,
+  APP_ROUTES,
   DEFAULT_PAGE_QUERY,
   ERROR_CODES,
   getApiBaseUrl,
@@ -1833,6 +1834,18 @@ export async function logoutRemote(): Promise<void> {
   }
 
   finalizeClientSignOut();
+}
+
+/**
+ * Explicit Log out from dashboard / POS shells.
+ * Soft client-router navigation can leave React state (and previously sessionStorage
+ * tokens) looking signed-in — always hard-navigate after clearing.
+ */
+export async function logoutRemoteAndRedirectToLogin(): Promise<void> {
+  await logoutRemote();
+  if (typeof window !== "undefined") {
+    window.location.assign(APP_ROUTES.login);
+  }
 }
 
 export async function fetchMe(): Promise<MeResponse> {

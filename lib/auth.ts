@@ -11,6 +11,7 @@ import {
   STORAGE_KEYS,
 } from "@/lib/config";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
+import { clearAllSessionBootstrap } from "@/lib/session-bootstrap";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
 export type SessionTokens = {
@@ -264,8 +265,14 @@ export function setSessionTokens(tokens: SessionTokens): void {
 }
 
 export function clearSessionTokens(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  // Tokens are mirrored to both stores on login (iPad / Safari restore).
   window.localStorage.removeItem(STORAGE_KEYS.accessToken);
   window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  window.sessionStorage.removeItem(STORAGE_KEYS.accessToken);
+  window.sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
 }
 
 /** Clears ALL session-related data on logout: tokens, tenant context, branch/item-type selections, caches. */
@@ -273,9 +280,10 @@ export function clearAllSessionData(): void {
   if (typeof window === "undefined") {
     return;
   }
-  // Auth tokens
-  window.localStorage.removeItem(STORAGE_KEYS.accessToken);
-  window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  // Auth tokens (localStorage + sessionStorage — getSessionTokens reads either)
+  clearSessionTokens();
+  // Prefetched /me + business + branches from login / cookie restore
+  clearAllSessionBootstrap();
   // Tenant context (session + durable copy)
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);

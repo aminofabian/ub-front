@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import { ALL_DEPARTMENTS_LABEL } from "@/hooks/use-session-scope";
-import { logoutRemote } from "@/lib/api";
+import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
 import { posBrandThemeStyle } from "@/lib/brand-theme";
 import { isBranchLockedRole } from "@/lib/branch-access";
 import { APP_ROUTES } from "@/lib/config";
@@ -244,13 +244,9 @@ export function CashierShell({ children }: CashierShellProps) {
               variant="outline"
               size="sm"
               className="h-8 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
-              onClick={() =>
-                logoutRemote()
-                  .catch(() => undefined)
-                  .finally(() => {
-                    router.replace(APP_ROUTES.login);
-                  })
-              }
+              onClick={() => {
+                void logoutRemoteAndRedirectToLogin().catch(() => undefined);
+              }}
             >
               Log out
             </Button>

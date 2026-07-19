@@ -50,3 +50,10 @@ export function clearSessionBootstrap(key: string): void {
     /* ignore */
   }
 }
+
+/** Clears every bootstrap key written during login / cookie restore. */
+export function clearAllSessionBootstrap(): void {
+  clearSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me);
+  clearSessionBootstrap(SESSION_BOOTSTRAP_KEYS.business);
+  clearSessionBootstrap(SESSION_BOOTSTRAP_KEYS.branches);
+}

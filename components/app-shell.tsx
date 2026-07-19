@@ -48,7 +48,7 @@ import {
   canWriteSuppliers,
 } from "@/lib/supplier-access";
 import { BUTCHER_POS_FEATURE_FLAG, isButcherPosEnabled } from "@/lib/butcher-feature";
-import { logoutRemote } from "@/lib/api";
+import { logoutRemoteAndRedirectToLogin } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
@@ -761,8 +761,7 @@ export function AppShell({ children }: AppShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const onLogout = async () => {
-    await logoutRemote();
-    router.push(APP_ROUTES.login);
+    await logoutRemoteAndRedirectToLogin();
   };
 
   const userDisplayName = me?.name?.trim() || me?.email?.trim() || tenantTitle;
