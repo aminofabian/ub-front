@@ -20,6 +20,10 @@ import {
   registerRealtimeDisconnect,
 } from "./auth";
 import { refreshAccessToken } from "./api";
+import {
+  isPosSoftAuthActive,
+  notifyPosSessionExpired,
+} from "./pos-soft-auth";
 import { tryRecoverSessionBeforeSignOut } from "./session-recovery";
 import {
   apiUrl,
@@ -702,6 +706,10 @@ export class RealtimeClient {
   private async handleReauthAndReconnect(): Promise<void> {
     try {
       if (!getSessionTokens()) {
+        if (isPosSoftAuthActive()) {
+          notifyPosSessionExpired();
+          return;
+        }
         signOutClientAndRedirectToLogin("realtime reauth: no session tokens");
         return;
       }
@@ -716,6 +724,10 @@ export class RealtimeClient {
         );
         if (recovered) {
           this.attemptReconnect();
+          return;
+        }
+        if (isPosSoftAuthActive()) {
+          notifyPosSessionExpired();
           return;
         }
         signOutClientAndRedirectToLogin("realtime reauth: refresh rejected");

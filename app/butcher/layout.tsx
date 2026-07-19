@@ -1,14 +1,16 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 
+import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
+import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
 import { ButcherShell } from "@/components/butcher/butcher-shell";
 import { ButcheryOnlyRedirects } from "@/components/butcher/butchery-only-redirects";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
-import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
+import { useClientHasSession, useClientSessionReady } from "@/hooks/use-client-session";
 import { fetchMe, fetchBusiness, type BusinessRecord, type MeResponse } from "@/lib/api";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { roleLandingRedirect } from "@/lib/post-auth-destination";
@@ -19,13 +21,14 @@ import {
 } from "@/lib/session-bootstrap";
 
 type ButcherLayoutProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function ButcherRoleRedirects() {
   const router = useRouter();
   const pathname = usePathname();
-  const { ready, hasSession } = useAuthenticatedSession({ requireAuth: true });
+  const ready = useClientSessionReady();
+  const hasSession = useClientHasSession();
 
   useEffect(() => {
     if (!ready || !hasSession) {
@@ -64,15 +67,13 @@ function ButcherRoleRedirects() {
   return null;
 }
 
-export default function ButcherLayout({ children }: ButcherLayoutProps) {
-  const { ready } = useAuthenticatedSession({ requireAuth: true });
-
+function ButcherLayoutInner({ children }: ButcherLayoutProps) {
   useEffect(() => {
-    if (!ready || typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
       return;
     }
     navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
-  }, [ready]);
+  }, []);
 
   return (
     <DashboardProvider>
@@ -83,5 +84,15 @@ export default function ButcherLayout({ children }: ButcherLayoutProps) {
         <DashboardToaster />
       </RealtimeProvider>
     </DashboardProvider>
+  );
+}
+
+export default function ButcherLayout({ children }: ButcherLayoutProps) {
+  return (
+    <AuthenticatedShellGate>
+      <PosSoftAuthScope>
+        <ButcherLayoutInner>{children}</ButcherLayoutInner>
+      </PosSoftAuthScope>
+    </AuthenticatedShellGate>
   );
 }

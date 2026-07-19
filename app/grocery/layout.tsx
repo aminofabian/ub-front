@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
+import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
 import { DashboardClientGuards } from "@/components/dashboard/dashboard-client-guards";
 import { DashboardProvider } from "@/components/dashboard-provider";
 import { DashboardToaster } from "@/components/dashboard-sonner";
@@ -80,7 +81,9 @@ function GroceryLayoutInner({ children }: GroceryLayoutProps) {
 export default function GroceryLayout({ children }: GroceryLayoutProps) {
   return (
     <AuthenticatedShellGate>
-      <GroceryLayoutInner>{children}</GroceryLayoutInner>
+      <PosSoftAuthScope>
+        <GroceryLayoutInner>{children}</GroceryLayoutInner>
+      </PosSoftAuthScope>
     </AuthenticatedShellGate>
   );
 }

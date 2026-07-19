@@ -20,6 +20,12 @@ import {
   signOutClientAndRedirectToLogin,
   subscribeToAuthBroadcasts,
 } from "@/lib/auth";
+import { withAuthRefreshLock } from "@/lib/cross-tab-lock";
+import {
+  effectiveSoftAuth,
+  isPosSoftAuthActive,
+  notifyPosSessionExpired,
+} from "@/lib/pos-soft-auth";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import {
   delay,
@@ -113,13 +119,23 @@ function failRequest(
 function signOutClientForProblem(
   status: number,
   payload: unknown,
-  options?: { requiresAuth?: boolean; softAuth?: boolean },
+  options?: {
+    requiresAuth?: boolean;
+    softAuth?: boolean;
+    /** Bypass POS soft-auth (dead account / locked user). */
+    forceHard?: boolean;
+  },
 ): boolean {
   if (!isSessionRelatedProblem(status, payload, options)) {
     return false;
   }
-  if (options?.softAuth) {
-    // Soft-auth callers (POS search) keep the tab on the till and show a banner.
+  if (options?.forceHard) {
+    signOutClientAndRedirectToLogin("session-related API problem");
+    return true;
+  }
+  if (effectiveSoftAuth(options?.softAuth)) {
+    // Soft-auth / POS shell: keep the till open; UI shows a reauth dialog.
+    notifyPosSessionExpired(formatApiProblemMessage(payload));
     return false;
   }
   signOutClientAndRedirectToLogin("session-related API problem");
@@ -145,7 +161,7 @@ async function resolveUnauthorizedResponse(
   const problem = parseProblem(payload);
 
   // Definitive dead-account signals: the user record itself is gone / locked.
-  // No refresh can recover from these — sign out immediately (even softAuth).
+  // No refresh can recover from these — sign out immediately (even on POS).
   if (
     problem?.title === "User not found" ||
     problem?.title === "Account is not active" ||
@@ -154,8 +170,7 @@ async function resolveUnauthorizedResponse(
   ) {
     signOutClientForProblem(response.status, payload, {
       requiresAuth: options?.requiresAuth,
-      // Dead-account must always hard-logout.
-      softAuth: false,
+      forceHard: true,
     });
     throw new ApiRequestError(
       formatApiProblemMessage(payload),
@@ -167,6 +182,7 @@ async function resolveUnauthorizedResponse(
   // For everything else — expired tokens, "Session is no longer active",
   // generic auth failures — try a refresh. The httpOnly cookie (when enabled)
   // can mint a brand-new session even when the DB row was revoked.
+  const soft = effectiveSoftAuth(options?.softAuth);
   const result = await refreshAccessToken();
   if (result.kind === "ok") {
     return execute();
@@ -178,9 +194,10 @@ async function resolveUnauthorizedResponse(
     if (recovered) {
       return execute();
     }
-    if (options?.softAuth) {
-      // Keep the cashier on the till; caller shows a soft banner / cache.
-      failRequest(response.status, payload, options);
+    if (soft) {
+      // Keep the cashier on the till; POS shell shows a session-expired dialog.
+      notifyPosSessionExpired(formatApiProblemMessage(payload));
+      failRequest(response.status, payload, { ...options, toast: false });
     }
     // Refresh token itself is invalid/revoked/expired - session is unrecoverable.
     signOutClientAndRedirectToLogin("401 after refresh rejected");
@@ -1131,27 +1148,27 @@ function getNetworkErrorMessage(): string {
  *   attempt should work.
  */
 export type RefreshOutcome =
-  { kind: "ok" } | { kind: "rejected" } | { kind: "network" };
+  | { kind: "ok" }
+  | {
+      kind: "rejected";
+      /** Idle / known-dead session — do not retry before logout. */
+      definitive?: boolean;
+    }
+  | { kind: "network" };
 
 /*
- * Single-flight refresh.
+ * Single-flight refresh (per tab) + cross-tab Web Lock.
  *
  * Every callsite that wants to refresh (API 401 handler, scheduled timer,
  * activity-triggered refresh, WS reauth) goes through refreshAccessToken().
- * If a refresh is already in flight, callers receive the SAME promise and
- * therefore the SAME outcome. This prevents:
- *   1. Multiple parallel POST /auth/refresh calls with the same refresh token
- *      (which would otherwise trip RFC 6819 reuse detection on the backend).
- *   2. Wasted backend round-trips when a navigation fires 5+ requests that
- *      all hit 401 within the same tick.
+ * If a refresh is already in flight in THIS tab, callers share one promise.
  *
- * The first caller actually performs the fetch; everyone else awaits the
- * same promise. Once it settles the slot is freed so future expiries can
- * trigger fresh refreshes.
+ * Across tabs, {@link withAuthRefreshLock} serializes the actual POST so two
+ * tills / dashboard+cashier tabs cannot rotate the same refresh cookie at once
+ * (which would trip RFC 6819 reuse detection outside the backend grace window).
  *
- * Cross-tab coordination is handled separately via the BroadcastChannel /
- * "storage" event listener installed below: when a sibling tab finishes a
- * refresh, the new tokens land in localStorage automatically.
+ * After waiting for the lock, we adopt sibling tokens if storage already moved
+ * forward — then skip a redundant refresh.
  */
 let inFlightRefresh: Promise<RefreshOutcome> | null = null;
 
@@ -1159,7 +1176,21 @@ export async function refreshAccessToken(): Promise<RefreshOutcome> {
   if (inFlightRefresh) {
     return inFlightRefresh;
   }
-  inFlightRefresh = performRefreshOnce().finally(() => {
+  inFlightRefresh = (async () => {
+    const baselineAccessToken = getSessionTokens()?.accessToken;
+    return withAuthRefreshLock(async () => {
+      const current = getSessionTokens()?.accessToken;
+      if (
+        baselineAccessToken &&
+        current &&
+        current !== baselineAccessToken
+      ) {
+        // Sibling tab refreshed while we waited for the lock.
+        return { kind: "ok" };
+      }
+      return performRefreshOnce();
+    });
+  })().finally(() => {
     inFlightRefresh = null;
   });
   return inFlightRefresh;
@@ -1242,11 +1273,13 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
 
   if (response.status === 401) {
     if (isSessionIdleExpiredProblem(payload)) {
-      return { kind: "rejected" };
+      return { kind: "rejected", definitive: true };
     }
 
     if (isRefreshAlreadyRotatedProblem(payload)) {
-      if (await waitForSiblingTokenUpdate(baselineAccessToken)) {
+      // Sibling (or this tab's restore) likely holds the successor — wait longer
+      // than the default so BroadcastChannel / storage can land before we retry.
+      if (await waitForSiblingTokenUpdate(baselineAccessToken, 1_500)) {
         return { kind: "ok" };
       }
       await delay(150);
@@ -1260,7 +1293,7 @@ async function performRefreshOnce(): Promise<RefreshOutcome> {
       }
     }
 
-    if (await waitForSiblingTokenUpdate(baselineAccessToken)) {
+    if (await waitForSiblingTokenUpdate(baselineAccessToken, 1_200)) {
       return { kind: "ok" };
     }
     if (await restoreClientSessionFromCookie()) {
@@ -1400,6 +1433,9 @@ async function request<T>(
     }
   };
 
+  // Opt-in softAuth OR any mounted POS shell (cashier / butcher / grocery).
+  const soft = softAuth || isPosSoftAuthActive();
+
   let response = await execute();
   if (requiresAuth && response.status === 401) {
     if (signal?.aborted) {
@@ -1408,7 +1444,7 @@ async function request<T>(
     response = await resolveUnauthorizedResponse(response, execute, {
       requiresAuth,
       toast: suppressToast,
-      softAuth,
+      softAuth: soft,
     });
   }
 
@@ -1417,7 +1453,7 @@ async function request<T>(
     if (
       signOutClientForProblem(response.status, payload, {
         requiresAuth,
-        softAuth,
+        softAuth: soft,
       })
     ) {
       throw new ApiRequestError(
@@ -1443,6 +1479,7 @@ async function requestMultipartJson<T>(
   path: string,
   form: FormData,
 ): Promise<T> {
+  const soft = isPosSoftAuthActive();
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
@@ -1451,18 +1488,21 @@ async function requestMultipartJson<T>(
     return fetch(apiUrl(path), {
       method: "POST",
       headers,
+      credentials: AUTH_FETCH_CREDENTIALS,
       body: form,
     });
   };
 
   let response = await execute();
   if (response.status === 401) {
-    response = await resolveUnauthorizedResponse(response, execute);
+    response = await resolveUnauthorizedResponse(response, execute, {
+      softAuth: soft,
+    });
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    if (signOutClientForProblem(response.status, payload)) {
+    if (signOutClientForProblem(response.status, payload, { softAuth: soft })) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -1512,6 +1552,7 @@ async function postIntegrationsJsonImport(
     }
   }
 
+  const soft = isPosSoftAuthActive();
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "POST");
@@ -1520,13 +1561,16 @@ async function postIntegrationsJsonImport(
     return fetch(apiUrl(`/api/v1/integrations/imports/${relativePath}`), {
       method: "POST",
       headers,
+      credentials: AUTH_FETCH_CREDENTIALS,
       body: form,
     });
   };
 
   let response = await execute();
   if (response.status === 401) {
-    response = await resolveUnauthorizedResponse(response, execute);
+    response = await resolveUnauthorizedResponse(response, execute, {
+      softAuth: soft,
+    });
   }
 
   const payload: unknown = await response.json().catch(() => null);
@@ -1534,7 +1578,7 @@ async function postIntegrationsJsonImport(
     return payload;
   }
   if (!response.ok) {
-    if (signOutClientForProblem(response.status, payload ?? {})) {
+    if (signOutClientForProblem(response.status, payload ?? {}, { softAuth: soft })) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -1592,23 +1636,27 @@ export async function postLegacySellingPriceJsonImport(
 }
 
 async function requestBinary(path: string): Promise<Blob> {
+  const soft = isPosSoftAuthActive();
   const execute = async () => {
     const session = getSessionTokens();
     const headersInit = buildRequestHeaders(true, session?.accessToken, "GET");
     return fetch(apiUrl(path), {
       method: "GET",
       headers: headersInit,
+      credentials: AUTH_FETCH_CREDENTIALS,
     });
   };
 
   let response = await execute();
   if (response.status === 401) {
-    response = await resolveUnauthorizedResponse(response, execute);
+    response = await resolveUnauthorizedResponse(response, execute, {
+      softAuth: soft,
+    });
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    if (signOutClientForProblem(response.status, payload)) {
+    if (signOutClientForProblem(response.status, payload, { softAuth: soft })) {
       throw new ApiRequestError(
         formatApiProblemMessage(payload),
         response.status,
@@ -6192,6 +6240,8 @@ export async function tryPostSale(
   const path = "/api/v1/sales";
   const method: RequestMethod = "POST";
   const key = idempotencyKey.trim();
+  // Sales are till-critical: never hard-redirect mid-tender on session failure.
+  const soft = true;
 
   const execute = async (): Promise<
     | { kind: "response"; response: Response }
@@ -6208,6 +6258,7 @@ export async function tryPostSale(
       const response = await fetch(apiUrl(path), {
         method,
         headers,
+        credentials: AUTH_FETCH_CREDENTIALS,
         body: JSON.stringify(buildJsonPostSaleBody(body)),
       });
       return { kind: "response", response };
@@ -6224,13 +6275,17 @@ export async function tryPostSale(
 
   if (response.status === 401) {
     try {
-      response = await resolveUnauthorizedResponse(response, async () => {
-        const retry = await execute();
-        if (retry.kind === "network") {
-          throw new Error(retry.message);
-        }
-        return retry.response;
-      });
+      response = await resolveUnauthorizedResponse(
+        response,
+        async () => {
+          const retry = await execute();
+          if (retry.kind === "network") {
+            throw new Error(retry.message);
+          }
+          return retry.response;
+        },
+        { softAuth: soft },
+      );
     } catch (err) {
       const message =
         err instanceof ApiRequestError
@@ -6249,7 +6304,7 @@ export async function tryPostSale(
 
   const payload = await response.json().catch(() => ({}));
   const message = formatApiProblemMessage(payload);
-  if (signOutClientForProblem(response.status, payload)) {
+  if (signOutClientForProblem(response.status, payload, { softAuth: soft })) {
     return { ok: false, status: response.status, message };
   }
   return { ok: false, status: response.status, message };

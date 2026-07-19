@@ -9,6 +9,10 @@ import {
 import { refreshAccessToken } from "@/lib/api";
 import { STORAGE_KEYS } from "@/lib/config";
 import { parseAccessTokenClaims } from "@/lib/jwt-client";
+import {
+  isPosSoftAuthActive,
+  notifyPosSessionExpired,
+} from "@/lib/pos-soft-auth";
 import { tryRecoverSessionBeforeSignOut } from "@/lib/session-recovery";
 
 /*
@@ -94,14 +98,29 @@ async function performRefresh(): Promise<void> {
       scheduleNextRefresh();
       return;
     }
-    if (consecutiveRefreshRejections < MAX_REFRESH_REJECT_BEFORE_LOGOUT) {
+    // Idle (and other definitive) rejections: skip the 3× retry buffer.
+    const giveUp =
+      outcome.definitive === true ||
+      consecutiveRefreshRejections >= MAX_REFRESH_REJECT_BEFORE_LOGOUT;
+    if (!giveUp) {
       clearRefreshTimer();
       refreshTimer = setTimeout(() => {
         void performRefresh();
       }, 5_000 * consecutiveRefreshRejections);
       return;
     }
-    signOutClientAndRedirectToLogin("background refresh rejected after retries");
+    if (isPosSoftAuthActive()) {
+      // Stay on the till; shell shows an explicit reauth dialog.
+      notifyPosSessionExpired(
+        "Your session expired. Sign in again to keep selling — your cart stays on this screen.",
+      );
+      return;
+    }
+    signOutClientAndRedirectToLogin(
+      outcome.definitive
+        ? "background refresh rejected (definitive)"
+        : "background refresh rejected after retries",
+    );
     return;
   }
   /*

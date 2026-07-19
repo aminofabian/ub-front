@@ -24,21 +24,30 @@ function withSessionStorage(run: () => void): void {
       store.clear();
     },
   };
-  const previous = globalThis.sessionStorage;
+  const previousSession = globalThis.sessionStorage;
+  const previousWindow = globalThis.window;
   Object.defineProperty(globalThis, "sessionStorage", {
     configurable: true,
     value: storage,
   });
+  // Preserve localStorage / event APIs on window so sibling test files are not poisoned.
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { sessionStorage: storage },
+    value: {
+      ...(previousWindow ?? {}),
+      sessionStorage: storage,
+    },
   });
   try {
     run();
   } finally {
     Object.defineProperty(globalThis, "sessionStorage", {
       configurable: true,
-      value: previous,
+      value: previousSession,
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: previousWindow,
     });
   }
 }

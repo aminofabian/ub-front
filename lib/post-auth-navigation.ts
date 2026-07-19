@@ -77,9 +77,11 @@ async function syncSlugAndNavigate(
     return;
   }
 
+  // Never put the refresh token in the URL fragment — prefer the httpOnly
+  // cookie (shared via APP_AUTH_REFRESH_COOKIE_DOMAIN). Handoff page calls
+  // refreshAccessToken() after installing the access JWT.
   const fragment = encodeAuthHandoffPayload({
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
     tenantId: tenantId ?? undefined,
     nextPath: nextHint,
   });
