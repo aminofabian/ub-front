@@ -11,9 +11,9 @@ import {
 } from "@/lib/platform-seo";
 import type { TenantContext } from "@/lib/public-storefront";
 import {
-  defaultStorefrontMetaDescription,
   defaultStorefrontMetaKeywords,
-  defaultStorefrontMetaTitle,
+  resolveStorefrontMetaDescription,
+  resolveStorefrontMetaTitle,
 } from "@/lib/storefront-seo-defaults";
 import { resolveTenantFaviconHref } from "@/lib/tenant-favicon-path";
 
@@ -132,15 +132,22 @@ export function metadataFromTenantAndHost(
     tenant.tenantName.trim() ||
     tenant.slug;
 
-  // SEO overrides from branding settings
+  // SEO overrides from branding settings ([Area]/[Country] placeholders supported)
   const metaTitle = tenant.branding.metaTitle?.trim();
   const metaDescription = tenant.branding.metaDescription?.trim();
   const ogImage = tenant.branding.ogImage?.trim();
   const metaKeywords = tenant.branding.metaKeywords?.trim();
+  const location = {
+    areas: tenant.branchLocalities,
+    countryCode: tenant.countryCode,
+  };
 
-  const title = metaTitle || defaultStorefrontMetaTitle(displayName);
-  const description =
-    metaDescription || defaultStorefrontMetaDescription(displayName);
+  const title = resolveStorefrontMetaTitle(displayName, metaTitle, location);
+  const description = resolveStorefrontMetaDescription(
+    displayName,
+    metaDescription,
+    location,
+  );
   const logo = tenant.branding.logoUrl?.trim();
 
   const faviconHref = resolveTenantFaviconHref({
@@ -174,7 +181,8 @@ export function metadataFromTenantAndHost(
     description,
     applicationName: displayName,
     other: {
-      keywords: metaKeywords || defaultStorefrontMetaKeywords(displayName),
+      keywords:
+        metaKeywords || defaultStorefrontMetaKeywords(displayName, location),
     },
     appleWebApp: {
       capable: true,

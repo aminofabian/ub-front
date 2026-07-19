@@ -176,6 +176,13 @@ export type TenantContext = {
   featureFlags: Record<string, boolean>;
   storefrontEnabled: boolean;
   resolvedAt: string;
+  /** ISO-3166 alpha-2 when known (e.g. KE). */
+  countryCode: string | null;
+  /**
+   * Short area/locality labels from onboarding + active branches
+   * (e.g. Westlands) for SEO snippets.
+   */
+  branchLocalities: string[];
 };
 
 const DEFAULT_REVALIDATE_SEC = 60;
@@ -657,6 +664,18 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
       ? o.resolvedAt.trim()
       : new Date().toISOString();
 
+  const countryRaw =
+    typeof o.countryCode === "string" ? o.countryCode.trim().toUpperCase() : "";
+  const countryCode = countryRaw.length === 2 ? countryRaw : null;
+
+  const localitiesRaw = o.branchLocalities;
+  const branchLocalities = Array.isArray(localitiesRaw)
+    ? localitiesRaw
+        .filter((v): v is string => typeof v === "string")
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
+    : [];
+
   return {
     tenantId,
     tenantName,
@@ -667,6 +686,8 @@ export function normalizeTenantContext(raw: unknown): TenantContext | null {
     featureFlags,
     storefrontEnabled,
     resolvedAt,
+    countryCode,
+    branchLocalities,
   };
 }
 

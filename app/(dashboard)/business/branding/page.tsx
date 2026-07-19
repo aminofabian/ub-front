@@ -44,6 +44,10 @@ import { setDocumentFavicon } from "@/lib/document-favicon";
 import {
   defaultStorefrontMetaDescription,
   defaultStorefrontMetaTitle,
+  localitiesFromBranches,
+  resolveStorefrontMetaDescription,
+  resolveStorefrontMetaTitle,
+  type StorefrontSeoLocation,
 } from "@/lib/storefront-seo-defaults";
 import { resolveBusinessFaviconHref } from "@/lib/tenant-favicon-path";
 import { cn } from "@/lib/utils";
@@ -52,6 +56,7 @@ import {
   clearMyBrandingLogo,
   clearMyBrandingOgImage,
   deleteMyBrandingBanner,
+  fetchBranches,
   fetchBusiness,
   reorderMyBrandingBanners,
   updateMyBranding,
@@ -61,6 +66,7 @@ import {
   uploadMyBrandingOgImage,
   type BrandingPatchPayload,
   type BrandingRecord,
+  type BranchRecord,
   type BusinessRecord,
 } from "@/lib/api";
 
@@ -357,20 +363,29 @@ function storefrontHostLabel(business: BusinessRecord | null): string {
 function SerpPreview({
   form,
   business,
+  location,
   compact = false,
 }: {
   form: FormState;
   business: BusinessRecord | null;
+  location: StorefrontSeoLocation;
   compact?: boolean;
 }) {
   const display =
     form.displayName.trim() || business?.name?.trim() || "Your storefront";
-  const title =
-    form.metaTitle.trim() || defaultStorefrontMetaTitle(display);
-  const description =
-    form.metaDescription.trim() || defaultStorefrontMetaDescription(display);
+  const title = resolveStorefrontMetaTitle(
+    display,
+    form.metaTitle,
+    location,
+  );
+  const description = resolveStorefrontMetaDescription(
+    display,
+    form.metaDescription,
+    location,
+  );
   const host = storefrontHostLabel(business);
   const usingDefaults = !form.metaTitle.trim() || !form.metaDescription.trim();
+  const areaHint = location.areas?.[0]?.trim();
 
   return (
     <div
@@ -386,8 +401,16 @@ function SerpPreview({
         </h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        How your storefront can appear in Google. Edit title and description
-        below — leave blank to use the neighborhood-shop defaults.
+        How your storefront can appear in Google. Area is taken from your
+        branches
+        {areaHint ? (
+          <>
+            {" "}
+            (now <span className="font-medium text-foreground">{areaHint}</span>)
+          </>
+        ) : null}
+        . Use <span className="font-mono text-xs">[Area]</span> in custom copy
+        to keep it dynamic.
       </p>
       <div className="mt-4 rounded-xl border border-border/70 bg-background p-4 shadow-inner">
         <p className="truncate text-xs text-muted-foreground">{host}</p>
@@ -400,7 +423,8 @@ function SerpPreview({
       </div>
       {usingDefaults ? (
         <p className={cn(hintClass(), "mt-2")}>
-          Empty fields use defaults until you save custom copy.
+          Empty fields use groceries defaults with your branch area until you
+          save custom copy.
         </p>
       ) : null}
     </div>
@@ -411,10 +435,12 @@ function BrandingPreview({
   form,
   logoUrl,
   business,
+  location,
 }: {
   form: FormState;
   logoUrl: string | null | undefined;
   business: BusinessRecord | null;
+  location: StorefrontSeoLocation;
 }) {
   const display = form.displayName.trim() || "Your storefront";
   const primary = HEX_REGEX.test(form.primaryColor)
@@ -459,7 +485,7 @@ function BrandingPreview({
           </div>
         </div>
       </div>
-      <SerpPreview form={form} business={business} />
+      <SerpPreview form={form} business={business} location={location} />
     </div>
   );
 }
@@ -858,6 +884,7 @@ export default function BrandingPage() {
   const searchParams = useSearchParams();
   const { canManageBusinessSettings } = useDashboard();
   const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -870,16 +897,18 @@ export default function BrandingPage() {
   const skipDrawerResetAfterSave = useRef(false);
 
   const load = useCallback(() => {
-    return fetchBusiness()
-      .then((next) => {
+    return Promise.all([fetchBusiness(), fetchBranches().catch(() => [])])
+      .then(([next, nextBranches]) => {
         setLoadFailed(false);
         setFeedback(null);
         setSnapshot(next);
+        setBranches(nextBranches);
         setForm(formFromBranding(next.branding));
       })
       .catch((error) => {
         setLoadFailed(true);
         setSnapshot(null);
+        setBranches([]);
         setFeedback({
           kind: "error",
           text: messageFor(error, "Could not load branding."),
@@ -1198,6 +1227,22 @@ export default function BrandingPage() {
   const drawerBusy =
     isSaving || logoBusy || faviconBusy || ogImageBusy || bannerBusy;
 
+  const onboardingLocalitiesRaw =
+    snapshot?.onboarding?.answers?.branchLocalities;
+  const onboardingLocalities = Array.isArray(onboardingLocalitiesRaw)
+    ? onboardingLocalitiesRaw.filter(
+        (v): v is string => typeof v === "string",
+      )
+    : [];
+
+  const seoLocation: StorefrontSeoLocation = {
+    areas: localitiesFromBranches(branches, onboardingLocalities),
+    countryCode: snapshot?.countryCode ?? "KE",
+  };
+
+  const seoDisplayName =
+    form.displayName.trim() || snapshot?.name?.trim() || "Your store";
+
   return (
     <>
       <div className={DASHBOARD_MAX}>
@@ -1243,7 +1288,12 @@ export default function BrandingPage() {
             />
           ) : null}
 
-          <BrandingPreview form={form} logoUrl={logoUrl} business={snapshot} />
+          <BrandingPreview
+            form={form}
+            logoUrl={logoUrl}
+            business={snapshot}
+            location={seoLocation}
+          />
         </div>
       </div>
 
@@ -1409,9 +1459,14 @@ export default function BrandingPage() {
 
           <FormDrawerFields
             legend="Search & social"
-            hint="Customise how Google and social apps see your neighborhood shop. Empty fields use the defaults shown in the preview."
+            hint="Customise how Google and social apps see your neighborhood shop. Empty fields use the groceries defaults with your branch area. Use [Area] and [Country] to keep location dynamic."
           >
-            <SerpPreview form={form} business={snapshot} compact />
+            <SerpPreview
+              form={form}
+              business={snapshot}
+              location={seoLocation}
+              compact
+            />
 
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-3">
@@ -1434,14 +1489,17 @@ export default function BrandingPage() {
                   setForm((s) => ({ ...s, metaTitle: e.target.value }))
                 }
                 placeholder={defaultStorefrontMetaTitle(
-                  form.displayName.trim() ||
-                    snapshot?.name?.trim() ||
-                    "Your store",
+                  seoDisplayName,
+                  seoLocation,
                 )}
               />
               <p className={hintClass()}>
                 Blue link text in search results. Aim for about 50–60
-                characters. Example: Palmart | Neighborhood Shop.
+                characters. Example:{" "}
+                <span className="font-mono text-[11px]">
+                  [Name] | Groceries &amp; Essentials in [Area], [Country]
+                </span>
+                .
               </p>
             </div>
 
@@ -1469,14 +1527,16 @@ export default function BrandingPage() {
                   setForm((s) => ({ ...s, metaDescription: e.target.value }))
                 }
                 placeholder={defaultStorefrontMetaDescription(
-                  form.displayName.trim() ||
-                    snapshot?.name?.trim() ||
-                    "Your store",
+                  seoDisplayName,
+                  seoLocation,
                 )}
               />
               <p className={hintClass()}>
                 Grey snippet under the title. Aim for about 140–160 characters.
-                Mention your neighborhood, products, pickup, or delivery.
+                Placeholders:{" "}
+                <span className="font-mono text-[11px]">[Area]</span>,{" "}
+                <span className="font-mono text-[11px]">[Country]</span>,{" "}
+                <span className="font-mono text-[11px]">[Name]</span>.
               </p>
             </div>
 
