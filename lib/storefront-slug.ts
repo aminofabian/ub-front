@@ -87,6 +87,8 @@ function localTenantFallback(hostname: string): TenantContext | null {
     featureFlags: {},
     storefrontEnabled: true,
     resolvedAt: new Date().toISOString(),
+    countryCode: null,
+    branchLocalities: [],
   };
 }
 
