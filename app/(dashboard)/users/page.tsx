@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Filter,
+  KeyRound,
   Loader2,
   MapPin,
   Package,
@@ -43,6 +44,7 @@ import {
   fetchRoles,
   fetchUsers,
   setUserItemTypes,
+  setUserPassword,
   updateUser,
   type BranchRecord,
   type RoleRecord,
@@ -403,6 +405,13 @@ export default function UsersPage() {
   const [deptEditUserId, setDeptEditUserId] = useState<string | null>(null);
   const [deptChange, setDeptChange] = useState<Record<string, string[]>>({});
   const [savingDeptId, setSavingDeptId] = useState<string | null>(null);
+  const [passwordEditUserId, setPasswordEditUserId] = useState<string | null>(
+    null,
+  );
+  const [passwordDraft, setPasswordDraft] = useState<
+    Record<string, { password: string; confirm: string }>
+  >({});
+  const [savingPasswordId, setSavingPasswordId] = useState<string | null>(null);
 
   const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
@@ -617,6 +626,48 @@ export default function UsersPage() {
       });
     } finally {
       setDeactivatingId(null);
+    }
+  };
+
+  const clearPasswordEdit = (userId: string) => {
+    setPasswordEditUserId((current) => (current === userId ? null : current));
+    setPasswordDraft((previous) => {
+      const next = { ...previous };
+      delete next[userId];
+      return next;
+    });
+  };
+
+  const onSavePassword = async (userId: string) => {
+    const draft = passwordDraft[userId];
+    const password = draft?.password ?? "";
+    const confirm = draft?.confirm ?? "";
+    if (password.length < 8) {
+      setFeedback({
+        kind: "error",
+        text: "Password must be at least 8 characters.",
+      });
+      return;
+    }
+    if (password !== confirm) {
+      setFeedback({ kind: "error", text: "Passwords do not match." });
+      return;
+    }
+    setSavingPasswordId(userId);
+    setFeedback(null);
+    try {
+      await setUserPassword(userId, password);
+      clearPasswordEdit(userId);
+      await loadData();
+      setFeedback({ kind: "success", text: "Password updated." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text:
+          error instanceof Error ? error.message : "Password update failed.",
+      });
+    } finally {
+      setSavingPasswordId(null);
     }
   };
 
@@ -1330,26 +1381,137 @@ export default function UsersPage() {
 
                           {/* ACTIONS */}
                           <td className="px-5 py-4 text-right align-top sm:px-6">
-                            {canDeactivate ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                type="button"
-                                className="gap-1.5 border-destructive/35 text-destructive transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                                disabled={deactivatingId === user.id}
-                                onClick={() => void onDeactivate(user.id)}
-                                aria-label={`Deactivate ${user.email}`}
-                              >
-                                {deactivatingId === user.id ? (
-                                  <Loader2
-                                    className="size-3.5 animate-spin"
-                                    aria-hidden
-                                  />
-                                ) : (
-                                  <UserX className="size-3.5" aria-hidden />
-                                )}
-                                Deactivate
-                              </Button>
+                            {canUpdate && passwordEditUserId === user.id ? (
+                              <div className="ml-auto flex w-full max-w-xs flex-col gap-2 text-left">
+                                <input
+                                  type="password"
+                                  autoComplete="new-password"
+                                  className={cn(
+                                    dashboardInputClass(),
+                                    "py-2 text-sm",
+                                  )}
+                                  placeholder="New password"
+                                  value={passwordDraft[user.id]?.password ?? ""}
+                                  onChange={(event) =>
+                                    setPasswordDraft((previous) => ({
+                                      ...previous,
+                                      [user.id]: {
+                                        password: event.target.value,
+                                        confirm:
+                                          previous[user.id]?.confirm ?? "",
+                                      },
+                                    }))
+                                  }
+                                  aria-label={`New password for ${user.email}`}
+                                  autoFocus
+                                />
+                                <input
+                                  type="password"
+                                  autoComplete="new-password"
+                                  className={cn(
+                                    dashboardInputClass(),
+                                    "py-2 text-sm",
+                                  )}
+                                  placeholder="Confirm password"
+                                  value={passwordDraft[user.id]?.confirm ?? ""}
+                                  onChange={(event) =>
+                                    setPasswordDraft((previous) => ({
+                                      ...previous,
+                                      [user.id]: {
+                                        password:
+                                          previous[user.id]?.password ?? "",
+                                        confirm: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  aria-label={`Confirm password for ${user.email}`}
+                                />
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    type="button"
+                                    className="h-8 gap-1.5 rounded-lg px-3"
+                                    disabled={savingPasswordId === user.id}
+                                    onClick={() =>
+                                      void onSavePassword(user.id)
+                                    }
+                                  >
+                                    {savingPasswordId === user.id ? (
+                                      <Loader2
+                                        className="size-3.5 animate-spin"
+                                        aria-hidden
+                                      />
+                                    ) : (
+                                      <Save
+                                        className="size-3.5"
+                                        aria-hidden
+                                      />
+                                    )}
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    type="button"
+                                    className="h-8 rounded-lg"
+                                    disabled={savingPasswordId === user.id}
+                                    onClick={() => clearPasswordEdit(user.id)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : canUpdate || canDeactivate ? (
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                {canUpdate ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    type="button"
+                                    className="gap-1.5"
+                                    disabled={savingPasswordId === user.id}
+                                    onClick={() => {
+                                      setPasswordEditUserId(user.id);
+                                      setPasswordDraft((previous) => ({
+                                        ...previous,
+                                        [user.id]: {
+                                          password: "",
+                                          confirm: "",
+                                        },
+                                      }));
+                                    }}
+                                    aria-label={`Set password for ${user.email}`}
+                                  >
+                                    <KeyRound
+                                      className="size-3.5"
+                                      aria-hidden
+                                    />
+                                    Set password
+                                  </Button>
+                                ) : null}
+                                {canDeactivate ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    type="button"
+                                    className="gap-1.5 border-destructive/35 text-destructive transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                                    disabled={deactivatingId === user.id}
+                                    onClick={() => void onDeactivate(user.id)}
+                                    aria-label={`Deactivate ${user.email}`}
+                                  >
+                                    {deactivatingId === user.id ? (
+                                      <Loader2
+                                        className="size-3.5 animate-spin"
+                                        aria-hidden
+                                      />
+                                    ) : (
+                                      <UserX className="size-3.5" aria-hidden />
+                                    )}
+                                    Deactivate
+                                  </Button>
+                                ) : null}
+                              </div>
                             ) : (
                               <span className="text-xs font-medium text-muted-foreground/70">
                                 —

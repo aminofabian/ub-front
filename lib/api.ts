@@ -2504,6 +2504,17 @@ export async function deactivateUser(userId: string): Promise<void> {
   await request(`${API_ROUTES.users}/${userId}/deactivate`, { method: "POST" });
 }
 
+/** Admin sets a user's password (no current-password check). */
+export async function setUserPassword(
+  userId: string,
+  newPassword: string,
+): Promise<void> {
+  await request(`${API_ROUTES.users}/${userId}/password`, {
+    method: "POST",
+    body: { newPassword },
+  });
+}
+
 /**
  * List the department (item-type) IDs a user is restricted to. Only
  * meaningful for the `grocery_clerk` role today; other roles return an

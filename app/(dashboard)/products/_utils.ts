@@ -300,6 +300,15 @@ export function bundlePatchFromVariantDraft(draft: VariantDraft): PatchItemPaylo
     if (!Number.isFinite(n)) throw new Error("Bundle price must be a valid number.");
     patch.bundlePrice = n;
   }
+  // Variant form "Buy price" is draft.defaultCostPrice; Commerce COST reads item.buyingPrice
+  // (and supplier default when linked). Persist buy price even without a supplier.
+  if (draft.defaultCostPrice.trim()) {
+    const n = Number(draft.defaultCostPrice.trim());
+    if (!Number.isFinite(n) || n < 0) {
+      throw new Error("Buy price must be a valid non-negative number.");
+    }
+    patch.buyingPrice = n;
+  }
   if (draft.bundleName.trim()) patch.bundleName = draft.bundleName.trim();
 
   return Object.keys(patch).length > 0 ? patch : null;
