@@ -1148,26 +1148,7 @@ export default function ShopCheckoutForm({
             />
           </header>
 
-          {/* Pay first — M-Pesa hero, till secondary, order details after */}
-          {!paymentConfirmed && (hasOnlinePay || hasManualPay) ? (
-            <div className="pb-2">
-              <ShopCheckoutPaymentSection
-                variant="floating"
-                manual={paymentOptions.manual}
-                online={paymentOptions.online}
-                defaultAreaCode={areaCode}
-                defaultPhone={customerPhone}
-                stkBusy={stkBusy}
-                stkMessage={stkMessage}
-                stkSent={stkSent}
-                onStkPay={handleStkPay}
-                orderPlaced
-                selectedMethod="mpesa"
-                amountDue={total}
-              />
-            </div>
-          ) : null}
-
+          {/* COD / paid / manual — no STK prompt (that contradicts pay-on-delivery) */}
           <div className="space-y-2 pb-1.5">
             <ConfirmationPanel className="overflow-hidden p-0">
               <ConfirmationPanelHeader
@@ -1708,7 +1689,10 @@ export default function ShopCheckoutForm({
         ? {
             eyebrow: "Review your order",
             headline: "Accept the store terms to continue",
-            hint: "Check your items above, then tick the terms checkbox.",
+            hint:
+              paymentMethod === "mpesa"
+                ? "M-Pesa is ready above — tick terms, then continue."
+                : "Check your items above, then tick the terms checkbox.",
             actionLabel: "Go to terms",
             actionDisabled: false,
             onAction: scrollToCheckoutTerms,
@@ -1717,10 +1701,18 @@ export default function ShopCheckoutForm({
           }
         : showReviewStep
           ? {
-              eyebrow: "Review your order",
-              headline: "Ready when you are",
-              hint: "Check your items above, then continue to payment.",
-              actionLabel: "Continue to payment",
+              eyebrow:
+                paymentMethod === "mpesa" ? "Pay with M-Pesa" : "Review your order",
+              headline:
+                paymentMethod === "mpesa"
+                  ? "Number set — continue to place order"
+                  : "Ready when you are",
+              hint:
+                paymentMethod === "mpesa"
+                  ? "You'll send the M-Pesa prompt right after placing the order."
+                  : "Continue to place your order — pay the rider on delivery.",
+              actionLabel:
+                paymentMethod === "mpesa" ? "Continue to place & pay" : "Continue",
               actionDisabled: false,
               onAction: proceedToConfirmStep,
               actionType: "button" as const,
@@ -2152,8 +2144,32 @@ export default function ShopCheckoutForm({
           <SectionHeader
             icon={<PackageCheck className="size-4" aria-hidden />}
             title="Review your order"
-            subtitle={`${cart.lines.length} ${cart.lines.length === 1 ? "item" : "items"} · confirm details before payment`}
+            subtitle={`${cart.lines.length} ${cart.lines.length === 1 ? "item" : "items"} · choose how to pay`}
           />
+
+          <div className={cn(CHECKOUT_CARD_INSET, "space-y-2 p-3")}>
+            <div className="flex items-end justify-between">
+              <span className="text-sm font-semibold text-foreground">Total due</span>
+              <span className={CHECKOUT_SERIF_AMOUNT}>{totalLabel}</span>
+            </div>
+          </div>
+
+          {hasOnlinePay || payOnDeliveryAvailable ? (
+            <ShopCheckoutPaymentSection
+              manual={paymentOptions.manual}
+              online={paymentOptions.online}
+              defaultAreaCode={areaCode}
+              defaultPhone={customerPhone}
+              amountDue={totalLabel}
+              selectedMethod={paymentMethod}
+              onSelectMethod={setPaymentMethod}
+              payOnDeliveryAvailable={payOnDeliveryAvailable}
+              onStkPay={
+                paymentOptions.online.length > 0 ? handleStkPay : undefined
+              }
+              orderPlaced={false}
+            />
+          ) : null}
 
           <ShopShippingSummaryCard
             contact={shippingSummary}

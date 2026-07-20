@@ -351,7 +351,7 @@ function OnlineStkFields({
         <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
           <Zap className="mt-0.5 size-3 shrink-0 text-[#00a651]" aria-hidden />
           {promptDisabledHint ??
-            "Place your order first, then tap Send prompt to pay on your phone."}
+            "Enter your M-Pesa number now — tap Send prompt right after you place the order."}
         </p>
       ) : (
         <p className="text-[11px] leading-snug text-muted-foreground">
@@ -531,7 +531,7 @@ export function ShopCheckoutPaymentSection({
             promptDisabled={stkPromptDisabled}
             promptDisabledHint={
               stkPromptDisabled
-                ? "Place your order first, then tap Send prompt to pay on your phone."
+                ? "Enter your M-Pesa number now — tap Send prompt right after you place the order."
                 : undefined
             }
             actionsInDock={dockActions}
@@ -569,7 +569,7 @@ export function ShopCheckoutPaymentSection({
             promptDisabled={stkPromptDisabled}
             promptDisabledHint={
               stkPromptDisabled
-                ? "Place your order first, then send the M-Pesa prompt to your phone."
+                ? "Enter your M-Pesa number now — tap Send prompt right after you place the order."
                 : undefined
             }
             actionsInDock={dockActions}

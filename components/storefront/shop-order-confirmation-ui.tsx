@@ -703,9 +703,8 @@ export function ConfirmationDockActions({
   onConfirmPayment,
   onReturnToShop,
   paymentSlot,
-  /** COD: return-to-shop is primary; optional early pay lives in paymentSlot */
+  /** COD: order is placed — no STK; just return to shop */
   payOnDelivery = false,
-  /** STK prompt already sent — unlock “I’ve completed payment” as next step */
   stkSent = false,
   anchored = false,
   fullWidth = false,
@@ -720,8 +719,6 @@ export function ConfirmationDockActions({
   anchored?: boolean;
   fullWidth?: boolean;
 }) {
-  const showCodReturnPrimary = !paymentConfirmed && payOnDelivery;
-
   return (
     <ConfirmationFloatingDock
       ariaLabel="Order actions"
@@ -732,88 +729,41 @@ export function ConfirmationDockActions({
         {paymentSlot ? (
           <div className="min-w-0 max-w-full">{paymentSlot}</div>
         ) : null}
-        {paymentConfirmed ? (
-          <Button
-            type="button"
-            size="lg"
-            onClick={onReturnToShop}
-            className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
-          >
-            Return to shop
-            <ArrowRight className="size-4" aria-hidden />
-          </Button>
-        ) : showCodReturnPrimary ? (
+        {paymentConfirmed || payOnDelivery ? (
           <div className="space-y-1.5">
-            {stkSent ? (
-              <Button
-                type="button"
-                size="lg"
-                disabled={checkingPayment}
-                onClick={onConfirmPayment}
-                className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20"
-              >
-                {checkingPayment ? (
-                  <>
-                    <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Checking…
-                  </>
-                ) : (
-                  <>
-                    I&apos;ve completed payment
-                    <RefreshCw className="size-4" aria-hidden />
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                size="lg"
-                onClick={onReturnToShop}
-                className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
-              >
-                Return to shop
-                <ArrowRight className="size-4" aria-hidden />
-              </Button>
-            )}
-            <p className="px-0.5 text-center text-[10px] leading-snug text-muted-foreground">
-              {stkSent
-                ? "Approve the prompt on your phone, then confirm above."
-                : "Recommended: send the M-Pesa prompt above. Or return to shop and pay the rider on delivery."}
-            </p>
-            {stkSent ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={onReturnToShop}
-                className="h-9 w-full rounded-lg border-border/60 text-[11px] font-semibold"
-              >
-                Return to shop
-              </Button>
+            <Button
+              type="button"
+              size="lg"
+              onClick={onReturnToShop}
+              className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
+            >
+              Return to shop
+              <ArrowRight className="size-4" aria-hidden />
+            </Button>
+            {payOnDelivery && !paymentConfirmed ? (
+              <p className="px-0.5 text-center text-[10px] leading-snug text-muted-foreground">
+                Your order is saved. Pay cash or M-Pesa to the rider when it arrives.
+              </p>
             ) : null}
           </div>
         ) : (
           <div className="space-y-1.5">
-            {paymentSlot && !stkSent ? (
-              <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
-                Send the M-Pesa prompt (or pay the till), approve if prompted, then
-                confirm below.
-              </p>
-            ) : paymentSlot && stkSent ? (
+            {stkSent ? (
               <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
                 Approve the prompt on your phone, then tap below.
               </p>
-            ) : null}
+            ) : (
+              <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+                Send the M-Pesa prompt (or pay the till), then confirm below.
+              </p>
+            )}
             <div className="flex items-stretch gap-2">
               <Button
                 type="button"
                 size="lg"
                 disabled={checkingPayment}
                 onClick={onConfirmPayment}
-                className={cn(
-                  "h-10 min-w-0 flex-1 gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20",
-                  paymentSlot && !stkSent && "opacity-90",
-                )}
+                className="h-10 min-w-0 flex-1 gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20"
               >
                 {checkingPayment ? (
                   <>
