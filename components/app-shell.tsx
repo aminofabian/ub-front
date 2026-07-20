@@ -54,11 +54,17 @@ import { IS_DESKTOP } from "@/lib/runtime";
 import { resolveActiveNavSectionId } from "@/lib/nav-active-section";
 import { cn } from "@/lib/utils";
 
-const BRANCHES_LINK = { href: APP_ROUTES.branches, label: "Branches" } as const;
+const BRANCHES_LINK = {
+  href: APP_ROUTES.branches,
+  label: "Branches",
+  group: "Access and locations",
+} as const;
 
 type NavItem = {
   href: string;
   label: string;
+  /** Submenu section label — items with the same group render under one heading. */
+  group?: string;
   /** Tenant feature flag the item depends on. Item is hidden when the flag exists and is false. */
   featureFlag?: string;
 };
@@ -92,20 +98,53 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Building2,
     entryHref: APP_ROUTES.business,
     items: [
-      { href: APP_ROUTES.business, label: "Business" },
-      { href: APP_ROUTES.businessSettings, label: "Settings" },
-      { href: APP_ROUTES.businessBranding, label: "Branding" },
-      { href: APP_ROUTES.businessMobile, label: "Store app" },
-      { href: APP_ROUTES.businessDomains, label: "Domains" },
+      { href: APP_ROUTES.business, label: "Business", group: "Profile" },
+      {
+        href: APP_ROUTES.businessSettings,
+        label: "Settings",
+        group: "Profile",
+      },
+      {
+        href: APP_ROUTES.businessBranding,
+        label: "Branding",
+        group: "Configuration",
+      },
+      {
+        href: APP_ROUTES.businessMobile,
+        label: "Store app",
+        group: "Configuration",
+      },
+      {
+        href: APP_ROUTES.businessDomains,
+        label: "Domains",
+        group: "Configuration",
+      },
+      {
+        href: APP_ROUTES.promoCampaigns,
+        label: "Promotions",
+        group: "Configuration",
+      },
+      {
+        href: APP_ROUTES.desktopSettings,
+        label: "Desktop & LAN",
+        group: "Configuration",
+      },
       BRANCHES_LINK,
-      { href: APP_ROUTES.users, label: "Users" },
-      { href: APP_ROUTES.businessImport, label: "Data import" },
-      { href: APP_ROUTES.promoCampaigns, label: "Promotions" },
+      {
+        href: APP_ROUTES.users,
+        label: "Users",
+        group: "Access and locations",
+      },
+      {
+        href: APP_ROUTES.businessImport,
+        label: "Data import",
+        group: "Data",
+      },
       {
         href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
         label: "Daily audit review",
+        group: "Data",
       },
-      { href: APP_ROUTES.desktopSettings, label: "Desktop & LAN" },
     ],
   },
   {
@@ -129,15 +168,28 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Truck,
     entryHref: APP_ROUTES.suppliers,
     items: [
-      { href: APP_ROUTES.suppliers, label: "Suppliers" },
-      { href: APP_ROUTES.marketplace, label: "Marketplace" },
-      { href: APP_ROUTES.purchasingAddSupplies, label: "Receive supplies" },
+      { href: APP_ROUTES.suppliers, label: "Suppliers", group: "Vendors" },
+      { href: APP_ROUTES.marketplace, label: "Marketplace", group: "Vendors" },
       {
         href: APP_ROUTES.purchasingIntelligence,
         label: "Supplier intelligence",
+        group: "Vendors",
       },
-      { href: APP_ROUTES.purchasingApAging, label: "AP aging" },
-      { href: APP_ROUTES.purchasingRecordPayment, label: "Pay open" },
+      {
+        href: APP_ROUTES.purchasingAddSupplies,
+        label: "Receive supplies",
+        group: "Receiving",
+      },
+      {
+        href: APP_ROUTES.purchasingApAging,
+        label: "AP aging",
+        group: "Payables",
+      },
+      {
+        href: APP_ROUTES.purchasingRecordPayment,
+        label: "Pay open",
+        group: "Payables",
+      },
     ],
   },
   {
@@ -148,33 +200,66 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: Warehouse,
     entryHref: APP_ROUTES.inventoryStock,
     items: [
-      { href: APP_ROUTES.inventoryStockTakeDailyAudit, label: "Daily audit" },
+      {
+        href: APP_ROUTES.inventoryStockTakeDailyAudit,
+        label: "Daily audit",
+        group: "Counts & audits",
+      },
       {
         href: APP_ROUTES.inventoryStockTakeDailyAuditReview,
         label: "Audit review",
+        group: "Counts & audits",
       },
       {
         href: APP_ROUTES.inventoryStockTakeRestock,
         label: "Restock review",
+        group: "Counts & audits",
       },
-      { href: APP_ROUTES.inventoryStockTake, label: "Stock take" },
-      { href: APP_ROUTES.inventorySupplyBatches, label: "Supply batches" },
-      { href: APP_ROUTES.inventoryStock, label: "Stock" },
-      { href: APP_ROUTES.inventoryRestock, label: "Out of stock" },
-      { href: APP_ROUTES.inventoryValuation, label: "Stock valuation" },
-      { href: APP_ROUTES.inventoryCostIssues, label: "Cost issues" },
       {
-        href: APP_ROUTES.inventoryMissingBarcodes,
-        label: "Missing barcodes",
+        href: APP_ROUTES.inventoryStockTake,
+        label: "Stock take",
+        group: "Counts & audits",
       },
-      { href: APP_ROUTES.inventoryTransfers, label: "Stock transfers" },
       {
         href: APP_ROUTES.inventoryStockTakeInvestigations,
         label: "Investigations",
+        group: "Counts & audits",
       },
       {
         href: APP_ROUTES.inventoryStockTakeReconciliation,
         label: "Reconciliation",
+        group: "Counts & audits",
+      },
+      {
+        href: APP_ROUTES.inventorySupplyBatches,
+        label: "Supply batches",
+        group: "On hand",
+      },
+      { href: APP_ROUTES.inventoryStock, label: "Stock", group: "On hand" },
+      {
+        href: APP_ROUTES.inventoryRestock,
+        label: "Out of stock",
+        group: "On hand",
+      },
+      {
+        href: APP_ROUTES.inventoryMissingBarcodes,
+        label: "Missing barcodes",
+        group: "On hand",
+      },
+      {
+        href: APP_ROUTES.inventoryValuation,
+        label: "Stock valuation",
+        group: "Value & movement",
+      },
+      {
+        href: APP_ROUTES.inventoryCostIssues,
+        label: "Cost issues",
+        group: "Value & movement",
+      },
+      {
+        href: APP_ROUTES.inventoryTransfers,
+        label: "Stock transfers",
+        group: "Value & movement",
       },
     ],
   },
@@ -222,35 +307,63 @@ const NAV_SECTIONS: readonly NavSection[] = [
     icon: ShoppingBag,
     entryHref: APP_ROUTES.sales,
     items: [
-      { href: APP_ROUTES.sales, label: "Sales" },
-      { href: APP_ROUTES.salesTransactions, label: "Transactions" },
+      { href: APP_ROUTES.sales, label: "Sales", group: "Intelligence" },
+      {
+        href: APP_ROUTES.salesTransactions,
+        label: "Transactions",
+        group: "Intelligence",
+      },
       {
         href: APP_ROUTES.salesPendingCarts,
         label: "Pending sales",
         featureFlag: "pos_drafts.ui_visible",
+        group: "Intelligence",
       },
-      { href: APP_ROUTES.analytics, label: "Analytics" },
-      { href: APP_ROUTES.analyticsActivity, label: "Activity" },
-      { href: APP_ROUTES.salesReports, label: "Sales by category" },
+      {
+        href: APP_ROUTES.analytics,
+        label: "Analytics",
+        group: "Intelligence",
+      },
+      {
+        href: APP_ROUTES.analyticsActivity,
+        label: "Activity",
+        group: "Intelligence",
+      },
+      {
+        href: APP_ROUTES.salesReports,
+        label: "Sales by category",
+        group: "Intelligence",
+      },
       {
         href: APP_ROUTES.storefrontWebOrders,
         label: "Pickup orders (web)",
         featureFlag: "shop",
+        group: "Intelligence",
       },
-      { href: APP_ROUTES.salesQuick, label: "Quick sale" },
-      { href: APP_ROUTES.cashier, label: "Cashier (PWA)" },
+      { href: APP_ROUTES.salesQuick, label: "Quick sale", group: "Tills" },
+      { href: APP_ROUTES.cashier, label: "Cashier (PWA)", group: "Tills" },
       {
         href: APP_ROUTES.butcher,
         label: "Butcher counter",
         featureFlag: BUTCHER_POS_FEATURE_FLAG,
+        group: "Counters",
       },
       {
         href: APP_ROUTES.butcherSuppliers,
         label: "Butcher suppliers",
         featureFlag: BUTCHER_POS_FEATURE_FLAG,
+        group: "Counters",
       },
-      { href: APP_ROUTES.grocery, label: "Grocery counter" },
-      { href: APP_ROUTES.groceryInvoices, label: "Grocery invoices" },
+      {
+        href: APP_ROUTES.grocery,
+        label: "Grocery counter",
+        group: "Counters",
+      },
+      {
+        href: APP_ROUTES.groceryInvoices,
+        label: "Grocery invoices",
+        group: "Counters",
+      },
     ],
   },
 ];
