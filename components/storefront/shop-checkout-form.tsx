@@ -1148,7 +1148,26 @@ export default function ShopCheckoutForm({
             />
           </header>
 
-          {/* Single column in drawers: viewport `lg` fires while the panel is still ~50vw */}
+          {/* Pay first — M-Pesa hero, till secondary, order details after */}
+          {!paymentConfirmed && (hasOnlinePay || hasManualPay) ? (
+            <div className="pb-2">
+              <ShopCheckoutPaymentSection
+                variant="floating"
+                manual={paymentOptions.manual}
+                online={paymentOptions.online}
+                defaultAreaCode={areaCode}
+                defaultPhone={customerPhone}
+                stkBusy={stkBusy}
+                stkMessage={stkMessage}
+                stkSent={stkSent}
+                onStkPay={handleStkPay}
+                orderPlaced
+                selectedMethod="mpesa"
+                amountDue={total}
+              />
+            </div>
+          ) : null}
+
           <div className="space-y-2 pb-1.5">
             <ConfirmationPanel className="overflow-hidden p-0">
               <ConfirmationPanelHeader
@@ -1196,51 +1215,6 @@ export default function ShopCheckoutForm({
           stkSent={stkSent}
           anchored
           fullWidth={embedded}
-          paymentSlot={
-            !paymentConfirmed && hasOnlinePay && !payOnDeliveryOrder ? (
-              <ShopCheckoutPaymentSection
-                variant="floating"
-                manual={paymentOptions.manual}
-                online={paymentOptions.online}
-                defaultAreaCode={areaCode}
-                defaultPhone={customerPhone}
-                stkBusy={stkBusy}
-                stkMessage={stkMessage}
-                stkSent={stkSent}
-                onStkPay={handleStkPay}
-                orderPlaced
-                selectedMethod="mpesa"
-                amountDue={total}
-              />
-            ) : !paymentConfirmed && hasOnlinePay && payOnDeliveryOrder ? (
-              <details className="group rounded-xl border border-border/50 bg-muted/20 open:bg-background">
-                <summary className="cursor-pointer list-none px-3 py-2 text-[11px] font-semibold text-muted-foreground marker:content-none [&::-webkit-details-marker]:hidden">
-                  <span className="inline-flex items-center gap-1.5 group-open:text-foreground">
-                    Want to pay now instead?
-                    <span className="text-[10px] font-medium text-primary">
-                      M-Pesa
-                    </span>
-                  </span>
-                </summary>
-                <div className="border-t border-border/40 px-1.5 pb-2 pt-1.5">
-                  <ShopCheckoutPaymentSection
-                    variant="floating"
-                    manual={paymentOptions.manual}
-                    online={paymentOptions.online}
-                    defaultAreaCode={areaCode}
-                    defaultPhone={customerPhone}
-                    stkBusy={stkBusy}
-                    stkMessage={stkMessage}
-                    stkSent={stkSent}
-                    onStkPay={handleStkPay}
-                    orderPlaced
-                    selectedMethod="mpesa"
-                    amountDue={total}
-                  />
-                </div>
-              </details>
-            ) : undefined
-          }
         />
       </div>
     );
@@ -1300,6 +1274,25 @@ export default function ShopCheckoutForm({
             />
           </header>
 
+          {!paymentConfirmed ? (
+            <div className="pb-2">
+              <ShopCheckoutPaymentSection
+                variant="floating"
+                manual={paymentOptions.manual}
+                online={paymentOptions.online}
+                defaultAreaCode={areaCode}
+                defaultPhone={customerPhone}
+                stkBusy={stkBusy}
+                stkMessage={stkMessage}
+                stkSent={stkSent}
+                onStkPay={handleStkPay}
+                orderPlaced
+                selectedMethod="mpesa"
+                amountDue={placedTotal}
+              />
+            </div>
+          ) : null}
+
           <ConfirmationPanel className="overflow-hidden p-0">
             <ConfirmationPanelHeader
               title="Order summary"
@@ -1322,22 +1315,6 @@ export default function ShopCheckoutForm({
           stkSent={stkSent}
           anchored
           fullWidth={embedded}
-          paymentSlot={
-            <ShopCheckoutPaymentSection
-              variant="floating"
-              manual={paymentOptions.manual}
-              online={paymentOptions.online}
-              defaultAreaCode={areaCode}
-              defaultPhone={customerPhone}
-              stkBusy={stkBusy}
-              stkMessage={stkMessage}
-              stkSent={stkSent}
-              onStkPay={handleStkPay}
-              orderPlaced
-              selectedMethod="mpesa"
-              amountDue={placedTotal}
-            />
-          }
         />
       </div>
     );

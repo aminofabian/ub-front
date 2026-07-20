@@ -778,9 +778,7 @@ export function ConfirmationDockActions({
             <p className="px-0.5 text-center text-[10px] leading-snug text-muted-foreground">
               {stkSent
                 ? "Approve the prompt on your phone, then confirm above."
-                : `Your order is saved. Pay the rider when it arrives${
-                    paymentSlot ? " — or pay early with M-Pesa above" : ""
-                  }.`}
+                : "Recommended: send the M-Pesa prompt above. Or return to shop and pay the rider on delivery."}
             </p>
             {stkSent ? (
               <Button

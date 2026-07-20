@@ -489,13 +489,17 @@ export function ShopCheckoutPaymentSection({
       <div
         className={cn(
           floating
-            ? cn("px-2 py-1.5", CHECKOUT_PAYMENT_PANEL)
+            ? cn("space-y-1.5 px-0.5 py-0.5")
             : cn("space-y-2.5 p-4", CHECKOUT_PAYMENT_PANEL),
         )}
       >
-        {!floating ? (
+        {floating ? (
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            Or pay via till
+          </p>
+        ) : (
           <PaymentSectionHeading title="Or pay manually" amountDue={amountDue} compact={false} />
-        ) : null}
+        )}
         {manual.map((pi) => (
           <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
         ))}
@@ -594,29 +598,18 @@ export function ShopCheckoutPaymentSection({
 
   return (
     <div className={cn("min-w-0 max-w-full", floating ? "space-y-2" : "space-y-3")}>
-      {showMethodPicker ? (
-        <>
-          {mpesaBlock}
-          {codBlock}
-        </>
-      ) : (
-        <>
-          {mpesaBlock}
-          {codSelected && payOnDeliveryAvailable ? (
-            <div className={cn(CHECKOUT_PAY_SECONDARY, "flex items-start gap-2.5 p-3.5")}>
-              <Truck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                You chose <span className="font-semibold text-foreground">pay on delivery</span>.
-                Pay the rider when your order arrives.
-              </p>
-            </div>
-          ) : null}
-          {manualBlock}
-        </>
-      )}
-      {showMethodPicker && hasManual && selectedMethod !== "pay_on_delivery"
-        ? manualBlock
-        : null}
+      {/* Always lead with M-Pesa; till / COD sit below so pay-now is considered first */}
+      {mpesaBlock}
+      {showMethodPicker ? codBlock : null}
+      {!showMethodPicker && codSelected && payOnDeliveryAvailable ? (
+        <div className={cn(CHECKOUT_PAY_SECONDARY, "flex items-start gap-2.5 p-3.5")}>
+          <Truck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Or pay on delivery — cash or M-Pesa to the rider when your order arrives.
+          </p>
+        </div>
+      ) : null}
+      {manualBlock}
     </div>
   );
 }
