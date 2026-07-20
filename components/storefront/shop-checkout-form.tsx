@@ -487,6 +487,7 @@ export default function ShopCheckoutForm({
     manual: [],
     online: [],
   });
+  const [paymentOptionsReady, setPaymentOptionsReady] = useState(false);
   const [stkBusy, setStkBusy] = useState(false);
   const [stkSent, setStkSent] = useState(false);
   const [stkMessage, setStkMessage] = useState<string | null>(null);
@@ -767,11 +768,23 @@ export default function ShopCheckoutForm({
 
   // Fetch payment options when cart loads
   useEffect(() => {
-    if (slug && cart) {
-      fetchPublicCheckoutPaymentOptionsBrowser(slug)
-        .then(setPaymentOptions)
-        .catch(() => setPaymentOptions({ manual: [], online: [] }));
-    }
+    if (!slug || !cart) return;
+    let cancelled = false;
+    setPaymentOptionsReady(false);
+    fetchPublicCheckoutPaymentOptionsBrowser(slug)
+      .then((opts) => {
+        if (cancelled) return;
+        setPaymentOptions(opts);
+        setPaymentOptionsReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPaymentOptions({ manual: [], online: [] });
+        setPaymentOptionsReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slug, cart]);
 
   async function handleStkPay(configId: string, phoneNumber: string) {
@@ -839,12 +852,23 @@ export default function ShopCheckoutForm({
   const hasOnlinePay = paymentOptions.online.length > 0;
   const hasManualPay = paymentOptions.manual.length > 0;
   const payOnDeliveryAvailable = true;
+  const paymentMethodTouched = useRef(false);
 
   useEffect(() => {
-    if (!hasOnlinePay && !hasManualPay) {
+    if (!paymentOptionsReady || paymentMethodTouched.current) return;
+    if (hasOnlinePay) {
+      setPaymentMethod("mpesa");
+      return;
+    }
+    if (!hasManualPay) {
       setPaymentMethod("pay_on_delivery");
     }
-  }, [hasOnlinePay, hasManualPay]);
+  }, [paymentOptionsReady, hasOnlinePay, hasManualPay]);
+
+  const selectPaymentMethod = useCallback((method: CheckoutPaymentMethod) => {
+    paymentMethodTouched.current = true;
+    setPaymentMethod(method);
+  }, []);
 
   async function handleConfirmPaymentSent() {
     if (!done?.orderId) {
@@ -2154,7 +2178,11 @@ export default function ShopCheckoutForm({
             </div>
           </div>
 
-          {hasOnlinePay || payOnDeliveryAvailable ? (
+          {!paymentOptionsReady ? (
+            <div className={cn(CHECKOUT_CARD_INSET, "p-3 text-[12px] text-muted-foreground")}>
+              Loading payment methods…
+            </div>
+          ) : hasOnlinePay || payOnDeliveryAvailable ? (
             <ShopCheckoutPaymentSection
               manual={paymentOptions.manual}
               online={paymentOptions.online}
@@ -2162,7 +2190,7 @@ export default function ShopCheckoutForm({
               defaultPhone={customerPhone}
               amountDue={totalLabel}
               selectedMethod={paymentMethod}
-              onSelectMethod={setPaymentMethod}
+              onSelectMethod={selectPaymentMethod}
               payOnDeliveryAvailable={payOnDeliveryAvailable}
               onStkPay={
                 paymentOptions.online.length > 0 ? handleStkPay : undefined
@@ -2360,7 +2388,11 @@ export default function ShopCheckoutForm({
             </div>
           </div>
 
-          {hasOnlinePay || payOnDeliveryAvailable ? (
+          {!paymentOptionsReady ? (
+            <div className={cn(CHECKOUT_CARD_INSET, "p-3 text-[12px] text-muted-foreground")}>
+              Loading payment methods…
+            </div>
+          ) : hasOnlinePay || payOnDeliveryAvailable ? (
             <ShopCheckoutPaymentSection
               manual={paymentOptions.manual}
               online={paymentOptions.online}
@@ -2368,7 +2400,7 @@ export default function ShopCheckoutForm({
               defaultPhone={customerPhone}
               amountDue={totalLabel}
               selectedMethod={paymentMethod}
-              onSelectMethod={setPaymentMethod}
+              onSelectMethod={selectPaymentMethod}
               payOnDeliveryAvailable={payOnDeliveryAvailable}
               onStkPay={
                 paymentOptions.online.length > 0 ? handleStkPay : undefined

@@ -208,7 +208,7 @@ function PaymentMethodOption({
         onClick={onSelect}
         className={cn(
           "flex w-full items-start gap-3 p-3.5 text-left sm:p-4",
-          featured && "pb-0",
+          featured && selected && "pb-0",
         )}
         aria-pressed={selected}
       >
@@ -507,7 +507,7 @@ export function ShopCheckoutPaymentSection({
     ) : null;
 
   const mpesaBlock =
-    hasOnline && onStkPay && mpesaSelected ? (
+    hasOnline && onStkPay ? (
       showMethodPicker ? (
         <PaymentMethodOption
           selected={mpesaSelected}
