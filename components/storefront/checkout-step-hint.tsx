@@ -42,7 +42,7 @@ function stepHint(
   }
   if (activeStep === 2) {
     return {
-      message: "M-Pesa is selected by default — confirm your number, then continue.",
+      message: "Pay with M-Pesa above — then continue when you’re ready.",
       icon: CreditCard,
     };
   }

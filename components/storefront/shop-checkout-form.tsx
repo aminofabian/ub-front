@@ -11,7 +11,6 @@ import {
   Lock,
   MapPin,
   PackageCheck,
-  ShieldCheck,
   ShoppingBag,
   Sparkles,
   Truck,
@@ -69,6 +68,7 @@ import {
 } from "@/components/storefront/shop-checkout-signup-modal";
 import { ShopCheckoutLoginModal } from "@/components/storefront/shop-checkout-login-modal";
 import { ShopCheckoutDeliveryEditModal } from "@/components/storefront/shop-checkout-delivery-edit-modal";
+import { ShopCheckoutReviewPanel } from "@/components/storefront/shop-checkout-review-panel";
 import { ShopCheckoutPaymentSection } from "@/components/storefront/shop-checkout-payment-section";
 import type { CheckoutPaymentMethod } from "@/components/storefront/shop-checkout-payment-section";
 import { ShopShippingSummaryCard } from "@/components/storefront/shop-shipping-summary-card";
@@ -1666,8 +1666,6 @@ export default function ShopCheckoutForm({
     showDetailsStep && !showSavedDeliverySummary && detailsSubStep === "contact";
   const showDeliverySubStep =
     showDetailsStep && !showSavedDeliverySummary && detailsSubStep === "delivery";
-  /** Totals in the review card — step 2 only */
-  const showTotalInSummary = showReviewStep;
 
   const scrollToCheckoutTerms = () => {
     document
@@ -2171,196 +2169,24 @@ export default function ShopCheckoutForm({
         ) : null}
 
         {showReviewStep ? (
-        <section
-          className={cn(
-            "min-w-0 max-w-full space-y-3",
-            CHECKOUT_CARD_PAD,
-            CHECKOUT_CARD,
-          )}
-        >
-          <SectionHeader
-            icon={<PackageCheck className="size-4" aria-hidden />}
-            title="Review your order"
-            subtitle={`${cart.lines.length} ${cart.lines.length === 1 ? "item" : "items"} · choose how to pay`}
+          <ShopCheckoutReviewPanel
+            cart={cart}
+            totalLabel={totalLabel}
+            shippingSummary={shippingSummary}
+            onEditShipping={startEditingShipping}
+            paymentOptions={paymentOptions}
+            paymentOptionsReady={paymentOptionsReady}
+            activePaymentMethod={activePaymentMethod}
+            onSelectPaymentMethod={selectPaymentMethod}
+            payOnDeliveryAvailable={payOnDeliveryAvailable}
+            areaCode={areaCode}
+            customerPhone={customerPhone}
+            onStkPay={
+              paymentOptions.online.length > 0 ? handleStkPay : undefined
+            }
+            termsAccepted={termsAccepted}
+            onTermsChange={handleTermsAgreementChange}
           />
-
-          <div className={cn(CHECKOUT_CARD_INSET, "space-y-2 p-3")}>
-            <div className="flex items-end justify-between">
-              <span className="text-sm font-semibold text-foreground">Total due</span>
-              <span className={CHECKOUT_SERIF_AMOUNT}>{totalLabel}</span>
-            </div>
-          </div>
-
-          {!paymentOptionsReady ? (
-            <div className={cn(CHECKOUT_CARD_INSET, "p-3 text-[12px] text-muted-foreground")}>
-              Loading payment methods…
-            </div>
-          ) : hasOnlinePay || payOnDeliveryAvailable ? (
-            <ShopCheckoutPaymentSection
-              manual={paymentOptions.manual}
-              online={paymentOptions.online}
-              defaultAreaCode={areaCode}
-              defaultPhone={customerPhone}
-              amountDue={totalLabel}
-              selectedMethod={activePaymentMethod}
-              onSelectMethod={selectPaymentMethod}
-              payOnDeliveryAvailable={payOnDeliveryAvailable}
-              onStkPay={
-                paymentOptions.online.length > 0 ? handleStkPay : undefined
-              }
-              orderPlaced={false}
-            />
-          ) : null}
-
-          <ShopShippingSummaryCard
-            contact={shippingSummary}
-            onEdit={startEditingShipping}
-            compact
-          />
-
-          <div className="flex items-center justify-end">
-            <Link
-              href={APP_ROUTES.shopCart}
-              className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-            >
-              Edit cart
-            </Link>
-          </div>
-
-          <div
-            className={cn(
-              CHECKOUT_CARD_INSET,
-              "mt-3 divide-y divide-border/50 overflow-visible lg:max-h-[360px] lg:overflow-y-auto lg:overscroll-contain lg:pr-1",
-              embedded && "max-h-[min(32vh,14rem)] overflow-y-auto overscroll-contain",
-            )}
-          >
-            {cart.lines.map((line) => (
-              <div
-                key={line.itemId}
-                className="flex w-full min-w-0 gap-2.5 p-2.5"
-              >
-                <div className="relative size-11 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/40">
-                  {line.imageUrl ? (
-                    <Image
-                      src={line.imageUrl}
-                      alt={line.name}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <ShoppingBag
-                        className="size-4 text-muted-foreground"
-                        aria-hidden
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[13px] font-medium leading-snug">
-                    {line.name}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>Qty {line.quantity}</span>
-                    {line.variantName ? (
-                      <span className={CHECKOUT_VARIANT_PILL}>{line.variantName}</span>
-                    ) : null}
-                  </div>
-                </div>
-                <p className="shrink-0 text-right text-[13px] font-semibold tabular-nums text-foreground">
-                  {formatDisplayPrice(cart.currency, line.lineTotal ?? 0)}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className={cn(CHECKOUT_CARD_INSET, "mt-3 border-dashed p-2.5")}>
-            <p className={CHECKOUT_LABEL}>Promo code</p>
-            <div className="mt-1.5 flex gap-1.5">
-              <input
-                type="text"
-                disabled
-                placeholder="Coming soon"
-                className="h-9 flex-1 rounded-lg border border-border bg-background/50 px-2.5 text-[13px] opacity-60"
-              />
-              <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 px-2.5 text-xs" disabled>
-                Apply
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-3 space-y-1.5 border-t border-border/60 pt-3 text-[13px]">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold tabular-nums text-foreground">
-                {subtotalLabel}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Delivery</span>
-              <span className="tabular-nums">
-                {shippingLabel === formatDisplayPrice(cart.currency, 0) ? (
-                  <span className="inline-flex items-center rounded-full bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2 py-0.5 text-xs font-semibold text-primary">
-                    Free
-                  </span>
-                ) : (
-                  shippingLabel
-                )}
-              </span>
-            </div>
-            {showTotalInSummary ? (
-              <div className="flex items-end justify-between border-t border-border/60 pt-3">
-                <span className="text-sm font-semibold text-foreground">Total due</span>
-                <span className={CHECKOUT_SERIF_AMOUNT}>{totalLabel}</span>
-              </div>
-            ) : null}
-          </div>
-
-          <div
-            id="checkout-terms"
-            className={cn(
-              CHECKOUT_CARD_INSET,
-              "mt-3 scroll-mt-4 space-y-2.5 p-3",
-            )}
-          >
-            <div className="flex items-center gap-2 border-b border-border/50 pb-2">
-              <ShieldCheck className="size-3.5 text-primary" aria-hidden />
-              <h4 className="text-xs font-semibold text-foreground">Confirm order</h4>
-            </div>
-            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/50 bg-background/80 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary/10"
-                checked={termsAccepted}
-                onChange={(ev) => handleTermsAgreementChange(ev.target.checked)}
-              />
-              <span>
-                I agree to the store{" "}
-                <span className="font-medium text-foreground underline underline-offset-2">
-                  terms of use
-                </span>{" "}
-                and{" "}
-                <span className="font-medium text-foreground underline underline-offset-2">
-                  privacy policy
-                </span>
-                .
-              </span>
-            </label>
-          </div>
-
-          <p className="mt-2 hidden items-center justify-center gap-3 text-[10px] font-medium text-muted-foreground sm:flex">
-            <span className="inline-flex items-center gap-1">
-              <Lock className="size-3" aria-hidden />
-              Secure
-            </span>
-            <span className="text-border">·</span>
-            <span className="inline-flex items-center gap-1">
-              <Zap className="size-3" aria-hidden />
-              Fast checkout
-            </span>
-          </p>
-        </section>
         ) : null}
 
         {showConfirmStep ? (

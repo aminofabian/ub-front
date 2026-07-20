@@ -184,6 +184,7 @@ function PaymentMethodOption({
   icon,
   badge,
   featured,
+  compact,
   children,
 }: {
   selected: boolean;
@@ -193,6 +194,7 @@ function PaymentMethodOption({
   icon: React.ReactNode;
   badge?: string;
   featured?: boolean;
+  compact?: boolean;
   children?: React.ReactNode;
 }) {
   return (
@@ -201,20 +203,23 @@ function PaymentMethodOption({
         featured ? CHECKOUT_MPESA_FEATURED : CHECKOUT_PAY_SECONDARY,
         selected && !featured && "border-primary/35 bg-primary/[0.04] ring-1 ring-primary/15",
         !selected && featured && "opacity-90",
+        compact && featured && "shadow-[0_2px_14px_-6px_color-mix(in_srgb,#00a651_28%,transparent)]",
       )}
     >
       <button
         type="button"
         onClick={onSelect}
         className={cn(
-          "flex w-full items-start gap-3 p-3.5 text-left sm:p-4",
-          featured && selected && "pb-0",
+          "flex w-full items-start text-left",
+          compact ? "gap-2.5 p-2.5 sm:p-3" : "gap-3 p-3.5 sm:p-4",
+          featured && selected && (compact ? "pb-0" : "pb-0"),
         )}
         aria-pressed={selected}
       >
         <span
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-xl",
+            "flex shrink-0 items-center justify-center rounded-xl",
+            compact ? "size-8" : "size-10",
             featured
               ? "bg-[#00a651]/15 text-[#007a3d]"
               : "bg-muted text-muted-foreground",
@@ -223,11 +228,11 @@ function PaymentMethodOption({
           {icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
+          <span className="flex flex-wrap items-center gap-1.5">
             <span
               className={cn(
-                "font-semibold tracking-tight",
-                featured ? "text-sm text-foreground" : "text-[13px] text-foreground",
+                "font-semibold tracking-tight text-foreground",
+                compact ? "text-[13px]" : featured ? "text-sm" : "text-[13px]",
               )}
             >
               {title}
@@ -235,7 +240,8 @@ function PaymentMethodOption({
             {badge ? (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em]",
+                  "inline-flex items-center gap-1 rounded-full font-bold uppercase tracking-[0.1em]",
+                  compact ? "px-1.5 py-px text-[8px]" : "px-2 py-0.5 text-[9px]",
                   featured
                     ? "bg-[#00a651]/15 text-[#007a3d]"
                     : "bg-muted text-muted-foreground",
@@ -246,24 +252,42 @@ function PaymentMethodOption({
               </span>
             ) : null}
           </span>
-          <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+          <span
+            className={cn(
+              "mt-0.5 block leading-snug text-muted-foreground",
+              compact ? "text-[10px]" : "text-[11px]",
+            )}
+          >
             {description}
           </span>
         </span>
         <span
           className={cn(
-            "mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+            "mt-0.5 flex shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+            compact ? "size-4" : "size-5",
             selected
               ? "border-primary bg-primary text-white"
               : "border-border bg-background",
           )}
           aria-hidden
         >
-          {selected ? <Check className="size-3 stroke-[3]" /> : null}
+          {selected ? (
+            <Check className={compact ? "size-2.5 stroke-[3]" : "size-3 stroke-[3]"} />
+          ) : null}
         </span>
       </button>
       {selected && children ? (
-        <div className={cn(featured ? "px-3.5 pb-3.5 pt-2 sm:px-4 sm:pb-4" : "px-3.5 pb-3.5")}>
+        <div
+          className={cn(
+            featured
+              ? compact
+                ? "px-2.5 pb-2.5 pt-1.5 sm:px-3"
+                : "px-3.5 pb-3.5 pt-2 sm:px-4 sm:pb-4"
+              : compact
+                ? "px-2.5 pb-2.5"
+                : "px-3.5 pb-3.5",
+          )}
+        >
           {children}
         </div>
       ) : null}
@@ -464,7 +488,7 @@ export function ShopCheckoutPaymentSection({
   stkSent?: boolean;
   onStkPay?: (configId: string, phoneNumber: string) => void;
   orderPlaced?: boolean;
-  variant?: "default" | "floating";
+  variant?: "default" | "floating" | "review";
   amountDue?: string | null;
   actionsInDock?: boolean;
   onStkSendActionChange?: (action: StkDockSendAction | null) => void;
@@ -475,6 +499,8 @@ export function ShopCheckoutPaymentSection({
   const hasManual = manual.length > 0;
   const hasOnline = online.length > 0;
   const floating = variant === "floating";
+  const review = variant === "review";
+  const dense = floating || review;
   const showMethodPicker = Boolean(onSelectMethod) && payOnDeliveryAvailable;
   const mpesaSelected = selectedMethod === "mpesa";
   const codSelected = selectedMethod === "pay_on_delivery";
@@ -488,12 +514,12 @@ export function ShopCheckoutPaymentSection({
     hasManual && selectedMethod !== "pay_on_delivery" ? (
       <div
         className={cn(
-          floating
-            ? cn("space-y-1.5 px-0.5 py-0.5")
+          dense
+            ? cn("space-y-1.5", review ? "px-0.5" : "px-0.5 py-0.5")
             : cn("space-y-2.5 p-4", CHECKOUT_PAYMENT_PANEL),
         )}
       >
-        {floating ? (
+        {dense ? (
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             Or pay via till
           </p>
@@ -501,7 +527,7 @@ export function ShopCheckoutPaymentSection({
           <PaymentSectionHeading title="Or pay manually" amountDue={amountDue} compact={false} />
         )}
         {manual.map((pi) => (
-          <ManualInstructionCard key={pi.configId} pi={pi} compact={floating} />
+          <ManualInstructionCard key={pi.configId} pi={pi} compact={dense} />
         ))}
       </div>
     ) : null;
@@ -512,11 +538,16 @@ export function ShopCheckoutPaymentSection({
         <PaymentMethodOption
           selected={mpesaSelected}
           onSelect={() => onSelectMethod?.("mpesa")}
-          title="M-Pesa on your phone"
-          description="Instant STK prompt — fastest way to pay and confirm your order."
-          icon={<Smartphone className="size-5" aria-hidden />}
+          title={review ? "M-Pesa prompt" : "M-Pesa on your phone"}
+          description={
+            review
+              ? "STK push to your phone — fastest checkout."
+              : "Instant STK prompt — fastest way to pay and confirm your order."
+          }
+          icon={<Smartphone className={review ? "size-4" : "size-5"} aria-hidden />}
           badge="Recommended"
           featured
+          compact={review}
         >
           <OnlineStkFields
             methods={online}
@@ -526,12 +557,14 @@ export function ShopCheckoutPaymentSection({
             stkMessage={stkMessage ?? null}
             stkSent={stkSent ?? false}
             onPay={onStkPay}
-            compact={floating}
+            compact={dense}
             featured
             promptDisabled={stkPromptDisabled}
             promptDisabledHint={
               stkPromptDisabled
-                ? "Enter your M-Pesa number now — tap Send prompt right after you place the order."
+                ? review
+                  ? "Confirm your number — send the prompt after placing the order."
+                  : "Enter your M-Pesa number now — tap Send prompt right after you place the order."
                 : undefined
             }
             actionsInDock={dockActions}
@@ -539,8 +572,8 @@ export function ShopCheckoutPaymentSection({
           />
         </PaymentMethodOption>
       ) : (
-        <div className={cn(CHECKOUT_MPESA_FEATURED, "space-y-3 p-4")}>
-          {!floating ? (
+        <div className={cn(CHECKOUT_MPESA_FEATURED, review ? "space-y-2 p-3" : "space-y-3 p-4")}>
+          {!dense ? (
             <>
               <PaymentSectionHeading
                 title="Pay with M-Pesa"
@@ -564,7 +597,7 @@ export function ShopCheckoutPaymentSection({
             stkMessage={stkMessage ?? null}
             stkSent={stkSent ?? false}
             onPay={onStkPay}
-            compact={floating}
+            compact={dense}
             featured
             promptDisabled={stkPromptDisabled}
             promptDisabledHint={
@@ -585,20 +618,26 @@ export function ShopCheckoutPaymentSection({
         selected={codSelected}
         onSelect={() => onSelectMethod?.("pay_on_delivery")}
         title="Pay on delivery"
-        description="Pay cash or M-Pesa to the rider when your order arrives."
+        description={
+          review
+            ? "Cash or M-Pesa to the rider."
+            : "Pay cash or M-Pesa to the rider when your order arrives."
+        }
         icon={<Truck className="size-4" aria-hidden />}
+        compact={review}
       >
-        <p className="flex items-start gap-2 rounded-lg bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
-          <Banknote className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          Have the exact amount ready. Your order is confirmed once you place it — no
-          upfront payment needed.
-        </p>
+        {!review ? (
+          <p className="flex items-start gap-2 rounded-lg bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+            <Banknote className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            Have the exact amount ready. Your order is confirmed once you place it — no
+            upfront payment needed.
+          </p>
+        ) : null}
       </PaymentMethodOption>
     ) : null;
 
   return (
-    <div className={cn("min-w-0 max-w-full", floating ? "space-y-2" : "space-y-3")}>
-      {/* Always lead with M-Pesa; till / COD sit below so pay-now is considered first */}
+    <div className={cn("min-w-0 max-w-full", dense ? "space-y-1.5" : "space-y-3")}>
       {mpesaBlock}
       {showMethodPicker ? codBlock : null}
       {!showMethodPicker && codSelected && payOnDeliveryAvailable ? (
