@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
+  Eye,
+  EyeOff,
   Filter,
+  Hash,
   KeyRound,
   Loader2,
   MapPin,
@@ -42,9 +45,11 @@ import {
   deactivateUser,
   fetchBranches,
   fetchRoles,
+  fetchUserPin,
   fetchUsers,
   setUserItemTypes,
   setUserPassword,
+  setUserPin,
   updateUser,
   type BranchRecord,
   type RoleRecord,
@@ -412,6 +417,19 @@ export default function UsersPage() {
     Record<string, { password: string; confirm: string }>
   >({});
   const [savingPasswordId, setSavingPasswordId] = useState<string | null>(null);
+  const [pinEditUserId, setPinEditUserId] = useState<string | null>(null);
+  const [pinDraft, setPinDraft] = useState<
+    Record<string, { pin: string; confirm: string }>
+  >({});
+  const [savingPinId, setSavingPinId] = useState<string | null>(null);
+  const [pinViewUserId, setPinViewUserId] = useState<string | null>(null);
+  const [pinViewValue, setPinViewValue] = useState<
+    Record<
+      string,
+      { loading: boolean; pin: string | null; message: string | null }
+    >
+  >({});
+  const [pinRevealed, setPinRevealed] = useState<Record<string, boolean>>({});
 
   const isOwner = me?.role?.key === "owner";
   const canCreate = hasPermission(me?.permissions, Permission.UsersCreate);
@@ -638,6 +656,97 @@ export default function UsersPage() {
     });
   };
 
+  const clearPinEdit = (userId: string) => {
+    setPinEditUserId((current) => (current === userId ? null : current));
+    setPinDraft((previous) => {
+      const next = { ...previous };
+      delete next[userId];
+      return next;
+    });
+  };
+
+  const clearPinView = (userId: string) => {
+    setPinViewUserId((current) => (current === userId ? null : current));
+    setPinViewValue((previous) => {
+      const next = { ...previous };
+      delete next[userId];
+      return next;
+    });
+    setPinRevealed((previous) => {
+      const next = { ...previous };
+      delete next[userId];
+      return next;
+    });
+  };
+
+  const beginPasswordEdit = (userId: string) => {
+    clearPinEdit(userId);
+    clearPinView(userId);
+    setPasswordEditUserId(userId);
+    setPasswordDraft((previous) => ({
+      ...previous,
+      [userId]: { password: "", confirm: "" },
+    }));
+  };
+
+  const beginPinEdit = (userId: string) => {
+    clearPasswordEdit(userId);
+    clearPinView(userId);
+    setPinEditUserId(userId);
+    setPinDraft((previous) => ({
+      ...previous,
+      [userId]: { pin: "", confirm: "" },
+    }));
+  };
+
+  const onViewPin = async (userId: string) => {
+    clearPasswordEdit(userId);
+    clearPinEdit(userId);
+    setPinViewUserId(userId);
+    setPinRevealed((previous) => ({ ...previous, [userId]: true }));
+    setPinViewValue((previous) => ({
+      ...previous,
+      [userId]: { loading: true, pin: null, message: null },
+    }));
+    setFeedback(null);
+    try {
+      const result = await fetchUserPin(userId);
+      if (!result.hasPin) {
+        setPinViewValue((previous) => ({
+          ...previous,
+          [userId]: {
+            loading: false,
+            pin: null,
+            message: "No PIN set for this user.",
+          },
+        }));
+        return;
+      }
+      if (!result.recoverable || !result.pin) {
+        setPinViewValue((previous) => ({
+          ...previous,
+          [userId]: {
+            loading: false,
+            pin: null,
+            message:
+              "This PIN was set before viewable storage. Set a new PIN to enable viewing.",
+          },
+        }));
+        return;
+      }
+      setPinViewValue((previous) => ({
+        ...previous,
+        [userId]: { loading: false, pin: result.pin, message: null },
+      }));
+    } catch (error) {
+      clearPinView(userId);
+      setFeedback({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Failed to load PIN.",
+      });
+    }
+  };
+
   const onSavePassword = async (userId: string) => {
     const draft = passwordDraft[userId];
     const password = draft?.password ?? "";
@@ -668,6 +777,46 @@ export default function UsersPage() {
       });
     } finally {
       setSavingPasswordId(null);
+    }
+  };
+
+  const onSavePin = async (userId: string) => {
+    const draft = pinDraft[userId];
+    const pin = draft?.pin?.trim() ?? "";
+    const confirm = draft?.confirm?.trim() ?? "";
+    if (!/^\d{4,6}$/.test(pin)) {
+      setFeedback({
+        kind: "error",
+        text: "PIN must be 4 to 6 digits.",
+      });
+      return;
+    }
+    if (pin !== confirm) {
+      setFeedback({ kind: "error", text: "PINs do not match." });
+      return;
+    }
+    const target = users.find((row) => row.id === userId);
+    if (target && !target.branchId) {
+      setFeedback({
+        kind: "error",
+        text: "Assign a branch before setting a PIN (PIN login is branch-scoped).",
+      });
+      return;
+    }
+    setSavingPinId(userId);
+    setFeedback(null);
+    try {
+      await setUserPin(userId, pin);
+      clearPinEdit(userId);
+      await loadData();
+      setFeedback({ kind: "success", text: "PIN updated." });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        text: error instanceof Error ? error.message : "PIN update failed.",
+      });
+    } finally {
+      setSavingPinId(null);
     }
   };
 
@@ -1365,18 +1514,26 @@ export default function UsersPage() {
 
                           {/* STATUS */}
                           <td className="px-5 py-4 align-top sm:px-6">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize tabular-nums",
-                                statusBadgeClass(user.status),
-                              )}
-                            >
+                            <div className="flex flex-col items-start gap-1.5">
                               <span
-                                className="size-1.5 shrink-0 rounded-full bg-current opacity-70"
-                                aria-hidden
-                              />
-                              {user.status}
-                            </span>
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize tabular-nums",
+                                  statusBadgeClass(user.status),
+                                )}
+                              >
+                                <span
+                                  className="size-1.5 shrink-0 rounded-full bg-current opacity-70"
+                                  aria-hidden
+                                />
+                                {user.status}
+                              </span>
+                              {user.hasPin ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                                  <Hash className="size-3" aria-hidden />
+                                  PIN set
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
 
                           {/* ACTIONS */}
@@ -1462,33 +1619,236 @@ export default function UsersPage() {
                                   </Button>
                                 </div>
                               </div>
+                            ) : canUpdate && pinEditUserId === user.id ? (
+                              <div className="ml-auto flex w-full max-w-xs flex-col gap-2 text-left">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  maxLength={6}
+                                  className={cn(
+                                    dashboardInputClass(),
+                                    "py-2 font-mono text-sm tracking-widest",
+                                  )}
+                                  placeholder="New PIN (4–6 digits)"
+                                  value={pinDraft[user.id]?.pin ?? ""}
+                                  onChange={(event) =>
+                                    setPinDraft((previous) => ({
+                                      ...previous,
+                                      [user.id]: {
+                                        pin: event.target.value.replace(
+                                          /\D/g,
+                                          "",
+                                        ),
+                                        confirm:
+                                          previous[user.id]?.confirm ?? "",
+                                      },
+                                    }))
+                                  }
+                                  aria-label={`New PIN for ${user.email}`}
+                                  autoFocus
+                                />
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  maxLength={6}
+                                  className={cn(
+                                    dashboardInputClass(),
+                                    "py-2 font-mono text-sm tracking-widest",
+                                  )}
+                                  placeholder="Confirm PIN"
+                                  value={pinDraft[user.id]?.confirm ?? ""}
+                                  onChange={(event) =>
+                                    setPinDraft((previous) => ({
+                                      ...previous,
+                                      [user.id]: {
+                                        pin: previous[user.id]?.pin ?? "",
+                                        confirm: event.target.value.replace(
+                                          /\D/g,
+                                          "",
+                                        ),
+                                      },
+                                    }))
+                                  }
+                                  aria-label={`Confirm PIN for ${user.email}`}
+                                />
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    type="button"
+                                    className="h-8 gap-1.5 rounded-lg px-3"
+                                    disabled={savingPinId === user.id}
+                                    onClick={() => void onSavePin(user.id)}
+                                  >
+                                    {savingPinId === user.id ? (
+                                      <Loader2
+                                        className="size-3.5 animate-spin"
+                                        aria-hidden
+                                      />
+                                    ) : (
+                                      <Save
+                                        className="size-3.5"
+                                        aria-hidden
+                                      />
+                                    )}
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    type="button"
+                                    className="h-8 rounded-lg"
+                                    disabled={savingPinId === user.id}
+                                    onClick={() => clearPinEdit(user.id)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : canUpdate && pinViewUserId === user.id ? (
+                              <div className="ml-auto flex w-full max-w-xs flex-col gap-2 text-left">
+                                {pinViewValue[user.id]?.loading ? (
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2
+                                      className="size-3.5 animate-spin"
+                                      aria-hidden
+                                    />
+                                    Loading PIN…
+                                  </div>
+                                ) : pinViewValue[user.id]?.pin ? (
+                                  <div className="flex items-center gap-2">
+                                    <p
+                                      className="font-mono text-lg font-semibold tracking-[0.35em] text-foreground"
+                                      aria-label={`PIN for ${user.email}`}
+                                    >
+                                      {pinRevealed[user.id]
+                                        ? pinViewValue[user.id]?.pin
+                                        : "•".repeat(
+                                            pinViewValue[user.id]?.pin
+                                              ?.length ?? 4,
+                                          )}
+                                    </p>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      type="button"
+                                      className="h-8 w-8 shrink-0 rounded-lg p-0"
+                                      onClick={() =>
+                                        setPinRevealed((previous) => ({
+                                          ...previous,
+                                          [user.id]: !previous[user.id],
+                                        }))
+                                      }
+                                      aria-label={
+                                        pinRevealed[user.id]
+                                          ? "Hide PIN"
+                                          : "Show PIN"
+                                      }
+                                    >
+                                      {pinRevealed[user.id] ? (
+                                        <EyeOff
+                                          className="size-3.5"
+                                          aria-hidden
+                                        />
+                                      ) : (
+                                        <Eye
+                                          className="size-3.5"
+                                          aria-hidden
+                                        />
+                                      )}
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs leading-relaxed text-muted-foreground">
+                                    {pinViewValue[user.id]?.message ??
+                                      "PIN unavailable."}
+                                  </p>
+                                )}
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  {!pinViewValue[user.id]?.loading &&
+                                  !pinViewValue[user.id]?.pin ? (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      type="button"
+                                      className="h-8 gap-1.5 rounded-lg px-3"
+                                      onClick={() => beginPinEdit(user.id)}
+                                    >
+                                      <Hash className="size-3.5" aria-hidden />
+                                      Set PIN
+                                    </Button>
+                                  ) : null}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    type="button"
+                                    className="h-8 rounded-lg"
+                                    onClick={() => clearPinView(user.id)}
+                                  >
+                                    Close
+                                  </Button>
+                                </div>
+                              </div>
                             ) : canUpdate || canDeactivate ? (
                               <div className="flex flex-wrap items-center justify-end gap-2">
                                 {canUpdate ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    type="button"
-                                    className="gap-1.5"
-                                    disabled={savingPasswordId === user.id}
-                                    onClick={() => {
-                                      setPasswordEditUserId(user.id);
-                                      setPasswordDraft((previous) => ({
-                                        ...previous,
-                                        [user.id]: {
-                                          password: "",
-                                          confirm: "",
-                                        },
-                                      }));
-                                    }}
-                                    aria-label={`Set password for ${user.email}`}
-                                  >
-                                    <KeyRound
-                                      className="size-3.5"
-                                      aria-hidden
-                                    />
-                                    Set password
-                                  </Button>
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      type="button"
+                                      className="gap-1.5"
+                                      disabled={
+                                        savingPasswordId === user.id ||
+                                        savingPinId === user.id
+                                      }
+                                      onClick={() => beginPasswordEdit(user.id)}
+                                      aria-label={`Set password for ${user.email}`}
+                                    >
+                                      <KeyRound
+                                        className="size-3.5"
+                                        aria-hidden
+                                      />
+                                      Set password
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      type="button"
+                                      className="gap-1.5"
+                                      disabled={
+                                        savingPasswordId === user.id ||
+                                        savingPinId === user.id
+                                      }
+                                      onClick={() => beginPinEdit(user.id)}
+                                      aria-label={`Set PIN for ${user.email}`}
+                                    >
+                                      <Hash className="size-3.5" aria-hidden />
+                                      Set PIN
+                                    </Button>
+                                    {user.hasPin ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        className="gap-1.5"
+                                        disabled={
+                                          savingPasswordId === user.id ||
+                                          savingPinId === user.id
+                                        }
+                                        onClick={() => void onViewPin(user.id)}
+                                        aria-label={`View PIN for ${user.email}`}
+                                      >
+                                        <Eye
+                                          className="size-3.5"
+                                          aria-hidden
+                                        />
+                                        View PIN
+                                      </Button>
+                                    ) : null}
+                                  </>
                                 ) : null}
                                 {canDeactivate ? (
                                   <Button

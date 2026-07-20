@@ -421,6 +421,8 @@ export type MeResponse = {
    * items until an admin assigns at least one).
    */
   itemTypeIds?: string[];
+  /** True when a till PIN is configured (value is never included in list/me). */
+  hasPin?: boolean;
 };
 
 export type UserRecord = MeResponse;
@@ -2639,6 +2641,34 @@ export async function setUserPassword(
   await request(`${API_ROUTES.users}/${userId}/password`, {
     method: "POST",
     body: { newPassword },
+  });
+}
+
+export type UserPinPayload = {
+  hasPin: boolean;
+  recoverable: boolean;
+  pin: string | null;
+};
+
+/** Admin reveal of a user's till PIN (audited). */
+export async function fetchUserPin(userId: string): Promise<UserPinPayload> {
+  const res = await request<{
+    hasPin?: boolean;
+    recoverable?: boolean;
+    pin?: string | null;
+  }>(`${API_ROUTES.users}/${userId}/pin`);
+  return {
+    hasPin: Boolean(res?.hasPin),
+    recoverable: Boolean(res?.recoverable),
+    pin: typeof res?.pin === "string" ? res.pin : null,
+  };
+}
+
+/** Admin sets a user's till PIN (no current-PIN check). */
+export async function setUserPin(userId: string, pin: string): Promise<void> {
+  await request(`${API_ROUTES.users}/${userId}/pin`, {
+    method: "POST",
+    body: { pin },
   });
 }
 
