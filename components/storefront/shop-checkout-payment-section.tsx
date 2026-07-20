@@ -346,9 +346,14 @@ function OnlineStkFields({
     const primaryMethod = methods[0];
     const phoneValid = isStkPhoneValid(areaCode, phone);
     const fullPhone = buildStkPhoneNumber(areaCode, phone);
+    // Don't surface a greyed Send control before the order exists — it reads as a phone error.
+    if (promptDisabled) {
+      onStkSendActionChange(null);
+      return;
+    }
     onStkSendActionChange({
       label: busy ? "Sending…" : stkSent ? "Sent" : "Send prompt",
-      disabled: busy || stkSent || !phoneValid || Boolean(promptDisabled),
+      disabled: busy || stkSent || !phoneValid,
       onSend: () => onPay(primaryMethod.configId, fullPhone),
     });
   }, [
@@ -374,8 +379,11 @@ function OnlineStkFields({
       {promptDisabled ? (
         <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
           <Zap className="mt-0.5 size-3 shrink-0 text-[#00a651]" aria-hidden />
-          {promptDisabledHint ??
-            "Enter your M-Pesa number now — tap Send prompt right after you place the order."}
+          {phoneValid
+            ? (promptDisabledHint ??
+              "Number looks good — place your order, then send the M-Pesa prompt.")
+            : (promptDisabledHint ??
+              "Enter your M-Pesa number now — you'll send the prompt right after placing the order.")}
         </p>
       ) : (
         <p className="text-[11px] leading-snug text-muted-foreground">
@@ -421,12 +429,13 @@ function OnlineStkFields({
             disabled={busy || stkSent}
           />
         </label>
-        {compact && !actionsInDock ? (
+        {/* Hide Send until the order exists — a greyed button looks like a phone validation error. */}
+        {compact && !actionsInDock && !promptDisabled ? (
           <Button
             type="button"
             size="sm"
             className="h-9 shrink-0 rounded-xl bg-[#00a651] px-3 text-xs font-bold text-white shadow-md hover:bg-[#008f47]"
-            disabled={busy || stkSent || !phoneValid || promptDisabled}
+            disabled={busy || stkSent || !phoneValid}
             onClick={() => onPay(primaryMethod.configId, fullPhone)}
           >
             {busy ? "Sending…" : stkSent ? "Sent ✓" : "Send prompt"}
@@ -434,14 +443,16 @@ function OnlineStkFields({
         ) : null}
       </div>
       {!phoneValid && phone.trim() ? (
-        <p className="text-[11px] text-destructive">Invalid number</p>
+        <p className="text-[11px] text-destructive">
+          Use 9 digits (712…) or 10 if it starts with 0 (0712…).
+        </p>
       ) : null}
-      {!compact && !actionsInDock ? (
+      {!compact && !actionsInDock && !promptDisabled ? (
         <Button
           type="button"
           size="sm"
           className="h-10 w-full rounded-xl bg-[#00a651] text-sm font-bold text-white shadow-md hover:bg-[#008f47] sm:w-auto sm:px-6"
-          disabled={busy || stkSent || !phoneValid || promptDisabled}
+          disabled={busy || stkSent || !phoneValid}
           onClick={() => onPay(primaryMethod.configId, fullPhone)}
         >
           {busy ? "Sending…" : stkSent ? "Prompt sent ✓" : "Send M-Pesa prompt"}

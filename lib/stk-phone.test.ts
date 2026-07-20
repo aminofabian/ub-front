@@ -37,4 +37,14 @@ describe("buildStkPhoneNumber / isStkPhoneValid", () => {
     expect(isStkPhoneValid("+254", "712345678")).toBe(true);
     expect(isStkPhoneValid("+254", "712")).toBe(false);
   });
+
+  it("accepts 10-digit local numbers that start with 0", () => {
+    expect(buildStkPhoneNumber("+254", "0712345678")).toBe("254712345678");
+    expect(isStkPhoneValid("+254", "0712345678")).toBe(true);
+  });
+
+  it("does not double-prefix when local already has 254", () => {
+    expect(buildStkPhoneNumber("+254", "254712345678")).toBe("254712345678");
+    expect(isStkPhoneValid("+254", "254712345678")).toBe(true);
+  });
 });

@@ -1,14 +1,33 @@
 /** Build E.164-style digits for STK (Kenya 254…). */
 export function buildStkPhoneNumber(areaCode: string, local: string): string {
-  const digits = `${areaCode}${local}`.replace(/\D/g, "");
-  if (digits.startsWith("254")) return digits;
-  if (digits.startsWith("0")) return `254${digits.slice(1)}`;
-  return `254${digits}`;
+  const areaDigits = areaCode.replace(/\D/g, "");
+  let localDigits = local.replace(/\D/g, "");
+
+  // Local field already contains a full MSISDN — don't double-prefix the area code.
+  if (localDigits.startsWith("254") && localDigits.length >= 12) {
+    return localDigits;
+  }
+
+  // 07… / 01… → drop the trunk 0 when combining with +254.
+  if (localDigits.startsWith("0")) {
+    localDigits = localDigits.slice(1);
+  }
+
+  const combined = `${areaDigits}${localDigits}`;
+  if (combined.startsWith("254")) return combined;
+  if (combined.startsWith("0")) return `254${combined.slice(1)}`;
+  return `254${combined}`;
 }
 
+/**
+ * Kenya M-Pesa MSISDN after normalize: {@code 254} + 9 national digits.
+ * Local field accepts 9 digits ({@code 712…}) or 10 with leading 0 ({@code 0712…}).
+ */
 export function isStkPhoneValid(areaCode: string, local: string): boolean {
+  const localDigits = local.replace(/\D/g, "");
+  if (!localDigits) return false;
   const digits = buildStkPhoneNumber(areaCode, local);
-  return digits.length >= 12 && digits.length <= 13;
+  return /^254\d{9}$/.test(digits);
 }
 
 /**
