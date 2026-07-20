@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -18,12 +18,14 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { APP_ROUTES } from "@/lib/config";
 import {
+  fetchOpenSupplierInvoices,
   fetchSupplierById,
   fetchSupplyDisbursementStatus,
   fetchSupplyPayOptions,
   fetchSupplyPaymentHistory,
   postSupplierPayment,
   postSupplyKopokopoPay,
+  type OpenSupplierInvoiceRow,
   type PathBSupplyListRowRecord,
   type SupplierRecord,
   type SupplyKopokopoPayRecord,
@@ -89,6 +91,11 @@ type PaySupplyDrawerProps = {
   /** Optional: allow clearing unpaid supplies (e.g. after supplier was deleted). */
   onDeleteSupply?: (row: PathBSupplyListRowRecord) => void | Promise<void>;
   canDeleteSupply?: boolean;
+  /**
+   * When true, select every open invoice for this supplier on open
+   * (settle previous balances in one payment).
+   */
+  settleAllOnOpen?: boolean;
 };
 
 export function PaySupplyDrawer({
@@ -98,6 +105,7 @@ export function PaySupplyDrawer({
   onPaid,
   onDeleteSupply,
   canDeleteSupply = false,
+  settleAllOnOpen = false,
 }: PaySupplyDrawerProps) {
   const { me } = useDashboard();
   const canPay = hasPermission(me?.permissions, Permission.PurchasingPaymentWrite);
@@ -124,9 +132,40 @@ export function PaySupplyDrawer({
   const [payOptionsLoading, setPayOptionsLoading] = useState(false);
   const [kopokopoPhase, setKopokopoPhase] = useState<KopokopoPayPhase>("idle");
   const [kopokopoMessage, setKopokopoMessage] = useState<string | null>(null);
+  const [openInvoices, setOpenInvoices] = useState<OpenSupplierInvoiceRow[]>([]);
+  const [openInvoicesLoading, setOpenInvoicesLoading] = useState(false);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
 
-  const balanceOpen = row ? supplyN(row.balanceOpen) : 0;
-  const kopokopoEligible = Boolean(payOptions?.kopokopoPayEligible);
+  const rowBalanceOpen = row ? supplyN(row.balanceOpen) : 0;
+  const selectedOpen = useMemo(() => {
+    if (openInvoices.length === 0 && row && rowBalanceOpen > 0.009) {
+      return [
+        {
+          id: row.supplierInvoiceId,
+          supplierId: row.supplierId,
+          invoiceNumber: row.invoiceNumber,
+          invoiceDate: row.createdAt,
+          dueDate: null,
+          grandTotal: supplyN(row.grandTotal),
+          openBalance: rowBalanceOpen,
+        } satisfies OpenSupplierInvoiceRow,
+      ].filter((inv) => selectedInvoiceIds.includes(inv.id));
+    }
+    return openInvoices.filter((inv) => selectedInvoiceIds.includes(inv.id));
+  }, [openInvoices, selectedInvoiceIds, row, rowBalanceOpen]);
+
+  const payTotal = useMemo(
+    () =>
+      selectedOpen.reduce((sum, inv) => sum + supplyN(inv.openBalance), 0),
+    [selectedOpen],
+  );
+  const multiSelect = selectedOpen.length > 1;
+  const singleSelectedId =
+    selectedOpen.length === 1 ? selectedOpen[0]?.id : null;
+  const kopokopoEligible =
+    Boolean(payOptions?.kopokopoPayEligible) &&
+    singleSelectedId === row?.supplierInvoiceId &&
+    !multiSelect;
   const payoutPhone = payOptions?.payoutPhone?.trim() ?? supplier?.payoutPhone?.trim() ?? "";
   const paidFull = row ? row.paymentStatus === "PAID" : false;
   const paymentDetails = supplier?.paymentDetails?.trim() ?? "";
@@ -137,6 +176,45 @@ export function PaySupplyDrawer({
     canDeleteSupply &&
     Boolean(onDeleteSupply) &&
     supplyN(row?.amountPaid ?? 0) < 0.005;
+  const otherOpenCount = Math.max(0, openInvoices.length - 1);
+  const allOpenTotal = useMemo(
+    () => openInvoices.reduce((sum, inv) => sum + supplyN(inv.openBalance), 0),
+    [openInvoices],
+  );
+
+  const selectAllOpen = () => {
+    const ids = openInvoices.map((inv) => inv.id);
+    setSelectedInvoiceIds(ids);
+    const total = openInvoices.reduce(
+      (sum, inv) => sum + supplyN(inv.openBalance),
+      0,
+    );
+    const init = total > 0 ? total.toFixed(2) : "";
+    setAllocation(init);
+    setPaymentAmount(init);
+    setCreditApplied("0");
+  };
+
+  const selectOnlyCurrent = () => {
+    if (!row) return;
+    setSelectedInvoiceIds([row.supplierInvoiceId]);
+    const b = rowBalanceOpen;
+    const init = b > 0 ? b.toFixed(2) : "";
+    setAllocation(init);
+    setPaymentAmount(init);
+    setCreditApplied("0");
+  };
+
+  const toggleInvoice = (invoiceId: string) => {
+    setSelectedInvoiceIds((prev) => {
+      const has = prev.includes(invoiceId);
+      if (has) {
+        if (prev.length <= 1) return prev;
+        return prev.filter((id) => id !== invoiceId);
+      }
+      return [...prev, invoiceId];
+    });
+  };
 
   useEffect(() => {
     if (!open || !row || !canReadSupplier) {
@@ -174,15 +252,77 @@ export function PaySupplyDrawer({
 
   useEffect(() => {
     if (!open || !row) {
+      setOpenInvoices([]);
+      setSelectedInvoiceIds([]);
+      return;
+    }
+    setOpenInvoicesLoading(true);
+    void fetchOpenSupplierInvoices(row.supplierId)
+      .then((rows) => {
+        const open = rows.filter((inv) => supplyN(inv.openBalance) > 0.009);
+        // Ensure the current invoice appears even if list endpoint lags.
+        if (
+          rowBalanceOpen > 0.009 &&
+          !open.some((inv) => inv.id === row.supplierInvoiceId)
+        ) {
+          open.unshift({
+            id: row.supplierInvoiceId,
+            supplierId: row.supplierId,
+            invoiceNumber: row.invoiceNumber,
+            invoiceDate: row.createdAt,
+            dueDate: null,
+            grandTotal: supplyN(row.grandTotal),
+            openBalance: rowBalanceOpen,
+          });
+        }
+        // Oldest first so clearing previous balances feels natural.
+        open.sort((a, b) => {
+          const da = new Date(a.invoiceDate).getTime();
+          const db = new Date(b.invoiceDate).getTime();
+          return da - db;
+        });
+        setOpenInvoices(open);
+        if (settleAllOnOpen && open.length > 0) {
+          setSelectedInvoiceIds(open.map((inv) => inv.id));
+          const total = open.reduce(
+            (sum, inv) => sum + supplyN(inv.openBalance),
+            0,
+          );
+          const init = total > 0 ? total.toFixed(2) : "";
+          setAllocation(init);
+          setPaymentAmount(init);
+        } else {
+          setSelectedInvoiceIds(
+            open.some((inv) => inv.id === row.supplierInvoiceId)
+              ? [row.supplierInvoiceId]
+              : open[0]
+                ? [open[0].id]
+                : [],
+          );
+        }
+      })
+      .catch(() => {
+        setOpenInvoices([]);
+        setSelectedInvoiceIds(
+          rowBalanceOpen > 0.009 ? [row.supplierInvoiceId] : [],
+        );
+      })
+      .finally(() => setOpenInvoicesLoading(false));
+  }, [open, row, settleAllOnOpen, rowBalanceOpen]);
+
+  useEffect(() => {
+    if (!open || !row) {
       setPayOptions(null);
       setKopokopoPhase("idle");
       setKopokopoMessage(null);
       return;
     }
     const b = supplyN(row.balanceOpen);
-    const init = b > 0 ? b.toFixed(2) : "";
-    setAllocation(init);
-    setPaymentAmount(init);
+    if (!settleAllOnOpen) {
+      const init = b > 0 ? b.toFixed(2) : "";
+      setAllocation(init);
+      setPaymentAmount(init);
+    }
     setCreditApplied("0");
     setReference("");
     setNotes("");
@@ -203,7 +343,17 @@ export function PaySupplyDrawer({
       })
       .catch(() => setPayOptions(null))
       .finally(() => setPayOptionsLoading(false));
-  }, [open, row]);
+  }, [open, row, settleAllOnOpen]);
+
+  // Keep cash amount in sync when selection changes (simple confirm path).
+  useEffect(() => {
+    if (!open || !row || showAdvanced) return;
+    if (payTotal > 0.009) {
+      const init = payTotal.toFixed(2);
+      setAllocation(init);
+      setPaymentAmount(init);
+    }
+  }, [open, row, payTotal, showAdvanced, selectedInvoiceIds]);
 
   const applyDisbursementStatus = (status: SupplyKopokopoPayRecord) => {
     const s = (status.status ?? "").toLowerCase();
@@ -212,7 +362,7 @@ export function PaySupplyDrawer({
       setKopokopoMessage(status.message ?? "Payment confirmed.");
       toast.success("Supplier paid via M-Pesa", {
         description: row
-          ? `${formatSupplyMoney(balanceOpen)} sent to ${row.supplierName || "supplier"}.`
+          ? `${formatSupplyMoney(rowBalanceOpen)} sent to ${row.supplierName || "supplier"}.`
           : undefined,
         duration: 8000,
       });
@@ -269,32 +419,56 @@ export function PaySupplyDrawer({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [open, row, kopokopoPhase, balanceOpen, onPaid, onOpenChange]);
+  }, [open, row, kopokopoPhase, rowBalanceOpen, onPaid, onOpenChange]);
 
   useEffect(() => {
-    if (!showAdvanced || !row) {
+    if (!showAdvanced || !row || multiSelect) {
       return;
     }
     const allocN = Number(allocation.trim());
     if (Number.isFinite(allocN) && allocN > 0) {
       setPaymentAmount(allocN.toFixed(2));
     }
-  }, [allocation, showAdvanced, row]);
+  }, [allocation, showAdvanced, row, multiSelect]);
 
   const submitPayment = async () => {
     if (!row || !canPay) {
       return;
     }
     setError(null);
-    const allocN = Number(allocation.trim());
-    if (!Number.isFinite(allocN) || allocN <= 0) {
-      setError("Enter a positive amount to apply to this supply.");
+    if (selectedOpen.length === 0) {
+      setError("Select at least one unpaid invoice.");
       return;
     }
-    if (allocN > balanceOpen + 0.001) {
-      setError(`Amount cannot exceed open balance (${formatSupplyMoney(balanceOpen)}).`);
-      return;
+
+    let allocations: { supplierInvoiceId: string; amount: number }[];
+    if (multiSelect) {
+      allocations = selectedOpen.map((inv) => ({
+        supplierInvoiceId: inv.id,
+        amount: Number(supplyN(inv.openBalance).toFixed(2)),
+      }));
+    } else {
+      const allocN = Number(allocation.trim());
+      const openBal = supplyN(selectedOpen[0]?.openBalance ?? rowBalanceOpen);
+      if (!Number.isFinite(allocN) || allocN <= 0) {
+        setError("Enter a positive amount to apply to this supply.");
+        return;
+      }
+      if (allocN > openBal + 0.001) {
+        setError(
+          `Amount cannot exceed open balance (${formatSupplyMoney(openBal)}).`,
+        );
+        return;
+      }
+      allocations = [
+        {
+          supplierInvoiceId: selectedOpen[0]?.id ?? row.supplierInvoiceId,
+          amount: allocN,
+        },
+      ];
     }
+
+    const totalAlloc = allocations.reduce((sum, line) => sum + line.amount, 0);
     const cash = Number(paymentAmount);
     const credit = Number(creditApplied);
     if (!Number.isFinite(cash) || cash < 0 || !Number.isFinite(credit) || credit < 0) {
@@ -308,7 +482,7 @@ export function PaySupplyDrawer({
       setError(e instanceof Error ? e.message : "Invalid date");
       return;
     }
-    if (cash + credit < allocN - 0.001) {
+    if (cash + credit < totalAlloc - 0.001) {
       setError("Cash payment plus supplier credit must cover the amount applied.");
       return;
     }
@@ -322,12 +496,17 @@ export function PaySupplyDrawer({
         creditApplied: credit,
         reference: reference.trim() || undefined,
         notes: notes.trim() || undefined,
-        allocations: [{ supplierInvoiceId: row.supplierInvoiceId, amount: allocN }],
+        allocations,
       });
-      toast.success("Supplier paid", {
-        description: `${formatSupplyMoney(allocN)} recorded for ${row.supplierName || "supplier"}.`,
-        duration: 8000,
-      });
+      toast.success(
+        multiSelect
+          ? `Cleared ${allocations.length} unpaid invoices`
+          : "Supplier paid",
+        {
+          description: `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"}.`,
+          duration: 8000,
+        },
+      );
       onPaid();
       onOpenChange(false);
     } catch (e) {
@@ -370,13 +549,63 @@ export function PaySupplyDrawer({
       void initiateKopokopoPay();
       return;
     }
-    const b = supplyN(row.balanceOpen);
-    setAllocation(b > 0 ? b.toFixed(2) : "");
-    setPaymentAmount(b > 0 ? b.toFixed(2) : "");
+    // Always clear full open balances on the selected invoices.
+    setShowAdvanced(false);
     setCreditApplied("0");
     setPaymentMethod(preferredMethod);
     setPaidAtLocal(defaultLocalDateTime());
-    void submitPayment();
+    const total = payTotal > 0.009 ? payTotal : rowBalanceOpen;
+    setAllocation(total > 0 ? total.toFixed(2) : "");
+    setPaymentAmount(total > 0 ? total.toFixed(2) : "");
+    void (async () => {
+      if (!canPay || selectedOpen.length === 0) {
+        if (selectedOpen.length === 0) {
+          setError("Select at least one unpaid invoice.");
+        }
+        return;
+      }
+      setError(null);
+      const allocations = selectedOpen.map((inv) => ({
+        supplierInvoiceId: inv.id,
+        amount: Number(supplyN(inv.openBalance).toFixed(2)),
+      }));
+      const totalAlloc = allocations.reduce((sum, line) => sum + line.amount, 0);
+      let paidAt: string;
+      try {
+        paidAt = toIsoInstant(defaultLocalDateTime());
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Invalid date");
+        return;
+      }
+      setBusy(true);
+      try {
+        await postSupplierPayment({
+          supplierId: row.supplierId,
+          paidAt,
+          paymentMethod: preferredMethod,
+          paymentAmount: totalAlloc,
+          creditApplied: 0,
+          reference: reference.trim() || undefined,
+          notes: notes.trim() || undefined,
+          allocations,
+        });
+        toast.success(
+          allocations.length > 1
+            ? `Cleared ${allocations.length} unpaid invoices`
+            : "Supplier paid",
+          {
+            description: `${formatSupplyMoney(totalAlloc)} recorded for ${row.supplierName || "supplier"}.`,
+            duration: 8000,
+          },
+        );
+        onPaid();
+        onOpenChange(false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Payment failed.");
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   const confirmLabel = () => {
@@ -384,12 +613,19 @@ export function PaySupplyDrawer({
       return "Sending M-Pesa…";
     }
     if (kopokopoEligible) {
-      return `Send M-Pesa · ${formatSupplyMoney(balanceOpen)}`;
+      return `Send M-Pesa · ${formatSupplyMoney(rowBalanceOpen)}`;
     }
-    return `Confirm payment · ${formatSupplyMoney(balanceOpen)}`;
+    if (multiSelect) {
+      return `Clear ${selectedOpen.length} unpaid · ${formatSupplyMoney(payTotal)}`;
+    }
+    return `Confirm payment · ${formatSupplyMoney(payTotal > 0.009 ? payTotal : rowBalanceOpen)}`;
   };
 
-  const viewingPaymentDetailsOnly = !(balanceOpen > 0.009 && canPay);
+  const viewingPaymentDetailsOnly = !(
+    (payTotal > 0.009 || rowBalanceOpen > 0.009) &&
+    canPay &&
+    !paidFull
+  );
 
   return (
     <FormDrawer
@@ -408,7 +644,9 @@ export function PaySupplyDrawer({
         row
           ? viewingPaymentDetailsOnly
             ? `Remittance details and payment history for ${row.invoiceNumber}.`
-            : `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
+            : otherOpenCount > 0
+              ? `This supplier has ${openInvoices.length} unpaid invoices (${formatSupplyMoney(allOpenTotal)}). Select which to clear, or clear all at once.`
+              : `Confirm payment for ${row.invoiceNumber}. Use the supplier's remittance details below, then record in one step.`
           : undefined
       }
       width="wide"
@@ -457,7 +695,7 @@ export function PaySupplyDrawer({
               Stop waiting
             </Button>
           ) : null}
-          {!paidFull && balanceOpen > 0 && canPay ? (
+          {!paidFull && (payTotal > 0.009 || rowBalanceOpen > 0.009) && canPay ? (
             <Button
               type="button"
               className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
@@ -466,6 +704,8 @@ export function PaySupplyDrawer({
                 busy ||
                 deletingSupply ||
                 payOptionsLoading ||
+                openInvoicesLoading ||
+                selectedOpen.length === 0 ||
                 kopokopoPhase === "pending" ||
                 kopokopoPhase === "sending"
               }
@@ -502,13 +742,119 @@ export function PaySupplyDrawer({
             </div>
             <div className={supStatTile}>
               <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Balance due
+                {multiSelect ? "Paying now" : "Balance due"}
               </span>
               <span className="mt-1 block font-mono text-lg font-bold tabular-nums text-foreground">
-                {formatSupplyMoney(balanceOpen)}
+                {formatSupplyMoney(payTotal > 0.009 ? payTotal : rowBalanceOpen)}
               </span>
             </div>
           </div>
+
+          {!paidFull && canPay && (openInvoices.length > 1 || openInvoicesLoading) ? (
+            <section
+              className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3"
+              aria-labelledby="open-balances-heading"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3
+                    id="open-balances-heading"
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    Open balances for this supplier
+                  </h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {openInvoicesLoading
+                      ? "Loading other unpaid invoices…"
+                      : `${openInvoices.length} unpaid · ${formatSupplyMoney(allOpenTotal)} total`}
+                  </p>
+                </div>
+                {!openInvoicesLoading && openInvoices.length > 1 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={busy}
+                      onClick={selectOnlyCurrent}
+                    >
+                      This invoice only
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 bg-emerald-600 text-xs hover:bg-emerald-700"
+                      disabled={busy}
+                      onClick={selectAllOpen}
+                    >
+                      Clear all · {formatSupplyMoney(allOpenTotal)}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+              {!openInvoicesLoading && openInvoices.length > 0 ? (
+                <ul className="mt-3 max-h-48 space-y-1.5 overflow-y-auto">
+                  {openInvoices.map((inv) => {
+                    const checked = selectedInvoiceIds.includes(inv.id);
+                    const isCurrent = inv.id === row.supplierInvoiceId;
+                    return (
+                      <li key={inv.id}>
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm transition-colors",
+                            checked
+                              ? "border-emerald-500/40 bg-emerald-500/5"
+                              : "border-border/60 bg-card hover:bg-muted/40",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5 accent-emerald-600"
+                            checked={checked}
+                            disabled={busy || (checked && selectedInvoiceIds.length <= 1)}
+                            onChange={() => toggleInvoice(inv.id)}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs font-semibold">
+                                {inv.invoiceNumber}
+                              </span>
+                              {isCurrent ? (
+                                <span className="rounded bg-muted px-1 py-px text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                                  Current
+                                </span>
+                              ) : (
+                                <span className="rounded bg-amber-500/15 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                                  Prev
+                                </span>
+                              )}
+                            </span>
+                            <span className="block text-[11px] text-muted-foreground">
+                              {new Date(inv.invoiceDate).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </span>
+                          <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">
+                            {formatSupplyMoney(supplyN(inv.openBalance))}
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+              {multiSelect ? (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  M-Pesa Send Money pays one invoice at a time. Clearing several uses a
+                  recorded payment against all selected balances.
+                </p>
+              ) : null}
+            </section>
+          ) : null}
 
           {paidFull ? (
             <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-900 dark:text-emerald-100">
@@ -606,7 +952,7 @@ export function PaySupplyDrawer({
                     <p className="mt-1 font-mono text-sm font-semibold text-foreground">{payoutPhone}</p>
                     {!paidFull && kopokopoEligible ? (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Confirm below to send {formatSupplyMoney(balanceOpen)} via KopoKopo Send Money.
+                        Confirm below to send {formatSupplyMoney(rowBalanceOpen)} via KopoKopo Send Money.
                       </p>
                     ) : !paidFull && payOptions && !payOptions.supplierPayoutEnabled ? (
                       <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
@@ -680,16 +1026,20 @@ export function PaySupplyDrawer({
                     <>
                       Tap{" "}
                       <span className="font-semibold text-foreground">Send M-Pesa</span> to pay{" "}
-                      <span className="font-semibold text-foreground">{formatSupplyMoney(balanceOpen)}</span>{" "}
+                      <span className="font-semibold text-foreground">{formatSupplyMoney(rowBalanceOpen)}</span>{" "}
                       via KopoKopo. The ledger updates when KopoKopo confirms.
                     </>
                   ) : (
                     <>
                       Send{" "}
-                      <span className="font-semibold text-foreground">{formatSupplyMoney(balanceOpen)}</span>{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatSupplyMoney(payTotal > 0.009 ? payTotal : rowBalanceOpen)}
+                      </span>{" "}
                       using the details above, then tap{" "}
-                      <span className="font-semibold text-foreground">Confirm payment</span> to record it
-                      in PalMart.
+                      <span className="font-semibold text-foreground">
+                        {multiSelect ? "Clear unpaid" : "Confirm payment"}
+                      </span>{" "}
+                      to record it in PalMart.
                     </>
                   )}
                 </p>
@@ -701,10 +1051,13 @@ export function PaySupplyDrawer({
                   className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/30"
                   onClick={() => setShowAdvanced((v) => !v)}
                   aria-expanded={showAdvanced}
+                  disabled={multiSelect}
                 >
-                  {kopokopoEligible
-                    ? "Record payment manually (partial, credit, reference)"
-                    : "Adjust payment (partial, credit, reference)"}
+                  {multiSelect
+                    ? "Partial / credit options (select one invoice)"
+                    : kopokopoEligible
+                      ? "Record payment manually (partial, credit, reference)"
+                      : "Adjust payment (partial, credit, reference)"}
                   <ChevronDown
                     className={cn(
                       "size-4 shrink-0 text-muted-foreground transition-transform",
@@ -713,7 +1066,7 @@ export function PaySupplyDrawer({
                     aria-hidden
                   />
                 </button>
-                {showAdvanced ? (
+                {showAdvanced && !multiSelect ? (
                   <div className="grid gap-4 border-t border-border/60 p-3 sm:grid-cols-2">
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
                       <span className={supFieldLabel}>Apply to this supply</span>

@@ -18,9 +18,13 @@ type SupplyReceiptCardProps = {
   canPay: boolean;
   canOpenReceiptDrawer: boolean;
   deleting?: boolean;
+  /** When set, shows a Pay all button for combined unpaid balances. */
+  payAllTotal?: number;
+  payAllCount?: number;
   onEdit: () => void;
   onDelete: () => void;
   onPayOrDetails: () => void;
+  onPayAll?: () => void;
 };
 
 export function SupplyReceiptCard({
@@ -29,14 +33,21 @@ export function SupplyReceiptCard({
   canPay,
   canOpenReceiptDrawer,
   deleting = false,
+  payAllTotal,
+  payAllCount,
   onEdit,
   onDelete,
   onPayOrDetails,
+  onPayAll,
 }: SupplyReceiptCardProps) {
   const st = supplyPaymentStatusBadge(row.paymentStatus);
   const bal = supplyN(row.balanceOpen);
   const needsPay = bal > 0.009 && canPay;
   const canDelete = canEditSupplyBill && supplyN(row.amountPaid) < 0.005;
+  const showPayAll =
+    Boolean(onPayAll) &&
+    (payAllCount ?? 0) >= 2 &&
+    (payAllTotal ?? 0) > 0.009;
   const created = new Date(row.createdAt).toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -72,6 +83,11 @@ export function SupplyReceiptCard({
               <span className="mx-1 text-border">·</span>
               {row.lineCount} ln
             </p>
+            {showPayAll ? (
+              <p className="mt-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                {payAllCount} unpaid · {formatSupplyMoney(payAllTotal ?? 0)}
+              </p>
+            ) : null}
           </div>
           <span
             className={cn(
@@ -143,6 +159,18 @@ export function SupplyReceiptCard({
               onClick={onDelete}
             >
               <Trash2 className="size-3" aria-hidden />
+            </Button>
+          ) : null}
+          {showPayAll ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 flex-1 gap-1 rounded-none bg-emerald-600 text-[11px] hover:bg-emerald-700"
+              disabled={!canOpenReceiptDrawer}
+              onClick={onPayAll}
+            >
+              <CreditCard className="size-3" aria-hidden />
+              Pay all
             </Button>
           ) : null}
           <Button

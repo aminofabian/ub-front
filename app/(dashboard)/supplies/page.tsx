@@ -76,6 +76,7 @@ export default function SuppliesPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [payRow, setPayRow] = useState<PathBSupplyListRowRecord | null>(null);
+  const [paySettleAll, setPaySettleAll] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState<PathBSupplyListRowRecord | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -183,6 +184,39 @@ export default function SuppliesPage() {
     () => summarizeSupplyRows(displayRows),
     [displayRows],
   );
+
+  /** Unpaid invoice count + balance per supplier (from full branch list). */
+  const unpaidBySupplier = useMemo(() => {
+    const map = new Map<
+      string,
+      { count: number; total: number; firstUnpaidId: string }
+    >();
+    for (const r of rows) {
+      const bal = supplyN(r.balanceOpen);
+      if (bal <= 0.009 || !r.supplierId) continue;
+      const prev = map.get(r.supplierId);
+      if (prev) {
+        prev.count += 1;
+        prev.total += bal;
+      } else {
+        map.set(r.supplierId, {
+          count: 1,
+          total: bal,
+          firstUnpaidId: r.supplierInvoiceId,
+        });
+      }
+    }
+    return map;
+  }, [rows]);
+
+  const openPay = (
+    row: PathBSupplyListRowRecord,
+    settleAll = false,
+  ) => {
+    setPayRow(row);
+    setPaySettleAll(settleAll);
+    setPayOpen(true);
+  };
 
   if (loading) {
     return <DashboardLoading label="Loading session…" />;
@@ -376,25 +410,38 @@ export default function SuppliesPage() {
             ) : (
               <>
                 <div className="divide-y divide-border/60 lg:hidden">
-                  {displayRows.map((r) => (
-                    <SupplyReceiptCard
-                      key={r.supplierInvoiceId}
-                      row={r}
-                      canEditSupplyBill={canEditSupplyBill}
-                      canPay={canPay}
-                      canOpenReceiptDrawer={canOpenReceiptDrawer}
-                      deleting={deletingId === r.supplierInvoiceId}
-                      onEdit={() => {
-                        setEditRow(r);
-                        setEditOpen(true);
-                      }}
-                      onDelete={() => void onDeleteSupply(r)}
-                      onPayOrDetails={() => {
-                        setPayRow(r);
-                        setPayOpen(true);
-                      }}
-                    />
-                  ))}
+                  {displayRows.map((r) => {
+                    const unpaid = unpaidBySupplier.get(r.supplierId);
+                    const showPayAll =
+                      canPay &&
+                      supplyN(r.balanceOpen) > 0.009 &&
+                      Boolean(unpaid) &&
+                      (unpaid?.count ?? 0) >= 2 &&
+                      unpaid?.firstUnpaidId === r.supplierInvoiceId;
+                    return (
+                      <SupplyReceiptCard
+                        key={r.supplierInvoiceId}
+                        row={r}
+                        canEditSupplyBill={canEditSupplyBill}
+                        canPay={canPay}
+                        canOpenReceiptDrawer={canOpenReceiptDrawer}
+                        deleting={deletingId === r.supplierInvoiceId}
+                        payAllTotal={
+                          showPayAll ? unpaid?.total : undefined
+                        }
+                        payAllCount={showPayAll ? unpaid?.count : undefined}
+                        onEdit={() => {
+                          setEditRow(r);
+                          setEditOpen(true);
+                        }}
+                        onDelete={() => void onDeleteSupply(r)}
+                        onPayOrDetails={() => openPay(r, false)}
+                        onPayAll={
+                          showPayAll ? () => openPay(r, true) : undefined
+                        }
+                      />
+                    );
+                  })}
                 </div>
 
                 <table className="hidden w-full border-collapse text-left text-[13px] lg:table">
@@ -418,6 +465,12 @@ export default function SuppliesPage() {
                       const st = supplyPaymentStatusBadge(r.paymentStatus);
                       const bal = supplyN(r.balanceOpen);
                       const needsPay = bal > 0.009 && canPay;
+                      const unpaid = unpaidBySupplier.get(r.supplierId);
+                      const showPayAll =
+                        needsPay &&
+                        Boolean(unpaid) &&
+                        (unpaid?.count ?? 0) >= 2 &&
+                        unpaid?.firstUnpaidId === r.supplierInvoiceId;
                       return (
                         <tr
                           key={r.supplierInvoiceId}
@@ -427,7 +480,15 @@ export default function SuppliesPage() {
                           )}
                         >
                           <td className="max-w-[14rem] truncate px-3 py-1.5 font-medium text-foreground">
-                            {r.supplierName || "—"}
+                            <span className="block truncate">
+                              {r.supplierName || "—"}
+                            </span>
+                            {showPayAll ? (
+                              <span className="mt-0.5 block text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                {unpaid!.count} unpaid ·{" "}
+                                {formatSupplyMoney(unpaid!.total, currency)}
+                              </span>
+                            ) : null}
                           </td>
                           <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground">
                             {r.invoiceNumber}
@@ -479,7 +540,8 @@ export default function SuppliesPage() {
                                   <FileEdit className="size-3" aria-hidden />
                                 </Button>
                               ) : null}
-                              {canEditSupplyBill && supplyN(r.amountPaid) < 0.005 ? (
+                              {canEditSupplyBill &&
+                              supplyN(r.amountPaid) < 0.005 ? (
                                 <Button
                                   type="button"
                                   size="icon"
@@ -492,6 +554,19 @@ export default function SuppliesPage() {
                                   <Trash2 className="size-3" aria-hidden />
                                 </Button>
                               ) : null}
+                              {showPayAll ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-6 gap-1 rounded-none bg-emerald-600 px-1.5 text-[10px] font-semibold hover:bg-emerald-700"
+                                  disabled={!canOpenReceiptDrawer}
+                                  onClick={() => openPay(r, true)}
+                                  title={`Clear ${unpaid!.count} unpaid invoices`}
+                                >
+                                  <CreditCard className="size-3" aria-hidden />
+                                  Pay all
+                                </Button>
+                              ) : null}
                               <Button
                                 type="button"
                                 size="sm"
@@ -501,10 +576,7 @@ export default function SuppliesPage() {
                                   !needsPay && "border-border",
                                 )}
                                 disabled={!canOpenReceiptDrawer}
-                                onClick={() => {
-                                  setPayRow(r);
-                                  setPayOpen(true);
-                                }}
+                                onClick={() => openPay(r, false)}
                               >
                                 <CreditCard className="size-3" aria-hidden />
                                 {needsPay ? "Pay" : "Details"}
@@ -528,9 +600,13 @@ export default function SuppliesPage() {
         open={payOpen}
         onOpenChange={(o) => {
           setPayOpen(o);
-          if (!o) setPayRow(null);
+          if (!o) {
+            setPayRow(null);
+            setPaySettleAll(false);
+          }
         }}
         row={payRow}
+        settleAllOnOpen={paySettleAll}
         onPaid={() => void refresh()}
         canDeleteSupply={canEditSupplyBill}
         onDeleteSupply={onDeleteSupply}

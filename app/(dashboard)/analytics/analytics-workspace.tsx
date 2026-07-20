@@ -7,7 +7,6 @@ import {
   Calendar,
   CreditCard,
   DollarSign,
-  ListOrdered,
   Minus,
   Package,
   Receipt,
@@ -30,7 +29,10 @@ import {
 import {
   DashboardLoading,
   DashboardFeedback,
+  DashboardPageHero,
+  DashboardQuickLinks,
   DASHBOARD_MAX_WIDE,
+  DASHBOARD_TABLE_SURFACE,
 } from "@/components/dashboard-page-ui";
 import { ActiveScopeSubtitle } from "@/components/active-scope-subtitle";
 import { cn } from "@/lib/utils";
@@ -137,30 +139,17 @@ function MetricCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-2 overflow-hidden rounded-xl border border-border/40 bg-linear-to-b from-card to-card/80 p-3 shadow-sm transition-all duration-300",
-        "hover:-translate-y-0.5 hover:border-border/70 hover:shadow-lg hover:shadow-foreground/[0.03]",
-        "2xl:gap-3 2xl:rounded-2xl 2xl:p-4",
+        "flex flex-col gap-1.5 rounded-xl border border-border/60 bg-card p-3 shadow-sm",
         className,
       )}
     >
-      {/* Subtle top accent bar */}
-      <div
-        className={cn(
-          "absolute left-0 right-0 top-0 h-[3px] bg-linear-to-r opacity-70",
-          accent,
-        )}
-        aria-hidden
-      />
-
       <div className="flex items-start justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
         <span
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/30 bg-muted/20 transition-all duration-300",
-            "group-hover:border-border/50 group-hover:shadow-sm",
-            "2xl:size-8 2xl:rounded-xl",
+            "flex size-6 shrink-0 items-center justify-center rounded-md",
             accent,
           )}
         >
@@ -169,16 +158,16 @@ function MetricCard({
       </div>
 
       <div className="space-y-0.5">
-        <p className="font-heading text-xl font-bold leading-none tracking-tight text-foreground 2xl:text-[1.65rem]">
+        <p className="text-lg font-bold leading-none tracking-tight text-foreground tabular-nums sm:text-xl">
           {value}
         </p>
         {subtitle ? (
           <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         ) : null}
         {trend ? (
-          <div className="flex items-center gap-1.5 pt-1">
+          <div className="flex items-center gap-1 pt-0.5">
             {up ? (
-              <TrendingUp className="size-3 text-emerald-500" aria-hidden />
+              <TrendingUp className="size-3 text-emerald-600" aria-hidden />
             ) : down ? (
               <TrendingDown className="size-3 text-destructive" aria-hidden />
             ) : (
@@ -186,8 +175,8 @@ function MetricCard({
             )}
             <span
               className={cn(
-                "text-[11px] font-bold tabular-nums",
-                up && "text-emerald-500",
+                "text-[11px] font-semibold tabular-nums",
+                up && "text-emerald-600",
                 down && "text-destructive",
                 flat && "text-muted-foreground",
               )}
@@ -221,61 +210,44 @@ function SectionCard({
   return (
     <div
       className={cn(
-        "overflow-hidden border border-border/60 bg-card shadow-sm",
+        "overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-border/30 bg-muted/10 px-3 py-2 2xl:px-4 2xl:py-2.5">
-        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/90 2xl:text-[11px]">
-          <Icon className="size-3.5 text-muted-foreground/60" aria-hidden />
-          {title}
+      <div className="flex items-center justify-between gap-2 border-b border-border/40 bg-muted/25 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Icon className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate text-foreground/90">{title}</span>
         </div>
-        {action ? <div>{action}</div> : null}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="p-3 2xl:p-4">{children}</div>
+      <div className="p-3">{children}</div>
     </div>
   );
 }
 
 function AnalyticsSection({
   id,
-  step,
   title,
   children,
   className,
 }: {
   id: string;
-  step: number;
   title: string;
   children: React.ReactNode;
   className?: string;
 }) {
-  const stepLabel = String(step).padStart(2, "0");
-
   return (
     <section
       id={id}
       className={cn(
-        "scroll-mt-[calc(5.5rem+env(safe-area-inset-top,0px))] space-y-2",
-        "sm:scroll-mt-24 sm:space-y-2.5 2xl:scroll-mt-28",
+        "scroll-mt-24 space-y-2 sm:scroll-mt-28",
         className,
       )}
     >
-      <header className="flex items-center gap-2 2xl:gap-3">
-        <span
-          className="hidden size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-linear-to-br from-primary to-primary/90 text-[10px] font-bold tabular-nums text-primary-foreground shadow-sm shadow-primary/20 2xl:flex"
-          aria-hidden
-        >
-          {stepLabel}
-        </span>
-        <h2 className="min-w-0 text-sm font-bold tracking-tight text-foreground">
-          {title}
-        </h2>
-        <span
-          className="hidden h-px min-w-[2rem] flex-1 bg-linear-to-r from-border/70 via-border/30 to-transparent 2xl:block"
-          aria-hidden
-        />
-      </header>
+      <h2 className="text-sm font-semibold tracking-tight text-foreground">
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -302,62 +274,40 @@ function buildAnalyticsJourney(
 }
 
 function AnalyticsJourneyNav({
-  compact = false,
   journey,
 }: {
-  compact?: boolean;
   journey: AnalyticsJourneyItem[];
 }) {
   const linkClass =
-    "inline-flex shrink-0 items-center border border-transparent px-2 py-1 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:border-border/80 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background 2xl:px-2.5 2xl:py-1.5 2xl:text-[11px]";
+    "inline-flex shrink-0 items-center rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
 
   return (
     <nav
       aria-label="Jump to section"
-      className={cn(
-        "overflow-x-auto",
-        compact
-          ? "py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          : "sticky top-0 z-20 border border-border/70 bg-background/80 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/65",
-      )}
+      className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex min-w-0 items-center gap-0.5 px-1.5">
-        {!compact ? (
-          <>
-            <span className="flex shrink-0 items-center gap-1 pl-1 pr-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              <ListOrdered className="size-3 opacity-70" aria-hidden />
-              Flow
-            </span>
-            <div className="mx-1 h-4 w-px shrink-0 bg-border/70" aria-hidden />
-          </>
-        ) : null}
-        <ul className="flex min-w-0 items-center gap-0.5">
-          {journey.filter((i) => i.kind === "hash").map((item) => (
-            <li key={item.id}>
-              <a href={`#${item.id}`} className={linkClass}>
-                {item.label}
-              </a>
-            </li>
-          ))}
+      <ul className="flex min-w-0 items-center gap-0.5">
+        {journey.filter((i) => i.kind === "hash").map((item) => (
+          <li key={item.id}>
+            <a href={`#${item.id}`} className={linkClass}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+        {journey.some((i) => i.kind === "route") ? (
           <li
-            className="mx-0.5 h-4 w-px shrink-0 self-center bg-border/60"
+            className="mx-0.5 h-3.5 w-px shrink-0 self-center bg-border/60"
             aria-hidden
           />
-          {journey.filter((i) => i.kind === "route").map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  linkClass,
-                  "border-dashed border-border/60 text-muted-foreground/80",
-                )}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+        ) : null}
+        {journey.filter((i) => i.kind === "route").map((item) => (
+          <li key={item.href}>
+            <Link href={item.href} className={linkClass}>
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
@@ -918,93 +868,76 @@ export function AnalyticsWorkspace({
 
   if (loading && !refreshing) {
     return (
-      <div className="h-full overflow-y-auto overscroll-contain">
-        <div className={DASHBOARD_MAX_WIDE}>
-          <DashboardLoading label="Loading analytics…" />
-        </div>
+      <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
+        <DashboardLoading label="Loading analytics…" />
       </div>
     );
   }
 
   return (
-    <div className="relative isolate h-full scroll-smooth overflow-y-auto overscroll-contain">
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
-        aria-hidden
-      >
-        <div className="absolute -left-24 -top-28 h-80 w-80 bg-primary/[0.06] blur-3xl" />
-        <div className="absolute -right-20 top-1/3 h-72 w-80 bg-chart-2/[0.08] blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-56 w-[min(100%,32rem)] -translate-x-1/2 bg-accent/[0.08] blur-3xl" />
-      </div>
-      <div
-        className={cn(
-          DASHBOARD_MAX_WIDE,
-          "!space-y-2 !pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:!space-y-3",
-          "2xl:!space-y-4 2xl:!pb-12",
-        )}
-      >
-        {/* ── Unified header bar ── */}
-        <div className="sticky top-0 z-30 overflow-hidden border border-border/40 bg-linear-to-b from-card/95 via-card/90 to-card/85 shadow-lg shadow-foreground/[0.02] backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 2xl:gap-x-4 2xl:px-4 2xl:py-2.5">
-            {/* Icon + label + date — wide desktop only (tablet shell shows title) */}
-            <div className="hidden min-w-0 items-center gap-2.5 2xl:flex">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-linear-to-br from-primary/10 to-primary/[0.04] text-primary/80 shadow-inner">
-                <BarChart3 className="size-[15px]" aria-hidden />
-              </span>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
-                  <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
-                    Analytics
-                  </span>
-                  {activeRangeSummary ? (
-                    <span className="truncate text-[11px] leading-none text-muted-foreground/70">
-                      {activeRangeSummary}
-                    </span>
-                  ) : null}
-                </div>
-                <ActiveScopeSubtitle className="hidden text-[10px] 2xl:block" />
-              </div>
+    <div className={cn(DASHBOARD_MAX_WIDE, "space-y-5 pb-16")}>
+      <header className="space-y-4 border-b border-border/50 pb-5">
+        <DashboardPageHero
+          compact
+          icon={BarChart3}
+          eyebrow="Insights"
+          title="Analytics"
+          description={
+            activeRangeSummary
+              ? `${activeRangeSummary}`
+              : "Revenue, stock, catalog, and team performance."
+          }
+        />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <DashboardQuickLinks
+            links={[
+              {
+                href: APP_ROUTES.salesReports,
+                label: "Sales reports",
+                desc: "Detailed exports",
+                icon: Receipt,
+              },
+              {
+                href: APP_ROUTES.salesTransactions,
+                label: "Transactions",
+                desc: "Sale history",
+                icon: ShoppingCart,
+              },
+              {
+                href: APP_ROUTES.analyticsActivity,
+                label: "Activity",
+                desc: "Live signals",
+                icon: Zap,
+              },
+            ]}
+          />
+          <ActiveScopeSubtitle className="text-[11px] text-muted-foreground lg:text-right" />
+        </div>
+      </header>
+
+      {error ? <DashboardFeedback kind="error" text={error} /> : null}
+
+      {/* Controls + jump nav */}
+      <section className={DASHBOARD_TABLE_SURFACE}>
+        <div className="space-y-3 border-b border-border/50 bg-muted/30 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                Period
+              </h2>
+              {activeRangeSummary ? (
+                <span className="truncate text-xs text-muted-foreground">
+                  {activeRangeSummary}
+                </span>
+              ) : null}
             </div>
-
-            {activeRangeSummary ? (
-              <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground 2xl:hidden">
-                {activeRangeSummary}
-              </span>
-            ) : null}
-
-            <span
-              className="hidden h-5 w-px bg-border/60 2xl:block"
-              aria-hidden
-            />
-
-            {/* Time presets — single scroll row on tablet */}
-            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
-                <button
-                  key={key}
-                  type="button"
-                  title={hint}
-                  onClick={() => setPreset(key)}
-                  className={cn(
-                    "h-7 shrink-0 rounded-lg border px-2.5 text-[10px] font-semibold tracking-tight transition-all duration-200",
-                    "hover:-translate-y-px 2xl:h-6.5 2xl:text-[10.5px]",
-                    preset === key
-                      ? "border-primary/20 bg-linear-to-b from-primary to-primary/90 text-primary-foreground shadow-sm shadow-primary/20"
-                      : "border-transparent bg-muted/50 text-muted-foreground hover:border-border/60 hover:bg-muted/80 hover:text-foreground hover:shadow-sm",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Branch + Refresh */}
-            <div className="ml-auto flex shrink-0 items-center gap-1.5 2xl:gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <div className="relative">
                 <select
                   value={branchId}
                   onChange={(e) => onChangeBranch(e.target.value)}
-                  className="h-7.5 appearance-none rounded-lg border border-border/50 bg-muted/40 py-0 pl-2.5 pr-7 text-[11px] font-medium text-foreground/90 outline-none transition-colors hover:border-border/80 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+                  aria-label="Branch filter"
+                  className="h-8 appearance-none rounded-md border border-border/55 bg-background py-0 pl-2.5 pr-7 text-xs font-medium text-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
                 >
                   <option value="">All branches</option>
                   {branches.map((b) => (
@@ -1026,7 +959,7 @@ export function AnalyticsWorkspace({
               </div>
               <button
                 type="button"
-                className="group flex size-7.5 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-muted/30 text-muted-foreground/80 transition-all duration-200 hover:border-border/70 hover:bg-muted/50 hover:text-foreground hover:shadow-sm active:scale-95 disabled:opacity-40"
+                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/55 bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
                 onClick={() => {
                   setRefreshing(true);
                   load();
@@ -1036,7 +969,7 @@ export function AnalyticsWorkspace({
               >
                 <RefreshCw
                   className={cn(
-                    "size-3.5 transition-transform duration-500",
+                    "size-3.5",
                     refreshing && "animate-spin",
                   )}
                   aria-hidden
@@ -1045,15 +978,61 @@ export function AnalyticsWorkspace({
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-1">
+            {ANALYTICS_PRESET_LABELS.map(({ key, label, hint }) => (
+              <button
+                key={key}
+                type="button"
+                title={hint}
+                onClick={() => setPreset(key)}
+                className={cn(
+                  "h-7 shrink-0 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
+                  preset === key
+                    ? "border-primary/30 bg-primary text-primary-foreground"
+                    : "border-border/50 bg-background text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {preset === "custom" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="font-semibold uppercase tracking-wider">
+                  From
+                </span>
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="h-8 rounded-md border border-border/55 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+                />
+              </label>
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="font-semibold uppercase tracking-wider">
+                  To
+                </span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="h-8 rounded-md border border-border/55 bg-background px-2 text-xs font-medium text-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+                />
+              </label>
+            </div>
+          ) : null}
+
           {branchScopeStale ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-950 dark:text-amber-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-[11px] text-amber-950 dark:text-amber-100">
               <span>
                 Branch changed to <strong>{pendingBranchLabel}</strong>. Charts
                 still show <strong>{appliedBranchLabel}</strong>.
               </span>
               <button
                 type="button"
-                className="shrink-0 rounded-md border border-amber-600/30 bg-background/80 px-2.5 py-1 text-[11px] font-semibold shadow-sm hover:bg-background"
+                className="shrink-0 rounded-md border border-amber-600/30 bg-background/80 px-2.5 py-1 text-[11px] font-semibold hover:bg-background"
                 onClick={() => setAppliedBranchId(branchId)}
               >
                 Apply branch
@@ -1061,431 +1040,403 @@ export function AnalyticsWorkspace({
             </div>
           ) : null}
 
-          {/* Custom date row */}
-          <div className="border-t border-border/30 2xl:hidden">
-            <AnalyticsJourneyNav compact journey={analyticsJourney} />
+          <div className="border-t border-border/40 pt-2">
+            <AnalyticsJourneyNav journey={analyticsJourney} />
           </div>
+        </div>
 
-          {preset === "custom" ? (
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/30 bg-muted/[0.15] px-3 pb-2 pt-2 2xl:px-4 2xl:pb-2.5">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                From
-              </span>
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-7 rounded-lg border border-border/50 bg-muted/30 px-2.5 text-[11px] font-medium text-foreground outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+        <div className="space-y-5 p-4 sm:p-5">
+          {/* ── Section 1: Key Metrics ─────────────────────────────── */}
+          <AnalyticsSection id="analytics-overview" title="Key metrics">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <MetricCard
+                label="Total Revenue"
+                value={formatMoney(totalRevenue)}
+                icon={DollarSign}
+                accent="bg-primary/10 text-primary"
+                trend={calcTrend(totalRevenue, prevTotalRevenue)}
               />
-              <span className="text-[11px] text-muted-foreground/60">to</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="h-7 rounded-lg border border-border/50 bg-muted/30 px-2.5 text-[11px] font-medium text-foreground outline-none transition-colors hover:border-border/80 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30"
+              <MetricCard
+                label="Gross Profit"
+                value={formatMoney(totalProfit)}
+                icon={TrendingUp}
+                accent="bg-chart-2/15 text-chart-2"
+                trend={calcTrend(totalProfit, prevTotalProfit)}
+              />
+              <MetricCard
+                label="Net Operating"
+                value={formatMoney(netOperating)}
+                icon={Wallet}
+                accent="bg-secondary text-secondary-foreground"
+                trend={calcTrend(netOperating, prevNetOperating)}
+              />
+              <MetricCard
+                label="Expenses"
+                value={formatMoney(totalExpenses)}
+                icon={Receipt}
+                accent="bg-muted text-muted-foreground"
+                trend={calcTrend(totalExpenses, prevTotalExpenses)}
+              />
+              <MetricCard
+                label="Sales Count"
+                value={formatNumber(salesCount)}
+                icon={ShoppingCart}
+                accent="bg-accent text-accent-foreground"
+              />
+              <MetricCard
+                label="Gross Margin"
+                value={`${grossMargin.toFixed(1)}%`}
+                icon={BarChart3}
+                accent="bg-chart-3/20 text-chart-3"
               />
             </div>
-          ) : null}
-        </div>
+          </AnalyticsSection>
 
-        {error ? <DashboardFeedback kind="error" text={error} /> : null}
-
-        <div className="hidden 2xl:block">
-          <AnalyticsJourneyNav journey={analyticsJourney} />
-        </div>
-
-        {/* ── Section 1: Key Metrics ─────────────────────────────── */}
-        <AnalyticsSection id="analytics-overview" step={1} title="Key metrics">
-          <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 2xl:gap-4">
-            <MetricCard
-              label="Total Revenue"
-              value={formatMoney(totalRevenue)}
-              icon={DollarSign}
-              accent="bg-primary/10 text-primary"
-              trend={calcTrend(totalRevenue, prevTotalRevenue)}
-            />
-            <MetricCard
-              label="Gross Profit"
-              value={formatMoney(totalProfit)}
-              icon={TrendingUp}
-              accent="bg-chart-2/15 text-chart-2"
-              trend={calcTrend(totalProfit, prevTotalProfit)}
-            />
-            <MetricCard
-              label="Net Operating"
-              value={formatMoney(netOperating)}
-              icon={Wallet}
-              accent="bg-secondary text-secondary-foreground"
-              trend={calcTrend(netOperating, prevNetOperating)}
-            />
-            <MetricCard
-              label="Expenses"
-              value={formatMoney(totalExpenses)}
-              icon={Receipt}
-              accent="bg-muted text-muted-foreground"
-              trend={calcTrend(totalExpenses, prevTotalExpenses)}
-            />
-            <MetricCard
-              label="Sales Count"
-              value={formatNumber(salesCount)}
-              icon={ShoppingCart}
-              accent="bg-accent text-accent-foreground"
-            />
-            <MetricCard
-              label="Gross Margin"
-              value={`${grossMargin.toFixed(1)}%`}
-              icon={BarChart3}
-              accent="bg-chart-3/20 text-chart-3"
-            />
-          </div>
-        </AnalyticsSection>
-
-        {/* ── Section 2: Revenue & Tender Mix ────────────────────── */}
-        <AnalyticsSection
-          id="analytics-revenue"
-          step={2}
-          title="Revenue and tender mix"
-        >
-          <div className="grid gap-2 sm:gap-3 lg:grid-cols-3">
-            <SectionCard
-              title="Revenue Trend"
-              icon={BarChart3}
-              className="lg:col-span-2"
-            >
-              {dailyRevenue.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      Avg daily:{" "}
-                      <span className="font-semibold text-foreground">
-                        {formatMoney(avgDailyRevenue)}
+          {/* ── Section 2: Revenue & Tender Mix ────────────────────── */}
+          <AnalyticsSection
+            id="analytics-revenue"
+            title="Revenue and tender mix"
+          >
+            <div className="grid gap-2 lg:grid-cols-3">
+              <SectionCard
+                title="Revenue Trend"
+                icon={BarChart3}
+                className="lg:col-span-2"
+              >
+                {dailyRevenue.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        Avg daily:{" "}
+                        <span className="font-semibold text-foreground">
+                          {formatMoney(avgDailyRevenue)}
+                        </span>
                       </span>
-                    </span>
-                    <span>
-                      Total:{" "}
-                      <span className="font-semibold text-foreground">
-                        {formatMoney(totalRevenue)}
+                      <span>
+                        Total:{" "}
+                        <span className="font-semibold text-foreground">
+                          {formatMoney(totalRevenue)}
+                        </span>
                       </span>
-                    </span>
-                  </div>
-                  <MiniBarChart
-                    heightClassName="h-24"
-                    data={dailyRevenue}
-                    max={maxDailyRevenue}
-                    label={(i) => dailyLabels[i] ?? ""}
-                    value={(i) =>
-                      `${dailyLabels[i]}: ${formatMoney(dailyRevenue[i])}`
-                    }
-                  />
-                </div>
-              ) : (
-                <div className="py-5 text-center text-xs text-muted-foreground">
-                  No revenue data for this period.
-                </div>
-              )}
-            </SectionCard>
-
-            <SectionCard title="Payment Methods" icon={CreditCard}>
-              {paymentMethods.length > 0 ? (
-                <div className="space-y-2">
-                  {paymentMethods.map((pm) => (
-                    <HorizontalBar
-                      key={pm.method}
-                      label={pm.method}
-                      value={toNum(pm.totalAmount)}
-                      max={toNum(paymentMethods[0]?.totalAmount ?? 1)}
-                      sublabel={`${formatMoney(pm.totalAmount)} • ${pm.transactionCount} txns`}
-                      tone={
-                        pm.method === "cash"
-                          ? "success"
-                          : pm.method === "mpesa"
-                            ? "sky"
-                            : "primary"
+                    </div>
+                    <MiniBarChart
+                      heightClassName="h-24"
+                      data={dailyRevenue}
+                      max={maxDailyRevenue}
+                      label={(i) => dailyLabels[i] ?? ""}
+                      value={(i) =>
+                        `${dailyLabels[i]}: ${formatMoney(dailyRevenue[i])}`
                       }
                     />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-5 text-center text-xs text-muted-foreground">
-                  No payment data.
-                </div>
-              )}
-            </SectionCard>
-          </div>
-        </AnalyticsSection>
+                  </div>
+                ) : (
+                  <div className="py-5 text-center text-xs text-muted-foreground">
+                    No revenue data for this period.
+                  </div>
+                )}
+              </SectionCard>
 
-        {/* ── Section 3: Stock & Inventory ───────────────────────── */}
-        <AnalyticsSection
-          id="analytics-stock"
-          step={3}
-          title="Stock and inventory"
-        >
-          <div className="grid gap-2 sm:gap-3 lg:grid-cols-2">
-            <SectionCard title="Inventory" icon={Package}>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Total Stock Value
-                  </span>
-                  <span className="text-base font-bold">
-                    {formatMoney(totalInventoryValue)}
-                  </span>
-                </div>
-                {inventoryVal?.byBranch && inventoryVal.byBranch.length > 1 ? (
-                  <div className="space-y-1.5">
-                    {inventoryVal.byBranch.map((b) => (
+              <SectionCard title="Payment Methods" icon={CreditCard}>
+                {paymentMethods.length > 0 ? (
+                  <div className="space-y-2">
+                    {paymentMethods.map((pm) => (
                       <HorizontalBar
-                        key={b.branchId}
-                        label={b.branchName}
-                        value={toNum(b.extensionValue)}
-                        max={toNum(totalInventoryValue)}
-                        sublabel={formatMoney(b.extensionValue)}
-                        tone="sky"
+                        key={pm.method}
+                        label={pm.method}
+                        value={toNum(pm.totalAmount)}
+                        max={toNum(paymentMethods[0]?.totalAmount ?? 1)}
+                        sublabel={`${formatMoney(pm.totalAmount)} • ${pm.transactionCount} txns`}
+                        tone={
+                          pm.method === "cash"
+                            ? "success"
+                            : pm.method === "mpesa"
+                              ? "sky"
+                              : "primary"
+                        }
                       />
                     ))}
                   </div>
-                ) : null}
-                <div className="border border-border/60 bg-muted/50 space-y-1.5 p-2.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-destructive flex items-center gap-1">
-                      <AlertTriangle className="size-3" /> Expired
-                    </span>
-                    <span className="font-semibold tabular-nums">
-                      {formatNumber(expiredQty)} units
-                    </span>
+                ) : (
+                  <div className="py-5 text-center text-xs text-muted-foreground">
+                    No payment data.
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-primary flex items-center gap-1">
-                      <Clock className="size-3" /> Expires &lt; 7d
-                    </span>
-                    <span className="font-semibold tabular-nums">
-                      {formatNumber(due7dQty)} units
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Calendar className="size-3" /> Expires &lt; 30d
-                    </span>
-                    <span className="font-semibold tabular-nums">
-                      {formatNumber(due30dQty)} units
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
+                )}
+              </SectionCard>
+            </div>
+          </AnalyticsSection>
 
-            <SectionCard title="Top Products (30d)" icon={Zap}>
-              {ownerSummary?.topSkus && ownerSummary.topSkus.length > 0 ? (
-                <div className="max-h-[min(14rem,40vh)] space-y-2 overflow-y-auto pr-1">
-                  {ownerSummary.topSkus.map((sku, i) => (
-                    <div key={sku.itemId} className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "flex size-6 shrink-0 items-center justify-center border border-border/60 text-[10px] font-bold",
-                          i === 0
-                            ? "bg-primary/15 text-primary"
-                            : i === 1
-                              ? "bg-secondary text-secondary-foreground"
-                              : i === 2
-                                ? "bg-chart-4/20 text-chart-4"
-                                : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium">
-                          {sku.itemName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatMoney(sku.revenueLast30Days)}
-                        </p>
-                      </div>
-                      <span
-                        title="Share relative to #1 product"
-                        className="shrink-0"
-                      >
-                        <PercentageRing
-                          value={
-                            toNum(sku.revenueLast30Days) > 0
-                              ? Math.min(
-                                  (toNum(sku.revenueLast30Days) /
-                                    Math.max(
-                                      1,
-                                      toNum(
-                                        ownerSummary.topSkus[0]
-                                          ?.revenueLast30Days,
-                                      ),
-                                    )) *
-                                    100,
-                                  100,
-                                )
-                              : 0
-                          }
-                          size={32}
-                          stroke={3}
-                          color={
-                            i === 0
-                              ? "text-primary"
-                              : i === 1
-                                ? "text-muted-foreground"
-                                : i === 2
-                                  ? "text-chart-4"
-                                  : "text-chart-2"
-                          }
+          {/* ── Section 3: Stock & Inventory ───────────────────────── */}
+          <AnalyticsSection id="analytics-stock" title="Stock and inventory">
+            <div className="grid gap-2 lg:grid-cols-2">
+              <SectionCard title="Inventory" icon={Package}>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      Total Stock Value
+                    </span>
+                    <span className="text-base font-bold tabular-nums">
+                      {formatMoney(totalInventoryValue)}
+                    </span>
+                  </div>
+                  {inventoryVal?.byBranch &&
+                  inventoryVal.byBranch.length > 1 ? (
+                    <div className="space-y-1.5">
+                      {inventoryVal.byBranch.map((b) => (
+                        <HorizontalBar
+                          key={b.branchId}
+                          label={b.branchName}
+                          value={toNum(b.extensionValue)}
+                          max={toNum(totalInventoryValue)}
+                          sublabel={formatMoney(b.extensionValue)}
+                          tone="sky"
                         />
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="space-y-1.5 rounded-lg border border-border/50 bg-muted/30 p-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-destructive">
+                        <AlertTriangle className="size-3" /> Expired
+                      </span>
+                      <span className="font-semibold tabular-nums">
+                        {formatNumber(expiredQty)} units
                       </span>
                     </div>
-                  ))}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-primary">
+                        <Clock className="size-3" /> Expires &lt; 7d
+                      </span>
+                      <span className="font-semibold tabular-nums">
+                        {formatNumber(due7dQty)} units
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="size-3" /> Expires &lt; 30d
+                      </span>
+                      <span className="font-semibold tabular-nums">
+                        {formatNumber(due30dQty)} units
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="py-5 text-center text-xs text-muted-foreground">
-                  No top product data.
-                </div>
-              )}
-            </SectionCard>
-          </div>
-        </AnalyticsSection>
+              </SectionCard>
 
-        {/* ── Section 4: Catalog & Team ──────────────────────────── */}
-        <AnalyticsSection
-          id="analytics-catalog"
-          step={4}
-          title="Catalog and team"
-        >
-          <div className="grid gap-2 sm:gap-3 lg:grid-cols-2">
-            <SectionCard title="Revenue by Category" icon={Package}>
-              {categoryRevenue.length > 0 ? (
-                <div className="max-h-[min(11rem,38vh)] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
-                  {categoryRevenue.slice(0, 10).map((cat) => (
-                    <HorizontalBar
-                      key={cat.categoryId}
-                      label={cat.categoryName}
-                      value={toNum(cat.netRevenue)}
-                      max={toNum(categoryRevenue[0]?.netRevenue ?? 1)}
-                      sublabel={`${formatMoney(cat.netRevenue)} • Profit: ${formatMoney(cat.netProfit)}`}
-                      tone="violet"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-5 text-center text-xs text-muted-foreground">
-                  No category data.
-                </div>
-              )}
-            </SectionCard>
+              <SectionCard title="Top Products (30d)" icon={Zap}>
+                {ownerSummary?.topSkus && ownerSummary.topSkus.length > 0 ? (
+                  <div className="max-h-[min(14rem,40vh)] space-y-2 overflow-y-auto pr-1">
+                    {ownerSummary.topSkus.map((sku, i) => (
+                      <div key={sku.itemId} className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-bold",
+                            i === 0
+                              ? "bg-primary/15 text-primary"
+                              : i === 1
+                                ? "bg-secondary text-secondary-foreground"
+                                : i === 2
+                                  ? "bg-chart-4/20 text-chart-4"
+                                  : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium">
+                            {sku.itemName}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatMoney(sku.revenueLast30Days)}
+                          </p>
+                        </div>
+                        <span
+                          title="Share relative to #1 product"
+                          className="shrink-0"
+                        >
+                          <PercentageRing
+                            value={
+                              toNum(sku.revenueLast30Days) > 0
+                                ? Math.min(
+                                    (toNum(sku.revenueLast30Days) /
+                                      Math.max(
+                                        1,
+                                        toNum(
+                                          ownerSummary.topSkus[0]
+                                            ?.revenueLast30Days,
+                                        ),
+                                      )) *
+                                      100,
+                                    100,
+                                  )
+                                : 0
+                            }
+                            size={28}
+                            stroke={3}
+                            color={
+                              i === 0
+                                ? "text-primary"
+                                : i === 1
+                                  ? "text-muted-foreground"
+                                  : i === 2
+                                    ? "text-chart-4"
+                                    : "text-chart-2"
+                            }
+                          />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-5 text-center text-xs text-muted-foreground">
+                    No top product data.
+                  </div>
+                )}
+              </SectionCard>
+            </div>
+          </AnalyticsSection>
 
-            <SectionCard title="Staff Performance" icon={Users}>
-              {staffPerf.length > 0 ? (
-                <div className="max-h-[min(11rem,38vh)] overflow-y-auto overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="sticky top-0 z-10 bg-muted/30 backdrop-blur-sm">
-                      <tr className="border-b border-border/30 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        <th className="pb-1.5 font-medium">Staff</th>
-                        <th className="pb-1.5 font-medium text-right">Sales</th>
-                        <th className="pb-1.5 font-medium text-right">
-                          Revenue
-                        </th>
-                        <th className="pb-1.5 font-medium text-right">
-                          Profit
-                        </th>
-                        <th className="pb-1.5 font-medium text-right">
-                          Margin
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {staffPerf.map((s) => {
-                        const margin =
-                          toNum(s.totalRevenue) > 0
-                            ? (toNum(s.totalProfit) / toNum(s.totalRevenue)) *
-                              100
-                            : 0;
-                        return (
-                          <tr key={s.userId} className="group">
-                            <td className="py-1.5 font-medium">{s.userName}</td>
-                            <td className="py-1.5 text-right tabular-nums">
-                              {formatNumber(s.saleCount)}
-                            </td>
-                            <td className="py-1.5 text-right tabular-nums">
-                              {formatMoney(s.totalRevenue)}
-                            </td>
-                            <td className="py-1.5 text-right tabular-nums">
-                              {formatMoney(s.totalProfit)}
-                            </td>
-                            <td className="py-1.5 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <span className="text-xs tabular-nums">
-                                  {margin.toFixed(1)}%
-                                </span>
-                                <SparkBar
-                                  value={margin}
-                                  max={50}
-                                  tone={
-                                    margin > 20
-                                      ? "success"
-                                      : margin > 10
-                                        ? "warning"
-                                        : "danger"
-                                  }
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="py-5 text-center text-xs text-muted-foreground">
-                  No staff data.
-                </div>
-              )}
-            </SectionCard>
-          </div>
-        </AnalyticsSection>
+          {/* ── Section 4: Catalog & Team ──────────────────────────── */}
+          <AnalyticsSection id="analytics-catalog" title="Catalog and team">
+            <div className="grid gap-2 lg:grid-cols-2">
+              <SectionCard title="Revenue by Category" icon={Package}>
+                {categoryRevenue.length > 0 ? (
+                  <div className="max-h-[min(11rem,38vh)] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
+                    {categoryRevenue.slice(0, 10).map((cat) => (
+                      <HorizontalBar
+                        key={cat.categoryId}
+                        label={cat.categoryName}
+                        value={toNum(cat.netRevenue)}
+                        max={toNum(categoryRevenue[0]?.netRevenue ?? 1)}
+                        sublabel={`${formatMoney(cat.netRevenue)} • Profit: ${formatMoney(cat.netProfit)}`}
+                        tone="violet"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-5 text-center text-xs text-muted-foreground">
+                    No category data.
+                  </div>
+                )}
+              </SectionCard>
 
-        {/* ── Section 5: Signals & Insights ──────────────────────── */}
-        <AnalyticsSection id="analytics-signals" step={5} title="Signals">
-          {insights.length > 0 ? (
-            <div className="grid max-h-[min(20rem,45vh)] gap-2 overflow-y-auto sm:grid-cols-2">
-              {insights.map((insight, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "flex items-start gap-2 border border-border/50 p-2.5 shadow-sm",
-                    INSIGHT_TONE_STYLES[insight.tone],
-                  )}
-                >
-                  <span
+              <SectionCard title="Staff Performance" icon={Users}>
+                {staffPerf.length > 0 ? (
+                  <div className="max-h-[min(11rem,38vh)] overflow-y-auto overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 z-10 bg-card">
+                        <tr className="border-b border-border/40 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          <th className="pb-1.5 font-medium">Staff</th>
+                          <th className="pb-1.5 text-right font-medium">
+                            Sales
+                          </th>
+                          <th className="pb-1.5 text-right font-medium">
+                            Revenue
+                          </th>
+                          <th className="pb-1.5 text-right font-medium">
+                            Profit
+                          </th>
+                          <th className="pb-1.5 text-right font-medium">
+                            Margin
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/30">
+                        {staffPerf.map((s) => {
+                          const margin =
+                            toNum(s.totalRevenue) > 0
+                              ? (toNum(s.totalProfit) /
+                                  toNum(s.totalRevenue)) *
+                                100
+                              : 0;
+                          return (
+                            <tr key={s.userId}>
+                              <td className="py-1.5 font-medium">
+                                {s.userName}
+                              </td>
+                              <td className="py-1.5 text-right tabular-nums">
+                                {formatNumber(s.saleCount)}
+                              </td>
+                              <td className="py-1.5 text-right tabular-nums">
+                                {formatMoney(s.totalRevenue)}
+                              </td>
+                              <td className="py-1.5 text-right tabular-nums">
+                                {formatMoney(s.totalProfit)}
+                              </td>
+                              <td className="py-1.5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="text-xs tabular-nums">
+                                    {margin.toFixed(1)}%
+                                  </span>
+                                  <SparkBar
+                                    value={margin}
+                                    max={50}
+                                    tone={
+                                      margin > 20
+                                        ? "success"
+                                        : margin > 10
+                                          ? "warning"
+                                          : "danger"
+                                    }
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-5 text-center text-xs text-muted-foreground">
+                    No staff data.
+                  </div>
+                )}
+              </SectionCard>
+            </div>
+          </AnalyticsSection>
+
+          {/* ── Section 5: Signals & Insights ──────────────────────── */}
+          <AnalyticsSection id="analytics-signals" title="Signals">
+            {insights.length > 0 ? (
+              <div className="grid max-h-[min(20rem,45vh)] gap-2 overflow-y-auto sm:grid-cols-2">
+                {insights.map((insight, i) => (
+                  <div
+                    key={i}
                     className={cn(
-                      "mt-0.5 flex size-7 shrink-0 items-center justify-center border bg-card/90 shadow-sm",
-                      insight.tone === "good" &&
-                        "border-primary/25 text-primary",
-                      insight.tone === "warn" &&
-                        "border-destructive/25 text-destructive",
-                      insight.tone === "info" && "border-ring text-foreground",
-                      insight.tone === "neutral" &&
-                        "border-border text-muted-foreground",
+                      "flex items-start gap-2 rounded-lg border border-border/50 p-2.5",
+                      INSIGHT_TONE_STYLES[insight.tone],
                     )}
                   >
-                    <insight.icon className="size-3.5" aria-hidden />
-                  </span>
-                  <p className="text-xs leading-relaxed text-foreground">
-                    {insight.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              No signals for this slice yet — try a longer range or another
-              branch.
-            </p>
-          )}
-        </AnalyticsSection>
-      </div>
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border bg-card",
+                        insight.tone === "good" &&
+                          "border-primary/25 text-primary",
+                        insight.tone === "warn" &&
+                          "border-destructive/25 text-destructive",
+                        insight.tone === "info" &&
+                          "border-ring text-foreground",
+                        insight.tone === "neutral" &&
+                          "border-border text-muted-foreground",
+                      )}
+                    >
+                      <insight.icon className="size-3.5" aria-hidden />
+                    </span>
+                    <p className="text-xs leading-relaxed text-foreground">
+                      {insight.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No signals for this slice yet — try a longer range or another
+                branch.
+              </p>
+            )}
+          </AnalyticsSection>
+        </div>
+      </section>
     </div>
   );
 }
