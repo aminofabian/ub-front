@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, LayoutGrid, Package, Receipt, Users } from "lucide-react";
+import { Building2, LayoutGrid, Package, Phone, Receipt, Users } from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -143,6 +143,12 @@ export default function CustomersPage() {
         />
         <DashboardQuickLinks
           links={[
+            {
+              href: APP_ROUTES.customerPhones,
+              label: "Customer phones",
+              desc: "All numbers",
+              icon: Phone,
+            },
             ...(canReviewPaymentClaims
               ? [
                   {

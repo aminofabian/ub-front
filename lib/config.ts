@@ -37,6 +37,7 @@ export const APP_ROUTES = {
   supplierPortalCatalog: "/supplier-portal/catalog",
   supplierPortalOrders: "/supplier-portal/orders",
   customers: "/customers",
+  customerPhones: "/customers/phones",
   creditsPaymentClaims: "/credits/payment-claims",
   purchasingIntelligence: "/purchasing/intelligence",
   purchasingAddSupplies: "/supplies",

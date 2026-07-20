@@ -42,7 +42,13 @@ import {
   writeCachedItemsSearch,
 } from "@/lib/catalog-search-cache";
 import { nextIdempotencyKey } from "@/lib/idempotency-key";
-import { parseStkPhoneParts } from "@/lib/stk-phone";
+import {
+  buildStkPhoneNumber,
+  customerPhoneMatchesStk,
+  isStkPhoneValid,
+  parseStkPhoneParts,
+  stkPhoneLookupVariants,
+} from "@/lib/stk-phone";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
@@ -141,6 +147,14 @@ function payMethodNeedsCustomer(method: SalePaymentMethod): boolean {
     method === "customer_wallet" ||
     method === "loyalty_redeem"
   );
+}
+
+/** Attach customer whenever selected — including optional M-Pesa / cash links. */
+function saleCustomerIdPatch(
+  selectedCustomer: CustomerRecord | null,
+): { customerId: string } | Record<string, never> {
+  const id = selectedCustomer?.id?.trim();
+  return id ? { customerId: id } : {};
 }
 
 function roundMoney2(n: number): number {
@@ -689,6 +703,7 @@ export function QuickSaleWorkspace({
   const [customerSearchBusy, setCustomerSearchBusy] = useState(false);
   const [customerRegisterBusy, setCustomerRegisterBusy] = useState(false);
   const stkConfirmedToastKey = useRef<string | null>(null);
+  const lastStkLinkedPhoneRef = useRef<string | null>(null);
 
   const notifyStkPaymentConfirmed = useCallback((checkoutId: string) => {
     const key = checkoutId.trim();
@@ -1192,6 +1207,68 @@ export function QuickSaleWorkspace({
     setSelectedCustomer,
     updateActiveCart,
   ]);
+
+  /**
+   * Silent find-or-create by MSISDN only (name = phone). Never blocks STK UI.
+   */
+  const ensureCustomerForStkPhone = useCallback(
+    async (phone254: string): Promise<CustomerRecord | null> => {
+      if (!online || !canLookupCustomers) {
+        return null;
+      }
+      const findMatch = async (): Promise<CustomerRecord | null> => {
+        for (const variant of stkPhoneLookupVariants(phone254)) {
+          const rows = await fetchCustomers(variant);
+          if (rows.length === 0) continue;
+          return (
+            rows.find((c) =>
+              c.phones.some((p) => customerPhoneMatchesStk(p.phone, phone254)),
+            ) ??
+            rows[0] ??
+            null
+          );
+        }
+        return null;
+      };
+      try {
+        const existing = await findMatch();
+        if (existing) {
+          return existing;
+        }
+        if (!canManageCustomers) {
+          return null;
+        }
+        try {
+          return await createCustomer({
+            name: phone254,
+            phones: [{ phone: phone254, primary: true }],
+          });
+        } catch {
+          // Concurrent create / already exists — re-lookup.
+          return await findMatch();
+        }
+      } catch {
+        return null;
+      }
+    },
+    [canLookupCustomers, canManageCustomers, online],
+  );
+
+  const linkStkPhoneInBackground = useCallback(
+    (phone254: string) => {
+      if (lastStkLinkedPhoneRef.current === phone254) {
+        return;
+      }
+      void ensureCustomerForStkPhone(phone254).then((customer) => {
+        if (!customer) {
+          return;
+        }
+        lastStkLinkedPhoneRef.current = phone254;
+        updateActiveCart({ selectedCustomer: customer });
+      });
+    },
+    [ensureCustomerForStkPhone, updateActiveCart],
+  );
 
   const refreshTopProducts = useCallback(() => {
     if (variant === "cashier") {
@@ -1882,6 +1959,8 @@ export function QuickSaleWorkspace({
         });
         return;
       }
+      // Link customer by phone in the background — never delays the prompt.
+      linkStkPhoneInBackground(phoneNumber);
       stkConfirmedToastKey.current = null;
       updateActiveCart({
         stkPushStatus: "sending",
@@ -1912,7 +1991,7 @@ export function QuickSaleWorkspace({
         });
       }
     },
-    [online, grandTotal, updateActiveCart],
+    [online, grandTotal, linkStkPhoneInBackground, updateActiveCart],
   );
 
   useEffect(() => {
@@ -2080,6 +2159,24 @@ export function QuickSaleWorkspace({
         return;
       }
     }
+
+    // M-Pesa: finish silent phone→customer link if background resolve is still pending.
+    let linkedCustomer = selectedCustomer;
+    if (
+      !splitPay &&
+      payMethod === "mpesa_manual" &&
+      !linkedCustomer &&
+      online &&
+      isStkPhoneValid(stkAreaCode, stkPhone)
+    ) {
+      const phone254 = buildStkPhoneNumber(stkAreaCode, stkPhone);
+      linkedCustomer = await ensureCustomerForStkPhone(phone254);
+      if (linkedCustomer) {
+        lastStkLinkedPhoneRef.current = phone254;
+        updateActiveCart({ selectedCustomer: linkedCustomer });
+      }
+    }
+
     let cashTendered: number | null = null;
     if (!splitPay && payMethod === "cash") {
       const raw = cashTenderStr.trim();
@@ -2137,9 +2234,7 @@ export function QuickSaleWorkspace({
     const idem = nextIdempotencyKey();
     const salePayload: PostSalePayload = {
       branchId: bid,
-      ...(payMethodNeedsCustomer(payMethod) && selectedCustomer
-        ? { customerId: selectedCustomer.id }
-        : {}),
+      ...saleCustomerIdPatch(linkedCustomer),
       lines: payloadLines,
       payments,
       clientSoldAt: new Date().toISOString(),
@@ -2151,7 +2246,7 @@ export function QuickSaleWorkspace({
       qty: parseQty(line.quantity) ?? 1,
     }));
     const receiptCartLines = [...lines];
-    const receiptCustomerName = selectedCustomer?.name?.trim() || null;
+    const receiptCustomerName = linkedCustomer?.name?.trim() || null;
     const receiptBranch = branches.find((b) => b.id === bid);
     const receiptBranchName = receiptBranch?.name?.trim() ?? "";
     const receiptCurrency = business?.currency?.trim() || "KES";
@@ -2188,9 +2283,7 @@ export function QuickSaleWorkspace({
       try {
         const completeBody = {
           payments,
-          ...(payMethodNeedsCustomer(payMethod) && selectedCustomer
-            ? { customerId: selectedCustomer.id }
-            : {}),
+          ...saleCustomerIdPatch(linkedCustomer),
           clientSoldAt: salePayload.clientSoldAt,
           expectedVersion: activeCart.version,
         };
@@ -2407,9 +2500,7 @@ export function QuickSaleWorkspace({
 
       const completeBody = {
         payments,
-        ...(payMethodNeedsCustomer(payMethod) && selectedCustomer
-          ? { customerId: selectedCustomer.id }
-          : {}),
+        ...saleCustomerIdPatch(linkedCustomer),
         clientSoldAt: salePayload.clientSoldAt,
         expectedVersion: draftVersion,
       };

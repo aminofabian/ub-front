@@ -296,6 +296,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     entryHref: APP_ROUTES.customers,
     items: [
       { href: APP_ROUTES.customers, label: "Credit customers" },
+      { href: APP_ROUTES.customerPhones, label: "Customer phones" },
       { href: APP_ROUTES.creditsPaymentClaims, label: "Payment claims" },
     ],
   },
@@ -520,6 +521,7 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   // Public marketplace directory — visible to anyone who can manage suppliers.
   if (item.href === APP_ROUTES.marketplace) return gate.canViewSuppliers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
+  if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.creditsPaymentClaims)
     return gate.canReviewPaymentClaims;
   if (item.href === APP_ROUTES.purchasingRecordPayment)

@@ -7366,14 +7366,78 @@ export type CreateCustomerPayload = {
 
 export async function fetchCustomers(
   phone?: string,
+  opts?: { page?: number; size?: number },
 ): Promise<CustomerRecord[]> {
-  const params = new URLSearchParams({ page: "0", size: "100" });
-  const q = phone?.trim();
+  const page = await fetchCustomersPage({
+    phone,
+    page: opts?.page,
+    size: opts?.size,
+  });
+  return page.content;
+}
+
+export async function fetchCustomersPage(opts?: {
+  phone?: string;
+  page?: number;
+  size?: number;
+}): Promise<{
+  content: CustomerRecord[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  last: boolean;
+  first: boolean;
+}> {
+  const params = new URLSearchParams({
+    page: String(opts?.page ?? 0),
+    size: String(opts?.size ?? 100),
+  });
+  const q = opts?.phone?.trim();
   if (q) {
     params.set("phone", q);
   }
   const payload = await request<unknown>(`/api/v1/customers?${params}`);
-  return extractPageContent<CustomerRecord>(payload);
+  const content = extractPageContent<CustomerRecord>(payload);
+  const meta = extractSpringPageMeta(payload);
+  if (!meta) {
+    return {
+      content,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+      number: 0,
+      size: content.length,
+      last: true,
+      first: true,
+    };
+  }
+  return { content, ...meta };
+}
+
+/** Load the full customer directory (paged). */
+export async function fetchAllCustomers(opts?: {
+  phone?: string;
+  pageSize?: number;
+}): Promise<CustomerRecord[]> {
+  const pageSize = opts?.pageSize ?? 100;
+  const all: CustomerRecord[] = [];
+  let page = 0;
+  for (;;) {
+    const result = await fetchCustomersPage({
+      phone: opts?.phone,
+      page,
+      size: pageSize,
+    });
+    all.push(...result.content);
+    if (result.last || result.content.length === 0) {
+      break;
+    }
+    page += 1;
+    if (page > 50) {
+      break;
+    }
+  }
+  return all;
 }
 
 export async function fetchCustomerById(
