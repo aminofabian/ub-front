@@ -42,7 +42,7 @@ import {
 } from "./cashier-qty-control";
 import { CashierWeighedToggle } from "./cashier-weighed-toggle";
 import { PosSaleCompletePanel } from "./pos-sale-complete-panel";
-import { isValidCustomerPhone } from "@/lib/customer-phone";
+import { isValidCustomerPhone, customerPhoneValidationMessage } from "@/lib/customer-phone";
 import { IS_DESKTOP } from "@/lib/runtime";
 import { buildStkPhoneNumber, isStkPhoneValid } from "@/lib/stk-phone";
 import type { LocalReceiptPrinterTarget } from "@/lib/desktop-print";
@@ -788,7 +788,8 @@ export function CashierCartDrawer(props: CashierCartDrawerProps) {
                       customerPhoneQuery.trim() &&
                       !isValidCustomerPhone(customerPhoneQuery) ? (
                         <p className="text-[11px] text-destructive">
-                          Enter at least 9 digits.
+                          {customerPhoneValidationMessage(customerPhoneQuery) ??
+                            "Enter a valid phone number."}
                         </p>
                       ) : null}
                       {customerHits.length > 0 ? (

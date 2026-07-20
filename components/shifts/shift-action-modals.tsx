@@ -20,6 +20,7 @@ import {
   dashboardSelectClass,
   dashboardTextareaClass,
 } from "@/components/dashboard-page-ui";
+import { useOptionalDashboard } from "@/components/dashboard-provider";
 import { useFeatureFlags } from "@/components/providers/tenant-provider";
 import {
   fetchLastClosedShiftFloat,
@@ -497,6 +498,11 @@ export function CloseShiftModal({
   shift: ShiftRecord | null;
   onClosed: () => void;
 }) {
+  const dashboard = useOptionalDashboard();
+  const roleKey = dashboard?.me?.role?.key?.trim().toLowerCase() ?? "";
+  const canSeeCashVarianceDetail =
+    roleKey === "owner" || roleKey === "admin";
+
   const [quantities, setQuantities] = useState<Record<number, number>>(
     createEmptyDenominationQuantities(),
   );
@@ -533,6 +539,7 @@ export function CloseShiftModal({
     : 0;
   const variance = totalCash - expected;
   const absVariance = Math.abs(variance);
+  const balanceMismatch = absVariance >= VARIANCE_THRESHOLD_AMBER;
   const showVarianceReason = absVariance >= VARIANCE_THRESHOLD_RED;
 
   const handleClose = useCallback(async () => {
@@ -543,7 +550,9 @@ export function CloseShiftModal({
     }
     if (showVarianceReason && !varianceReason.trim()) {
       setError(
-        "Counted amount does not match the expected amount. Please provide a reason.",
+        canSeeCashVarianceDetail
+          ? "Counted amount does not match the expected amount. Please provide a reason."
+          : "Your cash count doesn’t match the expected till balance. Please add a short note before closing.",
       );
       return;
     }
@@ -571,6 +580,7 @@ export function CloseShiftModal({
     varianceReason,
     quantities,
     showVarianceReason,
+    canSeeCashVarianceDetail,
     onClosed,
     onClose,
   ]);
@@ -601,23 +611,45 @@ export function CloseShiftModal({
 
         <div className={SHIFT_MODAL_BODY}>
           <div className="space-y-3">
-            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg border border-border/50 bg-gradient-to-br from-muted/25 to-muted/10 px-3 py-2 text-[11px] shadow-sm ring-1 ring-black/[0.03] sm:text-xs dark:ring-white/[0.05]">
-              <span>
-                <span className="text-muted-foreground">Expected</span>{" "}
-                <span className="font-semibold tabular-nums text-foreground">{moneyStr(expected)}</span>
-              </span>
-              <span>
-                <span className="text-muted-foreground">Counted</span>{" "}
-                <span className="font-semibold tabular-nums text-foreground">{moneyStr(totalCash)}</span>
-              </span>
-              <span>
-                <span className="text-muted-foreground">Variance</span>{" "}
-                <span className={cn("font-semibold tabular-nums", varianceColor(variance))}>
-                  {variance >= 0 ? "+" : ""}
-                  {moneyStr(variance)}
+            {canSeeCashVarianceDetail ? (
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg border border-border/50 bg-gradient-to-br from-muted/25 to-muted/10 px-3 py-2 text-[11px] shadow-sm ring-1 ring-black/[0.03] sm:text-xs dark:ring-white/[0.05]">
+                <span>
+                  <span className="text-muted-foreground">Expected</span>{" "}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {moneyStr(expected)}
+                  </span>
                 </span>
-              </span>
-            </div>
+                <span>
+                  <span className="text-muted-foreground">Counted</span>{" "}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {moneyStr(totalCash)}
+                  </span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">Variance</span>{" "}
+                  <span
+                    className={cn(
+                      "font-semibold tabular-nums",
+                      varianceColor(variance),
+                    )}
+                  >
+                    {variance >= 0 ? "+" : ""}
+                    {moneyStr(variance)}
+                  </span>
+                </span>
+              </div>
+            ) : balanceMismatch ? (
+              <p
+                className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
+                role="status"
+              >
+                Your cash count doesn’t match the expected till balance. Recheck
+                your notes and coins
+                {showVarianceReason
+                  ? ", then add a short note below so an admin can review."
+                  : "."}
+              </p>
+            ) : null}
 
             <div className={SHIFT_MODAL_SECTION}>
               <DenominationTable
@@ -636,11 +668,17 @@ export function CloseShiftModal({
                     "text-destructive",
                   )}
                 >
-                  Reason for Variance *
+                  {canSeeCashVarianceDetail
+                    ? "Reason for Variance *"
+                    : "Note about the cash count *"}
                 </label>
                 <textarea
                   className={dashboardTextareaClass(loading)}
-                  placeholder="Explain the significant variance..."
+                  placeholder={
+                    canSeeCashVarianceDetail
+                      ? "Explain the significant variance..."
+                      : "Briefly note what happened with the till count…"
+                  }
                   value={varianceReason}
                   onChange={(e) => setVarianceReason(e.target.value)}
                   maxLength={500}
