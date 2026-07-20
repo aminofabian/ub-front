@@ -2,7 +2,6 @@
 
 import {
   HUB_ACCENT,
-  HUB_ACCENT_LIGHT,
   HUB_MUTED,
   HUB_SURFACE,
 } from "@/lib/business-hub/constants";
@@ -20,6 +19,9 @@ function fmtBarKes(n: number): string {
 }
 
 const BAR_TRACK_PX = 148;
+/** Mid gold — readable on the cream wash (do not reuse HUB_ACCENT_LIGHT). */
+const BAR_FILL = "#C9A86A";
+const BAR_FILL_TODAY = HUB_ACCENT;
 
 export function RevenueBarChart({
   points,
@@ -124,11 +126,11 @@ export function RevenueBarChart({
                         style={{
                           height: heightPx,
                           backgroundColor: isHighlight
-                            ? HUB_ACCENT
-                            : HUB_ACCENT_LIGHT,
+                            ? BAR_FILL_TODAY
+                            : BAR_FILL,
                           boxShadow: isHighlight
                             ? "0 8px 20px rgba(176, 141, 72, 0.22)"
-                            : undefined,
+                            : "0 1px 0 rgba(138, 107, 46, 0.12)",
                         }}
                       />
                     </>
