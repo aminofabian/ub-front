@@ -3,7 +3,6 @@
 import {
   CreditCard,
   MapPin,
-  Package,
   Sparkles,
   User,
 } from "lucide-react";
@@ -43,13 +42,13 @@ function stepHint(
   }
   if (activeStep === 2) {
     return {
-      message: "Check items and total, then continue to payment.",
-      icon: Package,
+      message: "M-Pesa is selected by default — confirm your number, then continue.",
+      icon: CreditCard,
     };
   }
   if (activeStep === 3) {
     return {
-      message: "M-Pesa is recommended — or choose pay on delivery.",
+      message: "Place your order to send the M-Pesa prompt — or switch to pay on delivery.",
       icon: CreditCard,
     };
   }

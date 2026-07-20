@@ -854,13 +854,16 @@ export default function ShopCheckoutForm({
   const payOnDeliveryAvailable = true;
   const paymentMethodTouched = useRef(false);
 
+  // M-Pesa is always the default when STK is available.
   useEffect(() => {
-    if (!paymentOptionsReady || paymentMethodTouched.current) return;
+    if (!paymentOptionsReady) return;
     if (hasOnlinePay) {
-      setPaymentMethod("mpesa");
+      if (!paymentMethodTouched.current) {
+        setPaymentMethod("mpesa");
+      }
       return;
     }
-    if (!hasManualPay) {
+    if (!paymentMethodTouched.current) {
       setPaymentMethod("pay_on_delivery");
     }
   }, [paymentOptionsReady, hasOnlinePay, hasManualPay]);
@@ -869,6 +872,16 @@ export default function ShopCheckoutForm({
     paymentMethodTouched.current = true;
     setPaymentMethod(method);
   }, []);
+
+  /** Prefer M-Pesa whenever online pay exists and the shopper hasn't picked COD. */
+  const activePaymentMethod: CheckoutPaymentMethod =
+    hasOnlinePay && !paymentMethodTouched.current
+      ? "mpesa"
+      : hasOnlinePay
+        ? paymentMethod
+        : paymentMethod === "mpesa"
+          ? "pay_on_delivery"
+          : paymentMethod;
 
   async function handleConfirmPaymentSent() {
     if (!done?.orderId) {
@@ -992,7 +1005,7 @@ export default function ShopCheckoutForm({
         customerPhone: `${areaCode} ${customerPhone}`.trim(),
         customerEmail: customerEmail.trim() || undefined,
         notes: [
-          paymentMethod === "pay_on_delivery" ? "Payment: Pay on delivery" : "",
+          activePaymentMethod === "pay_on_delivery" ? "Payment: Pay on delivery" : "",
           streetAddress.trim() ? `Street: ${streetAddress.trim()}` : "",
           county.trim() ? `County: ${county.trim()}` : "",
           subCounty.trim() ? `Subcounty: ${subCounty.trim()}` : "",
@@ -1050,7 +1063,7 @@ export default function ShopCheckoutForm({
       setStkSent(false);
       setStkMessage(null);
       paymentToastShown.current = false;
-      setOrderPaymentMethod(paymentMethod);
+      setOrderPaymentMethod(activePaymentMethod);
       setDone(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed.");
@@ -1714,7 +1727,7 @@ export default function ShopCheckoutForm({
             eyebrow: "Review your order",
             headline: "Accept the store terms to continue",
             hint:
-              paymentMethod === "mpesa"
+              activePaymentMethod === "mpesa"
                 ? "M-Pesa is ready above — tick terms, then continue."
                 : "Check your items above, then tick the terms checkbox.",
             actionLabel: "Go to terms",
@@ -1726,34 +1739,34 @@ export default function ShopCheckoutForm({
         : showReviewStep
           ? {
               eyebrow:
-                paymentMethod === "mpesa" ? "Pay with M-Pesa" : "Review your order",
+                activePaymentMethod === "mpesa" ? "Pay with M-Pesa" : "Review your order",
               headline:
-                paymentMethod === "mpesa"
+                activePaymentMethod === "mpesa"
                   ? "Number set — continue to place order"
                   : "Ready when you are",
               hint:
-                paymentMethod === "mpesa"
+                activePaymentMethod === "mpesa"
                   ? "You'll send the M-Pesa prompt right after placing the order."
                   : "Continue to place your order — pay the rider on delivery.",
               actionLabel:
-                paymentMethod === "mpesa" ? "Continue to place & pay" : "Continue",
+                activePaymentMethod === "mpesa" ? "Continue to place & pay" : "Continue",
               actionDisabled: false,
               onAction: proceedToConfirmStep,
               actionType: "button" as const,
               pulse: true,
             }
           : {
-            eyebrow: paymentMethod === "mpesa" ? "Pay with M-Pesa" : "Pay on delivery",
+            eyebrow: activePaymentMethod === "mpesa" ? "Pay with M-Pesa" : "Pay on delivery",
             headline:
-              paymentMethod === "mpesa"
+              activePaymentMethod === "mpesa"
                 ? "Place order, then send the prompt"
                 : "Place your order — pay when it arrives",
             hint:
-              paymentMethod === "mpesa"
+              activePaymentMethod === "mpesa"
                 ? "M-Pesa is selected below. Approve the prompt on your phone after ordering."
                 : "No upfront payment. Have cash or M-Pesa ready for the rider.",
             actionLabel:
-              paymentMethod === "mpesa" ? "Place order & pay" : "Place order",
+              activePaymentMethod === "mpesa" ? "Place order & pay" : "Place order",
             actionDisabled: false,
             actionType: "submit" as const,
             pulse: true,
@@ -2189,7 +2202,7 @@ export default function ShopCheckoutForm({
               defaultAreaCode={areaCode}
               defaultPhone={customerPhone}
               amountDue={totalLabel}
-              selectedMethod={paymentMethod}
+              selectedMethod={activePaymentMethod}
               onSelectMethod={selectPaymentMethod}
               payOnDeliveryAvailable={payOnDeliveryAvailable}
               onStkPay={
@@ -2399,7 +2412,7 @@ export default function ShopCheckoutForm({
               defaultAreaCode={areaCode}
               defaultPhone={customerPhone}
               amountDue={totalLabel}
-              selectedMethod={paymentMethod}
+              selectedMethod={activePaymentMethod}
               onSelectMethod={selectPaymentMethod}
               payOnDeliveryAvailable={payOnDeliveryAvailable}
               onStkPay={
