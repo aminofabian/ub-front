@@ -87,8 +87,8 @@ export default function SuperAdminLoginPage() {
             Tenant app home
           </Link>
           {" · "}
-          <Link href={APP_ROUTES.login} className="underline underline-offset-2">
-            Shop sign in
+          <Link href={APP_ROUTES.staffLogin} className="underline underline-offset-2">
+            Shop staff sign in
           </Link>
         </p>
       </AuthCard>

@@ -19,6 +19,7 @@ import {
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { loginPathForNext } from "@/lib/login-audience";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 
@@ -26,6 +27,8 @@ function AuthHandoffInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
+  const nextHint = searchParams.get("next")?.trim() ?? "";
+  const fallbackLogin = loginPathForNext(nextHint);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,7 +154,7 @@ function AuthHandoffInner() {
       <button
         type="button"
         className="text-primary underline underline-offset-2"
-        onClick={() => router.replace(APP_ROUTES.login)}
+        onClick={() => router.replace(fallbackLogin)}
       >
         Back to sign in
       </button>

@@ -16,7 +16,7 @@ type LoadState = "loading" | "guest" | "ready" | "error";
 
 export default function ShopAccountPage() {
   const router = useRouter();
-  useAuthenticatedSession();
+  useAuthenticatedSession({ loginPath: APP_ROUTES.login });
   const [me, setMe] = useState<MeResponse | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [peekCurrency, setPeekCurrency] = useState<string | undefined>();

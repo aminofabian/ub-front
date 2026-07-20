@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DesktopBootShell } from "@/components/desktop/desktop-boot-shell";
+import { APP_ROUTES } from "@/lib/config";
 
 /**
  * Client-side router for the desktop SKU's root URL
@@ -14,7 +15,7 @@ import { DesktopBootShell } from "@/components/desktop/desktop-boot-shell";
  * On desktop that screen is misleading — there is only one tenant — so this
  * component runs in its place: it asks the backend whether the install has
  * already been seeded, then redirects to either {@code /setup} (first run) or
- * {@code /login} (returning user).
+ * {@code /login/staff} (returning user).
  *
  * <p>MariaDB + JVM startup can take tens of seconds on first launch, so failed
  * probes retry with backoff instead of surfacing an error immediately.
@@ -77,7 +78,7 @@ export function DesktopRootRedirect() {
           } else {
             setStatus("ready");
             setMessage("Loading sign-in…");
-            router.replace("/login");
+            router.replace(APP_ROUTES.staffLogin);
           }
           return;
         } catch (err) {

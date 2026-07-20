@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         "/super-admin/",
         "/overview",
         "/login",
+        "/login/staff",
         "/signup",
         "/cashier",
         "/grocery",

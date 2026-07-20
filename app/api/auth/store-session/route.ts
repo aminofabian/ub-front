@@ -8,7 +8,7 @@ import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
-import { APP_ROUTES } from "@/lib/config";
+import { loginPathForNext } from "@/lib/login-audience";
 import {
   buildSessionFinalizeHtml,
   prefetchSessionBootstrap,
@@ -24,8 +24,12 @@ function resolveTenantHost(request: NextRequest): string | null {
   return host && host.length > 0 ? host : null;
 }
 
-function loginErrorRedirect(request: NextRequest, message: string): NextResponse {
-  const url = new URL(APP_ROUTES.login, request.url);
+function loginErrorRedirect(
+  request: NextRequest,
+  message: string,
+  requestedNext = "",
+): NextResponse {
+  const url = new URL(loginPathForNext(requestedNext), request.url);
   url.searchParams.set("error", message);
   return NextResponse.redirect(url, 303);
 }
@@ -52,7 +56,11 @@ export async function POST(request: NextRequest) {
   const tenantHost = resolveTenantHost(request);
 
   if (!accessToken || !tenantId) {
-    return loginErrorRedirect(request, "Session data missing. Please sign in again.");
+    return loginErrorRedirect(
+      request,
+      "Session data missing. Please sign in again.",
+      requestedNext,
+    );
   }
 
   const bootstrap = await prefetchSessionBootstrap(
@@ -64,6 +72,7 @@ export async function POST(request: NextRequest) {
     return loginErrorRedirect(
       request,
       "Could not verify your session. Please sign in again.",
+      requestedNext,
     );
   }
 

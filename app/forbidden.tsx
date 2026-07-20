@@ -27,7 +27,7 @@ export default function ForbiddenPage() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button asChild className="w-full sm:w-auto">
-            <Link href={APP_ROUTES.login}>Sign in</Link>
+            <Link href={APP_ROUTES.staffLogin}>Sign in</Link>
           </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/">Go home</Link>

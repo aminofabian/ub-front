@@ -21,6 +21,7 @@ import {
   type MobileAppRole,
   type PublicMobileConfig,
 } from "@/lib/public-mobile-config";
+import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 type GetTheAppPanelProps = {
@@ -229,7 +230,7 @@ export function GetTheAppPanel({
       {variant === "storefront" ? (
         <p className="text-center text-xs text-muted-foreground">
           Staff?{" "}
-          <Link href={config.deepLinks.universalApp} className="font-medium text-primary underline-offset-2 hover:underline">
+          <Link href={APP_ROUTES.staffLogin} className="font-medium text-primary underline-offset-2 hover:underline">
             Open the staff login page
           </Link>
         </p>

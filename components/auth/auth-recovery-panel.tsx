@@ -22,7 +22,7 @@ export function AuthRecoveryPanel({
           {message}
         </p>
         <Button asChild className="mt-6 w-full">
-          <Link href={APP_ROUTES.login}>Back to sign in</Link>
+          <Link href={APP_ROUTES.staffLogin}>Back to sign in</Link>
         </Button>
       </div>
     </div>

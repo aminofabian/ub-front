@@ -227,7 +227,7 @@ export default function SuppliesPage() {
       <DashboardAccessDenied
         title="Session required"
         description="Sign in to manage supplies."
-        backHref={APP_ROUTES.login}
+        backHref={APP_ROUTES.staffLogin}
         backLabel="Login"
       />
     );

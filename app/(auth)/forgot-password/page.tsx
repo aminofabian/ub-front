@@ -71,7 +71,10 @@ function ForgotPasswordPageContent() {
               and check your inbox.
             </AuthAlert>
             <Button className="mt-4 w-full" variant="outline" asChild>
-              <Link href={APP_ROUTES.login}>Back to sign in</Link>
+              <Link href={APP_ROUTES.login}>Customer sign-in</Link>
+            </Button>
+            <Button className="mt-2 w-full" variant="ghost" asChild>
+              <Link href={APP_ROUTES.staffLogin}>Staff sign-in</Link>
             </Button>
           </div>
         ) : (
@@ -100,9 +103,19 @@ function ForgotPasswordPageContent() {
           </div>
         ) : null}
 
-        <p className="mt-6 text-center text-sm">
-          <Link href={APP_ROUTES.login} className="font-medium text-primary underline underline-offset-2">
-            Sign in
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link
+            href={APP_ROUTES.login}
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            Customer sign-in
+          </Link>
+          {" · "}
+          <Link
+            href={APP_ROUTES.staffLogin}
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            Staff sign-in
           </Link>
         </p>
       </AuthCard>

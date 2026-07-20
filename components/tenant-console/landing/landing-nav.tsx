@@ -72,7 +72,7 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
-            href={APP_ROUTES.login}
+            href={APP_ROUTES.staffLogin}
             className="hidden text-sm font-normal tracking-[0.01em] text-[var(--kiosk-text-muted)] transition-colors duration-200 hover:text-[var(--kiosk-text)] sm:inline"
           >
             Sign in
@@ -127,7 +127,7 @@ export function LandingNav({ onCreateShop }: LandingNavProps) {
 
           <div className="mt-6 flex flex-col gap-3 border-t border-[var(--kiosk-border-soft)] pt-6">
             <Link
-              href={APP_ROUTES.login}
+              href={APP_ROUTES.staffLogin}
               className="rounded-lg px-3 py-3.5 text-center text-base font-medium text-[var(--kiosk-text-muted)] transition-colors hover:bg-[var(--kiosk-card-bg)] hover:text-[var(--kiosk-text)]"
               onClick={closeMenu}
             >

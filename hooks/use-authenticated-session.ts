@@ -29,7 +29,7 @@ type UseAuthenticatedSessionOptions = {
 export function useAuthenticatedSession(
   options: UseAuthenticatedSessionOptions = {},
 ): { ready: boolean; hasSession: boolean; restoring: boolean } {
-  const { requireAuth = false, loginPath = APP_ROUTES.login } = options;
+  const { requireAuth = false, loginPath = APP_ROUTES.staffLogin } = options;
   const router = useRouter();
   const clientReady = useClientSessionReady();
   const hasSession = useClientHasSession();

@@ -1,6 +1,9 @@
 export const APP_ROUTES = {
   overview: "/overview",
+  /** Storefront customer password sign-in. */
   login: "/login",
+  /** Shop staff / till / office sign-in (PIN + password). */
+  staffLogin: "/login/staff",
   authHandoff: "/auth/handoff",
   signup: "/signup",
   signupStaff: "/signup/staff",

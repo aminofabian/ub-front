@@ -439,7 +439,7 @@ function StaffSignupPageContent() {
             className="h-12 w-full rounded-2xl border-2"
             asChild
           >
-            <Link href={APP_ROUTES.login}>Go to sign in</Link>
+            <Link href={APP_ROUTES.staffLogin}>Go to sign in</Link>
           </Button>
         </div>
       ) : null}

@@ -12,6 +12,7 @@ describe("isAuthProtectedPath", () => {
 
   it("allows public routes", () => {
     expect(isAuthProtectedPath("/login")).toBe(false);
+    expect(isAuthProtectedPath("/login/staff")).toBe(false);
     expect(isAuthProtectedPath("/shop")).toBe(false);
     expect(isAuthProtectedPath("/shop/account")).toBe(false);
     expect(isAuthProtectedPath("/verify-email")).toBe(false);

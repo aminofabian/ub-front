@@ -143,9 +143,19 @@ function ResetPasswordContent() {
           </div>
         ) : null}
 
-        <p className="mt-6 text-center text-sm">
-          <Link href={APP_ROUTES.login} className="font-medium text-primary underline underline-offset-2">
-            Back to sign in
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link
+            href={APP_ROUTES.login}
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            Customer sign-in
+          </Link>
+          {" · "}
+          <Link
+            href={APP_ROUTES.staffLogin}
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            Staff sign-in
           </Link>
         </p>
       </AuthCard>

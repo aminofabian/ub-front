@@ -111,7 +111,7 @@ export default function DesktopSetupPage() {
       }
       setSubmitState({ kind: "success" });
       // Tiny pause so the user sees the success state before the page shifts.
-      setTimeout(() => router.replace("/login"), 600);
+      setTimeout(() => router.replace("/login/staff"), 600);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not reach the backend";

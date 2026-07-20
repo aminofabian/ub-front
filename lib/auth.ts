@@ -15,6 +15,7 @@ import {
   type AuthSessionClaims,
 } from "@/lib/auth-session-claims";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
+import { loginPathForNext } from "@/lib/login-audience";
 import { clearAllSessionBootstrap } from "@/lib/session-bootstrap";
 import { clearPersistedTillLock } from "@/lib/till-lock-persist";
 import { clearTillUnlockContext } from "@/lib/till-unlock-context";
@@ -496,10 +497,11 @@ export function signOutClientAndRedirectToLogin(
   signOutInProgress = true;
   finalizeClientSignOut();
   const next = options?.nextPath?.trim();
+  const baseLogin = loginPathForNext(next);
   const loginUrl =
     next && next.startsWith("/")
-      ? `${APP_ROUTES.login}?next=${encodeURIComponent(next)}`
-      : APP_ROUTES.login;
+      ? `${baseLogin}?next=${encodeURIComponent(next)}`
+      : baseLogin;
   window.location.assign(loginUrl);
 }
 

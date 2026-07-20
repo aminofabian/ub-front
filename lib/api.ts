@@ -1960,7 +1960,7 @@ export async function logoutRemote(): Promise<void> {
 export async function logoutRemoteAndRedirectToLogin(): Promise<void> {
   await logoutRemote();
   if (typeof window !== "undefined") {
-    window.location.assign(APP_ROUTES.login);
+    window.location.assign(APP_ROUTES.staffLogin);
   }
 }
 
