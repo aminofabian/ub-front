@@ -42,19 +42,19 @@ import { cn } from "@/lib/utils";
 
 function inputClass(disabled?: boolean) {
   return cn(
-    "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm transition-colors",
+    "h-8 w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm shadow-sm transition-colors",
     "placeholder:text-muted-foreground/70",
-    "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+    "focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
     disabled && "cursor-not-allowed opacity-60",
   );
 }
 
 function labelClass() {
-  return "text-sm font-medium leading-none text-foreground";
+  return "text-xs font-medium leading-none text-foreground";
 }
 
 function hintClass() {
-  return "text-xs leading-relaxed text-muted-foreground";
+  return "text-[11px] leading-snug text-muted-foreground";
 }
 
 function SettingsAnchor({
@@ -65,7 +65,7 @@ function SettingsAnchor({
   children: ReactNode;
 }) {
   return (
-    <div id={id} className="scroll-mt-28 2xl:scroll-mt-24">
+    <div id={id} className="scroll-mt-24">
       {children}
     </div>
   );
@@ -73,8 +73,8 @@ function SettingsAnchor({
 
 function SettingsGroupLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="-mx-1 mb-1 border-b border-border/45 px-1 pb-2 pt-1">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+    <div className="border-b border-border/40 pb-1.5 pt-0.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {children}
       </p>
     </div>
@@ -95,15 +95,15 @@ function ToggleRow({
   icon?: ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-background/90 px-3.5 py-3 text-sm shadow-sm transition-colors hover:border-border hover:bg-accent/40">
+    <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/55 bg-background px-2.5 py-2 text-sm transition-colors hover:bg-muted/40">
       <input
         type="checkbox"
-        className="mt-0.5 size-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+        className="mt-0.5 size-3.5 shrink-0 rounded border-input text-primary focus:ring-ring"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span className="min-w-0 flex-1 space-y-1">
-        <span className="flex items-center gap-2 font-medium leading-snug">
+      <span className="min-w-0 flex-1 space-y-0.5">
+        <span className="flex items-center gap-1.5 text-[13px] font-medium leading-snug">
           {icon}
           {title}
         </span>
@@ -189,7 +189,7 @@ export function BusinessSettingsForm({
   return (
     <form
       id="business-settings-form"
-      className="space-y-6"
+      className="space-y-4"
       onSubmit={(event) => {
         flushSync(() => {
           commitDailyAuditSampleSize(dailyAuditSampleDraft);
@@ -201,11 +201,12 @@ export function BusinessSettingsForm({
 
       <SettingsAnchor id="settings-profile">
         <FormDrawerFields
+            compact
           legend="Profile & billing"
           hint="How your business appears internally and your plan label."
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
               <label className={labelClass()} htmlFor="biz-name">
                 Business name
               </label>
@@ -223,7 +224,7 @@ export function BusinessSettingsForm({
                 autoComplete="organization"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className={labelClass()} htmlFor="biz-tier">
                 Subscription tier
               </label>
@@ -249,7 +250,7 @@ export function BusinessSettingsForm({
                 Use a provisioned plan code, or pick a suggestion.
               </p>
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border/55 bg-muted/20 px-3 py-2">
               <div className="min-w-0">
                 <p className={labelClass()}>Business status</p>
                 <p className={cn(hintClass(), "mt-1")}>
@@ -298,10 +299,11 @@ export function BusinessSettingsForm({
         <SettingsAnchor id="settings-storefront">
           <div ref={storefrontRef} id="storefront-settings">
             <FormDrawerFields
+            compact
               legend="Online storefront"
               hint="Public catalog and pickup flow. Prices follow the branch you choose."
             >
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border/70 bg-background px-3.5 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent/40">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/55 bg-background px-2.5 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
                 <input
                   type="checkbox"
                   className="size-4 rounded border-input text-primary focus:ring-ring"
@@ -315,8 +317,8 @@ export function BusinessSettingsForm({
                 />
                 Enable storefront
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className={labelClass()} htmlFor="sf-branch">
                     Catalog branch
                   </label>
@@ -357,7 +359,7 @@ export function BusinessSettingsForm({
                     </p>
                   ) : null}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className={labelClass()} htmlFor="sf-label">
                     Shop label{" "}
                     <span className="font-normal text-muted-foreground">
@@ -375,7 +377,7 @@ export function BusinessSettingsForm({
                     placeholder="e.g. Order online"
                   />
                 </div>
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className={labelClass()} htmlFor="sf-announcement">
                     Announcement{" "}
                     <span className="font-normal text-muted-foreground">
@@ -399,7 +401,7 @@ export function BusinessSettingsForm({
                     placeholder="Short banner message on your public shop"
                   />
                 </div>
-                <div className="space-y-2 sm:col-span-2">
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className={labelClass()} htmlFor="sf-featured">
                     Featured product IDs{" "}
                     <span className="font-normal text-muted-foreground">
@@ -441,6 +443,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-stock-take">
             <FormDrawerFields
+            compact
               legend="Stock take"
               hint="Daily audit sample size, count windows, and what stock managers see while counting."
             >
@@ -611,6 +614,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-stock-levels">
             <FormDrawerFields
+            compact
               legend="Stock levels"
               hint="Who can edit on-hand quantities, and whether overselling is allowed."
             >
@@ -655,6 +659,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-receive">
             <FormDrawerFields
+            compact
               legend="Receive stock"
               hint="Who can receive supplier deliveries."
             >
@@ -687,6 +692,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-credit-tabs">
             <FormDrawerFields
+            compact
               legend="Credit tabs"
               hint="Cashier access to customer tab balances and clearance requests."
             >
@@ -707,6 +713,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-suppliers">
             <FormDrawerFields
+            compact
               legend="Suppliers"
               hint="Who can create suppliers and link catalog products."
             >
@@ -767,6 +774,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-shifts">
             <FormDrawerFields
+            compact
               legend="Shifts & cash drawer"
               hint="How opening float is prepared when a cashier starts a shift."
             >
@@ -787,6 +795,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-cashier">
             <FormDrawerFields
+            compact
               legend="Cashier permissions"
               hint="What cashiers can do on the POS. Weighted marking is on by default."
             >
@@ -840,6 +849,7 @@ export function BusinessSettingsForm({
 
           <SettingsAnchor id="settings-pos-drafts">
             <FormDrawerFields
+            compact
               legend="Cashier POS drafts"
               hint="Save in-progress sales and review them from Sales → Pending carts."
             >
@@ -926,14 +936,16 @@ export function BusinessSettingsForm({
         </>
       ) : null}
 
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-background/95 p-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:border-border/60 lg:bg-card/60 lg:p-4 lg:shadow-sm">
-        <p className="hidden text-xs text-muted-foreground sm:block lg:mr-auto">
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/95 p-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:border-border/50 lg:bg-muted/20 lg:p-3 lg:shadow-none">
+        <p className="hidden text-[11px] text-muted-foreground sm:block lg:mr-auto">
           Save applies all sections on this page.
         </p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="h-8"
             disabled={isSaving}
             onClick={onCancel}
           >
@@ -941,8 +953,9 @@ export function BusinessSettingsForm({
           </Button>
           <Button
             type="submit"
+            size="sm"
+            className="h-8 gap-1.5"
             disabled={isSaving || Boolean(storefrontNeedsBranch)}
-            className="gap-2"
           >
             {isSaving ? (
               <>

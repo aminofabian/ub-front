@@ -52,9 +52,11 @@ import { useDashboard } from "@/components/dashboard-provider";
 import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import {
   DASHBOARD_MAX,
+  DASHBOARD_TABLE_SURFACE,
   DashboardAccessDenied,
   DashboardFeedback,
   DashboardPageHero,
+  DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/config";
@@ -386,33 +388,6 @@ export default function BusinessSettingsPage() {
     storefront.enabled &&
     (activeBranches.length === 0 || !storefront.catalogBranchId.trim());
 
-  const businessQuickLinks = [
-    {
-      href: APP_ROUTES.businessBranding,
-      label: "Branding",
-      desc: "Logo & colors",
-      icon: Palette,
-    },
-    {
-      href: APP_ROUTES.businessMobile,
-      label: "Store app",
-      desc: "Mobile storefront",
-      icon: Smartphone,
-    },
-    {
-      href: APP_ROUTES.businessDomains,
-      label: "Domains",
-      desc: "Custom hostnames",
-      icon: Globe,
-    },
-    {
-      href: APP_ROUTES.branches,
-      label: "Branches",
-      desc: "Locations",
-      icon: Building2,
-    },
-  ] as const;
-
   const navByGroup = useMemo(() => {
     return BUSINESS_SETTINGS_NAV_GROUPS.map((group) => ({
       group,
@@ -467,238 +442,251 @@ export default function BusinessSettingsPage() {
     <div
       className={cn(
         DASHBOARD_MAX,
-        "pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-16",
+        "space-y-5 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-16",
       )}
     >
-      <div className="space-y-5">
+      <header className="space-y-4 border-b border-border/50 pb-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5" asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs"
+            asChild
+          >
             <Link href={APP_ROUTES.business}>
               <ArrowLeft className="size-3.5" aria-hidden />
               Business
             </Link>
           </Button>
-          <div className="flex flex-wrap gap-1.5">
-            {businessQuickLinks.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-sm transition-colors",
-                  "hover:border-primary/30 hover:bg-accent/50 hover:text-foreground",
-                )}
-              >
-                <Icon className="size-3" aria-hidden />
-                {label}
-              </Link>
-            ))}
-          </div>
         </div>
-
         <DashboardPageHero
           compact
           icon={Shield}
           eyebrow="Account"
           title="Business settings"
-          description="Profile, storefront, inventory policy, and till permissions — organized so you can jump to what you need."
+          description="Profile, storefront, inventory policy, and till permissions."
         />
+        <DashboardQuickLinks
+          links={[
+            {
+              href: APP_ROUTES.businessBranding,
+              label: "Branding",
+              desc: "Logo & colors",
+              icon: Palette,
+            },
+            {
+              href: APP_ROUTES.businessMobile,
+              label: "Store app",
+              desc: "Mobile storefront",
+              icon: Smartphone,
+            },
+            {
+              href: APP_ROUTES.businessDomains,
+              label: "Domains",
+              desc: "Custom hostnames",
+              icon: Globe,
+            },
+            {
+              href: APP_ROUTES.branches,
+              label: "Branches",
+              desc: "Locations",
+              icon: Building2,
+            },
+          ]}
+        />
+      </header>
 
-        {feedback && !loadFailed ? (
-          <DashboardFeedback
-            kind={feedback.kind === "error" ? "error" : "success"}
-            text={feedback.text}
-          />
-        ) : null}
+      {feedback && !loadFailed ? (
+        <DashboardFeedback
+          kind={feedback.kind === "error" ? "error" : "success"}
+          text={feedback.text}
+        />
+      ) : null}
 
-        {effectiveSnapshot ? (
-          <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-            <div className="flex flex-wrap items-center gap-3 border-b border-border/60 bg-muted/25 px-4 py-3">
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-base font-semibold tracking-tight">
+      {effectiveSnapshot ? (
+        <section className={DASHBOARD_TABLE_SURFACE}>
+          <div className="flex flex-wrap items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2.5 sm:px-5">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-sm font-semibold tracking-tight">
                   {effectiveSnapshot.name ?? "—"}
                 </h2>
-                <p className="mt-0.5 text-xs capitalize text-muted-foreground">
-                  {effectiveSnapshot.subscriptionTier ?? "starter"} plan
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
-                  effectiveSnapshot.active
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                    : "bg-muted text-muted-foreground",
-                )}
-              >
-                {effectiveSnapshot.active ? "Live" : "Paused"}
-              </span>
-            </div>
-            <dl className="grid grid-cols-2 gap-px bg-border/50 sm:grid-cols-4">
-              {[
-                {
-                  label: "Slug",
-                  value: effectiveSnapshot.slug ?? "—",
-                  icon: Globe,
-                },
-                {
-                  label: "Country",
-                  value: effectiveSnapshot.countryCode ?? "—",
-                  icon: MapPin,
-                },
-                {
-                  label: "Currency",
-                  value: effectiveSnapshot.currency ?? "—",
-                  icon: Coins,
-                },
-                {
-                  label: "Timezone",
-                  value: effectiveSnapshot.timezone ?? "—",
-                  icon: Clock,
-                },
-              ].map(({ label, value, icon: Icon }) => (
-                <div
-                  key={label}
-                  className="bg-card px-3.5 py-3 sm:px-4 sm:py-3.5"
-                >
-                  <dt className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    <Icon className="size-3 shrink-0" aria-hidden />
-                    {label}
-                  </dt>
-                  <dd className="mt-1 truncate font-mono text-sm font-semibold">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-4 py-2.5">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
-                  inventory.allowNegativeStock
-                    ? "bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                    : "bg-muted text-muted-foreground",
-                )}
-              >
-                <ShoppingCart className="size-3 shrink-0" aria-hidden />
-                Oversell: {inventory.allowNegativeStock ? "Allowed" : "Blocked"}
-              </span>
-              <button
-                type="button"
-                onClick={() => scrollToSection("settings-stock-levels")}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary underline-offset-2 hover:underline"
-              >
-                Change in Stock levels
-                <ArrowRight className="size-3" aria-hidden />
-              </button>
-            </div>
-          </section>
-        ) : null}
-
-        {/* Mobile section chips */}
-        <nav
-          aria-label="Settings sections"
-          className="sticky top-[3.75rem] z-20 -mx-1 overflow-x-auto bg-background/90 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden"
-        >
-          <div className="flex w-max gap-1.5 pb-0.5">
-            {BUSINESS_SETTINGS_NAV.map(({ id, label, icon: Icon }) => {
-              const active = activeSection === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setActiveSection(id);
-                    scrollToSection(id);
-                  }}
+                <span
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                    active
-                      ? "border-primary/40 bg-primary/10 text-foreground"
-                      : "border-border/70 bg-card text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    effectiveSnapshot.active
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "bg-muted text-muted-foreground",
                   )}
                 >
+                  {effectiveSnapshot.active ? "Live" : "Paused"}
+                </span>
+                <span className="text-[11px] capitalize text-muted-foreground">
+                  {effectiveSnapshot.subscriptionTier ?? "starter"}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => scrollToSection("settings-stock-levels")}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
+                inventory.allowNegativeStock
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                  : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <ShoppingCart className="size-3 shrink-0" aria-hidden />
+              Oversell {inventory.allowNegativeStock ? "on" : "off"}
+              <ArrowRight className="size-3" aria-hidden />
+            </button>
+          </div>
+          <dl className="grid grid-cols-2 gap-px bg-border/40 sm:grid-cols-4">
+            {[
+              {
+                label: "Slug",
+                value: effectiveSnapshot.slug ?? "—",
+                icon: Globe,
+              },
+              {
+                label: "Country",
+                value: effectiveSnapshot.countryCode ?? "—",
+                icon: MapPin,
+              },
+              {
+                label: "Currency",
+                value: effectiveSnapshot.currency ?? "—",
+                icon: Coins,
+              },
+              {
+                label: "Timezone",
+                value: effectiveSnapshot.timezone ?? "—",
+                icon: Clock,
+              },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="bg-card px-3 py-2.5 sm:px-4">
+                <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <Icon className="size-3 shrink-0" aria-hidden />
                   {label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+                </dt>
+                <dd className="mt-0.5 truncate font-mono text-xs font-semibold">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
 
-        <div
-          className="grid gap-5 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[15rem_minmax(0,1fr)]"
-          data-onboarding-target={ONBOARDING_TARGETS.settingsDrawer}
-        >
-          {/* Desktop section nav */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-4 space-y-4 rounded-2xl border border-border/70 bg-card/80 p-3 shadow-sm">
-              <p className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                On this page
-              </p>
-              {navByGroup.map(({ group, items }) => (
-                <div key={group} className="space-y-1">
-                  <p className="px-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                    {group}
-                  </p>
-                  <ul className="space-y-0.5">
-                    {items.map(({ id, label, icon: Icon }) => {
-                      const active = activeSection === id;
-                      return (
-                        <li key={id}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveSection(id);
-                              scrollToSection(id);
-                            }}
-                            className={cn(
-                              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors",
-                              active
-                                ? "bg-primary/10 font-medium text-foreground"
-                                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                            )}
-                          >
-                            <Icon
-                              className={cn(
-                                "size-3.5 shrink-0",
-                                active ? "text-primary" : "text-muted-foreground",
-                              )}
-                              aria-hidden
-                            />
-                            <span className="truncate">{label}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          <section className="min-w-0 rounded-2xl border border-border/70 bg-card/40 p-3 shadow-sm sm:p-4 xl:p-5">
-            <BusinessSettingsForm
-              editable={editable}
-              setEditable={setEditable}
-              storefront={storefront}
-              setStorefront={setStorefront}
-              inventory={inventory}
-              setInventory={setInventory}
-              posDrafts={posDrafts}
-              setPosDrafts={setPosDrafts}
-              cashierCapabilities={cashierCapabilities}
-              setCashierCapabilities={setCashierCapabilities}
-              shiftSettings={shiftSettings}
-              setShiftSettings={setShiftSettings}
-              activeBranches={activeBranches}
-              canManageBusinessSettings={canManageBusinessSettings}
-              isSaving={isSaving}
-              storefrontNeedsBranch={storefrontNeedsBranch}
-              focusStorefrontOnMount={focusStorefront}
-              onSubmit={onSave}
-              onCancel={onCancel}
-            />
-          </section>
+      {/* Mobile section chips */}
+      <nav
+        aria-label="Settings sections"
+        className="sticky top-[3.75rem] z-20 -mx-1 overflow-x-auto bg-background/90 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden"
+      >
+        <div className="flex w-max gap-1 pb-0.5">
+          {BUSINESS_SETTINGS_NAV.map(({ id, label, icon: Icon }) => {
+            const active = activeSection === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setActiveSection(id);
+                  scrollToSection(id);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
+                  active
+                    ? "border-primary/35 bg-primary/10 text-foreground"
+                    : "border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Icon className="size-3 shrink-0" aria-hidden />
+                {label}
+              </button>
+            );
+          })}
         </div>
+      </nav>
+
+      <div
+        className="grid gap-4 lg:grid-cols-[11.5rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[12.5rem_minmax(0,1fr)]"
+        data-onboarding-target={ONBOARDING_TARGETS.settingsDrawer}
+      >
+        <aside className="hidden lg:block">
+          <div className="sticky top-4 space-y-3 rounded-xl border border-border/60 bg-card p-2.5 shadow-sm">
+            <p className="px-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              On this page
+            </p>
+            {navByGroup.map(({ group, items }) => (
+              <div key={group} className="space-y-0.5">
+                <p className="px-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                  {group}
+                </p>
+                <ul className="space-y-0.5">
+                  {items.map(({ id, label, icon: Icon }) => {
+                    const active = activeSection === id;
+                    return (
+                      <li key={id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSection(id);
+                            scrollToSection(id);
+                          }}
+                          className={cn(
+                            "flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-xs transition-colors",
+                            active
+                              ? "bg-primary/10 font-medium text-foreground"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                          )}
+                        >
+                          <Icon
+                            className={cn(
+                              "size-3 shrink-0",
+                              active ? "text-primary" : "text-muted-foreground",
+                            )}
+                            aria-hidden
+                          />
+                          <span className="truncate">{label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <section
+          className={cn(
+            DASHBOARD_TABLE_SURFACE,
+            "min-w-0 p-3 sm:p-4",
+          )}
+        >
+          <BusinessSettingsForm
+            editable={editable}
+            setEditable={setEditable}
+            storefront={storefront}
+            setStorefront={setStorefront}
+            inventory={inventory}
+            setInventory={setInventory}
+            posDrafts={posDrafts}
+            setPosDrafts={setPosDrafts}
+            cashierCapabilities={cashierCapabilities}
+            setCashierCapabilities={setCashierCapabilities}
+            shiftSettings={shiftSettings}
+            setShiftSettings={setShiftSettings}
+            activeBranches={activeBranches}
+            canManageBusinessSettings={canManageBusinessSettings}
+            isSaving={isSaving}
+            storefrontNeedsBranch={storefrontNeedsBranch}
+            focusStorefrontOnMount={focusStorefront}
+            onSubmit={onSave}
+            onCancel={onCancel}
+          />
+        </section>
       </div>
     </div>
   );
