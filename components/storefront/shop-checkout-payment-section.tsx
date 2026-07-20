@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, Check, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
+import { Banknote, Check, Copy, Smartphone, Sparkles, Truck, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -55,7 +55,7 @@ function PaymentSectionHeading({
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             Amount due
           </p>
-          <p className="font-serif text-base font-semibold tabular-nums text-foreground">
+          <p className="font-serif text-base font-semibold tracking-tight text-foreground [font-variant-numeric:proportional-nums]">
             {amountDue}
           </p>
         </div>
@@ -71,19 +71,52 @@ function ManualInstructionCard({
   pi: PublicPaymentInstruction;
   compact?: boolean;
 }) {
-  if (compact && pi.type === "till" && pi.tillNumber) {
+  const [copied, setCopied] = useState(false);
+  const till = pi.type === "till" ? pi.tillNumber?.trim() : "";
+
+  const copyTill = async () => {
+    if (!till) return;
+    try {
+      await navigator.clipboard.writeText(till);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  if (compact && till) {
     return (
-      <span
+      <div
         className={cn(
-          "inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 font-mono text-sm font-bold tabular-nums text-foreground",
-          "border-[color-mix(in_srgb,var(--primary)_20%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_8%,var(--muted))]",
+          "flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2",
+          "border-[color-mix(in_srgb,var(--primary)_28%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_10%,var(--muted))]",
         )}
       >
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
-          Till
-        </span>
-        {pi.tillNumber}
-      </span>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+            Buy Goods Till
+          </p>
+          <p className="mt-0.5 font-mono text-base font-bold tabular-nums tracking-wide text-foreground">
+            {till}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void copyTill()}
+          className="h-8 shrink-0 gap-1 rounded-md border-primary/25 bg-background px-2.5 text-[11px] font-semibold"
+          aria-label={copied ? "Till number copied" : "Copy till number"}
+        >
+          {copied ? (
+            <Check className="size-3.5 text-primary" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
     );
   }
 
@@ -97,15 +130,31 @@ function ManualInstructionCard({
       <p className={cn("font-semibold text-foreground", compact ? "text-xs" : "text-sm")}>
         {pi.label}
       </p>
-      {pi.type === "till" && pi.tillNumber ? (
-        <p
-          className={cn(
-            "mt-1 break-all font-mono font-bold tracking-wide text-foreground",
-            compact ? "text-base" : "text-lg",
-          )}
-        >
-          Till: {pi.tillNumber}
-        </p>
+      {till ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <p
+            className={cn(
+              "break-all font-mono font-bold tracking-wide text-foreground",
+              compact ? "text-base" : "text-lg",
+            )}
+          >
+            Till: {till}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void copyTill()}
+            className="h-7 gap-1 rounded-md px-2 text-[11px] font-semibold"
+          >
+            {copied ? (
+              <Check className="size-3 text-primary" aria-hidden />
+            ) : (
+              <Copy className="size-3" aria-hidden />
+            )}
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </div>
       ) : null}
       {pi.type === "paybill" && pi.businessNumber ? (
         <p className="mt-1 font-mono text-sm font-bold text-foreground">

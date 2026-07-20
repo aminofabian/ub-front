@@ -49,7 +49,6 @@ import {
 } from "@/components/storefront/shop-checkout-design";
 import { CheckoutScrollEndSpacer } from "@/components/storefront/shop-checkout-dock-height";
 import {
-  CONFIRMATION_SCROLL,
   CONFIRMATION_SCROLL_ANCHORED,
   CONFIRMATION_VIEWPORT,
   ConfirmationDockActions,
@@ -467,10 +466,13 @@ function PlainFormSection({
 export default function ShopCheckoutForm({
   slug,
   embedded = false,
+  onOrderPlacedChange,
 }: {
   slug: string;
   /** Desktop half-panel: outer chrome handles back/close */
   embedded?: boolean;
+  /** Notify host chrome when an order has been placed (exit no longer cancels). */
+  onOrderPlacedChange?: (placed: boolean) => void;
 }) {
   const router = useRouter();
   const [cart, setCart] = useState<PublicWebCart | null>(null);
@@ -530,6 +532,10 @@ export default function ShopCheckoutForm({
   const wasShippingLockedBeforeEdit = useRef(false);
   const hasClientSession = useClientHasSession();
   const signedIn = hasClientSession || serverAuthenticated;
+
+  useEffect(() => {
+    onOrderPlacedChange?.(Boolean(done));
+  }, [done, onOrderPlacedChange]);
 
   const notifyPaymentConfirmed = useCallback(() => {
     setPaymentConfirmed(true);
@@ -1109,8 +1115,8 @@ export default function ShopCheckoutForm({
           "mx-auto h-full w-full max-w-5xl",
         )}
       >
-        <ConfirmationTopProgress />
-        <div className={CONFIRMATION_SCROLL}>
+        <ConfirmationTopProgress paymentPending={!paymentConfirmed} />
+        <div className={CONFIRMATION_SCROLL_ANCHORED}>
           <header className="space-y-1.5 pb-1.5">
             <OrderPaymentStatusBanner
               paymentConfirmed={paymentConfirmed}
@@ -1133,7 +1139,7 @@ export default function ShopCheckoutForm({
                 {
                   label: "Pickup",
                   value: (
-                    <span className="truncate text-[13px] font-medium normal-case tracking-normal">
+                    <span className="text-[13px] font-medium normal-case tracking-normal break-words">
                       {done.catalogBranchName}
                     </span>
                   ),
@@ -1142,7 +1148,8 @@ export default function ShopCheckoutForm({
             />
           </header>
 
-          <div className="space-y-2 pb-1.5 lg:grid lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start lg:gap-2.5">
+          {/* Single column in drawers: viewport `lg` fires while the panel is still ~50vw */}
+          <div className="space-y-2 pb-1.5">
             <ConfirmationPanel className="overflow-hidden p-0">
               <ConfirmationPanelHeader
                 title="Items ordered"
@@ -1156,49 +1163,26 @@ export default function ShopCheckoutForm({
               <OrderLinesList lines={receiptLines} />
             </ConfirmationPanel>
 
-            <aside className="space-y-2.5 max-lg:hidden">
-              {receipt ? (
-                <OrderDeliveryCard
-                  customerName={receipt.shipping.customerName}
-                  customerEmail={receipt.shipping.customerEmail}
-                  customerPhone={receipt.shipping.customerPhone}
-                  whatsAppNumber={receipt.shipping.whatsAppNumber}
-                  streetAddress={receipt.shipping.streetAddress}
-                  ward={receipt.shipping.ward}
-                  subCounty={receipt.shipping.subCounty}
-                  county={receipt.shipping.county}
-                  deliveryNotes={receipt.shipping.deliveryNotes}
-                />
-              ) : null}
-              <OrderPaymentSummaryCard
-                subtotalLabel={receiptSubtotalLabel}
-                totalLabel={total}
-                paymentConfirmed={paymentConfirmed}
-                paymentFailed={paymentFailed}
-              />
-            </aside>
-
             {receipt ? (
-              <div className="space-y-2.5 lg:hidden">
-                <OrderDeliveryCard
-                  customerName={receipt.shipping.customerName}
-                  customerEmail={receipt.shipping.customerEmail}
-                  customerPhone={receipt.shipping.customerPhone}
-                  whatsAppNumber={receipt.shipping.whatsAppNumber}
-                  streetAddress={receipt.shipping.streetAddress}
-                  ward={receipt.shipping.ward}
-                  subCounty={receipt.shipping.subCounty}
-                  county={receipt.shipping.county}
-                  deliveryNotes={receipt.shipping.deliveryNotes}
-                />
-                <OrderPaymentSummaryCard
-                  subtotalLabel={receiptSubtotalLabel}
-                  totalLabel={total}
-                  paymentConfirmed={paymentConfirmed}
-                  paymentFailed={paymentFailed}
-                />
-              </div>
+              <OrderDeliveryCard
+                customerName={receipt.shipping.customerName}
+                customerEmail={receipt.shipping.customerEmail}
+                customerPhone={receipt.shipping.customerPhone}
+                whatsAppNumber={receipt.shipping.whatsAppNumber}
+                streetAddress={receipt.shipping.streetAddress}
+                ward={receipt.shipping.ward}
+                subCounty={receipt.shipping.subCounty}
+                county={receipt.shipping.county}
+                deliveryNotes={receipt.shipping.deliveryNotes}
+              />
             ) : null}
+            <OrderPaymentSummaryCard
+              subtotalLabel={receiptSubtotalLabel}
+              totalLabel={total}
+              paymentConfirmed={paymentConfirmed}
+              paymentFailed={paymentFailed}
+              payOnDelivery={payOnDeliveryOrder}
+            />
           </div>
           <CheckoutScrollEndSpacer />
         </div>
@@ -1208,8 +1192,12 @@ export default function ShopCheckoutForm({
           checkingPayment={checkingPayment}
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
+          payOnDelivery={payOnDeliveryOrder}
+          stkSent={stkSent}
+          anchored
+          fullWidth={embedded}
           paymentSlot={
-            !paymentConfirmed && hasOnlinePay ? (
+            !paymentConfirmed && hasOnlinePay && !payOnDeliveryOrder ? (
               <ShopCheckoutPaymentSection
                 variant="floating"
                 manual={paymentOptions.manual}
@@ -1224,6 +1212,33 @@ export default function ShopCheckoutForm({
                 selectedMethod="mpesa"
                 amountDue={total}
               />
+            ) : !paymentConfirmed && hasOnlinePay && payOnDeliveryOrder ? (
+              <details className="group rounded-xl border border-border/50 bg-muted/20 open:bg-background">
+                <summary className="cursor-pointer list-none px-3 py-2 text-[11px] font-semibold text-muted-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span className="inline-flex items-center gap-1.5 group-open:text-foreground">
+                    Want to pay now instead?
+                    <span className="text-[10px] font-medium text-primary">
+                      M-Pesa
+                    </span>
+                  </span>
+                </summary>
+                <div className="border-t border-border/40 px-1.5 pb-2 pt-1.5">
+                  <ShopCheckoutPaymentSection
+                    variant="floating"
+                    manual={paymentOptions.manual}
+                    online={paymentOptions.online}
+                    defaultAreaCode={areaCode}
+                    defaultPhone={customerPhone}
+                    stkBusy={stkBusy}
+                    stkMessage={stkMessage}
+                    stkSent={stkSent}
+                    onStkPay={handleStkPay}
+                    orderPlaced
+                    selectedMethod="mpesa"
+                    amountDue={total}
+                  />
+                </div>
+              </details>
             ) : undefined
           }
         />
@@ -1253,8 +1268,8 @@ export default function ShopCheckoutForm({
 
     return (
       <div className={cn(CONFIRMATION_VIEWPORT, "h-full min-w-0 max-w-full")}>
-        <ConfirmationTopProgress />
-        <div className={CONFIRMATION_SCROLL}>
+        <ConfirmationTopProgress paymentPending={!paymentConfirmed} />
+        <div className={CONFIRMATION_SCROLL_ANCHORED}>
           <header className="space-y-1.5 pb-1.5">
             <OrderPaymentStatusBanner
               paymentConfirmed={paymentConfirmed}
@@ -1276,7 +1291,7 @@ export default function ShopCheckoutForm({
                 {
                   label: "Pickup",
                   value: (
-                    <span className="truncate text-[13px] font-medium normal-case tracking-normal">
+                    <span className="text-[13px] font-medium normal-case tracking-normal break-words">
                       {done.catalogBranchName}
                     </span>
                   ),
@@ -1304,6 +1319,9 @@ export default function ShopCheckoutForm({
           checkingPayment={checkingPayment}
           onConfirmPayment={() => void handleConfirmPaymentSent()}
           onReturnToShop={() => router.push(APP_ROUTES.shop)}
+          stkSent={stkSent}
+          anchored
+          fullWidth={embedded}
           paymentSlot={
             <ShopCheckoutPaymentSection
               variant="floating"

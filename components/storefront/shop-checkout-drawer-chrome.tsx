@@ -9,10 +9,21 @@ type Props = {
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  /** Order already placed — exit keeps the order; clarify for payment flows */
+  orderPlaced?: boolean;
 };
 
 /** Desktop checkout panel chrome — title rail + secure hint */
-export function ShopCheckoutDrawerChrome({ onClose, children, className }: Props) {
+export function ShopCheckoutDrawerChrome({
+  onClose,
+  children,
+  className,
+  orderPlaced = false,
+}: Props) {
+  const exitHint = orderPlaced
+    ? "Leave checkout — your order is saved"
+    : "Close checkout";
+
   return (
     <div className={cn("relative flex h-full min-h-0 flex-col", className)}>
       <header className="relative z-20 flex shrink-0 items-center gap-3 border-b border-border/50 bg-background/90 px-4 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 sm:px-5">
@@ -20,7 +31,8 @@ export function ShopCheckoutDrawerChrome({ onClose, children, className }: Props
           type="button"
           onClick={onClose}
           className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/30 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Back to shop"
+          aria-label={exitHint}
+          title={exitHint}
         >
           <ArrowLeft className="size-4" aria-hidden />
         </button>
@@ -29,14 +41,15 @@ export function ShopCheckoutDrawerChrome({ onClose, children, className }: Props
             Secure checkout
           </p>
           <h2 className="truncate font-serif text-lg font-semibold tracking-tight text-foreground">
-            Complete your order
+            {orderPlaced ? "Your order" : "Complete your order"}
           </h2>
         </div>
         <button
           type="button"
           onClick={onClose}
           className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Close checkout"
+          aria-label={exitHint}
+          title={exitHint}
         >
           <X className="size-4" aria-hidden />
         </button>

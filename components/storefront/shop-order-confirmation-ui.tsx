@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  AlertTriangle,
   ArrowRight,
   Check,
   CircleAlert,
@@ -36,8 +35,10 @@ export const CONFIRMATION_VIEWPORT =
 
 export function ConfirmationTopProgress({
   complete = true,
+  paymentPending = false,
 }: {
   complete?: boolean;
+  paymentPending?: boolean;
 }) {
   return (
     <div
@@ -46,7 +47,12 @@ export function ConfirmationTopProgress({
         CHECKOUT_SECTION_HEAD,
       )}
     >
-      <CheckoutProgressSteps complete={complete} compact dense />
+      <CheckoutProgressSteps
+        complete={complete}
+        paymentPending={paymentPending}
+        compact
+        dense
+      />
     </div>
   );
 }
@@ -183,10 +189,13 @@ export function ConfirmationPanelHeader({
 export function OrderPaymentStatusBadge({
   paymentConfirmed,
   paymentFailed,
+  payOnDelivery = false,
   size = "default",
 }: {
   paymentConfirmed: boolean;
   paymentFailed: boolean;
+  /** COD: payment is expected later — not a generic “Pending” race state */
+  payOnDelivery?: boolean;
   size?: "default" | "sm";
 }) {
   const compact = size === "sm";
@@ -216,6 +225,19 @@ export function OrderPaymentStatusBadge({
       </span>
     );
   }
+  if (payOnDelivery) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full border border-amber-400/35 bg-amber-500/10 font-bold text-amber-900 dark:text-amber-200",
+          compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
+        )}
+      >
+        <Clock3 className={compact ? "size-3" : "size-3.5"} aria-hidden />
+        Due on delivery
+      </span>
+    );
+  }
   return (
     <span
       className={cn(
@@ -224,7 +246,7 @@ export function OrderPaymentStatusBadge({
       )}
     >
       <Clock3 className={compact ? "size-3" : "size-3.5"} aria-hidden />
-      Pending
+      Awaiting payment
     </span>
   );
 }
@@ -266,7 +288,7 @@ export function OrderPaymentStatusBanner({
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90">
                 Paid
               </p>
-              <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
+              <p className="font-serif text-lg font-semibold tracking-tight text-foreground [font-variant-numeric:proportional-nums]">
                 {total}
               </p>
             </div>
@@ -315,20 +337,20 @@ export function OrderPaymentStatusBanner({
   if (payOnDelivery) {
     return (
       <div
-        className="relative overflow-hidden rounded-xl border border-emerald-200/80 bg-linear-to-r from-emerald-50/90 via-background to-transparent px-3 py-2.5"
+        className="relative overflow-hidden rounded-xl border border-amber-300/70 bg-linear-to-r from-amber-50/95 via-background to-transparent px-3 py-2.5 dark:border-amber-500/30 dark:from-amber-500/10"
         role="status"
         aria-live="polite"
       >
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
-              <Check className="size-3.5" strokeWidth={3} aria-hidden />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm">
+              <Clock3 className="size-3.5" aria-hidden />
             </span>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800/90">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-900/90 dark:text-amber-200">
                 Pay on delivery
               </p>
-              <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
+              <p className="font-serif text-lg font-semibold tracking-tight text-foreground [font-variant-numeric:proportional-nums]">
                 {total}
               </p>
             </div>
@@ -336,11 +358,12 @@ export function OrderPaymentStatusBanner({
           <OrderPaymentStatusBadge
             paymentConfirmed={false}
             paymentFailed={false}
+            payOnDelivery
             size="sm"
           />
         </div>
         <p className="relative mt-1.5 text-[10px] leading-snug text-muted-foreground">
-          Order confirmed. Pay cash or M-Pesa to the rider when your delivery arrives.
+          Order placed. Pay cash or M-Pesa to the rider when your delivery arrives.
         </p>
       </div>
     );
@@ -369,7 +392,7 @@ export function OrderPaymentStatusBanner({
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/90">
               Total due
             </p>
-            <p className="font-serif text-lg font-semibold tabular-nums text-foreground">
+            <p className="font-serif text-lg font-semibold tracking-tight text-foreground [font-variant-numeric:proportional-nums]">
               {total}
             </p>
           </div>
@@ -444,12 +467,12 @@ export function OrderMetaStrip({
   items: { label: string; value: React.ReactNode; highlight?: boolean }[];
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-2 gap-2">
       {items.map((item) => (
         <div
           key={item.label}
           className={cn(
-            "inline-flex min-w-0 flex-1 items-baseline justify-between gap-2 rounded-lg border border-[color-mix(in_srgb,var(--primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_6%,var(--muted))] px-2.5 py-1.5 sm:flex-col sm:items-start sm:gap-0.5",
+            "flex min-w-0 flex-col gap-0.5 rounded-lg border border-[color-mix(in_srgb,var(--primary)_12%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_6%,var(--muted))] px-2.5 py-1.5",
             item.highlight &&
               "border-[color-mix(in_srgb,var(--primary)_25%,var(--border))] bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]",
           )}
@@ -459,11 +482,12 @@ export function OrderMetaStrip({
           </p>
           <div
             className={cn(
-              "mt-1 text-sm font-semibold tabular-nums leading-tight",
+              "min-w-0 text-sm font-semibold leading-tight break-words",
               item.highlight
-                ? "font-serif text-lg text-primary"
+                ? "font-serif text-lg text-primary [font-variant-numeric:proportional-nums]"
                 : "text-foreground",
             )}
+            title={typeof item.value === "string" ? item.value : undefined}
           >
             {item.value}
           </div>
@@ -605,22 +629,30 @@ export function OrderPaymentSummaryCard({
   totalLabel,
   paymentConfirmed,
   paymentFailed,
+  payOnDelivery = false,
+  /** Banner already shows status — hide duplicate pill here */
+  showStatusBadge = false,
 }: {
   subtotalLabel: string;
   totalLabel: string;
   paymentConfirmed: boolean;
   paymentFailed: boolean;
+  payOnDelivery?: boolean;
+  showStatusBadge?: boolean;
 }) {
   return (
     <ConfirmationPanel>
       <ConfirmationPanelHeader
         title="Payment"
         trailing={
-          <OrderPaymentStatusBadge
-            paymentConfirmed={paymentConfirmed}
-            paymentFailed={paymentFailed}
-            size="sm"
-          />
+          showStatusBadge ? (
+            <OrderPaymentStatusBadge
+              paymentConfirmed={paymentConfirmed}
+              paymentFailed={paymentFailed}
+              payOnDelivery={payOnDelivery}
+              size="sm"
+            />
+          ) : undefined
         }
       />
       <div className="space-y-1.5 px-3 py-2.5 text-[13px] sm:px-3.5">
@@ -643,11 +675,15 @@ export function OrderPaymentSummaryCard({
           )}
         >
           <span className="text-xs font-semibold text-foreground">
-            {paymentConfirmed ? "Paid" : "Total due"}
+            {paymentConfirmed
+              ? "Paid"
+              : payOnDelivery
+                ? "Due on delivery"
+                : "Total due"}
           </span>
           <span
             className={cn(
-              "font-serif text-xl font-semibold tabular-nums tracking-tight",
+              "font-serif text-xl font-semibold tracking-tight [font-variant-numeric:proportional-nums]",
               paymentConfirmed
                 ? "text-emerald-700 dark:text-emerald-400"
                 : "text-foreground",
@@ -667,16 +703,32 @@ export function ConfirmationDockActions({
   onConfirmPayment,
   onReturnToShop,
   paymentSlot,
+  /** COD: return-to-shop is primary; optional early pay lives in paymentSlot */
+  payOnDelivery = false,
+  /** STK prompt already sent — unlock “I’ve completed payment” as next step */
+  stkSent = false,
+  anchored = false,
+  fullWidth = false,
 }: {
   paymentConfirmed: boolean;
   checkingPayment: boolean;
   onConfirmPayment: () => void;
   onReturnToShop: () => void;
   paymentSlot?: React.ReactNode;
+  payOnDelivery?: boolean;
+  stkSent?: boolean;
+  anchored?: boolean;
+  fullWidth?: boolean;
 }) {
+  const showCodReturnPrimary = !paymentConfirmed && payOnDelivery;
+
   return (
-    <ConfirmationFloatingDock ariaLabel="Order actions">
-      <div className="space-y-1">
+    <ConfirmationFloatingDock
+      ariaLabel="Order actions"
+      anchored={anchored}
+      fullWidth={fullWidth}
+    >
+      <div className="space-y-1.5">
         {paymentSlot ? (
           <div className="min-w-0 max-w-full">{paymentSlot}</div>
         ) : null}
@@ -690,38 +742,105 @@ export function ConfirmationDockActions({
             Return to shop
             <ArrowRight className="size-4" aria-hidden />
           </Button>
-        ) : (
-          <div className="flex items-stretch gap-2">
-            <Button
-              type="button"
-              size="lg"
-              disabled={checkingPayment}
-              onClick={onConfirmPayment}
-              className="h-10 min-w-0 flex-1 gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20"
-            >
-              {checkingPayment ? (
-                <>
-                  <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Checking…
-                </>
-              ) : (
-                <>
-                  <span className="truncate text-xs font-semibold sm:text-sm">
+        ) : showCodReturnPrimary ? (
+          <div className="space-y-1.5">
+            {stkSent ? (
+              <Button
+                type="button"
+                size="lg"
+                disabled={checkingPayment}
+                onClick={onConfirmPayment}
+                className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20"
+              >
+                {checkingPayment ? (
+                  <>
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Checking…
+                  </>
+                ) : (
+                  <>
                     I&apos;ve completed payment
-                  </span>
-                  <RefreshCw className="size-3.5 shrink-0 sm:size-4" aria-hidden />
-                </>
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={onReturnToShop}
-              className="h-10 shrink-0 rounded-lg border-border/60 px-3 text-[11px] font-semibold sm:text-xs"
-            >
-              Return to shop
-            </Button>
+                    <RefreshCw className="size-4" aria-hidden />
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="lg"
+                onClick={onReturnToShop}
+                className="h-10 w-full gap-1 rounded-lg text-[13px] font-semibold"
+              >
+                Return to shop
+                <ArrowRight className="size-4" aria-hidden />
+              </Button>
+            )}
+            <p className="px-0.5 text-center text-[10px] leading-snug text-muted-foreground">
+              {stkSent
+                ? "Approve the prompt on your phone, then confirm above."
+                : `Your order is saved. Pay the rider when it arrives${
+                    paymentSlot ? " — or pay early with M-Pesa above" : ""
+                  }.`}
+            </p>
+            {stkSent ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onReturnToShop}
+                className="h-9 w-full rounded-lg border-border/60 text-[11px] font-semibold"
+              >
+                Return to shop
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {paymentSlot && !stkSent ? (
+              <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+                Send the M-Pesa prompt (or pay the till), approve if prompted, then
+                confirm below.
+              </p>
+            ) : paymentSlot && stkSent ? (
+              <p className="px-0.5 text-[10px] leading-snug text-muted-foreground">
+                Approve the prompt on your phone, then tap below.
+              </p>
+            ) : null}
+            <div className="flex items-stretch gap-2">
+              <Button
+                type="button"
+                size="lg"
+                disabled={checkingPayment}
+                onClick={onConfirmPayment}
+                className={cn(
+                  "h-10 min-w-0 flex-1 gap-1 rounded-lg text-[13px] font-semibold shadow-sm ring-1 ring-primary/20",
+                  paymentSlot && !stkSent && "opacity-90",
+                )}
+              >
+                {checkingPayment ? (
+                  <>
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Checking…
+                  </>
+                ) : (
+                  <>
+                    <span className="truncate text-xs font-semibold sm:text-sm">
+                      I&apos;ve completed payment
+                    </span>
+                    <RefreshCw className="size-3.5 shrink-0 sm:size-4" aria-hidden />
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onReturnToShop}
+                className="h-10 shrink-0 rounded-lg border-border/60 px-3 text-[11px] font-semibold sm:text-xs"
+              >
+                Return to shop
+              </Button>
+            </div>
           </div>
         )}
       </div>

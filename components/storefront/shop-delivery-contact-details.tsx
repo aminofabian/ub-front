@@ -37,23 +37,28 @@ function IconValue({
   value,
   tabular = false,
   className,
+  truncate = false,
 }: {
   icon: LucideIcon;
   value: string;
   tabular?: boolean;
   className?: string;
+  /** Prefer wrap; truncate only when explicitly needed */
+  truncate?: boolean;
 }) {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-1.5", className)}>
-      <Icon className="size-3.5 shrink-0 text-primary/75" aria-hidden />
+    <div className={cn("flex min-w-0 items-start gap-1.5", className)}>
+      <Icon className="mt-0.5 size-3.5 shrink-0 text-primary/75" aria-hidden />
       <span
         className={cn(
-          "min-w-0 truncate text-[12px] leading-snug text-foreground",
+          "min-w-0 text-[12px] leading-snug text-foreground",
+          truncate ? "truncate" : "break-words",
           tabular && "tabular-nums",
         )}
+        title={trimmed}
       >
         {trimmed}
       </span>
@@ -74,7 +79,8 @@ function DetailPairRow({
     <div
       className={cn(
         "grid min-w-0 gap-2",
-        left && right ? "grid-cols-2" : "grid-cols-1",
+        // Stack address/zone on narrow cards — 2-col truncates mid-label
+        left && right ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1",
       )}
     >
       {left ? <div className="min-w-0">{left}</div> : null}

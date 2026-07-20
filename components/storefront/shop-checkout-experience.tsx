@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import ShopCheckoutForm from "@/components/storefront/shop-checkout-form";
 import { ShopCheckoutDrawerChrome } from "@/components/storefront/shop-checkout-drawer-chrome";
@@ -19,6 +20,7 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
   const isMd = useMediaMd();
   const router = useRouter();
   const cart = useShopCartOptional();
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
   const onClose = () => {
     if (mode === "drawer") {
@@ -32,7 +34,13 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
     router.push(APP_ROUTES.shop);
   };
 
-  const form = <ShopCheckoutForm slug={slug} embedded={isMd} />;
+  const form = (
+    <ShopCheckoutForm
+      slug={slug}
+      embedded={isMd}
+      onOrderPlacedChange={setOrderPlaced}
+    />
+  );
 
   if (!isMd) {
     return (
@@ -54,7 +62,9 @@ export function ShopCheckoutExperience({ slug, mode }: Props) {
       ariaLabel="Checkout"
       zIndex={74}
     >
-      <ShopCheckoutDrawerChrome onClose={onClose}>{form}</ShopCheckoutDrawerChrome>
+      <ShopCheckoutDrawerChrome onClose={onClose} orderPlaced={orderPlaced}>
+        {form}
+      </ShopCheckoutDrawerChrome>
     </ShopSlideOver>
   );
 }

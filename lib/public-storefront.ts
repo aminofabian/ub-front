@@ -363,14 +363,17 @@ export function formatDisplayPrice(
   if (!hasCatalogPrice(amount)) {
     return "";
   }
+  const code = currency.length === 3 ? currency : "KES";
   try {
-    return new Intl.NumberFormat(undefined, {
+    // Force en-KE so KES stays consistent (avoids locale NBSP / grouping quirks).
+    return new Intl.NumberFormat("en-KE", {
       style: "currency",
-      currency: currency.length === 3 ? currency : "KES",
+      currency: code,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${currency} ${amount}`;
+    return `${code} ${amount.toFixed(2)}`;
   }
 }
 

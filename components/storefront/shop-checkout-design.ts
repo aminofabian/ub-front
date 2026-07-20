@@ -42,8 +42,9 @@ export const CHECKOUT_LABEL_PLAIN = "text-xs font-medium text-foreground/85";
 
 export const CHECKOUT_SELECT = CHECKOUT_INPUT;
 
+/** Serif totals — proportional nums; tabular-nums gaps “1” in many serif faces */
 export const CHECKOUT_SERIF_AMOUNT =
-  "font-serif text-lg font-semibold tabular-nums tracking-tight";
+  "font-serif text-lg font-semibold tracking-tight [font-variant-numeric:proportional-nums]";
 
 /** Compact totals in sticky docks — sans-serif avoids faux-bold overlap in tight layouts */
 export const CHECKOUT_DOCK_AMOUNT =
