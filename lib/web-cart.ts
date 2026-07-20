@@ -416,3 +416,81 @@ export async function ensureWebCartId(slug: string): Promise<string | null> {
   writeWebCartHandle(s, created.id);
   return created.id;
 }
+
+export type PublicLeadCaptureResult = {
+  saved: boolean;
+  guestKey?: string | null;
+  deliveryArea?: string | null;
+  streetAddress?: string | null;
+};
+
+export const SHOP_ITEM_ADDED_EVENT = "ub-shop-item-added";
+
+export type ShopItemAddedDetail = {
+  itemId: string;
+  /** Opens the cart drawer — call after the delivery-area gate finishes (or immediately if not needed). */
+  continueToCart: () => void;
+};
+
+export function notifyShopItemAdded(
+  itemId: string,
+  continueToCart: () => void,
+): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<ShopItemAddedDetail>(SHOP_ITEM_ADDED_EVENT, {
+      detail: { itemId: itemId.trim(), continueToCart },
+    }),
+  );
+}
+
+/** Soft-capture phone (and optionally delivery) without requiring a cart or signup. */
+export async function submitStorefrontLeadCapture(
+  slug: string,
+  payload: {
+    areaCode: string;
+    phone: string;
+    whatsApp?: string;
+    deliveryArea?: string;
+    streetAddress?: string;
+  },
+): Promise<PublicLeadCaptureResult> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  const token = getSessionTokens()?.accessToken;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const guestKey = readGuestCheckoutKey(slug);
+  if (guestKey) {
+    headers["X-Checkout-Guest-Key"] = guestKey;
+  }
+  const body: Record<string, string> = {
+    areaCode: payload.areaCode.trim(),
+    phone: payload.phone.trim(),
+    whatsApp: payload.whatsApp?.trim() || payload.phone.trim(),
+  };
+  const area = payload.deliveryArea?.trim();
+  const street = payload.streetAddress?.trim();
+  if (area) body.deliveryArea = area;
+  if (street) body.streetAddress = street;
+
+  const res = await fetch(
+    `${browserApiV1Base()}/public/businesses/${encodeURIComponent(slug.trim())}/lead-capture`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await readFetchErrorMessage(res));
+  }
+  const result = (await res.json()) as PublicLeadCaptureResult;
+  if (result.guestKey) {
+    writeGuestCheckoutKey(slug, result.guestKey);
+  }
+  return result;
+}

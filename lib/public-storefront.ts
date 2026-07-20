@@ -20,6 +20,12 @@ export type PublicCatalogItemCard = {
   onlinePurchaseMode?: string | null;
 };
 
+export type PublicDeliveryArea = {
+  id: string;
+  name: string;
+  active: boolean;
+};
+
 export type PublicStorefrontPayload = {
   businessName: string;
   slug: string;
@@ -31,6 +37,8 @@ export type PublicStorefrontPayload = {
   featured: PublicCatalogItemCard[];
   /** Catalog item types (departments) with in-stock published counts. */
   types?: PublicCatalogType[];
+  /** Active delivery areas shoppers may select. */
+  deliveryAreas?: PublicDeliveryArea[];
 };
 
 export type PublicCatalogType = {

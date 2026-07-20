@@ -81,6 +81,7 @@ export async function StorefrontShell({
           accentHex={accent}
           locationHint={locationHint}
           categories={categories}
+          deliveryAreas={storefront?.deliveryAreas ?? []}
         >
           {children}
         </ShopStorefrontChrome>

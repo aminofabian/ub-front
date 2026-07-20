@@ -431,6 +431,155 @@ export function BusinessSettingsForm({
                     storefront home.
                   </p>
                 </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="flex items-end justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <label className={labelClass()} htmlFor="sf-area-new">
+                        Delivery areas
+                      </label>
+                      <p className={hintClass()}>
+                        Shoppers can only pick from these areas. Uncheck to
+                        hide an area without deleting it.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0"
+                      disabled={!storefront.enabled}
+                      onClick={() =>
+                        setStorefront((s) => ({
+                          ...s,
+                          deliveryAreas: [
+                            ...s.deliveryAreas,
+                            {
+                              id: crypto.randomUUID(),
+                              name: "",
+                              active: true,
+                            },
+                          ],
+                        }))
+                      }
+                    >
+                      Add area
+                    </Button>
+                  </div>
+                  {storefront.deliveryAreas.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                      No areas configured. Add the neighborhoods you deliver
+                      to, or save after enabling the storefront to keep the
+                      default Nairobi list from the server.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {storefront.deliveryAreas.map((area, index) => (
+                        <li
+                          key={area.id}
+                          className="flex items-center gap-2 rounded-lg border border-border/55 bg-background px-2 py-1.5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-3.5 shrink-0 rounded border-input text-primary focus:ring-ring"
+                            checked={area.active}
+                            disabled={!storefront.enabled}
+                            aria-label={`Serve ${area.name || "area"}`}
+                            onChange={(e) =>
+                              setStorefront((s) => ({
+                                ...s,
+                                deliveryAreas: s.deliveryAreas.map((row, i) =>
+                                  i === index
+                                    ? { ...row, active: e.target.checked }
+                                    : row,
+                                ),
+                              }))
+                            }
+                          />
+                          <input
+                            id={index === 0 ? "sf-area-new" : undefined}
+                            className={inputClass(!storefront.enabled)}
+                            disabled={!storefront.enabled}
+                            value={area.name}
+                            placeholder="e.g. Roysambu"
+                            onChange={(e) =>
+                              setStorefront((s) => ({
+                                ...s,
+                                deliveryAreas: s.deliveryAreas.map((row, i) =>
+                                  i === index
+                                    ? { ...row, name: e.target.value }
+                                    : row,
+                                ),
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 shrink-0 px-2 text-muted-foreground"
+                            disabled={!storefront.enabled || index === 0}
+                            aria-label="Move up"
+                            onClick={() =>
+                              setStorefront((s) => {
+                                if (index === 0) return s;
+                                const next = [...s.deliveryAreas];
+                                const tmp = next[index - 1];
+                                next[index - 1] = next[index];
+                                next[index] = tmp;
+                                return { ...s, deliveryAreas: next };
+                              })
+                            }
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 shrink-0 px-2 text-muted-foreground"
+                            disabled={
+                              !storefront.enabled ||
+                              index >= storefront.deliveryAreas.length - 1
+                            }
+                            aria-label="Move down"
+                            onClick={() =>
+                              setStorefront((s) => {
+                                if (index >= s.deliveryAreas.length - 1) {
+                                  return s;
+                                }
+                                const next = [...s.deliveryAreas];
+                                const tmp = next[index + 1];
+                                next[index + 1] = next[index];
+                                next[index] = tmp;
+                                return { ...s, deliveryAreas: next };
+                              })
+                            }
+                          >
+                            ↓
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 shrink-0 px-2 text-destructive"
+                            disabled={!storefront.enabled}
+                            aria-label="Remove area"
+                            onClick={() =>
+                              setStorefront((s) => ({
+                                ...s,
+                                deliveryAreas: s.deliveryAreas.filter(
+                                  (_, i) => i !== index,
+                                ),
+                              }))
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </FormDrawerFields>
           </div>

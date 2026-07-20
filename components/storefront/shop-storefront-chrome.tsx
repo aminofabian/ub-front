@@ -8,12 +8,13 @@ import { APP_ROUTES } from "@/lib/config";
 
 import { ShopCartDrawer } from "@/components/storefront/shop-cart-drawer";
 import { ShopCheckoutDrawer } from "@/components/storefront/shop-checkout-drawer";
+import { ShopLeadCaptureCard } from "@/components/storefront/shop-lead-capture-card";
 import { useMediaMd } from "@/hooks/use-media-md";
 import { ShopCategoryRail } from "@/components/storefront/shop-category-rail";
 import { ShopHeaderBar } from "@/components/storefront/shop-header-bar";
 import { ShopUtilityBar } from "@/components/storefront/shop-utility-bar";
 import { ShopCartProvider, useShopCart } from "@/hooks/use-shop-cart";
-import type { PublicCategory } from "@/lib/public-storefront";
+import type { PublicCategory, PublicDeliveryArea } from "@/lib/public-storefront";
 import { formatDisplayPrice } from "@/lib/public-storefront";
 import { cn } from "@/lib/utils";
 
@@ -104,6 +105,7 @@ export function ShopStorefrontChrome({
   accentHex,
   locationHint,
   categories,
+  deliveryAreas = [],
   children,
 }: {
   slug: string;
@@ -113,6 +115,7 @@ export function ShopStorefrontChrome({
   accentHex: string | null;
   locationHint?: string | null;
   categories: PublicCategory[];
+  deliveryAreas?: PublicDeliveryArea[];
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -156,6 +159,11 @@ export function ShopStorefrontChrome({
       </div>
       <ShopCartDrawer />
       <ShopCheckoutDrawer />
+      <ShopLeadCaptureCard
+        slug={slug}
+        storeName={headerTitle}
+        deliveryAreas={deliveryAreas}
+      />
       <FloatingCartButton accentHex={accentHex} />
     </ShopCartProvider>
   );

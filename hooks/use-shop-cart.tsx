@@ -16,6 +16,7 @@ import {
   deleteWebCartLine,
   ensureWebCartId,
   fetchWebCart,
+  notifyShopItemAdded,
   notifyWebCartChanged,
   readWebCartHandle,
   type PublicWebCart,
@@ -269,7 +270,8 @@ export function ShopCartProvider({
         }
         setFocusItemId(id);
         setCartViewMode("focus");
-        setDrawerOpen(true);
+        // Defer drawer until delivery-area modal completes (or skips).
+        notifyShopItemAdded(id, () => setDrawerOpen(true));
       },
     }),
     [

@@ -621,12 +621,19 @@ export type PatchCategoryPayload = {
   clearDefaultTaxRate?: boolean;
 };
 
+export type DeliveryAreaRecord = {
+  id: string;
+  name: string;
+  active: boolean;
+};
+
 export type StorefrontSettingsRecord = {
   enabled: boolean;
   catalogBranchId?: string | null;
   label?: string | null;
   announcement?: string | null;
   featuredItemIds: string[];
+  deliveryAreas?: DeliveryAreaRecord[];
 };
 
 export type BrandingRecord = {
@@ -775,6 +782,7 @@ export type StorefrontPatchPayload = {
   label?: string | null;
   announcement?: string | null;
   featuredItemIds?: string[] | null;
+  deliveryAreas?: DeliveryAreaRecord[] | null;
 };
 
 export type StocktakePatchPayload = {

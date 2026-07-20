@@ -84,9 +84,11 @@ import { APP_ROUTES } from "@/lib/config";
 import {
   formatDisplayPrice,
   type PublicCheckoutPaymentOptions,
+  type PublicDeliveryArea,
 } from "@/lib/public-storefront";
 import {
   fetchPublicCheckoutPaymentOptionsBrowser,
+  fetchPublicStorefrontBrowser,
   fetchPublicWebOrderPaymentStatus,
   initiatePublicWebOrderStkPush,
 } from "@/lib/public-storefront-client";
@@ -142,13 +144,6 @@ function shopperIsSignedIn(serverAuthenticated = false): boolean {
   );
 }
 
-const NAIROBI_SUBCOUNTY_WARDS: Record<string, string[]> = {
-  Roysambu: ["Githurai", "Kahawa West", "Zimmerman", "Roysambu", "Kahawa"],
-  Kasarani: ["Mirema", "USIU", "Thome", "Garden Estate", "Kasarani"],
-};
-
-const NAIROBI_SUBCOUNTIES = Object.keys(NAIROBI_SUBCOUNTY_WARDS);
-
 const CHECKOUT_PREFILL_KEY = "ub.checkoutPrefill.v1";
 
 type CheckoutPrefill = {
@@ -181,7 +176,6 @@ function isPrefillComplete(p: CheckoutPrefill): boolean {
       p.firstName.trim() &&
       p.lastName.trim() &&
       p.customerPhone.trim() &&
-      p.subCounty &&
       p.ward &&
       p.streetAddress.trim(),
   );
@@ -503,6 +497,8 @@ export default function ShopCheckoutForm({
   const [county, setCounty] = useState("Nairobi");
   const [subCounty, setSubCounty] = useState("");
   const [ward, setWard] = useState("");
+  const [deliveryAreas, setDeliveryAreas] = useState<PublicDeliveryArea[]>([]);
+  const [areaNotListed, setAreaNotListed] = useState(false);
   const [whatsAppNumber, setWhatsAppNumber] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
@@ -537,6 +533,28 @@ export default function ShopCheckoutForm({
   useEffect(() => {
     onOrderPlacedChange?.(Boolean(done));
   }, [done, onOrderPlacedChange]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const sf = await fetchPublicStorefrontBrowser(slug);
+      if (cancelled || !sf) return;
+      setDeliveryAreas(
+        (sf.deliveryAreas ?? []).filter((a) => a.active && a.name.trim()),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  function selectDeliveryArea(areaName: string) {
+    const name = areaName.trim();
+    setWard(name);
+    setSubCounty(name);
+    setCounty("Nairobi");
+    setAreaNotListed(false);
+  }
 
   const notifyPaymentConfirmed = useCallback(() => {
     setPaymentConfirmed(true);
@@ -930,8 +948,18 @@ export default function ShopCheckoutForm({
     customerPhone.trim(),
   );
 
+  const deliveryAreaServed =
+    !ward ||
+    deliveryAreas.length === 0 ||
+    deliveryAreas.some(
+      (a) => a.name.toLowerCase() === ward.trim().toLowerCase(),
+    );
+
   const deliveryFieldsComplete = Boolean(
-    subCounty && ward && streetAddress.trim(),
+    ward &&
+      streetAddress.trim() &&
+      !areaNotListed &&
+      deliveryAreaServed,
   );
 
   const requiredCheckoutFieldsComplete = Boolean(
@@ -1410,16 +1438,14 @@ export default function ShopCheckoutForm({
   const subtotalLabel = formatDisplayPrice(cart.currency, cart.subtotal);
   const shippingLabel = formatDisplayPrice(cart.currency, 0);
   const totalLabel = subtotalLabel;
-  const wardOptions = subCounty
-    ? (NAIROBI_SUBCOUNTY_WARDS[subCounty] ?? [])
-    : [];
+  const wardOptions = deliveryAreas.map((a) => a.name);
+  const areaServed = deliveryAreaServed;
 
   const totalQty = cart.lines.reduce((acc, line) => acc + line.quantity, 0);
 
-  const deliveryZoneSummary =
-    ward && subCounty && county
-      ? `${ward} · ${subCounty} · ${county}`
-      : "Select subcounty and ward below";
+  const deliveryZoneSummary = ward
+    ? formatDeliveryZone(ward, undefined, county) ?? ward
+    : "Select a delivery area below";
 
   const shippingComplete = requiredCheckoutFieldsComplete;
 
@@ -1555,10 +1581,11 @@ export default function ShopCheckoutForm({
         setStepBusy(true);
         setError(null);
         try {
+          const areaName = ward.trim();
           const state = await patchCheckoutDelivery(s, handle.cartId, {
             county,
-            subCounty,
-            ward,
+            subCounty: areaName,
+            ward: areaName,
             streetAddress,
             deliveryNotes,
             saveForNextTime: isDefaultAddress,
@@ -1703,9 +1730,9 @@ export default function ShopCheckoutForm({
             headline: shippingComplete
               ? "Tap below to review your order"
               : "Where should we deliver?",
-            hint: "Subcounty, ward, and street address are required.",
+            hint: "Delivery area and exact location are required.",
             actionLabel: "Continue to review",
-            actionDisabled: !shippingComplete || stepBusy,
+            actionDisabled: !shippingComplete || stepBusy || areaNotListed,
             onAction: () => void advanceDetailsStep(),
             actionType: "button" as const,
             pulse: shippingComplete,
@@ -2058,7 +2085,7 @@ export default function ShopCheckoutForm({
               />
               <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-[10px] font-semibold text-emerald-900">
                 <Truck className="size-3.5" aria-hidden />
-                Nairobi delivery
+                Areas we deliver to
               </div>
             </div>
 
@@ -2073,60 +2100,69 @@ export default function ShopCheckoutForm({
 
             <FormFieldGroup
               title="Your area"
-              description="County → subcounty → ward"
+              description="Choose an area we deliver to, then add your exact place."
             >
-              <div className="grid gap-3 sm:grid-cols-3">
-                <SelectField
-                  label="County"
-                  value={county}
-                  onChange={(ev) => setCounty(ev.target.value)}
-                >
-                  <option value="">Select county</option>
-                  <option value="Nairobi">Nairobi</option>
-                </SelectField>
-                <SelectField
-                  label="Subcounty"
-                  value={subCounty}
-                  onChange={(ev) => {
-                    setSubCounty(ev.target.value);
-                    setWard("");
-                  }}
-                >
-                  <option value="">Select subcounty</option>
-                  {NAIROBI_SUBCOUNTIES.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </SelectField>
-                <SelectField
-                  label="Ward"
-                  value={ward}
-                  onChange={(ev) => setWard(ev.target.value)}
-                  disabled={!subCounty}
-                >
-                  <option value="">
-                    {subCounty ? "Select ward" : "Pick subcounty first"}
-                  </option>
-                  {wardOptions.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </SelectField>
-              </div>
+              {areaNotListed ? (
+                <div className="space-y-2 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                  <p className="font-semibold">We don&apos;t deliver there yet</p>
+                  <p className="text-xs leading-relaxed opacity-90">
+                    Pick one of the areas we serve, or message the store if you
+                    need coverage elsewhere.
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold underline underline-offset-2"
+                    onClick={() => setAreaNotListed(false)}
+                  >
+                    Back to delivery areas
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <SelectField
+                    label="Delivery area"
+                    value={ward}
+                    onChange={(ev) => selectDeliveryArea(ev.target.value)}
+                  >
+                    <option value="">Select area…</option>
+                    {wardOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </SelectField>
+                  {ward && !areaServed ? (
+                    <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                      That area is no longer on our delivery list. Please pick
+                      another.
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="text-left text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
+                    onClick={() => {
+                      setAreaNotListed(true);
+                      setWard("");
+                      setSubCounty("");
+                    }}
+                  >
+                    My area isn&apos;t listed
+                  </button>
+                </div>
+              )}
             </FormFieldGroup>
 
             <FormFieldGroup
-              title="Street details"
-              description="Building, apartment, or landmark the rider can spot."
+              title="Exact location"
+              description="Building, apartment, estate, or landmark the rider can spot."
             >
               <div className="space-y-3">
                 <InputField
-                  label="Street address"
+                  label="Street / landmark"
                   value={streetAddress}
                   onChange={(ev) => setStreetAddress(ev.target.value)}
                   placeholder="e.g. Sunrise Apartments, Block B"
+                  disabled={areaNotListed}
                 />
                 <InputField
                   label="Delivery notes"
@@ -2519,55 +2555,52 @@ export default function ShopCheckoutForm({
 
           <PlainFormSection title="Delivery">
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <SelectField
-                  variant="plain"
-                  label="County"
-                  value={county}
-                  onChange={(ev) => setCounty(ev.target.value)}
-                >
-                  <option value="">Select county</option>
-                  <option value="Nairobi">Nairobi</option>
-                </SelectField>
-                <SelectField
-                  variant="plain"
-                  label="Subcounty"
-                  value={subCounty}
-                  onChange={(ev) => {
-                    setSubCounty(ev.target.value);
-                    setWard("");
-                  }}
-                >
-                  <option value="">Select subcounty</option>
-                  {NAIROBI_SUBCOUNTIES.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </SelectField>
-              </div>
-              <SelectField
-                variant="plain"
-                label="Ward"
-                value={ward}
-                onChange={(ev) => setWard(ev.target.value)}
-                disabled={!subCounty}
-              >
-                <option value="">
-                  {subCounty ? "Select ward" : "Select subcounty first"}
-                </option>
-                {wardOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </SelectField>
+              {areaNotListed ? (
+                <div className="space-y-2 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-3 text-sm text-amber-950">
+                  <p className="font-semibold">We don&apos;t deliver there yet</p>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold underline underline-offset-2"
+                    onClick={() => setAreaNotListed(false)}
+                  >
+                    Back to delivery areas
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <SelectField
+                    variant="plain"
+                    label="Delivery area"
+                    value={ward}
+                    onChange={(ev) => selectDeliveryArea(ev.target.value)}
+                  >
+                    <option value="">Select area…</option>
+                    {wardOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </SelectField>
+                  <button
+                    type="button"
+                    className="text-left text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
+                    onClick={() => {
+                      setAreaNotListed(true);
+                      setWard("");
+                      setSubCounty("");
+                    }}
+                  >
+                    My area isn&apos;t listed
+                  </button>
+                </>
+              )}
               <InputField
                 variant="plain"
-                label="Street address"
+                label="Street / landmark"
                 value={streetAddress}
                 onChange={(ev) => setStreetAddress(ev.target.value)}
                 placeholder="Building, apartment, or landmark"
+                disabled={areaNotListed}
               />
               <InputField
                 variant="plain"

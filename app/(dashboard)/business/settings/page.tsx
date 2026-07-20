@@ -292,6 +292,13 @@ export default function BusinessSettingsPage() {
           label: storefront.label.trim() || null,
           announcement: storefront.announcement.trim() || null,
           featuredItemIds: parseFeaturedLines(storefront.featuredLines),
+          deliveryAreas: storefront.deliveryAreas
+            .map((area) => ({
+              id: area.id.trim() || crypto.randomUUID(),
+              name: area.name.trim(),
+              active: area.active,
+            }))
+            .filter((area) => area.name.length > 0),
         };
         body.inventory = {
           stocktake: {

@@ -20,6 +20,7 @@ export type StorefrontForm = {
   label: string;
   announcement: string;
   featuredLines: string;
+  deliveryAreas: { id: string; name: string; active: boolean }[];
 };
 
 export type InventoryForm = {
@@ -106,6 +107,7 @@ export const DEFAULT_STOREFRONT: StorefrontForm = {
   label: "",
   announcement: "",
   featuredLines: "",
+  deliveryAreas: [],
 };
 
 export const DEFAULT_DAILY_AUDIT_SAMPLE_SIZE = 25;
@@ -190,6 +192,11 @@ export function storefrontFromRecord(
     label: String(s?.label ?? ""),
     announcement: String(s?.announcement ?? ""),
     featuredLines: (s?.featuredItemIds ?? []).join("\n"),
+    deliveryAreas: (s?.deliveryAreas ?? []).map((area) => ({
+      id: String(area.id ?? crypto.randomUUID()),
+      name: String(area.name ?? "").trim(),
+      active: area.active !== false,
+    })),
   };
 }
 
