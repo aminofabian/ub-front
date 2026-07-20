@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { AuthenticatedShellGate } from "@/components/auth/authenticated-shell-gate";
 import { PosSoftAuthScope } from "@/components/auth/pos-soft-auth-scope";
+import { PosTillLockProvider } from "@/components/auth/pos-till-lock";
 import { ButcherShell } from "@/components/butcher/butcher-shell";
 import { ButcheryOnlyRedirects } from "@/components/butcher/butchery-only-redirects";
 import { DashboardProvider } from "@/components/dashboard-provider";
@@ -77,12 +78,14 @@ function ButcherLayoutInner({ children }: ButcherLayoutProps) {
 
   return (
     <DashboardProvider>
-      <RealtimeProvider>
-        <ButcherRoleRedirects />
-        <ButcheryOnlyRedirects />
-        <ButcherShell>{children}</ButcherShell>
-        <DashboardToaster />
-      </RealtimeProvider>
+      <PosTillLockProvider>
+        <RealtimeProvider>
+          <ButcherRoleRedirects />
+          <ButcheryOnlyRedirects />
+          <ButcherShell>{children}</ButcherShell>
+          <DashboardToaster />
+        </RealtimeProvider>
+      </PosTillLockProvider>
     </DashboardProvider>
   );
 }

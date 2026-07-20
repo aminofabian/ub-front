@@ -2,7 +2,11 @@
 
 import { useSyncExternalStore } from "react";
 
-import { getSessionTokens, subscribeToAuthBroadcasts } from "@/lib/auth";
+import {
+  getSessionTokens,
+  hasAccessSession,
+  subscribeToAuthBroadcasts,
+} from "@/lib/auth";
 import {
   readSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
@@ -12,7 +16,7 @@ function hasClientSession(): boolean {
   if (typeof window === "undefined") {
     return false;
   }
-  if (getSessionTokens()) {
+  if (hasAccessSession() || getSessionTokens()) {
     return true;
   }
   return Boolean(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me));
@@ -45,7 +49,7 @@ function hasAccessTokens(): boolean {
   if (typeof window === "undefined") {
     return false;
   }
-  return Boolean(getSessionTokens());
+  return hasAccessSession();
 }
 
 /** True once the client bundle is active (not during SSR). */

@@ -1,9 +1,37 @@
 import type { NextConfig } from "next";
 
+/**
+ * Gap G3 CSP: as strict as Next.js allows without per-request nonces.
+ * `unsafe-inline` / `unsafe-eval` remain for the App Router runtime; JWT theft
+ * is mitigated by httpOnly cookies, not by blocking all inline scripts.
+ */
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com",
+  "font-src 'self' data:",
+  // Till Print Bridge runs on the cashier PC (HTTP loopback). Cloud cashier
+  // must be allowed to fetch it; upgrade-insecure-requests exempts loopback.
+  "connect-src 'self' https: wss: ws: http://127.0.0.1:19500 http://localhost:19500 http://[::1]:19500",
+  "media-src 'self' blob:",
+  "worker-src 'self' blob:",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
 ];
 
 const overviewRedirect = {
@@ -91,12 +119,10 @@ const cloudOnlyConfig: NextConfig = {
     return [overviewRedirect];
   },
   async rewrites() {
+    // Do NOT rewrite /api/v1/* here — app/api/v1/[[...path]]/route.ts must handle
+    // it so Gap G can set httpOnly ub.access and redact JWTs from JSON. A
+    // next.config rewrite bypasses that route handler and breaks store-session.
     return [
-      // Next.js route handlers under /api/auth/* must not be proxied to Java.
-      {
-        source: "/api/v1/:path*",
-        destination: `${BACKEND_ORIGIN}/api/v1/:path*`,
-      },
       {
         source: "/webhooks/:path*",
         destination: `${BACKEND_ORIGIN}/webhooks/:path*`,

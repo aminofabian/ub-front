@@ -109,6 +109,7 @@ export function categoryAnalyticsPath(slug: string): string {
 export const API_ROUTES = {
   login: "/api/v1/auth/login",
   loginPin: "/api/v1/auth/login-pin",
+  unlockPin: "/api/v1/auth/unlock-pin",
   loginBranches: "/api/v1/auth/branches",
   register: "/api/v1/auth/register",
   emailLookup: "/api/v1/auth/email-lookup",

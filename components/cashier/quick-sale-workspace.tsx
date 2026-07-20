@@ -25,6 +25,7 @@ import {
   fetchPosTopProducts,
   fetchSaleReceiptPdf,
   postVoidSale,
+  refreshAccessToken,
   setPosItemWeighed,
   tryPostSaleWithRetries,
   type CategoryTreeNodeRecord,
@@ -214,7 +215,12 @@ export function QuickSaleWorkspace({
   const posDraftsUi = useFeatureFlag(POS_DRAFT_FLAGS.uiVisible);
   const posDraftOfflineMirror = useFeatureFlag(POS_DRAFT_FLAGS.offlineMirror);
   const posDraftPersistence = posDraftsEnabled || posDraftsShadow;
-  const posDraftSyncEnabled = posDraftPersistence || posDraftOfflineMirror;
+  // Always mirror open carts to IndexedDB when available so session expiry /
+  // remount does not wipe an in-progress till (Gap N). Offline *sale queue*
+  // remains gated by pos_drafts.offline_mirror.
+  const cartLocalMirror = isPosDraftStoreSupported();
+  const posDraftSyncEnabled =
+    posDraftPersistence || posDraftOfflineMirror || cartLocalMirror;
   const posDraftSyncTimers = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({});
@@ -222,6 +228,9 @@ export function QuickSaleWorkspace({
     null,
   );
   const posDraftHydratedRef = useRef(false);
+  /** UserId carts are allowed to mirror under; null while parking after switch. */
+  const mirrorUserIdRef = useRef<string | null>(null);
+  const cartScopeUserIdRef = useRef<string | null>(null);
   const resumeDraftHandledRef = useRef(false);
   const invoiceParamHandledRef = useRef(false);
   const wasOfflineRef = useRef(false);
@@ -420,7 +429,7 @@ export function QuickSaleWorkspace({
           }
 
           if (!online) {
-            if (posDraftOfflineMirror && bizId && uid) {
+            if (cartLocalMirror && bizId && uid) {
               await saveMirroredCart(bizId, bid, uid, snapshot);
               updateCartById(cartId, (prev) => ({
                 ...prev,
@@ -431,7 +440,7 @@ export function QuickSaleWorkspace({
           }
 
           if (!posDraftPersistence) {
-            if (posDraftOfflineMirror && bizId && uid) {
+            if (cartLocalMirror && bizId && uid) {
               await saveMirroredCart(bizId, bid, uid, snapshot);
               updateCartById(cartId, (prev) => ({
                 ...prev,
@@ -451,7 +460,7 @@ export function QuickSaleWorkspace({
             createdAt: snapshot.createdAt,
           };
           updateCartById(cartId, () => merged);
-          if (posDraftOfflineMirror && bizId && uid) {
+          if (cartLocalMirror && bizId && uid) {
             await saveMirroredCart(bizId, bid, uid, merged);
           }
         })();
@@ -460,7 +469,7 @@ export function QuickSaleWorkspace({
     [
       posDraftSyncEnabled,
       posDraftPersistence,
-      posDraftOfflineMirror,
+      cartLocalMirror,
       online,
       branchId,
       business?.id,
@@ -473,7 +482,46 @@ export function QuickSaleWorkspace({
 
   useEffect(() => {
     posDraftHydratedRef.current = false;
+    mirrorUserIdRef.current = null;
   }, [branchId, business?.id, me?.id]);
+
+  /**
+   * Phase 2 park policy: when the signed-in cashier changes (switch unlock),
+   * flush mirrors under the previous userId and clear in-memory carts so the
+   * new session never inherits another seller's open cart.
+   */
+  useEffect(() => {
+    const nextUid = me?.id?.trim() ?? "";
+    const prevUid = cartScopeUserIdRef.current ?? "";
+    if (prevUid && nextUid && prevUid !== nextUid) {
+      if (posDraftMirrorTimer.current) {
+        clearTimeout(posDraftMirrorTimer.current);
+        posDraftMirrorTimer.current = null;
+      }
+      mirrorUserIdRef.current = null;
+      posDraftHydratedRef.current = false;
+      const bizId = business?.id?.trim();
+      const bid = branchId.trim();
+      const parked = cartsRef.current;
+      if (
+        cartLocalMirror &&
+        bizId &&
+        bid &&
+        parked.some(
+          (c) =>
+            c.lines.length > 0 ||
+            Boolean(c.draftId) ||
+            (c.removedServerLineIds ?? []).length > 0,
+        )
+      ) {
+        void saveMirroredCarts(bizId, bid, prevUid, parked);
+      }
+      const fresh = createEmptyCartSession();
+      setCarts([fresh]);
+      setActiveCartId(fresh.id);
+    }
+    cartScopeUserIdRef.current = nextUid || null;
+  }, [me?.id, business?.id, branchId, cartLocalMirror]);
 
   /** Hydrate mirrored + server pending drafts on POS load. */
   useEffect(() => {
@@ -489,7 +537,7 @@ export function QuickSaleWorkspace({
 
     void (async () => {
       let localCarts: CartSession[] = [];
-      if (posDraftOfflineMirror && isPosDraftStoreSupported()) {
+      if (cartLocalMirror) {
         localCarts = await loadMirroredCarts(bizId, bid, uid);
       }
 
@@ -499,21 +547,28 @@ export function QuickSaleWorkspace({
           setCarts(merged);
           setActiveCartId((current) => pickActiveCartId(merged, current));
         }
+        mirrorUserIdRef.current = uid;
         return;
       }
 
       try {
-        const res = await listPosDrafts({
-          branchId: bid,
-          status: "pending",
-          createdBy: uid,
-        });
-        const summaries = res.drafts ?? [];
         const fullDrafts =
-          summaries.length > 0
-            ? await Promise.all(
-                summaries.slice(0, MAX_CARTS).map((d) => fetchPosDraft(d.id)),
-              )
+          posDraftPersistence
+            ? await (async () => {
+                const res = await listPosDrafts({
+                  branchId: bid,
+                  status: "pending",
+                  createdBy: uid,
+                });
+                const summaries = res.drafts ?? [];
+                return summaries.length > 0
+                  ? await Promise.all(
+                      summaries
+                        .slice(0, MAX_CARTS)
+                        .map((d) => fetchPosDraft(d.id)),
+                    )
+                  : [];
+              })()
             : [];
 
         if (localCarts.length > 0 || fullDrafts.length > 0) {
@@ -542,21 +597,23 @@ export function QuickSaleWorkspace({
           }
           setCarts(merged);
           setActiveCartId((current) => pickActiveCartId(merged, current));
-          if (posDraftOfflineMirror) {
+          if (cartLocalMirror) {
             await saveMirroredCarts(bizId, bid, uid, merged);
           }
         }
+        mirrorUserIdRef.current = uid;
       } catch {
         if (localCarts.length > 0) {
           const merged = mergeHydratedCartSessions(localCarts, [], uiOpts);
           setCarts(merged);
           setActiveCartId((current) => pickActiveCartId(merged, current));
         }
+        mirrorUserIdRef.current = uid;
       }
     })();
   }, [
     posDraftSyncEnabled,
-    posDraftOfflineMirror,
+    cartLocalMirror,
     posDraftPersistence,
     online,
     branchId,
@@ -567,16 +624,20 @@ export function QuickSaleWorkspace({
   ]);
 
   useEffect(() => {
-    if (!posDraftOfflineMirror || !isPosDraftStoreSupported()) return;
+    if (!cartLocalMirror) return;
     const bizId = business?.id?.trim();
     const bid = branchId.trim();
     const uid = me?.id?.trim();
     if (!bizId || !bid || !uid) return;
+    // Block saves until park/hydrate settles so switch-cashier cannot
+    // attribute the previous seller's in-memory cart to the new userId.
+    if (mirrorUserIdRef.current !== uid) return;
 
     if (posDraftMirrorTimer.current) {
       clearTimeout(posDraftMirrorTimer.current);
     }
     posDraftMirrorTimer.current = setTimeout(() => {
+      if (mirrorUserIdRef.current !== uid) return;
       void saveMirroredCarts(bizId, bid, uid, carts);
     }, 500);
 
@@ -585,7 +646,7 @@ export function QuickSaleWorkspace({
         clearTimeout(posDraftMirrorTimer.current);
       }
     };
-  }, [carts, posDraftOfflineMirror, business?.id, branchId, me?.id]);
+  }, [carts, cartLocalMirror, business?.id, branchId, me?.id]);
 
   // Derived helpers that mirror old flat state for the rest of the code
   const lines = activeCart.lines;
@@ -742,7 +803,7 @@ export function QuickSaleWorkspace({
       const bizId = business?.id?.trim();
       const bid = branchId.trim();
       const uid = me?.id?.trim();
-      if (posDraftOfflineMirror && bizId && bid && uid) {
+      if (cartLocalMirror && bizId && bid && uid) {
         void removeMirroredCart(bizId, bid, uid, cartIdToClear);
       }
       setCarts((prev) => {
@@ -752,7 +813,7 @@ export function QuickSaleWorkspace({
         return next;
       });
     },
-    [posDraftOfflineMirror, business?.id, branchId, me?.id],
+    [cartLocalMirror, business?.id, branchId, me?.id],
   );
 
   const openDraftIds = useMemo(
@@ -1247,9 +1308,17 @@ export function QuickSaleWorkspace({
 
     let cancelled = false;
     (async () => {
+      // Refresh session before flushing outboxes so a dead access token does not
+      // soft-fail every queued sale after reconnect.
+      if (reconnected) {
+        await refreshAccessToken();
+        if (cancelled) {
+          return;
+        }
+      }
+
       if (
         reconnected &&
-        posDraftOfflineMirror &&
         posDraftPersistence &&
         branchId.trim()
       ) {
@@ -1274,7 +1343,7 @@ export function QuickSaleWorkspace({
           }
           const bizId = business?.id?.trim();
           const uid = me?.id?.trim();
-          if (bizId && uid) {
+          if (cartLocalMirror && bizId && uid) {
             await saveMirroredCarts(bizId, branchId.trim(), uid, replay.carts);
           }
         }
@@ -1303,7 +1372,7 @@ export function QuickSaleWorkspace({
     canSell,
     online,
     refreshOutbox,
-    posDraftOfflineMirror,
+    cartLocalMirror,
     posDraftPersistence,
     branchId,
     business?.id,
@@ -2588,10 +2657,16 @@ export function QuickSaleWorkspace({
   );
 
   const posDraftOfflineBanner = useMemo(() => {
-    if (online || !posDraftOfflineMirror) return null;
+    if (online) return null;
     if (!carts.some((c) => c.lines.length > 0)) return null;
-    return "Sale will sync when connection returns.";
-  }, [online, posDraftOfflineMirror, carts]);
+    if (posDraftOfflineMirror) {
+      return "Sale will sync when connection returns.";
+    }
+    if (cartLocalMirror) {
+      return "Cart is saved on this device. Reconnect to complete the sale.";
+    }
+    return null;
+  }, [online, posDraftOfflineMirror, cartLocalMirror, carts]);
 
   const canOpenShift = hasPermission(me?.permissions, Permission.ShiftsOpen);
   const canCloseShift = hasPermission(me?.permissions, Permission.ShiftsClose);

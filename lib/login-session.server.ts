@@ -75,15 +75,15 @@ export function buildSessionFinalizeHtml(input: SessionFinalizeInput): string {
     bootstrap,
   } = input;
 
+  // Gap G: do not persist access/refresh JWTs in web storage. httpOnly
+  // `ub.access` was set on this response; the next page restores into memory.
+  void accessToken;
+  void refreshToken;
   const scriptLines = [
-    `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.accessToken)}, ${JSON.stringify(accessToken)});`,
-    `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.accessToken)}, ${JSON.stringify(accessToken)});`,
-    refreshToken
-      ? `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.refreshToken)}, ${JSON.stringify(refreshToken)});`
-      : `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
-    refreshToken
-      ? `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.refreshToken)}, ${JSON.stringify(refreshToken)});`
-      : `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
+    `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
+    `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.accessToken)});`,
+    `localStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
+    `sessionStorage.removeItem(${JSON.stringify(STORAGE_KEYS.refreshToken)});`,
     `localStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
     `sessionStorage.setItem(${JSON.stringify(STORAGE_KEYS.tenantId)}, ${JSON.stringify(tenantId)});`,
   ];

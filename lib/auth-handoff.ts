@@ -1,5 +1,9 @@
 export type AuthHandoffPayload = {
-  accessToken: string;
+  /**
+   * Legacy: access JWT in the fragment. Prefer cookie restore on the shop host
+   * (Gap G) — omit accessToken and let handoff call restore-session.
+   */
+  accessToken?: string;
   refreshToken?: string;
   tenantId?: string;
   nextPath?: string;
@@ -108,14 +112,21 @@ export function decodeAuthHandoffPayload(fragment: string): AuthHandoffPayload |
       Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)),
     );
     const o = JSON.parse(json) as Record<string, unknown>;
-    if (typeof o.accessToken !== "string") {
+    const accessToken =
+      typeof o.accessToken === "string" ? o.accessToken : undefined;
+    const tenantId = typeof o.tenantId === "string" ? o.tenantId : undefined;
+    const nextPath = typeof o.nextPath === "string" ? o.nextPath : undefined;
+    const refreshToken =
+      typeof o.refreshToken === "string" ? o.refreshToken : undefined;
+    // Cookie-restore handoff: tenant/next only (no access JWT in fragment).
+    if (!accessToken && !tenantId && !nextPath) {
       return null;
     }
     return {
-      accessToken: o.accessToken,
-      refreshToken: typeof o.refreshToken === "string" ? o.refreshToken : undefined,
-      tenantId: typeof o.tenantId === "string" ? o.tenantId : undefined,
-      nextPath: typeof o.nextPath === "string" ? o.nextPath : undefined,
+      accessToken,
+      refreshToken,
+      tenantId,
+      nextPath,
     };
   } catch {
     return null;

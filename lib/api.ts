@@ -16,7 +16,8 @@ import {
   getSessionTenantHost,
   getSessionTenantId,
   getSessionTokens,
-  setSessionTokens,
+  applyAuthSessionPayload,
+  hasAccessSession,
   signOutClientAndRedirectToLogin,
   subscribeToAuthBroadcasts,
 } from "@/lib/auth";
@@ -26,6 +27,11 @@ import {
   isPosSoftAuthActive,
   notifyPosSessionExpired,
 } from "@/lib/pos-soft-auth";
+import {
+  getOrCreateTillDeviceId,
+  peekTillDeviceId,
+  TILL_DEVICE_HEADER,
+} from "@/lib/till-device";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import {
   delay,
@@ -219,8 +225,9 @@ async function resolveUnauthorizedResponse(
 }
 
 type LoginResponse = {
-  accessToken: string;
+  accessToken?: string;
   refreshToken?: string;
+  session?: { exp?: number; businessId?: string; sub?: string };
 };
 
 /** Send httpOnly refresh cookie on auth/session API calls. */
@@ -1102,6 +1109,17 @@ export function buildRequestHeaders(
     headers["X-Tenant-Id"] = tenantId;
   }
 
+  // Till device id: mint on POS shells; otherwise send if already present
+  // (e.g. login-pin after getOrCreate in loginWithPin).
+  if (typeof window !== "undefined") {
+    const tillId = isPosSoftAuthActive()
+      ? getOrCreateTillDeviceId()
+      : peekTillDeviceId();
+    if (tillId) {
+      headers[TILL_DEVICE_HEADER] = tillId;
+    }
+  }
+
   if (
     process.env.NODE_ENV === "development" &&
     typeof window !== "undefined" &&
@@ -1176,9 +1194,9 @@ export async function refreshAccessToken(): Promise<RefreshOutcome> {
   if (inFlightRefresh) {
     return inFlightRefresh;
   }
-  inFlightRefresh = (async () => {
+  inFlightRefresh = (async (): Promise<RefreshOutcome> => {
     const baselineAccessToken = getSessionTokens()?.accessToken;
-    return withAuthRefreshLock(async () => {
+    return withAuthRefreshLock(async (): Promise<RefreshOutcome> => {
       const current = getSessionTokens()?.accessToken;
       if (
         baselineAccessToken &&
@@ -1217,14 +1235,9 @@ async function applyRefreshResponse(response: Response): Promise<RefreshOutcome>
   } catch {
     return { kind: "network" };
   }
-  if (!payload.accessToken) {
+  if (!applyAuthSessionPayload(payload)) {
     return { kind: "rejected" };
   }
-
-  setSessionTokens({
-    accessToken: payload.accessToken,
-    refreshToken: payload.refreshToken,
-  });
 
   return { kind: "ok" };
 }
@@ -1390,11 +1403,11 @@ async function request<T>(
       throw new DOMException("Aborted", "AbortError");
     }
     let session = requiresAuth ? getSessionTokens() : null;
-    if (requiresAuth && !session?.accessToken) {
+    if (requiresAuth && !session?.accessToken && !hasAccessSession()) {
       await restoreClientSessionFromCookie();
       session = getSessionTokens();
     }
-    if (requiresAuth && !session?.accessToken) {
+    if (requiresAuth && !session?.accessToken && !hasAccessSession()) {
       const refresh = await refreshAccessToken();
       if (refresh.kind === "ok") {
         session = getSessionTokens();
@@ -1706,16 +1719,17 @@ export async function fetchWebOrderReceiptThermal(
 export async function loginWithPassword(
   email: string,
   password: string,
+  options?: { toast?: boolean },
 ): Promise<void> {
   const payload = await request<LoginResponse>(API_ROUTES.login, {
     method: "POST",
     body: { email, password },
     requiresAuth: false,
+    toast: options?.toast,
   });
-  setSessionTokens({
-    accessToken: payload.accessToken,
-    refreshToken: payload.refreshToken,
-  });
+  if (!applyAuthSessionPayload(payload)) {
+    throw new ApiRequestError("Login failed: no session returned.", 502, payload);
+  }
 }
 
 export async function loginWithPin(
@@ -1723,15 +1737,67 @@ export async function loginWithPin(
   pin: string,
   branchId: string,
 ): Promise<void> {
+  // Ensure X-Till-Device-Id is present for audit + trusted-till policy.
+  getOrCreateTillDeviceId();
   const payload = await request<LoginResponse>(API_ROUTES.loginPin, {
     method: "POST",
     body: { email, pin, branchId },
     requiresAuth: false,
+    toast: false,
   });
-  setSessionTokens({
-    accessToken: payload.accessToken,
-    refreshToken: payload.refreshToken,
-  });
+  if (!applyAuthSessionPayload(payload)) {
+    throw new ApiRequestError("Login failed: no session returned.", 502, payload);
+  }
+}
+
+/**
+ * Same-cashier unlock: reissue access on the existing refresh session (no rotation).
+ * Returns false when the server has no usable session — caller should use loginWithPin.
+ */
+export async function unlockWithPinSession(
+  email: string,
+  pin: string,
+  branchId: string,
+): Promise<boolean> {
+  getOrCreateTillDeviceId();
+  try {
+    const payload = await request<LoginResponse>(API_ROUTES.unlockPin, {
+      method: "POST",
+      body: { email, pin, branchId },
+      requiresAuth: false,
+      toast: false,
+    });
+    if (!applyAuthSessionPayload(payload)) {
+      throw new ApiRequestError(
+        "Unlock failed: no session returned.",
+        502,
+        payload,
+      );
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof ApiRequestError && isUnlockPinFallbackable(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/** 401 with no-session / idle / already-rotated → try full login-pin instead. */
+function isUnlockPinFallbackable(error: ApiRequestError): boolean {
+  if (error.status !== 401) {
+    return false;
+  }
+  const msg = error.message.toLowerCase();
+  // Wrong PIN must not fall through (would double-count lockout failures).
+  if (msg.includes("incorrect email or password")) {
+    return false;
+  }
+  return (
+    msg.includes("no active session to unlock") ||
+    msg.includes("session idle timeout") ||
+    msg.includes("refresh token already rotated")
+  );
 }
 
 /**

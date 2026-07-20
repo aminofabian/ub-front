@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { FormDrawerFields } from "@/components/form-drawer";
+import { TrustedTillsPanel } from "@/components/business/trusted-tills-panel";
 import { Button } from "@/components/ui/button";
 import {
   MAX_FEATURED,
@@ -912,6 +913,15 @@ export function BusinessSettingsForm({
                 </div>
               </details>
             </FormDrawerFields>
+          </SettingsAnchor>
+
+          <SettingsAnchor id="settings-trusted-tills">
+            <TrustedTillsPanel
+              branches={activeBranches}
+              defaultBranchId={
+                storefront.catalogBranchId || activeBranches[0]?.id || null
+              }
+            />
           </SettingsAnchor>
         </>
       ) : null}

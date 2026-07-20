@@ -11,14 +11,15 @@ import {
   decodeAuthHandoffPayload,
 } from "@/lib/auth-handoff";
 import {
-  getSessionTokens,
+  applyAuthSessionPayload,
   ensureSessionPresenceCookie,
+  hasAccessSession,
   persistTenantHostAfterAuth,
   setSessionTenantId,
-  setSessionTokens,
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
 
 function AuthHandoffInner() {
@@ -39,12 +40,12 @@ function AuthHandoffInner() {
         window.history.replaceState(null, "", pathOnly + qs);
       }
 
+      const nextFallback = searchParams.get("next");
+      const slug = searchParams.get("slug");
+
       if (!fromHash) {
-        const existing = getSessionTokens();
-        const nextFallback = searchParams.get("next");
-        if (existing && nextFallback?.startsWith("/")) {
+        if (hasAccessSession() && nextFallback?.startsWith("/")) {
           clearAuthHandoffFragment();
-          const slug = searchParams.get("slug");
           persistTenantHostAfterAuth(slug ?? undefined);
           router.replace(nextFallback);
           return;
@@ -52,25 +53,52 @@ function AuthHandoffInner() {
       }
 
       const raw = fromHash || consumeAuthHandoffFragment() || "";
+      const data = raw ? decodeAuthHandoffPayload(raw) : null;
 
-      if (!raw) {
-        clearAuthHandoffFragment();
-        if (!cancelled) {
-          setError("Missing session. Return to sign in and try again.");
+      // Preferred Gap G path: restore from shared refresh cookie (no access in URL).
+      if (!data?.accessToken) {
+        const restored = await restoreClientSessionFromCookie();
+        if (cancelled) {
+          return;
         }
+        if (!restored && !hasAccessSession()) {
+          clearAuthHandoffFragment();
+          setError(
+            "Missing session. Return to sign in and try again. If this keeps happening, confirm APP_AUTH_REFRESH_COOKIE_DOMAIN covers shop subdomains.",
+          );
+          return;
+        }
+        if (data?.tenantId?.trim()) {
+          setSessionTenantId(data.tenantId.trim());
+        }
+        persistTenantHostAfterAuth(slug ?? undefined);
+        clearAuthHandoffFragment();
+
+        const outcome = await refreshAccessToken();
+        if (cancelled) {
+          return;
+        }
+        if (outcome.kind === "rejected" && !hasAccessSession()) {
+          setError("Session transfer failed. Sign in again.");
+          return;
+        }
+        const cookieOk = await ensureSessionPresenceCookie();
+        if (!cookieOk) {
+          setError(
+            "Could not save your session (Safari may be blocking cookies). Return to sign in and allow cookies for this site.",
+          );
+          return;
+        }
+
+        const nextRaw =
+          searchParams.get("next") ?? data?.nextPath ?? APP_ROUTES.business;
+        const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
+        submitStoreSessionNavigate(next);
         return;
       }
 
-      const data = decodeAuthHandoffPayload(raw);
-      if (!data) {
-        clearAuthHandoffFragment();
-        if (!cancelled) {
-          setError("Invalid or expired session transfer.");
-        }
-        return;
-      }
-
-      setSessionTokens({
+      // Legacy fragment with access JWT (older clients / in-flight navigations).
+      applyAuthSessionPayload({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
       });
@@ -79,7 +107,6 @@ function AuthHandoffInner() {
         setSessionTenantId(data.tenantId.trim());
       }
 
-      const slug = searchParams.get("slug");
       persistTenantHostAfterAuth(slug ?? undefined);
       clearAuthHandoffFragment();
 
@@ -87,7 +114,7 @@ function AuthHandoffInner() {
       if (cancelled) {
         return;
       }
-      if (outcome.kind === "rejected" && !getSessionTokens()?.accessToken) {
+      if (outcome.kind === "rejected" && !hasAccessSession()) {
         setError("Session transfer failed. Sign in again.");
         return;
       }

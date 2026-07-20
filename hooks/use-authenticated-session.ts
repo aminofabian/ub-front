@@ -7,7 +7,7 @@ import {
   useClientHasSession,
   useClientSessionReady,
 } from "@/hooks/use-client-session";
-import { getSessionTokens, syncSessionPresenceCookie } from "@/lib/auth";
+import { hasAccessSession, syncSessionPresenceCookie } from "@/lib/auth";
 import { APP_ROUTES } from "@/lib/config";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { startSessionRefresh } from "@/lib/session-refresh";
@@ -37,7 +37,7 @@ export function useAuthenticatedSession(
     if (typeof window === "undefined") {
       return false;
     }
-    return Boolean(getSessionTokens());
+    return hasAccessSession();
   });
   const restoring = clientReady && !restoreDone;
 
@@ -45,7 +45,8 @@ export function useAuthenticatedSession(
     if (!clientReady || restoreDone) {
       return;
     }
-    if (getSessionTokens() || hasSession) {
+    // Gap G: bootstrap alone is not enough — access lives in cookie + claims.
+    if (hasAccessSession()) {
       setRestoreDone(true);
       return;
     }
@@ -59,7 +60,7 @@ export function useAuthenticatedSession(
     return () => {
       cancelled = true;
     };
-  }, [clientReady, restoreDone, hasSession]);
+  }, [clientReady, restoreDone]);
 
   const ready = clientReady && restoreDone;
 
@@ -67,11 +68,13 @@ export function useAuthenticatedSession(
     if (!ready) {
       return;
     }
-    if (requireAuth && !hasSession && !getSessionTokens()) {
+    if (requireAuth && !hasSession && !hasAccessSession()) {
       router.replace(loginPath);
       return;
     }
-    if (!getSessionTokens() && !hasSession) {
+    // Bootstrap-only hints are not enough to refresh — wait until Gap G claims
+    // (or a memory JWT) exist, otherwise refresh failure signs the user out.
+    if (!hasAccessSession()) {
       return;
     }
     syncSessionPresenceCookie();
@@ -80,7 +83,7 @@ export function useAuthenticatedSession(
 
   return {
     ready,
-    hasSession: hasSession || Boolean(getSessionTokens()),
+    hasSession: hasSession || hasAccessSession(),
     restoring,
   };
 }

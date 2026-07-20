@@ -4,6 +4,8 @@
  * {@link POS_SESSION_EXPIRED_EVENT} and shows an explicit reauth dialog.
  */
 
+import { hasTillUnlockContext } from "@/lib/till-unlock-context";
+
 export const POS_SESSION_EXPIRED_EVENT = "ub:pos-session-expired";
 
 export type PosSessionExpiredDetail = {
@@ -50,11 +52,19 @@ export function notifyPosSessionExpired(message?: string): void {
   const detail: PosSessionExpiredDetail = {
     message:
       message?.trim() ||
-      "Your session expired. Sign in again to keep selling — your cart stays on this screen.",
+      "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
   };
   window.dispatchEvent(
     new CustomEvent(POS_SESSION_EXPIRED_EVENT, { detail }),
   );
+}
+
+/**
+ * When till unlock context exists, the PIN overlay handles reauth — hide the
+ * generic Session expired modal to avoid dual dialogs.
+ */
+export function shouldShowPosSessionExpiredModal(): boolean {
+  return !hasTillUnlockContext();
 }
 
 /** Test helper — resets module state between unit tests. */

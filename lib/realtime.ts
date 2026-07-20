@@ -199,14 +199,13 @@ async function mintTicket(channels: string[]): Promise<TicketResponse> {
    * the backend reuse cascade.
    */
   const attempt = async (): Promise<Response> => {
-    const tokens = getSessionTokens();
-    if (!tokens) {
-      throw new Error("No session tokens available");
-    }
+    // Gap G: prefer httpOnly `ub.access` via BFF Bearer inject. Memory access
+    // is optional (sent when present for direct-API / desktop).
+    const access = getSessionTokens()?.accessToken?.trim();
     return fetch(apiUrl("/api/v1/realtime/tickets"), {
       method: "POST",
       credentials: "include",
-      headers: buildAuthHeaders(tokens.accessToken),
+      headers: buildAuthHeaders(access),
       body: JSON.stringify({ channels }),
     });
   };
@@ -230,11 +229,14 @@ async function mintTicket(channels: string[]): Promise<TicketResponse> {
   return response.json() as Promise<TicketResponse>;
 }
 
-function buildAuthHeaders(accessToken: string): Record<string, string> {
+function buildAuthHeaders(accessToken?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken}`,
   };
+  const bearer = accessToken?.trim();
+  if (bearer) {
+    headers.Authorization = `Bearer ${bearer}`;
+  }
   if (typeof window !== "undefined") {
     const host = getSessionTenantHost();
     if (host) headers["X-Tenant-Host"] = host;
@@ -705,14 +707,8 @@ export class RealtimeClient {
    */
   private async handleReauthAndReconnect(): Promise<void> {
     try {
-      if (!getSessionTokens()) {
-        if (isPosSoftAuthActive()) {
-          notifyPosSessionExpired();
-          return;
-        }
-        signOutClientAndRedirectToLogin("realtime reauth: no session tokens");
-        return;
-      }
+      // Gap G: memory may be empty after reload; refresh/restore still work via
+      // httpOnly cookies. Only hard-fail when refresh itself is rejected.
       const outcome = await refreshAccessToken();
       if (outcome.kind === "ok") {
         this.attemptReconnect();
@@ -808,11 +804,10 @@ export class RealtimeClient {
   private async pollNotifications(): Promise<void> {
     if (!this.channels.includes("notifications")) return;
     try {
-      const tokens = getSessionTokens();
-      if (!tokens) return;
       const url = apiUrl("/api/v1/notifications");
       const response = await fetch(url, {
-        headers: buildAuthHeaders(tokens.accessToken),
+        credentials: "include",
+        headers: buildAuthHeaders(getSessionTokens()?.accessToken),
       });
       if (response.ok) {
         const notifications = await response.json();

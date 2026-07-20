@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  getSessionClaims,
   getSessionTokens,
+  hasAccessSession,
   signOutClientAndRedirectToLogin,
   subscribeToAuthBroadcasts,
   syncSessionPresenceCookie,
@@ -57,6 +59,10 @@ function clearLegacyRefreshTokenFromStorage(): void {
 }
 
 function getAccessTokenExpiry(): number | null {
+  const fromClaims = getSessionClaims()?.exp;
+  if (typeof fromClaims === "number") {
+    return fromClaims * 1000;
+  }
   const tokens = getSessionTokens();
   if (!tokens?.accessToken) return null;
   const exp = parseAccessTokenClaims(tokens.accessToken)?.exp;
@@ -79,8 +85,7 @@ function scheduleNextRefresh() {
 }
 
 async function performRefresh(): Promise<void> {
-  const tokens = getSessionTokens();
-  if (!tokens) return;
+  if (!hasAccessSession()) return;
 
   const outcome = await refreshAccessToken();
   if (outcome.kind === "ok") {
@@ -91,7 +96,7 @@ async function performRefresh(): Promise<void> {
   if (outcome.kind === "rejected") {
     consecutiveRefreshRejections += 1;
     const recovered = await tryRecoverSessionBeforeSignOut(
-      tokens.accessToken,
+      getSessionTokens()?.accessToken,
     );
     if (recovered) {
       consecutiveRefreshRejections = 0;
@@ -112,7 +117,7 @@ async function performRefresh(): Promise<void> {
     if (isPosSoftAuthActive()) {
       // Stay on the till; shell shows an explicit reauth dialog.
       notifyPosSessionExpired(
-        "Your session expired. Sign in again to keep selling — your cart stays on this screen.",
+        "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
       );
       return;
     }
@@ -235,10 +240,16 @@ export function startSessionRefresh(): () => void {
   document.addEventListener("visibilitychange", visibilityHandler);
 
   /*
-   * Coming back online after a connectivity blip is also a good moment to
-   * re-check the session - we may have failed a refresh while offline.
+   * Coming back online: always attempt a refresh (not only when near expiry).
+   * Offline periods often leave a still-valid access JWT that is about to die,
+   * or a cookie that needs rotation before POS flushes the sale outbox.
    */
-  const onlineHandler = () => onActivity();
+  const onlineHandler = () => {
+    if (!hasAccessSession()) {
+      return;
+    }
+    void performRefresh();
+  };
   window.addEventListener("online", onlineHandler);
 
   return () => {

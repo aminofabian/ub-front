@@ -80,6 +80,17 @@ describe("auth-handoff", () => {
     });
   });
 
+  it("accepts cookie-restore handoff without access token", () => {
+    const enc = encodeAuthHandoffPayload({
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+      nextPath: "/cashier",
+    });
+    expect(decodeAuthHandoffPayload(enc)).toEqual({
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+      nextPath: "/cashier",
+    });
+  });
+
   it("buffers and consumes fragment within TTL", () => {
     withSessionStorage(() => {
       sessionStorage.clear();

@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  applyAccessTokenCookie,
+  clearAccessTokenCookies,
+  isAccessTokenClearPath,
+  isAccessTokenMintPath,
+  readAccessTokenFromCookieHeader,
+} from "@/lib/access-token-cookie";
+import { redactAccessTokenFromAuthJson } from "@/lib/auth-session-claims";
+
 const HEADER_ALLOWLIST = [
   "authorization",
   "content-type",
@@ -8,6 +17,7 @@ const HEADER_ALLOWLIST = [
   "x-request-id",
   "x-tenant-id",
   "x-tenant-host",
+  "x-till-device-id",
   "x-test-user-id",
   "x-test-role-id",
 ] as const;
@@ -85,6 +95,14 @@ function buildUpstreamHeaders(req: NextRequest): Headers {
   if (cookie) {
     h.set("cookie", cookie);
   }
+  // Gap G: inject Bearer from httpOnly `ub.access` when the browser did not
+  // send Authorization (storage cleared / future memory-only clients).
+  if (!h.get("authorization")) {
+    const access = readAccessTokenFromCookieHeader(cookie);
+    if (access) {
+      h.set("authorization", `Bearer ${access}`);
+    }
+  }
   if (!h.get("x-tenant-host")) {
     const tenantHost = resolveTenantHostHeader(req);
     if (tenantHost) {
@@ -92,6 +110,14 @@ function buildUpstreamHeaders(req: NextRequest): Headers {
     }
   }
   return h;
+}
+
+function requestIsHttps(req: NextRequest): boolean {
+  const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  if (proto) {
+    return proto.toLowerCase() === "https";
+  }
+  return req.nextUrl.protocol === "https:";
 }
 
 /**
@@ -112,13 +138,21 @@ function readSetCookieHeaders(from: Headers): string[] {
 }
 
 function copyUpstreamHeaders(from: Headers, to: NextResponse): void {
-  const setCookies = readSetCookieHeaders(from);
   from.forEach((value, key) => {
     const lower = key.toLowerCase();
     if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
     to.headers.set(key, value);
   });
-  for (const cookie of setCookies) {
+  appendUpstreamSetCookies(from, to);
+}
+
+/**
+ * Append upstream Set-Cookie lines. Must run AFTER any `cookies.set()` calls —
+ * Next rebuilds the Set-Cookie header from its cookie jar and would drop
+ * previously appended upstream cookies (e.g. httpOnly `ub.refresh`).
+ */
+function appendUpstreamSetCookies(from: Headers, to: NextResponse): void {
+  for (const cookie of readSetCookieHeaders(from)) {
     to.headers.append("Set-Cookie", rewriteSetCookieForFrontend(cookie));
   }
 }
@@ -243,12 +277,54 @@ export async function proxyToBackend(
   // 204/205/304 must not carry a body. Passing `upstream.body` here can hang or
   // break the client (e.g. POST /api/v1/auth/resend-verification → 204 No Content).
   const status = upstream.status;
-  const proxyBody = status === 204 || status === 205 || status === 304 ? null : upstream.body;
+  const secure = requestIsHttps(req);
+  const mintAccess = status === 200 && isAccessTokenMintPath(url.pathname);
+  const clearAccess =
+    status >= 200 &&
+    status < 300 &&
+    isAccessTokenClearPath(url.pathname);
+
+  if (mintAccess) {
+    const rawBody = await upstream.text();
+    // Gap G3: cookie holds the JWT; browser JSON gets session claims only.
+    const { bodyText, accessToken } = redactAccessTokenFromAuthJson(rawBody);
+    const out = new NextResponse(bodyText, {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: { "Content-Type": "application/json" },
+    });
+    // Non-cookie headers first, then ub.access via cookies.set, then upstream
+    // Set-Cookie (ub.refresh) so Next does not wipe the refresh cookie.
+    upstream.headers.forEach((value, key) => {
+      const lower = key.toLowerCase();
+      if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
+      out.headers.set(key, value);
+    });
+    if (accessToken) {
+      applyAccessTokenCookie(out, accessToken, { secure });
+    }
+    appendUpstreamSetCookies(upstream.headers, out);
+    return out;
+  }
+
+  const proxyBody =
+    status === 204 || status === 205 || status === 304 ? null : upstream.body;
 
   const out = new NextResponse(proxyBody, {
     status: upstream.status,
     statusText: upstream.statusText,
   });
+  if (clearAccess) {
+    // Clear access first, then forward upstream Set-Cookie (refresh clear).
+    upstream.headers.forEach((value, key) => {
+      const lower = key.toLowerCase();
+      if (SKIP_OUT_HEADERS.has(lower) || lower === "set-cookie") return;
+      out.headers.set(key, value);
+    });
+    clearAccessTokenCookies(out, { secure });
+    appendUpstreamSetCookies(upstream.headers, out);
+    return out;
+  }
   copyUpstreamHeaders(upstream.headers, out);
   return out;
 }

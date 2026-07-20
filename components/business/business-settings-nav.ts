@@ -3,6 +3,7 @@ import {
   Banknote,
   Building2,
   ClipboardList,
+  MonitorSmartphone,
   ShoppingCart,
   Store,
   Truck,
@@ -29,6 +30,12 @@ export const BUSINESS_SETTINGS_NAV: BusinessSettingsNavItem[] = [
   { id: "settings-shifts", label: "Shifts & cash", group: "Till", icon: Banknote },
   { id: "settings-cashier", label: "Cashier", group: "Till", icon: ShoppingCart },
   { id: "settings-pos-drafts", label: "POS drafts", group: "Till", icon: ClipboardList },
+  {
+    id: "settings-trusted-tills",
+    label: "Trusted tills",
+    group: "Till",
+    icon: MonitorSmartphone,
+  },
 ];
 
 export const BUSINESS_SETTINGS_NAV_GROUPS = ["Business", "Inventory", "Till"] as const;

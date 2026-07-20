@@ -1,6 +1,7 @@
 "use client";
 
-import { getSessionTokens, setSessionTokens } from "@/lib/auth";
+import { applyAuthSessionPayload, hasAccessSession } from "@/lib/auth";
+import type { AuthSessionClaims } from "@/lib/auth-session-claims";
 import { STORAGE_KEYS } from "@/lib/config";
 import { withAuthRefreshLock } from "@/lib/cross-tab-lock";
 import {
@@ -11,6 +12,7 @@ import {
 type RestoreSessionResponse = {
   accessToken?: string;
   refreshToken?: string;
+  session?: AuthSessionClaims;
   tenantId?: string;
   tenantHost?: string | null;
   bootstrap?: {
@@ -22,7 +24,7 @@ type RestoreSessionResponse = {
 
 let restorePromise: Promise<boolean> | null = null;
 
-/** Restore access token from httpOnly refresh cookie (iPad localStorage fallback). */
+/** Restore session from httpOnly cookies into JS claims (Gap G3: no JWT in JS). */
 export function restoreClientSessionFromCookie(): Promise<boolean> {
   if (typeof window === "undefined") {
     return Promise.resolve(false);
@@ -30,38 +32,39 @@ export function restoreClientSessionFromCookie(): Promise<boolean> {
   if (restorePromise) {
     return restorePromise;
   }
-
-  const baselineAccessToken = getSessionTokens()?.accessToken;
+  if (hasAccessSession()) {
+    return Promise.resolve(true);
+  }
 
   restorePromise = (async () => {
     try {
       return await withAuthRefreshLock(async () => {
-        // Sibling refresh/restore may have filled storage while we waited.
-        const existing = getSessionTokens()?.accessToken?.trim();
-        if (
-          existing &&
-          (!baselineAccessToken || existing !== baselineAccessToken)
-        ) {
+        if (hasAccessSession()) {
           return true;
         }
 
-        const response = await fetch("/api/auth/restore-session", {
+        // Prefer /api/auth/restore-session (reads ub.access). If that 401s —
+        // often because Spring's ub.refresh is path-scoped to /api/v1/auth and
+        // was not sent to /api/auth/* — fall back to the BFF refresh path.
+        let response = await fetch("/api/auth/restore-session", {
           method: "POST",
           credentials: "include",
         });
         if (!response.ok) {
+          response = await fetch("/api/v1/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: "{}",
+          });
+        }
+        if (!response.ok) {
           return false;
         }
         const payload = (await response.json()) as RestoreSessionResponse;
-        const accessToken = payload.accessToken?.trim();
-        if (!accessToken) {
+        if (!applyAuthSessionPayload(payload)) {
           return false;
         }
-
-        setSessionTokens({
-          accessToken,
-          refreshToken: payload.refreshToken,
-        });
 
         if (payload.tenantId?.trim()) {
           try {

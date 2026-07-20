@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  applyAccessTokenCookie,
+  readAccessTokenFromCookieHeader,
+} from "@/lib/access-token-cookie";
+import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
 } from "@/lib/auth-route-guard";
@@ -33,10 +37,15 @@ function readField(form: FormData, key: string): string {
 /**
  * After client-side login, finalize the session via native form POST so the
  * server can prefetch dashboard data before redirect (iPad-safe).
+ * Gap G3: prefers httpOnly `ub.access` when the form omits accessToken.
  */
 export async function POST(request: NextRequest) {
   const form = await request.formData();
-  const accessToken = readField(form, "accessToken");
+  const formAccess = readField(form, "accessToken");
+  const cookieAccess = readAccessTokenFromCookieHeader(
+    request.headers.get("cookie"),
+  );
+  const accessToken = formAccess || cookieAccess || "";
   const refreshToken = readField(form, "refreshToken");
   const tenantId = readField(form, "tenantId");
   const requestedNext = String(form.get("next") ?? "");
@@ -84,6 +93,7 @@ export async function POST(request: NextRequest) {
     secure,
     httpOnly: false,
   });
+  applyAccessTokenCookie(response, accessToken, { secure });
 
   return response;
 }

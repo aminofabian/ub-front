@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useOptionalPosTillLock } from "@/components/auth/pos-till-lock";
 import { Button } from "@/components/ui/button";
 import {
   itemListThumbnailUrl,
@@ -922,19 +923,24 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
     }
   }, []);
 
+  const tillLock = useOptionalPosTillLock();
+  const tillLocked = tillLock?.locked === true;
+
   const applyBarcodeSearch = useCallback(
     (code: string) => {
+      if (tillLocked) return;
       const trimmed = code.trim();
       if (!trimmed) return;
       setSearch(trimmed);
       // Next frame so the controlled value is painted, then select for the next scan.
       window.requestAnimationFrame(() => focusSearch(true));
     },
-    [setSearch, focusSearch],
+    [setSearch, focusSearch, tillLocked],
   );
 
   usePosBarcodeWedge({
     enabled:
+      !tillLocked &&
       !drawerOpen &&
       !modalOpen &&
       !showScanner &&
@@ -948,8 +954,11 @@ export function CashierPosLayout(props: CashierPosLayoutProps) {
   });
 
   useEffect(() => {
+    if (tillLocked) {
+      return;
+    }
     focusSearch();
-  }, [focusSearch]);
+  }, [focusSearch, tillLocked]);
 
   const hitIdsKey = useMemo(
     () =>

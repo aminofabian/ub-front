@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Lock, MapPin, Settings2 } from "lucide-react";
+import { Lock, LockKeyhole, MapPin, Settings2 } from "lucide-react";
 
+import { usePosTillLock } from "@/components/auth/pos-till-lock";
+import { RegisterTillControl } from "@/components/auth/register-till-control";
 import { CashierAdminCapabilitiesModal } from "@/components/cashier/cashier-admin-capabilities-modal";
 import { PushNotificationsEnable } from "@/components/push-notifications-enable";
 import { RealtimeConnectionIndicator } from "@/components/realtime-connection-indicator";
@@ -19,6 +21,10 @@ import { APP_ROUTES } from "@/lib/config";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { POS_CASHIER_CAPABILITY_FLAGS } from "@/lib/pos-cashier-capabilities";
+import {
+  getOrCreateTillDeviceId,
+  tillDeviceDisplayName,
+} from "@/lib/till-device";
 import { cn } from "@/lib/utils";
 
 type CashierShellProps = {
@@ -42,8 +48,16 @@ export function CashierShell({ children }: CashierShellProps) {
     itemTypesLoading,
     refreshSession,
   } = useDashboard();
+  const { lock: lockTill, locked: tillLocked } = usePosTillLock();
   const featureFlags = useFeatureFlags();
   const [capsOpen, setCapsOpen] = useState(false);
+  const [tillLabel, setTillLabel] = useState("");
+  const cashierName = me?.name?.trim() || me?.email?.trim() || "";
+
+  useEffect(() => {
+    getOrCreateTillDeviceId();
+    setTillLabel(tillDeviceDisplayName());
+  }, []);
 
   const currentBranch = branches.find((b) => b.id === branchId);
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
@@ -133,6 +147,16 @@ export function CashierShell({ children }: CashierShellProps) {
               </span>
               <RealtimeConnectionIndicator />
             </div>
+            {(cashierName && !loading) || tillLabel ? (
+              <p
+                className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground"
+                title={[cashierName, tillLabel].filter(Boolean).join(" · ")}
+              >
+                {[cashierName && !loading ? cashierName : null, tillLabel]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            ) : null}
             <div className="mt-1 flex flex-wrap items-center gap-2">
               {branchLockedRole ? (
                 currentBranch ? (
@@ -203,16 +227,23 @@ export function CashierShell({ children }: CashierShellProps) {
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-x-1 gap-y-1">
             {canManageCashierCapabilities ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setCapsOpen(true)}
-              >
-                <Settings2 className="size-3.5" aria-hidden />
-                Till settings
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCapsOpen(true)}
+                >
+                  <Settings2 className="size-3.5" aria-hidden />
+                  Till settings
+                </Button>
+                <RegisterTillControl
+                  branchId={branchId}
+                  disabled={tillLocked}
+                  onRegistered={(label) => setTillLabel(label)}
+                />
+              </>
             ) : null}
             {roleKey !== "cashier" ? (
               <>
@@ -239,6 +270,17 @@ export function CashierShell({ children }: CashierShellProps) {
               label="Push alerts"
               className="hidden sm:block"
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 border-[color-mix(in_srgb,var(--pos-ink,#1c1915)_14%,transparent)] bg-transparent text-xs shadow-none"
+              disabled={tillLocked}
+              onClick={() => lockTill({ reason: "manual" })}
+            >
+              <LockKeyhole className="size-3.5" aria-hidden />
+              Lock till
+            </Button>
             <Button
               type="button"
               variant="outline"

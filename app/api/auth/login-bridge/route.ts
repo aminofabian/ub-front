@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { applyAccessTokenCookie } from "@/lib/access-token-cookie";
 import {
   SESSION_PRESENCE_COOKIE,
   SESSION_PRESENCE_MAX_AGE_SEC,
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
     secure,
     httpOnly: false,
   });
+  applyAccessTokenCookie(response, accessToken, { secure });
 
   return response;
 }

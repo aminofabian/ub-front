@@ -4,10 +4,12 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { signOutClientAndRedirectToLogin } from "@/lib/auth";
+import { APP_ROUTES } from "@/lib/config";
 import {
   enterPosSoftAuth,
   leavePosSoftAuth,
   POS_SESSION_EXPIRED_EVENT,
+  shouldShowPosSessionExpiredModal,
   type PosSessionExpiredDetail,
 } from "@/lib/pos-soft-auth";
 
@@ -39,10 +41,15 @@ function PosSessionExpiredModal() {
 
   useEffect(() => {
     const onExpired = (event: Event) => {
+      // Cashier till PIN lock handles reauth when unlock context exists.
+      if (!shouldShowPosSessionExpiredModal()) {
+        setOpen(false);
+        return;
+      }
       const detail = (event as CustomEvent<PosSessionExpiredDetail>).detail;
       setMessage(
         detail?.message?.trim() ||
-          "Your session expired. Sign in again to keep selling — your cart stays on this screen.",
+          "Your session expired. Sign in again to keep selling — your cart is saved on this device.",
       );
       setOpen(true);
     };
@@ -55,6 +62,11 @@ function PosSessionExpiredModal() {
   if (!open) {
     return null;
   }
+
+  const returnPath =
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : APP_ROUTES.cashier;
 
   return (
     <>
@@ -87,7 +99,11 @@ function PosSessionExpiredModal() {
             type="button"
             className="flex-1"
             onClick={() => {
-              signOutClientAndRedirectToLogin("pos session expired modal");
+              signOutClientAndRedirectToLogin("pos session expired modal", {
+                nextPath: returnPath.startsWith("/")
+                  ? returnPath
+                  : APP_ROUTES.cashier,
+              });
             }}
           >
             Sign in again

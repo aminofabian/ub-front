@@ -1,6 +1,5 @@
 import {
   getSessionTenantId,
-  getSessionTokens,
   persistTenantHostAfterAuth,
 } from "@/lib/auth";
 import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
@@ -69,19 +68,12 @@ async function syncSlugAndNavigate(
     return;
   }
 
-  const tokens = getSessionTokens();
   const tenantId = getSessionTenantId();
-  if (!tokens) {
-    persistTenantHostAfterAuth(slug, normalizedPrimary);
-    navigateAfterAuth(nextHint);
-    return;
-  }
 
-  // Never put the refresh token in the URL fragment — prefer the httpOnly
-  // cookie (shared via APP_AUTH_REFRESH_COOKIE_DOMAIN). Handoff page calls
-  // refreshAccessToken() after installing the access JWT.
+  // Gap G: never put access/refresh JWTs in the URL. Shop host restores via
+  // shared httpOnly refresh cookie (APP_AUTH_REFRESH_COOKIE_DOMAIN) + restore-session.
+  // Optional fragment carries only non-secret tenant/next hints.
   const fragment = encodeAuthHandoffPayload({
-    accessToken: tokens.accessToken,
     tenantId: tenantId ?? undefined,
     nextPath: nextHint,
   });

@@ -1,12 +1,28 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
-import { clearAllSessionData, clearSessionTokens, getSessionTokens } from "@/lib/auth";
+import {
+  __resetMemoryAccessTokenForTests,
+  applyAuthSessionPayload,
+  clearAllSessionData,
+  clearSessionTokens,
+  getSessionTokens,
+  hasAccessSession,
+  setSessionTokens,
+} from "@/lib/auth";
 import { STORAGE_KEYS } from "@/lib/config";
 import {
   readSessionBootstrap,
   SESSION_BOOTSTRAP_KEYS,
   writeSessionBootstrap,
 } from "@/lib/session-bootstrap";
+import {
+  readPersistedTillLock,
+  writePersistedTillLock,
+} from "@/lib/till-lock-persist";
+import {
+  hasTillUnlockContext,
+  writeTillUnlockContext,
+} from "@/lib/till-unlock-context";
 
 function createMemoryStorage(): Storage {
   const store: Record<string, string> = {};
@@ -30,61 +46,109 @@ function createMemoryStorage(): Storage {
   } as Storage;
 }
 
+function installStorages(local: Storage, session: Storage): void {
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: local,
+  });
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: session,
+  });
+
+  const win =
+    (globalThis as typeof globalThis & { window?: Window }).window ??
+    (globalThis as unknown as Window);
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: win,
+  });
+  Object.defineProperty(win, "localStorage", {
+    configurable: true,
+    value: local,
+  });
+  Object.defineProperty(win, "sessionStorage", {
+    configurable: true,
+    value: session,
+  });
+  Object.defineProperty(win, "location", {
+    configurable: true,
+    value: {
+      protocol: "http:",
+      hostname: "localhost",
+      href: "http://localhost/",
+    },
+  });
+
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: { cookie: "" },
+  });
+  Object.defineProperty(win, "document", {
+    configurable: true,
+    value: (globalThis as typeof globalThis & { document: Document }).document,
+  });
+}
+
 describe("clearSessionTokens / clearAllSessionData", () => {
   beforeEach(() => {
-    const local = createMemoryStorage();
-    const session = createMemoryStorage();
-    globalThis.localStorage = local;
-    globalThis.sessionStorage = session;
-    const g = globalThis as typeof globalThis & {
-      window?: Window & typeof globalThis;
-      document?: Document;
-    };
-    if (!g.window) {
-      g.window = globalThis as unknown as Window & typeof globalThis;
-    }
-    g.window.localStorage = local;
-    g.window.sessionStorage = session;
-    Object.defineProperty(g.window, "location", {
-      value: { protocol: "http:", hostname: "localhost", href: "http://localhost/" },
-      configurable: true,
-    });
-    if (!g.document) {
-      g.document = {
-        cookie: "",
-      } as Document;
-    } else {
-      g.document.cookie = "";
-    }
+    __resetMemoryAccessTokenForTests();
+    installStorages(createMemoryStorage(), createMemoryStorage());
     globalThis.fetch = (async () =>
       new Response(null, { status: 204 })) as typeof fetch;
   });
 
-  it("clearSessionTokens removes access tokens from both storages", () => {
-    window.localStorage.setItem(STORAGE_KEYS.accessToken, "local-access");
-    window.sessionStorage.setItem(STORAGE_KEYS.accessToken, "session-access");
-    window.localStorage.setItem(STORAGE_KEYS.refreshToken, "local-refresh");
-    window.sessionStorage.setItem(STORAGE_KEYS.refreshToken, "session-refresh");
+  it("setSessionTokens keeps access in memory and purges web storage", () => {
+    window.localStorage.setItem(STORAGE_KEYS.accessToken, "legacy");
+    setSessionTokens({ accessToken: "mem-access" });
+
+    expect(getSessionTokens()?.accessToken).toBe("mem-access");
+    expect(window.localStorage.getItem(STORAGE_KEYS.accessToken)).toBeNull();
+    expect(window.sessionStorage.getItem(STORAGE_KEYS.accessToken)).toBeNull();
+  });
+
+  it("clearSessionTokens clears memory and legacy storage", () => {
+    setSessionTokens({ accessToken: "mem-access" });
+    window.localStorage.setItem(STORAGE_KEYS.accessToken, "ghost");
 
     clearSessionTokens();
 
+    expect(getSessionTokens()).toBeNull();
     expect(window.localStorage.getItem(STORAGE_KEYS.accessToken)).toBeNull();
+  });
+
+  it("adopts legacy storage access into memory once", () => {
+    window.sessionStorage.setItem(STORAGE_KEYS.accessToken, "ghost-access");
+    expect(getSessionTokens()?.accessToken).toBe("ghost-access");
     expect(window.sessionStorage.getItem(STORAGE_KEYS.accessToken)).toBeNull();
-    expect(window.localStorage.getItem(STORAGE_KEYS.refreshToken)).toBeNull();
-    expect(window.sessionStorage.getItem(STORAGE_KEYS.refreshToken)).toBeNull();
+  });
+
+  it("applyAuthSessionPayload accepts claims-only (cookie-only) sessions", () => {
+    expect(
+      applyAuthSessionPayload({
+        session: { exp: 1_700_000_000, businessId: "biz-1" },
+      }),
+    ).toBe(true);
+    expect(hasAccessSession()).toBe(true);
     expect(getSessionTokens()).toBeNull();
   });
 
-  it("clearAllSessionData clears sessionStorage-only tokens and bootstrap", () => {
-    // Mimic incomplete prior logout: localStorage wiped, sessionStorage left behind.
-    window.sessionStorage.setItem(STORAGE_KEYS.accessToken, "ghost-access");
-    window.sessionStorage.setItem(STORAGE_KEYS.refreshToken, "ghost-refresh");
-    writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me, { id: "u1", email: "a@b.c" });
+  it("clearAllSessionData clears bootstrap and till unlock context", () => {
+    setSessionTokens({ accessToken: "mem-access" });
+    writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me, {
+      id: "u1",
+      email: "a@b.c",
+    });
     writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.business, { id: "b1" });
     writeSessionBootstrap(SESSION_BOOTSTRAP_KEYS.branches, [{ id: "br1" }]);
-
-    expect(getSessionTokens()?.accessToken).toBe("ghost-access");
-    expect(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me)).not.toBeNull();
+    writeTillUnlockContext({
+      email: "a@b.c",
+      branchId: "br1",
+      displayName: "Ada",
+      userId: "u1",
+    });
+    writePersistedTillLock("manual");
 
     clearAllSessionData();
 
@@ -92,5 +156,7 @@ describe("clearSessionTokens / clearAllSessionData", () => {
     expect(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.me)).toBeNull();
     expect(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.business)).toBeNull();
     expect(readSessionBootstrap(SESSION_BOOTSTRAP_KEYS.branches)).toBeNull();
+    expect(hasTillUnlockContext()).toBe(false);
+    expect(readPersistedTillLock()).toBeNull();
   });
 });

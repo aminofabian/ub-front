@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, type CSSProperties, type ReactNode } from "react";
-import { LogOut, Moon, Sun } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import { LockKeyhole, LogOut, Moon, Sun } from "lucide-react";
 
+import { usePosTillLock } from "@/components/auth/pos-till-lock";
+import { RegisterTillControl } from "@/components/auth/register-till-control";
 import { ButcherNav } from "@/components/butcher/butcher-nav";
 import {
   ButcherThemeProvider,
@@ -19,6 +27,11 @@ import { APP_ROUTES } from "@/lib/config";
 import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { useClientMounted } from "@/hooks/use-client-mounted";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { hasPermission, Permission } from "@/lib/permissions";
+import {
+  getOrCreateTillDeviceId,
+  tillDeviceDisplayName,
+} from "@/lib/till-device";
 import { cn } from "@/lib/utils";
 
 type ButcherShellProps = {
@@ -37,8 +50,15 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
   const router = useRouter();
   const online = useOnlineStatus();
   const { me, business, branches, branchId } = useDashboard();
+  const { lock: lockTill, locked: tillLocked } = usePosTillLock();
+  const [tillLabel, setTillLabel] = useState("");
 
   const roleKey = me?.role?.key?.trim().toLowerCase() ?? "";
+
+  useEffect(() => {
+    getOrCreateTillDeviceId();
+    setTillLabel(tillDeviceDisplayName());
+  }, []);
 
   useEffect(() => {
     if (roleKey === "cashier") {
@@ -62,6 +82,10 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
     mounted &&
     roleKey !== "butcher_cashier" &&
     !isButcheryOnlyBusiness(business);
+  const canRegisterTill =
+    hasPermission(me?.permissions, Permission.BusinessManageSettings) ||
+    roleKey === "owner" ||
+    roleKey === "admin";
 
   const displayName = useMemo(() => {
     const n = me?.name?.trim();
@@ -97,10 +121,13 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
                 {business?.name?.trim() || "Butcher counter"}
               </p>
               <p className="truncate text-[11px] text-[rgb(var(--bp-fg-muted))]">
-                {displayName}
-                {currentBranch?.name?.trim()
-                  ? ` · ${currentBranch.name.trim()}`
-                  : ""}
+                {[
+                  displayName,
+                  currentBranch?.name?.trim() || null,
+                  tillLabel || null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
           </div>
@@ -123,6 +150,27 @@ function ButcherShellFrame({ children }: ButcherShellProps) {
                 <Link href={APP_ROUTES.business}>Dashboard</Link>
               </Button>
             ) : null}
+
+            {canRegisterTill ? (
+              <RegisterTillControl
+                branchId={branchId}
+                disabled={tillLocked}
+                buttonClassName="text-[rgb(var(--bp-fg-faint))] hover:bg-[rgb(var(--bp-hover))] hover:text-[rgb(var(--bp-fg))]"
+                onRegistered={(label) => setTillLabel(label)}
+              />
+            ) : null}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 px-2 text-xs text-[rgb(var(--bp-fg-faint))] hover:bg-[rgb(var(--bp-hover))] hover:text-[rgb(var(--bp-fg))]"
+              disabled={tillLocked}
+              onClick={() => lockTill({ reason: "manual" })}
+            >
+              <LockKeyhole className="size-3.5" aria-hidden />
+              Lock
+            </Button>
 
             <Button
               type="button"

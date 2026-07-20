@@ -10,8 +10,14 @@ import {
   SESSION_PRESENCE_MAX_AGE_SEC,
   STORAGE_KEYS,
 } from "@/lib/config";
+import {
+  claimsFromAccessToken,
+  type AuthSessionClaims,
+} from "@/lib/auth-session-claims";
 import { businessIdFromAccessToken } from "@/lib/jwt-client";
 import { clearAllSessionBootstrap } from "@/lib/session-bootstrap";
+import { clearPersistedTillLock } from "@/lib/till-lock-persist";
+import { clearTillUnlockContext } from "@/lib/till-unlock-context";
 import { stripLeadingWww, tenantHostsMatch } from "@/lib/tenant-host";
 
 export type SessionTokens = {
@@ -19,6 +25,8 @@ export type SessionTokens = {
   /** Present during handoff migration; otherwise stored in httpOnly cookie. */
   refreshToken?: string;
 };
+
+export type { AuthSessionClaims };
 
 /*
  * Cross-tab auth synchronization.
@@ -37,6 +45,7 @@ export type SessionTokens = {
  */
 type AuthBroadcastMessage =
   | { type: "tokens"; accessToken: string; refreshToken?: string }
+  | { type: "session"; session: AuthSessionClaims }
   | { type: "logout" };
 
 const AUTH_CHANNEL_NAME = "ub-auth";
@@ -47,15 +56,88 @@ let authChannel: BroadcastChannel | null = null;
 const authListeners = new Set<AuthBroadcastListener>();
 let storageListenerInstalled = false;
 
+/**
+ * Gap G: access JWT lives in process memory (XSS cannot read localStorage for
+ * it). Survives only for the tab lifetime; reload uses httpOnly `ub.access` /
+ * restore-session. Cross-tab sync via BroadcastChannel.
+ */
+let memoryAccessToken: string | null = null;
+/** Gap G3: non-secret exp/businessId when the JWT is cookie-only. */
+let memorySessionClaims: AuthSessionClaims | null = null;
+
+function applyMemoryAccessToken(accessToken: string | null | undefined): void {
+  const trimmed = accessToken?.trim() || "";
+  memoryAccessToken = trimmed || null;
+}
+
+function applyMemorySessionClaims(
+  claims: AuthSessionClaims | null | undefined,
+): void {
+  if (!claims || (claims.exp == null && !claims.businessId && !claims.sub)) {
+    memorySessionClaims = null;
+    return;
+  }
+  memorySessionClaims = {
+    exp: claims.exp,
+    businessId: claims.businessId,
+    sub: claims.sub,
+  };
+}
+
+function purgeLegacyAccessTokenStorage(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.removeItem(STORAGE_KEYS.accessToken);
+    window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    window.sessionStorage.removeItem(STORAGE_KEYS.accessToken);
+    window.sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
+  } catch {
+    /* private mode */
+  }
+}
+
+function adoptLegacyAccessTokenFromStorage(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const legacy =
+      window.localStorage.getItem(STORAGE_KEYS.accessToken)?.trim() ||
+      window.sessionStorage.getItem(STORAGE_KEYS.accessToken)?.trim() ||
+      "";
+    if (!legacy) {
+      return null;
+    }
+    applyMemoryAccessToken(legacy);
+    applyMemorySessionClaims(claimsFromAccessToken(legacy));
+    purgeLegacyAccessTokenStorage();
+    return legacy;
+  } catch {
+    return null;
+  }
+}
+
 function getAuthChannel(): BroadcastChannel | null {
   if (typeof window === "undefined") return null;
   if (authChannel) return authChannel;
-  if (typeof BroadcastChannel === "undefined") return null;
+  const BroadcastChannelCtor = globalThis.BroadcastChannel;
+  if (typeof BroadcastChannelCtor !== "function") return null;
   try {
-    authChannel = new BroadcastChannel(AUTH_CHANNEL_NAME);
+    authChannel = new BroadcastChannelCtor(AUTH_CHANNEL_NAME);
     authChannel.addEventListener("message", (event) => {
       const data = event.data as AuthBroadcastMessage | undefined;
       if (!data || typeof data.type !== "string") return;
+      if (data.type === "tokens") {
+        applyMemoryAccessToken(data.accessToken);
+        applyMemorySessionClaims(claimsFromAccessToken(data.accessToken));
+      } else if (data.type === "session") {
+        applyMemorySessionClaims(data.session);
+      } else if (data.type === "logout") {
+        applyMemoryAccessToken(null);
+        applyMemorySessionClaims(null);
+      }
       for (const listener of authListeners) {
         try {
           listener(data);
@@ -75,26 +157,21 @@ function installStorageFallback(): void {
   if (typeof window === "undefined") return;
   if (typeof window.addEventListener !== "function") return;
   storageListenerInstalled = true;
+  // Legacy only: adopt if another tab still dual-writes access to localStorage.
+  // Clears are ignored (Gap G purge must not look like cross-tab logout).
   window.addEventListener("storage", (event) => {
     if (event.storageArea !== window.localStorage) return;
-    if (event.key === STORAGE_KEYS.accessToken) {
-      const tokens = getSessionTokens();
-      if (tokens) {
-        for (const listener of authListeners) {
-          try {
-            listener({ type: "tokens", ...tokens });
-          } catch {
-            /* ignore */
-          }
-        }
-      } else if (event.newValue === null) {
-        for (const listener of authListeners) {
-          try {
-            listener({ type: "logout" });
-          } catch {
-            /* ignore */
-          }
-        }
+    if (event.key !== STORAGE_KEYS.accessToken) return;
+    const next = event.newValue?.trim();
+    if (!next) {
+      return;
+    }
+    applyMemoryAccessToken(next);
+    for (const listener of authListeners) {
+      try {
+        listener({ type: "tokens", accessToken: next });
+      } catch {
+        /* ignore */
       }
     }
   });
@@ -150,17 +227,13 @@ export function getSessionTokens(): SessionTokens | null {
   }
 
   const accessToken =
-    window.localStorage.getItem(STORAGE_KEYS.accessToken) ||
-    window.sessionStorage.getItem(STORAGE_KEYS.accessToken);
+    memoryAccessToken?.trim() || adoptLegacyAccessTokenFromStorage();
   if (!accessToken) {
     return null;
   }
-  const refreshToken =
-    window.localStorage.getItem(STORAGE_KEYS.refreshToken)?.trim() ||
-    window.sessionStorage.getItem(STORAGE_KEYS.refreshToken)?.trim();
   return {
     accessToken,
-    refreshToken: refreshToken || undefined,
+    // Refresh is httpOnly (`ub.refresh`); body/localStorage refresh is legacy.
   };
 }
 
@@ -230,7 +303,7 @@ export async function ensureSessionPresenceCookie(): Promise<boolean> {
 
 /** Sets the middleware hint when tokens exist (e.g. after deploy or cookie cleared). */
 export function syncSessionPresenceCookie(): void {
-  if (getSessionTokens()) {
+  if (hasAccessSession()) {
     setSessionPresenceCookie();
     void ensureSessionPresenceCookie();
   } else {
@@ -239,40 +312,86 @@ export function syncSessionPresenceCookie(): void {
 }
 
 export function setSessionTokens(tokens: SessionTokens): void {
-  const refresh = tokens.refreshToken?.trim();
-  try {
-    window.localStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
-    window.sessionStorage.setItem(STORAGE_KEYS.accessToken, tokens.accessToken);
-    if (refresh) {
-      window.localStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
-      window.sessionStorage.setItem(STORAGE_KEYS.refreshToken, refresh);
-    } else {
-      window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
-      window.sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
-    }
-  } catch {
-    throw new Error(
-      "Could not save your session. Allow site data for this domain (Safari Private Browsing blocks sign-in).",
-    );
+  const access = tokens.accessToken?.trim();
+  if (!access) {
+    return;
   }
+  applyMemoryAccessToken(access);
+  applyMemorySessionClaims(claimsFromAccessToken(access));
+  purgeLegacyAccessTokenStorage();
   setSessionPresenceCookie();
   void ensureSessionPresenceCookie();
   postAuthBroadcast({
     type: "tokens",
-    accessToken: tokens.accessToken,
-    refreshToken: refresh,
+    accessToken: access,
+    refreshToken: tokens.refreshToken?.trim() || undefined,
   });
+}
+
+/** Gap G3: establish a cookie-only session (no JWT in JS). */
+export function setSessionClaims(claims: AuthSessionClaims): void {
+  applyMemorySessionClaims(claims);
+  applyMemoryAccessToken(null);
+  purgeLegacyAccessTokenStorage();
+  const next = memorySessionClaims;
+  if (!next) {
+    return;
+  }
+  setSessionPresenceCookie();
+  void ensureSessionPresenceCookie();
+  postAuthBroadcast({ type: "session", session: { ...next } });
+}
+
+export function getSessionClaims(): AuthSessionClaims | null {
+  return memorySessionClaims;
+}
+
+/** True when cookie-only claims or a (legacy/desktop) memory JWT is present. */
+export function hasAccessSession(): boolean {
+  if (getSessionTokens()?.accessToken) {
+    return true;
+  }
+  const claims = memorySessionClaims;
+  return Boolean(claims && (claims.exp != null || claims.businessId || claims.sub));
+}
+
+/**
+ * Apply login/refresh/restore payloads after Gap G3 redaction.
+ * Prefers `session` claims; falls back to raw accessToken (desktop / legacy).
+ */
+export function applyAuthSessionPayload(payload: {
+  accessToken?: string;
+  refreshToken?: string;
+  session?: AuthSessionClaims;
+}): boolean {
+  const access = payload.accessToken?.trim();
+  if (access) {
+    setSessionTokens({
+      accessToken: access,
+      refreshToken: payload.refreshToken,
+    });
+    return true;
+  }
+  if (payload.session) {
+    setSessionClaims(payload.session);
+    return true;
+  }
+  return false;
 }
 
 export function clearSessionTokens(): void {
   if (typeof window === "undefined") {
     return;
   }
-  // Tokens are mirrored to both stores on login (iPad / Safari restore).
-  window.localStorage.removeItem(STORAGE_KEYS.accessToken);
-  window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
-  window.sessionStorage.removeItem(STORAGE_KEYS.accessToken);
-  window.sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
+  applyMemoryAccessToken(null);
+  applyMemorySessionClaims(null);
+  purgeLegacyAccessTokenStorage();
+}
+
+/** Test helper — resets in-memory access token between unit tests. */
+export function __resetMemoryAccessTokenForTests(): void {
+  memoryAccessToken = null;
+  memorySessionClaims = null;
 }
 
 /** Clears ALL session-related data on logout: tokens, tenant context, branch/item-type selections, caches. */
@@ -284,6 +403,9 @@ export function clearAllSessionData(): void {
   clearSessionTokens();
   // Prefetched /me + business + branches from login / cookie restore
   clearAllSessionBootstrap();
+  // Device-local till PIN unlock context (email/branch — never PIN)
+  clearTillUnlockContext();
+  clearPersistedTillLock();
   // Tenant context (session + durable copy)
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
@@ -355,7 +477,10 @@ export function finalizeClientSignOut(): void {
 }
 
 /** Clears ALL session data, disconnects realtime, and sends the user to login (e.g. unusable access JWT). */
-export function signOutClientAndRedirectToLogin(reason?: string): void {
+export function signOutClientAndRedirectToLogin(
+  reason?: string,
+  options?: { nextPath?: string },
+): void {
   if (typeof window === "undefined") {
     return;
   }
@@ -370,7 +495,12 @@ export function signOutClientAndRedirectToLogin(reason?: string): void {
   }
   signOutInProgress = true;
   finalizeClientSignOut();
-  window.location.assign(APP_ROUTES.login);
+  const next = options?.nextPath?.trim();
+  const loginUrl =
+    next && next.startsWith("/")
+      ? `${APP_ROUTES.login}?next=${encodeURIComponent(next)}`
+      : APP_ROUTES.login;
+  window.location.assign(loginUrl);
 }
 
 function readStoredTenantId(): string | null {
@@ -385,6 +515,11 @@ function readStoredTenantId(): string | null {
   if (fromLocal) {
     window.sessionStorage.setItem(STORAGE_KEYS.tenantId, fromLocal);
     return fromLocal;
+  }
+  const fromClaims = memorySessionClaims?.businessId?.trim();
+  if (fromClaims) {
+    persistTenantIdToStorage(fromClaims);
+    return fromClaims;
   }
   const fromJwt = businessIdFromAccessToken(getSessionTokens()?.accessToken);
   if (fromJwt) {
