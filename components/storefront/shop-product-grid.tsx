@@ -18,10 +18,10 @@ import {
 import { cn } from "@/lib/utils";
 
 const CARD_SHELL =
-  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_-4px_rgba(0,0,0,0.08)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_24px_-6px_rgba(0,0,0,0.12)]";
+  "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_6px_18px_-8px_rgba(0,0,0,0.1)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border/80 hover:shadow-[0_2px_6px_rgba(0,0,0,0.04),0_14px_28px_-10px_rgba(0,0,0,0.14)]";
 
 const IMAGE_WELL =
-  "relative block aspect-square w-full overflow-hidden border-b border-border/35 bg-white dark:bg-[oklch(0.99_0_0)]";
+  "relative block aspect-square w-full overflow-hidden bg-[linear-gradient(165deg,oklch(0.975_0.003_95)_0%,oklch(0.955_0.005_95)_100%)] dark:bg-[linear-gradient(165deg,oklch(0.22_0.01_95)_0%,oklch(0.18_0.01_95)_100%)]";
 
 function stockBadge(qty: number | null | undefined): {
   label: string;
@@ -36,14 +36,14 @@ function stockBadge(qty: number | null | undefined): {
     return {
       label: "Out of stock",
       className:
-        "border-destructive/30 bg-destructive text-destructive-foreground",
+        "border-destructive/25 bg-destructive/95 text-destructive-foreground shadow-sm",
       show: true,
     };
   }
   return {
     label: "Low stock",
     className:
-      "border-amber-700/50 bg-amber-500 text-amber-950 shadow-sm dark:border-amber-400/40 dark:bg-amber-400 dark:text-amber-950",
+      "border-amber-600/20 bg-amber-50 text-amber-900 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-100",
     show: true,
   };
 }
@@ -51,9 +51,9 @@ function stockBadge(qty: number | null | undefined): {
 function ProductImagePlaceholder({ name }: { name: string }) {
   const initial = name.slice(0, 1).toUpperCase();
   return (
-    <div className="flex h-full items-center justify-center bg-[linear-gradient(180deg,oklch(0.97_0.002_90)_0%,oklch(0.94_0.004_90)_100%)]">
+    <div className="flex h-full items-center justify-center">
       <span
-        className="flex size-12 items-center justify-center rounded-lg border border-border/40 bg-white text-lg font-semibold tracking-tight text-muted-foreground/40 shadow-sm"
+        className="flex size-11 items-center justify-center rounded-lg border border-border/50 bg-background/80 text-base font-semibold tracking-tight text-muted-foreground/35 shadow-sm backdrop-blur-sm"
         aria-hidden
       >
         {initial}
@@ -105,7 +105,7 @@ export default function ShopProductGrid({
   const animateFrom = newFromIndex ?? 0;
 
   return (
-    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 lg:gap-3.5 xl:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5">
       {items.map((item, index) => {
         const isNew = index >= animateFrom;
         const variantSubtitle = formatCatalogVariantSubtitle(item.variantName);
@@ -131,14 +131,14 @@ export default function ShopProductGrid({
                 : undefined
             }
           >
-            <article className={cn(CARD_SHELL, isOutOfStock && "opacity-65")}>
+            <article className={cn(CARD_SHELL, isOutOfStock && "opacity-60")}>
               <Link href={shopItemPathFromCard(item)} className={IMAGE_WELL} aria-label={ariaTitle}>
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
                     alt=""
                     fill
-                    className="object-contain p-4 transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+                    className="object-contain p-3.5 transition-transform duration-300 ease-out group-hover:scale-[1.03] sm:p-4"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     unoptimized
                   />
@@ -149,31 +149,31 @@ export default function ShopProductGrid({
                 {badge.show ? (
                   <span
                     className={cn(
-                      "absolute left-2 top-2 z-10 rounded-md border px-1.5 py-0.5 text-[9px] font-bold leading-none tracking-wide",
+                      "absolute left-2 top-2 z-10 rounded-md border px-1.5 py-1 text-[9px] font-semibold leading-none tracking-wide backdrop-blur-[2px]",
                       badge.className,
                     )}
                   >
                     {badge.label}
                   </span>
                 ) : inStoreOnly ? (
-                  <span className="absolute left-2 top-2 z-10 rounded-md border border-sky-600/35 bg-sky-600 px-1.5 py-0.5 text-[9px] font-bold leading-none tracking-wide text-white shadow-sm">
+                  <span className="absolute left-2 top-2 z-10 rounded-md border border-sky-700/20 bg-sky-50 px-1.5 py-1 text-[9px] font-semibold leading-none tracking-wide text-sky-900 shadow-sm backdrop-blur-[2px] dark:border-sky-400/30 dark:bg-sky-400/15 dark:text-sky-100">
                     In store
                   </span>
                 ) : null}
               </Link>
 
-              <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 pt-2">
-                <div className="flex min-h-[3.1rem] flex-col justify-start sm:min-h-[3.25rem]">
+              <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-2.5 sm:px-3 sm:pb-3 sm:pt-3">
+                <div className="flex min-h-[2.85rem] flex-col justify-start gap-0.5 sm:min-h-[3rem]">
                   <Link
                     href={shopItemPathFromCard(item)}
-                    className="line-clamp-1 text-[11px] font-semibold leading-snug text-foreground transition-colors hover:text-primary sm:text-xs"
+                    className="line-clamp-2 text-[12px] font-semibold leading-[1.35] tracking-tight text-foreground transition-colors hover:text-primary sm:text-[13px]"
                     title={title}
                   >
                     {title}
                   </Link>
                   <p
                     className={cn(
-                      "mt-0.5 line-clamp-1 text-[10px] leading-snug text-muted-foreground sm:text-[11px]",
+                      "line-clamp-1 text-[10px] leading-snug text-muted-foreground/85 sm:text-[11px]",
                       !variantSubtitle && "invisible",
                     )}
                     title={variantSubtitle ?? undefined}
@@ -182,9 +182,9 @@ export default function ShopProductGrid({
                   </p>
                 </div>
 
-                <div className="mt-auto border-t border-border/30 pt-1.5">
+                <div className="mt-auto flex flex-col gap-2">
                   {priceLabel ? (
-                    <p className="text-sm font-semibold tabular-nums tracking-tight text-foreground">
+                    <p className="text-[15px] font-bold tabular-nums tracking-tight text-foreground sm:text-base">
                       {priceLabel}
                     </p>
                   ) : (
@@ -192,10 +192,8 @@ export default function ShopProductGrid({
                       View options
                     </p>
                   )}
-                </div>
 
-                {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
-                  <div className="mt-2">
+                  {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
                     <ShopQuickAddButton
                       slug={slug}
                       itemId={item.id}
@@ -205,16 +203,16 @@ export default function ShopProductGrid({
                       maxQty={item.qtyOnHand}
                       className="w-full"
                     />
-                  </div>
-                ) : isOutOfStock ? (
-                  <p className="mt-2 text-center text-[10px] font-medium text-muted-foreground/70">
-                    Unavailable
-                  </p>
-                ) : inStoreOnly ? (
-                  <p className="mt-2 text-center text-[10px] font-medium text-sky-800/80 dark:text-sky-300/90">
-                    Available in store only
-                  </p>
-                ) : null}
+                  ) : isOutOfStock ? (
+                    <p className="py-1.5 text-center text-[10px] font-medium text-muted-foreground/70">
+                      Unavailable
+                    </p>
+                  ) : inStoreOnly ? (
+                    <p className="py-1.5 text-center text-[10px] font-medium text-sky-800/80 dark:text-sky-300/90">
+                      Available in store only
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </article>
           </li>

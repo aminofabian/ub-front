@@ -197,9 +197,9 @@ export function ShopQuickAddButton({
 
   const stepBtn = cn(
     "inline-flex items-center justify-center transition-colors duration-150",
-    "text-foreground/65 hover:bg-muted/80 hover:text-foreground",
+    "text-foreground/70 hover:bg-muted hover:text-foreground",
     "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35",
-    compact ? "size-6 rounded-md" : "size-8 rounded-full hover:shadow-sm",
+    compact ? "size-7 rounded-md" : "size-8 rounded-full hover:shadow-sm",
   );
 
   return (
@@ -213,7 +213,7 @@ export function ShopQuickAddButton({
         <div
           className={cn(
             "flex w-full items-center justify-between gap-1.5 border border-primary/20 bg-primary/[0.06] transition-all duration-300",
-            compact ? "rounded-md p-1 pl-1.5" : "gap-2 rounded-2xl p-1.5 pl-2.5 shadow-sm",
+            compact ? "rounded-lg p-1 pl-2" : "gap-2 rounded-2xl p-1.5 pl-2.5 shadow-sm",
             !compact &&
               "border-emerald-500/25 bg-linear-to-r from-emerald-500/12 via-emerald-400/8 to-transparent",
             justAdded &&
@@ -224,9 +224,9 @@ export function ShopQuickAddButton({
         >
           <span
             className={cn(
-              "flex min-w-0 items-center gap-1 font-semibold",
+              "flex min-w-0 items-center gap-1.5 font-semibold",
               compact
-                ? "text-[10px] text-primary"
+                ? "text-[11px] text-primary"
                 : "gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300",
             )}
           >
@@ -245,8 +245,8 @@ export function ShopQuickAddButton({
 
           <div
             className={cn(
-              "flex shrink-0 items-center gap-0.5 border border-border/50 bg-background p-0.5",
-              compact ? "rounded-md" : "gap-0.5 rounded-full shadow-sm backdrop-blur-sm",
+              "flex shrink-0 items-center border border-border/45 bg-background",
+              compact ? "gap-0 rounded-md p-0.5" : "gap-0.5 rounded-full p-0.5 shadow-sm backdrop-blur-sm",
             )}
           >
             <button
@@ -259,13 +259,13 @@ export function ShopQuickAddButton({
                 void onMinus();
               }}
             >
-              <Minus className="size-3.5" aria-hidden />
+              <Minus className={compact ? "size-3" : "size-3.5"} aria-hidden />
             </button>
             <span
               key={`cart-${qtyBump}`}
               className={cn(
-                "px-1 text-center font-bold tabular-nums text-foreground animate-shop-qty-pop",
-                compact ? "min-w-6 text-xs" : "min-w-7 text-sm",
+                "text-center font-bold tabular-nums text-foreground animate-shop-qty-pop",
+                compact ? "min-w-7 px-0.5 text-[13px]" : "min-w-7 px-1 text-sm",
               )}
               aria-live="polite"
             >
@@ -281,25 +281,26 @@ export function ShopQuickAddButton({
                 void onPlusPick();
               }}
             >
-              <Plus className="size-3.5" aria-hidden />
+              <Plus className={compact ? "size-3" : "size-3.5"} aria-hidden />
             </button>
           </div>
         </div>
       ) : (
         <div
           className={cn(
-            "flex w-full items-stretch border border-border/55 bg-muted/20 transition-all duration-200",
+            "flex w-full items-stretch transition-all duration-200",
             compact
-              ? "gap-1 rounded-md p-0.5 hover:border-border/80 hover:bg-muted/30"
-              : "gap-1 rounded-2xl p-1 shadow-sm backdrop-blur-sm hover:border-border hover:bg-muted/45 hover:shadow-md",
-            justAdded && "animate-shop-cart-added border-primary/35",
+              ? "gap-1.5"
+              : "gap-1 rounded-2xl border border-border/55 bg-muted/20 p-1 shadow-sm backdrop-blur-sm hover:border-border hover:bg-muted/45 hover:shadow-md",
+            justAdded && !compact && "animate-shop-cart-added border-primary/35",
+            justAdded && compact && "animate-shop-cart-added",
           )}
         >
           <div
             className={cn(
-              "flex flex-1 items-center justify-between gap-0.5 bg-background",
+              "flex flex-1 items-center justify-between bg-background",
               compact
-                ? "rounded-[5px] px-0.5 ring-1 ring-border/40"
+                ? "min-h-8 rounded-lg border border-border/55 px-0.5 hover:border-border/80"
                 : "rounded-xl px-0.5 py-0.5 shadow-inner ring-1 ring-black/[0.03]",
             )}
           >
@@ -313,45 +314,37 @@ export function ShopQuickAddButton({
                 void onMinus();
               }}
             >
-              <Minus className="size-3.5" aria-hidden />
+              <Minus className={compact ? "size-3" : "size-3.5"} aria-hidden />
             </button>
 
             <div
               className={cn(
-                "relative flex items-center justify-center px-0.5",
-                compact ? "min-w-6" : "min-w-8 flex-col",
+                "relative flex items-center justify-center",
+                compact ? "min-w-7 px-0.5" : "min-w-8 flex-col px-0.5",
               )}
             >
               <span
                 key={`pick-${qtyBump}`}
                 className={cn(
                   "font-bold tabular-nums leading-none text-foreground animate-shop-qty-pop",
-                  compact ? "text-xs" : "text-sm",
+                  compact ? "text-[13px]" : "text-sm",
                 )}
                 aria-live="polite"
               >
                 {pickQty}
               </span>
-              {pickQty > 1 ? (
-                <span
-                  className={cn(
-                    "mt-0.5 flex items-center gap-0.5 font-semibold text-primary/80",
-                    compact ? "text-[8px]" : "text-[9px]",
-                  )}
-                >
-                  {!compact ? <Sparkles className="size-2.5" aria-hidden /> : null}
-                  pack
-                </span>
-              ) : (
-                <span
-                  className={cn(
-                    "mt-0.5 font-medium text-muted-foreground/70",
-                    compact ? "text-[8px]" : "text-[9px]",
-                  )}
-                >
-                  qty
-                </span>
-              )}
+              {!compact ? (
+                pickQty > 1 ? (
+                  <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-primary/80">
+                    <Sparkles className="size-2.5" aria-hidden />
+                    pack
+                  </span>
+                ) : (
+                  <span className="mt-0.5 text-[9px] font-medium text-muted-foreground/70">
+                    qty
+                  </span>
+                )
+              ) : null}
             </div>
 
             <button
@@ -364,7 +357,7 @@ export function ShopQuickAddButton({
                 void onPlusPick();
               }}
             >
-              <Plus className="size-3.5" aria-hidden />
+              <Plus className={compact ? "size-3" : "size-3.5"} aria-hidden />
             </button>
           </div>
 
@@ -380,7 +373,7 @@ export function ShopQuickAddButton({
               "group relative flex shrink-0 items-center justify-center overflow-hidden bg-primary font-semibold text-primary-foreground transition-all duration-200",
               "hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60",
               compact
-                ? "min-h-7 gap-1 rounded-md border-l border-border/50 px-2.5 text-[10px] shadow-sm"
+                ? "min-h-8 gap-1 rounded-lg px-3 text-[11px] shadow-sm"
                 : "min-h-9 gap-1.5 rounded-xl px-3 text-xs font-bold shadow-md hover:shadow-lg",
             )}
           >
