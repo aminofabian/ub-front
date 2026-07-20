@@ -10,6 +10,17 @@ import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-s
 import { fmtKes } from "@/lib/business-hub/formatters";
 import { cn } from "@/lib/utils";
 
+/** Compact KES for bar tops — keeps the runway readable without hover. */
+function fmtBarKes(n: number): string {
+  if (n <= 0) return "";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(Math.round(n));
+}
+
+const BAR_TRACK_PX = 148;
+
 export function RevenueBarChart({
   points,
   ariaLabel,
@@ -23,6 +34,7 @@ export function RevenueBarChart({
 }) {
   const max = Math.max(...points.map((p) => p.value), 1);
   const showEveryLabel = points.length <= 8;
+  const activeDays = points.filter((p) => p.value > 0).length;
 
   return (
     <section
@@ -50,21 +62,24 @@ export function RevenueBarChart({
             ) : null}
           </div>
           <p className={cn("text-[11px] uppercase tracking-[0.14em]", HUB_MUTED)}>
-            Hover a bar for detail
+            {activeDays > 0
+              ? `${activeDays} day${activeDays === 1 ? "" : "s"} plotted`
+              : "Waiting on sales"}
           </p>
         </div>
 
         <div
-          className="flex h-44 items-end justify-between gap-1.5 sm:gap-2.5"
+          className="flex items-end justify-between gap-1.5 sm:gap-2.5"
+          style={{ height: BAR_TRACK_PX + 36 }}
           role="img"
           aria-label={ariaLabel}
         >
           {points.map((point, index) => {
-            const heightPct =
+            const heightPx =
               point.value <= 0
                 ? 0
-                : Math.max(6, Math.round((point.value / max) * 100));
-            const isHighlight = index === points.length - 1;
+                : Math.max(10, Math.round((point.value / max) * BAR_TRACK_PX));
+            const isHighlight = index === points.length - 1 && point.value > 0;
             const showLabel =
               showEveryLabel ||
               index === 0 ||
@@ -74,12 +89,12 @@ export function RevenueBarChart({
             return (
               <div
                 key={point.day}
-                className="group relative flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
+                className="group relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
                 style={{ height: "100%" }}
               >
                 <div
                   className={cn(
-                    "pointer-events-none absolute bottom-[calc(100%-0.25rem)] z-10 mb-1 hidden rounded-md border border-[#E8DFD0] bg-white px-2 py-1 text-[11px] shadow-sm group-hover:block",
+                    "pointer-events-none absolute bottom-full z-10 mb-1 hidden rounded-md border border-[#E8DFD0] bg-white px-2 py-1 text-[11px] shadow-sm group-hover:block",
                     "whitespace-nowrap text-[#3A3A3A]",
                   )}
                 >
@@ -89,27 +104,42 @@ export function RevenueBarChart({
                     {fmtKes(point.value)}
                   </span>
                 </div>
-                <div className="flex w-full flex-1 items-end justify-center">
+
+                <div
+                  className="flex w-full flex-col items-center justify-end"
+                  style={{ height: BAR_TRACK_PX }}
+                >
                   {point.value > 0 ? (
-                    <div
-                      className="w-full max-w-[32px] origin-bottom rounded-t-md transition-[height,background-color] duration-500 ease-out"
-                      style={{
-                        height: `${heightPct}%`,
-                        backgroundColor: isHighlight
-                          ? HUB_ACCENT
-                          : HUB_ACCENT_LIGHT,
-                        boxShadow: isHighlight
-                          ? "0 8px 20px rgba(176, 141, 72, 0.22)"
-                          : undefined,
-                      }}
-                    />
+                    <>
+                      <span
+                        className={cn(
+                          "mb-1 max-w-full truncate text-center text-[10px] font-semibold tabular-nums leading-none",
+                          isHighlight ? "text-[#8A6B2E]" : "text-[#6B6B6B]",
+                        )}
+                      >
+                        {fmtBarKes(point.value)}
+                      </span>
+                      <div
+                        className="w-full max-w-[36px] origin-bottom rounded-t-md transition-[height,background-color] duration-500 ease-out"
+                        style={{
+                          height: heightPx,
+                          backgroundColor: isHighlight
+                            ? HUB_ACCENT
+                            : HUB_ACCENT_LIGHT,
+                          boxShadow: isHighlight
+                            ? "0 8px 20px rgba(176, 141, 72, 0.22)"
+                            : undefined,
+                        }}
+                      />
+                    </>
                   ) : (
                     <div
-                      className="w-full max-w-[32px] rounded-full bg-[#E8E8E8]"
+                      className="w-full max-w-[36px] rounded-full bg-[#E8E8E8]"
                       style={{ height: 2 }}
                     />
                   )}
                 </div>
+
                 <span
                   className={cn(
                     "w-full truncate text-center text-[10px] leading-none",
