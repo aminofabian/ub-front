@@ -21,7 +21,7 @@ const CARD_SHELL =
   "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03),0_6px_18px_-8px_rgba(0,0,0,0.1)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border/80 hover:shadow-[0_2px_6px_rgba(0,0,0,0.04),0_14px_28px_-10px_rgba(0,0,0,0.14)]";
 
 const IMAGE_WELL =
-  "relative block aspect-square w-full overflow-hidden bg-[linear-gradient(165deg,oklch(0.975_0.003_95)_0%,oklch(0.955_0.005_95)_100%)] dark:bg-[linear-gradient(165deg,oklch(0.22_0.01_95)_0%,oklch(0.18_0.01_95)_100%)]";
+  "relative block aspect-[4/3] w-full overflow-hidden bg-[linear-gradient(165deg,oklch(0.975_0.003_95)_0%,oklch(0.955_0.005_95)_100%)] dark:bg-[linear-gradient(165deg,oklch(0.22_0.01_95)_0%,oklch(0.18_0.01_95)_100%)]";
 
 function stockBadge(qty: number | null | undefined): {
   label: string;
@@ -163,45 +163,57 @@ export default function ShopProductGrid({
               </Link>
 
               <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3 sm:pt-2.5">
-                <div className="flex flex-col gap-0.5">
+                <div className="flex min-h-[3.25rem] flex-col gap-0.5 sm:min-h-[3.4rem]">
                   <Link
                     href={shopItemPathFromCard(item)}
-                    className="line-clamp-2 text-[13px] font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-primary"
+                    className="line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-primary"
                     title={title}
                   >
                     {title}
                   </Link>
-                  {variantSubtitle ? (
-                    <p
-                      className="line-clamp-1 text-[11px] leading-snug text-muted-foreground"
-                      title={variantSubtitle}
-                    >
-                      {variantSubtitle}
-                    </p>
-                  ) : null}
+                  <p
+                    className={cn(
+                      "line-clamp-1 text-[11px] leading-snug text-muted-foreground",
+                      !variantSubtitle && "invisible",
+                    )}
+                    title={variantSubtitle ?? undefined}
+                  >
+                    {variantSubtitle ?? "\u00a0"}
+                  </p>
                 </div>
 
-                <div className="mt-2 border-t border-border/40 pt-2">
+                <div className="mt-auto flex flex-col gap-2 border-t border-border/40 pt-2">
                   {priceLabel ? (
                     <p className="text-[13px] font-semibold tabular-nums tracking-tight text-foreground">
                       {priceLabel}
                     </p>
                   ) : (
-                    <p className="text-[12px] font-medium text-primary">View options</p>
+                    <p className="invisible text-[13px] font-semibold" aria-hidden>
+                      —
+                    </p>
+                  )}
+
+                  {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
+                    <ShopQuickAddButton
+                      slug={slug}
+                      itemId={item.id}
+                      ariaLabel={`Add ${ariaTitle} to basket`}
+                      size="sm"
+                      variant="stepper"
+                      maxQty={item.qtyOnHand}
+                      className="w-full"
+                    />
+                  ) : !hasPrice ? (
+                    <Link
+                      href={shopItemPathFromCard(item)}
+                      className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-primary/8 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/12"
+                    >
+                      View options
+                    </Link>
+                  ) : (
+                    <div className="h-8" aria-hidden />
                   )}
                 </div>
-
-                {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
-                  <ShopQuickAddButton
-                    slug={slug}
-                    itemId={item.id}
-                    ariaLabel={`Add ${ariaTitle} to basket`}
-                    size="sm"
-                    variant="stepper"
-                    maxQty={item.qtyOnHand}
-                    className="mt-2 w-full"
-                  />
-                ) : null}
               </div>
             </article>
           </li>
