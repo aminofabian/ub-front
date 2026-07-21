@@ -8,6 +8,10 @@ import {
   dashboardInputClass,
   dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
+import {
+  MessagingTestResultCard,
+  messagingTestHeadline,
+} from "@/components/credits/messaging-test-result-card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -18,32 +22,6 @@ import {
 type Props = {
   canSend: boolean;
 };
-
-function formatSummary(r: CreditSaleReminderTestResult): string {
-  const parts = [
-    `Meta WhatsApp: ${r.metaWhatsAppConfigured ? "configured" : "not configured"}`,
-    `RapidAPI lookup: ${r.rapidApiConfigured ? "configured" : "not configured"}`,
-    `SMS fallback: ${r.smsConfigured ? "configured" : "not configured"}`,
-    `Lookup: ${
-      r.whatsAppLookupSkipped
-        ? "skipped"
-        : r.onWhatsApp
-          ? "on WhatsApp"
-          : "not on WhatsApp"
-    } (${r.lookupDetail})`,
-    `Result: ${r.outcome} via ${r.channel} — ${r.detail}`,
-  ];
-  if (/http_401|http_403/i.test(r.detail)) {
-    parts.push(
-      "Meta rejected the access token (401/403). In Credit tab reminders, paste a fresh permanent token from Meta Business Manager → WhatsApp → API setup, confirm the phone number ID matches that app, save, then retry.",
-    );
-  } else if (r.outcome === "failed" && r.channel === "whatsapp") {
-    parts.push(
-      "WhatsApp did not deliver. Free-form text only works if the recipient messaged your business number in the last 24 hours; otherwise use an approved template.",
-    );
-  }
-  return parts.join("\n");
-}
 
 export function WhatsAppTestPanel({ canSend }: Props) {
   const [phone, setPhone] = useState("");
@@ -70,9 +48,7 @@ export function WhatsAppTestPanel({ canSend }: Props) {
       setResult(res);
       const ok = res.outcome === "sent";
       setFeedback({
-        text: ok
-          ? `Sent via ${res.channel}. Check the recipient's phone.`
-          : formatSummary(res),
+        text: messagingTestHeadline(res),
         kind: ok ? "success" : "error",
       });
     } catch (err) {
@@ -140,9 +116,10 @@ export function WhatsAppTestPanel({ canSend }: Props) {
         </Button>
 
         {result ? (
-          <pre className="max-h-40 overflow-auto rounded-lg border border-border/60 bg-muted/30 p-3 text-xs whitespace-pre-wrap">
-            {formatSummary(result)}
-          </pre>
+          <MessagingTestResultCard
+            result={result}
+            showRemindersToggle={false}
+          />
         ) : null}
       </div>
     </section>

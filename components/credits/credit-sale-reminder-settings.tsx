@@ -10,6 +10,10 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import {
+  MessagingTestResultCard,
+  messagingTestHeadline,
+} from "@/components/credits/messaging-test-result-card";
+import {
   fetchCreditSaleReminderSettings,
   testCreditSaleReminderSend,
   updateCreditSaleReminderSettings,
@@ -89,23 +93,6 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
     void load();
   }, [load]);
 
-  const formatTestSummary = (r: CreditSaleReminderTestResult): string => {
-    const parts = [
-      `Enabled: ${r.remindersEnabled ? "yes" : "no"}`,
-      `RapidAPI: ${r.rapidApiConfigured ? "yes" : "no"}`,
-      `Meta WA: ${r.metaWhatsAppConfigured ? "yes" : "no"}`,
-      `SMS: ${r.smsConfigured ? "yes" : "no"}`,
-      `Lookup: ${r.whatsAppLookupSkipped ? "skipped" : r.onWhatsApp ? "on WhatsApp" : "not on WhatsApp"} (${r.lookupDetail})`,
-      `Result: ${r.outcome} via ${r.channel} — ${r.detail}`,
-    ];
-    if (r.outcome === "stub") {
-      parts.push(
-        "SMS provider is “none”: nothing is sent to the phone (server log only). Set Africa's Talking or fix WhatsApp.",
-      );
-    }
-    return parts.join("\n");
-  };
-
   const onTestSend = async () => {
     if (!canEdit) return;
     setTesting(true);
@@ -116,7 +103,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setTestResult(result);
       const ok = result.outcome === "sent";
       setMessage({
-        text: formatTestSummary(result),
+        text: messagingTestHeadline(result),
         kind: ok ? "success" : "error",
       });
     } catch (err) {
@@ -408,9 +395,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         ) : null}
 
         {testResult && canEdit ? (
-          <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-border/60 bg-muted/30 p-3 text-xs whitespace-pre-wrap">
-            {formatTestSummary(testResult)}
-          </pre>
+          <MessagingTestResultCard result={testResult} className="mt-3" />
         ) : null}
 
         {!canEdit ? (
