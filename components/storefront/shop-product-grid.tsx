@@ -138,7 +138,7 @@ export default function ShopProductGrid({
                     src={item.imageUrl}
                     alt=""
                     fill
-                    className="object-contain p-3.5 transition-transform duration-300 ease-out group-hover:scale-[1.03] sm:p-4"
+                    className="object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-[1.03] sm:p-2"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     unoptimized
                   />
@@ -149,70 +149,59 @@ export default function ShopProductGrid({
                 {badge.show ? (
                   <span
                     className={cn(
-                      "absolute left-2 top-2 z-10 rounded-md border px-1.5 py-1 text-[9px] font-semibold leading-none tracking-wide backdrop-blur-[2px]",
+                      "absolute left-1.5 top-1.5 z-10 rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.08em] backdrop-blur-[2px]",
                       badge.className,
                     )}
                   >
                     {badge.label}
                   </span>
                 ) : inStoreOnly ? (
-                  <span className="absolute left-2 top-2 z-10 rounded-md border border-sky-700/20 bg-sky-50 px-1.5 py-1 text-[9px] font-semibold leading-none tracking-wide text-sky-900 shadow-sm backdrop-blur-[2px] dark:border-sky-400/30 dark:bg-sky-400/15 dark:text-sky-100">
+                  <span className="absolute left-1.5 top-1.5 z-10 rounded-md border border-sky-700/20 bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.08em] text-sky-900 shadow-sm backdrop-blur-[2px] dark:border-sky-400/30 dark:bg-sky-400/15 dark:text-sky-100">
                     In store
                   </span>
                 ) : null}
               </Link>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2.5 pb-2.5 pt-2.5 sm:px-3 sm:pb-3 sm:pt-3">
-                <div className="flex min-h-[2.85rem] flex-col justify-start gap-0.5 sm:min-h-[3rem]">
+              <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3 sm:pt-2.5">
+                <div className="flex flex-col gap-0.5">
                   <Link
                     href={shopItemPathFromCard(item)}
-                    className="line-clamp-2 text-[12px] font-semibold leading-[1.35] tracking-tight text-foreground transition-colors hover:text-primary sm:text-[13px]"
+                    className="line-clamp-2 text-[13px] font-medium leading-snug tracking-tight text-foreground transition-colors hover:text-primary"
                     title={title}
                   >
                     {title}
                   </Link>
-                  <p
-                    className={cn(
-                      "line-clamp-1 text-[10px] leading-snug text-muted-foreground/85 sm:text-[11px]",
-                      !variantSubtitle && "invisible",
-                    )}
-                    title={variantSubtitle ?? undefined}
-                  >
-                    {variantSubtitle ?? "\u00a0"}
-                  </p>
-                </div>
-
-                <div className="mt-auto flex flex-col gap-2">
-                  {priceLabel ? (
-                    <p className="text-[15px] font-bold tabular-nums tracking-tight text-foreground sm:text-base">
-                      {priceLabel}
-                    </p>
-                  ) : (
-                    <p className="text-xs font-semibold text-primary">
-                      View options
-                    </p>
-                  )}
-
-                  {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
-                    <ShopQuickAddButton
-                      slug={slug}
-                      itemId={item.id}
-                      ariaLabel={`Add ${ariaTitle} to basket`}
-                      size="sm"
-                      variant="stepper"
-                      maxQty={item.qtyOnHand}
-                      className="w-full"
-                    />
-                  ) : isOutOfStock ? (
-                    <p className="py-1.5 text-center text-[10px] font-medium text-muted-foreground/70">
-                      Unavailable
-                    </p>
-                  ) : inStoreOnly ? (
-                    <p className="py-1.5 text-center text-[10px] font-medium text-sky-800/80 dark:text-sky-300/90">
-                      Available in store only
+                  {variantSubtitle ? (
+                    <p
+                      className="line-clamp-1 text-[11px] leading-snug text-muted-foreground"
+                      title={variantSubtitle}
+                    >
+                      {variantSubtitle}
                     </p>
                   ) : null}
                 </div>
+
+                <div className="mt-2 border-t border-border/40 pt-2">
+                  {priceLabel ? (
+                    <p className="text-[13px] font-semibold tabular-nums tracking-tight text-foreground">
+                      {priceLabel}
+                    </p>
+                  ) : (
+                    <p className="text-[12px] font-medium text-primary">View options</p>
+                  )}
+                </div>
+
+                {slug && !isOutOfStock && hasPrice && !inStoreOnly ? (
+                  <ShopQuickAddButton
+                    slug={slug}
+                    itemId={item.id}
+                    ariaLabel={`Add ${ariaTitle} to basket`}
+                    size="sm"
+                    variant="stepper"
+                    maxQty={item.qtyOnHand}
+                    className="mt-2 w-full"
+                  />
+                ) : null}
               </div>
             </article>
           </li>
