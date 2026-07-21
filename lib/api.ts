@@ -7748,6 +7748,10 @@ export type CreditSaleReminderSettingsRecord = {
   whatsappMetaGraphVersion: string;
   smsProvider: string;
   smsAfricasTalkingUsername: string | null;
+  smsSozuriProject: string | null;
+  smsSozuriFrom: string | null;
+  smsSozuriType: string | null;
+  smsSozuriApiUrl: string | null;
   hasRapidApiKey: boolean;
   rapidApiHost: string;
   rapidApiLookupUrl: string;
@@ -7755,6 +7759,7 @@ export type CreditSaleReminderSettingsRecord = {
   rapidApiPhoneDigitsOnly: boolean;
   hasWhatsappMetaAccessToken: boolean;
   hasSmsAfricasTalkingApiKey: boolean;
+  hasSmsSozuriApiKey: boolean;
   secretsReadable: boolean;
   secretsReadError: string | null;
 };
@@ -7773,6 +7778,11 @@ export type UpdateCreditSaleReminderSettingsPayload = {
   smsProvider?: string;
   smsAfricasTalkingUsername?: string | null;
   smsAfricasTalkingApiKey?: string | null;
+  smsSozuriProject?: string | null;
+  smsSozuriApiKey?: string | null;
+  smsSozuriFrom?: string | null;
+  smsSozuriType?: string | null;
+  smsSozuriApiUrl?: string | null;
 };
 
 export async function fetchCreditSaleReminderSettings(): Promise<CreditSaleReminderSettingsRecord> {

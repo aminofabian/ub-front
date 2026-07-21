@@ -50,6 +50,13 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [smsProvider, setSmsProvider] = useState("none");
   const [smsUsername, setSmsUsername] = useState("");
   const [smsApiKey, setSmsApiKey] = useState("");
+  const [smsSozuriProject, setSmsSozuriProject] = useState("");
+  const [smsSozuriApiKey, setSmsSozuriApiKey] = useState("");
+  const [smsSozuriFrom, setSmsSozuriFrom] = useState("Sozuri");
+  const [smsSozuriType, setSmsSozuriType] = useState("transactional");
+  const [smsSozuriApiUrl, setSmsSozuriApiUrl] = useState(
+    "https://sozuri.net/api/v1/messaging",
+  );
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<CreditSaleReminderTestResult | null>(
@@ -72,9 +79,16 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setWhatsappVersion(data.whatsappMetaGraphVersion || "v25.0");
       setSmsProvider(data.smsProvider || "none");
       setSmsUsername(data.smsAfricasTalkingUsername ?? "");
+      setSmsSozuriProject(data.smsSozuriProject ?? "");
+      setSmsSozuriFrom(data.smsSozuriFrom || "Sozuri");
+      setSmsSozuriType(data.smsSozuriType || "transactional");
+      setSmsSozuriApiUrl(
+        data.smsSozuriApiUrl || "https://sozuri.net/api/v1/messaging",
+      );
       setRapidApiKey("");
       setWhatsappToken("");
       setSmsApiKey("");
+      setSmsSozuriApiKey("");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not load reminder settings.";
       setMessage({
@@ -134,6 +148,14 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         smsProvider,
         smsAfricasTalkingUsername:
           smsProvider === "africas_talking" ? smsUsername.trim() : null,
+        smsSozuriProject: smsProvider === "sozuri" ? smsSozuriProject.trim() : null,
+        smsSozuriFrom: smsProvider === "sozuri" ? smsSozuriFrom.trim() || "Sozuri" : null,
+        smsSozuriType:
+          smsProvider === "sozuri" ? smsSozuriType.trim() || "transactional" : null,
+        smsSozuriApiUrl:
+          smsProvider === "sozuri"
+            ? smsSozuriApiUrl.trim() || "https://sozuri.net/api/v1/messaging"
+            : null,
       };
       if (rapidApiKey.trim()) {
         body.rapidApiKey = rapidApiKey.trim();
@@ -144,11 +166,15 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       if (smsApiKey.trim()) {
         body.smsAfricasTalkingApiKey = smsApiKey.trim();
       }
+      if (smsSozuriApiKey.trim()) {
+        body.smsSozuriApiKey = smsSozuriApiKey.trim();
+      }
       const updated = await updateCreditSaleReminderSettings(body);
       setSettings(updated);
       setRapidApiKey("");
       setWhatsappToken("");
       setSmsApiKey("");
+      setSmsSozuriApiKey("");
       setMessage({ text: "Reminder settings saved.", kind: "success" });
     } catch (err) {
       setMessage({
@@ -325,6 +351,10 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
 
         <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
           <p className="text-sm font-medium">SMS fallback</p>
+          <p className="text-xs text-muted-foreground">
+            Leave Sozuri fields blank to use Super Admin → Platform integrations defaults.
+            Provider &quot;None&quot; still inherits the platform default provider when set.
+          </p>
           <label className="flex flex-col gap-1.5 sm:max-w-xs">
             <span className={dashboardLabelClass()}>Provider</span>
             <select
@@ -335,6 +365,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             >
               <option value="none">None (log only in dev)</option>
               <option value="africas_talking">Africa&apos;s Talking</option>
+              <option value="sozuri">Sozuri</option>
             </select>
           </label>
           {smsProvider === "africas_talking" ? (
@@ -364,6 +395,76 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                   autoComplete="off"
                 />
               </label>
+            </>
+          ) : null}
+          {smsProvider === "sozuri" ? (
+            <>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>Project</span>
+                <input
+                  className={dashboardInputClass()}
+                  value={smsSozuriProject}
+                  onChange={(e) => setSmsSozuriProject(e.target.value)}
+                  placeholder="kiosk.ke"
+                  disabled={!canEdit}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>API key</span>
+                <input
+                  type="password"
+                  className={dashboardInputClass()}
+                  value={smsSozuriApiKey}
+                  onChange={(e) => setSmsSozuriApiKey(e.target.value)}
+                  placeholder={
+                    settings?.hasSmsSozuriApiKey
+                      ? "••••••••  (leave blank to keep)"
+                      : "Paste Sozuri API key"
+                  }
+                  disabled={!canEdit}
+                  autoComplete="off"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className={dashboardLabelClass()}>Sender ID (from)</span>
+                  <input
+                    className={dashboardInputClass()}
+                    value={smsSozuriFrom}
+                    onChange={(e) => setSmsSozuriFrom(e.target.value)}
+                    placeholder="Sozuri"
+                    disabled={!canEdit}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className={dashboardLabelClass()}>Message type</span>
+                  <select
+                    className={cn(dashboardInputClass(), "h-10")}
+                    value={smsSozuriType}
+                    onChange={(e) => setSmsSozuriType(e.target.value)}
+                    disabled={!canEdit}
+                  >
+                    <option value="transactional">Transactional</option>
+                    <option value="promotional">Promotional</option>
+                  </select>
+                </label>
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>API URL</span>
+                <input
+                  className={dashboardInputClass()}
+                  value={smsSozuriApiUrl}
+                  onChange={(e) => setSmsSozuriApiUrl(e.target.value)}
+                  placeholder="https://sozuri.net/api/v1/messaging"
+                  disabled={!canEdit}
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Callbacks (set in Sozuri dashboard):{" "}
+                <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
+                <span className="font-mono">/webhooks/sozuri/delivery</span> on your
+                API host. Use type that matches your registered sender ID.
+              </p>
             </>
           ) : null}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, Sparkles } from "lucide-react";
+import { KeyRound, MessageSquare, Sparkles } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
@@ -28,6 +28,12 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [rapidApiWhatsappPhoneField, setRapidApiWhatsappPhoneField] = useState("phone");
   const [rapidApiWhatsappPhoneDigitsOnly, setRapidApiWhatsappPhoneDigitsOnly] =
     useState(false);
+  const [smsProvider, setSmsProvider] = useState("none");
+  const [sozuriProject, setSozuriProject] = useState("");
+  const [sozuriApiKey, setSozuriApiKey] = useState("");
+  const [sozuriFrom, setSozuriFrom] = useState("Sozuri");
+  const [sozuriType, setSozuriType] = useState("transactional");
+  const [sozuriApiUrl, setSozuriApiUrl] = useState("https://sozuri.net/api/v1/messaging");
 
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
@@ -45,8 +51,14 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setRapidApiWhatsappLookupUrl(row.rapidApiWhatsappLookupUrl ?? "");
       setRapidApiWhatsappPhoneField(row.rapidApiWhatsappPhoneField || "phone");
       setRapidApiWhatsappPhoneDigitsOnly(Boolean(row.rapidApiWhatsappPhoneDigitsOnly));
+      setSmsProvider(row.smsProvider || "none");
+      setSozuriProject(row.sozuriProject ?? "");
+      setSozuriFrom(row.sozuriFrom || "Sozuri");
+      setSozuriType(row.sozuriType || "transactional");
+      setSozuriApiUrl(row.sozuriApiUrl || "https://sozuri.net/api/v1/messaging");
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
+      setSozuriApiKey("");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load integrations.");
     }
@@ -70,19 +82,26 @@ export default function SuperAdminPlatformIntegrationsPage() {
         rapidApiWhatsappLookupUrl: rapidApiWhatsappLookupUrl.trim(),
         rapidApiWhatsappPhoneField: rapidApiWhatsappPhoneField.trim() || "phone",
         rapidApiWhatsappPhoneDigitsOnly,
+        smsProvider: smsProvider.trim() || "none",
+        sozuriProject: sozuriProject.trim(),
+        sozuriFrom: sozuriFrom.trim() || "Sozuri",
+        sozuriType: sozuriType.trim() || "transactional",
+        sozuriApiUrl: sozuriApiUrl.trim() || "https://sozuri.net/api/v1/messaging",
       };
       if (deepseekApiKey.trim()) {
         body.deepseekApiKey = deepseekApiKey.trim();
-      } else if (settings && !settings.hasDeepseekApiKey && deepseekApiKey === "") {
-        // leave unchanged
       }
       if (rapidApiWhatsappKey.trim()) {
         body.rapidApiWhatsappKey = rapidApiWhatsappKey.trim();
+      }
+      if (sozuriApiKey.trim()) {
+        body.sozuriApiKey = sozuriApiKey.trim();
       }
       const updated = await updatePlatformIntegrations(body);
       setSettings(updated);
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
+      setSozuriApiKey("");
       setSuccess("Platform integration settings saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
@@ -92,7 +111,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
   };
 
   const onClearDeepseekKey = async () => {
-    if (!window.confirm("Remove the stored DeepSeek API key? Env fallback will be used if set.")) {
+    if (!window.confirm("Remove the stored DeepSeek API key?")) {
       return;
     }
     setBusy(true);
@@ -111,11 +130,7 @@ export default function SuperAdminPlatformIntegrationsPage() {
   };
 
   const onClearWhatsappKey = async () => {
-    if (
-      !window.confirm(
-        "Remove the stored RapidAPI WhatsApp key? Env / tenant overrides still apply.",
-      )
-    ) {
+    if (!window.confirm("Remove the stored RapidAPI WhatsApp key? Tenant overrides still apply.")) {
       return;
     }
     setBusy(true);
@@ -133,11 +148,30 @@ export default function SuperAdminPlatformIntegrationsPage() {
     }
   };
 
+  const onClearSozuriKey = async () => {
+    if (!window.confirm("Remove the stored Sozuri API key? Tenant overrides still apply.")) {
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const updated = await updatePlatformIntegrations({ sozuriApiKey: "" });
+      setSettings(updated);
+      setSozuriApiKey("");
+      setSuccess("Sozuri API key cleared.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear key.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <SuperAdminPageHeader
         title="Platform integrations"
-        description="Configure platform-wide API keys and provider endpoints. Values saved here override environment variables for all tenants."
+        description="Configure platform-wide API keys and provider endpoints in the admin UI. Tenants can still override per business."
       />
 
       {loadError ? <AuthAlert variant="error">{loadError}</AuthAlert> : null}
@@ -175,7 +209,6 @@ export default function SuperAdminPlatformIntegrationsPage() {
           {settings ? (
             <p className="text-xs text-muted-foreground">
               Stored key: {settings.hasDeepseekApiKey ? "yes" : "no"}
-              {settings.envDeepseekConfigured ? " · Env fallback (RAPIDAPI_DEEPSEEK_KEY / RAPIDAPI_KEY): yes" : ""}
             </p>
           ) : null}
 
@@ -252,14 +285,12 @@ export default function SuperAdminPlatformIntegrationsPage() {
                 <p className="text-sm font-medium">Credit reminders — WhatsApp lookup</p>
               </div>
               <p className="mb-3 text-xs text-muted-foreground">
-                Platform fallback when a tenant has not set their own RapidAPI settings. Tenants can
-                still override in Customers → Credit tab reminders. Switch host/URL to use a
-                different RapidAPI WhatsApp validator product.
+                Platform defaults for RapidAPI WhatsApp number lookup. Tenants can override in Credit
+                tab reminders.
               </p>
               {settings ? (
                 <p className="mb-2 text-xs text-muted-foreground">
                   Stored key: {settings.hasRapidapiWhatsappKey ? "yes" : "no"}
-                  {settings.envRapidapiWhatsappConfigured ? " · Env RAPIDAPI_KEY: yes" : ""}
                 </p>
               ) : null}
               <div className="space-y-4">
@@ -336,12 +367,121 @@ export default function SuperAdminPlatformIntegrationsPage() {
                   />
                   <span>Send digits only (strip + / spaces)</span>
                 </label>
+              </div>
+            </div>
+
+            <div className="border-t border-border/60 pt-4">
+              <div className="mb-3 flex items-center gap-2">
+                <MessageSquare className="size-4 text-muted-foreground" aria-hidden />
+                <p className="text-sm font-medium">SMS fallback — Sozuri</p>
+              </div>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Platform defaults for SMS. When SMS provider is Sozuri (here or on a tenant), these
+                credentials are used unless the tenant overrides them. No env vars required.
+              </p>
+              {settings ? (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Stored Sozuri key: {settings.hasSozuriApiKey ? "yes" : "no"}
+                </p>
+              ) : null}
+              <div className="space-y-4">
+                <div className="space-y-2 sm:max-w-xs">
+                  <label className="text-sm font-medium" htmlFor="sa-sms-provider">
+                    Default SMS provider
+                  </label>
+                  <select
+                    id="sa-sms-provider"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={smsProvider}
+                    onChange={(ev) => setSmsProvider(ev.target.value)}
+                  >
+                    <option value="none">None</option>
+                    <option value="sozuri">Sozuri</option>
+                    <option value="africas_talking">Africa&apos;s Talking (tenant creds)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-sozuri-project">
+                    Sozuri project
+                  </label>
+                  <Input
+                    id="sa-sozuri-project"
+                    value={sozuriProject}
+                    onChange={(ev) => setSozuriProject(ev.target.value)}
+                    placeholder="kiosk.ke"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-sozuri-key">
+                    Sozuri API key
+                  </label>
+                  <Input
+                    id="sa-sozuri-key"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasSozuriApiKey
+                        ? "••••••••  (leave blank to keep)"
+                        : "Paste Sozuri API key"
+                    }
+                    value={sozuriApiKey}
+                    onChange={(ev) => setSozuriApiKey(ev.target.value)}
+                  />
+                  {settings?.hasSozuriApiKey ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={busy}
+                      onClick={() => void onClearSozuriKey()}
+                    >
+                      Clear stored key
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sa-sozuri-from">
+                      Sender ID (from)
+                    </label>
+                    <Input
+                      id="sa-sozuri-from"
+                      value={sozuriFrom}
+                      onChange={(ev) => setSozuriFrom(ev.target.value)}
+                      placeholder="Sozuri"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sa-sozuri-type">
+                      Message type
+                    </label>
+                    <select
+                      id="sa-sozuri-type"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={sozuriType}
+                      onChange={(ev) => setSozuriType(ev.target.value)}
+                    >
+                      <option value="transactional">Transactional</option>
+                      <option value="promotional">Promotional</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-sozuri-url">
+                    API URL
+                  </label>
+                  <Input
+                    id="sa-sozuri-url"
+                    value={sozuriApiUrl}
+                    onChange={(ev) => setSozuriApiUrl(ev.target.value)}
+                    placeholder="https://sozuri.net/api/v1/messaging"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Example for WhatsApp Number Validator: host{" "}
-                  <span className="font-mono">whatsapp-number-validator3.p.rapidapi.com</span>, URL
-                  ending in{" "}
-                  <span className="font-mono">/WhatsappNumberHasItWithToken</span>, field{" "}
-                  <span className="font-mono">phone_number</span>, digits only on.
+                  Callbacks:{" "}
+                  <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
+                  <span className="font-mono">/webhooks/sozuri/delivery</span> on your API host.
                 </p>
               </div>
             </div>

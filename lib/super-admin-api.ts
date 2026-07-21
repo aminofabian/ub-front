@@ -316,8 +316,15 @@ export type PlatformIntegrationsRecord = {
   rapidApiWhatsappLookupUrl: string;
   rapidApiWhatsappPhoneField: string;
   rapidApiWhatsappPhoneDigitsOnly: boolean;
+  smsProvider: string;
+  sozuriProject: string;
+  sozuriFrom: string;
+  sozuriType: string;
+  sozuriApiUrl: string;
+  hasSozuriApiKey: boolean;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
+  envSozuriConfigured: boolean;
   secretsReadable: boolean;
   secretsError: string | null;
   encryptionEphemeral: boolean;
@@ -333,6 +340,12 @@ export type UpdatePlatformIntegrationsPayload = {
   rapidApiWhatsappLookupUrl?: string | null;
   rapidApiWhatsappPhoneField?: string | null;
   rapidApiWhatsappPhoneDigitsOnly?: boolean | null;
+  smsProvider?: string | null;
+  sozuriProject?: string | null;
+  sozuriApiKey?: string | null;
+  sozuriFrom?: string | null;
+  sozuriType?: string | null;
+  sozuriApiUrl?: string | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {
