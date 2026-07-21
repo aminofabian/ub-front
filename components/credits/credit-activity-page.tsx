@@ -20,6 +20,7 @@ import {
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
 import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
+import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
@@ -141,6 +142,7 @@ export function CreditActivityPage() {
     canViewSalesIntelligence,
     canViewCustomers,
     canReviewPaymentClaims,
+    canManageCreditSettings,
   } = useDashboard();
   const { branchId } = useSessionBranch();
   const [period, setPeriod] = useState<CreditPeriod>("today");
@@ -150,11 +152,16 @@ export function CreditActivityPage() {
   const [tabsLoading, setTabsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    text: string;
+    kind: "success" | "error";
+  } | null>(null);
   const [search, setSearch] = useState("");
   const [payTarget, setPayTarget] = useState<OutstandingTabRowRecord | null>(
     null,
   );
+
+  const canRemind = canManageCreditSettings || canReviewPaymentClaims;
 
   const dateRange = useMemo(() => presetRange(period)!, [period]);
   const singleDay = dateRange.from === dateRange.to;
@@ -322,7 +329,7 @@ export function CreditActivityPage() {
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
       {feedback ? (
-        <DashboardFeedback kind="success" text={feedback} />
+        <DashboardFeedback kind={feedback.kind} text={feedback.text} />
       ) : null}
 
       <div
@@ -424,7 +431,7 @@ export function CreditActivityPage() {
 
       {canViewCustomers ? (
         <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-          <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
+            <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
             <div>
               <h2 className="text-sm font-semibold text-foreground">
                 Open tabs
@@ -437,9 +444,9 @@ export function CreditActivityPage() {
                     : `${openTabs.length} open · ${fmtKes(openTabsTotal)} owed`}
               </p>
             </div>
-            {!canReviewPaymentClaims ? (
+            {!canReviewPaymentClaims && !canRemind ? (
               <p className="text-[11px] text-muted-foreground">
-                Need claims review permission to mark paid.
+                Need claims review or messaging permission to clear or remind.
               </p>
             ) : null}
           </div>
@@ -475,20 +482,34 @@ export function CreditActivityPage() {
                     <p className="shrink-0 text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
                       {fmtKes(owed)}
                     </p>
-                    {canReviewPaymentClaims ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0"
-                        onClick={() => {
-                          setFeedback(null);
-                          setPayTarget(tab);
-                        }}
-                      >
-                        Mark paid
-                      </Button>
-                    ) : null}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {canRemind ? (
+                        <RemindPaymentButtons
+                          customerId={tab.customerId}
+                          disabled={!tab.primaryPhone?.trim()}
+                          onResult={({ ok, text }) =>
+                            setFeedback({
+                              kind: ok ? "success" : "error",
+                              text,
+                            })
+                          }
+                        />
+                      ) : null}
+                      {canReviewPaymentClaims ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={() => {
+                            setFeedback(null);
+                            setPayTarget(tab);
+                          }}
+                        >
+                          Mark paid
+                        </Button>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}
@@ -621,9 +642,10 @@ export function CreditActivityPage() {
               Clearing debt
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Use <span className="font-medium text-foreground">Mark paid</span>{" "}
-              on an open tab above for cash or M-Pesa — full or partial. Till
-              proposals still land under Payment claims.
+              Use <span className="font-medium text-foreground">Remind</span> for
+              WhatsApp/SMS (with a pay link), and{" "}
+              <span className="font-medium text-foreground">Mark paid</span> when
+              cash or M-Pesa lands. Till proposals still go under Payment claims.
             </p>
             {canReviewPaymentClaims ? (
               <Link
@@ -662,11 +684,13 @@ export function CreditActivityPage() {
                 : row,
             );
           });
-          setFeedback(
-            balanceOwed <= 0.001
-              ? "Tab cleared — marked as paid in full."
-              : `Partial payment recorded. ${fmtKes(balanceOwed)} still owed.`,
-          );
+          setFeedback({
+            kind: "success",
+            text:
+              balanceOwed <= 0.001
+                ? "Tab cleared — marked as paid in full."
+                : `Partial payment recorded. ${fmtKes(balanceOwed)} still owed.`,
+          });
         }}
       />
     </div>

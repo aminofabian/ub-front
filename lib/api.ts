@@ -7628,6 +7628,20 @@ export async function recordTabPayment(body: {
   );
 }
 
+/** Send a WhatsApp/SMS balance reminder to one customer. */
+export async function remindCustomerPayment(
+  customerId: string,
+  channel: "auto" | "whatsapp" | "sms" = "auto",
+): Promise<CreditSaleReminderTestResult> {
+  return request<CreditSaleReminderTestResult>(
+    `/api/v1/customers/${encodeURIComponent(customerId)}/remind-payment`,
+    {
+      method: "POST",
+      body: { channel },
+    },
+  );
+}
+
 export async function listSubmittedPaymentClaims(): Promise<
   PublicPaymentClaimRecord[]
 > {
