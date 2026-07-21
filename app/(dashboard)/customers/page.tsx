@@ -27,6 +27,7 @@ import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
 import { WhatsAppTestPanel } from "@/components/credits/whatsapp-test-panel";
+import { SmsTestPanel } from "@/components/credits/sms-test-panel";
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
 
 function formatKes(amount: number | string | null | undefined): string {
@@ -378,6 +379,7 @@ export default function CustomersPage() {
         <div className="space-y-4">
           <CreditSaleReminderSettings canEdit={canManageCreditSettings} />
           <WhatsAppTestPanel canSend={canManageCreditSettings} />
+          <SmsTestPanel canSend={canManageCreditSettings} />
         </div>
       ) : null}
     </div>

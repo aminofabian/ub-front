@@ -117,7 +117,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setTestResult(result);
       const ok = result.outcome === "sent";
       setMessage({
-        text: messagingTestHeadline(result),
+        text: messagingTestHeadline(result, "full"),
         kind: ok ? "success" : "error",
       });
     } catch (err) {
@@ -203,8 +203,8 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
           <p className="mt-1 text-sm text-muted-foreground">
             When a customer takes items on credit, send a short payment reminder with
             your account link. WhatsApp is tried first (RapidAPI lookup + Meta); SMS
-            is the fallback. Sends run on the server after checkout — they do not
-            appear in the browser Network tab except via &quot;Send test&quot; below.
+            is the fallback. Use the separate WhatsApp and SMS test panels below to
+            verify each channel alone. The test here runs the full reminder pipeline.
           </p>
         </div>
       </div>
@@ -487,7 +487,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               disabled={testing || !testPhone.trim() || !enabled}
               onClick={() => void onTestSend()}
             >
-              {testing ? "Sending test…" : "Send test"}
+              {testing ? "Sending…" : "Test full reminder flow"}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : "Save reminder settings"}
@@ -496,7 +496,11 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         ) : null}
 
         {testResult && canEdit ? (
-          <MessagingTestResultCard result={testResult} className="mt-3" />
+          <MessagingTestResultCard
+            result={testResult}
+            variant="full"
+            className="mt-3"
+          />
         ) : null}
 
         {!canEdit ? (

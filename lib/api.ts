@@ -7836,6 +7836,19 @@ export async function testWhatsAppMessage(
   );
 }
 
+export async function testSmsMessage(
+  phone: string,
+  message?: string,
+): Promise<CreditSaleReminderTestResult> {
+  return request<CreditSaleReminderTestResult>(
+    "/api/v1/credits/sale-reminder-settings/test-sms",
+    {
+      method: "POST",
+      body: { phone, message: message?.trim() || null },
+    },
+  );
+}
+
 // ─── Phase 9 Sync Conflicts ─────────────────────────────────────────────
 
 export type SyncConflictRecord = {

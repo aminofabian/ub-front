@@ -17,6 +17,9 @@ function lookupStatusLabel(r: CreditSaleReminderTestResult): string {
 function explainLookupDetail(detail: string): string | null {
   const d = detail.trim().toLowerCase();
   if (!d) return null;
+  if (d === "whatsapp_only_test" || d === "sms_only_test" || d === "direct_send") {
+    return null;
+  }
   if (d.startsWith("http_")) {
     return "RapidAPI rejected or could not complete the lookup request. Check host, URL, phone field, and API key.";
   }
@@ -26,18 +29,16 @@ function explainLookupDetail(detail: string): string | null {
   if (d === "unrecognized_response") {
     return "API responded, but the body shape was not recognized — WhatsApp send was still attempted.";
   }
-  if (d === "direct_send") {
-    return "Lookup was bypassed for this test.";
-  }
   if (d === "error" || d === "parse_error" || d === "empty_body") {
     return "Lookup failed before a clear yes/no answer.";
   }
   return null;
 }
 
-function stripWhatsAppPrefix(detail: string): string {
+function stripPrefix(detail: string): string {
   return detail
     .replace(/^whatsapp_failed:/i, "")
+    .replace(/^whatsapp_skipped:/i, "")
     .replace(/^sms_failed:/i, "")
     .trim();
 }
@@ -45,7 +46,7 @@ function stripWhatsAppPrefix(detail: string): string {
 function explainMetaDetail(detail: string): string | null {
   const d = detail.toLowerCase();
   if (/object with id|does not exist|missing permissions/i.test(detail)) {
-    return "Meta phone number ID is wrong for this token, or the app lacks WhatsApp permissions. Fix Meta phone number ID / access token — this is not a RapidAPI issue.";
+    return "Meta phone number ID is wrong for this token, or the app lacks WhatsApp permissions. Fix Meta phone number ID / access token — this is not a RapidAPI or SMS issue.";
   }
   if (/http_401|http_403|oauth|access token/i.test(d)) {
     return "Meta rejected the access token. Paste a fresh permanent token from Meta Business Manager.";
@@ -56,25 +57,53 @@ function explainMetaDetail(detail: string): string | null {
   return null;
 }
 
+function explainSmsDetail(detail: string, channel: string): string | null {
+  const d = detail.toLowerCase();
+  if (/not configured/i.test(detail)) {
+    return "Set Sozuri (or Africa's Talking) in Super Admin → Platform integrations or Credit tab reminders.";
+  }
+  if (d.startsWith("http_")) {
+    return channel === "sozuri"
+      ? "Sozuri rejected the request. Check project name, API key, sender ID, and message type."
+      : "SMS provider rejected the request. Check credentials.";
+  }
+  if (d === "error") {
+    return "SMS send failed before a provider response.";
+  }
+  return null;
+}
+
+export type MessagingTestVariant = "full" | "whatsapp" | "sms";
+
 type Props = {
   result: CreditSaleReminderTestResult;
-  /** When false, hides the reminders-enabled row (WhatsApp-only test panel). */
+  variant?: MessagingTestVariant;
+  /** When false, hides the reminders-enabled row. */
   showRemindersToggle?: boolean;
   className?: string;
 };
 
 export function MessagingTestResultCard({
   result: r,
+  variant = "full",
   showRemindersToggle = true,
   className,
 }: Props) {
   const ok = r.outcome === "sent";
-  const lookupHint = explainLookupDetail(r.lookupDetail);
-  const deliveryDetail = stripWhatsAppPrefix(r.detail);
-  const metaHint =
-    r.channel === "whatsapp" || /whatsapp/i.test(r.detail)
-      ? explainMetaDetail(r.detail)
-      : null;
+  const showRapid = variant === "full";
+  const showMeta = variant === "full" || variant === "whatsapp";
+  const showSms = variant === "full" || variant === "sms";
+  const lookupHint = showRapid ? explainLookupDetail(r.lookupDetail) : null;
+  const deliveryDetail = stripPrefix(r.detail);
+  const metaHint = showMeta ? explainMetaDetail(r.detail) : null;
+  const smsHint = showSms ? explainSmsDetail(r.detail, r.channel) : null;
+
+  const title =
+    variant === "sms"
+      ? "SMS test"
+      : variant === "whatsapp"
+        ? "Meta WhatsApp test"
+        : "Reminder delivery test";
 
   return (
     <div
@@ -94,113 +123,131 @@ export function MessagingTestResultCard({
             : "border-border/60 text-muted-foreground",
         )}
       >
-        Overall: {r.outcome}
+        {title}: {r.outcome}
         {r.channel ? ` via ${r.channel}` : ""}
       </div>
 
       <div className="divide-y divide-border/50">
-        {showRemindersToggle ? (
+        {showRemindersToggle && variant === "full" ? (
           <section className="space-y-1 px-3 py-2.5">
             <p className="text-xs font-semibold text-foreground">Reminders</p>
             <p className="text-muted-foreground">
               Enabled: <span className="text-foreground">{yesNo(r.remindersEnabled)}</span>
-              {" · "}
-              SMS fallback:{" "}
-              <span className="text-foreground">{yesNo(r.smsConfigured)}</span>
             </p>
           </section>
-        ) : (
-          <section className="space-y-1 px-3 py-2.5">
-            <p className="text-xs font-semibold text-foreground">Fallbacks</p>
-            <p className="text-muted-foreground">
-              SMS: <span className="text-foreground">{yesNo(r.smsConfigured)}</span>
-            </p>
-          </section>
-        )}
+        ) : null}
 
-        <section className="space-y-1.5 px-3 py-2.5">
-          <p className="text-xs font-semibold text-foreground">
-            1. RapidAPI lookup
-          </p>
-          <p className="text-muted-foreground">
-            Configured:{" "}
-            <span className="text-foreground">{yesNo(r.rapidApiConfigured)}</span>
-          </p>
-          <p className="text-muted-foreground">
-            Result:{" "}
-            <span className="text-foreground">{lookupStatusLabel(r)}</span>
-            {r.lookupDetail ? (
-              <>
-                {" "}
-                <span className="font-mono text-[11px] text-foreground/80">
-                  ({r.lookupDetail})
-                </span>
-              </>
-            ) : null}
-          </p>
-          {lookupHint ? (
-            <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-              {lookupHint}
-            </p>
-          ) : null}
-        </section>
-
-        <section className="space-y-1.5 px-3 py-2.5">
-          <p className="text-xs font-semibold text-foreground">
-            2. Meta WhatsApp send
-          </p>
-          <p className="text-muted-foreground">
-            Configured:{" "}
-            <span className="text-foreground">{yesNo(r.metaWhatsAppConfigured)}</span>
-          </p>
-          {r.channel === "whatsapp" || /whatsapp/i.test(r.detail) ? (
-            <>
-              <p className="text-muted-foreground">
-                Result:{" "}
-                <span className="text-foreground">
-                  {r.channel === "whatsapp" ? r.outcome : "not used"}
-                </span>
-              </p>
-              {deliveryDetail ? (
-                <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
-                  {deliveryDetail}
-                </p>
-              ) : null}
-              {metaHint ? (
-                <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-                  {metaHint}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-muted-foreground">
-              Not attempted
-              {r.channel === "sms"
-                ? " (fell through to SMS)"
-                : r.channel === "none" || r.channel === "stub"
-                  ? " (no WhatsApp send)"
-                  : ""}
-              .
-            </p>
-          )}
-        </section>
-
-        {r.channel === "sms" || r.outcome === "stub" ? (
+        {showRapid ? (
           <section className="space-y-1.5 px-3 py-2.5">
-            <p className="text-xs font-semibold text-foreground">3. SMS</p>
+            <p className="text-xs font-semibold text-foreground">
+              1. RapidAPI lookup
+            </p>
+            <p className="text-muted-foreground">
+              Configured:{" "}
+              <span className="text-foreground">{yesNo(r.rapidApiConfigured)}</span>
+            </p>
+            <p className="text-muted-foreground">
+              Result:{" "}
+              <span className="text-foreground">{lookupStatusLabel(r)}</span>
+              {r.lookupDetail ? (
+                <>
+                  {" "}
+                  <span className="font-mono text-[11px] text-foreground/80">
+                    ({r.lookupDetail})
+                  </span>
+                </>
+              ) : null}
+            </p>
+            {lookupHint ? (
+              <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                {lookupHint}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {showMeta ? (
+          <section className="space-y-1.5 px-3 py-2.5">
+            <p className="text-xs font-semibold text-foreground">
+              {variant === "full" ? "2. Meta WhatsApp send" : "Meta WhatsApp send"}
+            </p>
+            <p className="text-muted-foreground">
+              Configured:{" "}
+              <span className="text-foreground">{yesNo(r.metaWhatsAppConfigured)}</span>
+            </p>
             <p className="text-muted-foreground">
               Result: <span className="text-foreground">{r.outcome}</span>
             </p>
-            {r.detail && r.channel === "sms" ? (
+            {deliveryDetail && variant === "whatsapp" ? (
               <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
-                {stripWhatsAppPrefix(r.detail)}
+                {deliveryDetail}
               </p>
             ) : null}
-            {r.outcome === "stub" ? (
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                SMS provider is “none”: nothing is sent to the phone (server log
-                only).
+            {variant === "full" &&
+            (r.channel === "whatsapp" || /whatsapp/i.test(r.detail)) ? (
+              <>
+                {deliveryDetail ? (
+                  <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
+                    {deliveryDetail}
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+            {metaHint ? (
+              <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                {metaHint}
               </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {showSms ? (
+          <section className="space-y-1.5 px-3 py-2.5">
+            <p className="text-xs font-semibold text-foreground">
+              {variant === "full" ? "3. SMS" : "SMS send"}
+            </p>
+            <p className="text-muted-foreground">
+              Configured:{" "}
+              <span className="text-foreground">{yesNo(r.smsConfigured)}</span>
+            </p>
+            {(variant === "sms" ||
+              r.channel === "sms" ||
+              r.channel === "sozuri" ||
+              r.channel === "africas_talking" ||
+              r.channel === "sms_stub" ||
+              r.outcome === "stub") && (
+              <>
+                <p className="text-muted-foreground">
+                  Result: <span className="text-foreground">{r.outcome}</span>
+                  {r.channel ? (
+                    <>
+                      {" "}
+                      via <span className="text-foreground">{r.channel}</span>
+                    </>
+                  ) : null}
+                </p>
+                {deliveryDetail && (variant === "sms" || r.channel !== "whatsapp") ? (
+                  <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
+                    {deliveryDetail}
+                  </p>
+                ) : null}
+                {smsHint ? (
+                  <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                    {smsHint}
+                  </p>
+                ) : null}
+                {r.outcome === "stub" ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    SMS provider is “none”: nothing is sent to the phone (server log
+                    only).
+                  </p>
+                ) : null}
+              </>
+            )}
+            {variant === "full" &&
+            r.channel === "whatsapp" &&
+            r.outcome !== "stub" ? (
+              <p className="text-muted-foreground">Not used (WhatsApp handled delivery).</p>
             ) : null}
           </section>
         ) : null}
@@ -209,10 +256,27 @@ export function MessagingTestResultCard({
   );
 }
 
-/** Short one-line status for toast-style feedback. */
-export function messagingTestHeadline(r: CreditSaleReminderTestResult): string {
+export function messagingTestHeadline(
+  r: CreditSaleReminderTestResult,
+  variant: MessagingTestVariant = "full",
+): string {
   if (r.outcome === "sent") {
+    if (variant === "sms") {
+      return `SMS sent via ${r.channel}. Check the recipient’s phone.`;
+    }
+    if (variant === "whatsapp") {
+      return "WhatsApp sent. Check the recipient’s phone.";
+    }
     return `Sent via ${r.channel}. Check the recipient’s phone.`;
+  }
+  if (variant === "sms") {
+    return `SMS ${r.outcome}. See details below.`;
+  }
+  if (variant === "whatsapp") {
+    if (/object with id|does not exist/i.test(r.detail)) {
+      return "Meta WhatsApp send failed (phone number ID / permissions). See details below.";
+    }
+    return `WhatsApp ${r.outcome}. See details below.`;
   }
   if (r.channel === "whatsapp" && /object with id|does not exist/i.test(r.detail)) {
     return "Meta WhatsApp send failed (phone number ID / permissions). See details below — RapidAPI is separate.";
