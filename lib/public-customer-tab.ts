@@ -48,6 +48,18 @@ async function readJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+function tenantHostHeaders(): HeadersInit {
+  if (typeof window === "undefined") {
+    return { Accept: "application/json" };
+  }
+  const host = window.location.hostname?.trim();
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (host) {
+    headers["X-Tenant-Host"] = host;
+  }
+  return headers;
+}
+
 export async function fetchPublicCustomerTab(
   phone: string,
 ): Promise<PublicCustomerTab | null> {
@@ -57,7 +69,7 @@ export async function fetchPublicCustomerTab(
     const res = await fetch(
       apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(p)}`),
       {
-        headers: { Accept: "application/json" },
+        headers: tenantHostHeaders(),
         cache: "no-store",
       },
     );
@@ -73,15 +85,16 @@ export async function initiatePublicTabStk(
   amount: number,
   idempotencyKey: string,
 ): Promise<PublicTabStk> {
+  const headers: Record<string, string> = {
+    ...(tenantHostHeaders() as Record<string, string>),
+    "Content-Type": "application/json",
+    "Idempotency-Key": idempotencyKey,
+  };
   const res = await fetch(
     apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/stk`),
     {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "Idempotency-Key": idempotencyKey,
-      },
+      headers,
       body: JSON.stringify({ amount }),
       cache: "no-store",
     },
@@ -98,7 +111,7 @@ export async function fetchPublicTabStkStatus(
       `/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/stk/${encodeURIComponent(intentId)}`,
     ),
     {
-      headers: { Accept: "application/json" },
+      headers: tenantHostHeaders(),
       cache: "no-store",
     },
   );
