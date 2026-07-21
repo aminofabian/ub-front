@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { DesktopLicenseBanner } from "@/components/desktop/desktop-license-banner";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { DesktopReadOnlyOverlay } from "@/components/desktop/desktop-read-only-overlay";
 import { DesktopNavRail } from "@/components/shell/desktop-nav-rail";
 import {
@@ -1284,6 +1285,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
 
         {IS_DESKTOP ? <DesktopLicenseBanner /> : null}
+        <ImpersonationBanner />
 
         {/* ── Main content ───────────────────────────────────────────────────── */}
         <main

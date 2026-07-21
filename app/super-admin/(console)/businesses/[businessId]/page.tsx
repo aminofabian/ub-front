@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { Button } from "@/components/ui/button";
-import { APP_ROUTES } from "@/lib/config";
+import { encodeAuthHandoffPayload } from "@/lib/auth-handoff";
 import {
+  APP_ROUTES,
+  hostDerivedShopUrl,
+  slugDerivedShopUrl,
+} from "@/lib/config";
+import {
+  type SaBusinessUserRow,
   type SaDomainRow,
   addSaDomain,
+  fetchSaBusinessUsers,
   fetchSaDomains,
+  impersonateSaBusiness,
   patchSaBusiness,
   setSaPrimaryDomain,
 } from "@/lib/super-admin-api";
@@ -21,16 +29,26 @@ function BusinessDetailInner() {
   const searchParams = useSearchParams();
   const businessIdRaw = params.businessId;
   const businessId =
-    typeof businessIdRaw === "string" ? businessIdRaw : Array.isArray(businessIdRaw) ? businessIdRaw[0] : "";
+    typeof businessIdRaw === "string"
+      ? businessIdRaw
+      : Array.isArray(businessIdRaw)
+        ? businessIdRaw[0]
+        : "";
   const titleName = searchParams.get("name") ?? "";
+  const slugFromQuery = searchParams.get("slug") ?? "";
 
   const [domains, setDomains] = useState<SaDomainRow[]>([]);
+  const [users, setUsers] = useState<SaBusinessUserRow[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
   const [newDomain, setNewDomain] = useState("");
   const [bizName, setBizName] = useState(titleName);
-  const [bizTier, setBizTier] = useState("");
-  const [bizActive, setBizActive] = useState(true);
+  const [bizTier, setBizTier] = useState(searchParams.get("tier") ?? "");
+  const [bizActive, setBizActive] = useState(
+    searchParams.get("active") !== "0",
+  );
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   const loadDomains = useCallback(async () => {
     if (!businessId) {
@@ -44,13 +62,38 @@ function BusinessDetailInner() {
     }
   }, [businessId]);
 
+  const loadUsers = useCallback(async () => {
+    if (!businessId) {
+      return;
+    }
+    try {
+      const rows = await fetchSaBusinessUsers(businessId);
+      setUsers(rows);
+      const owner = rows.find(
+        (u) => u.roleKey === "owner" && u.status.toLowerCase() === "active",
+      );
+      setSelectedUserId((prev) => {
+        if (prev && rows.some((u) => u.id === prev)) return prev;
+        return owner?.id ?? rows.find((u) => u.status.toLowerCase() === "active")?.id ?? "";
+      });
+    } catch {
+      /* users are optional for domain management */
+    }
+  }, [businessId]);
+
   useEffect(() => {
     void loadDomains();
-  }, [loadDomains]);
+    void loadUsers();
+  }, [loadDomains, loadUsers]);
 
   useEffect(() => {
     setBizName(titleName);
   }, [titleName]);
+
+  const primaryDomain = useMemo(
+    () => domains.find((d) => d.primary && d.active)?.domain ?? null,
+    [domains],
+  );
 
   const onAddDomain = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,9 +152,50 @@ function BusinessDetailInner() {
     }
   };
 
+  const onOpenTenant = async (asOwner: boolean) => {
+    if (!businessId) return;
+    setImpersonating(true);
+    setError("");
+    try {
+      const userId = asOwner ? undefined : selectedUserId || undefined;
+      const result = await impersonateSaBusiness(businessId, userId);
+      const slug = result.slug?.trim() || slugFromQuery.trim();
+      const shopBase =
+        hostDerivedShopUrl(result.primaryDomain || primaryDomain) ||
+        (slug ? slugDerivedShopUrl(slug) : "");
+      if (!shopBase) {
+        throw new Error(
+          "Could not resolve tenant URL. Add a primary domain or ensure the slug is set.",
+        );
+      }
+      const nextPath = APP_ROUTES.business;
+      const fragment = encodeAuthHandoffPayload({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        tenantId: result.businessId,
+        nextPath,
+        impersonating: true,
+        impersonationUserEmail: result.user.email,
+        impersonationUserName: result.user.name,
+      });
+      const nextEnc = encodeURIComponent(nextPath);
+      const slugEnc = encodeURIComponent(slug || result.slug);
+      window.location.assign(
+        `${shopBase}${APP_ROUTES.authHandoff}?next=${nextEnc}&slug=${slugEnc}#${fragment}`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not open tenant session.",
+      );
+      setImpersonating(false);
+    }
+  };
+
   if (!businessId) {
     return <AuthAlert variant="error">Missing business id.</AuthAlert>;
   }
+
+  const activeUsers = users.filter((u) => u.status.toLowerCase() === "active");
 
   return (
     <div className="space-y-10">
@@ -120,12 +204,64 @@ function BusinessDetailInner() {
           <Link href={APP_ROUTES.superAdminBusinesses}>← All businesses</Link>
         </Button>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {bizName || "Business"} <span className="text-base font-normal text-muted-foreground">· domains</span>
+          {bizName || "Business"}{" "}
+          <span className="text-base font-normal text-muted-foreground">
+            · domains
+          </span>
         </h1>
-        <p className="mt-1 font-mono text-xs text-muted-foreground break-all">{businessId}</p>
+        <p className="mt-1 font-mono text-xs text-muted-foreground break-all">
+          {businessId}
+        </p>
       </div>
 
       {error ? <AuthAlert variant="error">{error}</AuthAlert> : null}
+
+      <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-medium">Open tenant dashboard</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Starts a 15-minute support session as a tenant user. Actions are
+          audit-logged. You will leave the super-admin console and land on the
+          tenant host.
+        </p>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Button
+            type="button"
+            disabled={busy || impersonating}
+            onClick={() => void onOpenTenant(true)}
+          >
+            {impersonating ? "Opening…" : "Open as owner"}
+          </Button>
+          <label className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-sm font-medium">Or pick a user</span>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={selectedUserId}
+              onChange={(ev) => setSelectedUserId(ev.target.value)}
+              disabled={busy || impersonating || activeUsers.length === 0}
+            >
+              {activeUsers.length === 0 ? (
+                <option value="">No active users</option>
+              ) : (
+                activeUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name || u.email} · {u.roleKey} · {u.email}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={
+              busy || impersonating || !selectedUserId || activeUsers.length === 0
+            }
+            onClick={() => void onOpenTenant(false)}
+          >
+            Open as selected
+          </Button>
+        </div>
+      </section>
 
       <section className="rounded-xl border border-border/80 bg-card p-6 shadow-sm">
         <h2 className="text-lg font-medium">Business settings</h2>
@@ -166,7 +302,10 @@ function BusinessDetailInner() {
         <p className="mt-1 text-sm text-muted-foreground">
           Hostnames mapped to this tenant (lowercase). One can be marked primary.
         </p>
-        <form className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={onAddDomain}>
+        <form
+          className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end"
+          onSubmit={onAddDomain}
+        >
           <label className="flex-1">
             <span className="text-sm font-medium">New domain</span>
             <input
@@ -194,13 +333,19 @@ function BusinessDetailInner() {
             <tbody>
               {domains.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={4}
+                    className="px-3 py-8 text-center text-muted-foreground"
+                  >
                     No domains. Add one above or recreate with primary domain.
                   </td>
                 </tr>
               ) : (
                 domains.map((d) => (
-                  <tr key={d.id} className="border-b border-border/50 last:border-0">
+                  <tr
+                    key={d.id}
+                    className="border-b border-border/50 last:border-0"
+                  >
                     <td className="px-3 py-2 font-mono text-xs">{d.domain}</td>
                     <td className="px-3 py-2">{d.primary ? "Yes" : "—"}</td>
                     <td className="px-3 py-2">{d.active ? "Yes" : "No"}</td>

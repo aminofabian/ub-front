@@ -166,6 +166,8 @@ export const STORAGE_KEYS = {
   tenantId: "ub.tenantId",
   superAdminAccessToken: "ub.sa.accessToken",
   supplierPortalAccessToken: "ub.sp.accessToken",
+  /** Set on tenant origin after SA impersonation handoff; drives the support banner. */
+  impersonationSession: "ub.impersonation",
 } as const;
 
 export {

@@ -19,6 +19,7 @@ import {
 } from "@/lib/auth";
 import { refreshAccessToken } from "@/lib/api";
 import { APP_ROUTES } from "@/lib/config";
+import { setImpersonationSession } from "@/lib/impersonation-session";
 import { loginPathForNext } from "@/lib/login-audience";
 import { restoreClientSessionFromCookie } from "@/lib/restore-client-session";
 import { submitStoreSessionNavigate } from "@/lib/submit-store-session";
@@ -108,6 +109,14 @@ function AuthHandoffInner() {
 
       if (data.tenantId?.trim()) {
         setSessionTenantId(data.tenantId.trim());
+      }
+
+      if (data.impersonating) {
+        setImpersonationSession({
+          userEmail: data.impersonationUserEmail?.trim() || "",
+          userName: data.impersonationUserName?.trim() || "",
+          businessId: data.tenantId?.trim() || "",
+        });
       }
 
       persistTenantHostAfterAuth(slug ?? undefined);

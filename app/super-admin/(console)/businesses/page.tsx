@@ -400,7 +400,7 @@ export default function SuperAdminBusinessesPage() {
                       </Button>
                       <Button variant="ghost" size="sm" type="button" asChild>
                         <Link
-                          href={`/super-admin/businesses/${encodeURIComponent(b.id)}?name=${encodeURIComponent(b.name)}&tier=${encodeURIComponent(b.subscriptionTier)}&active=${b.active ? "1" : "0"}`}
+                          href={`/super-admin/businesses/${encodeURIComponent(b.id)}?name=${encodeURIComponent(b.name)}&slug=${encodeURIComponent(b.slug)}&tier=${encodeURIComponent(b.subscriptionTier)}&active=${b.active ? "1" : "0"}`}
                         >
                           Manage
                         </Link>

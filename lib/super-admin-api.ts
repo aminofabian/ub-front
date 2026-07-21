@@ -387,3 +387,36 @@ export async function fetchSaBusinessStats(
     { method: "GET" },
   );
 }
+
+export type SaImpersonateResult = {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    businessId: string;
+    branchId: string | null;
+    roleId: string;
+    status: string;
+  };
+  businessId: string;
+  slug: string;
+  primaryDomain: string | null;
+  impersonatedBy: string;
+  expiresInSeconds: number;
+};
+
+/** Mint a short-lived tenant session as owner (or a chosen user). */
+export async function impersonateSaBusiness(
+  businessId: string,
+  userId?: string,
+): Promise<SaImpersonateResult> {
+  return saRequest<SaImpersonateResult>(
+    `${API_ROUTES.superAdminBusinesses}/${businessId}/impersonate`,
+    {
+      method: "POST",
+      body: JSON.stringify(userId ? { userId } : {}),
+    },
+  );
+}

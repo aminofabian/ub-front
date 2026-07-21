@@ -2,11 +2,16 @@ export type AuthHandoffPayload = {
   /**
    * Legacy: access JWT in the fragment. Prefer cookie restore on the shop host
    * (Gap G) — omit accessToken and let handoff call restore-session.
+   * Required for super-admin → tenant impersonation (cross-origin).
    */
   accessToken?: string;
   refreshToken?: string;
   tenantId?: string;
   nextPath?: string;
+  /** When true, handoff marks the tenant session as a platform support session. */
+  impersonating?: boolean;
+  impersonationUserEmail?: string;
+  impersonationUserName?: string;
 };
 
 const HANDOFF_BUFFER_KEY = "ub.authHandoffFragment";
@@ -91,6 +96,9 @@ export function encodeAuthHandoffPayload(data: AuthHandoffPayload): string {
     refreshToken: data.refreshToken,
     tenantId: data.tenantId,
     nextPath: data.nextPath,
+    impersonating: data.impersonating === true ? true : undefined,
+    impersonationUserEmail: data.impersonationUserEmail,
+    impersonationUserName: data.impersonationUserName,
   });
   const bytes = new TextEncoder().encode(json);
   let binary = "";
@@ -118,6 +126,15 @@ export function decodeAuthHandoffPayload(fragment: string): AuthHandoffPayload |
     const nextPath = typeof o.nextPath === "string" ? o.nextPath : undefined;
     const refreshToken =
       typeof o.refreshToken === "string" ? o.refreshToken : undefined;
+    const impersonating = o.impersonating === true;
+    const impersonationUserEmail =
+      typeof o.impersonationUserEmail === "string"
+        ? o.impersonationUserEmail
+        : undefined;
+    const impersonationUserName =
+      typeof o.impersonationUserName === "string"
+        ? o.impersonationUserName
+        : undefined;
     // Cookie-restore handoff: tenant/next only (no access JWT in fragment).
     if (!accessToken && !tenantId && !nextPath) {
       return null;
@@ -127,6 +144,9 @@ export function decodeAuthHandoffPayload(fragment: string): AuthHandoffPayload |
       refreshToken,
       tenantId,
       nextPath,
+      impersonating: impersonating || undefined,
+      impersonationUserEmail,
+      impersonationUserName,
     };
   } catch {
     return null;

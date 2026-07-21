@@ -407,6 +407,8 @@ export function clearAllSessionData(): void {
   // Device-local till PIN unlock context (email/branch — never PIN)
   clearTillUnlockContext();
   clearPersistedTillLock();
+  // Super-admin support session banner
+  window.sessionStorage.removeItem(STORAGE_KEYS.impersonationSession);
   // Tenant context (session + durable copy)
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantHost);
   window.sessionStorage.removeItem(STORAGE_KEYS.tenantId);
