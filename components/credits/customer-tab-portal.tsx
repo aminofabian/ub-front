@@ -122,7 +122,7 @@ function PurchaseRow({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 py-3.5 text-left active:bg-muted/40"
+        className="flex w-full items-start gap-3 py-3.5 text-left active:bg-muted/40 md:py-4 md:hover:bg-muted/30"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
@@ -197,7 +197,7 @@ function SegmentedControl({
 }) {
   return (
     <div
-      className="flex rounded-none border border-border bg-muted/40 p-0.5"
+      className="flex rounded-none border border-border bg-muted/40 p-0.5 md:rounded-lg"
       role="tablist"
       aria-label="Payment method"
     >
@@ -294,7 +294,7 @@ function PrimaryButton({
       onClick={onClick}
       className={cn(
         btnClass,
-        "flex w-full items-center justify-center gap-2 bg-primary py-3.5 text-[15px] font-semibold text-primary-foreground transition active:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
+        "flex w-full items-center justify-center gap-2 bg-primary py-3.5 text-[15px] font-semibold text-primary-foreground transition active:opacity-90 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45",
       )}
       style={{ color: STOREFRONT_ON_PRIMARY }}
     >
@@ -808,23 +808,24 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   };
 
   return (
-    <div
-      className="mx-auto flex h-[100dvh] max-w-lg flex-col overflow-hidden bg-background text-foreground antialiased touch-manipulation [&_input]:rounded-none [&_textarea]:rounded-none [&_select]:rounded-none"
-      style={themeStyle}
-    >
+    <div className="min-h-[100dvh] bg-background md:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_55%)] md:px-4 md:py-8 lg:px-6 lg:py-10">
+      <div
+        className="mx-auto flex h-[100dvh] max-w-lg flex-col overflow-hidden bg-background text-foreground antialiased touch-manipulation md:h-auto md:min-h-[min(720px,calc(100dvh-4rem))] md:max-h-[min(820px,calc(100dvh-4rem))] md:max-w-3xl md:rounded-2xl md:border md:border-border md:shadow-[0_24px_64px_-24px_color-mix(in_oklab,var(--primary)_22%,transparent)] lg:max-w-5xl [&_input]:rounded-none [&_select]:rounded-none [&_textarea]:rounded-none md:[&_input]:rounded-md md:[&_select]:rounded-md md:[&_textarea]:rounded-md"
+        style={themeStyle}
+      >
       {/* Brand header */}
-      <header className="shrink-0 border-b border-border bg-background px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="flex items-center gap-3">
+      <header className="shrink-0 border-b border-border bg-background px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-6 md:pb-4 md:pt-5">
+        <div className="flex items-center gap-3 md:gap-4">
           {branding.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={branding.logoUrl}
               alt=""
-              className="h-10 w-auto max-w-[7.5rem] shrink-0 object-contain object-left"
+              className="h-10 w-auto max-w-[7.5rem] shrink-0 object-contain object-left md:h-12 md:max-w-[9rem]"
             />
           ) : (
             <div
-              className="flex size-10 shrink-0 items-center justify-center rounded-none text-sm font-semibold text-white"
+              className="flex size-10 shrink-0 items-center justify-center rounded-none text-sm font-semibold text-white md:size-12 md:text-base"
               style={{ backgroundColor: primary }}
               aria-hidden
             >
@@ -833,12 +834,12 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           )}
           <div className="min-w-0 flex-1">
             <h1
-              className="truncate font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.2rem] font-semibold leading-tight tracking-tight"
+              className="truncate font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.2rem] font-semibold leading-tight tracking-tight md:text-[1.45rem]"
               style={{ color: primary }}
             >
               {displayShop}
             </h1>
-            <p className="truncate text-[12px] text-muted-foreground">
+            <p className="truncate text-[12px] text-muted-foreground md:text-[13px]">
               {firstName && !loading && !notFound ? `${firstName} · ` : null}
               {phone}
             </p>
@@ -846,13 +847,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         </div>
 
         {!loading && !notFound ? (
-          <div className="mt-4 flex items-end justify-between gap-3 border-t border-border/70 pt-3">
+          <div className="mt-4 flex items-end justify-between gap-3 border-t border-border/70 pt-3 md:mt-5 md:pt-4">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:text-xs">
                 {owed > 0 ? "Outstanding" : "Balance"}
               </p>
               <p
-                className="mt-0.5 font-[family-name:var(--font-cormorant),Georgia,serif] text-[2rem] font-semibold leading-none tracking-tight tabular-nums"
+                className="mt-0.5 font-[family-name:var(--font-cormorant),Georgia,serif] text-[2rem] font-semibold leading-none tracking-tight tabular-nums md:text-[2.35rem]"
                 style={{ color: primary }}
               >
                 {fmtMoney(owed, currency)}
@@ -864,7 +865,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 onClick={() => setAppScreen("purchases")}
                 className={cn(
                   btnClass,
-                  "shrink-0 border border-border bg-background px-3 py-2 text-[12px] font-medium text-foreground",
+                  "shrink-0 border border-border bg-background px-3 py-2 text-[12px] font-medium text-foreground lg:hidden",
                 )}
               >
                 Purchases{purchaseCount > 0 ? ` (${purchaseCount})` : ""}
@@ -875,7 +876,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 onClick={() => setAppScreen("pay")}
                 className={cn(
                   btnClass,
-                  "shrink-0 bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground",
+                  "shrink-0 bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground lg:hidden",
                 )}
                 style={{ color: STOREFRONT_ON_PRIMARY }}
               >
@@ -914,46 +915,74 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </Link>
         </div>
       ) : (
-        <>
-          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            {appScreen === "purchases" ? (
-              <div className="px-4 py-4">
-                {owed <= 0 ? (
-                  <div className="mb-4 flex items-center gap-2 border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-[14px] font-medium text-emerald-800">
-                    <CheckCircle2 className="size-4 shrink-0" />
-                    All settled — nothing owed.
-                  </div>
-                ) : null}
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain lg:overflow-hidden">
+          <div
+            className={cn(
+              "lg:grid lg:h-full",
+              showPay && "lg:grid-cols-2 lg:divide-x lg:divide-border",
+            )}
+          >
+            <div
+              className={cn(
+                "px-4 py-4 md:px-6 md:py-5",
+                showPay && appScreen !== "purchases" && "hidden lg:block",
+                !showPay && appScreen === "pay" && "hidden lg:block",
+                showPay && "lg:overflow-y-auto",
+              )}
+            >
+              {owed <= 0 ? (
+                <div className="mb-4 flex items-center gap-2 border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-[14px] font-medium text-emerald-800 md:rounded-lg">
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  All settled — nothing owed.
+                </div>
+              ) : null}
 
-                <div className="mb-2 flex items-baseline justify-between gap-2">
-                  <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-lg font-semibold tracking-tight">
-                    Purchases
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-lg font-semibold tracking-tight md:text-xl">
+                  Purchases
+                </h2>
+                {purchaseCount > 0 ? (
+                  <span className="text-[12px] text-muted-foreground md:text-[13px]">
+                    {purchaseCount}
+                  </span>
+                ) : null}
+              </div>
+
+              {purchaseCount === 0 ? (
+                <p className="border border-dashed border-border py-12 text-center text-sm text-muted-foreground md:rounded-lg">
+                  No credit purchases yet
+                </p>
+              ) : (
+                <ul className="border border-border bg-background md:rounded-lg">
+                  {tab!.purchases.map((row) => (
+                    <PurchaseRow
+                      key={row.saleId}
+                      row={row}
+                      currency={currency}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {showPay ? (
+              <div
+                className={cn(
+                  "px-4 py-4 md:px-6 md:py-5",
+                  appScreen !== "pay" && "hidden lg:block",
+                  appScreen === "pay" && "block",
+                  "lg:overflow-y-auto",
+                )}
+              >
+                <div className="mb-4 hidden lg:block">
+                  <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-xl font-semibold tracking-tight">
+                    Pay balance
                   </h2>
-                  {purchaseCount > 0 ? (
-                    <span className="text-[12px] text-muted-foreground">
-                      {purchaseCount}
-                    </span>
-                  ) : null}
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    Pay with M-Pesa or report a payment you already made.
+                  </p>
                 </div>
 
-                {purchaseCount === 0 ? (
-                  <p className="border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
-                    No credit purchases yet
-                  </p>
-                ) : (
-                  <ul className="border border-border bg-background">
-                    {tab!.purchases.map((row) => (
-                      <PurchaseRow
-                        key={row.saleId}
-                        row={row}
-                        currency={currency}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : showPay ? (
-              <div className="px-4 py-4">
                 <SegmentedControl
                   mode={payMode}
                   setMode={(m) => {
@@ -971,15 +1000,18 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   )}
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
+            ) : null}
+
+            {!showPay && appScreen === "pay" ? (
+              <div className="flex flex-col items-center justify-center gap-2 px-4 py-20 text-center lg:hidden">
                 <CheckCircle2 className="size-9 text-emerald-600" />
                 <p className="font-medium">Nothing to pay</p>
               </div>
-            )}
-          </main>
-        </>
+            ) : null}
+          </div>
+        </main>
       )}
+      </div>
     </div>
   );
 }
