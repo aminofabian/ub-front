@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
+import { CustomerTabPortal } from "@/components/credits/customer-tab-portal";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
 import { ShopItemLivePrice } from "@/components/storefront/shop-item-live-price";
 import { ShopItemNotifyButton } from "@/components/storefront/shop-item-notify-button";
@@ -11,6 +12,7 @@ import {
   ShopItemVariantPicker,
 } from "@/components/storefront/shop-item-variant-picker";
 import { APP_BASE_URL, APP_ROUTES } from "@/lib/config";
+import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
   fetchPublicItemDetail,
   fetchPublicStorefront,
@@ -23,7 +25,11 @@ import {
   shopItemPathFromCard,
   shopItemUrlSegmentIsCanonical,
 } from "@/lib/shop-item-url";
-import { resolveStorefrontSlug } from "@/lib/storefront-slug";
+import { parseStorefrontHex } from "@/lib/storefront-theme";
+import {
+  resolveStorefrontSlug,
+  resolveTenantContext,
+} from "@/lib/storefront-slug";
 
 type PageProps = { params: Promise<{ sku: string }> };
 
@@ -31,6 +37,23 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { sku } = await params;
+  if (looksLikeKenyanMobilePath(sku)) {
+    const tenant = await resolveTenantContext();
+    const slug = await resolveStorefrontSlug();
+    const storefront = slug ? await fetchPublicStorefront(slug) : null;
+    const shopLabel =
+      tenant?.branding?.displayName?.trim() ||
+      storefront?.label?.trim() ||
+      storefront?.businessName ||
+      tenant?.tenantName ||
+      "Shop";
+    const phone = toKenyanLocal07(sku) ?? sku;
+    return {
+      title: `Your tab · ${shopLabel}`,
+      description: `View your balance and pay with M-Pesa at ${shopLabel} (${phone}).`,
+      robots: { index: false, follow: false },
+    };
+  }
   const slug = await resolveStorefrontSlug();
   if (!slug) return { title: "Product" };
   const [item, storefront] = await Promise.all([
@@ -69,6 +92,30 @@ export async function generateMetadata({
 
 export default async function ShopItemPage({ params }: PageProps) {
   const { sku } = await params;
+
+  if (looksLikeKenyanMobilePath(sku)) {
+    const tenant = await resolveTenantContext();
+    const slug = await resolveStorefrontSlug();
+    const storefront = slug ? await fetchPublicStorefront(slug) : null;
+    const shopName =
+      tenant?.branding?.displayName?.trim() ||
+      storefront?.label?.trim() ||
+      storefront?.businessName ||
+      tenant?.tenantName ||
+      "Shop";
+    return (
+      <CustomerTabPortal
+        phoneSegment={sku}
+        branding={{
+          shopName,
+          primaryHex: parseStorefrontHex(tenant?.branding?.primaryColor),
+          accentHex: parseStorefrontHex(tenant?.branding?.accentColor),
+          logoUrl: tenant?.branding?.logoUrl?.trim() || null,
+        }}
+      />
+    );
+  }
+
   const slug = await resolveStorefrontSlug();
   if (!slug) redirect("/");
   const item = await fetchPublicItemDetail(slug, sku);

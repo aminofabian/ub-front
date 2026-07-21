@@ -259,7 +259,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className={dashboardLabelClass()}>Payment account URL</span>
+          <span className={dashboardLabelClass()}>Shop site URL (pay link origin)</span>
           <input
             className={dashboardInputClass()}
             value={paymentUrl}
@@ -269,9 +269,15 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
             disabled={!canEdit}
           />
           <span className="text-xs text-muted-foreground">
-            Shoppers open this link to view their tab and pay (e.g.{" "}
-            <span className="font-mono">{settings?.suggestedPaymentAccountUrl}</span>
-            ).
+            Origin only — each reminder appends the customer phone, e.g.{" "}
+            <span className="font-mono">
+              {(settings?.suggestedPaymentAccountUrl || "https://palmart.co.ke").replace(
+                /\/+$/,
+                "",
+              )}
+              /0714282874
+            </span>
+            .
           </span>
         </label>
 
