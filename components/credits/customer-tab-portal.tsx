@@ -96,6 +96,155 @@ function newIdempotencyKey(): string {
   return `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function fmtShortDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-KE", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function fmtRelativeVisit(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const startOfVisit = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+    );
+    const diffDays = Math.round(
+      (startOfToday.getTime() - startOfVisit.getTime()) / 86_400_000,
+    );
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return fmtShortDate(iso);
+  } catch {
+    return iso;
+  }
+}
+
+type TabStats = {
+  purchaseCount: number;
+  totalCredit: number;
+  monthCount: number;
+  monthAmount: number;
+  lastPurchaseAt: string | null;
+  avgPurchase: number;
+};
+
+function computeTabStats(purchases: PublicTabPurchaseRow[]): TabStats {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  let totalCredit = 0;
+  let monthCount = 0;
+  let monthAmount = 0;
+  let lastPurchaseAt: string | null = null;
+
+  for (const purchase of purchases) {
+    const amount = toNum(purchase.creditAmount);
+    totalCredit += amount;
+
+    const soldAt = new Date(purchase.soldAt);
+    if (!Number.isNaN(soldAt.getTime()) && soldAt >= monthStart) {
+      monthCount += 1;
+      monthAmount += amount;
+    }
+
+    if (
+      !lastPurchaseAt ||
+      soldAt.getTime() > new Date(lastPurchaseAt).getTime()
+    ) {
+      lastPurchaseAt = purchase.soldAt;
+    }
+  }
+
+  return {
+    purchaseCount: purchases.length,
+    totalCredit,
+    monthCount,
+    monthAmount,
+    lastPurchaseAt,
+    avgPurchase: purchases.length > 0 ? totalCredit / purchases.length : 0,
+  };
+}
+
+function TabStatsBar({
+  stats,
+  currency,
+}: {
+  stats: TabStats;
+  currency: string;
+}) {
+  if (stats.purchaseCount === 0) return null;
+
+  const items = [
+    {
+      label: "Purchases",
+      value: String(stats.purchaseCount),
+      hint:
+        stats.avgPurchase > 0
+          ? `Avg ${fmtMoney(stats.avgPurchase, currency)}`
+          : undefined,
+    },
+    {
+      label: "Total on tab",
+      value: fmtMoney(stats.totalCredit, currency),
+      hint: "Lifetime credit",
+    },
+    {
+      label: "This month",
+      value: fmtMoney(stats.monthAmount, currency),
+      hint:
+        stats.monthCount > 0
+          ? `${stats.monthCount} purchase${stats.monthCount === 1 ? "" : "s"}`
+          : "No purchases yet",
+    },
+    {
+      label: "Last visit",
+      value: stats.lastPurchaseAt
+        ? fmtRelativeVisit(stats.lastPurchaseAt)
+        : "—",
+      hint: stats.lastPurchaseAt
+        ? fmtShortDate(stats.lastPurchaseAt)
+        : undefined,
+    },
+  ];
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-4 md:grid-cols-4 md:gap-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5"
+        >
+          <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            {item.label}
+          </p>
+          <p className="mt-0.5 truncate text-[15px] font-semibold tabular-nums leading-tight md:text-base">
+            {item.value}
+          </p>
+          {item.hint ? (
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+              {item.hint}
+            </p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const fieldClass =
   "w-full rounded-none border border-border bg-background px-3.5 py-3.5 text-[16px] text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-[var(--ring)] disabled:opacity-50";
 
@@ -315,6 +464,7 @@ function ManualPayPanel({
   amountNum,
   busy,
   submitted,
+  cleared,
   error,
   onSubmit,
   onClearError,
@@ -331,6 +481,7 @@ function ManualPayPanel({
   amountNum: number;
   busy: boolean;
   submitted: boolean;
+  cleared: boolean;
   error: string | null;
   onSubmit: () => void;
   onClearError: () => void;
@@ -431,6 +582,12 @@ function ManualPayPanel({
       {submitted ? (
         <p className="text-[13px] leading-snug text-muted-foreground">
           The shop will review your payment and update your balance.
+        </p>
+      ) : null}
+
+      {cleared ? (
+        <p className="text-[13px] leading-snug font-medium text-emerald-700">
+          Payment cleared by cashier — balance updated.
         </p>
       ) : null}
 
@@ -617,6 +774,11 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [appScreen, setAppScreen] = useState<AppScreen>("pay");
   const [reference, setReference] = useState("");
   const [manualSubmitted, setManualSubmitted] = useState(false);
+  const [manualClaimId, setManualClaimId] = useState<string | null>(null);
+  const [manualBalanceAtSubmit, setManualBalanceAtSubmit] = useState<
+    number | null
+  >(null);
+  const [manualCleared, setManualCleared] = useState(false);
   const [busy, setBusy] = useState(false);
   const [promptSent, setPromptSent] = useState(false);
   const [intentId, setIntentId] = useState<string | null>(null);
@@ -657,6 +819,22 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     setLoading(false);
   }, [phone]);
 
+  const silentReload = useCallback(async () => {
+    const data = await fetchPublicCustomerTab(phone);
+    if (!data) {
+      setNotFound(true);
+      setTab(null);
+      return;
+    }
+    setNotFound(false);
+    setTab(data);
+    const nextOwed = toNum(data.balanceOwed);
+    setAmount(nextOwed > 0 ? String(Math.round(nextOwed)) : "");
+    const display =
+      toKenyanLocal07(data.phoneDisplay) || data.phoneDisplay || phone;
+    setPayPhone(display);
+  }, [phone]);
+
   useEffect(() => {
     void reload();
   }, [reload]);
@@ -693,6 +871,40 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     };
   }, [intentId, promptSent, paid, phone, reload]);
 
+  // If the customer submitted a manual payment report, keep refreshing the
+  // balance silently until the cashier clears it (balance decreases).
+  useEffect(() => {
+    if (!manualSubmitted || manualCleared) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        if (cancelled) return;
+        await silentReload();
+      } catch {
+        /* ignore polling errors */
+      }
+    };
+    const id = window.setInterval(() => void tick(), 2500);
+    void tick();
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [manualSubmitted, manualCleared, silentReload]);
+
+  useEffect(() => {
+    if (!manualSubmitted || manualCleared) return;
+    if (manualBalanceAtSubmit == null) return;
+    const owedNow = toNum(tab?.balanceOwed);
+    if (!Number.isFinite(owedNow)) return;
+    if (owedNow < manualBalanceAtSubmit - 0.001) {
+      setManualCleared(true);
+      setManualSubmitted(false);
+      setManualBalanceAtSubmit(null);
+      setStatusMsg(null);
+    }
+  }, [manualSubmitted, manualCleared, manualBalanceAtSubmit, tab?.balanceOwed]);
+
   const owed = toNum(tab?.balanceOwed);
   const currency = tab?.currency || "KES";
   const displayShop = tab?.shopName || shopName;
@@ -704,6 +916,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     Number.isFinite(amountNum) && amountNum > 0 && amountNum <= owed + 0.001;
   const showPay = owed > 0 && !loading && !notFound && mounted;
   const purchaseCount = tab?.purchases?.length ?? 0;
+  const tabStats = useMemo(
+    () => computeTabStats(tab?.purchases ?? []),
+    [tab?.purchases],
+  );
 
   async function onPay() {
     setError(null);
@@ -752,11 +968,16 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     }
     setBusy(true);
     try {
-      await submitPublicTabManualPayment(
+      setManualCleared(false);
+      setManualClaimId(null);
+      setManualBalanceAtSubmit(owed);
+
+      const res = await submitPublicTabManualPayment(
         phone,
         amountNum,
         reference.trim() || undefined,
       );
+      setManualClaimId(res.claimId);
       setManualSubmitted(true);
     } catch (e) {
       setError(
@@ -801,9 +1022,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     amountNum,
     busy,
     submitted: manualSubmitted,
+    cleared: manualCleared,
     error,
     onSubmit: () => void onSubmitManual(),
-    onClearError: () => setError(null),
+    onClearError: () => {
+      setError(null);
+      setManualCleared(false);
+    },
     fieldIdPrefix: `${fieldIdPrefix}-manual`,
   };
 
@@ -885,6 +1110,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             ) : null}
           </div>
         ) : null}
+
+        {!loading && !notFound ? (
+          <TabStatsBar stats={tabStats} currency={currency} />
+        ) : null}
       </header>
 
       {loading ? (
@@ -937,15 +1166,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 </div>
               ) : null}
 
-              <div className="mb-2 flex items-baseline justify-between gap-2">
+              <div className="mb-2">
                 <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-lg font-semibold tracking-tight md:text-xl">
                   Purchases
                 </h2>
-                {purchaseCount > 0 ? (
-                  <span className="text-[12px] text-muted-foreground md:text-[13px]">
-                    {purchaseCount}
-                  </span>
-                ) : null}
               </div>
 
               {purchaseCount === 0 ? (
@@ -988,6 +1212,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   setMode={(m) => {
                     setPayMode(m);
                     setError(null);
+                    setManualCleared(false);
                   }}
                   disabled={busy || promptSent || manualSubmitted}
                 />
