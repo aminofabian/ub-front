@@ -851,29 +851,27 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         className={cn(
           "relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] sm:max-w-lg sm:px-8",
           showPay
-            ? "pb-[calc(16rem+env(safe-area-inset-bottom))] sm:pb-16"
-            : "pb-[max(2.5rem,env(safe-area-inset-bottom))]",
+            ? "pb-[calc(14rem+env(safe-area-inset-bottom))] sm:pb-12"
+            : "pb-[max(2rem,env(safe-area-inset-bottom))]",
           "transition-opacity duration-500",
           ready || loading ? "opacity-100" : "opacity-0",
         )}
       >
-        {/* Brand masthead */}
-        <header className="flex items-start gap-3.5 sm:items-center sm:gap-4">
+        {/* Brand + balance — compact centered lockup */}
+        <header className="text-center">
           {branding.logoUrl ? (
-            <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-[0_1px_0_rgba(28,25,23,0.06)] ring-1 ring-stone-900/8 sm:h-16 sm:w-16 sm:p-2"
-              aria-hidden
-            >
+            <div className="mx-auto flex max-w-[min(78vw,240px)] items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={branding.logoUrl}
-                alt=""
-                className="max-h-full max-w-full object-contain"
+                alt={displayShop}
+                className="h-20 w-full object-contain object-center sm:h-24"
+                style={{ mixBlendMode: "multiply" }}
               />
             </div>
           ) : (
             <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold text-white sm:h-16 sm:w-16"
+              className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl text-3xl font-semibold text-white sm:h-24 sm:w-24 sm:text-4xl"
               style={{
                 background: `linear-gradient(145deg, ${primary}, color-mix(in oklab, ${primary} 70%, #062015))`,
               }}
@@ -882,17 +880,15 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               {displayShop.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="min-w-0 flex-1 pt-0.5">
-            <h1
-              className="font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.45rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance sm:text-[1.85rem]"
-              style={{ color: primary }}
-            >
-              {displayShop}
-            </h1>
-            <p className="mt-1.5 text-[12px] tracking-[0.04em] text-stone-500">
-              Account · {phone}
-            </p>
-          </div>
+          <h1
+            className="mt-3 font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.25rem] font-semibold leading-snug tracking-tight text-balance sm:text-[1.4rem]"
+            style={{ color: primary }}
+          >
+            {displayShop}
+          </h1>
+          <p className="mt-1 text-[11px] tracking-wide text-stone-500">
+            Account · {phone}
+          </p>
         </header>
 
         {loading ? (
@@ -936,45 +932,38 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </div>
         ) : (
           <>
-            {/* Balance composition */}
-            <section className="mt-12 sm:mt-14">
-              {firstName ? (
-                <p className="text-[14px] text-stone-600">
-                  Hi {firstName},
-                </p>
-              ) : null}
-              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                {owed > 0 ? "Outstanding" : "Balance"}
+            {/* Balance — tight hero */}
+            <section className="mt-5 text-center sm:mt-6">
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-stone-500">
+                {firstName ? (
+                  <>
+                    Hi {firstName} ·{" "}
+                    {owed > 0 ? "Outstanding" : "Balance"}
+                  </>
+                ) : owed > 0 ? (
+                  "Outstanding"
+                ) : (
+                  "Balance"
+                )}
               </p>
               <p
-                className="mt-2 font-[family-name:var(--font-cormorant),Georgia,serif] text-[3.5rem] font-semibold leading-[0.92] tracking-[-0.03em] sm:text-[4.25rem]"
+                className="mt-1.5 font-[family-name:var(--font-cormorant),Georgia,serif] text-[2.65rem] font-semibold leading-none tracking-[-0.03em] sm:text-[3rem]"
                 style={{ color: primary }}
               >
                 {fmtMoney(owed, currency)}
               </p>
-              <div
-                className="mt-5 h-px w-16"
-                style={{
-                  background: `linear-gradient(90deg, ${primary}, transparent)`,
-                }}
-              />
               {owed <= 0 ? (
-                <div className="mt-6 flex items-center gap-2 text-[14px] font-medium text-emerald-800">
-                  <CheckCircle2 className="size-5 shrink-0" />
+                <div className="mt-3 flex items-center justify-center gap-2 text-[13px] font-medium text-emerald-800">
+                  <CheckCircle2 className="size-4 shrink-0" />
                   All settled — nothing owed.
                 </div>
-              ) : (
-                <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-stone-500">
-                  Pay with an M-Pesa prompt, or report a payment you already
-                  made to the shop.
-                </p>
-              )}
+              ) : null}
             </section>
 
             {showPay ? (
               <section
                 className={cn(
-                  "z-40 mt-10",
+                  "z-40 mt-5 sm:mt-6",
                   "fixed inset-x-0 bottom-0 sm:static sm:inset-auto",
                   "pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0",
                 )}
@@ -995,7 +984,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             ) : null}
 
             {/* Ledger */}
-            <section className="mt-14 flex-1">
+            <section className="mt-8 flex-1 sm:mt-10">
               <div className="mb-1 flex items-end justify-between gap-3">
                 <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.35rem] font-semibold tracking-tight text-stone-900">
                   History
