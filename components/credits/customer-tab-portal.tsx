@@ -8,16 +8,23 @@ import {
   type CSSProperties,
 } from "react";
 import Link from "next/link";
-import { CheckCircle2, Loader2, Smartphone } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  Smartphone,
+  Store,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
   fetchPublicCustomerTab,
   fetchPublicTabStkStatus,
   initiatePublicTabStk,
   type PublicCustomerTab,
+  type PublicTabPurchaseRow,
 } from "@/lib/public-customer-tab";
+import { cn } from "@/lib/utils";
 
 type Branding = {
   shopName: string;
@@ -42,7 +49,7 @@ function toNum(v: unknown): number {
 
 function fmtMoney(amount: unknown, currency: string): string {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat("en-KE", {
       style: "currency",
       currency: currency.length >= 3 ? currency : "KES",
       minimumFractionDigits: 0,
@@ -56,8 +63,11 @@ function fmtMoney(amount: unknown, currency: string): string {
 function fmtDate(iso: string): string {
   try {
     return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(new Date(iso));
   } catch {
     return iso;
@@ -69,6 +79,104 @@ function newIdempotencyKey(): string {
     return crypto.randomUUID();
   }
   return `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function ShopMark({
+  logoUrl,
+  name,
+  primary,
+}: {
+  logoUrl: string | null;
+  name: string;
+  primary: string;
+}) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoUrl}
+        alt=""
+        className="h-11 w-11 shrink-0 rounded-2xl object-cover ring-1 ring-black/5 sm:h-12 sm:w-12"
+      />
+    );
+  }
+  return (
+    <div
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold text-white sm:h-12 sm:w-12"
+      style={{ background: primary }}
+      aria-hidden
+    >
+      {name.slice(0, 1).toUpperCase()}
+    </div>
+  );
+}
+
+function PurchaseRow({
+  row,
+  currency,
+}: {
+  row: PublicTabPurchaseRow;
+  currency: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const lines = row.lines ?? [];
+  const preview = lines.slice(0, 2);
+  const extra = Math.max(0, lines.length - preview.length);
+
+  return (
+    <li className="border-t border-stone-900/[0.07] pt-4 first:border-t-0 first:pt-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-start gap-3 text-left active:opacity-80"
+        aria-expanded={open}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] text-stone-500">{fmtDate(row.soldAt)}</p>
+          <p className="mt-0.5 text-[15px] font-medium text-stone-900">
+            {row.receiptNo != null ? `Receipt #${row.receiptNo}` : "Purchase"}
+          </p>
+          {!open && lines.length > 0 ? (
+            <p className="mt-1 truncate text-sm text-stone-500">
+              {preview.map((l) => l.name).join(" · ")}
+              {extra > 0 ? ` · +${extra} more` : ""}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
+          <span className="text-[15px] font-semibold tabular-nums text-stone-900">
+            {fmtMoney(row.creditAmount, currency)}
+          </span>
+          <ChevronRight
+            className={cn(
+              "size-4 text-stone-400 transition-transform duration-200",
+              open && "rotate-90",
+            )}
+          />
+        </div>
+      </button>
+      {open && lines.length > 0 ? (
+        <ul className="mt-3 space-y-2 border-l-2 border-[color-mix(in_oklab,var(--tab-primary)_40%,transparent)] pl-3">
+          {lines.map((line, i) => (
+            <li
+              key={`${row.saleId}-${i}`}
+              className="flex justify-between gap-3 text-sm text-stone-600"
+            >
+              <span className="min-w-0">
+                {line.name}
+                {toNum(line.quantity) !== 1 ? (
+                  <span className="text-stone-400"> × {toNum(line.quantity)}</span>
+                ) : null}
+              </span>
+              <span className="shrink-0 tabular-nums">
+                {fmtMoney(line.lineTotal, currency)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
 }
 
 export function CustomerTabPortal({ phoneSegment, branding }: Props) {
@@ -89,7 +197,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const primary = branding.primaryHex || "#0b6e4f";
-  const accent = branding.accentHex || "#f4a261";
+  const accent = branding.accentHex || "#c4a574";
   const shopName = branding.shopName || "Shop";
 
   const themeStyle = useMemo(
@@ -111,8 +219,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     } else {
       setNotFound(false);
       setTab(data);
-      const owed = toNum(data.balanceOwed);
-      setAmount(owed > 0 ? owed.toFixed(2) : "");
+      const nextOwed = toNum(data.balanceOwed);
+      setAmount(nextOwed > 0 ? String(Math.round(nextOwed)) : "");
     }
     setLoading(false);
   }, [phone]);
@@ -130,18 +238,18 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         if (cancelled) return;
         if (st.status === "fulfilled") {
           setPaid(true);
-          setStatusMsg("Payment received — thank you!");
+          setStatusMsg("Payment received — asante!");
           setPromptSent(false);
           void reload();
           return;
         }
         if (st.status === "failed") {
-          setStatusMsg("Payment didn’t go through. You can try again.");
+          setStatusMsg("Payment didn’t go through. Try again.");
           setPromptSent(false);
           setIntentId(null);
         }
       } catch {
-        /* keep polling briefly */
+        /* keep polling */
       }
     };
     const id = window.setInterval(() => void tick(), 2500);
@@ -154,26 +262,32 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
   const owed = toNum(tab?.balanceOwed);
   const currency = tab?.currency || "KES";
+  const displayShop = tab?.shopName || shopName;
+  const firstName = tab?.customerName?.trim().split(/\s+/)[0] || null;
+  const payDisabled = busy || promptSent || owed <= 0;
+  const amountNum = Number.parseFloat(amount);
+  const amountValid =
+    Number.isFinite(amountNum) && amountNum > 0 && amountNum <= owed + 0.001;
+  const showPay = owed > 0 && !loading && !notFound;
 
   async function onPay() {
     setError(null);
     setStatusMsg(null);
-    const amt = Number.parseFloat(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      setError("Enter a valid amount.");
-      return;
-    }
-    if (amt > owed + 0.001) {
-      setError(`Amount can’t exceed ${fmtMoney(owed, currency)}.`);
+    if (!amountValid) {
+      setError(
+        !Number.isFinite(amountNum) || amountNum <= 0
+          ? "Enter how much you want to pay."
+          : `Max is ${fmtMoney(owed, currency)}.`,
+      );
       return;
     }
     setBusy(true);
     try {
-      const res = await initiatePublicTabStk(phone, amt, newIdempotencyKey());
+      const res = await initiatePublicTabStk(phone, amountNum, newIdempotencyKey());
       setIntentId(res.intentId);
       setPromptSent(true);
       setPaid(false);
-      setStatusMsg("M-Pesa prompt sent — check your phone and enter your PIN.");
+      setStatusMsg(`Prompt sent to ${phone}. Open M-Pesa and enter your PIN.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not send M-Pesa prompt.");
     } finally {
@@ -183,190 +297,142 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
   return (
     <div
-      className="min-h-[100dvh] text-stone-900"
+      className="min-h-[100dvh] text-stone-900 antialiased"
       style={{
         ...themeStyle,
-        background:
-          "radial-gradient(120% 80% at 10% -10%, color-mix(in oklab, var(--tab-primary) 22%, transparent), transparent 55%), radial-gradient(90% 60% at 100% 0%, color-mix(in oklab, var(--tab-accent) 28%, transparent), transparent 50%), linear-gradient(165deg, #f7f3eb 0%, #efe8dc 48%, #e8f2ec 100%)",
+        background: `
+          radial-gradient(90% 55% at 0% 0%, color-mix(in oklab, var(--tab-primary) 18%, transparent), transparent 60%),
+          radial-gradient(70% 45% at 100% 8%, color-mix(in oklab, var(--tab-accent) 22%, transparent), transparent 55%),
+          linear-gradient(180deg, #faf8f4 0%, #f3efe8 45%, #eef5f0 100%)
+        `,
       }}
     >
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col px-5 pb-10 pt-8 sm:px-6">
-        <header className="mb-8 flex items-center gap-3">
-          {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt=""
-              className="h-11 w-11 rounded-xl object-cover shadow-sm"
-            />
-          ) : (
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold text-white shadow-sm"
-              style={{ background: primary }}
-              aria-hidden
-            >
-              {(tab?.shopName || shopName).slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p
-              className="truncate font-[family-name:var(--font-display,Georgia,serif)] text-2xl font-semibold tracking-tight"
+      <div
+        className={cn(
+          "mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:max-w-lg sm:px-6",
+          showPay
+            ? "pb-[calc(11.5rem+env(safe-area-inset-bottom))] sm:pb-12"
+            : "pb-[max(2rem,env(safe-area-inset-bottom))]",
+        )}
+      >
+        <header className="flex items-center gap-3">
+          <ShopMark
+            logoUrl={branding.logoUrl}
+            name={displayShop}
+            primary={primary}
+          />
+          <div className="min-w-0 flex-1">
+            <h1
+              className="truncate font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.65rem] font-semibold leading-tight tracking-tight sm:text-3xl"
               style={{ color: primary }}
             >
-              {tab?.shopName || shopName}
+              {displayShop}
+            </h1>
+            <p className="mt-0.5 truncate text-sm text-stone-500">
+              Your tab · {phone}
             </p>
-            <p className="text-sm text-stone-600">Your tab · {phone}</p>
           </div>
         </header>
 
         {loading ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-stone-600">
-            <Loader2 className="size-8 animate-spin" style={{ color: primary }} />
-            <p className="text-sm">Loading your balance…</p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24">
+            <Loader2 className="size-9 animate-spin" style={{ color: primary }} />
+            <p className="text-sm text-stone-500">Loading your balance…</p>
           </div>
         ) : notFound ? (
-          <div className="flex flex-1 flex-col justify-center gap-4 py-16">
-            <h1 className="font-[family-name:var(--font-display,Georgia,serif)] text-3xl font-semibold tracking-tight">
-              Tab not found
-            </h1>
-            <p className="max-w-sm text-stone-600">
-              We couldn’t find an open tab for this number at this shop. If you
-              just bought on credit, ask the cashier to confirm your phone is on
-              the account.
-            </p>
+          <div className="flex flex-1 flex-col justify-center gap-5 py-16">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl"
+              style={{
+                background: `color-mix(in oklab, ${primary} 12%, white)`,
+              }}
+            >
+              <Store className="size-7" style={{ color: primary }} />
+            </div>
+            <div>
+              <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-3xl font-semibold tracking-tight">
+                Tab not found
+              </h2>
+              <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-stone-600">
+                We couldn’t find an open tab for this number here. Ask the cashier
+                to confirm your phone is on the account.
+              </p>
+            </div>
             <Link
               href="/shop"
-              className="text-sm font-medium underline-offset-4 hover:underline"
+              className="inline-flex w-fit items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"
               style={{ color: primary }}
             >
               Back to shop
+              <ChevronRight className="size-4" />
             </Link>
           </div>
         ) : (
           <>
-            <section className="mb-10">
-              <p className="mb-2 text-sm font-medium uppercase tracking-[0.14em] text-stone-500">
-                Total owed
+            <section className="mt-10">
+              {firstName ? (
+                <p className="text-[15px] text-stone-600">Hi {firstName}</p>
+              ) : null}
+              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {owed > 0 ? "You owe" : "Balance"}
               </p>
               <p
-                className="font-[family-name:var(--font-display,Georgia,serif)] text-5xl font-semibold tracking-tight sm:text-6xl"
+                className="mt-1 font-[family-name:var(--font-cormorant),Georgia,serif] text-[3.25rem] font-semibold leading-none tracking-tight sm:text-6xl"
                 style={{ color: primary }}
               >
                 {fmtMoney(owed, currency)}
               </p>
-              {tab?.customerName ? (
-                <p className="mt-3 text-base text-stone-600">
-                  Hi {tab.customerName.trim()}
+              {owed <= 0 ? (
+                <p className="mt-5 flex items-center gap-2 text-[15px] font-medium text-emerald-800">
+                  <CheckCircle2 className="size-5 shrink-0" />
+                  You’re all settled — nothing owed.
                 </p>
               ) : null}
             </section>
 
-            {owed > 0 ? (
-              <section className="mb-12">
-                <label className="mb-2 block text-sm font-medium text-stone-700">
-                  Pay amount
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={1}
-                    step="0.01"
-                    max={owed}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    disabled={busy || promptSent}
-                    className="min-w-0 flex-1 rounded-xl border border-stone-300/80 bg-white/80 px-4 py-3 text-lg outline-none ring-[var(--tab-primary)] focus:ring-2"
-                  />
-                  <Button
-                    type="button"
-                    disabled={busy || promptSent || owed <= 0}
-                    onClick={() => void onPay()}
-                    className="h-auto shrink-0 rounded-xl px-5 py-3 text-base font-semibold text-white shadow-none"
-                    style={{ background: primary }}
-                  >
-                    {busy ? (
-                      <Loader2 className="size-5 animate-spin" />
-                    ) : (
-                      "Pay with M-Pesa"
-                    )}
-                  </Button>
-                </div>
-                {promptSent ? (
-                  <p className="mt-3 flex items-start gap-2 text-sm text-stone-700">
-                    <Smartphone className="mt-0.5 size-4 shrink-0" style={{ color: primary }} />
-                    {statusMsg}
-                  </p>
-                ) : null}
-                {paid ? (
-                  <p className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-800">
-                    <CheckCircle2 className="size-4" />
-                    {statusMsg}
-                  </p>
-                ) : null}
-                {error ? (
-                  <p className="mt-3 text-sm text-red-700">{error}</p>
-                ) : null}
-                {!promptSent && !paid && !error ? (
-                  <p className="mt-3 text-xs text-stone-500">
-                    We’ll send an M-Pesa prompt to {phone}. Enter your PIN to
-                    clear this tab.
-                  </p>
-                ) : null}
+            {/* Desktop pay (in flow) */}
+            {showPay ? (
+              <section className="mt-8 hidden sm:block">
+                <PayPanel
+                  currency={currency}
+                  phone={phone}
+                  amount={amount}
+                  setAmount={setAmount}
+                  owed={owed}
+                  payDisabled={payDisabled}
+                  amountValid={amountValid}
+                  amountNum={amountNum}
+                  busy={busy}
+                  promptSent={promptSent}
+                  paid={paid}
+                  statusMsg={statusMsg}
+                  error={error}
+                  primary={primary}
+                  onPay={() => void onPay()}
+                  onClearError={() => setError(null)}
+                />
               </section>
-            ) : (
-              <section className="mb-12 rounded-2xl bg-white/50 px-4 py-5">
-                <p className="flex items-center gap-2 font-medium text-emerald-900">
-                  <CheckCircle2 className="size-5" />
-                  You’re all settled — nothing owed.
-                </p>
-              </section>
-            )}
+            ) : null}
 
-            <section className="flex-1">
-              <h2 className="mb-4 font-[family-name:var(--font-display,Georgia,serif)] text-xl font-semibold tracking-tight">
-                On credit
-              </h2>
+            <section className="mt-12 flex-1">
+              <div className="mb-4 flex items-baseline justify-between gap-3">
+                <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-xl font-semibold tracking-tight">
+                  On credit
+                </h2>
+                {(tab?.purchases?.length ?? 0) > 0 ? (
+                  <span className="text-xs tabular-nums text-stone-400">
+                    {tab!.purchases.length}{" "}
+                    {tab!.purchases.length === 1 ? "sale" : "sales"}
+                  </span>
+                ) : null}
+              </div>
+
               {(tab?.purchases?.length ?? 0) === 0 ? (
-                <p className="text-sm text-stone-500">No recent tab purchases.</p>
+                <p className="text-sm text-stone-500">No recent tab purchases yet.</p>
               ) : (
-                <ul className="space-y-6">
+                <ul>
                   {tab!.purchases.map((row) => (
-                    <li key={row.saleId} className="border-t border-stone-300/50 pt-4">
-                      <div className="mb-2 flex items-baseline justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-stone-800">
-                            {row.receiptNo != null
-                              ? `Receipt #${row.receiptNo}`
-                              : "Purchase"}
-                          </p>
-                          <p className="text-xs text-stone-500">
-                            {fmtDate(row.soldAt)}
-                          </p>
-                        </div>
-                        <p className="text-sm font-semibold tabular-nums">
-                          {fmtMoney(row.creditAmount, currency)}
-                        </p>
-                      </div>
-                      <ul className="space-y-1">
-                        {row.lines.map((line, i) => (
-                          <li
-                            key={`${row.saleId}-${i}`}
-                            className="flex justify-between gap-3 text-sm text-stone-600"
-                          >
-                            <span className="min-w-0 truncate">
-                              {line.name}
-                              {toNum(line.quantity) !== 1
-                                ? ` × ${toNum(line.quantity)}`
-                                : ""}
-                            </span>
-                            <span className="shrink-0 tabular-nums">
-                              {fmtMoney(line.lineTotal, currency)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
+                    <PurchaseRow key={row.saleId} row={row} currency={currency} />
                   ))}
                 </ul>
               )}
@@ -374,6 +440,179 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </>
         )}
       </div>
+
+      {/* Mobile sticky pay dock — thumb-friendly */}
+      {showPay ? (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-900/10 bg-[#faf8f4]/95 px-5 pt-3 shadow-[0_-8px_30px_rgba(28,25,23,0.06)] backdrop-blur-md sm:hidden"
+          style={{
+            paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          }}
+        >
+          <div className="mx-auto max-w-md">
+            <PayPanel
+              currency={currency}
+              phone={phone}
+              amount={amount}
+              setAmount={setAmount}
+              owed={owed}
+              payDisabled={payDisabled}
+              amountValid={amountValid}
+              amountNum={amountNum}
+              busy={busy}
+              promptSent={promptSent}
+              paid={paid}
+              statusMsg={statusMsg}
+              error={error}
+              primary={primary}
+              onPay={() => void onPay()}
+              onClearError={() => setError(null)}
+              compact
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PayPanel({
+  currency,
+  phone,
+  amount,
+  setAmount,
+  owed,
+  payDisabled,
+  amountValid,
+  amountNum,
+  busy,
+  promptSent,
+  paid,
+  statusMsg,
+  error,
+  primary,
+  onPay,
+  onClearError,
+  compact = false,
+}: {
+  currency: string;
+  phone: string;
+  amount: string;
+  setAmount: (v: string) => void;
+  owed: number;
+  payDisabled: boolean;
+  amountValid: boolean;
+  amountNum: number;
+  busy: boolean;
+  promptSent: boolean;
+  paid: boolean;
+  statusMsg: string | null;
+  error: string | null;
+  primary: string;
+  onPay: () => void;
+  onClearError: () => void;
+  compact?: boolean;
+}) {
+  const inputId = compact ? "tab-pay-amount-mobile" : "tab-pay-amount";
+
+  return (
+    <div className={cn("space-y-2.5", !compact && "space-y-3")}>
+      <div className="flex items-end justify-between gap-3">
+        <label htmlFor={inputId} className="text-sm font-medium text-stone-700">
+          Amount to pay
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            setAmount(String(Math.round(owed * 100) / 100));
+            onClearError();
+          }}
+          disabled={payDisabled}
+          className="text-xs font-semibold uppercase tracking-wide disabled:opacity-40"
+          style={{ color: primary }}
+        >
+          Pay all
+        </button>
+      </div>
+
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-stone-400">
+          {currency}
+        </span>
+        <input
+          id={inputId}
+          type="number"
+          inputMode="decimal"
+          min={1}
+          step="1"
+          max={owed}
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            onClearError();
+          }}
+          disabled={payDisabled}
+          className="w-full rounded-2xl border border-stone-900/10 bg-white px-4 py-3.5 pl-14 text-2xl font-semibold tabular-nums text-stone-900 outline-none transition focus:border-transparent focus:ring-2 disabled:opacity-60"
+          style={{ ["--tw-ring-color" as string]: primary }}
+        />
+      </div>
+
+      <button
+        type="button"
+        disabled={payDisabled || !amountValid}
+        onClick={onPay}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-base font-semibold text-white transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ background: primary }}
+      >
+        {busy ? (
+          <>
+            <Loader2 className="size-5 animate-spin" />
+            Sending…
+          </>
+        ) : promptSent ? (
+          <>
+            <Smartphone className="size-5" />
+            Waiting for PIN…
+          </>
+        ) : (
+          <>
+            Pay {amountValid ? fmtMoney(amountNum, currency) : ""} with M-Pesa
+          </>
+        )}
+      </button>
+
+      {promptSent ? (
+        <div
+          className="flex items-start gap-2.5 rounded-2xl px-3.5 py-2.5 text-sm"
+          style={{
+            background: `color-mix(in oklab, ${primary} 12%, white)`,
+            color: primary,
+          }}
+        >
+          <Smartphone className="mt-0.5 size-4 shrink-0 animate-pulse" />
+          <p className="font-medium leading-snug">{statusMsg}</p>
+        </div>
+      ) : null}
+
+      {paid ? (
+        <div className="flex items-center gap-2.5 rounded-2xl bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-900">
+          <CheckCircle2 className="size-4 shrink-0" />
+          {statusMsg}
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="text-sm font-medium text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {!compact && !promptSent && !paid && !error ? (
+        <p className="text-center text-xs leading-relaxed text-stone-500">
+          We’ll prompt <span className="font-medium text-stone-700">{phone}</span>.
+          Approve on your phone to clear this tab.
+        </p>
+      ) : null}
     </div>
   );
 }
