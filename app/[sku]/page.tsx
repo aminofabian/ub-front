@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
-import { CustomerTabPortal } from "@/components/credits/customer-tab-portal";
+import { CustomerTabPortalLoader } from "@/components/credits/customer-tab-portal-loader";
 import ShopAddToCart from "@/components/storefront/shop-add-to-cart";
 import { ShopItemLivePrice } from "@/components/storefront/shop-item-live-price";
 import { ShopItemNotifyButton } from "@/components/storefront/shop-item-notify-button";
@@ -104,7 +104,7 @@ export default async function ShopItemPage({ params }: PageProps) {
       tenant?.tenantName ||
       "Shop";
     return (
-      <CustomerTabPortal
+      <CustomerTabPortalLoader
         phoneSegment={sku}
         branding={{
           shopName,

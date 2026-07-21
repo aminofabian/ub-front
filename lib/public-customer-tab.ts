@@ -34,6 +34,11 @@ export type PublicTabStk = {
   balanceOwed: number | string;
 };
 
+export type PublicTabManualPayment = {
+  claimId: string;
+  status: string;
+};
+
 async function readJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = res.statusText;
@@ -122,4 +127,31 @@ export async function fetchPublicTabStkStatus(
     },
   );
   return readJson<PublicTabStk>(res);
+}
+
+export async function submitPublicTabManualPayment(
+  phone: string,
+  amount: number,
+  reference?: string,
+): Promise<PublicTabManualPayment> {
+  const body: { amount: number; reference?: string } = { amount };
+  const ref = reference?.trim();
+  if (ref) {
+    body.reference = ref;
+  }
+  const res = await fetch(
+    apiUrl(
+      `/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/payment-claims`,
+    ),
+    {
+      method: "POST",
+      headers: {
+        ...(tenantHostHeaders() as Record<string, string>),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    },
+  );
+  return readJson<PublicTabManualPayment>(res);
 }

@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useState,
   type CSSProperties,
@@ -12,6 +13,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Loader2,
+  Receipt,
   Smartphone,
   Store,
 } from "lucide-react";
@@ -21,6 +23,7 @@ import {
   fetchPublicCustomerTab,
   fetchPublicTabStkStatus,
   initiatePublicTabStk,
+  submitPublicTabManualPayment,
   type PublicCustomerTab,
   type PublicTabPurchaseRow,
 } from "@/lib/public-customer-tab";
@@ -69,7 +72,7 @@ function fmtQty(v: unknown): string {
 
 function fmtDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("en-KE", {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -174,6 +177,230 @@ function PurchaseRow({
   );
 }
 
+type PayMode = "stk" | "manual";
+
+function PayModeToggle({
+  mode,
+  setMode,
+  disabled,
+  primary,
+}: {
+  mode: PayMode;
+  setMode: (m: PayMode) => void;
+  disabled: boolean;
+  primary: string;
+}) {
+  const base =
+    "flex-1 rounded-lg py-2 text-[13px] font-semibold transition disabled:opacity-45";
+  return (
+    <div
+      className="mb-1 flex gap-1 rounded-xl bg-stone-900/[0.06] p-1 sm:mb-0"
+      role="tablist"
+      aria-label="Payment method"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "stk"}
+        disabled={disabled}
+        onClick={() => setMode("stk")}
+        className={cn(
+          base,
+          mode === "stk"
+            ? "bg-white text-stone-900 shadow-sm"
+            : "text-stone-600 hover:text-stone-900",
+        )}
+      >
+        M-Pesa prompt
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "manual"}
+        disabled={disabled}
+        onClick={() => setMode("manual")}
+        className={cn(
+          base,
+          mode === "manual"
+            ? "bg-white text-stone-900 shadow-sm"
+            : "text-stone-600 hover:text-stone-900",
+        )}
+        style={mode === "manual" ? { color: primary } : undefined}
+      >
+        Already paid
+      </button>
+    </div>
+  );
+}
+
+function ManualPayPanel({
+  currency,
+  amount,
+  setAmount,
+  reference,
+  setReference,
+  owed,
+  payDisabled,
+  amountValid,
+  amountNum,
+  busy,
+  submitted,
+  error,
+  primary,
+  onSubmit,
+  onClearError,
+  fieldIdPrefix,
+}: {
+  currency: string;
+  amount: string;
+  setAmount: (v: string) => void;
+  reference: string;
+  setReference: (v: string) => void;
+  owed: number;
+  payDisabled: boolean;
+  amountValid: boolean;
+  amountNum: number;
+  busy: boolean;
+  submitted: boolean;
+  error: string | null;
+  primary: string;
+  onSubmit: () => void;
+  onClearError: () => void;
+  fieldIdPrefix: string;
+}) {
+  const amountId = `${fieldIdPrefix}-amount`;
+  const refId = `${fieldIdPrefix}-ref`;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 sm:tracking-[0.18em]">
+          <span className="sm:hidden">Amount paid</span>
+          <span className="hidden sm:inline">Report a payment</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setAmount(String(Math.round(owed * 100) / 100));
+            onClearError();
+          }}
+          disabled={payDisabled || submitted}
+          className="text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-40 sm:text-[12px]"
+          style={{ color: primary }}
+        >
+          <span className="sm:hidden">Full · {fmtMoney(owed, currency)}</span>
+          <span className="hidden sm:inline">Use full balance</span>
+        </button>
+      </div>
+
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-medium text-stone-400">
+          {currency}
+        </span>
+        <input
+          id={amountId}
+          type="number"
+          inputMode="decimal"
+          min={1}
+          step="1"
+          max={owed}
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            onClearError();
+          }}
+          disabled={payDisabled || submitted}
+          className={cn(
+            "w-full border border-stone-900/10 bg-white/90 pl-14 pr-4 font-semibold tabular-nums text-stone-900 outline-none transition",
+            "rounded-xl py-3 text-xl focus:border-transparent focus:ring-2 disabled:opacity-55 sm:py-3.5 sm:text-2xl",
+          )}
+          style={{ ["--tw-ring-color" as string]: primary }}
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor={refId}
+          className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500"
+        >
+          M-Pesa code <span className="font-normal normal-case text-stone-400">(optional)</span>
+        </label>
+        <input
+          id={refId}
+          type="text"
+          inputMode="text"
+          autoComplete="off"
+          placeholder="e.g. QGH1ABC234"
+          value={reference}
+          onChange={(e) => {
+            setReference(e.target.value);
+            onClearError();
+          }}
+          disabled={payDisabled || submitted}
+          className={cn(
+            "w-full border border-stone-900/10 bg-white/90 px-4 py-3 text-[15px] uppercase tracking-wide text-stone-900 outline-none transition",
+            "rounded-xl focus:border-transparent focus:ring-2 disabled:opacity-55",
+          )}
+          style={{ ["--tw-ring-color" as string]: primary }}
+        />
+      </div>
+
+      <button
+        type="button"
+        disabled={payDisabled || !amountValid || submitted}
+        onClick={onSubmit}
+        className={cn(
+          "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-[15px] font-semibold text-white transition sm:py-4 sm:text-base",
+          "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45",
+        )}
+        style={{
+          background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${primary} 78%, #0a2018) 100%)`,
+          boxShadow: `0 10px 28px -12px color-mix(in oklab, ${primary} 65%, transparent)`,
+        }}
+      >
+        {busy ? (
+          <>
+            <Loader2 className="size-5 animate-spin" />
+            Submitting…
+          </>
+        ) : submitted ? (
+          <>
+            <CheckCircle2 className="size-5" />
+            Submitted for review
+          </>
+        ) : (
+          <>
+            <Receipt className="size-5 opacity-90" />
+            {amountValid
+              ? `Submit ${fmtMoney(amountNum, currency)} payment`
+              : "Submit payment"}
+          </>
+        )}
+      </button>
+
+      {submitted ? (
+        <div className="flex items-start gap-2 text-[13px] leading-snug text-emerald-800">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
+          The shop will review your payment and update your balance.
+        </div>
+      ) : null}
+
+      {error ? (
+        <p className="text-[13px] font-medium text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {!submitted && !error ? (
+        <p className="hidden text-center text-[12px] leading-relaxed text-stone-500 sm:block">
+          Paid the till or paybill directly? Enter what you sent — staff will
+          confirm before your balance updates.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function PayPanel({
   currency,
   phone,
@@ -193,7 +420,7 @@ function PayPanel({
   primary,
   onPay,
   onClearError,
-  variant = "inline",
+  fieldIdPrefix,
 }: {
   currency: string;
   phone: string;
@@ -213,55 +440,33 @@ function PayPanel({
   primary: string;
   onPay: () => void;
   onClearError: () => void;
-  variant?: "inline" | "dock";
+  fieldIdPrefix: string;
 }) {
-  const inputId = variant === "dock" ? "tab-pay-amount-mobile" : "tab-pay-amount";
-  const phoneId = variant === "dock" ? "tab-pay-phone-mobile" : "tab-pay-phone";
-  const isDock = variant === "dock";
+  const inputId = `${fieldIdPrefix}-amount`;
+  const phoneId = `${fieldIdPrefix}-phone`;
   const phoneOk = looksLikeKenyanMobilePath(payPhone);
 
   return (
-    <div className={cn("space-y-3", isDock && "space-y-2.5")}>
-      {!isDock ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-            Settle with M-Pesa
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setAmount(String(Math.round(owed * 100) / 100));
-              onClearError();
-            }}
-            disabled={payDisabled}
-            className="text-[12px] font-semibold underline-offset-2 hover:underline disabled:opacity-40"
-            style={{ color: primary }}
-          >
-            Use full balance
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between gap-2">
-          <label
-            htmlFor={inputId}
-            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500"
-          >
-            Pay
-          </label>
-          <button
-            type="button"
-            onClick={() => {
-              setAmount(String(Math.round(owed * 100) / 100));
-              onClearError();
-            }}
-            disabled={payDisabled}
-            className="text-[11px] font-semibold disabled:opacity-40"
-            style={{ color: primary }}
-          >
-            Full · {fmtMoney(owed, currency)}
-          </button>
-        </div>
-      )}
+    <div className="space-y-3 sm:space-y-3">
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 sm:tracking-[0.18em]">
+          <span className="sm:hidden">Pay</span>
+          <span className="hidden sm:inline">Settle with M-Pesa</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setAmount(String(Math.round(owed * 100) / 100));
+            onClearError();
+          }}
+          disabled={payDisabled}
+          className="text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-40 sm:text-[12px]"
+          style={{ color: primary }}
+        >
+          <span className="sm:hidden">Full · {fmtMoney(owed, currency)}</span>
+          <span className="hidden sm:inline">Use full balance</span>
+        </button>
+      </div>
 
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -327,8 +532,7 @@ function PayPanel({
           disabled={payDisabled}
           className={cn(
             "w-full border border-stone-900/10 bg-white/90 pl-14 pr-4 font-semibold tabular-nums text-stone-900 outline-none transition",
-            "rounded-xl focus:border-transparent focus:ring-2 disabled:opacity-55",
-            isDock ? "py-3 text-xl" : "py-3.5 text-2xl",
+            "rounded-xl py-3 text-xl focus:border-transparent focus:ring-2 disabled:opacity-55 sm:py-3.5 sm:text-2xl",
           )}
           style={{ ["--tw-ring-color" as string]: primary }}
         />
@@ -339,9 +543,8 @@ function PayPanel({
         disabled={payDisabled || !amountValid || !phoneOk}
         onClick={onPay}
         className={cn(
-          "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl font-semibold text-white transition",
+          "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-[15px] font-semibold text-white transition sm:py-4 sm:text-base",
           "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45",
-          isDock ? "py-3.5 text-[15px]" : "py-4 text-base",
         )}
         style={{
           background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${primary} 78%, #0a2018) 100%)`,
@@ -369,20 +572,20 @@ function PayPanel({
       </button>
 
       {promptSent ? (
-        <p
+        <div
           className="flex items-start gap-2 text-[13px] leading-snug"
           style={{ color: primary }}
         >
           <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current animate-pulse" />
           {statusMsg}
-        </p>
+        </div>
       ) : null}
 
       {paid ? (
-        <p className="flex items-center gap-2 text-[13px] font-medium text-emerald-800">
+        <div className="flex items-center gap-2 text-[13px] font-medium text-emerald-800">
           <CheckCircle2 className="size-4 shrink-0" />
           {statusMsg}
-        </p>
+        </div>
       ) : null}
 
       {error ? (
@@ -391,8 +594,8 @@ function PayPanel({
         </p>
       ) : null}
 
-      {!isDock && !promptSent && !paid && !error ? (
-        <p className="text-center text-[12px] leading-relaxed text-stone-500">
+      {!promptSent && !paid && !error ? (
+        <p className="hidden text-center text-[12px] leading-relaxed text-stone-500 sm:block">
           Prompt goes to the number above. If it differs from your account phone,
           we’ll update your account after a successful payment.
         </p>
@@ -402,6 +605,7 @@ function PayPanel({
 }
 
 export function CustomerTabPortal({ phoneSegment, branding }: Props) {
+  const fieldIdPrefix = useId().replace(/:/g, "");
   const phone = useMemo(
     () => toKenyanLocal07(phoneSegment) ?? phoneSegment.trim(),
     [phoneSegment],
@@ -412,6 +616,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [notFound, setNotFound] = useState(false);
   const [amount, setAmount] = useState("");
   const [payPhone, setPayPhone] = useState(phone);
+  const [payMode, setPayMode] = useState<PayMode>("stk");
+  const [reference, setReference] = useState("");
+  const [manualSubmitted, setManualSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [promptSent, setPromptSent] = useState(false);
   const [intentId, setIntentId] = useState<string | null>(null);
@@ -419,6 +626,11 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const primary = branding.primaryHex || "#0b6e4f";
   const accent = branding.accentHex || "#8a9a7b";
@@ -493,10 +705,11 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const displayShop = tab?.shopName || shopName;
   const firstName = tab?.customerName?.trim().split(/\s+/)[0] || null;
   const payDisabled = busy || promptSent || owed <= 0;
+  const manualPayDisabled = busy || manualSubmitted || owed <= 0;
   const amountNum = Number.parseFloat(amount);
   const amountValid =
     Number.isFinite(amountNum) && amountNum > 0 && amountNum <= owed + 0.001;
-  const showPay = owed > 0 && !loading && !notFound;
+  const showPay = owed > 0 && !loading && !notFound && mounted;
   const purchaseCount = tab?.purchases?.length ?? 0;
 
   async function onPay() {
@@ -534,6 +747,33 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     }
   }
 
+  async function onSubmitManual() {
+    setError(null);
+    if (!amountValid) {
+      setError(
+        !Number.isFinite(amountNum) || amountNum <= 0
+          ? "Enter how much you paid."
+          : `Max is ${fmtMoney(owed, currency)}.`,
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      await submitPublicTabManualPayment(
+        phone,
+        amountNum,
+        reference.trim() || undefined,
+      );
+      setManualSubmitted(true);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not submit payment report.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const payProps = {
     currency,
     phone,
@@ -553,6 +793,36 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     primary,
     onPay: () => void onPay(),
     onClearError: () => setError(null),
+    fieldIdPrefix: `${fieldIdPrefix}-stk`,
+  };
+
+  const manualPayProps = {
+    currency,
+    amount,
+    setAmount,
+    reference,
+    setReference,
+    owed,
+    payDisabled: manualPayDisabled,
+    amountValid,
+    amountNum,
+    busy,
+    submitted: manualSubmitted,
+    error,
+    primary,
+    onSubmit: () => void onSubmitManual(),
+    onClearError: () => setError(null),
+    fieldIdPrefix: `${fieldIdPrefix}-manual`,
+  };
+
+  const modeToggleProps = {
+    mode: payMode,
+    setMode: (m: PayMode) => {
+      setPayMode(m);
+      setError(null);
+    },
+    disabled: busy || promptSent || manualSubmitted,
+    primary,
   };
 
   return (
@@ -689,21 +959,37 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 }}
               />
               {owed <= 0 ? (
-                <p className="mt-6 flex items-center gap-2 text-[14px] font-medium text-emerald-800">
+                <div className="mt-6 flex items-center gap-2 text-[14px] font-medium text-emerald-800">
                   <CheckCircle2 className="size-5 shrink-0" />
                   All settled — nothing owed.
-                </p>
+                </div>
               ) : (
                 <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-stone-500">
-                  Pay any amount below. We’ll send an M-Pesa prompt to this phone.
+                  Pay with an M-Pesa prompt, or report a payment you already
+                  made to the shop.
                 </p>
               )}
             </section>
 
             {showPay ? (
-              <section className="mt-10 hidden sm:block">
-                <div className="rounded-2xl border border-stone-900/8 bg-white/55 p-5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]">
-                  <PayPanel {...payProps} variant="inline" />
+              <section
+                className={cn(
+                  "z-40 mt-10",
+                  "fixed inset-x-0 bottom-0 sm:static sm:inset-auto",
+                  "pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0",
+                )}
+              >
+                <div className="mx-auto max-w-md px-3 sm:max-w-none sm:px-0">
+                  <div className="rounded-2xl border border-stone-900/8 bg-[#f7f4ed]/92 p-3.5 shadow-[0_-12px_40px_rgba(28,25,23,0.12)] backdrop-blur-xl sm:bg-white/55 sm:p-5 sm:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]">
+                    <PayModeToggle {...modeToggleProps} />
+                    <div className="mt-2.5 sm:mt-4">
+                      {payMode === "stk" ? (
+                        <PayPanel {...payProps} />
+                      ) : (
+                        <ManualPayPanel {...manualPayProps} />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </section>
             ) : null}
@@ -740,23 +1026,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </>
         )}
       </div>
-
-      {showPay ? (
-        <div
-          className="fixed inset-x-0 bottom-0 z-40 sm:hidden"
-          style={{
-            paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
-          }}
-        >
-          <div className="mx-auto max-w-md px-3">
-            <div
-              className="rounded-2xl border border-stone-900/8 bg-[#f7f4ed]/92 p-3.5 shadow-[0_-12px_40px_rgba(28,25,23,0.12)] backdrop-blur-xl"
-            >
-              <PayPanel {...payProps} variant="dock" />
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

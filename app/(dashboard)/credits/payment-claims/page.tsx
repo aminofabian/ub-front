@@ -19,7 +19,9 @@ function fmtInstant(raw: string): string {
 }
 
 function sourceLabel(source: string | null | undefined): string {
-  return source === "cashier" ? "Till" : "Pay link";
+  if (source === "cashier") return "Till";
+  if (source === "tab_portal") return "Tab portal";
+  return "Pay link";
 }
 
 export default function PaymentClaimsReviewPage() {
@@ -109,8 +111,8 @@ export default function PaymentClaimsReviewPage() {
         <div>
           <h1 className="text-xl font-semibold">Payment claims</h1>
           <p className="text-sm text-muted-foreground">
-            Review till clearances and public payment claims. Approving drops
-            the customer&apos;s tab balance.
+            Review till clearances, tab portal payments, and public pay links.
+            Approving drops the customer&apos;s tab balance.
           </p>
         </div>
         <Button
@@ -157,7 +159,9 @@ export default function PaymentClaimsReviewPage() {
                         className={
                           r.source === "cashier"
                             ? "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-100"
-                            : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                            : r.source === "tab_portal"
+                              ? "rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-900 dark:text-emerald-100"
+                              : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
                         }
                       >
                         {sourceLabel(r.source)}
