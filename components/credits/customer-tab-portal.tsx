@@ -6,7 +6,6 @@ import {
   useId,
   useMemo,
   useState,
-  type CSSProperties,
 } from "react";
 import Link from "next/link";
 import {
@@ -98,7 +97,9 @@ function newIdempotencyKey(): string {
 }
 
 const fieldClass =
-  "w-full border border-border bg-background px-3.5 py-3.5 text-[16px] text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-[var(--ring)] disabled:opacity-50";
+  "w-full rounded-none border border-border bg-background px-3.5 py-3.5 text-[16px] text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-[var(--ring)] disabled:opacity-50";
+
+const btnClass = "rounded-md";
 
 function PurchaseRow({
   row,
@@ -196,13 +197,13 @@ function SegmentedControl({
 }) {
   return (
     <div
-      className="flex border border-border bg-muted/40 p-0.5"
+      className="flex rounded-none border border-border bg-muted/40 p-0.5"
       role="tablist"
       aria-label="Payment method"
     >
       {(
         [
-          { id: "stk" as const, label: "M-Pesa prompt", icon: Smartphone },
+          { id: "stk" as const, label: "M-Pesa", icon: Smartphone },
           { id: "manual" as const, label: "Already paid", icon: Receipt },
         ] as const
       ).map(({ id, label, icon: Icon }) => {
@@ -216,7 +217,7 @@ function SegmentedControl({
             disabled={disabled}
             onClick={() => setMode(id)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition disabled:opacity-45",
+              "flex flex-1 items-center justify-center gap-2 rounded-md py-2.5 text-[13px] font-medium transition disabled:opacity-45",
               active
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground",
@@ -262,6 +263,7 @@ function QuickAmounts({
             disabled={disabled}
             onClick={() => onPick(n)}
             className={cn(
+              btnClass,
               "border px-3 py-1.5 text-[12px] font-semibold tabular-nums transition active:scale-[0.98] disabled:opacity-40",
               active
                 ? "border-primary bg-primary text-primary-foreground"
@@ -290,7 +292,10 @@ function PrimaryButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-2 bg-primary py-3.5 text-[15px] font-semibold text-primary-foreground transition active:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+      className={cn(
+        btnClass,
+        "flex w-full items-center justify-center gap-2 bg-primary py-3.5 text-[15px] font-semibold text-primary-foreground transition active:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
+      )}
       style={{ color: STOREFRONT_ON_PRIMARY }}
     >
       {children}
@@ -609,7 +614,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [amount, setAmount] = useState("");
   const [payPhone, setPayPhone] = useState(phone);
   const [payMode, setPayMode] = useState<PayMode>("stk");
-  const [appScreen, setAppScreen] = useState<AppScreen>("purchases");
+  const [appScreen, setAppScreen] = useState<AppScreen>("pay");
   const [reference, setReference] = useState("");
   const [manualSubmitted, setManualSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -629,11 +634,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const shopName = branding.shopName || "Shop";
 
   const themeStyle = useMemo(
-    (): CSSProperties => ({
-      ...buildStorefrontThemeVars(primary, accent),
-      "--primary": primary,
-      "--primary-foreground": STOREFRONT_ON_PRIMARY,
-    }),
+    () => buildStorefrontThemeVars(primary, accent),
     [primary, accent],
   );
 
@@ -671,7 +672,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           setPaid(true);
           setStatusMsg("Payment received — asante!");
           setPromptSent(false);
-          setAppScreen("purchases");
+          setAppScreen("pay");
           void reload();
           return;
         }
@@ -808,7 +809,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
   return (
     <div
-      className="mx-auto flex h-[100dvh] max-w-lg flex-col overflow-hidden bg-background text-foreground antialiased touch-manipulation"
+      className="mx-auto flex h-[100dvh] max-w-lg flex-col overflow-hidden bg-background text-foreground antialiased touch-manipulation [&_input]:rounded-none [&_textarea]:rounded-none [&_select]:rounded-none"
       style={themeStyle}
     >
       {/* Brand header */}
@@ -823,7 +824,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             />
           ) : (
             <div
-              className="flex size-10 shrink-0 items-center justify-center text-sm font-semibold text-white"
+              className="flex size-10 shrink-0 items-center justify-center rounded-none text-sm font-semibold text-white"
               style={{ backgroundColor: primary }}
               aria-hidden
             >
@@ -857,11 +858,25 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 {fmtMoney(owed, currency)}
               </p>
             </div>
-            {showPay && appScreen === "purchases" ? (
+            {showPay && appScreen === "pay" ? (
+              <button
+                type="button"
+                onClick={() => setAppScreen("purchases")}
+                className={cn(
+                  btnClass,
+                  "shrink-0 border border-border bg-background px-3 py-2 text-[12px] font-medium text-foreground",
+                )}
+              >
+                Purchases{purchaseCount > 0 ? ` (${purchaseCount})` : ""}
+              </button>
+            ) : showPay && appScreen === "purchases" ? (
               <button
                 type="button"
                 onClick={() => setAppScreen("pay")}
-                className="shrink-0 bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
+                className={cn(
+                  btnClass,
+                  "shrink-0 bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground",
+                )}
                 style={{ color: STOREFRONT_ON_PRIMARY }}
               >
                 Pay now
@@ -889,7 +904,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           </div>
           <Link
             href="/shop"
-            className="bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+            className={cn(
+              btnClass,
+              "bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground",
+            )}
             style={{ color: STOREFRONT_ON_PRIMARY }}
           >
             Browse shop
@@ -936,19 +954,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               </div>
             ) : showPay ? (
               <div className="px-4 py-4">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-lg font-semibold tracking-tight">
-                    Pay balance
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setAppScreen("purchases")}
-                    className="text-[13px] font-medium text-muted-foreground underline-offset-2 hover:underline"
-                  >
-                    Back
-                  </button>
-                </div>
-
                 <SegmentedControl
                   mode={payMode}
                   setMode={(m) => {
@@ -973,14 +978,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               </div>
             )}
           </main>
-
-          {showPay && appScreen === "purchases" ? (
-            <div className="shrink-0 border-t border-border bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <PrimaryButton onClick={() => setAppScreen("pay")}>
-                Pay {fmtMoney(owed, currency)}
-              </PrimaryButton>
-            </div>
-          ) : null}
         </>
       )}
     </div>
