@@ -138,7 +138,7 @@ function PurchaseRow({
           </p>
           {!open && lines.length > 0 ? (
             <p className="mt-1 truncate text-sm text-stone-500">
-              {preview.map((l) => l.name).join(" · ")}
+              {preview.map((l) => l.itemName || "Item").join(" · ")}
               {extra > 0 ? ` · +${extra} more` : ""}
             </p>
           ) : null}
@@ -163,7 +163,7 @@ function PurchaseRow({
               className="flex justify-between gap-3 text-sm text-stone-600"
             >
               <span className="min-w-0">
-                {line.name}
+                {line.itemName?.trim() || "Item"}
                 {toNum(line.quantity) !== 1 ? (
                   <span className="text-stone-400"> × {toNum(line.quantity)}</span>
                 ) : null}

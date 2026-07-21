@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/config";
 
 export type PublicTabPurchaseLine = {
-  name: string;
+  itemName: string;
   quantity: number | string;
   unitPrice: number | string;
   lineTotal: number | string;
