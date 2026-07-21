@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, LayoutGrid, Package, Phone, Receipt, Users } from "lucide-react";
+import {
+  ChevronDown,
+  MessageCircle,
+  Phone,
+  Plus,
+  Receipt,
+  Search,
+  Users,
+} from "lucide-react";
 
 import {
   DASHBOARD_MAX,
@@ -12,7 +20,6 @@ import {
   DashboardPageHero,
   DashboardQuickLinks,
   dashboardInputClass,
-  dashboardLabelClass,
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
@@ -21,6 +28,11 @@ import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
 import { WhatsAppTestPanel } from "@/components/credits/whatsapp-test-panel";
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
+
+function formatKes(amount: number | string | null | undefined): string {
+  const n = Number(amount ?? 0);
+  return n.toLocaleString("en-KE", { style: "currency", currency: "KES" });
+}
 
 export default function CustomersPage() {
   const {
@@ -33,13 +45,28 @@ export default function CustomersPage() {
   const [rows, setRows] = useState<CustomerRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [phoneFilter, setPhoneFilter] = useState("");
-  const [activePhoneQuery, setActivePhoneQuery] = useState<string | undefined>(undefined);
+  const [activePhoneQuery, setActivePhoneQuery] = useState<string | undefined>(
+    undefined,
+  );
   const [outstandingOnly, setOutstandingOnly] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showMessaging, setShowMessaging] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [message, setMessage] = useState<{ text: string; kind: "error" | "success" } | null>(null);
+  const [message, setMessage] = useState<{
+    text: string;
+    kind: "error" | "success";
+  } | null>(null);
+
+  useEffect(() => {
+    const next = phoneFilter.trim();
+    const id = window.setTimeout(() => {
+      setActivePhoneQuery(next.length > 0 ? next : undefined);
+    }, 280);
+    return () => window.clearTimeout(id);
+  }, [phoneFilter]);
 
   useEffect(() => {
     if (loading || !canViewCustomers) {
@@ -57,7 +84,10 @@ export default function CustomersPage() {
       } catch (error) {
         if (!cancelled) {
           setMessage({
-            text: error instanceof Error ? error.message : "Failed to load customers.",
+            text:
+              error instanceof Error
+                ? error.message
+                : "Failed to load customers.",
             kind: "error",
           });
         }
@@ -72,11 +102,6 @@ export default function CustomersPage() {
       cancelled = true;
     };
   }, [loading, canViewCustomers, activePhoneQuery, refreshKey]);
-
-  const applyFilter = () => {
-    const next = phoneFilter.trim();
-    setActivePhoneQuery(next.length > 0 ? next : undefined);
-  };
 
   const visibleRows = useMemo(() => {
     if (!outstandingOnly) return rows;
@@ -107,6 +132,7 @@ export default function CustomersPage() {
       setName("");
       setEmail("");
       setPhone("");
+      setShowCreate(false);
       setMessage({ text: "Customer created.", kind: "success" });
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -132,104 +158,132 @@ export default function CustomersPage() {
     );
   }
 
+  const quickLinks = [
+    {
+      href: APP_ROUTES.customerPhones,
+      label: "Phones",
+      desc: "All numbers",
+      icon: Phone,
+    },
+    ...(canReviewPaymentClaims
+      ? [
+          {
+            href: APP_ROUTES.creditsPaymentClaims,
+            label: "Claims",
+            desc: "Review payments",
+            icon: Receipt,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className={DASHBOARD_MAX}>
-      <header className="space-y-4">
+    <div className={cn(DASHBOARD_MAX, "space-y-5 pb-16")}>
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <DashboardPageHero
+          compact
           icon={Users}
           eyebrow="Credit & tabs"
-          title="Credit customers"
-          description="Everyone on tab, prepaid wallet, or loyalty. See who owes what and open a customer for their full statement."
+          title="Customers"
+          description="Directory, balances, and reminders."
         />
-        <DashboardQuickLinks
-          links={[
-            {
-              href: APP_ROUTES.customerPhones,
-              label: "Customer phones",
-              desc: "All numbers",
-              icon: Phone,
-            },
-            ...(canReviewPaymentClaims
-              ? [
-                  {
-                    href: APP_ROUTES.creditsPaymentClaims,
-                    label: "Payment claims",
-                    desc: "Review submissions",
-                    icon: Receipt,
-                  },
-                ]
-              : []),
-            { href: APP_ROUTES.products, label: "Products", desc: "Catalog", icon: Package },
-            { href: APP_ROUTES.categories, label: "Categories", desc: "Aisles", icon: LayoutGrid },
-            { href: APP_ROUTES.business, label: "Business", desc: "Workspace", icon: Building2 },
-          ]}
-        />
+        {quickLinks.length > 0 ? (
+          <DashboardQuickLinks compact links={quickLinks} />
+        ) : null}
       </header>
 
-      {message ? <DashboardFeedback kind={message.kind} text={message.text} /> : null}
-
-      {canViewCustomers ? (
-        <CreditSaleReminderSettings canEdit={canManageCreditSettings} />
+      {message ? (
+        <DashboardFeedback kind={message.kind} text={message.text} />
       ) : null}
 
-      {canViewCustomers ? (
-        <WhatsAppTestPanel canSend={canManageCreditSettings} />
-      ) : null}
-
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold tracking-tight">Find customers</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Filter by phone, or show only customers who still owe on tab.
-          {rows.length > 0 ? (
-            <span className="ml-1 font-medium text-foreground">
-              Total outstanding: {totalOwed.toLocaleString("en-KE", { style: "currency", currency: "KES" })}
-            </span>
-          ) : null}
-        </p>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5 sm:max-w-xs">
-            <span className={dashboardLabelClass()}>Phone filter</span>
+      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/25 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:px-5">
+          <div className="relative min-w-0 flex-1 sm:max-w-xs">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
             <input
-              className={dashboardInputClass()}
-              placeholder="Digits only…"
+              className={cn(dashboardInputClass(), "pl-9")}
+              placeholder="Search by phone…"
               value={phoneFilter}
               onChange={(e) => setPhoneFilter(e.target.value)}
               aria-label="Filter customers by phone"
             />
-          </label>
-          <label className="flex items-center gap-2 pb-2 text-sm text-muted-foreground">
+          </div>
+
+          <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
               checked={outstandingOnly}
               onChange={(e) => setOutstandingOnly(e.target.checked)}
               className="size-4 rounded border-input"
             />
-            Outstanding tab only
+            Outstanding only
           </label>
-          <Button type="button" variant="secondary" onClick={() => applyFilter()} disabled={listLoading}>
-            {listLoading ? "Loading…" : "Apply filter"}
-          </Button>
-        </div>
-      </section>
 
-      {canManageCustomers ? (
-        <section className="rounded-2xl border border-border/80 bg-gradient-to-b from-primary/[0.04] to-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold tracking-tight">New customer</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Name and primary phone are required.</p>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto text-xs text-muted-foreground sm:mr-0">
+              {listLoading
+                ? "Loading…"
+                : `${visibleRows.length} shown`}
+              {!listLoading && rows.length > 0 ? (
+                <span className="text-foreground">
+                  {" "}
+                  · {formatKes(totalOwed)} owed
+                </span>
+              ) : null}
+            </p>
+
+            {canManageCustomers ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={showCreate ? "secondary" : "default"}
+                onClick={() => setShowCreate((v) => !v)}
+              >
+                <Plus className="size-3.5" aria-hidden />
+                {showCreate ? "Cancel" : "New"}
+              </Button>
+            ) : null}
+
+            {canViewCustomers ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowMessaging((v) => !v)}
+              >
+                <MessageCircle className="size-3.5" aria-hidden />
+                Messaging
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 transition-transform",
+                    showMessaging && "rotate-180",
+                  )}
+                  aria-hidden
+                />
+              </Button>
+            ) : null}
+          </div>
+        </div>
+
+        {showCreate && canManageCustomers ? (
           <form
-            className="mt-4 grid max-w-3xl grid-cols-1 gap-3 md:grid-cols-12"
+            className="grid gap-2 border-b border-border/60 bg-primary/[0.03] px-4 py-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:px-5"
             onSubmit={(e) => void onCreate(e)}
           >
             <input
-              className={cn(dashboardInputClass(), "md:col-span-4")}
+              className={dashboardInputClass()}
               placeholder="Name *"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               aria-label="Customer name"
+              autoFocus
             />
             <input
-              className={cn(dashboardInputClass(), "md:col-span-4")}
+              className={dashboardInputClass()}
               placeholder="Phone *"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -237,37 +291,40 @@ export default function CustomersPage() {
               aria-label="Primary phone"
             />
             <input
-              className={cn(dashboardInputClass(), "md:col-span-4")}
+              className={dashboardInputClass()}
               placeholder="Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-label="Email"
             />
-            <div className="md:col-span-12">
-              <Button type="submit">Create customer</Button>
-            </div>
+            <Button type="submit" size="sm" className="self-stretch sm:self-auto">
+              Create
+            </Button>
           </form>
-        </section>
-      ) : null}
+        ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
-          <h2 className="text-sm font-semibold">Directory</h2>
-          <p className="text-xs text-muted-foreground">{visibleRows.length} in this view</p>
-        </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/20">
+          <table className="w-full min-w-[32rem] text-left text-sm">
+            <thead className="border-b border-border/60 bg-muted/15">
               <tr>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Name</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Phones</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Owed</th>
-                <th className="px-4 py-3 font-medium text-muted-foreground sm:px-5">Wallet</th>
+                <th className="px-4 py-2.5 font-medium text-muted-foreground sm:px-5">
+                  Name
+                </th>
+                <th className="px-4 py-2.5 font-medium text-muted-foreground sm:px-5">
+                  Phones
+                </th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground sm:px-5">
+                  Owed
+                </th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground sm:px-5">
+                  Wallet
+                </th>
               </tr>
             </thead>
             <tbody>
               {visibleRows.map((row) => {
+                const owed = Number(row.credit.balanceOwed ?? 0);
                 const phoneLabel =
                   row.phones.length > 0
                     ? row.phones
@@ -275,8 +332,11 @@ export default function CustomersPage() {
                         .join(", ")
                     : "—";
                 return (
-                  <tr key={row.id} className="border-b border-border/40 last:border-0">
-                    <td className="px-4 py-3 sm:px-5">
+                  <tr
+                    key={row.id}
+                    className="border-b border-border/40 last:border-0 hover:bg-muted/20"
+                  >
+                    <td className="px-4 py-2.5 sm:px-5">
                       <Link
                         className="font-medium text-primary hover:underline"
                         href={`${APP_ROUTES.customers}/${encodeURIComponent(row.id)}`}
@@ -284,15 +344,27 @@ export default function CustomersPage() {
                         {row.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground sm:px-5">{phoneLabel}</td>
-                    <td className="px-4 py-3 sm:px-5">{String(row.credit.balanceOwed)}</td>
-                    <td className="px-4 py-3 sm:px-5">{String(row.credit.walletBalance)}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground sm:px-5">
+                      {phoneLabel}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-2.5 text-right tabular-nums sm:px-5",
+                        owed > 0 && "font-medium text-amber-700 dark:text-amber-400",
+                      )}
+                    >
+                      {formatKes(owed)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground sm:px-5">
+                      {formatKes(row.credit.walletBalance)}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+
         {!listLoading && visibleRows.length === 0 ? (
           <p className="border-t border-border/60 px-5 py-8 text-center text-sm text-muted-foreground">
             {outstandingOnly
@@ -301,6 +373,13 @@ export default function CustomersPage() {
           </p>
         ) : null}
       </section>
+
+      {showMessaging ? (
+        <div className="space-y-4">
+          <CreditSaleReminderSettings canEdit={canManageCreditSettings} />
+          <WhatsAppTestPanel canSend={canManageCreditSettings} />
+        </div>
+      ) : null}
     </div>
   );
 }
