@@ -19,11 +19,14 @@ import {
   DashboardPageHero,
   dashboardInputClass,
 } from "@/components/dashboard-page-ui";
+import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
+  fetchOutstandingTabs,
   fetchPaymentLedger,
+  type OutstandingTabRowRecord,
   type PaymentLedgerRow,
 } from "@/lib/api";
 import {
@@ -133,15 +136,25 @@ function hourBuckets(rows: PaymentLedgerRow[]): number[] {
 }
 
 export function CreditActivityPage() {
-  const { loading: sessionLoading, canViewSalesIntelligence, canViewCustomers } =
-    useDashboard();
+  const {
+    loading: sessionLoading,
+    canViewSalesIntelligence,
+    canViewCustomers,
+    canReviewPaymentClaims,
+  } = useDashboard();
   const { branchId } = useSessionBranch();
   const [period, setPeriod] = useState<CreditPeriod>("today");
   const [rows, setRows] = useState<PaymentLedgerRow[]>([]);
+  const [openTabs, setOpenTabs] = useState<OutstandingTabRowRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
+  const [tabsLoading, setTabsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [payTarget, setPayTarget] = useState<OutstandingTabRowRecord | null>(
+    null,
+  );
 
   const dateRange = useMemo(() => presetRange(period)!, [period]);
   const singleDay = dateRange.from === dateRange.to;
@@ -181,9 +194,37 @@ export function CreditActivityPage() {
     [branchId, canViewSalesIntelligence, dateRange.from, dateRange.to],
   );
 
+  const loadOpenTabs = useCallback(async () => {
+    if (!canViewCustomers) {
+      setOpenTabs([]);
+      return;
+    }
+    setTabsLoading(true);
+    try {
+      setOpenTabs(await fetchOutstandingTabs());
+    } catch {
+      setOpenTabs([]);
+    } finally {
+      setTabsLoading(false);
+    }
+  }, [canViewCustomers]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadOpenTabs();
+  }, [loadOpenTabs]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([load({ silent: true }), loadOpenTabs()]);
+  }, [load, loadOpenTabs]);
+
+  const openTabsTotal = useMemo(
+    () => openTabs.reduce((sum, row) => sum + toNum(row.balanceOwed), 0),
+    [openTabs],
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -251,7 +292,7 @@ export function CreditActivityPage() {
           icon={CreditCard}
           eyebrow="Credit & tabs"
           title="On tab"
-          description="What went on credit — by day, person, and till."
+          description="Credit sales for the period — and clear open tabs."
         />
         <div className="flex flex-wrap items-center gap-2">
           {canViewCustomers ? (
@@ -266,10 +307,10 @@ export function CreditActivityPage() {
             type="button"
             size="sm"
             variant="outline"
-            disabled={listLoading || refreshing}
-            onClick={() => void load({ silent: true })}
+            disabled={listLoading || refreshing || tabsLoading}
+            onClick={() => void refreshAll()}
           >
-            {refreshing ? (
+            {refreshing || tabsLoading ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
             ) : (
               <RefreshCw className="size-3.5" aria-hidden />
@@ -280,6 +321,9 @@ export function CreditActivityPage() {
       </header>
 
       {error ? <DashboardFeedback kind="error" text={error} /> : null}
+      {feedback ? (
+        <DashboardFeedback kind="success" text={feedback} />
+      ) : null}
 
       <div
         className="flex flex-wrap items-center gap-1.5"
@@ -377,6 +421,81 @@ export function CreditActivityPage() {
           ) : null}
         </div>
       </section>
+
+      {canViewCustomers ? (
+        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Open tabs
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                {tabsLoading
+                  ? "Loading balances…"
+                  : openTabs.length === 0
+                    ? "No outstanding balances"
+                    : `${openTabs.length} open · ${fmtKes(openTabsTotal)} owed`}
+              </p>
+            </div>
+            {!canReviewPaymentClaims ? (
+              <p className="text-[11px] text-muted-foreground">
+                Need claims review permission to mark paid.
+              </p>
+            ) : null}
+          </div>
+          {tabsLoading ? (
+            <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Loading open tabs…
+            </div>
+          ) : openTabs.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+              Everyone is settled — no open tab balances.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/50">
+              {openTabs.map((tab) => {
+                const owed = toNum(tab.balanceOwed);
+                return (
+                  <li
+                    key={tab.customerId}
+                    className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`${APP_ROUTES.customers}/${encodeURIComponent(tab.customerId)}`}
+                        className="truncate text-sm font-medium text-primary hover:underline"
+                      >
+                        {tab.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {tab.primaryPhone?.trim() || "No phone"}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
+                      {fmtKes(owed)}
+                    </p>
+                    {canReviewPaymentClaims ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => {
+                          setFeedback(null);
+                          setPayTarget(tab);
+                        }}
+                      >
+                        Mark paid
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(16rem,1fr)]">
         <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
@@ -499,18 +618,19 @@ export function CreditActivityPage() {
 
           <section className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-4 sm:px-5">
             <p className="text-sm font-medium text-foreground">
-              Need balances?
+              Clearing debt
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              This board is credit sales for the period. Open the customer
-              directory for wallets, outstanding tabs, and statements.
+              Use <span className="font-medium text-foreground">Mark paid</span>{" "}
+              on an open tab above for cash or M-Pesa — full or partial. Till
+              proposals still land under Payment claims.
             </p>
-            {canViewCustomers ? (
+            {canReviewPaymentClaims ? (
               <Link
-                href={APP_ROUTES.customers}
+                href={APP_ROUTES.creditsPaymentClaims}
                 className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
               >
-                Credit customers
+                Review pending claims
                 <ArrowRight className="size-3" aria-hidden />
               </Link>
             ) : null}
@@ -524,6 +644,31 @@ export function CreditActivityPage() {
           </section>
         </aside>
       </div>
+
+      <MarkPaidDialog
+        open={payTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setPayTarget(null);
+        }}
+        customer={payTarget}
+        onPaid={(customerId, balanceOwed) => {
+          setOpenTabs((prev) => {
+            if (balanceOwed <= 0.001) {
+              return prev.filter((row) => row.customerId !== customerId);
+            }
+            return prev.map((row) =>
+              row.customerId === customerId
+                ? { ...row, balanceOwed }
+                : row,
+            );
+          });
+          setFeedback(
+            balanceOwed <= 0.001
+              ? "Tab cleared — marked as paid in full."
+              : `Partial payment recorded. ${fmtKes(balanceOwed)} still owed.`,
+          );
+        }}
+      />
     </div>
   );
 }

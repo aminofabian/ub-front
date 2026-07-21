@@ -7607,6 +7607,27 @@ export async function proposeTabClearance(body: {
   });
 }
 
+/** Immediately clear tab debt (partial or full). Requires claims.review. */
+export async function recordTabPayment(body: {
+  customerId: string;
+  amount: number | string;
+  channel: "cash" | "mpesa";
+  reference?: string | null;
+}): Promise<{ claimId: string; balanceOwed: string }> {
+  return request<{ claimId: string; balanceOwed: string }>(
+    "/api/v1/credits/tab-payments",
+    {
+      method: "POST",
+      body: {
+        customerId: body.customerId,
+        amount: body.amount,
+        channel: body.channel,
+        reference: body.reference?.trim() || null,
+      },
+    },
+  );
+}
+
 export async function listSubmittedPaymentClaims(): Promise<
   PublicPaymentClaimRecord[]
 > {

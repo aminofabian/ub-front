@@ -21,6 +21,7 @@ function fmtInstant(raw: string): string {
 function sourceLabel(source: string | null | undefined): string {
   if (source === "cashier") return "Till";
   if (source === "tab_portal") return "Tab portal";
+  if (source === "admin") return "Admin";
   return "Pay link";
 }
 
