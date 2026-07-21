@@ -109,11 +109,11 @@ function PurchaseRow({
         : `${lines[0].itemName?.trim() || "Item"} +${lines.length - 1}`;
 
   return (
-    <li>
+    <li className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(28,25,23,0.06)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="group flex w-full items-start gap-4 py-4 text-left transition-colors"
+        className="group flex w-full items-start gap-3 p-4 text-left active:bg-stone-50"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
@@ -148,7 +148,7 @@ function PurchaseRow({
       >
         <div className="overflow-hidden">
           {lines.length > 0 ? (
-            <ul className="mb-4 space-y-2.5 border-l border-stone-900/10 pl-4">
+            <ul className="mb-1 space-y-2 border-t border-stone-100 px-4 pb-4 pt-2">
               {lines.map((line, i) => (
                 <li
                   key={`${row.saleId}-${i}`}
@@ -190,11 +190,9 @@ function PayModeToggle({
   disabled: boolean;
   primary: string;
 }) {
-  const base =
-    "flex-1 rounded-lg py-2 text-[13px] font-semibold transition disabled:opacity-45";
   return (
     <div
-      className="mb-1 flex gap-1 rounded-xl bg-stone-900/[0.06] p-1 sm:mb-0"
+      className="flex gap-1 rounded-2xl bg-stone-100 p-1"
       role="tablist"
       aria-label="Payment method"
     >
@@ -205,13 +203,14 @@ function PayModeToggle({
         disabled={disabled}
         onClick={() => setMode("stk")}
         className={cn(
-          base,
+          "flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-semibold transition active:scale-[0.98] disabled:opacity-45",
           mode === "stk"
             ? "bg-white text-stone-900 shadow-sm"
-            : "text-stone-600 hover:text-stone-900",
+            : "text-stone-600",
         )}
       >
-        M-Pesa prompt
+        <Smartphone className="size-4 shrink-0" />
+        M-Pesa
       </button>
       <button
         type="button"
@@ -220,15 +219,68 @@ function PayModeToggle({
         disabled={disabled}
         onClick={() => setMode("manual")}
         className={cn(
-          base,
+          "flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-semibold transition active:scale-[0.98] disabled:opacity-45",
           mode === "manual"
-            ? "bg-white text-stone-900 shadow-sm"
-            : "text-stone-600 hover:text-stone-900",
+            ? "bg-white shadow-sm"
+            : "text-stone-600",
         )}
         style={mode === "manual" ? { color: primary } : undefined}
       >
+        <Receipt className="size-4 shrink-0" />
         Already paid
       </button>
+    </div>
+  );
+}
+
+function QuickAmounts({
+  owed,
+  currency,
+  amountNum,
+  disabled,
+  primary,
+  onPick,
+}: {
+  owed: number;
+  currency: string;
+  amountNum: number;
+  disabled: boolean;
+  primary: string;
+  onPick: (n: number) => void;
+}) {
+  const chips: number[] = [];
+  if (owed > 0) chips.push(owed);
+  for (const n of [500, 1000, 2000]) {
+    if (n < owed && !chips.includes(n)) chips.push(n);
+  }
+  chips.sort((a, b) => a - b);
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chips.map((n) => {
+        const active = Math.abs(amountNum - n) < 0.01;
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={disabled}
+            onClick={() => onPick(n)}
+            className={cn(
+              "rounded-full px-4 py-2 text-[13px] font-semibold tabular-nums transition active:scale-95 disabled:opacity-40",
+              active
+                ? "text-white shadow-sm"
+                : "bg-stone-100 text-stone-700",
+            )}
+            style={
+              active
+                ? { backgroundColor: primary }
+                : undefined
+            }
+          >
+            {n === owed ? "Pay all" : fmtMoney(n, currency)}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -273,28 +325,23 @@ function ManualPayPanel({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2 sm:gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 sm:tracking-[0.18em]">
-          <span className="sm:hidden">Amount paid</span>
-          <span className="hidden sm:inline">Report a payment</span>
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setAmount(String(Math.round(owed * 100) / 100));
-            onClearError();
-          }}
-          disabled={payDisabled || submitted}
-          className="text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-40 sm:text-[12px]"
-          style={{ color: primary }}
-        >
-          <span className="sm:hidden">Full · {fmtMoney(owed, currency)}</span>
-          <span className="hidden sm:inline">Use full balance</span>
-        </button>
-      </div>
+      <QuickAmounts
+        owed={owed}
+        currency={currency}
+        amountNum={amountNum}
+        disabled={payDisabled || submitted}
+        primary={primary}
+        onPick={(n) => {
+          setAmount(String(Math.round(n * 100) / 100));
+          onClearError();
+        }}
+      />
 
       <div className="relative">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-medium text-stone-400">
+        <label htmlFor={amountId} className="sr-only">
+          Amount paid
+        </label>
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-medium text-stone-400">
           {currency}
         </span>
         <input
@@ -310,20 +357,16 @@ function ManualPayPanel({
             onClearError();
           }}
           disabled={payDisabled || submitted}
-          className={cn(
-            "w-full border border-stone-900/10 bg-white/90 pl-14 pr-4 font-semibold tabular-nums text-stone-900 outline-none transition",
-            "rounded-xl py-3 text-xl focus:border-transparent focus:ring-2 disabled:opacity-55 sm:py-3.5 sm:text-2xl",
-          )}
-          style={{ ["--tw-ring-color" as string]: primary }}
+          className="w-full rounded-2xl border-0 bg-stone-100 py-4 pl-14 pr-4 text-2xl font-bold tabular-nums text-stone-900 outline-none ring-2 ring-transparent transition focus:bg-white focus:ring-[color-mix(in_oklab,var(--tab-primary)_35%,transparent)] disabled:opacity-55"
         />
       </div>
 
       <div>
         <label
           htmlFor={refId}
-          className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500"
+          className="mb-2 block text-[13px] font-medium text-stone-600"
         >
-          M-Pesa code <span className="font-normal normal-case text-stone-400">(optional)</span>
+          M-Pesa code <span className="text-stone-400">(optional)</span>
         </label>
         <input
           id={refId}
@@ -337,11 +380,7 @@ function ManualPayPanel({
             onClearError();
           }}
           disabled={payDisabled || submitted}
-          className={cn(
-            "w-full border border-stone-900/10 bg-white/90 px-4 py-3 text-[15px] uppercase tracking-wide text-stone-900 outline-none transition",
-            "rounded-xl focus:border-transparent focus:ring-2 disabled:opacity-55",
-          )}
-          style={{ ["--tw-ring-color" as string]: primary }}
+          className="w-full rounded-2xl border-0 bg-stone-100 px-4 py-3.5 text-[16px] uppercase tracking-wide text-stone-900 outline-none ring-2 ring-transparent transition focus:bg-white focus:ring-[color-mix(in_oklab,var(--tab-primary)_35%,transparent)] disabled:opacity-55"
         />
       </div>
 
@@ -349,10 +388,7 @@ function ManualPayPanel({
         type="button"
         disabled={payDisabled || !amountValid || submitted}
         onClick={onSubmit}
-        className={cn(
-          "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-[15px] font-semibold text-white transition sm:py-4 sm:text-base",
-          "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45",
-        )}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-[16px] font-bold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-45"
         style={{
           background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${primary} 78%, #0a2018) 100%)`,
           boxShadow: `0 10px 28px -12px color-mix(in oklab, ${primary} 65%, transparent)`,
@@ -388,13 +424,6 @@ function ManualPayPanel({
       {error ? (
         <p className="text-[13px] font-medium text-red-700" role="alert">
           {error}
-        </p>
-      ) : null}
-
-      {!submitted && !error ? (
-        <p className="hidden text-center text-[12px] leading-relaxed text-stone-500 sm:block">
-          Paid the till or paybill directly? Enter what you sent — staff will
-          confirm before your balance updates.
         </p>
       ) : null}
     </div>
@@ -447,51 +476,25 @@ function PayPanel({
   const phoneOk = looksLikeKenyanMobilePath(payPhone);
 
   return (
-    <div className="space-y-3 sm:space-y-3">
-      <div className="flex items-center justify-between gap-2 sm:gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 sm:tracking-[0.18em]">
-          <span className="sm:hidden">Pay</span>
-          <span className="hidden sm:inline">Settle with M-Pesa</span>
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setAmount(String(Math.round(owed * 100) / 100));
-            onClearError();
-          }}
-          disabled={payDisabled}
-          className="text-[11px] font-semibold underline-offset-2 hover:underline disabled:opacity-40 sm:text-[12px]"
-          style={{ color: primary }}
-        >
-          <span className="sm:hidden">Full · {fmtMoney(owed, currency)}</span>
-          <span className="hidden sm:inline">Use full balance</span>
-        </button>
-      </div>
+    <div className="space-y-3">
+      <QuickAmounts
+        owed={owed}
+        currency={currency}
+        amountNum={amountNum}
+        disabled={payDisabled}
+        primary={primary}
+        onPick={(n) => {
+          setAmount(String(Math.round(n * 100) / 100));
+          onClearError();
+        }}
+      />
 
       <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <label
-            htmlFor={phoneId}
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500"
-          >
-            M-Pesa number
-          </label>
-          {payPhone.trim() !== phone.trim() ? (
-            <button
-              type="button"
-              onClick={() => {
-                setPayPhone(phone);
-                onClearError();
-              }}
-              disabled={payDisabled}
-              className="text-[11px] font-medium text-stone-500 underline-offset-2 hover:underline disabled:opacity-40"
-            >
-              Reset
-            </button>
-          ) : null}
-        </div>
+        <label htmlFor={phoneId} className="mb-2 block text-[13px] font-medium text-stone-600">
+          M-Pesa number
+        </label>
         <div className="relative">
-          <Smartphone className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+          <Smartphone className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-stone-400" />
           <input
             id={phoneId}
             type="tel"
@@ -504,17 +507,16 @@ function PayPanel({
               onClearError();
             }}
             disabled={payDisabled}
-            className={cn(
-              "w-full border border-stone-900/10 bg-white/90 py-3 pl-10 pr-4 text-[15px] font-medium tabular-nums text-stone-900 outline-none transition",
-              "rounded-xl focus:border-transparent focus:ring-2 disabled:opacity-55",
-            )}
-            style={{ ["--tw-ring-color" as string]: primary }}
+            className="w-full rounded-2xl border-0 bg-stone-100 py-3.5 pl-12 pr-4 text-[16px] font-medium tabular-nums text-stone-900 outline-none ring-2 ring-transparent transition focus:bg-white focus:ring-[color-mix(in_oklab,var(--tab-primary)_35%,transparent)] disabled:opacity-55"
           />
         </div>
       </div>
 
       <div className="relative">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-medium text-stone-400">
+        <label htmlFor={inputId} className="sr-only">
+          Amount
+        </label>
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-medium text-stone-400">
           {currency}
         </span>
         <input
@@ -530,11 +532,7 @@ function PayPanel({
             onClearError();
           }}
           disabled={payDisabled}
-          className={cn(
-            "w-full border border-stone-900/10 bg-white/90 pl-14 pr-4 font-semibold tabular-nums text-stone-900 outline-none transition",
-            "rounded-xl py-3 text-xl focus:border-transparent focus:ring-2 disabled:opacity-55 sm:py-3.5 sm:text-2xl",
-          )}
-          style={{ ["--tw-ring-color" as string]: primary }}
+          className="w-full rounded-2xl border-0 bg-stone-100 py-4 pl-14 pr-4 text-2xl font-bold tabular-nums text-stone-900 outline-none ring-2 ring-transparent transition focus:bg-white focus:ring-[color-mix(in_oklab,var(--tab-primary)_35%,transparent)] disabled:opacity-55"
         />
       </div>
 
@@ -542,10 +540,7 @@ function PayPanel({
         type="button"
         disabled={payDisabled || !amountValid || !phoneOk}
         onClick={onPay}
-        className={cn(
-          "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-[15px] font-semibold text-white transition sm:py-4 sm:text-base",
-          "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45",
-        )}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-[16px] font-bold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-45"
         style={{
           background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${primary} 78%, #0a2018) 100%)`,
           boxShadow: `0 10px 28px -12px color-mix(in oklab, ${primary} 65%, transparent)`,
@@ -593,13 +588,6 @@ function PayPanel({
           {error}
         </p>
       ) : null}
-
-      {!promptSent && !paid && !error ? (
-        <p className="hidden text-center text-[12px] leading-relaxed text-stone-500 sm:block">
-          Prompt goes to the number above. If it differs from your account phone,
-          we’ll update your account after a successful payment.
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -625,7 +613,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -633,16 +620,14 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   }, []);
 
   const primary = branding.primaryHex || "#0b6e4f";
-  const accent = branding.accentHex || "#8a9a7b";
   const shopName = branding.shopName || "Shop";
 
   const themeStyle = useMemo(
     (): CSSProperties =>
       ({
         "--tab-primary": primary,
-        "--tab-accent": accent,
       }) as CSSProperties,
-    [primary, accent],
+    [primary],
   );
 
   const reload = useCallback(async () => {
@@ -662,7 +647,6 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       setPayPhone(display);
     }
     setLoading(false);
-    requestAnimationFrame(() => setReady(true));
   }, [phone]);
 
   useEffect(() => {
@@ -827,180 +811,113 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
   return (
     <div
-      className="relative min-h-[100dvh] overflow-x-hidden text-stone-900 antialiased"
+      className="mx-auto flex h-[100dvh] max-w-md flex-col overflow-hidden text-stone-900 antialiased touch-manipulation sm:max-w-lg"
       style={{
         ...themeStyle,
-        backgroundColor: "#f4f1ea",
-        backgroundImage: `
-          radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklab, var(--tab-primary) 16%, transparent), transparent 70%),
-          radial-gradient(ellipse 60% 40% at 100% 20%, color-mix(in oklab, var(--tab-accent) 14%, transparent), transparent 60%),
-          linear-gradient(180deg, #f7f4ed 0%, #f0ebe3 55%, #e8efe9 100%)
-        `,
+        backgroundColor: "#f0ebe3",
       }}
     >
-      {/* Soft paper grain */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-multiply"
+      {/* App header */}
+      <header
+        className="shrink-0 border-b border-stone-900/5 bg-[#f0ebe3]/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          background: `linear-gradient(180deg, color-mix(in oklab, ${primary} 8%, #f0ebe3) 0%, #f0ebe3 100%)`,
         }}
-      />
-
-      <div
-        className={cn(
-          "relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] sm:max-w-lg sm:px-8",
-          showPay
-            ? "pb-[calc(14rem+env(safe-area-inset-bottom))] sm:pb-12"
-            : "pb-[max(2rem,env(safe-area-inset-bottom))]",
-          "transition-opacity duration-500",
-          ready || loading ? "opacity-100" : "opacity-0",
-        )}
       >
-        {/* Brand + balance — compact centered lockup */}
-        <header className="text-center">
+        <div className="flex items-center gap-3">
           {branding.logoUrl ? (
-            <div className="mx-auto flex max-w-[min(78vw,240px)] items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={branding.logoUrl}
-                alt={displayShop}
-                className="h-20 w-full object-contain object-center sm:h-24"
-                style={{ mixBlendMode: "multiply" }}
-              />
-            </div>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={branding.logoUrl}
+              alt=""
+              className="h-11 w-auto max-w-[100px] shrink-0 object-contain"
+              style={{ mixBlendMode: "multiply" }}
+            />
           ) : (
             <div
-              className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl text-3xl font-semibold text-white sm:h-24 sm:w-24 sm:text-4xl"
-              style={{
-                background: `linear-gradient(145deg, ${primary}, color-mix(in oklab, ${primary} 70%, #062015))`,
-              }}
+              className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white"
+              style={{ backgroundColor: primary }}
               aria-hidden
             >
               {displayShop.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <h1
-            className="mt-3 font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.25rem] font-semibold leading-snug tracking-tight text-balance sm:text-[1.4rem]"
-            style={{ color: primary }}
-          >
-            {displayShop}
-          </h1>
-          <p className="mt-1 text-[11px] tracking-wide text-stone-500">
-            Account · {phone}
-          </p>
-        </header>
-
-        {loading ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 py-28">
-            <div
-              className="flex size-12 items-center justify-center rounded-full"
-              style={{
-                background: `color-mix(in oklab, ${primary} 12%, white)`,
-              }}
-            >
-              <Loader2 className="size-6 animate-spin" style={{ color: primary }} />
-            </div>
-            <p className="text-sm text-stone-500">Fetching your tab…</p>
-          </div>
-        ) : notFound ? (
-          <div className="flex flex-1 flex-col justify-center gap-6 py-20">
-            <div
-              className="flex size-14 items-center justify-center rounded-full"
-              style={{
-                background: `color-mix(in oklab, ${primary} 10%, white)`,
-              }}
-            >
-              <Store className="size-6" style={{ color: primary }} />
-            </div>
-            <div>
-              <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-[2rem] font-semibold tracking-tight">
-                No tab here
-              </h2>
-              <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-stone-600">
-                We couldn’t match this number to an open account. Ask the cashier
-                to check the phone on file.
-              </p>
-            </div>
-            <Link
-              href="/shop"
-              className="inline-flex w-fit text-sm font-semibold underline-offset-4 hover:underline"
+          <div className="min-w-0 flex-1">
+            <h1
+              className="truncate text-[15px] font-semibold leading-tight"
               style={{ color: primary }}
             >
-              Browse the shop
-            </Link>
+              {displayShop}
+            </h1>
+            <p className="truncate text-[12px] text-stone-500">{phone}</p>
           </div>
-        ) : (
-          <>
-            {/* Balance — tight hero */}
-            <section className="mt-5 text-center sm:mt-6">
-              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-stone-500">
-                {firstName ? (
-                  <>
-                    Hi {firstName} ·{" "}
-                    {owed > 0 ? "Outstanding" : "Balance"}
-                  </>
-                ) : owed > 0 ? (
-                  "Outstanding"
-                ) : (
-                  "Balance"
-                )}
+        </div>
+      </header>
+
+      {loading ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3">
+          <Loader2 className="size-8 animate-spin" style={{ color: primary }} />
+          <p className="text-sm text-stone-500">Loading…</p>
+        </div>
+      ) : notFound ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          <Store className="size-10 text-stone-400" />
+          <div>
+            <h2 className="text-xl font-semibold">No tab found</h2>
+            <p className="mt-2 text-[15px] text-stone-600">
+              Ask the shop to check your phone number.
+            </p>
+          </div>
+          <Link
+            href="/shop"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+            style={{ backgroundColor: primary }}
+          >
+            Browse shop
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* Scrollable body */}
+          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+            {/* Balance card */}
+            <div className="rounded-3xl bg-white p-5 shadow-[0_2px_12px_rgba(28,25,23,0.06)]">
+              {firstName ? (
+                <p className="text-[14px] text-stone-600">Hi {firstName}</p>
+              ) : null}
+              <p className="mt-1 text-[12px] font-medium uppercase tracking-wide text-stone-400">
+                {owed > 0 ? "You owe" : "Balance"}
               </p>
               <p
-                className="mt-1.5 font-[family-name:var(--font-cormorant),Georgia,serif] text-[2.65rem] font-semibold leading-none tracking-[-0.03em] sm:text-[3rem]"
+                className="mt-0.5 text-[2.5rem] font-bold leading-none tabular-nums tracking-tight"
                 style={{ color: primary }}
               >
                 {fmtMoney(owed, currency)}
               </p>
               {owed <= 0 ? (
-                <div className="mt-3 flex items-center justify-center gap-2 text-[13px] font-medium text-emerald-800">
-                  <CheckCircle2 className="size-4 shrink-0" />
-                  All settled — nothing owed.
+                <div className="mt-3 flex items-center gap-2 text-[14px] font-medium text-emerald-700">
+                  <CheckCircle2 className="size-4" />
+                  All paid up!
                 </div>
               ) : null}
-            </section>
+            </div>
 
-            {showPay ? (
-              <section
-                className={cn(
-                  "z-40 mt-5 sm:mt-6",
-                  "fixed inset-x-0 bottom-0 sm:static sm:inset-auto",
-                  "pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0",
-                )}
-              >
-                <div className="mx-auto max-w-md px-3 sm:max-w-none sm:px-0">
-                  <div className="rounded-2xl border border-stone-900/8 bg-[#f7f4ed]/92 p-3.5 shadow-[0_-12px_40px_rgba(28,25,23,0.12)] backdrop-blur-xl sm:bg-white/55 sm:p-5 sm:shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]">
-                    <PayModeToggle {...modeToggleProps} />
-                    <div className="mt-2.5 sm:mt-4">
-                      {payMode === "stk" ? (
-                        <PayPanel {...payProps} />
-                      ) : (
-                        <ManualPayPanel {...manualPayProps} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            ) : null}
-
-            {/* Ledger */}
-            <section className="mt-8 flex-1 sm:mt-10">
-              <div className="mb-1 flex items-end justify-between gap-3">
-                <h2 className="font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.35rem] font-semibold tracking-tight text-stone-900">
-                  History
-                </h2>
+            {/* History */}
+            <div className="mt-5">
+              <h2 className="mb-3 text-[15px] font-semibold text-stone-800">
+                Purchases
                 {purchaseCount > 0 ? (
-                  <span className="pb-0.5 text-[11px] font-medium uppercase tracking-[0.14em] text-stone-400">
-                    {purchaseCount} {purchaseCount === 1 ? "entry" : "entries"}
+                  <span className="ml-2 text-[13px] font-normal text-stone-400">
+                    ({purchaseCount})
                   </span>
                 ) : null}
-              </div>
-              <div className="mb-2 h-px bg-stone-900/10" />
-
+              </h2>
               {purchaseCount === 0 ? (
-                <p className="py-8 text-sm text-stone-500">No credit purchases yet.</p>
+                <p className="rounded-2xl bg-white/60 py-8 text-center text-sm text-stone-500">
+                  No purchases yet
+                </p>
               ) : (
-                <ul className="divide-y divide-stone-900/[0.07]">
+                <ul className="space-y-2.5">
                   {tab!.purchases.map((row, i) => (
                     <PurchaseRow
                       key={row.saleId}
@@ -1011,10 +928,28 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   ))}
                 </ul>
               )}
-            </section>
-          </>
-        )}
-      </div>
+            </div>
+          </main>
+
+          {/* Bottom pay sheet */}
+          {showPay ? (
+            <footer className="max-h-[58dvh] shrink-0 overflow-y-auto border-t border-stone-200/80 bg-white px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(28,25,23,0.08)]">
+              <div
+                className="mx-auto mb-3 h-1 w-10 rounded-full bg-stone-200"
+                aria-hidden
+              />
+              <PayModeToggle {...modeToggleProps} />
+              <div className="mt-3">
+                {payMode === "stk" ? (
+                  <PayPanel {...payProps} />
+                ) : (
+                  <ManualPayPanel {...manualPayProps} />
+                )}
+              </div>
+            </footer>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ const CustomerTabPortal = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#f4f1ea] text-sm text-stone-500">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#f0ebe3] text-sm text-stone-500">
         Loading your tab…
       </div>
     ),
