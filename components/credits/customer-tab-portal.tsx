@@ -12,6 +12,7 @@ import Link from "next/link";
 import {
   CheckCircle2,
   ChevronDown,
+  History,
   Loader2,
   Receipt,
   Smartphone,
@@ -178,6 +179,71 @@ function PurchaseRow({
 }
 
 type PayMode = "stk" | "manual";
+type AppScreen = "purchases" | "pay";
+
+function BottomTabBar({
+  screen,
+  setScreen,
+  purchaseCount,
+  owed,
+  currency,
+  primary,
+  showPay,
+}: {
+  screen: AppScreen;
+  setScreen: (s: AppScreen) => void;
+  purchaseCount: number;
+  owed: number;
+  currency: string;
+  primary: string;
+  showPay: boolean;
+}) {
+  const tabBase =
+    "flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-medium transition active:opacity-70";
+
+  return (
+    <nav
+      className="flex shrink-0 border-t border-stone-200 bg-white pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1"
+      aria-label="Main"
+    >
+      <button
+        type="button"
+        onClick={() => setScreen("purchases")}
+        className={cn(
+          tabBase,
+          screen === "purchases" ? "text-stone-900" : "text-stone-400",
+        )}
+        aria-current={screen === "purchases" ? "page" : undefined}
+      >
+        <History className="size-5" strokeWidth={screen === "purchases" ? 2.25 : 1.75} />
+        Purchases
+        {purchaseCount > 0 ? (
+          <span className="tabular-nums text-[10px] text-stone-400">
+            {purchaseCount}
+          </span>
+        ) : null}
+      </button>
+      {showPay ? (
+        <button
+          type="button"
+          onClick={() => setScreen("pay")}
+          className={cn(
+            tabBase,
+            screen === "pay" ? "font-semibold" : "text-stone-400",
+          )}
+          style={screen === "pay" ? { color: primary } : undefined}
+          aria-current={screen === "pay" ? "page" : undefined}
+        >
+          <Smartphone className="size-5" strokeWidth={screen === "pay" ? 2.25 : 1.75} />
+          Pay
+          <span className="tabular-nums text-[10px] font-semibold">
+            {fmtMoney(owed, currency)}
+          </span>
+        </button>
+      ) : null}
+    </nav>
+  );
+}
 
 function PayModeToggle({
   mode,
@@ -605,6 +671,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [amount, setAmount] = useState("");
   const [payPhone, setPayPhone] = useState(phone);
   const [payMode, setPayMode] = useState<PayMode>("stk");
+  const [appScreen, setAppScreen] = useState<AppScreen>("purchases");
   const [reference, setReference] = useState("");
   const [manualSubmitted, setManualSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -664,6 +731,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           setPaid(true);
           setStatusMsg("Payment received — asante!");
           setPromptSent(false);
+          setAppScreen("purchases");
           void reload();
           return;
         }
@@ -811,31 +879,25 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
 
   return (
     <div
-      className="mx-auto flex h-[100dvh] max-w-md flex-col overflow-hidden text-stone-900 antialiased touch-manipulation sm:max-w-lg"
-      style={{
-        ...themeStyle,
-        backgroundColor: "#f0ebe3",
-      }}
+      className="mx-auto flex h-[100dvh] max-w-md flex-col overflow-hidden bg-[#f0ebe3] font-sans text-stone-900 antialiased touch-manipulation sm:max-w-lg"
+      style={themeStyle}
     >
-      {/* App header */}
-      <header
-        className="shrink-0 border-b border-stone-900/5 bg-[#f0ebe3]/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md"
-        style={{
-          background: `linear-gradient(180deg, color-mix(in oklab, ${primary} 8%, #f0ebe3) 0%, #f0ebe3 100%)`,
-        }}
-      >
+      {/* Compact app header — balance on the right */}
+      <header className="shrink-0 border-b border-stone-900/[0.06] bg-[#f0ebe3] px-4 pb-2.5 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-3">
           {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt=""
-              className="h-11 w-auto max-w-[100px] shrink-0 object-contain"
-              style={{ mixBlendMode: "multiply" }}
-            />
+            <div className="flex h-11 w-[4.5rem] shrink-0 items-center justify-center bg-[#f0ebe3]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={branding.logoUrl}
+                alt=""
+                className="max-h-11 w-full object-contain object-left"
+                style={{ mixBlendMode: "multiply" }}
+              />
+            </div>
           ) : (
             <div
-              className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white"
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white"
               style={{ backgroundColor: primary }}
               aria-hidden
             >
@@ -843,14 +905,27 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1
-              className="truncate text-[15px] font-semibold leading-tight"
-              style={{ color: primary }}
-            >
+            <h1 className="truncate text-[14px] font-semibold leading-tight text-stone-900">
               {displayShop}
             </h1>
-            <p className="truncate text-[12px] text-stone-500">{phone}</p>
+            <p className="truncate text-[12px] text-stone-500">
+              {firstName && !loading && !notFound ? `Hi ${firstName} · ` : null}
+              {phone}
+            </p>
           </div>
+          {!loading && !notFound ? (
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-stone-400">
+                {owed > 0 ? "You owe" : "Balance"}
+              </p>
+              <p
+                className="text-[1.35rem] font-bold leading-tight tabular-nums"
+                style={{ color: primary }}
+              >
+                {fmtMoney(owed, currency)}
+              </p>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -863,7 +938,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
           <Store className="size-10 text-stone-400" />
           <div>
-            <h2 className="text-xl font-semibold">No tab found</h2>
+            <h2 className="text-lg font-semibold">No tab found</h2>
             <p className="mt-2 text-[15px] text-stone-600">
               Ask the shop to check your phone number.
             </p>
@@ -878,76 +953,59 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         </div>
       ) : (
         <>
-          {/* Scrollable body */}
-          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-            {/* Balance card */}
-            <div className="rounded-3xl bg-white p-5 shadow-[0_2px_12px_rgba(28,25,23,0.06)]">
-              {firstName ? (
-                <p className="text-[14px] text-stone-600">Hi {firstName}</p>
-              ) : null}
-              <p className="mt-1 text-[12px] font-medium uppercase tracking-wide text-stone-400">
-                {owed > 0 ? "You owe" : "Balance"}
-              </p>
-              <p
-                className="mt-0.5 text-[2.5rem] font-bold leading-none tabular-nums tracking-tight"
-                style={{ color: primary }}
-              >
-                {fmtMoney(owed, currency)}
-              </p>
-              {owed <= 0 ? (
-                <div className="mt-3 flex items-center gap-2 text-[14px] font-medium text-emerald-700">
-                  <CheckCircle2 className="size-4" />
-                  All paid up!
-                </div>
-              ) : null}
-            </div>
-
-            {/* History */}
-            <div className="mt-5">
-              <h2 className="mb-3 text-[15px] font-semibold text-stone-800">
-                Purchases
-                {purchaseCount > 0 ? (
-                  <span className="ml-2 text-[13px] font-normal text-stone-400">
-                    ({purchaseCount})
-                  </span>
+          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {appScreen === "purchases" ? (
+              <div className="px-4 py-3">
+                {owed <= 0 ? (
+                  <div className="mb-3 flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-[14px] font-medium text-emerald-800">
+                    <CheckCircle2 className="size-4 shrink-0" />
+                    All paid up — nothing owed.
+                  </div>
                 ) : null}
-              </h2>
-              {purchaseCount === 0 ? (
-                <p className="rounded-2xl bg-white/60 py-8 text-center text-sm text-stone-500">
-                  No purchases yet
-                </p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {tab!.purchases.map((row, i) => (
-                    <PurchaseRow
-                      key={row.saleId}
-                      row={row}
-                      currency={currency}
-                      defaultOpen={i === 0}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-          </main>
-
-          {/* Bottom pay sheet */}
-          {showPay ? (
-            <footer className="max-h-[58dvh] shrink-0 overflow-y-auto border-t border-stone-200/80 bg-white px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(28,25,23,0.08)]">
-              <div
-                className="mx-auto mb-3 h-1 w-10 rounded-full bg-stone-200"
-                aria-hidden
-              />
-              <PayModeToggle {...modeToggleProps} />
-              <div className="mt-3">
-                {payMode === "stk" ? (
-                  <PayPanel {...payProps} />
+                {purchaseCount === 0 ? (
+                  <p className="py-16 text-center text-sm text-stone-500">
+                    No purchases yet
+                  </p>
                 ) : (
-                  <ManualPayPanel {...manualPayProps} />
+                  <ul className="space-y-2">
+                    {tab!.purchases.map((row) => (
+                      <PurchaseRow
+                        key={row.saleId}
+                        row={row}
+                        currency={currency}
+                      />
+                    ))}
+                  </ul>
                 )}
               </div>
-            </footer>
-          ) : null}
+            ) : showPay ? (
+              <div className="px-4 py-4">
+                <PayModeToggle {...modeToggleProps} />
+                <div className="mt-4">
+                  {payMode === "stk" ? (
+                    <PayPanel {...payProps} />
+                  ) : (
+                    <ManualPayPanel {...manualPayProps} />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
+                <CheckCircle2 className="size-10 text-emerald-600" />
+                <p className="font-medium text-stone-800">Nothing to pay</p>
+              </div>
+            )}
+          </main>
+
+          <BottomTabBar
+            screen={appScreen}
+            setScreen={setAppScreen}
+            purchaseCount={purchaseCount}
+            owed={owed}
+            currency={currency}
+            primary={primary}
+            showPay={showPay}
+          />
         </>
       )}
     </div>
