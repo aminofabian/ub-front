@@ -29,6 +29,26 @@ import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-rem
 import { WhatsAppTestPanel } from "@/components/credits/whatsapp-test-panel";
 import { SmsTestPanel } from "@/components/credits/sms-test-panel";
 import { createCustomer, fetchCustomers, type CustomerRecord } from "@/lib/api";
+import {
+  formatDateRangeLabel,
+  presetRange,
+  type DatePreset,
+} from "@/lib/analytics-date-range";
+
+type CustomerDatePreset = Extract<
+  DatePreset,
+  "today" | "yesterday" | "last3" | "last7" | "last30" | "thisMonth"
+> | "all";
+
+const DATE_FILTER_OPTIONS: { id: CustomerDatePreset; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
+  { id: "last3", label: "3 days" },
+  { id: "last7", label: "1 week" },
+  { id: "last30", label: "30 days" },
+  { id: "thisMonth", label: "Month" },
+  { id: "all", label: "All" },
+];
 
 function formatKes(amount: number | string | null | undefined): string {
   const n = Number(amount ?? 0);
@@ -49,6 +69,7 @@ export default function CustomersPage() {
   const [activePhoneQuery, setActivePhoneQuery] = useState<string | undefined>(
     undefined,
   );
+  const [datePreset, setDatePreset] = useState<CustomerDatePreset>("today");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
@@ -60,6 +81,16 @@ export default function CustomersPage() {
     text: string;
     kind: "error" | "success";
   } | null>(null);
+
+  const dateRange = useMemo(() => {
+    if (datePreset === "all") return null;
+    return presetRange(datePreset);
+  }, [datePreset]);
+
+  const periodLabel = useMemo(() => {
+    if (!dateRange) return "All time";
+    return formatDateRangeLabel(dateRange.from, dateRange.to);
+  }, [dateRange]);
 
   useEffect(() => {
     const next = phoneFilter.trim();
@@ -78,7 +109,10 @@ export default function CustomersPage() {
       setListLoading(true);
       setMessage(null);
       try {
-        const data = await fetchCustomers(activePhoneQuery);
+        const data = await fetchCustomers(activePhoneQuery, {
+          createdFrom: dateRange?.from,
+          createdTo: dateRange?.to,
+        });
         if (!cancelled) {
           setRows(data);
         }
@@ -102,7 +136,7 @@ export default function CustomersPage() {
     return () => {
       cancelled = true;
     };
-  }, [loading, canViewCustomers, activePhoneQuery, refreshKey]);
+  }, [loading, canViewCustomers, activePhoneQuery, dateRange, refreshKey]);
 
   const visibleRows = useMemo(() => {
     if (!outstandingOnly) return rows;
@@ -198,74 +232,107 @@ export default function CustomersPage() {
       ) : null}
 
       <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/25 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:px-5">
-          <div className="relative min-w-0 flex-1 sm:max-w-xs">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <input
-              className={cn(dashboardInputClass(), "pl-9")}
-              placeholder="Search by phone…"
-              value={phoneFilter}
-              onChange={(e) => setPhoneFilter(e.target.value)}
-              aria-label="Filter customers by phone"
-            />
+        <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/25 px-4 py-3 sm:px-5">
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Filter by when the customer was added"
+          >
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/80">
+              Added
+            </span>
+            {DATE_FILTER_OPTIONS.map(({ id, label }) => {
+              const active = datePreset === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setDatePreset(id)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                    active
+                      ? "bg-[#F9F6F0] text-[#8B6F3A]"
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            <span className="ml-1 text-[11px] text-muted-foreground">
+              {periodLabel}
+            </span>
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={outstandingOnly}
-              onChange={(e) => setOutstandingOnly(e.target.checked)}
-              className="size-4 rounded border-input"
-            />
-            Outstanding only
-          </label>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative min-w-0 flex-1 sm:max-w-xs">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                className={cn(dashboardInputClass(), "pl-9")}
+                placeholder="Search by phone…"
+                value={phoneFilter}
+                onChange={(e) => setPhoneFilter(e.target.value)}
+                aria-label="Filter customers by phone"
+              />
+            </div>
 
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-            <p className="mr-auto text-xs text-muted-foreground sm:mr-0">
-              {listLoading
-                ? "Loading…"
-                : `${visibleRows.length} shown`}
-              {!listLoading && rows.length > 0 ? (
-                <span className="text-foreground">
-                  {" "}
-                  · {formatKes(totalOwed)} owed
-                </span>
+            <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={outstandingOnly}
+                onChange={(e) => setOutstandingOnly(e.target.checked)}
+                className="size-4 rounded border-input"
+              />
+              Outstanding only
+            </label>
+
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+              <p className="mr-auto text-xs text-muted-foreground sm:mr-0">
+                {listLoading
+                  ? "Loading…"
+                  : `${visibleRows.length} shown`}
+                {!listLoading && rows.length > 0 ? (
+                  <span className="text-foreground">
+                    {" "}
+                    · {formatKes(totalOwed)} owed
+                  </span>
+                ) : null}
+              </p>
+
+              {canManageCustomers ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={showCreate ? "secondary" : "default"}
+                  onClick={() => setShowCreate((v) => !v)}
+                >
+                  <Plus className="size-3.5" aria-hidden />
+                  {showCreate ? "Cancel" : "New"}
+                </Button>
               ) : null}
-            </p>
 
-            {canManageCustomers ? (
-              <Button
-                type="button"
-                size="sm"
-                variant={showCreate ? "secondary" : "default"}
-                onClick={() => setShowCreate((v) => !v)}
-              >
-                <Plus className="size-3.5" aria-hidden />
-                {showCreate ? "Cancel" : "New"}
-              </Button>
-            ) : null}
-
-            {canViewCustomers ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowMessaging((v) => !v)}
-              >
-                <MessageCircle className="size-3.5" aria-hidden />
-                Messaging
-                <ChevronDown
-                  className={cn(
-                    "size-3.5 transition-transform",
-                    showMessaging && "rotate-180",
-                  )}
-                  aria-hidden
-                />
-              </Button>
-            ) : null}
+              {canViewCustomers ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowMessaging((v) => !v)}
+                >
+                  <MessageCircle className="size-3.5" aria-hidden />
+                  Messaging
+                  <ChevronDown
+                    className={cn(
+                      "size-3.5 transition-transform",
+                      showMessaging && "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -370,7 +437,9 @@ export default function CustomersPage() {
           <p className="border-t border-border/60 px-5 py-8 text-center text-sm text-muted-foreground">
             {outstandingOnly
               ? "No customers with an outstanding tab balance."
-              : "No customers match this view."}
+              : datePreset === "all"
+                ? "No customers match this view."
+                : `No customers added in this period (${periodLabel}).`}
           </p>
         ) : null}
       </section>

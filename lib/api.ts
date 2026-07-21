@@ -7374,12 +7374,19 @@ export type CreateCustomerPayload = {
 
 export async function fetchCustomers(
   phone?: string,
-  opts?: { page?: number; size?: number },
+  opts?: {
+    page?: number;
+    size?: number;
+    createdFrom?: string;
+    createdTo?: string;
+  },
 ): Promise<CustomerRecord[]> {
   const page = await fetchCustomersPage({
     phone,
     page: opts?.page,
     size: opts?.size,
+    createdFrom: opts?.createdFrom,
+    createdTo: opts?.createdTo,
   });
   return page.content;
 }
@@ -7388,6 +7395,8 @@ export async function fetchCustomersPage(opts?: {
   phone?: string;
   page?: number;
   size?: number;
+  createdFrom?: string;
+  createdTo?: string;
 }): Promise<{
   content: CustomerRecord[];
   totalElements: number;
@@ -7404,6 +7413,14 @@ export async function fetchCustomersPage(opts?: {
   const q = opts?.phone?.trim();
   if (q) {
     params.set("phone", q);
+  }
+  const createdFrom = opts?.createdFrom?.trim();
+  if (createdFrom) {
+    params.set("createdFrom", createdFrom);
+  }
+  const createdTo = opts?.createdTo?.trim();
+  if (createdTo) {
+    params.set("createdTo", createdTo);
   }
   const payload = await request<unknown>(`/api/v1/customers?${params}`);
   const content = extractPageContent<CustomerRecord>(payload);
@@ -7426,6 +7443,8 @@ export async function fetchCustomersPage(opts?: {
 export async function fetchAllCustomers(opts?: {
   phone?: string;
   pageSize?: number;
+  createdFrom?: string;
+  createdTo?: string;
 }): Promise<CustomerRecord[]> {
   const pageSize = opts?.pageSize ?? 100;
   const all: CustomerRecord[] = [];
@@ -7433,6 +7452,8 @@ export async function fetchAllCustomers(opts?: {
   for (;;) {
     const result = await fetchCustomersPage({
       phone: opts?.phone,
+      createdFrom: opts?.createdFrom,
+      createdTo: opts?.createdTo,
       page,
       size: pageSize,
     });
