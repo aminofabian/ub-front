@@ -16,7 +16,8 @@ type Props = {
   ariaLabel: string;
   accentHex?: string | null;
   size?: "sm" | "md";
-  variant?: "stepper" | "icon";
+  /** `card` = unified capsule for product grids; `stepper` = split qty + Add; `icon` = round + */
+  variant?: "stepper" | "icon" | "card";
   maxQty?: number | null;
   className?: string;
 };
@@ -193,6 +194,113 @@ export function ShopQuickAddButton({
     }
     setPickQty((q) => capQty(q + 1, maxQty));
     bumpQty();
+  }
+
+  if (variant === "card") {
+    const cardStep =
+      "inline-flex size-8 shrink-0 items-center justify-center rounded-full text-foreground/65 transition-all duration-150 hover:bg-black/[0.05] hover:text-foreground active:scale-90 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10";
+
+    return (
+      <div
+        className={cn("relative w-full min-w-0", className)}
+        role="group"
+        aria-label={ariaLabel}
+        onClick={stopLink}
+      >
+        <div
+          className={cn(
+            "relative flex h-9 w-full items-center overflow-hidden rounded-full transition-all duration-300",
+            inCart
+              ? "bg-primary/10 ring-1 ring-primary/20"
+              : "bg-muted/35 ring-1 ring-border/50 hover:bg-muted/55 hover:ring-border/70",
+            justAdded && "animate-shop-cart-added ring-primary/35",
+          )}
+        >
+          <button
+            type="button"
+            className={cardStep}
+            disabled={busy || (!inCart && atMin)}
+            aria-label={inCart ? "Decrease quantity" : "Decrease quantity to add"}
+            onClick={(e) => {
+              stopLink(e);
+              void onMinus();
+            }}
+          >
+            <Minus className="size-3.5" strokeWidth={2.5} aria-hidden />
+          </button>
+
+          {inCart ? (
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center leading-none">
+              <span
+                key={`card-cart-${qtyBump}`}
+                className="text-[15px] font-bold tabular-nums tracking-tight text-foreground animate-shop-qty-pop"
+                aria-live="polite"
+              >
+                {inCartQty}
+              </span>
+              <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+                in bag
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={busy}
+              aria-label={`Add ${pickQty} to cart`}
+              onClick={(e) => {
+                stopLink(e);
+                void addPickQty();
+              }}
+              className={cn(
+                "group relative mx-0.5 flex h-[calc(100%-4px)] min-w-0 flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-full bg-primary px-2 font-semibold text-primary-foreground shadow-sm transition-all duration-200",
+                "hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60",
+              )}
+              style={accentStyle(accent)}
+            >
+              <span
+                className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+                aria-hidden
+              />
+              {busy ? (
+                <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              ) : justAdded ? (
+                <Check className="relative size-3.5 stroke-[3]" aria-hidden />
+              ) : (
+                <ShoppingBag className="relative size-3.5 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" aria-hidden />
+              )}
+              <span className="relative flex items-baseline gap-1 text-[12px] font-bold tracking-tight">
+                <span>Add</span>
+                <span
+                  key={`card-pick-${qtyBump}`}
+                  className="tabular-nums text-primary-foreground/85 animate-shop-qty-pop"
+                >
+                  · {pickQty}
+                </span>
+              </span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={cardStep}
+            disabled={busy || atMax}
+            aria-label={atMax ? "Maximum quantity" : inCart ? "Increase quantity" : "Increase quantity to add"}
+            onClick={(e) => {
+              stopLink(e);
+              void onPlusPick();
+            }}
+          >
+            <Plus className="size-3.5" strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+
+        {hint ? (
+          <p className="mt-1.5 text-center text-[10px] font-medium leading-tight text-destructive">
+            {hint}
+          </p>
+        ) : null}
+      </div>
+    );
   }
 
   const stepBtn = cn(

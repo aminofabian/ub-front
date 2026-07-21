@@ -16,7 +16,7 @@ function ShopProductCardSkeleton() {
           </div>
           <div className="mt-auto flex flex-col gap-2 border-t border-border/40 pt-2">
             <div className="h-3.5 w-[4.25rem] animate-pulse rounded-sm bg-muted/70" aria-hidden />
-            <div className="h-8 w-full animate-pulse rounded-lg bg-muted/50" aria-hidden />
+            <div className="h-9 w-full animate-pulse rounded-full bg-muted/50" aria-hidden />
           </div>
         </div>
       </article>

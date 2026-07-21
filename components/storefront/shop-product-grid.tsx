@@ -198,20 +198,19 @@ export default function ShopProductGrid({
                       slug={slug}
                       itemId={item.id}
                       ariaLabel={`Add ${ariaTitle} to basket`}
-                      size="sm"
-                      variant="stepper"
+                      variant="card"
                       maxQty={item.qtyOnHand}
                       className="w-full"
                     />
                   ) : !hasPrice ? (
                     <Link
                       href={shopItemPathFromCard(item)}
-                      className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-primary/8 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/12"
+                      className="inline-flex h-9 w-full items-center justify-center rounded-full bg-primary/8 text-[12px] font-semibold tracking-tight text-primary ring-1 ring-primary/15 transition-colors hover:bg-primary/12"
                     >
                       View options
                     </Link>
                   ) : (
-                    <div className="h-8" aria-hidden />
+                    <div className="h-9" aria-hidden />
                   )}
                 </div>
               </div>
