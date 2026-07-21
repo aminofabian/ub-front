@@ -122,9 +122,14 @@ describe("access-token-cookie", () => {
   });
 
   it("classifies mint and clear auth paths", () => {
+    expect(isAccessTokenMintPath("/api/v1/auth/login")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/auth/login-pin")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/auth/refresh")).toBe(true);
     expect(isAccessTokenMintPath("/api/v1/sales")).toBe(false);
+    expect(isAccessTokenMintPath("/api/v1/super-admin/auth/login")).toBe(false);
+    expect(isAccessTokenMintPath("/api/v1/supplier-portal/auth/login")).toBe(
+      false,
+    );
     expect(isAccessTokenClearPath("/api/v1/auth/logout")).toBe(true);
     expect(isAccessTokenClearPath("/api/v1/auth/clear-session-cookie")).toBe(
       true,

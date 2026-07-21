@@ -166,15 +166,21 @@ export function clearAccessTokenCookies(
   );
 }
 
+/** Tenant auth only — super-admin and supplier-portal keep Bearer tokens in sessionStorage. */
+const TENANT_AUTH_PREFIX = "/api/v1/auth/";
+
 /** Auth JSON responses that mint a new access token. */
 export function isAccessTokenMintPath(pathname: string): boolean {
+  if (!pathname.startsWith(TENANT_AUTH_PREFIX)) {
+    return false;
+  }
   return (
-    pathname.endsWith("/auth/login") ||
-    pathname.endsWith("/auth/login-pin") ||
-    pathname.endsWith("/auth/unlock-pin") ||
-    pathname.endsWith("/auth/refresh") ||
-    pathname.endsWith("/auth/register") ||
-    pathname.endsWith("/auth/accept-invite")
+    pathname.endsWith("/login") ||
+    pathname.endsWith("/login-pin") ||
+    pathname.endsWith("/unlock-pin") ||
+    pathname.endsWith("/refresh") ||
+    pathname.endsWith("/register") ||
+    pathname.endsWith("/accept-invite")
   );
 }
 
