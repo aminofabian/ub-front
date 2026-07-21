@@ -40,7 +40,36 @@ function stripPrefix(detail: string): string {
     .replace(/^whatsapp_failed:/i, "")
     .replace(/^whatsapp_skipped:/i, "")
     .replace(/^sms_failed:/i, "")
+    .replace(/^sms:/i, "")
     .trim();
+}
+
+/** Split combined delivery detail: "whatsapp_failed:…; sms:…" */
+function splitDeliveryDetail(detail: string): {
+  whatsapp: string | null;
+  sms: string | null;
+} {
+  if (!detail) {
+    return { whatsapp: null, sms: null };
+  }
+  const smsIdx = detail.search(/;\s*sms:/i);
+  if (smsIdx >= 0) {
+    return {
+      whatsapp: stripPrefix(detail.slice(0, smsIdx)),
+      sms: stripPrefix(detail.slice(smsIdx + 1).replace(/^sms:/i, "")),
+    };
+  }
+  if (/^whatsapp_/i.test(detail) || /graph|oauth|meta/i.test(detail)) {
+    return { whatsapp: stripPrefix(detail), sms: null };
+  }
+  if (/^not_on_whatsapp:/i.test(detail)) {
+    const parts = detail.split(";");
+    return {
+      whatsapp: parts[0] ?? detail,
+      sms: parts.length > 1 ? stripPrefix(parts.slice(1).join(";")) : null,
+    };
+  }
+  return { whatsapp: null, sms: stripPrefix(detail) };
 }
 
 function explainMetaDetail(detail: string): string | null {
@@ -94,9 +123,25 @@ export function MessagingTestResultCard({
   const showMeta = variant === "full" || variant === "whatsapp";
   const showSms = variant === "full" || variant === "sms";
   const lookupHint = showRapid ? explainLookupDetail(r.lookupDetail) : null;
+  const parts = splitDeliveryDetail(r.detail);
   const deliveryDetail = stripPrefix(r.detail);
-  const metaHint = showMeta ? explainMetaDetail(r.detail) : null;
-  const smsHint = showSms ? explainSmsDetail(r.detail, r.channel) : null;
+  const metaDetail = variant === "whatsapp" ? deliveryDetail : parts.whatsapp;
+  const smsDetail = variant === "sms" ? deliveryDetail : parts.sms;
+  const whatsappFailed =
+    /whatsapp_failed|whatsapp_skipped/i.test(r.detail) ||
+    (r.channel === "whatsapp" && r.outcome !== "sent");
+  const smsUsed =
+    r.channel === "sms" ||
+    r.channel === "sozuri" ||
+    r.channel === "africas_talking" ||
+    r.channel === "sms_stub" ||
+    r.outcome === "stub" ||
+    Boolean(parts.sms);
+  const metaHint = showMeta && metaDetail ? explainMetaDetail(metaDetail) : null;
+  const smsHint =
+    showSms && (smsDetail || r.detail)
+      ? explainSmsDetail(smsDetail || r.detail, r.channel)
+      : null;
 
   const title =
     variant === "sms"
@@ -176,27 +221,29 @@ export function MessagingTestResultCard({
               <span className="text-foreground">{yesNo(r.metaWhatsAppConfigured)}</span>
             </p>
             <p className="text-muted-foreground">
-              Result: <span className="text-foreground">{r.outcome}</span>
+              Result:{" "}
+              <span className="text-foreground">
+                {variant === "full"
+                  ? r.channel === "whatsapp" && r.outcome === "sent"
+                    ? "sent"
+                    : whatsappFailed
+                      ? "failed"
+                      : r.outcome
+                  : r.outcome}
+              </span>
             </p>
-            {deliveryDetail && variant === "whatsapp" ? (
+            {metaDetail ? (
               <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
-                {deliveryDetail}
+                {metaDetail}
               </p>
-            ) : null}
-            {variant === "full" &&
-            (r.channel === "whatsapp" || /whatsapp/i.test(r.detail)) ? (
-              <>
-                {deliveryDetail ? (
-                  <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
-                    {deliveryDetail}
-                  </p>
-                ) : null}
-              </>
             ) : null}
             {metaHint ? (
               <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
                 {metaHint}
               </p>
+            ) : null}
+            {variant === "full" && smsUsed && whatsappFailed ? (
+              <p className="text-xs text-muted-foreground">Falling back to SMS…</p>
             ) : null}
           </section>
         ) : null}
@@ -204,31 +251,26 @@ export function MessagingTestResultCard({
         {showSms ? (
           <section className="space-y-1.5 px-3 py-2.5">
             <p className="text-xs font-semibold text-foreground">
-              {variant === "full" ? "3. SMS" : "SMS send"}
+              {variant === "full" ? "3. SMS fallback" : "SMS send"}
             </p>
             <p className="text-muted-foreground">
               Configured:{" "}
               <span className="text-foreground">{yesNo(r.smsConfigured)}</span>
             </p>
-            {(variant === "sms" ||
-              r.channel === "sms" ||
-              r.channel === "sozuri" ||
-              r.channel === "africas_talking" ||
-              r.channel === "sms_stub" ||
-              r.outcome === "stub") && (
+            {variant === "sms" || smsUsed ? (
               <>
                 <p className="text-muted-foreground">
                   Result: <span className="text-foreground">{r.outcome}</span>
-                  {r.channel ? (
+                  {r.channel && r.channel !== "whatsapp" ? (
                     <>
                       {" "}
                       via <span className="text-foreground">{r.channel}</span>
                     </>
                   ) : null}
                 </p>
-                {deliveryDetail && (variant === "sms" || r.channel !== "whatsapp") ? (
+                {smsDetail ? (
                   <p className="break-words font-mono text-[11px] leading-relaxed text-foreground/85">
-                    {deliveryDetail}
+                    {smsDetail}
                   </p>
                 ) : null}
                 {smsHint ? (
@@ -243,12 +285,18 @@ export function MessagingTestResultCard({
                   </p>
                 ) : null}
               </>
+            ) : variant === "full" &&
+              r.channel === "whatsapp" &&
+              r.outcome === "sent" ? (
+              <p className="text-muted-foreground">Not used (WhatsApp delivered).</p>
+            ) : variant === "full" && !r.smsConfigured ? (
+              <p className="text-muted-foreground">
+                Not configured — enable Sozuri or Africa&apos;s Talking to fall back when
+                WhatsApp fails.
+              </p>
+            ) : (
+              <p className="text-muted-foreground">Not used.</p>
             )}
-            {variant === "full" &&
-            r.channel === "whatsapp" &&
-            r.outcome !== "stub" ? (
-              <p className="text-muted-foreground">Not used (WhatsApp handled delivery).</p>
-            ) : null}
           </section>
         ) : null}
       </div>
@@ -267,6 +315,14 @@ export function messagingTestHeadline(
     if (variant === "whatsapp") {
       return "WhatsApp sent. Check the recipient’s phone.";
     }
+    if (
+      (r.channel === "sozuri" ||
+        r.channel === "africas_talking" ||
+        r.channel === "sms") &&
+      /whatsapp_failed/i.test(r.detail)
+    ) {
+      return `WhatsApp failed; sent via SMS (${r.channel}). Check the recipient’s phone.`;
+    }
     return `Sent via ${r.channel}. Check the recipient’s phone.`;
   }
   if (variant === "sms") {
@@ -278,11 +334,14 @@ export function messagingTestHeadline(
     }
     return `WhatsApp ${r.outcome}. See details below.`;
   }
+  if (/whatsapp_failed/i.test(r.detail) && !r.smsConfigured) {
+    return "WhatsApp failed and SMS fallback is not configured. See details below.";
+  }
   if (r.channel === "whatsapp" && /object with id|does not exist/i.test(r.detail)) {
-    return "Meta WhatsApp send failed (phone number ID / permissions). See details below — RapidAPI is separate.";
+    return "Meta WhatsApp send failed (phone number ID / permissions). See details below.";
   }
   if (r.whatsAppLookupSkipped && /^http_/i.test(r.lookupDetail)) {
-    return "RapidAPI lookup failed; Meta send also did not succeed. See separated details below.";
+    return "RapidAPI lookup failed; delivery also did not succeed. See separated details below.";
   }
   return `Send ${r.outcome} via ${r.channel || "none"}. See details below.`;
 }

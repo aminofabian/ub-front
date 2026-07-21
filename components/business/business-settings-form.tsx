@@ -131,6 +131,8 @@ export function BusinessSettingsForm({
   isSaving,
   storefrontNeedsBranch,
   focusStorefrontOnMount,
+  /** Profile page only shows identity + storefront. */
+  variant = "all",
   onSubmit,
   onCancel,
 }: {
@@ -153,6 +155,7 @@ export function BusinessSettingsForm({
   isSaving: boolean;
   storefrontNeedsBranch: boolean;
   focusStorefrontOnMount?: boolean;
+  variant?: "profile" | "all";
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
 }) {
@@ -160,6 +163,7 @@ export function BusinessSettingsForm({
   const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
     String(inventory.dailyAuditSampleSize),
   );
+  const showOperations = variant === "all";
 
   useEffect(() => {
     setDailyAuditSampleDraft(String(inventory.dailyAuditSampleSize));
@@ -191,9 +195,11 @@ export function BusinessSettingsForm({
       id="business-settings-form"
       className="space-y-4"
       onSubmit={(event) => {
-        flushSync(() => {
-          commitDailyAuditSampleSize(dailyAuditSampleDraft);
-        });
+        if (showOperations) {
+          flushSync(() => {
+            commitDailyAuditSampleSize(dailyAuditSampleDraft);
+          });
+        }
         onSubmit(event);
       }}
     >
@@ -586,7 +592,7 @@ export function BusinessSettingsForm({
         </SettingsAnchor>
       ) : null}
 
-      {canManageBusinessSettings ? (
+      {canManageBusinessSettings && showOperations ? (
         <>
           <SettingsGroupLabel>Inventory</SettingsGroupLabel>
 
@@ -1087,7 +1093,9 @@ export function BusinessSettingsForm({
 
       <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/95 p-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:static lg:bottom-auto lg:mx-0 lg:justify-end lg:border-border/50 lg:bg-muted/20 lg:p-3 lg:shadow-none">
         <p className="hidden text-[11px] text-muted-foreground sm:block lg:mr-auto">
-          Save applies all sections on this page.
+          {showOperations
+            ? "Save applies all sections on this page."
+            : "Save applies profile and storefront on this page."}
         </p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button
