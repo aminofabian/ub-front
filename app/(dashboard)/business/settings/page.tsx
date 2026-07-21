@@ -422,6 +422,7 @@ export default function BusinessSettingsPage() {
             focusStorefrontOnMount={focusStorefront}
             onSubmit={onSave}
             onCancel={onCancel}
+            onRemoveDeliveryArea={editor.removeDeliveryArea}
           />
         </section>
       </div>

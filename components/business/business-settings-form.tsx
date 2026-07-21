@@ -135,6 +135,7 @@ export function BusinessSettingsForm({
   variant = "all",
   onSubmit,
   onCancel,
+  onRemoveDeliveryArea,
 }: {
   editable: EditableBusiness;
   setEditable: React.Dispatch<React.SetStateAction<EditableBusiness>>;
@@ -158,6 +159,7 @@ export function BusinessSettingsForm({
   variant?: "profile" | "all";
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
+  onRemoveDeliveryArea?: (areaId: string) => void | Promise<void>;
 }) {
   const storefrontRef = useRef<HTMLDivElement>(null);
   const [dailyAuditSampleDraft, setDailyAuditSampleDraft] = useState(
@@ -568,16 +570,20 @@ export function BusinessSettingsForm({
                             variant="ghost"
                             size="sm"
                             className="h-8 shrink-0 px-2 text-destructive"
-                            disabled={!storefront.enabled}
+                            disabled={!storefront.enabled || isSaving}
                             aria-label="Remove area"
-                            onClick={() =>
+                            onClick={() => {
+                              if (onRemoveDeliveryArea) {
+                                void onRemoveDeliveryArea(area.id);
+                                return;
+                              }
                               setStorefront((s) => ({
                                 ...s,
                                 deliveryAreas: s.deliveryAreas.filter(
                                   (_, i) => i !== index,
                                 ),
-                              }))
-                            }
+                              }));
+                            }}
                           >
                             Remove
                           </Button>

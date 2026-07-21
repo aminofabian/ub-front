@@ -101,7 +101,9 @@ function AuthHandoffInner() {
         return;
       }
 
-      // Legacy fragment with access JWT (older clients / in-flight navigations).
+      // Legacy / impersonation fragment with access JWT.
+      // Do NOT call refresh first — ub.refresh is not on this host yet; refresh
+      // would 401 and leave store-session without a cookie → no_session.
       applyAuthSessionPayload({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
@@ -122,14 +124,6 @@ function AuthHandoffInner() {
       persistTenantHostAfterAuth(slug ?? undefined);
       clearAuthHandoffFragment();
 
-      const outcome = await refreshAccessToken();
-      if (cancelled) {
-        return;
-      }
-      if (outcome.kind === "rejected" && !hasAccessSession()) {
-        setError("Session transfer failed. Sign in again.");
-        return;
-      }
       const cookieOk = await ensureSessionPresenceCookie();
       if (!cookieOk) {
         setError(
@@ -140,7 +134,11 @@ function AuthHandoffInner() {
 
       const nextRaw = searchParams.get("next") ?? data.nextPath ?? APP_ROUTES.business;
       const next = nextRaw.startsWith("/") ? nextRaw : APP_ROUTES.business;
-      submitStoreSessionNavigate(next);
+      submitStoreSessionNavigate(next, {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        tenantId: data.tenantId,
+      });
     })();
 
     return () => {

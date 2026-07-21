@@ -103,6 +103,19 @@ export async function POST(request: NextRequest) {
     httpOnly: false,
   });
   applyAccessTokenCookie(response, accessToken, { secure });
+  // Cross-origin handoff (SA impersonation) brings refresh in the form — mint
+  // the same Path=/api/v1/auth cookie Spring would have set on a normal login.
+  if (refreshToken) {
+    response.cookies.set({
+      name: "ub.refresh",
+      value: refreshToken,
+      path: "/api/v1/auth",
+      maxAge: 30 * 24 * 60 * 60,
+      sameSite: "lax",
+      secure,
+      httpOnly: true,
+    });
+  }
 
   return response;
 }

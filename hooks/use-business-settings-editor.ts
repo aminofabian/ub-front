@@ -180,6 +180,75 @@ export function useBusinessSettingsEditor() {
     setShiftSettings(next.shiftSettings);
   }, [effectiveSnapshot, branches]);
 
+  const removeDeliveryArea = useCallback(
+    async (areaId: string) => {
+      if (!canManageBusinessSettings || isSaving) {
+        return;
+      }
+
+      let previousAreas = storefront.deliveryAreas;
+      let nextAreas = previousAreas;
+      setStorefront((current) => {
+        previousAreas = current.deliveryAreas;
+        nextAreas = current.deliveryAreas.filter((area) => area.id !== areaId);
+        if (nextAreas.length === previousAreas.length) {
+          return current;
+        }
+        return { ...current, deliveryAreas: nextAreas };
+      });
+      if (nextAreas.length === previousAreas.length) {
+        return;
+      }
+
+      setIsSaving(true);
+      setFeedback(null);
+      try {
+        const deliveryAreas = nextAreas
+          .map((area) => ({
+            id: area.id.trim() || crypto.randomUUID(),
+            name: area.name.trim(),
+            active: area.active,
+          }))
+          .filter((area) => area.name.length > 0);
+
+        await updateBusiness({ storefront: { deliveryAreas } });
+        await refreshSession();
+        router.refresh();
+        setSnapshot((current) => {
+          if (!current?.storefront) {
+            return current;
+          }
+          return {
+            ...current,
+            storefront: {
+              ...current.storefront,
+              deliveryAreas,
+            },
+          };
+        });
+        setFeedback({
+          kind: "success",
+          text: "Delivery area removed.",
+        });
+      } catch (error) {
+        setStorefront((current) => ({
+          ...current,
+          deliveryAreas: previousAreas,
+        }));
+        setFeedback({
+          kind: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "Could not remove the delivery area.",
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [canManageBusinessSettings, isSaving, refreshSession, router],
+  );
+
   const save = useCallback(
     async (scope: BusinessSettingsSaveScope = "all") => {
       setIsSaving(true);
@@ -383,6 +452,7 @@ export function useBusinessSettingsEditor() {
     storefrontNeedsBranch,
     load,
     resetFormFromSnapshot,
+    removeDeliveryArea,
     save,
   };
 }
