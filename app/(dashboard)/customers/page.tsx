@@ -195,6 +195,12 @@ export default function CustomersPage() {
 
   const quickLinks = [
     {
+      href: APP_ROUTES.creditsOnTab,
+      label: "On tab",
+      desc: "Credit sales",
+      icon: Receipt,
+    },
+    {
       href: APP_ROUTES.customerPhones,
       label: "Phones",
       desc: "All numbers",

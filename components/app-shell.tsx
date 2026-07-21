@@ -297,10 +297,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
     id: "credits",
     title: "Credit & tabs",
     shortLabel: "Credit",
-    blurb: "Customers on tab, wallets, and payment claims",
+    blurb: "What went on tab, customers, and payment claims",
     icon: Wallet,
-    entryHref: APP_ROUTES.customers,
+    entryHref: APP_ROUTES.creditsOnTab,
     items: [
+      { href: APP_ROUTES.creditsOnTab, label: "On tab" },
       { href: APP_ROUTES.customers, label: "Credit customers" },
       { href: APP_ROUTES.customerPhones, label: "Customer phones" },
       { href: APP_ROUTES.creditsPaymentClaims, label: "Payment claims" },
@@ -529,6 +530,8 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
   if (item.href === APP_ROUTES.suppliers) return gate.canViewSuppliers;
   // Public marketplace directory — visible to anyone who can manage suppliers.
   if (item.href === APP_ROUTES.marketplace) return gate.canViewSuppliers;
+  if (item.href === APP_ROUTES.creditsOnTab)
+    return gate.canViewSalesIntelligence || gate.canViewCustomers;
   if (item.href === APP_ROUTES.customers) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.customerPhones) return gate.canViewCustomers;
   if (item.href === APP_ROUTES.creditsPaymentClaims)

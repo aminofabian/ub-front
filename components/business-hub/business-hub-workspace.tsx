@@ -6,6 +6,7 @@ import {
   BarChart3,
   Boxes,
   ClipboardCheck,
+  CreditCard,
   Package,
   RefreshCw,
   ScanLine,
@@ -98,6 +99,7 @@ export function BusinessHubWorkspace() {
     canViewShifts,
     canViewApAging,
     canViewCustomers,
+    canViewSalesIntelligence,
   } = useDashboard();
   const featureFlags = useFeatureFlags();
   const showButcherCounter =
@@ -538,7 +540,22 @@ export function BusinessHubWorkspace() {
         icon: ClipboardCheck,
       });
     }
-    if (canViewCustomers) {
+    if (canViewSalesIntelligence) {
+      links.push({
+        href: APP_ROUTES.creditsOnTab,
+        label: "On tab",
+        hint: "Credit sales today",
+        icon: CreditCard,
+      });
+    } else if (canViewCustomers) {
+      links.push({
+        href: APP_ROUTES.customers,
+        label: "Credit customers",
+        hint: "Balances and reminders",
+        icon: Users,
+      });
+    }
+    if (canViewCustomers && canViewSalesIntelligence) {
       links.push({
         href: APP_ROUTES.customers,
         label: "Credit customers",
@@ -576,6 +593,7 @@ export function BusinessHubWorkspace() {
     canListUsers,
     canManageBusinessSettings,
     canViewCustomers,
+    canViewSalesIntelligence,
     showButcherCounter,
   ]);
 

@@ -13,6 +13,7 @@ export function shellPageTitle(pathname: string): string {
     [APP_ROUTES.categories]: "Categories",
     [APP_ROUTES.suppliers]: "Suppliers",
     [APP_ROUTES.marketplace]: "Marketplace",
+    [APP_ROUTES.creditsOnTab]: "On tab",
     [APP_ROUTES.customers]: "Credit customers",
     [APP_ROUTES.customerPhones]: "Customer phones",
     [APP_ROUTES.creditsPaymentClaims]: "Payment claims",
@@ -69,6 +70,7 @@ export function shellPageTitle(pathname: string): string {
   if (path.startsWith(APP_ROUTES.business)) return "Business";
   if (path.startsWith(APP_ROUTES.grocery)) return "Grocery";
   if (path.startsWith(APP_ROUTES.butcher)) return "Butcher";
+  if (path === APP_ROUTES.creditsOnTab) return "On tab";
   if (path.startsWith("/credits")) return "Credit";
   if (path === APP_ROUTES.customerPhones || path.startsWith(`${APP_ROUTES.customerPhones}/`))
     return "Customer phones";

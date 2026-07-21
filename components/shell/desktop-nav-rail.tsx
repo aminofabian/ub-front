@@ -108,6 +108,7 @@ const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.shifts]: SlidersHorizontal,
   [APP_ROUTES.paymentsSettings]: CreditCard,
   [APP_ROUTES.paymentsDayLedger]: Receipt,
+  [APP_ROUTES.creditsOnTab]: CreditCard,
   [APP_ROUTES.customers]: Users,
   [APP_ROUTES.customerPhones]: Phone,
   [APP_ROUTES.creditsPaymentClaims]: Receipt,
