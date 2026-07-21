@@ -322,9 +322,14 @@ export type PlatformIntegrationsRecord = {
   sozuriType: string;
   sozuriApiUrl: string;
   hasSozuriApiKey: boolean;
+  textsmsPartnerId: string;
+  textsmsShortcode: string;
+  textsmsApiUrl: string;
+  hasTextsmsApiKey: boolean;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
   envSozuriConfigured: boolean;
+  envTextsmsConfigured: boolean;
   secretsReadable: boolean;
   secretsError: string | null;
   encryptionEphemeral: boolean;
@@ -346,6 +351,10 @@ export type UpdatePlatformIntegrationsPayload = {
   sozuriFrom?: string | null;
   sozuriType?: string | null;
   sozuriApiUrl?: string | null;
+  textsmsPartnerId?: string | null;
+  textsmsApiKey?: string | null;
+  textsmsShortcode?: string | null;
+  textsmsApiUrl?: string | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {

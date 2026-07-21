@@ -34,6 +34,12 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [sozuriFrom, setSozuriFrom] = useState("Sozuri");
   const [sozuriType, setSozuriType] = useState("transactional");
   const [sozuriApiUrl, setSozuriApiUrl] = useState("https://sozuri.net/api/v1/messaging");
+  const [textsmsPartnerId, setTextsmsPartnerId] = useState("");
+  const [textsmsApiKey, setTextsmsApiKey] = useState("");
+  const [textsmsShortcode, setTextsmsShortcode] = useState("");
+  const [textsmsApiUrl, setTextsmsApiUrl] = useState(
+    "https://sms.textsms.co.ke/api/services/sendsms/",
+  );
 
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
@@ -56,9 +62,15 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setSozuriFrom(row.sozuriFrom || "Sozuri");
       setSozuriType(row.sozuriType || "transactional");
       setSozuriApiUrl(row.sozuriApiUrl || "https://sozuri.net/api/v1/messaging");
+      setTextsmsPartnerId(row.textsmsPartnerId ?? "");
+      setTextsmsShortcode(row.textsmsShortcode ?? "");
+      setTextsmsApiUrl(
+        row.textsmsApiUrl || "https://sms.textsms.co.ke/api/services/sendsms/",
+      );
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
       setSozuriApiKey("");
+      setTextsmsApiKey("");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Could not load integrations.");
     }
@@ -87,6 +99,10 @@ export default function SuperAdminPlatformIntegrationsPage() {
         sozuriFrom: sozuriFrom.trim() || "Sozuri",
         sozuriType: sozuriType.trim() || "transactional",
         sozuriApiUrl: sozuriApiUrl.trim() || "https://sozuri.net/api/v1/messaging",
+        textsmsPartnerId: textsmsPartnerId.trim(),
+        textsmsShortcode: textsmsShortcode.trim(),
+        textsmsApiUrl:
+          textsmsApiUrl.trim() || "https://sms.textsms.co.ke/api/services/sendsms/",
       };
       if (deepseekApiKey.trim()) {
         body.deepseekApiKey = deepseekApiKey.trim();
@@ -97,11 +113,15 @@ export default function SuperAdminPlatformIntegrationsPage() {
       if (sozuriApiKey.trim()) {
         body.sozuriApiKey = sozuriApiKey.trim();
       }
+      if (textsmsApiKey.trim()) {
+        body.textsmsApiKey = textsmsApiKey.trim();
+      }
       const updated = await updatePlatformIntegrations(body);
       setSettings(updated);
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
       setSozuriApiKey("");
+      setTextsmsApiKey("");
       setSuccess("Platform integration settings saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
@@ -160,6 +180,25 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setSettings(updated);
       setSozuriApiKey("");
       setSuccess("Sozuri API key cleared.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear key.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onClearTextsmsKey = async () => {
+    if (!window.confirm("Remove the stored TextSMS API key? Tenant overrides still apply.")) {
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const updated = await updatePlatformIntegrations({ textsmsApiKey: "" });
+      setSettings(updated);
+      setTextsmsApiKey("");
+      setSuccess("TextSMS API key cleared.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not clear key.");
     } finally {
@@ -373,17 +412,13 @@ export default function SuperAdminPlatformIntegrationsPage() {
             <div className="border-t border-border/60 pt-4">
               <div className="mb-3 flex items-center gap-2">
                 <MessageSquare className="size-4 text-muted-foreground" aria-hidden />
-                <p className="text-sm font-medium">SMS fallback — Sozuri</p>
+                <p className="text-sm font-medium">SMS fallback</p>
               </div>
               <p className="mb-3 text-xs text-muted-foreground">
-                Platform defaults for SMS. When SMS provider is Sozuri (here or on a tenant), these
-                credentials are used unless the tenant overrides them. No env vars required.
+                Choose the platform default SMS provider and configure credentials here. Tenants can
+                override per business on the Credit tab. Env vars are optional last-resort fallback
+                only.
               </p>
-              {settings ? (
-                <p className="mb-2 text-xs text-muted-foreground">
-                  Stored Sozuri key: {settings.hasSozuriApiKey ? "yes" : "no"}
-                </p>
-              ) : null}
               <div className="space-y-4">
                 <div className="space-y-2 sm:max-w-xs">
                   <label className="text-sm font-medium" htmlFor="sa-sms-provider">
@@ -396,93 +431,190 @@ export default function SuperAdminPlatformIntegrationsPage() {
                     onChange={(ev) => setSmsProvider(ev.target.value)}
                   >
                     <option value="none">None</option>
+                    <option value="textsms">TextSMS (textsms.co.ke)</option>
                     <option value="sozuri">Sozuri</option>
                     <option value="africas_talking">Africa&apos;s Talking (tenant creds)</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-sozuri-project">
-                    Sozuri project
-                  </label>
-                  <Input
-                    id="sa-sozuri-project"
-                    value={sozuriProject}
-                    onChange={(ev) => setSozuriProject(ev.target.value)}
-                    placeholder="kiosk.ke"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-sozuri-key">
-                    Sozuri API key
-                  </label>
-                  <Input
-                    id="sa-sozuri-key"
-                    type="password"
-                    autoComplete="off"
-                    placeholder={
-                      settings?.hasSozuriApiKey
-                        ? "••••••••  (leave blank to keep)"
-                        : "Paste Sozuri API key"
-                    }
-                    value={sozuriApiKey}
-                    onChange={(ev) => setSozuriApiKey(ev.target.value)}
-                  />
-                  {settings?.hasSozuriApiKey ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive"
-                      disabled={busy}
-                      onClick={() => void onClearSozuriKey()}
-                    >
-                      Clear stored key
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="sa-sozuri-from">
-                      Sender ID (from)
-                    </label>
-                    <Input
-                      id="sa-sozuri-from"
-                      value={sozuriFrom}
-                      onChange={(ev) => setSozuriFrom(ev.target.value)}
-                      placeholder="Sozuri"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="sa-sozuri-type">
-                      Message type
-                    </label>
-                    <select
-                      id="sa-sozuri-type"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={sozuriType}
-                      onChange={(ev) => setSozuriType(ev.target.value)}
-                    >
-                      <option value="transactional">Transactional</option>
-                      <option value="promotional">Promotional</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="sa-sozuri-url">
-                    API URL
-                  </label>
-                  <Input
-                    id="sa-sozuri-url"
-                    value={sozuriApiUrl}
-                    onChange={(ev) => setSozuriApiUrl(ev.target.value)}
-                    placeholder="https://sozuri.net/api/v1/messaging"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Callbacks:{" "}
-                  <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
-                  <span className="font-mono">/webhooks/sozuri/delivery</span> on your API host.
-                </p>
+
+                {smsProvider === "sozuri" ? (
+                  <>
+                    {settings ? (
+                      <p className="text-xs text-muted-foreground">
+                        Stored Sozuri key: {settings.hasSozuriApiKey ? "yes" : "no"}
+                      </p>
+                    ) : null}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="sa-sozuri-project">
+                        Sozuri project
+                      </label>
+                      <Input
+                        id="sa-sozuri-project"
+                        value={sozuriProject}
+                        onChange={(ev) => setSozuriProject(ev.target.value)}
+                        placeholder="kiosk.ke"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="sa-sozuri-key">
+                        Sozuri API key
+                      </label>
+                      <Input
+                        id="sa-sozuri-key"
+                        type="password"
+                        autoComplete="off"
+                        placeholder={
+                          settings?.hasSozuriApiKey
+                            ? "••••••••  (leave blank to keep)"
+                            : "Paste Sozuri API key"
+                        }
+                        value={sozuriApiKey}
+                        onChange={(ev) => setSozuriApiKey(ev.target.value)}
+                      />
+                      {settings?.hasSozuriApiKey ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-destructive hover:text-destructive"
+                          disabled={busy}
+                          onClick={() => void onClearSozuriKey()}
+                        >
+                          Clear stored key
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium" htmlFor="sa-sozuri-from">
+                          Sender ID (from)
+                        </label>
+                        <Input
+                          id="sa-sozuri-from"
+                          value={sozuriFrom}
+                          onChange={(ev) => setSozuriFrom(ev.target.value)}
+                          placeholder="Sozuri"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium" htmlFor="sa-sozuri-type">
+                          Message type
+                        </label>
+                        <select
+                          id="sa-sozuri-type"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={sozuriType}
+                          onChange={(ev) => setSozuriType(ev.target.value)}
+                        >
+                          <option value="transactional">Transactional</option>
+                          <option value="promotional">Promotional</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="sa-sozuri-url">
+                        API URL
+                      </label>
+                      <Input
+                        id="sa-sozuri-url"
+                        value={sozuriApiUrl}
+                        onChange={(ev) => setSozuriApiUrl(ev.target.value)}
+                        placeholder="https://sozuri.net/api/v1/messaging"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Callbacks:{" "}
+                      <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
+                      <span className="font-mono">/webhooks/sozuri/delivery</span> on your API host.
+                    </p>
+                  </>
+                ) : null}
+
+                {smsProvider === "textsms" ? (
+                  <>
+                    {settings ? (
+                      <p className="text-xs text-muted-foreground">
+                        Stored TextSMS key: {settings.hasTextsmsApiKey ? "yes" : "no"}
+                      </p>
+                    ) : null}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium" htmlFor="sa-textsms-partner">
+                          Partner ID
+                        </label>
+                        <Input
+                          id="sa-textsms-partner"
+                          value={textsmsPartnerId}
+                          onChange={(ev) => setTextsmsPartnerId(ev.target.value)}
+                          placeholder="Partner ID from TextSMS"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium" htmlFor="sa-textsms-shortcode">
+                          Shortcode / sender ID
+                        </label>
+                        <Input
+                          id="sa-textsms-shortcode"
+                          value={textsmsShortcode}
+                          onChange={(ev) => setTextsmsShortcode(ev.target.value)}
+                          placeholder="Approved shortcode"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="sa-textsms-key">
+                        API key
+                      </label>
+                      <Input
+                        id="sa-textsms-key"
+                        type="password"
+                        autoComplete="off"
+                        placeholder={
+                          settings?.hasTextsmsApiKey
+                            ? "••••••••  (leave blank to keep)"
+                            : "Paste TextSMS API key"
+                        }
+                        value={textsmsApiKey}
+                        onChange={(ev) => setTextsmsApiKey(ev.target.value)}
+                      />
+                      {settings?.hasTextsmsApiKey ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-destructive hover:text-destructive"
+                          disabled={busy}
+                          onClick={() => void onClearTextsmsKey()}
+                        >
+                          Clear stored key
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="sa-textsms-url">
+                        API URL
+                      </label>
+                      <Input
+                        id="sa-textsms-url"
+                        value={textsmsApiUrl}
+                        onChange={(ev) => setTextsmsApiUrl(ev.target.value)}
+                        placeholder="https://sms.textsms.co.ke/api/services/sendsms/"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Sends to{" "}
+                      <span className="font-mono">sms.textsms.co.ke</span> with partner ID, API key,
+                      mobile (digits), message, and shortcode.
+                    </p>
+                  </>
+                ) : null}
+
+                {smsProvider === "africas_talking" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Africa&apos;s Talking credentials are configured per tenant on the Credit tab
+                    reminders settings.
+                  </p>
+                ) : null}
               </div>
             </div>
 

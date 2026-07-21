@@ -57,6 +57,12 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [smsSozuriApiUrl, setSmsSozuriApiUrl] = useState(
     "https://sozuri.net/api/v1/messaging",
   );
+  const [smsTextsmsPartnerId, setSmsTextsmsPartnerId] = useState("");
+  const [smsTextsmsApiKey, setSmsTextsmsApiKey] = useState("");
+  const [smsTextsmsShortcode, setSmsTextsmsShortcode] = useState("");
+  const [smsTextsmsApiUrl, setSmsTextsmsApiUrl] = useState(
+    "https://sms.textsms.co.ke/api/services/sendsms/",
+  );
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<CreditSaleReminderTestResult | null>(
@@ -85,10 +91,16 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setSmsSozuriApiUrl(
         data.smsSozuriApiUrl || "https://sozuri.net/api/v1/messaging",
       );
+      setSmsTextsmsPartnerId(data.smsTextsmsPartnerId ?? "");
+      setSmsTextsmsShortcode(data.smsTextsmsShortcode ?? "");
+      setSmsTextsmsApiUrl(
+        data.smsTextsmsApiUrl || "https://sms.textsms.co.ke/api/services/sendsms/",
+      );
       setRapidApiKey("");
       setWhatsappToken("");
       setSmsApiKey("");
       setSmsSozuriApiKey("");
+      setSmsTextsmsApiKey("");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not load reminder settings.";
       setMessage({
@@ -156,6 +168,15 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
           smsProvider === "sozuri"
             ? smsSozuriApiUrl.trim() || "https://sozuri.net/api/v1/messaging"
             : null,
+        smsTextsmsPartnerId:
+          smsProvider === "textsms" ? smsTextsmsPartnerId.trim() : null,
+        smsTextsmsShortcode:
+          smsProvider === "textsms" ? smsTextsmsShortcode.trim() : null,
+        smsTextsmsApiUrl:
+          smsProvider === "textsms"
+            ? smsTextsmsApiUrl.trim() ||
+              "https://sms.textsms.co.ke/api/services/sendsms/"
+            : null,
       };
       if (rapidApiKey.trim()) {
         body.rapidApiKey = rapidApiKey.trim();
@@ -169,12 +190,16 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       if (smsSozuriApiKey.trim()) {
         body.smsSozuriApiKey = smsSozuriApiKey.trim();
       }
+      if (smsTextsmsApiKey.trim()) {
+        body.smsTextsmsApiKey = smsTextsmsApiKey.trim();
+      }
       const updated = await updateCreditSaleReminderSettings(body);
       setSettings(updated);
       setRapidApiKey("");
       setWhatsappToken("");
       setSmsApiKey("");
       setSmsSozuriApiKey("");
+      setSmsTextsmsApiKey("");
       setMessage({ text: "Reminder settings saved.", kind: "success" });
     } catch (err) {
       setMessage({
@@ -352,7 +377,7 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
         <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
           <p className="text-sm font-medium">SMS fallback</p>
           <p className="text-xs text-muted-foreground">
-            Leave Sozuri fields blank to use Super Admin → Platform integrations defaults.
+            Leave TextSMS / Sozuri fields blank to use Super Admin → Platform integrations defaults.
             Provider &quot;None&quot; still inherits the platform default provider when set.
           </p>
           <label className="flex flex-col gap-1.5 sm:max-w-xs">
@@ -364,8 +389,9 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               disabled={!canEdit}
             >
               <option value="none">None (log only in dev)</option>
-              <option value="africas_talking">Africa&apos;s Talking</option>
+              <option value="textsms">TextSMS (textsms.co.ke)</option>
               <option value="sozuri">Sozuri</option>
+              <option value="africas_talking">Africa&apos;s Talking</option>
             </select>
           </label>
           {smsProvider === "africas_talking" ? (
@@ -464,6 +490,61 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
                 <span className="font-mono">/webhooks/sozuri/inbox</span> and{" "}
                 <span className="font-mono">/webhooks/sozuri/delivery</span> on your
                 API host. Use type that matches your registered sender ID.
+              </p>
+            </>
+          ) : null}
+          {smsProvider === "textsms" ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className={dashboardLabelClass()}>Partner ID</span>
+                  <input
+                    className={dashboardInputClass()}
+                    value={smsTextsmsPartnerId}
+                    onChange={(e) => setSmsTextsmsPartnerId(e.target.value)}
+                    placeholder="From TextSMS dashboard"
+                    disabled={!canEdit}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className={dashboardLabelClass()}>Shortcode / sender ID</span>
+                  <input
+                    className={dashboardInputClass()}
+                    value={smsTextsmsShortcode}
+                    onChange={(e) => setSmsTextsmsShortcode(e.target.value)}
+                    placeholder="Approved shortcode"
+                    disabled={!canEdit}
+                  />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>API key</span>
+                <input
+                  type="password"
+                  className={dashboardInputClass()}
+                  value={smsTextsmsApiKey}
+                  onChange={(e) => setSmsTextsmsApiKey(e.target.value)}
+                  placeholder={
+                    settings?.hasSmsTextsmsApiKey
+                      ? "••••••••  (leave blank to keep)"
+                      : "Paste TextSMS API key"
+                  }
+                  disabled={!canEdit}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className={dashboardLabelClass()}>API URL</span>
+                <input
+                  className={dashboardInputClass()}
+                  value={smsTextsmsApiUrl}
+                  onChange={(e) => setSmsTextsmsApiUrl(e.target.value)}
+                  placeholder="https://sms.textsms.co.ke/api/services/sendsms/"
+                  disabled={!canEdit}
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Blank fields inherit Super Admin → Platform integrations TextSMS defaults.
               </p>
             </>
           ) : null}

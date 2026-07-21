@@ -89,12 +89,16 @@ function explainMetaDetail(detail: string): string | null {
 function explainSmsDetail(detail: string, channel: string): string | null {
   const d = detail.toLowerCase();
   if (/not configured/i.test(detail)) {
-    return "Set Sozuri (or Africa's Talking) in Super Admin → Platform integrations or Credit tab reminders.";
+    return "Set TextSMS, Sozuri, or Africa's Talking in Super Admin → Platform integrations or Credit tab reminders.";
   }
-  if (d.startsWith("http_")) {
-    return channel === "sozuri"
-      ? "Sozuri rejected the request. Check project name, API key, sender ID, and message type."
-      : "SMS provider rejected the request. Check credentials.";
+  if (d.startsWith("http_") || d.startsWith("code_")) {
+    if (channel === "sozuri") {
+      return "Sozuri rejected the request. Check project name, API key, sender ID, and message type.";
+    }
+    if (channel === "textsms") {
+      return "TextSMS rejected the request. Check partner ID, API key, and shortcode / sender ID.";
+    }
+    return "SMS provider rejected the request. Check credentials.";
   }
   if (d === "error") {
     return "SMS send failed before a provider response.";
@@ -133,6 +137,7 @@ export function MessagingTestResultCard({
   const smsUsed =
     r.channel === "sms" ||
     r.channel === "sozuri" ||
+    r.channel === "textsms" ||
     r.channel === "africas_talking" ||
     r.channel === "sms_stub" ||
     r.outcome === "stub" ||
@@ -291,7 +296,7 @@ export function MessagingTestResultCard({
               <p className="text-muted-foreground">Not used (WhatsApp delivered).</p>
             ) : variant === "full" && !r.smsConfigured ? (
               <p className="text-muted-foreground">
-                Not configured — enable Sozuri or Africa&apos;s Talking to fall back when
+                Not configured — enable TextSMS, Sozuri, or Africa&apos;s Talking to fall back when
                 WhatsApp fails.
               </p>
             ) : (
@@ -317,6 +322,7 @@ export function messagingTestHeadline(
     }
     if (
       (r.channel === "sozuri" ||
+        r.channel === "textsms" ||
         r.channel === "africas_talking" ||
         r.channel === "sms") &&
       /whatsapp_failed/i.test(r.detail)
