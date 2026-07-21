@@ -47,3 +47,9 @@ export function platformOrganizationJsonLd(siteUrl: string) {
     },
   };
 }
+
+/** Help center hub defaults (titles live in lib/help/seo.ts for page metadata). */
+export const HELP_CENTER_PATH = "/help";
+
+export const HELP_CENTER_DESCRIPTION =
+  "Kiosk help for shop owners and online shoppers in Kenya — till setup, M-Pesa, inventory, orders, and delivery.";

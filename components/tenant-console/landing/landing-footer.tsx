@@ -25,10 +25,10 @@ const FOOTER_COLS = [
   {
     label: "Product",
     links: [
-      { label: "Features", href: "#features" },
-      { label: "Pricing", href: "#pricing" },
-      { label: "How it works", href: "#how" },
-      { label: "Stories", href: "#stories" },
+      { label: "Features", href: "/#features" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "How it works", href: "/#how" },
+      { label: "Stories", href: "/#stories" },
     ],
   },
   {
@@ -43,10 +43,10 @@ const FOOTER_COLS = [
   {
     label: "Support",
     links: [
-      { label: "Docs", href: "#" },
-      { label: "Status", href: "#" },
-      { label: "Contact", href: "#" },
-      { label: "Community", href: "#" },
+      { label: "Help", href: "/help" },
+      { label: "Merchants", href: "/help/merchants" },
+      { label: "Shoppers", href: "/help/shoppers" },
+      { label: "Contact", href: "mailto:support@kiosk.ke" },
     ],
   },
 ] as const;
@@ -148,7 +148,7 @@ export function LandingFooter() {
                   </ul>
 
                   <div className="mt-8 flex flex-wrap items-center gap-4">
-                    <Link href="#pricing" className={`${goldCtaClass} !text-[13px]`}>
+                    <Link href="/#pricing" className={`${goldCtaClass} !text-[13px]`}>
                       Start selling
                     </Link>
                     <span className="landing-footer-stamp inline-flex items-center gap-2 rounded-full border border-dashed border-[var(--kiosk-gold-border)] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--kiosk-gold)]">
@@ -168,12 +168,14 @@ export function LandingFooter() {
                       {col.label}
                     </h4>
                     <ul className="flex flex-col gap-1">
-                      {col.links.map((link) => (
-                        <li key={link.label}>
-                          <Link
-                            href={link.href}
-                            className="landing-footer-link group/link inline-flex items-center gap-2 rounded-lg py-2 pr-2 text-sm text-[var(--kiosk-text-dim)] transition-colors duration-200"
-                          >
+                      {col.links.map((link) => {
+                        const external =
+                          link.href.startsWith("mailto:") ||
+                          link.href.startsWith("http");
+                        const className =
+                          "landing-footer-link group/link inline-flex items-center gap-2 rounded-lg py-2 pr-2 text-sm text-[var(--kiosk-text-dim)] transition-colors duration-200";
+                        const inner = (
+                          <>
                             <span
                               className="h-px w-0 bg-[var(--kiosk-gold)] transition-all duration-300 group-hover/link:w-3"
                               aria-hidden
@@ -181,9 +183,22 @@ export function LandingFooter() {
                             <span className="transition-colors group-hover/link:text-[var(--kiosk-text)]">
                               {link.label}
                             </span>
-                          </Link>
-                        </li>
-                      ))}
+                          </>
+                        );
+                        return (
+                          <li key={link.label}>
+                            {external ? (
+                              <a href={link.href} className={className}>
+                                {inner}
+                              </a>
+                            ) : (
+                              <Link href={link.href} className={className}>
+                                {inner}
+                              </Link>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 ))}

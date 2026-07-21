@@ -1,5 +1,9 @@
 export const APP_ROUTES = {
   overview: "/overview",
+  /** Public help knowledge base (merchants + shoppers). */
+  help: "/help",
+  helpMerchants: "/help/merchants",
+  helpShoppers: "/help/shoppers",
   /** Storefront customer password sign-in. */
   login: "/login",
   /** Shop staff / till / office sign-in (PIN + password). */
