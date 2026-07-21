@@ -84,18 +84,24 @@ export async function initiatePublicTabStk(
   phone: string,
   amount: number,
   idempotencyKey: string,
+  stkPhone?: string,
 ): Promise<PublicTabStk> {
   const headers: Record<string, string> = {
     ...(tenantHostHeaders() as Record<string, string>),
     "Content-Type": "application/json",
     "Idempotency-Key": idempotencyKey,
   };
+  const body: { amount: number; phone?: string } = { amount };
+  const payPhone = stkPhone?.trim();
+  if (payPhone) {
+    body.phone = payPhone;
+  }
   const res = await fetch(
     apiUrl(`/api/v1/public/credits/tabs/${encodeURIComponent(phone.trim())}/stk`),
     {
       method: "POST",
       headers,
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify(body),
       cache: "no-store",
     },
   );

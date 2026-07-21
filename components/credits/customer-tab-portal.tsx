@@ -16,7 +16,7 @@ import {
   Store,
 } from "lucide-react";
 
-import { toKenyanLocal07 } from "@/lib/kenyan-phone";
+import { looksLikeKenyanMobilePath, toKenyanLocal07 } from "@/lib/kenyan-phone";
 import {
   fetchPublicCustomerTab,
   fetchPublicTabStkStatus,
@@ -177,6 +177,8 @@ function PurchaseRow({
 function PayPanel({
   currency,
   phone,
+  payPhone,
+  setPayPhone,
   amount,
   setAmount,
   owed,
@@ -195,6 +197,8 @@ function PayPanel({
 }: {
   currency: string;
   phone: string;
+  payPhone: string;
+  setPayPhone: (v: string) => void;
   amount: string;
   setAmount: (v: string) => void;
   owed: number;
@@ -212,7 +216,9 @@ function PayPanel({
   variant?: "inline" | "dock";
 }) {
   const inputId = variant === "dock" ? "tab-pay-amount-mobile" : "tab-pay-amount";
+  const phoneId = variant === "dock" ? "tab-pay-phone-mobile" : "tab-pay-phone";
   const isDock = variant === "dock";
+  const phoneOk = looksLikeKenyanMobilePath(payPhone);
 
   return (
     <div className={cn("space-y-3", isDock && "space-y-2.5")}>
@@ -257,6 +263,51 @@ function PayPanel({
         </div>
       )}
 
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <label
+            htmlFor={phoneId}
+            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500"
+          >
+            M-Pesa number
+          </label>
+          {payPhone.trim() !== phone.trim() ? (
+            <button
+              type="button"
+              onClick={() => {
+                setPayPhone(phone);
+                onClearError();
+              }}
+              disabled={payDisabled}
+              className="text-[11px] font-medium text-stone-500 underline-offset-2 hover:underline disabled:opacity-40"
+            >
+              Reset
+            </button>
+          ) : null}
+        </div>
+        <div className="relative">
+          <Smartphone className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+          <input
+            id={phoneId}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="0712 345 678"
+            value={payPhone}
+            onChange={(e) => {
+              setPayPhone(e.target.value);
+              onClearError();
+            }}
+            disabled={payDisabled}
+            className={cn(
+              "w-full border border-stone-900/10 bg-white/90 py-3 pl-10 pr-4 text-[15px] font-medium tabular-nums text-stone-900 outline-none transition",
+              "rounded-xl focus:border-transparent focus:ring-2 disabled:opacity-55",
+            )}
+            style={{ ["--tw-ring-color" as string]: primary }}
+          />
+        </div>
+      </div>
+
       <div className="relative">
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-medium text-stone-400">
           {currency}
@@ -285,7 +336,7 @@ function PayPanel({
 
       <button
         type="button"
-        disabled={payDisabled || !amountValid}
+        disabled={payDisabled || !amountValid || !phoneOk}
         onClick={onPay}
         className={cn(
           "relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl font-semibold text-white transition",
@@ -342,7 +393,8 @@ function PayPanel({
 
       {!isDock && !promptSent && !paid && !error ? (
         <p className="text-center text-[12px] leading-relaxed text-stone-500">
-          Prompt goes to <span className="font-medium text-stone-700">{phone}</span>
+          Prompt goes to the number above. If it differs from your account phone,
+          we’ll update your account after a successful payment.
         </p>
       ) : null}
     </div>
@@ -359,6 +411,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [amount, setAmount] = useState("");
+  const [payPhone, setPayPhone] = useState(phone);
   const [busy, setBusy] = useState(false);
   const [promptSent, setPromptSent] = useState(false);
   const [intentId, setIntentId] = useState<string | null>(null);
@@ -392,6 +445,9 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
       setTab(data);
       const nextOwed = toNum(data.balanceOwed);
       setAmount(nextOwed > 0 ? String(Math.round(nextOwed)) : "");
+      const display =
+        toKenyanLocal07(data.phoneDisplay) || data.phoneDisplay || phone;
+      setPayPhone(display);
     }
     setLoading(false);
     requestAnimationFrame(() => setReady(true));
@@ -446,6 +502,10 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   async function onPay() {
     setError(null);
     setStatusMsg(null);
+    if (!looksLikeKenyanMobilePath(payPhone)) {
+      setError("Enter a valid M-Pesa number e.g. 0712345678.");
+      return;
+    }
     if (!amountValid) {
       setError(
         !Number.isFinite(amountNum) || amountNum <= 0
@@ -456,11 +516,17 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
     }
     setBusy(true);
     try {
-      const res = await initiatePublicTabStk(phone, amountNum, newIdempotencyKey());
+      const normalizedPay = toKenyanLocal07(payPhone) || payPhone.trim();
+      const res = await initiatePublicTabStk(
+        phone,
+        amountNum,
+        newIdempotencyKey(),
+        normalizedPay,
+      );
       setIntentId(res.intentId);
       setPromptSent(true);
       setPaid(false);
-      setStatusMsg(`Check ${phone} and enter your M-Pesa PIN.`);
+      setStatusMsg(`Check ${normalizedPay} and enter your M-Pesa PIN.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not send M-Pesa prompt.");
     } finally {
@@ -471,6 +537,8 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
   const payProps = {
     currency,
     phone,
+    payPhone,
+    setPayPhone,
     amount,
     setAmount,
     owed,
@@ -513,24 +581,29 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
         className={cn(
           "relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] sm:max-w-lg sm:px-8",
           showPay
-            ? "pb-[calc(12rem+env(safe-area-inset-bottom))] sm:pb-16"
+            ? "pb-[calc(16rem+env(safe-area-inset-bottom))] sm:pb-16"
             : "pb-[max(2.5rem,env(safe-area-inset-bottom))]",
           "transition-opacity duration-500",
           ready || loading ? "opacity-100" : "opacity-0",
         )}
       >
         {/* Brand masthead */}
-        <header className="flex items-center gap-3.5">
+        <header className="flex items-start gap-3.5 sm:items-center sm:gap-4">
           {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt=""
-              className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-stone-900/8"
-            />
+            <div
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-[0_1px_0_rgba(28,25,23,0.06)] ring-1 ring-stone-900/8 sm:h-16 sm:w-16 sm:p-2"
+              aria-hidden
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={branding.logoUrl}
+                alt=""
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
           ) : (
             <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-semibold text-white"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold text-white sm:h-16 sm:w-16"
               style={{
                 background: `linear-gradient(145deg, ${primary}, color-mix(in oklab, ${primary} 70%, #062015))`,
               }}
@@ -539,13 +612,13 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               {displayShop.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="min-w-0 flex-1">
-            <p
-              className="truncate font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.75rem] font-semibold leading-none tracking-[-0.02em] sm:text-[2rem]"
+          <div className="min-w-0 flex-1 pt-0.5">
+            <h1
+              className="font-[family-name:var(--font-cormorant),Georgia,serif] text-[1.45rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance sm:text-[1.85rem]"
               style={{ color: primary }}
             >
               {displayShop}
-            </p>
+            </h1>
             <p className="mt-1.5 text-[12px] tracking-[0.04em] text-stone-500">
               Account · {phone}
             </p>
