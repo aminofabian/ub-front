@@ -118,11 +118,11 @@ function PurchaseRow({
         : `${lines[0].itemName?.trim() || "Item"} +${lines.length - 1}`;
 
   return (
-    <li className="border-b border-border/70 last:border-0">
+    <li>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 py-3.5 text-left active:bg-muted/40 md:py-4 md:hover:bg-muted/30"
+        className="flex w-full items-start gap-3 px-4 py-3.5 text-left active:bg-muted/40 md:px-6 md:py-4 md:hover:bg-muted/30"
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
@@ -157,7 +157,7 @@ function PurchaseRow({
       >
         <div className="overflow-hidden">
           {lines.length > 0 ? (
-            <ul className="space-y-2 border-l-2 border-primary/25 pb-3.5 pl-3">
+            <ul className="space-y-2 border-t border-border/40 bg-muted/15 px-4 py-3.5 md:px-6">
               {lines.map((line, i) => (
                 <li
                   key={`${row.saleId}-${i}`}
@@ -919,7 +919,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
           <div
             className={cn(
               "lg:grid lg:h-full",
-              showPay && "lg:grid-cols-2 lg:divide-x lg:divide-border",
+              showPay && "lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]",
             )}
           >
             <div
@@ -927,7 +927,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                 "px-4 py-4 md:px-6 md:py-5",
                 showPay && appScreen !== "purchases" && "hidden lg:block",
                 !showPay && appScreen === "pay" && "hidden lg:block",
-                showPay && "lg:overflow-y-auto",
+                showPay && "lg:overflow-y-auto lg:bg-muted/10",
               )}
             >
               {owed <= 0 ? (
@@ -949,11 +949,11 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
               </div>
 
               {purchaseCount === 0 ? (
-                <p className="border border-dashed border-border py-12 text-center text-sm text-muted-foreground md:rounded-lg">
+                <p className="rounded-lg border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
                   No credit purchases yet
                 </p>
               ) : (
-                <ul className="border border-border bg-background md:rounded-lg">
+                <ul className="-mx-4 divide-y divide-border/40 md:-mx-6">
                   {tab!.purchases.map((row) => (
                     <PurchaseRow
                       key={row.saleId}
@@ -971,7 +971,7 @@ export function CustomerTabPortal({ phoneSegment, branding }: Props) {
                   "px-4 py-4 md:px-6 md:py-5",
                   appScreen !== "pay" && "hidden lg:block",
                   appScreen === "pay" && "block",
-                  "lg:overflow-y-auto",
+                  "lg:overflow-y-auto lg:border-l lg:border-border/40",
                 )}
               >
                 <div className="mb-4 hidden lg:block">
