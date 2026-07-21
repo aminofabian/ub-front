@@ -506,7 +506,7 @@ export function NewSupplyDrawer({
     } finally {
       setLinksLoading(false);
     }
-  }, [branchId]);
+  }, [branchId, setRows, setLinksLoading, setError]);
 
   useEffect(() => {
      

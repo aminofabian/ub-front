@@ -301,7 +301,7 @@ export default function BusinessConfigurationPage() {
                   onClick={() => {
                     setWorkspace(item.id);
                     const first = BUSINESS_CONFIGURATION_NAV.find((nav) =>
-                      item.groups.includes(nav.group),
+                      (item.groups as readonly string[]).includes(nav.group),
                     );
                     if (first) {
                       setActiveSection(first.id);

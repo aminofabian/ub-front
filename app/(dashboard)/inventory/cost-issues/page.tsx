@@ -241,7 +241,7 @@ export default function InventoryCostIssuesPage() {
   const openAdjust = useCallback((row: CostIssueRowRecord) => {
     setActiveRow(row);
     setDialogOpen(true);
-  }, []);
+  }, [setActiveRow, setDialogOpen]);
 
   const onSaved = useCallback((updated: CostIssueRowRecord) => {
     setData((prev) => {

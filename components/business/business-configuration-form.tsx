@@ -68,6 +68,7 @@ function PolicySwitch({
   description,
   icon,
   tone = "default",
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
@@ -75,11 +76,13 @@ function PolicySwitch({
   description: string;
   icon?: ReactNode;
   tone?: "default" | "warning";
+  disabled?: boolean;
 }) {
   return (
     <label
       className={cn(
-        "group flex cursor-pointer items-start gap-3 rounded-2xl border px-3.5 py-3 transition-all",
+        "group flex items-start gap-3 rounded-2xl border px-3.5 py-3 transition-all",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         checked
           ? tone === "warning"
             ? "border-amber-500/35 bg-amber-500/[0.07] shadow-sm"
@@ -112,6 +115,7 @@ function PolicySwitch({
           type="checkbox"
           className="peer sr-only"
           checked={checked}
+          disabled={disabled}
           onChange={(event) => onChange(event.target.checked)}
         />
         <span
@@ -780,6 +784,7 @@ export function BusinessConfigurationForm({
                     offlineMirror: checked,
                   }))
                 }
+                disabled={!posDrafts.enabled}
                 title="Offline mirror"
                 description="Keep a local IndexedDB copy when the register goes offline. Requires draft persistence."
               />

@@ -105,6 +105,11 @@ const NAV_SECTIONS: readonly NavSection[] = [
         group: "Profile",
       },
       {
+        href: APP_ROUTES.businessConfiguration,
+        label: "Operations",
+        group: "Configuration",
+      },
+      {
         href: APP_ROUTES.businessBranding,
         label: "Branding",
         group: "Configuration",
@@ -505,7 +510,10 @@ function isNavItemVisible(item: NavItem, gate: NavGate): boolean {
 
   if (item.href === APP_ROUTES.overview) return true;
   if (item.href === APP_ROUTES.business) return true;
-  if (item.href === APP_ROUTES.businessSettings)
+  if (
+    item.href === APP_ROUTES.businessSettings ||
+    item.href === APP_ROUTES.businessConfiguration
+  )
     return gate.canManageBusinessSettings;
   if (item.href === APP_ROUTES.users) return gate.canListUsers;
   if (item.href === APP_ROUTES.businessImport) return gate.canManageImports;

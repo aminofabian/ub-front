@@ -18,6 +18,7 @@ export const APP_ROUTES = {
   superAdminPlatformPayments: "/super-admin/payments/platform",
   business: "/business",
   businessSettings: "/business/settings",
+  businessConfiguration: "/business/configuration",
   businessBranding: "/business/branding",
   businessMobile: "/business/mobile",
   businessDomains: "/business/domains",

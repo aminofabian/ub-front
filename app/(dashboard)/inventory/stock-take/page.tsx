@@ -728,7 +728,7 @@ export default function StockTakePage() {
               {canManageSettings ? (
                 <Button asChild variant="outline" size="sm" className="h-9">
                   <Link
-                    href={`${APP_ROUTES.businessSettings}#settings-stock-take`}
+                    href={`${APP_ROUTES.businessConfiguration}#settings-stock-take`}
                   >
                     Change size
                   </Link>

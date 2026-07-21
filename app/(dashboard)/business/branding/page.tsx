@@ -20,6 +20,7 @@ import {
   Pencil,
   RefreshCw,
   Save,
+  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 
@@ -832,8 +833,14 @@ function RelatedLinks() {
     {
       href: APP_ROUTES.businessSettings,
       label: "Settings",
-      desc: "Core settings & storefront",
+      desc: "Profile & storefront",
       icon: Building2,
+    },
+    {
+      href: APP_ROUTES.businessConfiguration,
+      label: "Operations",
+      desc: "Inventory & till",
+      icon: SlidersHorizontal,
     },
     {
       href: APP_ROUTES.businessDomains,

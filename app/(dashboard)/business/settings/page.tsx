@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -16,40 +16,15 @@ import {
   RefreshCw,
   Shield,
   ShoppingCart,
+  SlidersHorizontal,
   Smartphone,
 } from "lucide-react";
 
 import { BusinessSettingsForm } from "@/components/business/business-settings-form";
 import {
-  BUSINESS_SETTINGS_NAV,
-  BUSINESS_SETTINGS_NAV_GROUPS,
+  BUSINESS_CONFIGURATION_NAV,
+  BUSINESS_PROFILE_NAV,
 } from "@/components/business/business-settings-nav";
-import {
-  applyBusinessSnapshot,
-  clampDailyAuditSampleSize,
-  isDailyAuditScheduleOrdered,
-  normalizeDailyAuditTime,
-  DEFAULT_MORNING_STARTS_AT,
-  DEFAULT_MORNING_ENDS_AT,
-  DEFAULT_EVENING_STARTS_AT,
-  DEFAULT_EVENING_ENDS_AT,
-  DEFAULT_CASHIER_CAPABILITIES,
-  DEFAULT_EDITABLE,
-  DEFAULT_INVENTORY,
-  DEFAULT_POS_DRAFTS,
-  DEFAULT_SHIFT_SETTINGS,
-  DEFAULT_STOREFRONT,
-  defaultCatalogBranchId,
-  parseFeaturedLines,
-  type CashierCapabilitiesForm,
-  type EditableBusiness,
-  type InventoryForm,
-  type PosDraftsForm,
-  type ShiftSettingsForm,
-  type StorefrontForm,
-} from "@/components/business/business-settings-types";
-import { useDashboard } from "@/components/dashboard-provider";
-import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import {
   DASHBOARD_MAX,
   DASHBOARD_TABLE_SURFACE,
@@ -58,23 +33,12 @@ import {
   DashboardPageHero,
   DashboardQuickLinks,
 } from "@/components/dashboard-page-ui";
+import { BusinessSettingsSkeleton } from "@/components/dashboard/business-settings-skeleton";
 import { Button } from "@/components/ui/button";
+import { useBusinessSettingsEditor } from "@/hooks/use-business-settings-editor";
 import { APP_ROUTES } from "@/lib/config";
-import { cn } from "@/lib/utils";
-import {
-  fetchBranches,
-  fetchBusiness,
-  updateBusiness,
-  type BranchRecord,
-  type BusinessRecord,
-  type PatchBusinessPayload,
-} from "@/lib/api";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
-import { useSessionBootstrapSnapshot } from "@/hooks/use-session-bootstrap-snapshot";
-
-const LOAD_TIMEOUT_MS = 20_000;
-
-type Feedback = { kind: "success" | "error"; text: string };
+import { cn } from "@/lib/utils";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
@@ -83,131 +47,34 @@ function scrollToSection(id: string) {
   history.replaceState(null, "", `#${id}`);
 }
 
+/** Old inventory/till anchors lived on this page — send them to Configuration. */
+function redirectLegacyConfigHash() {
+  const hash = window.location.hash.replace(/^#/, "");
+  if (!hash) return false;
+  if (BUSINESS_CONFIGURATION_NAV.some((item) => item.id === hash)) {
+    window.location.replace(
+      `${APP_ROUTES.businessConfiguration}#${hash}`,
+    );
+    return true;
+  }
+  return false;
+}
+
 export default function BusinessSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { canManageBusinessSettings, refreshSession } = useDashboard();
-  const bootstrapBusiness = useSessionBootstrapSnapshot().business;
-  const [snapshot, setSnapshot] = useState<BusinessRecord | null>(null);
-  const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [editable, setEditable] = useState<EditableBusiness>(DEFAULT_EDITABLE);
-  const [storefront, setStorefront] =
-    useState<StorefrontForm>(DEFAULT_STOREFRONT);
-  const [inventory, setInventory] = useState<InventoryForm>(DEFAULT_INVENTORY);
-  const [posDrafts, setPosDrafts] = useState<PosDraftsForm>(DEFAULT_POS_DRAFTS);
-  const [cashierCapabilities, setCashierCapabilities] =
-    useState<CashierCapabilitiesForm>(DEFAULT_CASHIER_CAPABILITIES);
-  const [shiftSettings, setShiftSettings] = useState<ShiftSettingsForm>(
-    DEFAULT_SHIFT_SETTINGS,
-  );
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const editor = useBusinessSettingsEditor();
   const [activeSection, setActiveSection] = useState(
-    BUSINESS_SETTINGS_NAV[0]!.id,
+    BUSINESS_PROFILE_NAV[0]!.id,
   );
-  const hydratedFromBootstrap = useRef(Boolean(bootstrapBusiness));
-  const effectiveSnapshot = snapshot ?? bootstrapBusiness;
   const focusStorefront = searchParams.get("onboarding") === "storefront";
 
-  const branchesRef = useRef<BranchRecord[]>([]);
   useEffect(() => {
-    branchesRef.current = branches;
-  }, [branches]);
-
-  const load = useCallback(() => {
-    const timeout = new Promise<never>((_, reject) => {
-      window.setTimeout(
-        () => reject(new Error("Request timed out. Tap Try again.")),
-        LOAD_TIMEOUT_MS,
-      );
-    });
-
-    return Promise.race([fetchBusiness(), timeout])
-      .then((payload) => {
-        setLoadFailed(false);
-        setFeedback(null);
-        setSnapshot(payload);
-        hydratedFromBootstrap.current = true;
-        const next = applyBusinessSnapshot(payload, branchesRef.current);
-        setEditable(next.editable);
-        setStorefront(next.storefront);
-        setInventory(next.inventory);
-        setPosDrafts(next.posDrafts);
-        setCashierCapabilities(next.cashierCapabilities);
-        setShiftSettings(next.shiftSettings);
-      })
-      .catch((error) => {
-        if (hydratedFromBootstrap.current) {
-          return;
-        }
-        setLoadFailed(true);
-        setSnapshot(null);
-        setFeedback({
-          kind: "error",
-          text:
-            error instanceof Error
-              ? error.message
-              : "Could not load your business.",
-        });
-      });
+    if (redirectLegacyConfigHash()) return;
   }, []);
 
   useEffect(() => {
-    if (bootstrapBusiness) {
-      hydratedFromBootstrap.current = true;
-      setLoadFailed(false);
-      setSnapshot(bootstrapBusiness);
-      const next = applyBusinessSnapshot(bootstrapBusiness, branchesRef.current);
-      setEditable(next.editable);
-      setStorefront(next.storefront);
-      setInventory(next.inventory);
-      setPosDrafts(next.posDrafts);
-      setCashierCapabilities(next.cashierCapabilities);
-      setShiftSettings(next.shiftSettings);
-    }
-    void load();
-  }, [load, bootstrapBusiness]);
-
-  useEffect(() => {
-    if (!canManageBusinessSettings) {
-      return;
-    }
-    fetchBranches()
-      .then((list) => {
-        setBranches(list);
-        setStorefront((prev) => {
-          const catalogBranchId = defaultCatalogBranchId(
-            list,
-            prev.catalogBranchId,
-          );
-          if (catalogBranchId === prev.catalogBranchId) {
-            return prev;
-          }
-          return { ...prev, catalogBranchId };
-        });
-      })
-      .catch(() => setBranches([]));
-  }, [canManageBusinessSettings]);
-
-  useEffect(() => {
-    if (branches.length === 0) {
-      return;
-    }
-    setStorefront((prev) => {
-      const catalogBranchId = defaultCatalogBranchId(
-        branches,
-        prev.catalogBranchId,
-      );
-      if (!catalogBranchId || catalogBranchId === prev.catalogBranchId) {
-        return prev;
-      }
-      return { ...prev, catalogBranchId };
-    });
-  }, [branches]);
-
-  useEffect(() => {
-    const ids = BUSINESS_SETTINGS_NAV.map((item) => item.id);
+    const ids = BUSINESS_PROFILE_NAV.map((item) => item.id);
     const elements = ids
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => Boolean(el));
@@ -225,184 +92,31 @@ export default function BusinessSettingsPage() {
     );
     for (const el of elements) observer.observe(el);
     return () => observer.disconnect();
-  }, [effectiveSnapshot, canManageBusinessSettings]);
+  }, [editor.effectiveSnapshot, editor.canManageBusinessSettings]);
 
-  const resetFormFromSnapshot = useCallback(() => {
-    if (!effectiveSnapshot) {
-      return;
-    }
-    const next = applyBusinessSnapshot(effectiveSnapshot, branches);
-    setEditable(next.editable);
-    setStorefront(next.storefront);
-    setInventory(next.inventory);
-    setPosDrafts(next.posDrafts);
-    setCashierCapabilities(next.cashierCapabilities);
-    setShiftSettings(next.shiftSettings);
-  }, [effectiveSnapshot, branches]);
-
-  const onSave = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSaving(true);
-    setFeedback(null);
-    try {
-      const morningStartsAt = normalizeDailyAuditTime(
-        inventory.morningStartsAt,
-        DEFAULT_MORNING_STARTS_AT,
-      );
-      const morningEndsAt = normalizeDailyAuditTime(
-        inventory.morningEndsAt,
-        DEFAULT_MORNING_ENDS_AT,
-      );
-      const eveningStartsAt = normalizeDailyAuditTime(
-        inventory.eveningStartsAt,
-        DEFAULT_EVENING_STARTS_AT,
-      );
-      const eveningEndsAt = normalizeDailyAuditTime(
-        inventory.eveningEndsAt,
-        DEFAULT_EVENING_ENDS_AT,
-      );
-      if (
-        canManageBusinessSettings &&
-        !isDailyAuditScheduleOrdered(
-          morningStartsAt,
-          morningEndsAt,
-          eveningStartsAt,
-          eveningEndsAt,
-        )
-      ) {
-        setFeedback({
-          kind: "error",
-          text: "Daily audit windows must satisfy morning start < morning end ≤ evening start < evening end.",
-        });
-        setIsSaving(false);
-        return;
-      }
-
-      const body: PatchBusinessPayload = {
-        name: editable.name,
-        subscriptionTier: editable.subscriptionTier,
-        active: editable.active,
-      };
-      if (canManageBusinessSettings) {
-        body.storefront = {
-          enabled: storefront.enabled,
-          catalogBranchId: storefront.enabled
-            ? storefront.catalogBranchId.trim()
-            : "",
-          label: storefront.label.trim() || null,
-          announcement: storefront.announcement.trim() || null,
-          featuredItemIds: parseFeaturedLines(storefront.featuredLines),
-          deliveryAreas: storefront.deliveryAreas
-            .map((area) => ({
-              id: area.id.trim() || crypto.randomUUID(),
-              name: area.name.trim(),
-              active: area.active,
-            }))
-            .filter((area) => area.name.length > 0),
-        };
-        body.inventory = {
-          stocktake: {
-            showSystemStockToStockManager:
-              inventory.showSystemStockToStockManager,
-            dailyAuditSampleSize: clampDailyAuditSampleSize(
-              inventory.dailyAuditSampleSize,
-            ),
-            morningStartsAt,
-            morningEndsAt,
-            eveningStartsAt,
-            eveningEndsAt,
-          },
-          stockLevels: {
-            allowStockEditForStockManager:
-              inventory.allowStockEditForStockManager,
-            allowStockEditForGroceryClerk:
-              inventory.allowStockEditForGroceryClerk,
-            allowNegativeStock: inventory.allowNegativeStock,
-          },
-          suppliers: {
-            allowSupplierWriteForStockManager:
-              inventory.allowSupplierWriteForStockManager,
-            allowSupplierWriteForCashier:
-              inventory.allowSupplierWriteForCashier,
-            allowLinkProductsForStockManager:
-              inventory.allowLinkProductsForStockManager,
-            allowLinkProductsForCashier:
-              inventory.allowLinkProductsForCashier,
-          },
-          receiveStock: {
-            allowReceiveForCashier: inventory.allowReceiveForCashier,
-            allowReceiveForStockManager: inventory.allowReceiveForStockManager,
-          },
-          creditTabs: {
-            allowCashierTabClearance: inventory.allowCashierTabClearance,
-          },
-        };
-        body.featureFlags = {
-          posDrafts: {
-            enabled: posDrafts.enabled,
-            uiVisible: posDrafts.uiVisible,
-            shadowWrites: posDrafts.shadowWrites,
-            offlineMirror: posDrafts.offlineMirror,
-          },
-          posCashierPriceEdit: cashierCapabilities.priceEdit,
-          posCashierCreateProduct: cashierCapabilities.createProduct,
-          posCashierWeighedToggle: cashierCapabilities.weighedToggle,
-          posCashierAddPhoto: cashierCapabilities.addPhoto,
-          shiftsPrefillOpeningFromLastClose:
-            shiftSettings.prefillOpeningFromLastClose,
-        };
-      }
-      await updateBusiness(body);
-      await refreshSession();
-      router.refresh();
-      const next = await fetchBusiness();
-      setSnapshot(next);
-      const applied = applyBusinessSnapshot(next, branches);
-      setEditable(applied.editable);
-      setStorefront(applied.storefront);
-      setInventory(applied.inventory);
-      setPosDrafts(applied.posDrafts);
-      setCashierCapabilities(applied.cashierCapabilities);
-      setShiftSettings(applied.shiftSettings);
-      setFeedback({
-        kind: "success",
-        text: canManageBusinessSettings
-          ? `Saved. Daily audit will sample ${applied.inventory.dailyAuditSampleSize} products sold yesterday.`
-          : "Your changes were saved.",
-      });
-    } catch (error) {
-      setFeedback({
-        kind: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Something went wrong while saving.",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const onSave = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      await editor.save("profile");
+    },
+    [editor.save],
+  );
 
   const onCancel = () => {
-    resetFormFromSnapshot();
+    editor.resetFormFromSnapshot();
     router.push(APP_ROUTES.business);
   };
 
-  const isLoading = effectiveSnapshot === null && !loadFailed;
-  const activeBranches = branches.filter((b) => b.active);
-  const storefrontNeedsBranch =
-    canManageBusinessSettings &&
-    storefront.enabled &&
-    (activeBranches.length === 0 || !storefront.catalogBranchId.trim());
-
   const navByGroup = useMemo(() => {
-    return BUSINESS_SETTINGS_NAV_GROUPS.map((group) => ({
-      group,
-      items: BUSINESS_SETTINGS_NAV.filter((item) => item.group === group),
-    }));
+    return [
+      {
+        group: "Business" as const,
+        items: BUSINESS_PROFILE_NAV,
+      },
+    ];
   }, []);
 
-  if (!canManageBusinessSettings) {
+  if (!editor.canManageBusinessSettings) {
     return (
       <DashboardAccessDenied
         title="Business settings"
@@ -413,11 +127,11 @@ export default function BusinessSettingsPage() {
     );
   }
 
-  if (isLoading) {
+  if (editor.isLoading) {
     return <BusinessSettingsSkeleton />;
   }
 
-  if (loadFailed && !effectiveSnapshot) {
+  if (editor.loadFailed && !editor.effectiveSnapshot) {
     return (
       <div className="mx-auto max-w-lg py-16">
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-sm">
@@ -427,14 +141,16 @@ export default function BusinessSettingsPage() {
           <h2 className="mt-4 text-lg font-semibold tracking-tight">
             Could not load settings
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{feedback?.text}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {editor.feedback?.text}
+          </p>
           <Button
             className="mt-6 gap-2"
             variant="outline"
             onClick={() => {
-              setLoadFailed(false);
-              setFeedback(null);
-              void load();
+              editor.setLoadFailed(false);
+              editor.setFeedback(null);
+              void editor.load();
             }}
           >
             <RefreshCw className="size-4" aria-hidden />
@@ -471,10 +187,16 @@ export default function BusinessSettingsPage() {
           icon={Shield}
           eyebrow="Account"
           title="Business settings"
-          description="Profile, storefront, inventory policy, and till permissions."
+          description="Profile and storefront. Inventory and till policies live under Configuration."
         />
         <DashboardQuickLinks
           links={[
+            {
+              href: APP_ROUTES.businessConfiguration,
+              label: "Configuration",
+              desc: "Inventory & till",
+              icon: SlidersHorizontal,
+            },
             {
               href: APP_ROUTES.businessBranding,
               label: "Branding",
@@ -503,71 +225,70 @@ export default function BusinessSettingsPage() {
         />
       </header>
 
-      {feedback && !loadFailed ? (
+      {editor.feedback && !editor.loadFailed ? (
         <DashboardFeedback
-          kind={feedback.kind === "error" ? "error" : "success"}
-          text={feedback.text}
+          kind={editor.feedback.kind === "error" ? "error" : "success"}
+          text={editor.feedback.text}
         />
       ) : null}
 
-      {effectiveSnapshot ? (
+      {editor.effectiveSnapshot ? (
         <section className={DASHBOARD_TABLE_SURFACE}>
           <div className="flex flex-wrap items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2.5 sm:px-5">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="truncate text-sm font-semibold tracking-tight">
-                  {effectiveSnapshot.name ?? "—"}
+                  {editor.effectiveSnapshot.name ?? "—"}
                 </h2>
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                    effectiveSnapshot.active
+                    editor.effectiveSnapshot.active
                       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                       : "bg-muted text-muted-foreground",
                   )}
                 >
-                  {effectiveSnapshot.active ? "Live" : "Paused"}
+                  {editor.effectiveSnapshot.active ? "Live" : "Paused"}
                 </span>
                 <span className="text-[11px] capitalize text-muted-foreground">
-                  {effectiveSnapshot.subscriptionTier ?? "starter"}
+                  {editor.effectiveSnapshot.subscriptionTier ?? "starter"}
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => scrollToSection("settings-stock-levels")}
+            <Link
+              href={`${APP_ROUTES.businessConfiguration}#settings-stock-levels`}
               className={cn(
                 "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
-                inventory.allowNegativeStock
+                editor.inventory.allowNegativeStock
                   ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                   : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
               )}
             >
               <ShoppingCart className="size-3 shrink-0" aria-hidden />
-              Oversell {inventory.allowNegativeStock ? "on" : "off"}
+              Oversell {editor.inventory.allowNegativeStock ? "on" : "off"}
               <ArrowRight className="size-3" aria-hidden />
-            </button>
+            </Link>
           </div>
           <dl className="grid grid-cols-2 gap-px bg-border/40 sm:grid-cols-4">
             {[
               {
                 label: "Slug",
-                value: effectiveSnapshot.slug ?? "—",
+                value: editor.effectiveSnapshot.slug ?? "—",
                 icon: Globe,
               },
               {
                 label: "Country",
-                value: effectiveSnapshot.countryCode ?? "—",
+                value: editor.effectiveSnapshot.countryCode ?? "—",
                 icon: MapPin,
               },
               {
                 label: "Currency",
-                value: effectiveSnapshot.currency ?? "—",
+                value: editor.effectiveSnapshot.currency ?? "—",
                 icon: Coins,
               },
               {
                 label: "Timezone",
-                value: effectiveSnapshot.timezone ?? "—",
+                value: editor.effectiveSnapshot.timezone ?? "—",
                 icon: Clock,
               },
             ].map(({ label, value, icon: Icon }) => (
@@ -585,13 +306,12 @@ export default function BusinessSettingsPage() {
         </section>
       ) : null}
 
-      {/* Mobile section chips */}
       <nav
         aria-label="Settings sections"
         className="sticky top-[3.75rem] z-20 -mx-1 overflow-x-auto bg-background/90 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden"
       >
         <div className="flex w-max gap-1 pb-0.5">
-          {BUSINESS_SETTINGS_NAV.map(({ id, label, icon: Icon }) => {
+          {BUSINESS_PROFILE_NAV.map(({ id, label, icon: Icon }) => {
             const active = activeSection === id;
             return (
               <button
@@ -663,32 +383,42 @@ export default function BusinessSettingsPage() {
                 </ul>
               </div>
             ))}
+            <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-2 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Policies
+              </p>
+              <Link
+                href={APP_ROUTES.businessConfiguration}
+                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Open Configuration
+                <ArrowRight className="size-3" aria-hidden />
+              </Link>
+            </div>
           </div>
         </aside>
 
         <section
-          className={cn(
-            DASHBOARD_TABLE_SURFACE,
-            "min-w-0 p-3 sm:p-4",
-          )}
+          className={cn(DASHBOARD_TABLE_SURFACE, "min-w-0 p-3 sm:p-4")}
         >
           <BusinessSettingsForm
-            editable={editable}
-            setEditable={setEditable}
-            storefront={storefront}
-            setStorefront={setStorefront}
-            inventory={inventory}
-            setInventory={setInventory}
-            posDrafts={posDrafts}
-            setPosDrafts={setPosDrafts}
-            cashierCapabilities={cashierCapabilities}
-            setCashierCapabilities={setCashierCapabilities}
-            shiftSettings={shiftSettings}
-            setShiftSettings={setShiftSettings}
-            activeBranches={activeBranches}
-            canManageBusinessSettings={canManageBusinessSettings}
-            isSaving={isSaving}
-            storefrontNeedsBranch={storefrontNeedsBranch}
+            variant="profile"
+            editable={editor.editable}
+            setEditable={editor.setEditable}
+            storefront={editor.storefront}
+            setStorefront={editor.setStorefront}
+            inventory={editor.inventory}
+            setInventory={editor.setInventory}
+            posDrafts={editor.posDrafts}
+            setPosDrafts={editor.setPosDrafts}
+            cashierCapabilities={editor.cashierCapabilities}
+            setCashierCapabilities={editor.setCashierCapabilities}
+            shiftSettings={editor.shiftSettings}
+            setShiftSettings={editor.setShiftSettings}
+            activeBranches={editor.activeBranches}
+            canManageBusinessSettings={editor.canManageBusinessSettings}
+            isSaving={editor.isSaving}
+            storefrontNeedsBranch={editor.storefrontNeedsBranch}
             focusStorefrontOnMount={focusStorefront}
             onSubmit={onSave}
             onCancel={onCancel}

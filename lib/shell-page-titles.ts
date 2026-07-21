@@ -7,6 +7,7 @@ export function shellPageTitle(pathname: string): string {
   const exact: Record<string, string> = {
     [APP_ROUTES.overview]: "Overview",
     [APP_ROUTES.businessSettings]: "Settings",
+    [APP_ROUTES.businessConfiguration]: "Configuration",
     [APP_ROUTES.products]: "Products",
     [APP_ROUTES.itemTypes]: "Departments",
     [APP_ROUTES.categories]: "Categories",

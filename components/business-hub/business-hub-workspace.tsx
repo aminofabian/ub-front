@@ -564,9 +564,9 @@ export function BusinessHubWorkspace() {
     }
     if (canManageBusinessSettings) {
       links.push({
-        href: APP_ROUTES.businessSettings,
-        label: "Settings",
-        hint: "Store identity and policies",
+        href: APP_ROUTES.businessConfiguration,
+        label: "Configuration",
+        hint: "Inventory and till policies",
         icon: Settings,
       });
     }

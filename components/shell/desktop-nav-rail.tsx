@@ -72,6 +72,7 @@ const SEARCH_MIN_ITEMS = 6;
 const ITEM_ICON_BY_HREF: Partial<Record<string, LucideIcon>> = {
   [APP_ROUTES.business]: LayoutDashboard,
   [APP_ROUTES.businessSettings]: Settings,
+  [APP_ROUTES.businessConfiguration]: SlidersHorizontal,
   [APP_ROUTES.businessBranding]: Palette,
   [APP_ROUTES.businessMobile]: Smartphone,
   [APP_ROUTES.businessDomains]: Globe,
