@@ -7749,6 +7749,10 @@ export type CreditSaleReminderSettingsRecord = {
   smsProvider: string;
   smsAfricasTalkingUsername: string | null;
   hasRapidApiKey: boolean;
+  rapidApiHost: string;
+  rapidApiLookupUrl: string;
+  rapidApiPhoneField: string;
+  rapidApiPhoneDigitsOnly: boolean;
   hasWhatsappMetaAccessToken: boolean;
   hasSmsAfricasTalkingApiKey: boolean;
   secretsReadable: boolean;
@@ -7759,6 +7763,10 @@ export type UpdateCreditSaleReminderSettingsPayload = {
   enabled: boolean;
   paymentAccountUrl: string;
   rapidApiKey?: string | null;
+  rapidApiHost?: string | null;
+  rapidApiLookupUrl?: string | null;
+  rapidApiPhoneField?: string | null;
+  rapidApiPhoneDigitsOnly?: boolean | null;
   whatsappMetaPhoneNumberId?: string | null;
   whatsappMetaAccessToken?: string | null;
   whatsappMetaGraphVersion?: string | null;

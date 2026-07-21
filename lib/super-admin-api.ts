@@ -312,6 +312,10 @@ export type PlatformIntegrationsRecord = {
   deepseekUrl: string;
   deepseekModel: string;
   hasRapidapiWhatsappKey: boolean;
+  rapidApiWhatsappHost: string;
+  rapidApiWhatsappLookupUrl: string;
+  rapidApiWhatsappPhoneField: string;
+  rapidApiWhatsappPhoneDigitsOnly: boolean;
   envDeepseekConfigured: boolean;
   envRapidapiWhatsappConfigured: boolean;
   secretsReadable: boolean;
@@ -325,6 +329,10 @@ export type UpdatePlatformIntegrationsPayload = {
   deepseekUrl?: string | null;
   deepseekModel?: string | null;
   rapidApiWhatsappKey?: string | null;
+  rapidApiWhatsappHost?: string | null;
+  rapidApiWhatsappLookupUrl?: string | null;
+  rapidApiWhatsappPhoneField?: string | null;
+  rapidApiWhatsappPhoneDigitsOnly?: boolean | null;
 };
 
 export async function fetchPlatformIntegrations(): Promise<PlatformIntegrationsRecord> {

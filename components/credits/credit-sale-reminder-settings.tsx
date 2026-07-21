@@ -36,6 +36,10 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
   const [enabled, setEnabled] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState("");
   const [rapidApiKey, setRapidApiKey] = useState("");
+  const [rapidApiHost, setRapidApiHost] = useState("");
+  const [rapidApiLookupUrl, setRapidApiLookupUrl] = useState("");
+  const [rapidApiPhoneField, setRapidApiPhoneField] = useState("phone");
+  const [rapidApiPhoneDigitsOnly, setRapidApiPhoneDigitsOnly] = useState(false);
   const [whatsappPhoneId, setWhatsappPhoneId] = useState("");
   const [whatsappToken, setWhatsappToken] = useState("");
   const [whatsappVersion, setWhatsappVersion] = useState("v25.0");
@@ -56,6 +60,10 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       setSettings(data);
       setEnabled(data.enabled);
       setPaymentUrl(data.paymentAccountUrl);
+      setRapidApiHost(data.rapidApiHost ?? "");
+      setRapidApiLookupUrl(data.rapidApiLookupUrl ?? "");
+      setRapidApiPhoneField(data.rapidApiPhoneField || "phone");
+      setRapidApiPhoneDigitsOnly(Boolean(data.rapidApiPhoneDigitsOnly));
       setWhatsappPhoneId(data.whatsappMetaPhoneNumberId ?? "");
       setWhatsappVersion(data.whatsappMetaGraphVersion || "v25.0");
       setSmsProvider(data.smsProvider || "none");
@@ -130,6 +138,10 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
       const body: Parameters<typeof updateCreditSaleReminderSettings>[0] = {
         enabled,
         paymentAccountUrl: paymentUrl.trim(),
+        rapidApiHost: rapidApiHost.trim() || null,
+        rapidApiLookupUrl: rapidApiLookupUrl.trim() || null,
+        rapidApiPhoneField: rapidApiPhoneField.trim() || null,
+        rapidApiPhoneDigitsOnly,
         whatsappMetaPhoneNumberId: whatsappPhoneId.trim() || null,
         whatsappMetaGraphVersion: whatsappVersion.trim() || "v25.0",
         smsProvider,
@@ -241,6 +253,52 @@ export function CreditSaleReminderSettings({ canEdit }: Props) {
               autoComplete="off"
             />
           </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>RapidAPI lookup URL</span>
+            <input
+              className={dashboardInputClass()}
+              value={rapidApiLookupUrl}
+              onChange={(e) => setRapidApiLookupUrl(e.target.value)}
+              placeholder="https://whatsapp-osint.p.rapidapi.com/bizos"
+              disabled={!canEdit}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={dashboardLabelClass()}>RapidAPI host</span>
+            <input
+              className={dashboardInputClass()}
+              value={rapidApiHost}
+              onChange={(e) => setRapidApiHost(e.target.value)}
+              placeholder="whatsapp-osint.p.rapidapi.com"
+              disabled={!canEdit}
+            />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className={dashboardLabelClass()}>Phone JSON field</span>
+              <input
+                className={dashboardInputClass()}
+                value={rapidApiPhoneField}
+                onChange={(e) => setRapidApiPhoneField(e.target.value)}
+                placeholder="phone"
+                disabled={!canEdit}
+              />
+              <span className="text-xs text-muted-foreground">
+                e.g. <span className="font-mono">phone</span> or{" "}
+                <span className="font-mono">phone_number</span>
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-sm sm:pt-7">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-border"
+                checked={rapidApiPhoneDigitsOnly}
+                onChange={(e) => setRapidApiPhoneDigitsOnly(e.target.checked)}
+                disabled={!canEdit}
+              />
+              <span>Send digits only (strip +)</span>
+            </label>
+          </div>
           <label className="flex flex-col gap-1.5">
             <span className={dashboardLabelClass()}>Meta phone number ID</span>
             <input

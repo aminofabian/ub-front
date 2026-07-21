@@ -23,6 +23,11 @@ export default function SuperAdminPlatformIntegrationsPage() {
   const [deepseekUrl, setDeepseekUrl] = useState("");
   const [deepseekModel, setDeepseekModel] = useState("");
   const [rapidApiWhatsappKey, setRapidApiWhatsappKey] = useState("");
+  const [rapidApiWhatsappHost, setRapidApiWhatsappHost] = useState("");
+  const [rapidApiWhatsappLookupUrl, setRapidApiWhatsappLookupUrl] = useState("");
+  const [rapidApiWhatsappPhoneField, setRapidApiWhatsappPhoneField] = useState("phone");
+  const [rapidApiWhatsappPhoneDigitsOnly, setRapidApiWhatsappPhoneDigitsOnly] =
+    useState(false);
 
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState("");
@@ -36,6 +41,10 @@ export default function SuperAdminPlatformIntegrationsPage() {
       setDeepseekHost(row.deepseekHost ?? "");
       setDeepseekUrl(row.deepseekUrl ?? "");
       setDeepseekModel(row.deepseekModel ?? "");
+      setRapidApiWhatsappHost(row.rapidApiWhatsappHost ?? "");
+      setRapidApiWhatsappLookupUrl(row.rapidApiWhatsappLookupUrl ?? "");
+      setRapidApiWhatsappPhoneField(row.rapidApiWhatsappPhoneField || "phone");
+      setRapidApiWhatsappPhoneDigitsOnly(Boolean(row.rapidApiWhatsappPhoneDigitsOnly));
       setDeepseekApiKey("");
       setRapidApiWhatsappKey("");
     } catch (e) {
@@ -57,6 +66,10 @@ export default function SuperAdminPlatformIntegrationsPage() {
         deepseekHost: deepseekHost.trim(),
         deepseekUrl: deepseekUrl.trim(),
         deepseekModel: deepseekModel.trim(),
+        rapidApiWhatsappHost: rapidApiWhatsappHost.trim(),
+        rapidApiWhatsappLookupUrl: rapidApiWhatsappLookupUrl.trim(),
+        rapidApiWhatsappPhoneField: rapidApiWhatsappPhoneField.trim() || "phone",
+        rapidApiWhatsappPhoneDigitsOnly,
       };
       if (deepseekApiKey.trim()) {
         body.deepseekApiKey = deepseekApiKey.trim();
@@ -239,8 +252,9 @@ export default function SuperAdminPlatformIntegrationsPage() {
                 <p className="text-sm font-medium">Credit reminders — WhatsApp lookup</p>
               </div>
               <p className="mb-3 text-xs text-muted-foreground">
-                Platform fallback when a tenant has not set their own RapidAPI key. Tenants can still
-                override in Customers → Credit tab reminders.
+                Platform fallback when a tenant has not set their own RapidAPI settings. Tenants can
+                still override in Customers → Credit tab reminders. Switch host/URL to use a
+                different RapidAPI WhatsApp validator product.
               </p>
               {settings ? (
                 <p className="mb-2 text-xs text-muted-foreground">
@@ -248,34 +262,87 @@ export default function SuperAdminPlatformIntegrationsPage() {
                   {settings.envRapidapiWhatsappConfigured ? " · Env RAPIDAPI_KEY: yes" : ""}
                 </p>
               ) : null}
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-key">
-                  RapidAPI key (WhatsApp OSINT)
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-key">
+                    RapidAPI key
+                  </label>
+                  <Input
+                    id="sa-rapidapi-wa-key"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={
+                      settings?.hasRapidapiWhatsappKey
+                        ? "••••••••  (leave blank to keep)"
+                        : "Paste RapidAPI key"
+                    }
+                    value={rapidApiWhatsappKey}
+                    onChange={(ev) => setRapidApiWhatsappKey(ev.target.value)}
+                  />
+                  {settings?.hasRapidapiWhatsappKey ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={busy}
+                      onClick={() => void onClearWhatsappKey()}
+                    >
+                      Clear stored key
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-url">
+                    Lookup URL
+                  </label>
+                  <Input
+                    id="sa-rapidapi-wa-url"
+                    value={rapidApiWhatsappLookupUrl}
+                    onChange={(ev) => setRapidApiWhatsappLookupUrl(ev.target.value)}
+                    placeholder="https://whatsapp-osint.p.rapidapi.com/bizos"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-host">
+                      RapidAPI host
+                    </label>
+                    <Input
+                      id="sa-rapidapi-wa-host"
+                      value={rapidApiWhatsappHost}
+                      onChange={(ev) => setRapidApiWhatsappHost(ev.target.value)}
+                      placeholder="whatsapp-osint.p.rapidapi.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="sa-rapidapi-wa-field">
+                      Phone JSON field
+                    </label>
+                    <Input
+                      id="sa-rapidapi-wa-field"
+                      value={rapidApiWhatsappPhoneField}
+                      onChange={(ev) => setRapidApiWhatsappPhoneField(ev.target.value)}
+                      placeholder="phone"
+                    />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="size-4 rounded border-border"
+                    checked={rapidApiWhatsappPhoneDigitsOnly}
+                    onChange={(ev) => setRapidApiWhatsappPhoneDigitsOnly(ev.target.checked)}
+                  />
+                  <span>Send digits only (strip + / spaces)</span>
                 </label>
-                <Input
-                  id="sa-rapidapi-wa-key"
-                  type="password"
-                  autoComplete="off"
-                  placeholder={
-                    settings?.hasRapidapiWhatsappKey
-                      ? "••••••••  (leave blank to keep)"
-                      : "Paste RapidAPI key"
-                  }
-                  value={rapidApiWhatsappKey}
-                  onChange={(ev) => setRapidApiWhatsappKey(ev.target.value)}
-                />
-                {settings?.hasRapidapiWhatsappKey ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-destructive hover:text-destructive"
-                    disabled={busy}
-                    onClick={() => void onClearWhatsappKey()}
-                  >
-                    Clear stored key
-                  </Button>
-                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Example for WhatsApp Number Validator: host{" "}
+                  <span className="font-mono">whatsapp-number-validator3.p.rapidapi.com</span>, URL
+                  ending in{" "}
+                  <span className="font-mono">/WhatsappNumberHasItWithToken</span>, field{" "}
+                  <span className="font-mono">phone_number</span>, digits only on.
+                </p>
               </div>
             </div>
 
