@@ -938,7 +938,10 @@ export async function fetchAllSaSourceItemIds(params: {
   businessId: string;
   catalogId?: string | null;
   q?: string;
+  /** When true (default), skip items already matched in the global catalog. */
+  excludeAlreadyInGlobal?: boolean;
 }): Promise<string[]> {
+  const excludeAlready = params.excludeAlreadyInGlobal !== false;
   const ids: string[] = [];
   let page = 0;
   let totalPages = 1;
@@ -952,7 +955,9 @@ export async function fetchAllSaSourceItemIds(params: {
     });
     totalPages = Math.max(1, result.totalPages ?? 1);
     for (const row of result.content ?? []) {
-      if (row.id) ids.push(row.id);
+      if (!row.id) continue;
+      if (excludeAlready && row.alreadyInGlobal) continue;
+      ids.push(row.id);
       if (ids.length >= SOURCE_ID_FETCH_MAX) break;
     }
     page += 1;

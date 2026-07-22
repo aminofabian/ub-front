@@ -125,6 +125,8 @@ export default function SuperAdminGlobalCatalogPage() {
   const [promoteAsPublished, setPromoteAsPublished] = useState(false);
   const [lastPromoteResult, setLastPromoteResult] = useState<SaPromoteResult | null>(null);
   const [promoteProgress, setPromoteProgress] = useState<SaPromoteProgress | null>(null);
+  /** Default on: only show / select items not yet in the global catalog. */
+  const [hideAlreadyInGlobal, setHideAlreadyInGlobal] = useState(true);
   const csvImportRef = useRef<HTMLInputElement>(null);
   const sourceFetchGen = useRef(0);
 
@@ -190,27 +192,53 @@ export default function SuperAdminGlobalCatalogPage() {
       const gen = ++sourceFetchGen.current;
       setSourceLoading(true);
       try {
-        const result = await fetchSaSourceItems({
-          businessId: sourceBusinessId,
-          catalogId,
-          q: sourceQ,
-          page,
-          size: SOURCE_PAGE_SIZE,
-        });
+        let nextPage = page;
+        let accumulated: SaSourceItem[] = [];
+        let total = 0;
+        let hasMore = true;
+
+        // When hiding already-in-global, keep walking pages until the list
+        // has a usable batch (or we run out) so the picker isn't mostly empty.
+        while (hasMore) {
+          const result = await fetchSaSourceItems({
+            businessId: sourceBusinessId,
+            catalogId,
+            q: sourceQ,
+            page: nextPage,
+            size: SOURCE_PAGE_SIZE,
+          });
+          if (gen !== sourceFetchGen.current) return;
+          const rows = result.content ?? [];
+          total = result.totalElements ?? 0;
+          const kept = hideAlreadyInGlobal
+            ? rows.filter((row) => !row.alreadyInGlobal)
+            : rows;
+          accumulated = [...accumulated, ...kept];
+          hasMore = (nextPage + 1) * SOURCE_PAGE_SIZE < total;
+          nextPage += 1;
+          if (!hideAlreadyInGlobal || accumulated.length >= SOURCE_PAGE_SIZE || !hasMore) {
+            break;
+          }
+        }
+
         if (gen !== sourceFetchGen.current) return;
-        const rows = result.content ?? [];
-        const total = result.totalElements ?? 0;
         setSourceTotal(total);
-        setSourcePage(page);
-        setSourceItems((prev) => (mode === "append" ? [...prev, ...rows] : rows));
-        setSourceHasMore((page + 1) * SOURCE_PAGE_SIZE < total);
+        setSourcePage(nextPage - 1);
+        setSourceItems((prev) => {
+          if (mode === "append") {
+            const seen = new Set(prev.map((row) => row.id));
+            return [...prev, ...accumulated.filter((row) => !seen.has(row.id))];
+          }
+          return accumulated;
+        });
+        setSourceHasMore(hasMore);
       } finally {
         if (gen === sourceFetchGen.current) {
           setSourceLoading(false);
         }
       }
     },
-    [catalogId, sourceBusinessId, sourceQ],
+    [catalogId, hideAlreadyInGlobal, sourceBusinessId, sourceQ],
   );
 
   const reloadSourceItems = useCallback(async () => {
@@ -543,13 +571,18 @@ export default function SuperAdminGlobalCatalogPage() {
         businessId: sourceBusinessId,
         catalogId,
         q: sourceQ,
+        excludeAlreadyInGlobal: hideAlreadyInGlobal,
       });
       setSelectedSourceIds(new Set(ids));
       setPreview(null);
       toast.success(
         ids.length === 0
-          ? "No matching source items."
-          : `Selected ${ids.toLocaleString()} matching item${ids.length === 1 ? "" : "s"}.`,
+          ? hideAlreadyInGlobal
+            ? "Nothing left to promote — all matches are already in global."
+            : "No matching source items."
+          : `Selected ${ids.toLocaleString()} matching item${ids.length === 1 ? "" : "s"}${
+              hideAlreadyInGlobal ? " (not yet in global)" : ""
+            }.`,
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not select all matching items.");
@@ -802,7 +835,13 @@ export default function SuperAdminGlobalCatalogPage() {
           selectedSourceIds={selectedSourceIds}
           onToggle={toggleSourceId}
           onSelectAllVisible={() => {
-            setSelectedSourceIds(new Set(sourceItems.map((i) => i.id)));
+            setSelectedSourceIds(
+              new Set(
+                sourceItems
+                  .filter((i) => !hideAlreadyInGlobal || !i.alreadyInGlobal)
+                  .map((i) => i.id),
+              ),
+            );
             setPreview(null);
           }}
           onSelectAllMatching={() => void onSelectAllMatching()}
@@ -813,6 +852,21 @@ export default function SuperAdminGlobalCatalogPage() {
           preview={preview}
           promoteAsPublished={promoteAsPublished}
           onPromoteAsPublishedChange={setPromoteAsPublished}
+          hideAlreadyInGlobal={hideAlreadyInGlobal}
+          onHideAlreadyInGlobalChange={(value) => {
+            setHideAlreadyInGlobal(value);
+            if (value) {
+              setSelectedSourceIds((prev) => {
+                const knownInGlobal = new Set(
+                  sourceItems.filter((i) => i.alreadyInGlobal).map((i) => i.id),
+                );
+                if (knownInGlobal.size === 0) return prev;
+                const next = new Set([...prev].filter((id) => !knownInGlobal.has(id)));
+                return next.size === prev.size ? prev : next;
+              });
+            }
+            setPreview(null);
+          }}
           publishableIds={promotedGlobalIds(lastPromoteResult)}
           busy={busy}
           progress={promoteProgress}
@@ -1190,6 +1244,8 @@ function PromotePanel({
   preview,
   promoteAsPublished,
   onPromoteAsPublishedChange,
+  hideAlreadyInGlobal,
+  onHideAlreadyInGlobalChange,
   publishableIds,
   busy,
   progress,
@@ -1215,6 +1271,8 @@ function PromotePanel({
   preview: SaPromoteResult | null;
   promoteAsPublished: boolean;
   onPromoteAsPublishedChange: (value: boolean) => void;
+  hideAlreadyInGlobal: boolean;
+  onHideAlreadyInGlobalChange: (value: boolean) => void;
   publishableIds: string[];
   busy: boolean;
   progress: SaPromoteProgress | null;
@@ -1225,7 +1283,10 @@ function PromotePanel({
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const allMatchingSelected =
-    sourceTotal > 0 && selectedSourceIds.size >= sourceTotal && selectedSourceIds.size > 0;
+    !hideAlreadyInGlobal &&
+    sourceTotal > 0 &&
+    selectedSourceIds.size >= sourceTotal &&
+    selectedSourceIds.size > 0;
 
   useEffect(() => {
     const root = listRef.current;
@@ -1282,7 +1343,8 @@ function PromotePanel({
             disabled={busy || sourceTotal === 0 || allMatchingSelected}
             onClick={onSelectAllMatching}
           >
-            Select all {sourceTotal > 0 ? `(${sourceTotal.toLocaleString()})` : "matching"}
+            Select all matching
+            {hideAlreadyInGlobal ? " (new only)" : sourceTotal > 0 ? ` (${sourceTotal.toLocaleString()})` : ""}
           </Button>
           <Button variant="ghost" size="sm" disabled={selectedSourceIds.size === 0} onClick={onClearSelection}>
             Clear
@@ -1290,21 +1352,42 @@ function PromotePanel({
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-4 px-1">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={hideAlreadyInGlobal}
+            onChange={(e) => onHideAlreadyInGlobalChange(e.target.checked)}
+          />
+          Hide items already in global
+        </label>
+        {hideAlreadyInGlobal ? (
+          <span className="text-xs text-muted-foreground">
+            Showing only products not yet promoted · turn off to update existing matches
+          </span>
+        ) : null}
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-border/70">
         <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
           <span>
-            {sourceTotal.toLocaleString()} source items · {selectedSourceIds.size.toLocaleString()} selected
+            {hideAlreadyInGlobal ? "Not yet in global · " : ""}
+            {sourceItems.length.toLocaleString()} shown
+            {!hideAlreadyInGlobal ? ` of ${sourceTotal.toLocaleString()} source` : ""}
+            {" · "}
+            {selectedSourceIds.size.toLocaleString()} selected
           </span>
           <span>
-            Loaded {sourceItems.length.toLocaleString()}
-            {sourceHasMore ? " · scroll for more" : ""}
+            {sourceHasMore ? "Scroll for more" : "End of list"}
           </span>
         </div>
         <div ref={listRef} className="max-h-[28rem] overflow-y-auto">
           <ul className="divide-y divide-border/60">
             {sourceItems.length === 0 && !sourceLoading ? (
               <li className="px-4 py-10 text-center text-sm text-muted-foreground">
-                No source items match.
+                {hideAlreadyInGlobal
+                  ? "Nothing left to promote — matching items are already in global."
+                  : "No source items match."}
               </li>
             ) : (
               sourceItems.map((item) => (
