@@ -253,7 +253,7 @@ export function useCatalogList(
           imageKey: row.imageKey,
           active: row.active,
           webPublished: row.webPublished,
-          stockQty: row.stockQty ?? row.currentStock ?? existing.stockQty,
+          stockQty: row.stockQty ?? existing.stockQty,
           bundlePrice: row.bundlePrice ?? existing.bundlePrice,
           packageVariant: row.packageVariant ?? existing.packageVariant,
           packageUnitsPerSale:

@@ -16,6 +16,7 @@ import {
   type SaBusinessUserRow,
   type SaDomainRow,
   addSaDomain,
+  fetchSaBusiness,
   fetchSaBusinessUsers,
   fetchSaDomains,
   impersonateSaBusiness,
@@ -48,7 +49,21 @@ function BusinessDetailInner() {
   const [bizActive, setBizActive] = useState(
     searchParams.get("active") !== "0",
   );
+  const [globalCatalogCode, setGlobalCatalogCode] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
+
+  const loadBusiness = useCallback(async () => {
+    if (!businessId) return;
+    try {
+      const row = await fetchSaBusiness(businessId);
+      setBizName(row.name);
+      setBizTier(row.subscriptionTier ?? "");
+      setBizActive(row.active);
+      setGlobalCatalogCode(row.globalCatalogCode ?? "");
+    } catch {
+      /* name/tier still come from query params as fallback */
+    }
+  }, [businessId]);
 
   const loadDomains = useCallback(async () => {
     if (!businessId) {
@@ -82,9 +97,10 @@ function BusinessDetailInner() {
   }, [businessId]);
 
   useEffect(() => {
+    void loadBusiness();
     void loadDomains();
     void loadUsers();
-  }, [loadDomains, loadUsers]);
+  }, [loadBusiness, loadDomains, loadUsers]);
 
   useEffect(() => {
     setBizName(titleName);
@@ -141,6 +157,7 @@ function BusinessDetailInner() {
         name: bizName.trim() || undefined,
         subscriptionTier: bizTier.trim() || undefined,
         active: bizActive,
+        globalCatalogCode: globalCatalogCode.trim(),
       });
       router.replace(
         `/super-admin/businesses/${encodeURIComponent(businessId)}?name=${encodeURIComponent(bizName.trim())}`,
@@ -290,6 +307,18 @@ function BusinessDetailInner() {
               onChange={(ev) => setBizActive(ev.target.checked)}
             />
             Active
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Global catalog code</span>
+            <input
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              value={globalCatalogCode}
+              onChange={(ev) => setGlobalCatalogCode(ev.target.value)}
+              placeholder="default (leave blank for country/default)"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Overrides regional resolution. Blank clears the override.
+            </span>
           </label>
           <Button type="submit" disabled={busy}>
             Save changes

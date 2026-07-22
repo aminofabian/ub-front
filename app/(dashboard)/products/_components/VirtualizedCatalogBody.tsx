@@ -224,7 +224,7 @@ export const VirtualizedCatalogBody = forwardRef<
           Product
         </span>
         <span className={cn(catalogListMetricHeaderClass, catalogGridCol.stock, "border-b-2")}>
-          Stock
+          In store
         </span>
         <span className={cn(catalogListMetricHeaderClass, catalogGridCol.sell, "border-b-2")}>
           Sell
@@ -562,7 +562,7 @@ export const VirtualizedCatalogBody = forwardRef<
                       {isParentSelector ? (
                         <span
                           className="whitespace-nowrap text-[10px] tabular-nums text-muted-foreground/50"
-                          title="Stock on variants"
+                          title="In-store stock on variants"
                         >
                           —
                         </span>

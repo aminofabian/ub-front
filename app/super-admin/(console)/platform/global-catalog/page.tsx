@@ -1,0 +1,1394 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Download, ImageOff, PackageSearch, RefreshCw, Upload } from "lucide-react";
+import { toast } from "sonner";
+
+import { SuperAdminPageHeader } from "@/components/super-admin/super-admin-page-header";
+import { GlobalCatalogCategoriesPanel } from "@/components/super-admin/global-catalog-categories-panel";
+import { GlobalCatalogPacksPanel } from "@/components/super-admin/global-catalog-packs-panel";
+import { GlobalCatalogSuppliersPanel } from "@/components/super-admin/global-catalog-suppliers-panel";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  applySaGlobalProductMargins,
+  backfillSaGlobalProductImages,
+  clearSaGlobalProductImage,
+  commitSaPromote,
+  exportSaGlobalProductsCsv,
+  fetchAllSaSourceItemIds,
+  fetchSaCatalogs,
+  fetchSaGlobalCatalogMeta,
+  fetchSaGlobalProduct,
+  fetchSaGlobalProducts,
+  fetchSaSourceBusinesses,
+  fetchSaSourceItems,
+  importSaGlobalProductsCsv,
+  patchSaGlobalProduct,
+  previewSaPromote,
+  publishSaGlobalProducts,
+  uploadSaGlobalProductImage,
+  type SaCatalogSummary,
+  type SaGlobalCatalogMeta,
+  type SaGlobalProduct,
+  type SaPromoteResult,
+  type SaSourceBusiness,
+  type SaSourceItem,
+} from "@/lib/super-admin-api";
+import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "published", label: "Published" },
+  { value: "draft", label: "Draft" },
+  { value: "archived", label: "Archived" },
+] as const;
+
+const SOURCE_PAGE_SIZE = 40;
+const PROMOTE_PREVIEW_MAX_ITEMS = 100;
+
+function statusBadgeClass(status: string): string {
+  if (status === "published") return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
+  if (status === "draft") return "bg-amber-500/15 text-amber-900 dark:text-amber-100";
+  return "bg-muted text-muted-foreground";
+}
+
+type Mode = "curate" | "promote" | "packs" | "categories" | "suppliers";
+
+function promotedGlobalIds(result: SaPromoteResult | null): string[] {
+  if (!result) return [];
+  return result.lines
+    .filter((line) => line.action === "created" || line.action === "updated")
+    .map((line) => line.globalProductId)
+    .filter((id): id is string => Boolean(id));
+}
+
+function moneyDraft(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "";
+  return String(value);
+}
+
+function parseMoneyInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error("Enter a valid non-negative price or margin.");
+  }
+  return n;
+}
+
+export default function SuperAdminGlobalCatalogPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const catalogIdFromUrl = searchParams.get("catalogId");
+
+  const [mode, setMode] = useState<Mode>("curate");
+  const [catalogs, setCatalogs] = useState<SaCatalogSummary[]>([]);
+  const [catalogId, setCatalogId] = useState<string>(catalogIdFromUrl ?? "");
+  const [meta, setMeta] = useState<SaGlobalCatalogMeta | null>(null);
+  const [products, setProducts] = useState<SaGlobalProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [missingImage, setMissingImage] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<SaGlobalProduct | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [statusDraft, setStatusDraft] = useState("draft");
+  const [buyDraft, setBuyDraft] = useState("");
+  const [sellDraft, setSellDraft] = useState("");
+  const [marginDraft, setMarginDraft] = useState("");
+  const [bulkMarginPct, setBulkMarginPct] = useState("25");
+  const [bulkMarginMode, setBulkMarginMode] = useState<"fromBuying" | "fromSelling">(
+    "fromBuying",
+  );
+
+  const [businesses, setBusinesses] = useState<SaSourceBusiness[]>([]);
+  const [sourceBusinessId, setSourceBusinessId] = useState("");
+  const [sourceQ, setSourceQ] = useState("");
+  const [sourcePage, setSourcePage] = useState(0);
+  const [sourceItems, setSourceItems] = useState<SaSourceItem[]>([]);
+  const [sourceTotal, setSourceTotal] = useState(0);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceHasMore, setSourceHasMore] = useState(false);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
+  const [preview, setPreview] = useState<SaPromoteResult | null>(null);
+  const [promoteAsPublished, setPromoteAsPublished] = useState(false);
+  const [lastPromoteResult, setLastPromoteResult] = useState<SaPromoteResult | null>(null);
+  const csvImportRef = useRef<HTMLInputElement>(null);
+  const sourceFetchGen = useRef(0);
+
+  const categoryNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of meta?.categories ?? []) {
+      map.set(c.id, c.name);
+    }
+    return map;
+  }, [meta]);
+
+  const reloadMeta = useCallback(async () => {
+    if (!catalogId) return;
+    setMeta(await fetchSaGlobalCatalogMeta(catalogId));
+  }, [catalogId]);
+
+  const reloadProducts = useCallback(async () => {
+    if (!catalogId) {
+      setProducts([]);
+      setTotal(0);
+      return;
+    }
+    const result = await fetchSaGlobalProducts({
+      catalogId,
+      q,
+      status: status || undefined,
+      missingImage,
+      page,
+      size: 40,
+    });
+    setProducts(result.content ?? []);
+    setTotal(result.totalElements ?? 0);
+  }, [catalogId, q, status, missingImage, page]);
+
+  const reload = useCallback(async () => {
+    setLoadError("");
+    try {
+      await Promise.all([reloadMeta(), reloadProducts()]);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Could not load global catalog.");
+    }
+  }, [reloadMeta, reloadProducts]);
+
+  const reloadPromoteSources = useCallback(async () => {
+    const rows = await fetchSaSourceBusinesses();
+    setBusinesses(rows);
+    setSourceBusinessId((current) => {
+      if (current) return current;
+      const preferred = rows.find((r) => r.preferred) ?? rows[0];
+      return preferred?.id ?? "";
+    });
+  }, []);
+
+  const loadSourcePage = useCallback(
+    async (page: number, mode: "replace" | "append") => {
+      if (!sourceBusinessId || !catalogId) {
+        setSourceItems([]);
+        setSourceTotal(0);
+        setSourceHasMore(false);
+        setSourcePage(0);
+        return;
+      }
+      const gen = ++sourceFetchGen.current;
+      setSourceLoading(true);
+      try {
+        const result = await fetchSaSourceItems({
+          businessId: sourceBusinessId,
+          catalogId,
+          q: sourceQ,
+          page,
+          size: SOURCE_PAGE_SIZE,
+        });
+        if (gen !== sourceFetchGen.current) return;
+        const rows = result.content ?? [];
+        const total = result.totalElements ?? 0;
+        setSourceTotal(total);
+        setSourcePage(page);
+        setSourceItems((prev) => (mode === "append" ? [...prev, ...rows] : rows));
+        setSourceHasMore((page + 1) * SOURCE_PAGE_SIZE < total);
+      } finally {
+        if (gen === sourceFetchGen.current) {
+          setSourceLoading(false);
+        }
+      }
+    },
+    [catalogId, sourceBusinessId, sourceQ],
+  );
+
+  const reloadSourceItems = useCallback(async () => {
+    setSourceItems([]);
+    setSourcePage(0);
+    setSourceHasMore(false);
+    await loadSourcePage(0, "replace");
+  }, [loadSourcePage]);
+
+  const onLoadMoreSourceItems = useCallback(() => {
+    if (sourceLoading || !sourceHasMore) return;
+    void loadSourcePage(sourcePage + 1, "append").catch((e) => {
+      toast.error(e instanceof Error ? e.message : "Could not load more source items.");
+    });
+  }, [loadSourcePage, sourceHasMore, sourceLoading, sourcePage]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchSaCatalogs();
+        if (cancelled) return;
+        setCatalogs(rows);
+        setCatalogId((current) => {
+          if (current && rows.some((r) => r.id === current)) return current;
+          if (catalogIdFromUrl && rows.some((r) => r.id === catalogIdFromUrl)) {
+            return catalogIdFromUrl;
+          }
+          const preferred =
+            rows.find((r) => r.code === "default") ?? rows[0] ?? null;
+          return preferred?.id ?? "";
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError(e instanceof Error ? e.message : "Could not load catalogs.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogIdFromUrl]);
+
+  useEffect(() => {
+    if (!catalogId) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get("catalogId") === catalogId) return;
+    params.set("catalogId", catalogId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [catalogId, pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (!catalogId) return;
+    setSelectedId(null);
+    setSelected(null);
+    setPage(0);
+    setPreview(null);
+    setLastPromoteResult(null);
+    setSelectedSourceIds(new Set());
+  }, [catalogId]);
+
+  useEffect(() => {
+    if (!catalogId) return;
+    void reload();
+  }, [catalogId, reload]);
+
+  useEffect(() => {
+    if (mode !== "promote") return;
+    void (async () => {
+      try {
+        await reloadPromoteSources();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not load businesses.");
+      }
+    })();
+  }, [mode, reloadPromoteSources]);
+
+  useEffect(() => {
+    if (mode !== "promote") return;
+    void (async () => {
+      try {
+        await reloadSourceItems();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not load source items.");
+      }
+    })();
+  }, [mode, reloadSourceItems]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setSelected(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await fetchSaGlobalProduct(selectedId, catalogId);
+        if (cancelled) return;
+        setSelected(row);
+        setNameDraft(row.name);
+        setStatusDraft(row.status);
+        setBuyDraft(moneyDraft(row.recommendedBuyingPrice));
+        setSellDraft(moneyDraft(row.recommendedSellingPrice));
+        setMarginDraft(moneyDraft(row.suggestedMarginPct));
+      } catch (e) {
+        if (!cancelled) {
+          toast.error(e instanceof Error ? e.message : "Could not load product.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, catalogId]);
+
+  const onSaveSelected = async () => {
+    if (!selected) return;
+    let buy: number | null;
+    let sell: number | null;
+    let margin: number | null;
+    try {
+      buy = parseMoneyInput(buyDraft);
+      sell = parseMoneyInput(sellDraft);
+      margin = parseMoneyInput(marginDraft);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Invalid price.");
+      return;
+    }
+    if (buy != null && sell != null && buy > 0 && marginDraft.trim() === "") {
+      margin = Number((((sell - buy) / buy) * 100).toFixed(2));
+    }
+    setBusy(true);
+    try {
+      const updated = await patchSaGlobalProduct(
+        selected.id,
+        {
+          version: selected.version,
+          name: nameDraft.trim(),
+          status: statusDraft,
+          ...(buy != null ? { recommendedBuyingPrice: buy } : {}),
+          ...(sell != null ? { recommendedSellingPrice: sell } : {}),
+          ...(margin != null ? { suggestedMarginPct: margin } : {}),
+        },
+        catalogId,
+      );
+      setSelected(updated);
+      setNameDraft(updated.name);
+      setStatusDraft(updated.status);
+      setBuyDraft(moneyDraft(updated.recommendedBuyingPrice));
+      setSellDraft(moneyDraft(updated.recommendedSellingPrice));
+      setMarginDraft(moneyDraft(updated.suggestedMarginPct));
+      toast.success("Product updated.");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Update failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onApplyMarginToVisible = async () => {
+    const pct = Number(bulkMarginPct);
+    if (!Number.isFinite(pct) || pct < 0) {
+      toast.error("Enter a valid margin %.");
+      return;
+    }
+    if (products.length === 0) {
+      toast.error("No products on this page.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Apply ${pct}% margin (${bulkMarginMode === "fromBuying" ? "buy → sell" : "sell → buy"}) to ${products.length} product(s) on this page?`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await applySaGlobalProductMargins({
+        ids: products.map((p) => p.id),
+        marginPct: pct,
+        mode: bulkMarginMode,
+      }, catalogId);
+      toast.success(
+        `Margin applied: ${result.updatedCount} updated, ${result.skippedCount} skipped`,
+      );
+      await reload();
+      if (selectedId) {
+        const row = await fetchSaGlobalProduct(selectedId, catalogId);
+        setSelected(row);
+        setBuyDraft(moneyDraft(row.recommendedBuyingPrice));
+        setSellDraft(moneyDraft(row.recommendedSellingPrice));
+        setMarginDraft(moneyDraft(row.suggestedMarginPct));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Margin apply failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPublishSelected = async () => {
+    if (!selected) return;
+    setBusy(true);
+    try {
+      await publishSaGlobalProducts([selected.id]);
+      toast.success("Published.");
+      await reload();
+      const row = await fetchSaGlobalProduct(selected.id, catalogId);
+      setSelected(row);
+      setStatusDraft(row.status);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Publish failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onUpload = async (file: File | null) => {
+    if (!selected || !file) return;
+    setBusy(true);
+    try {
+      const updated = await uploadSaGlobalProductImage(selected.id, file, catalogId);
+      setSelected(updated);
+      toast.success("Image uploaded to global-catalog/.");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onClearImage = async () => {
+    if (!selected) return;
+    setBusy(true);
+    try {
+      const updated = await clearSaGlobalProductImage(selected.id, catalogId);
+      setSelected(updated);
+      toast.success("Image cleared.");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Clear failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onBackfillAdopted = async () => {
+    if (!selected?.imageUrl) return;
+    if (
+      !window.confirm(
+        "Push this image to tenant products that already adopted it but still have no cover?",
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await backfillSaGlobalProductImages(selected.id, { catalogId });
+      toast.success(
+        `Backfill: ${result.itemsUpdated} updated, ${result.itemsSkipped} skipped, ${result.itemsFailed} failed`,
+      );
+      if (result.warnings?.length) {
+        console.info("Backfill warnings", result.warnings.slice(0, 20));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Backfill failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onExportCsv = async () => {
+    setBusy(true);
+    try {
+      const blob = await exportSaGlobalProductsCsv({
+        catalogId,
+        status: status || undefined,
+        missingImage,
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "global-catalog-products.csv";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success("CSV exported.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onImportCsv = async (file: File) => {
+    setBusy(true);
+    try {
+      const result = await importSaGlobalProductsCsv(file, catalogId);
+      toast.success(
+        `Import: ${result.createdCount} created, ${result.updatedCount} updated, ${result.skippedCount} skipped`,
+      );
+      if (result.warnings?.length) {
+        console.info("CSV import warnings", result.warnings.slice(0, 30));
+      }
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleSourceId = (id: string) => {
+    setSelectedSourceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setPreview(null);
+  };
+
+  const onSelectAllMatching = async () => {
+    if (!sourceBusinessId || !catalogId) return;
+    setBusy(true);
+    try {
+      const ids = await fetchAllSaSourceItemIds({
+        businessId: sourceBusinessId,
+        catalogId,
+        q: sourceQ,
+      });
+      setSelectedSourceIds(new Set(ids));
+      setPreview(null);
+      toast.success(
+        ids.length === 0
+          ? "No matching source items."
+          : `Selected ${ids.toLocaleString()} matching item${ids.length === 1 ? "" : "s"}.`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not select all matching items.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPreviewPromote = async () => {
+    if (!sourceBusinessId || selectedSourceIds.size === 0) return;
+    const allIds = [...selectedSourceIds];
+    const previewIds = allIds.slice(0, PROMOTE_PREVIEW_MAX_ITEMS);
+    setBusy(true);
+    try {
+      const result = await previewSaPromote({
+        sourceBusinessId,
+        itemIds: previewIds,
+        onConflict: "update",
+        publish: promoteAsPublished,
+        catalogId,
+      });
+      setPreview(result);
+      if (allIds.length > previewIds.length) {
+        toast.success(
+          `Preview (first ${previewIds.length} of ${allIds.length}): ${result.createdCount} create, ${result.updatedCount} update, ${result.skippedCount} skip`,
+        );
+      } else {
+        toast.success(
+          `Preview: ${result.createdCount} create, ${result.updatedCount} update, ${result.skippedCount} skip`,
+        );
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Preview failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onCommitPromote = async () => {
+    if (!sourceBusinessId || selectedSourceIds.size === 0) return;
+    const n = selectedSourceIds.size;
+    const statusLabel = promoteAsPublished ? "published" : "drafts";
+    if (
+      !window.confirm(
+        `Promote ${n.toLocaleString()} product${n === 1 ? "" : "s"} as ${statusLabel} into the global catalog?` +
+          (n > PROMOTE_PREVIEW_MAX_ITEMS
+            ? "\n\nLarge batches run as background jobs and may take a few minutes."
+            : ""),
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await commitSaPromote({
+        sourceBusinessId,
+        itemIds: [...selectedSourceIds],
+        onConflict: "update",
+        publish: promoteAsPublished,
+        catalogId,
+      });
+      setPreview(result);
+      setLastPromoteResult(result);
+      setSelectedSourceIds(new Set());
+      toast.success(
+        `Promoted: ${result.createdCount} created, ${result.updatedCount} updated, ${result.imageRehostCount} images`,
+      );
+      await reload();
+      await reloadSourceItems();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Promote failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPublishPromotedDrafts = async () => {
+    const ids = promotedGlobalIds(lastPromoteResult);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Publish ${ids.length} promoted product${ids.length === 1 ? "" : "s"} now?`)) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await publishSaGlobalProducts(ids);
+      toast.success(`Published ${result.publishedCount}; skipped ${result.skippedIds.length}.`);
+      setLastPromoteResult(null);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Publish failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <SuperAdminPageHeader
+        title="Global catalog"
+        description="Curate regional retail templates and promote assortment + images from a flagship shop (defaults to Palmart)."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor="sa-catalog-picker" className="sr-only">
+              Catalog
+            </Label>
+            <select
+              id="sa-catalog-picker"
+              className="h-9 max-w-[16rem] rounded-md border border-border/70 bg-background px-2 text-sm"
+              value={catalogId}
+              disabled={busy || catalogs.length === 0}
+              onChange={(e) => setCatalogId(e.target.value)}
+            >
+              {catalogs.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.code}
+                  {c.regionCode ? ` · ${c.regionCode}` : ""} · {c.currency})
+                </option>
+              ))}
+            </select>
+            <div className="inline-flex rounded-lg border border-border/70 p-0.5">
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm",
+                  mode === "curate" ? "bg-primary/12 font-medium" : "text-muted-foreground",
+                )}
+                onClick={() => setMode("curate")}
+              >
+                Curate
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm",
+                  mode === "promote" ? "bg-primary/12 font-medium" : "text-muted-foreground",
+                )}
+                onClick={() => setMode("promote")}
+              >
+                Promote
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm",
+                  mode === "packs" ? "bg-primary/12 font-medium" : "text-muted-foreground",
+                )}
+                onClick={() => setMode("packs")}
+              >
+                Packs
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm",
+                  mode === "categories" ? "bg-primary/12 font-medium" : "text-muted-foreground",
+                )}
+                onClick={() => setMode("categories")}
+              >
+                Categories
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm",
+                  mode === "suppliers" ? "bg-primary/12 font-medium" : "text-muted-foreground",
+                )}
+                onClick={() => setMode("suppliers")}
+              >
+                Suppliers
+              </button>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => void reload()} disabled={busy}>
+              <RefreshCw className="size-4" aria-hidden />
+              Refresh
+            </Button>
+          </div>
+        }
+      />
+
+      {loadError ? (
+        <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] px-4 py-3 text-sm text-destructive">
+          {loadError}
+        </div>
+      ) : null}
+
+      {meta ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Stat label="Products" value={meta.productCount} />
+          <Stat label="Missing image" value={meta.missingImageCount} accent />
+          <Stat label="Published" value={meta.publishedCount} />
+          <Stat label="Draft" value={meta.draftCount} />
+          <Stat label="Archived" value={meta.archivedCount} />
+        </div>
+      ) : null}
+
+      {meta?.packs?.length ? (
+        <div className="rounded-2xl border border-border/70 bg-card/40 p-4">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Starter pack imaging
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {meta.packs.map((pack) => {
+              const pct =
+                pack.productCount > 0
+                  ? Math.round((pack.imagedProductCount / pack.productCount) * 100)
+                  : 0;
+              return (
+                <div key={pack.id} className="rounded-xl border border-border/60 px-3 py-2">
+                  <div className="truncate text-sm font-medium">{pack.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {pack.imagedProductCount}/{pack.productCount} imaged ({pct}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {mode === "promote" ? (
+        <PromotePanel
+          businesses={businesses}
+          sourceBusinessId={sourceBusinessId}
+          onBusinessChange={(id) => {
+            setSourceBusinessId(id);
+            setSelectedSourceIds(new Set());
+            setPreview(null);
+          }}
+          sourceQ={sourceQ}
+          onSourceQChange={(value) => {
+            setSourceQ(value);
+          }}
+          sourceItems={sourceItems}
+          sourceTotal={sourceTotal}
+          sourceLoading={sourceLoading}
+          sourceHasMore={sourceHasMore}
+          onLoadMore={onLoadMoreSourceItems}
+          selectedSourceIds={selectedSourceIds}
+          onToggle={toggleSourceId}
+          onSelectAllVisible={() => {
+            setSelectedSourceIds(new Set(sourceItems.map((i) => i.id)));
+            setPreview(null);
+          }}
+          onSelectAllMatching={() => void onSelectAllMatching()}
+          onClearSelection={() => {
+            setSelectedSourceIds(new Set());
+            setPreview(null);
+          }}
+          preview={preview}
+          promoteAsPublished={promoteAsPublished}
+          onPromoteAsPublishedChange={setPromoteAsPublished}
+          publishableIds={promotedGlobalIds(lastPromoteResult)}
+          busy={busy}
+          onPreview={() => void onPreviewPromote()}
+          onCommit={() => void onCommitPromote()}
+          onPublishPromoted={() => void onPublishPromotedDrafts()}
+        />
+      ) : mode === "packs" ? (
+        <GlobalCatalogPacksPanel
+          catalogId={catalogId}
+          packs={meta?.packs ?? []}
+          busy={busy}
+          onBusyChange={setBusy}
+          onSaved={reload}
+        />
+      ) : mode === "categories" ? (
+        <GlobalCatalogCategoriesPanel
+          catalogId={catalogId}
+          busy={busy}
+          onBusyChange={setBusy}
+          onSaved={reload}
+        />
+      ) : mode === "suppliers" ? (
+        <GlobalCatalogSuppliersPanel
+          catalogId={catalogId}
+          busy={busy}
+          onBusyChange={setBusy}
+          onSaved={reload}
+        />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
+          <section className="space-y-4">
+            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label htmlFor="gc-q">Search</Label>
+                <Input
+                  id="gc-q"
+                  value={q}
+                  onChange={(e) => {
+                    setPage(0);
+                    setQ(e.target.value);
+                  }}
+                  placeholder="Name, brand, barcode…"
+                />
+              </div>
+              <div className="w-full space-y-1.5 sm:w-44">
+                <Label htmlFor="gc-status">Status</Label>
+                <select
+                  id="gc-status"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={status}
+                  onChange={(e) => {
+                    setPage(0);
+                    setStatus(e.target.value);
+                  }}
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value || "all"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex h-10 items-center gap-2 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={missingImage}
+                  onChange={(e) => {
+                    setPage(0);
+                    setMissingImage(e.target.checked);
+                  }}
+                />
+                Missing image
+              </label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void onExportCsv()}
+                >
+                  <Download className="size-4" aria-hidden />
+                  Export CSV
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => csvImportRef.current?.click()}
+                >
+                  <Upload className="size-4" aria-hidden />
+                  Import CSV
+                </Button>
+                <input
+                  ref={csvImportRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) void onImportCsv(file);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 sm:flex-row sm:items-end">
+              <div className="w-full space-y-1.5 sm:w-28">
+                <Label htmlFor="gc-bulk-margin">Margin %</Label>
+                <Input
+                  id="gc-bulk-margin"
+                  inputMode="decimal"
+                  value={bulkMarginPct}
+                  onChange={(e) => setBulkMarginPct(e.target.value)}
+                  disabled={busy}
+                />
+              </div>
+              <div className="w-full space-y-1.5 sm:w-44">
+                <Label htmlFor="gc-bulk-mode">Derive</Label>
+                <select
+                  id="gc-bulk-mode"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={bulkMarginMode}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setBulkMarginMode(e.target.value as "fromBuying" | "fromSelling")
+                  }
+                >
+                  <option value="fromBuying">Sell from buy</option>
+                  <option value="fromSelling">Buy from sell</option>
+                </select>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={busy || products.length === 0}
+                onClick={() => void onApplyMarginToVisible()}
+              >
+                Apply to page ({products.length})
+              </Button>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-border/70">
+              <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+                <span>
+                  {total.toLocaleString()} products
+                  {missingImage ? " · missing image filter on" : ""}
+                </span>
+                <span>
+                  Page {page + 1} / {Math.max(1, Math.ceil(total / 40))}
+                </span>
+              </div>
+              <ul className="divide-y divide-border/60">
+                {products.length === 0 ? (
+                  <li className="flex flex-col items-center gap-2 px-4 py-12 text-center text-sm text-muted-foreground">
+                    <PackageSearch className="size-8 opacity-50" aria-hidden />
+                    No products match these filters.
+                  </li>
+                ) : (
+                  products.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(p.id)}
+                        className={cn(
+                          "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40",
+                          selectedId === p.id && "bg-primary/8",
+                        )}
+                      >
+                        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/60">
+                          {p.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.imageUrl} alt="" className="size-full object-cover" />
+                          ) : (
+                            <ImageOff className="size-4 text-muted-foreground" aria-hidden />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {[p.brand, p.size, p.barcode].filter(Boolean).join(" · ") || "No identity fields"}
+                            {p.globalCategoryId
+                              ? ` · ${categoryNameById.get(p.globalCategoryId) ?? "Category"}`
+                              : ""}
+                            {p.recommendedSellingPrice != null
+                              ? ` · sell ${p.recommendedSellingPrice}`
+                              : ""}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <Badge className={cn("border-0 font-normal", statusBadgeClass(p.status))}>
+                            {p.status}
+                          </Badge>
+                          {p.barcodeDuplicateWarning ? (
+                            <span className="text-[10px] text-amber-700 dark:text-amber-300">Dup barcode</span>
+                          ) : null}
+                        </div>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <div className="flex items-center justify-between border-t border-border/60 px-4 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page <= 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={(page + 1) * 40 >= total}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <aside className="rounded-2xl border border-border/70 bg-card/50 p-4 lg:sticky lg:top-20 lg:self-start">
+            {!selected ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-center text-sm text-muted-foreground">
+                <PackageSearch className="size-8 opacity-40" aria-hidden />
+                Select a product to edit status, name, or image.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h2 className="font-heading text-lg font-semibold tracking-tight">{selected.name}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.skuTemplate || "No SKU template"} · v{selected.version}
+                  </p>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20">
+                  {selected.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={selected.imageUrl} alt="" className="aspect-[4/3] w-full object-cover" />
+                  ) : (
+                    <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <ImageOff className="size-8 opacity-50" aria-hidden />
+                      <span className="text-xs">No image yet</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted/50">
+                    <Upload className="size-4" aria-hidden />
+                    Upload image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={busy}
+                      onChange={(e) => void onUpload(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  {selected.imageUrl ? (
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void onClearImage()}>
+                      Clear image
+                    </Button>
+                  ) : null}
+                  {selected.imageUrl ? (
+                    <Button variant="secondary" size="sm" disabled={busy} onClick={() => void onBackfillAdopted()}>
+                      Backfill adopted
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="gc-name">Name</Label>
+                  <Input
+                    id="gc-name"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    disabled={busy}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="gc-edit-status">Status</Label>
+                  <select
+                    id="gc-edit-status"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={statusDraft}
+                    disabled={busy}
+                    onChange={(e) => setStatusDraft(e.target.value)}
+                  >
+                    <option value="draft">draft</option>
+                    <option value="published">published</option>
+                    <option value="archived">archived</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gc-buy">Buy</Label>
+                    <Input
+                      id="gc-buy"
+                      inputMode="decimal"
+                      value={buyDraft}
+                      onChange={(e) => setBuyDraft(e.target.value)}
+                      disabled={busy}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gc-sell">Sell</Label>
+                    <Input
+                      id="gc-sell"
+                      inputMode="decimal"
+                      value={sellDraft}
+                      onChange={(e) => setSellDraft(e.target.value)}
+                      disabled={busy}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gc-margin">Margin %</Label>
+                    <Input
+                      id="gc-margin"
+                      inputMode="decimal"
+                      value={marginDraft}
+                      onChange={(e) => setMarginDraft(e.target.value)}
+                      disabled={busy}
+                      placeholder="auto"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button disabled={busy || !nameDraft.trim()} onClick={() => void onSaveSelected()}>
+                    Save
+                  </Button>
+                  {selected.status !== "published" ? (
+                    <Button variant="secondary" disabled={busy} onClick={() => void onPublishSelected()}>
+                      Publish
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PromotePanel({
+  businesses,
+  sourceBusinessId,
+  onBusinessChange,
+  sourceQ,
+  onSourceQChange,
+  sourceItems,
+  sourceTotal,
+  sourceLoading,
+  sourceHasMore,
+  onLoadMore,
+  selectedSourceIds,
+  onToggle,
+  onSelectAllVisible,
+  onSelectAllMatching,
+  onClearSelection,
+  preview,
+  promoteAsPublished,
+  onPromoteAsPublishedChange,
+  publishableIds,
+  busy,
+  onPreview,
+  onCommit,
+  onPublishPromoted,
+}: {
+  businesses: SaSourceBusiness[];
+  sourceBusinessId: string;
+  onBusinessChange: (id: string) => void;
+  sourceQ: string;
+  onSourceQChange: (value: string) => void;
+  sourceItems: SaSourceItem[];
+  sourceTotal: number;
+  sourceLoading: boolean;
+  sourceHasMore: boolean;
+  onLoadMore: () => void;
+  selectedSourceIds: Set<string>;
+  onToggle: (id: string) => void;
+  onSelectAllVisible: () => void;
+  onSelectAllMatching: () => void;
+  onClearSelection: () => void;
+  preview: SaPromoteResult | null;
+  promoteAsPublished: boolean;
+  onPromoteAsPublishedChange: (value: boolean) => void;
+  publishableIds: string[];
+  busy: boolean;
+  onPreview: () => void;
+  onCommit: () => void;
+  onPublishPromoted: () => void;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const allMatchingSelected =
+    sourceTotal > 0 && selectedSourceIds.size >= sourceTotal && selectedSourceIds.size > 0;
+
+  useEffect(() => {
+    const root = listRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMore();
+        }
+      },
+      { root, rootMargin: "120px", threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadMore, sourceItems.length, sourceHasMore]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/40 p-4 lg:flex-row lg:items-end">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Label htmlFor="promote-business">Source business</Label>
+          <select
+            id="promote-business"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={sourceBusinessId}
+            onChange={(e) => onBusinessChange(e.target.value)}
+          >
+            {businesses.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+                {b.preferred ? " (preferred)" : ""} — {b.slug}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-0 flex-[1.2] space-y-1.5">
+          <Label htmlFor="promote-q">Search source items</Label>
+          <Input
+            id="promote-q"
+            value={sourceQ}
+            onChange={(e) => onSourceQChange(e.target.value)}
+            placeholder="Name, SKU, barcode…"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={busy || sourceItems.length === 0} onClick={onSelectAllVisible}>
+            Select loaded
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || sourceTotal === 0 || allMatchingSelected}
+            onClick={onSelectAllMatching}
+          >
+            Select all {sourceTotal > 0 ? `(${sourceTotal.toLocaleString()})` : "matching"}
+          </Button>
+          <Button variant="ghost" size="sm" disabled={selectedSourceIds.size === 0} onClick={onClearSelection}>
+            Clear
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border/70">
+        <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <span>
+            {sourceTotal.toLocaleString()} source items · {selectedSourceIds.size.toLocaleString()} selected
+          </span>
+          <span>
+            Loaded {sourceItems.length.toLocaleString()}
+            {sourceHasMore ? " · scroll for more" : ""}
+          </span>
+        </div>
+        <div ref={listRef} className="max-h-[28rem] overflow-y-auto">
+          <ul className="divide-y divide-border/60">
+            {sourceItems.length === 0 && !sourceLoading ? (
+              <li className="px-4 py-10 text-center text-sm text-muted-foreground">
+                No source items match.
+              </li>
+            ) : (
+              sourceItems.map((item) => (
+                <li key={item.id}>
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/40">
+                    <input
+                      type="checkbox"
+                      checked={selectedSourceIds.has(item.id)}
+                      onChange={() => onToggle(item.id)}
+                    />
+                    <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/60">
+                      {item.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.imageUrl} alt="" className="size-full object-cover" />
+                      ) : (
+                        <ImageOff className="size-4 text-muted-foreground" aria-hidden />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{item.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {[item.sku, item.barcode, item.brand].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                    {item.alreadyInGlobal ? (
+                      <Badge className="border-0 bg-emerald-500/15 font-normal text-emerald-800 dark:text-emerald-200">
+                        In global
+                      </Badge>
+                    ) : null}
+                  </label>
+                </li>
+              ))
+            )}
+          </ul>
+          <div ref={sentinelRef} className="h-8" aria-hidden />
+          {sourceLoading ? (
+            <div className="border-t border-border/60 px-4 py-3 text-center text-xs text-muted-foreground">
+              Loading more…
+            </div>
+          ) : null}
+          {!sourceLoading && !sourceHasMore && sourceItems.length > 0 ? (
+            <div className="border-t border-border/60 px-4 py-3 text-center text-xs text-muted-foreground">
+              End of list
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={promoteAsPublished}
+            onChange={(e) => onPromoteAsPublishedChange(e.target.checked)}
+          />
+          Publish immediately (trusted bulk)
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button disabled={busy || selectedSourceIds.size === 0} variant="outline" onClick={onPreview}>
+            Preview
+          </Button>
+          <Button disabled={busy || selectedSourceIds.size === 0} onClick={onCommit}>
+            Promote {selectedSourceIds.size || ""} as {promoteAsPublished ? "published" : "drafts"}
+          </Button>
+          {publishableIds.length > 0 && !promoteAsPublished ? (
+            <Button variant="secondary" disabled={busy} onClick={onPublishPromoted}>
+              Publish {publishableIds.length} promoted drafts
+            </Button>
+          ) : null}
+        </div>
+        {preview ? (
+          <span className="text-sm text-muted-foreground">
+            Last result: {preview.createdCount} created · {preview.updatedCount} updated ·{" "}
+            {preview.skippedCount} skipped · {preview.imageRehostCount} images
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-border/70 px-4 py-3",
+        accent ? "bg-amber-500/8" : "bg-card/40",
+      )}
+    >
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 font-heading text-2xl font-semibold tabular-nums tracking-tight">
+        {value.toLocaleString()}
+      </div>
+    </div>
+  );
+}

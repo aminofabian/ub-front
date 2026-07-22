@@ -457,6 +457,8 @@ export type ItemSummaryRecord = {
   webPublished?: boolean;
   /**
    * On-hand at the branch when `branchId` was sent with the list request; otherwise omitted.
+   * This is **in-store / branch stock** (sum of active inventory batches). Prefer this over
+   * {@link ItemDetailRecord.currentStock} for any branch-scoped UI.
    * For package variants this is available whole packages.
    */
   stockQty?: number | string | null;
@@ -518,7 +520,11 @@ export type ItemDetailRecord = ItemSummaryRecord & {
   packageVariant?: boolean;
   packagingUnitName?: string | null;
   packagingUnitQty?: number | string | null;
-  /** On-hand quantity when returned by item detail API (Phase 1+). */
+  /**
+   * Business-wide overall stock (`items.current_stock`) — all branches combined.
+   * Do **not** use this as a stand-in for in-store qty; use {@link ItemSummaryRecord.stockQty}
+   * when a `branchId` was requested.
+   */
   currentStock?: number | string | null;
   bundleQty?: number | null;
   bundlePrice?: number | string | null;
@@ -731,6 +737,8 @@ export type BusinessRecord = {
    * primary host instead of the slug-derived `{slug}.{platform}` fallback.
    */
   primaryDomain?: string | null;
+  /** Optional override of regional global-catalog resolution. */
+  globalCatalogCode?: string | null;
 };
 
 export type BranchRecord = {
@@ -848,6 +856,7 @@ export type PatchBusinessPayload = {
   storefront?: StorefrontPatchPayload;
   inventory?: InventoryPatchPayload;
   featureFlags?: FeatureFlagsPatchPayload;
+  globalCatalogCode?: string | null;
 };
 
 export type BrandingPatchPayload = {
@@ -2749,7 +2758,7 @@ export type FetchItemsOpts = {
   lowStock?: boolean;
   page?: number;
   size?: number;
-  /** When set, `stockQty` on each row is on-hand inventory at this branch (from active batches). */
+  /** When set, `stockQty` on each row is in-store on-hand at this branch (active batch sum). */
   branchId?: string;
   /** When set, only items with this item type are returned. */
   itemTypeId?: string;
@@ -3317,7 +3326,15 @@ export async function uploadItemImageToCloudinary(
   file: File,
   opts?: { altText?: string; primary?: boolean },
 ): Promise<ItemImageRecord> {
-  const folder = `ub/items/${itemId}`;
+  const businessId =
+    typeof window !== "undefined"
+      ? window.sessionStorage.getItem(STORAGE_KEYS.tenantId)?.trim() ||
+        window.localStorage.getItem(STORAGE_KEYS.tenantId)?.trim() ||
+        null
+      : null;
+  const folder = businessId
+    ? `ub/${businessId}/items/${itemId}`
+    : `ub/items/${itemId}`;
   const sig = await getCloudinarySignature(folder);
   const result = await uploadToCloudinary(file, sig);
 
@@ -3427,12 +3444,14 @@ export type GlobalProductPackRecord = {
   code: string;
   name: string;
   description?: string | null;
+  storeKitId?: string | null;
   productCount: number;
   sortOrder: number;
 };
 
 export type GlobalCatalogMetaRecord = {
   catalogId: string;
+  catalogCode?: string;
   catalogName: string;
   currency: string;
   categories: GlobalCategoryRecord[];
@@ -3576,25 +3595,190 @@ export async function fetchGlobalCatalogPack(
 
 export async function previewGlobalCatalogAdopt(
   lines: GlobalCatalogAdoptLine[],
+  opts?: { createMissingCategories?: boolean },
 ): Promise<GlobalCatalogAdoptResult> {
   return request<GlobalCatalogAdoptResult>(
     `${API_ROUTES.globalCatalog}/adopt/preview`,
     {
       method: "POST",
-      body: { lines },
+      body: {
+        lines,
+        createMissingCategories: opts?.createMissingCategories === true,
+      },
     },
   );
+}
+
+const SYNC_ADOPT_MAX_LINES = 25;
+const ADOPT_JOB_POLL_MS = 1500;
+const ADOPT_JOB_TIMEOUT_MS = 5 * 60 * 1000;
+
+export type GlobalCatalogJobStatus = {
+  id: string;
+  kind: string;
+  status: "pending" | "processing" | "completed" | "failed" | string;
+  businessId: string | null;
+  rowsTotal: number | null;
+  rowsProcessed: number;
+  rowsCommitted: number | null;
+  statusMessage: string | null;
+  result: GlobalCatalogAdoptResult | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+async function enqueueGlobalCatalogAdoptJob(
+  openingBranchId: string,
+  lines: GlobalCatalogAdoptLine[],
+  createMissingCategories?: boolean,
+): Promise<string> {
+  const created = await request<{ jobId: string }>(
+    `${API_ROUTES.globalCatalog}/adopt/jobs`,
+    {
+      method: "POST",
+      body: {
+        openingBranchId,
+        lines,
+        createMissingCategories: createMissingCategories === true,
+      },
+    },
+  );
+  return created.jobId;
+}
+
+async function fetchGlobalCatalogAdoptJob(jobId: string): Promise<GlobalCatalogJobStatus> {
+  return request<GlobalCatalogJobStatus>(
+    `${API_ROUTES.globalCatalog}/adopt/jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
+async function waitForGlobalCatalogAdoptJob(jobId: string): Promise<GlobalCatalogAdoptResult> {
+  const started = Date.now();
+  while (Date.now() - started < ADOPT_JOB_TIMEOUT_MS) {
+    const job = await fetchGlobalCatalogAdoptJob(jobId);
+    if (job.status === "completed") {
+      if (!job.result) {
+        throw new Error(job.statusMessage || "Adopt job completed without a result.");
+      }
+      return job.result;
+    }
+    if (job.status === "failed") {
+      throw new Error(job.statusMessage || "Adopt job failed.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, ADOPT_JOB_POLL_MS));
+  }
+  throw new Error("Adopt job timed out. Check job status and try again.");
 }
 
 export async function globalCatalogAdopt(
   openingBranchId: string,
   lines: GlobalCatalogAdoptLine[],
+  opts?: { createMissingCategories?: boolean },
 ): Promise<GlobalCatalogAdoptResult> {
-  const result = await request<GlobalCatalogAdoptResult>(
-    `${API_ROUTES.globalCatalog}/adopt`,
+  const createMissingCategories = opts?.createMissingCategories === true;
+  const result =
+    lines.length > SYNC_ADOPT_MAX_LINES
+      ? await waitForGlobalCatalogAdoptJob(
+          await enqueueGlobalCatalogAdoptJob(openingBranchId, lines, createMissingCategories),
+        )
+      : await request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt`, {
+          method: "POST",
+          body: { openingBranchId, lines, createMissingCategories },
+        });
+  const { notifyTenantCatalogChanged } =
+    await import("@/lib/tenant-catalog-events");
+  notifyTenantCatalogChanged();
+  return result;
+}
+
+export type GlobalCatalogRefreshLine = {
+  globalProductId: string;
+  itemId: string | null;
+  status: string;
+  message: string | null;
+  currentSellingPrice: number | null;
+  recommendedSellingPrice: number | null;
+  currentBuyingPrice: number | null;
+  recommendedBuyingPrice: number | null;
+  sellingUpdated: boolean;
+  buyingUpdated: boolean;
+  imageUpdated: boolean;
+};
+
+export type GlobalCatalogRefreshResult = {
+  updatedCount: number;
+  skippedCount: number;
+  lines: GlobalCatalogRefreshLine[];
+};
+
+export type GlobalCatalogRefreshInput = {
+  branchId: string;
+  globalProductIds: string[];
+  refreshSellingPrice?: boolean;
+  refreshBuyingPrice?: boolean;
+  refreshImage?: boolean;
+  forceImage?: boolean;
+  skipCustomizedSellingPrice?: boolean;
+};
+
+export async function previewGlobalCatalogRefresh(
+  body: GlobalCatalogRefreshInput,
+): Promise<GlobalCatalogRefreshResult> {
+  return request<GlobalCatalogRefreshResult>(`${API_ROUTES.globalCatalog}/refresh/preview`, {
+    method: "POST",
+    body,
+  });
+}
+
+export async function refreshGlobalCatalog(
+  body: GlobalCatalogRefreshInput,
+): Promise<GlobalCatalogRefreshResult> {
+  const result = await request<GlobalCatalogRefreshResult>(`${API_ROUTES.globalCatalog}/refresh`, {
+    method: "POST",
+    body,
+  });
+  if (result.updatedCount > 0) {
+    const { notifyTenantCatalogChanged } =
+      await import("@/lib/tenant-catalog-events");
+    notifyTenantCatalogChanged();
+  }
+  return result;
+}
+
+export type GlobalCatalogReplaceEligibility = {
+  eligible: boolean;
+  blockReason: string | null;
+  activeItemCount: number;
+  hasSales: boolean;
+  hasNonZeroBatches: boolean;
+  packId: string;
+  packName: string;
+  packProductCount: number;
+};
+
+export type GlobalCatalogReplaceResult = {
+  softDeletedCount: number;
+  adopt: GlobalCatalogAdoptResult;
+};
+
+export async function previewGlobalCatalogReplace(
+  packId: string,
+): Promise<GlobalCatalogReplaceEligibility> {
+  const q = new URLSearchParams({ packId: packId.trim() });
+  return request<GlobalCatalogReplaceEligibility>(
+    `${API_ROUTES.globalCatalog}/replace/preview?${q}`,
+  );
+}
+
+export async function replaceGlobalCatalog(
+  openingBranchId: string,
+  packId: string,
+): Promise<GlobalCatalogReplaceResult> {
+  const result = await request<GlobalCatalogReplaceResult>(
+    `${API_ROUTES.globalCatalog}/replace`,
     {
       method: "POST",
-      body: { openingBranchId, lines },
+      body: { openingBranchId, packId },
     },
   );
   const { notifyTenantCatalogChanged } =

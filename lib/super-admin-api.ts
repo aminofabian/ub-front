@@ -25,6 +25,7 @@ export type SaBusinessRow = {
   subscriptionTier: string;
   createdAt: string;
   updatedAt: string;
+  globalCatalogCode?: string | null;
 };
 
 export type SaDomainRow = {
@@ -182,7 +183,12 @@ export type PatchSaBusinessPayload = {
   name?: string;
   subscriptionTier?: string;
   active?: boolean;
+  globalCatalogCode?: string | null;
 };
+
+export async function fetchSaBusiness(businessId: string): Promise<SaBusinessRow> {
+  return saRequest<SaBusinessRow>(`${API_ROUTES.superAdminBusinesses}/${businessId}`);
+}
 
 export async function patchSaBusiness(
   businessId: string,
@@ -420,3 +426,746 @@ export async function impersonateSaBusiness(
     },
   );
 }
+
+export type SaCatalogSummary = {
+  id: string;
+  code: string;
+  name: string;
+  regionCode: string | null;
+  currency: string;
+  status: string;
+  version: number;
+};
+
+export async function fetchSaCatalogs(): Promise<SaCatalogSummary[]> {
+  return saRequest<SaCatalogSummary[]>(`${API_ROUTES.superAdminGlobalCatalog}/catalogs`);
+}
+
+function withCatalogId(query: URLSearchParams, catalogId?: string | null): void {
+  if (catalogId?.trim()) query.set("catalogId", catalogId.trim());
+}
+
+function catalogQuerySuffix(catalogId?: string | null): string {
+  if (!catalogId?.trim()) return "";
+  return `?catalogId=${encodeURIComponent(catalogId.trim())}`;
+}
+
+export type SaGlobalCatalogMeta = {
+  catalogId: string;
+  catalogCode: string;
+  catalogName: string;
+  regionCode: string | null;
+  currency: string;
+  productCount: number;
+  missingImageCount: number;
+  draftCount: number;
+  publishedCount: number;
+  archivedCount: number;
+  categories: SaGlobalCategory[];
+  packs: SaGlobalPackSummary[];
+};
+
+export type SaGlobalCategory = {
+  id: string;
+  parentId: string | null;
+  name: string;
+  slug: string;
+  tenantCategorySlugHint: string | null;
+  position: number;
+  active: boolean;
+};
+
+export type SaGlobalPackSummary = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  storeKitId: string | null;
+  status: string;
+  sortOrder: number;
+  productCount: number;
+  imagedProductCount: number;
+};
+
+export type SaGlobalPackDetail = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  storeKitId: string | null;
+  status: string;
+  sortOrder: number;
+  productIds: string[];
+};
+
+export type SaGlobalProduct = {
+  id: string;
+  catalogId: string;
+  globalCategoryId: string | null;
+  skuTemplate: string | null;
+  name: string;
+  brand: string | null;
+  size: string | null;
+  description: string | null;
+  barcode: string | null;
+  unitType: string;
+  weighed: boolean;
+  sellable: boolean;
+  stocked: boolean;
+  recommendedBuyingPrice: number | null;
+  recommendedSellingPrice: number | null;
+  suggestedMarginPct: number | null;
+  defaultReorderLevel: number | null;
+  defaultReorderQty: number | null;
+  defaultMinStockLevel: number | null;
+  hasExpiry: boolean;
+  expiresAfterDays: number | null;
+  imageUrl: string | null;
+  imagePublicId: string | null;
+  itemTypeKeyHint: string | null;
+  status: string;
+  sortOrder: number;
+  version: number;
+  barcodeDuplicateWarning: boolean;
+};
+
+export type SaPage<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+};
+
+export async function fetchSaGlobalCatalogMeta(
+  catalogId?: string | null,
+): Promise<SaGlobalCatalogMeta> {
+  return saRequest<SaGlobalCatalogMeta>(
+    `${API_ROUTES.superAdminGlobalCatalog}/meta${catalogQuerySuffix(catalogId)}`,
+  );
+}
+
+export async function fetchSaGlobalProducts(params: {
+  catalogId?: string | null;
+  q?: string;
+  status?: string;
+  categoryId?: string;
+  missingImage?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<SaPage<SaGlobalProduct>> {
+  const query = new URLSearchParams();
+  withCatalogId(query, params.catalogId);
+  if (params.q?.trim()) query.set("q", params.q.trim());
+  if (params.status?.trim()) query.set("status", params.status.trim());
+  if (params.categoryId?.trim()) query.set("categoryId", params.categoryId.trim());
+  if (params.missingImage) query.set("missingImage", "true");
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 50));
+  return saRequest<SaPage<SaGlobalProduct>>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products?${query.toString()}`,
+  );
+}
+
+export async function fetchSaGlobalProduct(
+  id: string,
+  catalogId?: string | null,
+): Promise<SaGlobalProduct> {
+  return saRequest<SaGlobalProduct>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${id}${catalogQuerySuffix(catalogId)}`,
+  );
+}
+
+export async function patchSaGlobalProduct(
+  id: string,
+  body: Partial<SaGlobalProduct> & { version: number },
+  catalogId?: string | null,
+): Promise<SaGlobalProduct> {
+  return saRequest<SaGlobalProduct>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${id}${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function createSaGlobalProduct(
+  body: {
+    name: string;
+    status?: string;
+    unitType?: string;
+    barcode?: string | null;
+    brand?: string | null;
+    size?: string | null;
+    globalCategoryId?: string | null;
+  },
+  catalogId?: string | null,
+): Promise<SaGlobalProduct> {
+  return saRequest<SaGlobalProduct>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function publishSaGlobalProducts(
+  ids: string[],
+): Promise<{ publishedCount: number; publishedIds: string[]; skippedIds: string[] }> {
+  return saRequest(`${API_ROUTES.superAdminGlobalCatalog}/products/publish`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export type SaApplyMarginResult = {
+  updatedCount: number;
+  skippedCount: number;
+  updatedIds: string[];
+  skippedIds: string[];
+};
+
+export async function applySaGlobalProductMargins(
+  body: {
+    ids: string[];
+    marginPct: number;
+    mode?: "fromBuying" | "fromSelling";
+  },
+  catalogId?: string | null,
+): Promise<SaApplyMarginResult> {
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/apply-margin${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function uploadSaGlobalProductImage(
+  id: string,
+  file: File,
+  catalogId?: string | null,
+): Promise<SaGlobalProduct> {
+  const token = getSuperAdminAccessToken();
+  if (!token) {
+    throw new Error("Super-admin session expired. Sign in again.");
+  }
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(
+    apiUrl(
+      `${API_ROUTES.superAdminGlobalCatalog}/products/${id}/image${catalogQuerySuffix(catalogId)}`,
+    ),
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    },
+  );
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    window.location.assign(APP_ROUTES.superAdminLogin);
+    throw new Error("Super-admin session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Upload failed (${response.status})`);
+  }
+  return (await response.json()) as SaGlobalProduct;
+}
+
+export async function clearSaGlobalProductImage(
+  id: string,
+  catalogId?: string | null,
+): Promise<SaGlobalProduct> {
+  return saRequest<SaGlobalProduct>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${id}/image${catalogQuerySuffix(catalogId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function backfillSaGlobalProductImages(
+  productId: string,
+  opts?: { limit?: number; catalogId?: string | null },
+): Promise<{
+  productsProcessed: number;
+  itemsUpdated: number;
+  itemsSkipped: number;
+  itemsFailed: number;
+  warnings: string[];
+}> {
+  return saRequest(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${productId}/backfill-images${catalogQuerySuffix(opts?.catalogId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ limit: opts?.limit ?? 100 }),
+    },
+  );
+}
+
+export async function fetchSaGlobalCategories(
+  catalogId?: string | null,
+): Promise<SaGlobalCategory[]> {
+  return saRequest<SaGlobalCategory[]>(
+    `${API_ROUTES.superAdminGlobalCatalog}/categories${catalogQuerySuffix(catalogId)}`,
+  );
+}
+
+export async function createSaGlobalCategory(
+  body: {
+    name: string;
+    slug?: string;
+    tenantCategorySlugHint?: string;
+    parentId?: string;
+    position?: number;
+    active?: boolean;
+  },
+  catalogId?: string | null,
+): Promise<SaGlobalCategory> {
+  return saRequest<SaGlobalCategory>(
+    `${API_ROUTES.superAdminGlobalCatalog}/categories${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function patchSaGlobalCategory(
+  id: string,
+  body: {
+    name: string;
+    slug?: string;
+    tenantCategorySlugHint?: string;
+    parentId?: string;
+    position?: number;
+    active?: boolean;
+  },
+  catalogId?: string | null,
+): Promise<SaGlobalCategory> {
+  return saRequest<SaGlobalCategory>(
+    `${API_ROUTES.superAdminGlobalCatalog}/categories/${id}${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function fetchSaGlobalPack(
+  id: string,
+  catalogId?: string | null,
+): Promise<SaGlobalPackDetail> {
+  return saRequest<SaGlobalPackDetail>(
+    `${API_ROUTES.superAdminGlobalCatalog}/packs/${id}${catalogQuerySuffix(catalogId)}`,
+  );
+}
+
+export async function patchSaGlobalPack(
+  id: string,
+  body: {
+    name?: string;
+    description?: string | null;
+    storeKitId?: string | null;
+    status?: string;
+    sortOrder?: number;
+    productIds?: string[];
+  },
+  catalogId?: string | null,
+): Promise<SaGlobalPackDetail> {
+  return saRequest<SaGlobalPackDetail>(
+    `${API_ROUTES.superAdminGlobalCatalog}/packs/${id}${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export type SaCsvImportResult = {
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  warnings: string[];
+};
+
+export async function exportSaGlobalProductsCsv(params?: {
+  catalogId?: string | null;
+  status?: string;
+  missingImage?: boolean;
+}): Promise<Blob> {
+  const token = getSuperAdminAccessToken();
+  if (!token) {
+    throw new Error("Super-admin session expired. Sign in again.");
+  }
+  const query = new URLSearchParams();
+  withCatalogId(query, params?.catalogId);
+  if (params?.status) query.set("status", params.status);
+  if (params?.missingImage) query.set("missingImage", "true");
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  let response: Response;
+  try {
+    response = await fetch(
+      apiUrl(`${API_ROUTES.superAdminGlobalCatalog}/products/export.csv${suffix}`),
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  } catch {
+    throw new Error(getNetworkErrorMessage());
+  }
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
+    throw new Error("Session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload));
+  }
+  return response.blob();
+}
+
+export async function importSaGlobalProductsCsv(
+  file: File,
+  catalogId?: string | null,
+): Promise<SaCsvImportResult> {
+  const token = getSuperAdminAccessToken();
+  if (!token) {
+    throw new Error("Super-admin session expired. Sign in again.");
+  }
+  const form = new FormData();
+  form.append("file", file);
+  let response: Response;
+  try {
+    response = await fetch(
+      apiUrl(`${API_ROUTES.superAdminGlobalCatalog}/products/import${catalogQuerySuffix(catalogId)}`),
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      },
+    );
+  } catch {
+    throw new Error(getNetworkErrorMessage());
+  }
+  if (response.status === 401) {
+    clearSuperAdminSession();
+    if (typeof window !== "undefined") {
+      window.location.assign(APP_ROUTES.superAdminLogin);
+    }
+    throw new Error("Session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(getProblemTitle(payload));
+  }
+  return (await response.json()) as SaCsvImportResult;
+}
+
+export type SaSourceBusiness = {
+  id: string;
+  name: string;
+  slug: string;
+  preferred: boolean;
+};
+
+export type SaSourceItem = {
+  id: string;
+  sku: string;
+  name: string;
+  brand: string | null;
+  size: string | null;
+  barcode: string | null;
+  imageUrl: string | null;
+  alreadyInGlobal: boolean;
+  matchedGlobalProductId: string | null;
+};
+
+export type SaPromoteLine = {
+  sourceItemId: string;
+  globalProductId: string | null;
+  action: string;
+  reason: string | null;
+  imageRehosted: boolean;
+};
+
+export type SaPromoteResult = {
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  imageRehostCount: number;
+  lines: SaPromoteLine[];
+};
+
+export async function fetchSaSourceBusinesses(): Promise<SaSourceBusiness[]> {
+  return saRequest<SaSourceBusiness[]>(
+    `${API_ROUTES.superAdminGlobalCatalog}/source-businesses`,
+  );
+}
+
+export async function fetchSaSourceItems(params: {
+  businessId: string;
+  catalogId?: string | null;
+  q?: string;
+  page?: number;
+  size?: number;
+}): Promise<SaPage<SaSourceItem>> {
+  const query = new URLSearchParams();
+  query.set("businessId", params.businessId);
+  withCatalogId(query, params.catalogId);
+  if (params.q?.trim()) query.set("q", params.q.trim());
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 50));
+  return saRequest<SaPage<SaSourceItem>>(
+    `${API_ROUTES.superAdminGlobalCatalog}/source-items?${query.toString()}`,
+  );
+}
+
+const SOURCE_ID_FETCH_PAGE_SIZE = 100;
+const SOURCE_ID_FETCH_MAX = 10_000;
+
+/** Collects matching source item ids across pages (for promote-all). */
+export async function fetchAllSaSourceItemIds(params: {
+  businessId: string;
+  catalogId?: string | null;
+  q?: string;
+}): Promise<string[]> {
+  const ids: string[] = [];
+  let page = 0;
+  let totalPages = 1;
+  while (page < totalPages && ids.length < SOURCE_ID_FETCH_MAX) {
+    const result = await fetchSaSourceItems({
+      businessId: params.businessId,
+      catalogId: params.catalogId,
+      q: params.q,
+      page,
+      size: SOURCE_ID_FETCH_PAGE_SIZE,
+    });
+    totalPages = Math.max(1, result.totalPages ?? 1);
+    for (const row of result.content ?? []) {
+      if (row.id) ids.push(row.id);
+      if (ids.length >= SOURCE_ID_FETCH_MAX) break;
+    }
+    page += 1;
+  }
+  return ids;
+}
+
+export async function previewSaPromote(body: {
+  sourceBusinessId: string;
+  itemIds: string[];
+  onConflict?: "update" | "skip";
+  publish?: boolean;
+  catalogId?: string | null;
+}): Promise<SaPromoteResult> {
+  return saRequest<SaPromoteResult>(`${API_ROUTES.superAdminGlobalCatalog}/promote/preview`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+const SYNC_PROMOTE_MAX_ITEMS = 100;
+const JOB_PROMOTE_MAX_ITEMS = 500;
+const PROMOTE_JOB_POLL_MS = 1500;
+const PROMOTE_JOB_TIMEOUT_MS = 5 * 60 * 1000;
+
+export type SaGlobalCatalogJobStatus = {
+  id: string;
+  kind: string;
+  status: "pending" | "processing" | "completed" | "failed" | string;
+  businessId: string | null;
+  rowsTotal: number | null;
+  rowsProcessed: number;
+  rowsCommitted: number | null;
+  statusMessage: string | null;
+  result: SaPromoteResult | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+async function enqueueSaPromoteJob(body: {
+  sourceBusinessId: string;
+  itemIds: string[];
+  onConflict?: "update" | "skip";
+  publish?: boolean;
+  catalogId?: string | null;
+}): Promise<string> {
+  const created = await saRequest<{ jobId: string }>(
+    `${API_ROUTES.superAdminGlobalCatalog}/promote/jobs`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+  return created.jobId;
+}
+
+async function fetchSaPromoteJob(jobId: string): Promise<SaGlobalCatalogJobStatus> {
+  return saRequest<SaGlobalCatalogJobStatus>(
+    `${API_ROUTES.superAdminGlobalCatalog}/promote/jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
+async function waitForSaPromoteJob(jobId: string): Promise<SaPromoteResult> {
+  const started = Date.now();
+  while (Date.now() - started < PROMOTE_JOB_TIMEOUT_MS) {
+    const job = await fetchSaPromoteJob(jobId);
+    if (job.status === "completed") {
+      if (!job.result) {
+        throw new Error(job.statusMessage || "Promote job completed without a result.");
+      }
+      return job.result;
+    }
+    if (job.status === "failed") {
+      throw new Error(job.statusMessage || "Promote job failed.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, PROMOTE_JOB_POLL_MS));
+  }
+  throw new Error("Promote job timed out. Check job status and try again.");
+}
+
+export async function commitSaPromote(body: {
+  sourceBusinessId: string;
+  itemIds: string[];
+  onConflict?: "update" | "skip";
+  publish?: boolean;
+  catalogId?: string | null;
+}): Promise<SaPromoteResult> {
+  if (body.itemIds.length <= SYNC_PROMOTE_MAX_ITEMS) {
+    return saRequest<SaPromoteResult>(`${API_ROUTES.superAdminGlobalCatalog}/promote`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < body.itemIds.length; i += JOB_PROMOTE_MAX_ITEMS) {
+    chunks.push(body.itemIds.slice(i, i + JOB_PROMOTE_MAX_ITEMS));
+  }
+
+  let createdCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+  let imageRehostCount = 0;
+  const lines: SaPromoteLine[] = [];
+
+  for (const itemIds of chunks) {
+    const chunkResult = await waitForSaPromoteJob(
+      await enqueueSaPromoteJob({ ...body, itemIds }),
+    );
+    createdCount += chunkResult.createdCount;
+    updatedCount += chunkResult.updatedCount;
+    skippedCount += chunkResult.skippedCount;
+    imageRehostCount += chunkResult.imageRehostCount;
+    lines.push(...(chunkResult.lines ?? []));
+  }
+
+  return { createdCount, updatedCount, skippedCount, imageRehostCount, lines };
+}
+
+export type SaSupplierTemplate = {
+  id: string;
+  catalogId: string;
+  code: string;
+  name: string;
+  supplierType: string;
+  vatPin: string | null;
+  notes: string | null;
+  tenantSupplierCodeHint: string;
+};
+
+export type SaProductSupplierLink = {
+  globalProductId: string;
+  globalSupplierTemplateId: string;
+  templateCode: string | null;
+  templateName: string | null;
+  primary: boolean;
+  defaultCostPrice: number | null;
+  supplierSku: string | null;
+};
+
+export async function fetchSaSupplierTemplates(
+  catalogId?: string | null,
+): Promise<SaSupplierTemplate[]> {
+  return saRequest<SaSupplierTemplate[]>(
+    `${API_ROUTES.superAdminGlobalCatalog}/suppliers${catalogQuerySuffix(catalogId)}`,
+  );
+}
+
+export async function createSaSupplierTemplate(
+  body: {
+    code: string;
+    name: string;
+    supplierType?: string;
+    vatPin?: string;
+    notes?: string;
+  },
+  catalogId?: string | null,
+): Promise<SaSupplierTemplate> {
+  return saRequest<SaSupplierTemplate>(
+    `${API_ROUTES.superAdminGlobalCatalog}/suppliers${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function patchSaSupplierTemplate(
+  id: string,
+  body: {
+    name?: string;
+    supplierType?: string;
+    vatPin?: string | null;
+    notes?: string | null;
+  },
+  catalogId?: string | null,
+): Promise<SaSupplierTemplate> {
+  return saRequest<SaSupplierTemplate>(
+    `${API_ROUTES.superAdminGlobalCatalog}/suppliers/${id}${catalogQuerySuffix(catalogId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function fetchSaProductSupplierLinks(
+  productId: string,
+): Promise<SaProductSupplierLink[]> {
+  return saRequest<SaProductSupplierLink[]>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${productId}/suppliers`,
+  );
+}
+
+export async function upsertSaProductSupplierLink(
+  productId: string,
+  body: {
+    globalSupplierTemplateId: string;
+    primary?: boolean;
+    defaultCostPrice?: number | null;
+    supplierSku?: string | null;
+  },
+): Promise<SaProductSupplierLink> {
+  return saRequest<SaProductSupplierLink>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/${productId}/suppliers`,
+    {
+      method: "PUT",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function deleteSaProductSupplierLink(
+  productId: string,
+  templateId: string,
+): Promise<void> {
+  await saRequest(`${API_ROUTES.superAdminGlobalCatalog}/products/${productId}/suppliers/${templateId}`, {
+    method: "DELETE",
+  });
+}
+

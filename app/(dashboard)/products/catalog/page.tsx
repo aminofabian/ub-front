@@ -38,7 +38,11 @@ import {
   fetchGlobalCatalogPack,
   fetchGlobalCatalogProducts,
   previewGlobalCatalogAdopt,
+  previewGlobalCatalogReplace,
+  previewGlobalCatalogRefresh,
   globalCatalogAdopt,
+  refreshGlobalCatalog,
+  replaceGlobalCatalog,
 } from "@/lib/api";
 import {
   adoptStatusClassName,
@@ -52,6 +56,7 @@ import {
   isUnresolvedSkuConflict,
   suggestRenamedSku,
 } from "@/lib/global-catalog-sku-conflict";
+import { getBusinessStoreTypes } from "@/lib/business-store-type";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -90,6 +95,7 @@ export default function GlobalCatalogPage() {
 
   const [meta, setMeta] = useState<{
     catalogId: string;
+    catalogCode?: string;
     catalogName: string;
     currency: string;
     categories: GlobalCategoryRecord[];
@@ -114,6 +120,14 @@ export default function GlobalCatalogPage() {
   const [tenantCategories, setTenantCategories] = useState<CategoryRecord[]>([]);
   const [previewResult, setPreviewResult] = useState<GlobalCatalogAdoptResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [refreshOpen, setRefreshOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshSell, setRefreshSell] = useState(true);
+  const [refreshBuy, setRefreshBuy] = useState(false);
+  const [refreshImage, setRefreshImage] = useState(true);
+  const [skipCustomSell, setSkipCustomSell] = useState(false);
+  const [createMissingCategories, setCreateMissingCategories] = useState(false);
+  const [replacing, setReplacing] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -170,6 +184,22 @@ export default function GlobalCatalogPage() {
       setTenantCategories([]);
     }
   }, []);
+
+  const storeTypes = useMemo(() => getBusinessStoreTypes(business), [business]);
+
+  const orderedPacks = useMemo(() => {
+    const packs = meta?.packs ?? [];
+    if (storeTypes.length === 0 || packs.length === 0) {
+      return packs;
+    }
+    const preferred = new Set<string>(storeTypes);
+    return [...packs].sort((a, b) => {
+      const aMatch = a.storeKitId && preferred.has(a.storeKitId) ? 0 : 1;
+      const bMatch = b.storeKitId && preferred.has(b.storeKitId) ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+      return a.sortOrder - b.sortOrder;
+    });
+  }, [meta?.packs, storeTypes]);
 
   const fetchProducts = useCallback(
     async ({
@@ -369,7 +399,6 @@ export default function GlobalCatalogPage() {
   }, [initialLoading, hasMore, selectedPackId, products.length]);
 
   const toggleProduct = (product: GlobalProductRecord) => {
-    if (product.alreadyImported) return;
     setSelected((prev) => {
       const next = new Map(prev);
       if (next.has(product.id)) {
@@ -385,11 +414,20 @@ export default function GlobalCatalogPage() {
     setSelected((prev) => {
       const next = new Map(prev);
       for (const p of products) {
-        if (!p.alreadyImported) next.set(p.id, p);
+        next.set(p.id, p);
       }
       return next;
     });
   };
+
+  const selectedImportable = useMemo(
+    () => Array.from(selected.values()).filter((p) => !p.alreadyImported),
+    [selected],
+  );
+  const selectedImported = useMemo(
+    () => Array.from(selected.values()).filter((p) => p.alreadyImported),
+    [selected],
+  );
 
   const clearSelection = () => {
     setSelected(new Map());
@@ -406,7 +444,7 @@ export default function GlobalCatalogPage() {
   };
 
   const buildLines = useCallback((): GlobalCatalogAdoptLine[] => {
-    return Array.from(selected.values())
+    return selectedImportable
       .filter((p) => !skippedProductIds.has(p.id))
       .map((p) => {
       const override = lineOverrides.get(p.id);
@@ -429,16 +467,18 @@ export default function GlobalCatalogPage() {
         onSkuConflict: override?.onSkuConflict ?? undefined,
       };
     });
-  }, [selected, skippedProductIds, lineOverrides, meta?.categories, tenantCategories]);
+  }, [selectedImportable, skippedProductIds, lineOverrides, meta?.categories, tenantCategories]);
 
   const runPreview = useCallback(async () => {
-    if (selected.size === 0) {
+    if (selectedImportable.length === 0) {
       setPreviewResult(null);
       return;
     }
     setPreviewLoading(true);
     try {
-      const result = await previewGlobalCatalogAdopt(buildLines());
+      const result = await previewGlobalCatalogAdopt(buildLines(), {
+        createMissingCategories,
+      });
       setPreviewResult(result);
     } catch {
       toast.error("Could not preview import");
@@ -446,7 +486,7 @@ export default function GlobalCatalogPage() {
     } finally {
       setPreviewLoading(false);
     }
-  }, [buildLines, selected.size]);
+  }, [buildLines, selectedImportable.length, createMissingCategories]);
 
   useEffect(() => {
     if (!reviewOpen) {
@@ -457,7 +497,7 @@ export default function GlobalCatalogPage() {
       void runPreview();
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [reviewOpen, runPreview, lineOverrides, selected, skippedProductIds]);
+  }, [reviewOpen, runPreview, lineOverrides, selectedImportable, skippedProductIds, createMissingCategories]);
 
   const previewByProductId = useMemo(() => {
     const map = new Map<string, GlobalCatalogAdoptResult["lines"][number]>();
@@ -703,8 +743,60 @@ export default function GlobalCatalogPage() {
   };
 
   const handlePreview = () => {
-    if (selected.size === 0) return;
+    if (selectedImportable.length === 0) {
+      toast.error("Select products that are not already in your catalog.");
+      return;
+    }
     setReviewOpen(true);
+  };
+
+  const handleRefreshFromTemplate = async () => {
+    if (!defaultBranchId) {
+      toast.error("No branch selected");
+      return;
+    }
+    if (selectedImported.length === 0) {
+      toast.error("Select products already in your catalog (uncheck Hide already in catalog).");
+      return;
+    }
+    if (!refreshSell && !refreshBuy && !refreshImage) {
+      toast.error("Choose at least one update: sell, buy, or image.");
+      return;
+    }
+    setRefreshing(true);
+    try {
+      const body = {
+        branchId: defaultBranchId,
+        globalProductIds: selectedImported.map((p) => p.id),
+        refreshSellingPrice: refreshSell,
+        refreshBuyingPrice: refreshBuy,
+        refreshImage,
+        skipCustomizedSellingPrice: skipCustomSell,
+      };
+      const preview = await previewGlobalCatalogRefresh(body);
+      if (preview.updatedCount === 0) {
+        toast.message("Nothing to update", {
+          description: preview.lines[0]?.message ?? "All selected products were skipped.",
+        });
+        setRefreshOpen(false);
+        return;
+      }
+      const confirmed = window.confirm(
+        `Apply catalog template updates to ${preview.updatedCount} product${preview.updatedCount === 1 ? "" : "s"}?\n\n` +
+          `${preview.skippedCount} will be skipped.`,
+      );
+      if (!confirmed) return;
+      const result = await refreshGlobalCatalog(body);
+      toast.success(
+        `Updated ${result.updatedCount} · skipped ${result.skippedCount}`,
+      );
+      setRefreshOpen(false);
+      clearSelection();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleAdopt = async () => {
@@ -715,7 +807,9 @@ export default function GlobalCatalogPage() {
     setAdopting(true);
     try {
       const lines = buildLines();
-      const preview = previewResult ?? (await previewGlobalCatalogAdopt(lines));
+      const preview =
+        previewResult ??
+        (await previewGlobalCatalogAdopt(lines, { createMissingCategories }));
       const hasErrors = preview.lines.some((l) => l.status.startsWith("error"));
       const readyCount = preview.lines.filter((l) => isImportableAdoptStatus(l.status)).length;
       if (hasErrors) {
@@ -745,7 +839,9 @@ export default function GlobalCatalogPage() {
         setPreviewResult(preview);
         return;
       }
-      const result = await globalCatalogAdopt(defaultBranchId, lines);
+      const result = await globalCatalogAdopt(defaultBranchId, lines, {
+        createMissingCategories,
+      });
       const importedNew = result.lines.filter((l) => l.status === "imported").length;
       const mergedCount = result.lines.filter((l) => l.status === "merged").length;
       const skuSkipped = result.lines.filter((l) => l.status === "skip_sku_conflict").length;
@@ -770,6 +866,11 @@ export default function GlobalCatalogPage() {
       setSelected(new Map());
       setSkippedProductIds(new Set());
       setLineOverrides(new Map());
+      try {
+        await loadTenantCategories();
+      } catch {
+        /* ignore */
+      }
       void fetchProducts({
         reset: true,
         page: 0,
@@ -782,6 +883,46 @@ export default function GlobalCatalogPage() {
       }
     } finally {
       setAdopting(false);
+    }
+  };
+
+  const handleReplaceWithPack = async () => {
+    if (!canAdopt || !selectedPackId || !defaultBranchId || replacing) return;
+    const packName =
+      orderedPacks.find((p) => p.id === selectedPackId)?.name ?? "this starter pack";
+    try {
+      const eligibility = await previewGlobalCatalogReplace(selectedPackId);
+      if (!eligibility.eligible) {
+        toast.error(eligibility.blockReason || "Cannot replace catalogue for this shop.");
+        return;
+      }
+      const confirmed = window.confirm(
+        `Replace your product catalogue with “${packName}”?\n\n` +
+          `This soft-deletes ${eligibility.activeItemCount} current product(s) and imports ${eligibility.packProductCount} pack product(s). ` +
+          `Only empty shops (no sales, no stock) can do this.`,
+      );
+      if (!confirmed) return;
+      setReplacing(true);
+      const result = await replaceGlobalCatalog(defaultBranchId, selectedPackId);
+      toast.success(
+        `Replaced catalogue: removed ${result.softDeletedCount}, imported ${result.adopt.importedCount}`,
+      );
+      if (result.adopt.skippedCount > 0) {
+        toast.info(`${result.adopt.skippedCount} pack products skipped`);
+      }
+      setSelected(new Map());
+      void fetchProducts({
+        reset: true,
+        page: 0,
+        categoryId: selectedCategoryId,
+        packId: selectedPackId,
+      });
+    } catch (e) {
+      if (!(e instanceof ApiRequestError)) {
+        toast.error("Replace catalogue failed");
+      }
+    } finally {
+      setReplacing(false);
     }
   };
 
@@ -805,6 +946,11 @@ export default function GlobalCatalogPage() {
             <ActiveScopeSubtitle className="text-[11px]" />
             <p className="text-xs text-muted-foreground">
               {meta?.catalogName ?? "Global catalog"}
+              {meta?.catalogCode ? (
+                <span className="ml-1 font-mono text-muted-foreground/80">
+                  ({meta.catalogCode})
+                </span>
+              ) : null}
               {!initialLoading && products.length > 0 ? (
                 <span className="ml-1.5 tabular-nums text-muted-foreground/70">
                   · {loadedLabel} shown
@@ -825,9 +971,34 @@ export default function GlobalCatalogPage() {
               {selected.size} selected
             </span>
           )}
+          {selectedPackId && canAdopt ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={replacing || !defaultBranchId}
+              onClick={() => void handleReplaceWithPack()}
+            >
+              {replacing ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" />
+              ) : (
+                <PackagePlus className="mr-1.5 size-4" />
+              )}
+              Replace with pack
+            </Button>
+          ) : null}
+          {selectedImported.length > 0 && canAdopt ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!defaultBranchId}
+              onClick={() => setRefreshOpen(true)}
+            >
+              Refresh from template
+            </Button>
+          ) : null}
           <Button
             size="sm"
-            disabled={selected.size === 0 || !canAdopt}
+            disabled={selectedImportable.length === 0 || !canAdopt}
             onClick={handlePreview}
           >
             <ShoppingCart className="mr-1.5 size-4" />
@@ -844,7 +1015,9 @@ export default function GlobalCatalogPage() {
                 <Package className="size-3.5" /> Starter packs
               </h3>
               <div className="space-y-1">
-                {meta?.packs.map((pack) => (
+                {orderedPacks.map((pack) => {
+                  const recommended = !!pack.storeKitId && storeTypes.some((t) => t === pack.storeKitId);
+                  return (
                   <button
                     key={pack.id}
                     onClick={() => {
@@ -858,10 +1031,16 @@ export default function GlobalCatalogPage() {
                         : "hover:bg-muted"
                     )}
                   >
-                    <span className="truncate">{pack.name}</span>
+                    <span className="truncate">
+                      {pack.name}
+                      {recommended ? (
+                        <span className="ml-1 opacity-70">· for you</span>
+                      ) : null}
+                    </span>
                     <span className="shrink-0 tabular-nums opacity-70">{pack.productCount}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -982,7 +1161,7 @@ export default function GlobalCatalogPage() {
                           <input
                             type="checkbox"
                             checked={selected.has(p.id)}
-                            disabled={p.alreadyImported}
+                            disabled={false}
                             onChange={() => toggleProduct(p)}
                             className="size-4 rounded border"
                           />
@@ -1088,6 +1267,67 @@ export default function GlobalCatalogPage() {
         </main>
       </div>
 
+      <Dialog open={refreshOpen} onOpenChange={setRefreshOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Refresh from template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Apply latest catalog recommendations to {selectedImported.length} product
+              {selectedImported.length === 1 ? "" : "s"} already in your shop. Nothing changes
+              until you confirm.
+            </p>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="size-4 rounded border"
+                checked={refreshSell}
+                onChange={(e) => setRefreshSell(e.target.checked)}
+              />
+              Update selling prices
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="size-4 rounded border"
+                checked={refreshBuy}
+                onChange={(e) => setRefreshBuy(e.target.checked)}
+              />
+              Update buying prices
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="size-4 rounded border"
+                checked={refreshImage}
+                onChange={(e) => setRefreshImage(e.target.checked)}
+              />
+              Fill missing product images
+            </label>
+            <label className="flex items-center gap-2 text-muted-foreground">
+              <input
+                type="checkbox"
+                className="size-4 rounded border"
+                checked={skipCustomSell}
+                onChange={(e) => setSkipCustomSell(e.target.checked)}
+                disabled={!refreshSell}
+              />
+              Skip products with customized sell prices
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setRefreshOpen(false)} disabled={refreshing}>
+                Cancel
+              </Button>
+              <Button disabled={refreshing} onClick={() => void handleRefreshFromTemplate()}>
+                {refreshing ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+                Preview & apply
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
           <DialogHeader className="px-4 pt-4">
@@ -1096,7 +1336,7 @@ export default function GlobalCatalogPage() {
           <div className="overflow-auto px-4 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-muted-foreground">
-                {selected.size} selected · importing into{" "}
+                {selectedImportable.length} selected · importing into{" "}
                 {branches.find((b) => b.id === defaultBranchId)?.name ?? "default branch"}
               </p>
               {previewLoading ? (
@@ -1113,6 +1353,18 @@ export default function GlobalCatalogPage() {
                 </span>
               ) : null}
             </div>
+            <label className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 rounded border"
+                checked={createMissingCategories}
+                onChange={(e) => setCreateMissingCategories(e.target.checked)}
+              />
+              <span>
+                Create missing categories from catalog hints (when your shop has no matching
+                category slug)
+              </span>
+            </label>
             {previewResult && !previewLoading ? (
               <div className="mt-3 space-y-2 rounded-lg border border-border/80 bg-muted/20 p-3">
                 <p className="text-[11px] font-medium text-foreground">
@@ -1197,7 +1449,7 @@ export default function GlobalCatalogPage() {
               </div>
             ) : null}
             <div className="mt-3 space-y-3">
-              {Array.from(selected.values()).map((p) => {
+              {selectedImportable.map((p) => {
                 const override = lineOverrides.get(p.id);
                 const previewLine = previewByProductId.get(p.id);
                 const isSkipped = skippedProductIds.has(p.id);

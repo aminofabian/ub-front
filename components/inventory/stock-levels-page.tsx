@@ -476,7 +476,7 @@ export function StockLevelsPage() {
       const targetRaw = editQty.trim();
       const target = Number(targetRaw);
       if (!targetRaw || !Number.isFinite(target) || target < 0) {
-        toast.error("Enter an on-hand quantity of zero or more.");
+        toast.error("Enter an in-store quantity of zero or more.");
         return;
       }
       const delta = Math.round((target - row.stock) * 10000) / 10000;
@@ -711,7 +711,7 @@ export function StockLevelsPage() {
             icon={Warehouse}
             eyebrow="Inventory"
             title="Stock"
-            description="On-hand by branch — filter by status, or sort by highest sell, buy, or stock value."
+            description="In-store on-hand for the selected branch — filter by status, or sort by highest sell, buy, or stock value."
           />
           {quickLinks.length > 0 ? (
             <DashboardQuickLinks compact links={quickLinks} />
@@ -869,7 +869,7 @@ export function StockLevelsPage() {
               <p className="text-sm text-muted-foreground">
                 {isBranchLockedRole
                   ? "Your account is not assigned to a branch. Contact your administrator."
-                  : "Choose a branch to see stock levels."}
+                  : "Choose a branch to see in-store stock."}
               </p>
             </div>
           ) : loading ? (
@@ -904,7 +904,7 @@ export function StockLevelsPage() {
                         <tr className={supTableHead}>
                           <th className={cn(supTableCell, "min-w-[10rem]")}>Product</th>
                           <th className={cn(supTableCell, "min-w-[6rem]")}>Category</th>
-                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>On hand</th>
+                          <th className={cn(supTableCell, "w-[5.5rem] text-right")}>In store</th>
                           <th className={cn(supTableCell, "w-[5rem] text-right")}>Reorder</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Buy</th>
                           <th className={cn(supTableCell, "w-[5.5rem] text-right")}>Sell</th>

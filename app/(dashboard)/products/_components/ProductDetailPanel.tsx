@@ -38,6 +38,7 @@ import {
   effectiveSupplierUnitCost,
   effectiveOnHand,
   formatAmount,
+  formatOverallStockLabel,
   formatStockLabel,
   packageUnitsPerSaleFromRow,
   toNumber,
@@ -354,6 +355,7 @@ export function ProductDetailPanel(props: Props) {
   const sharedStock = usesSharedPackageStock(detail);
   const stockLevel = effectiveOnHand(detail);
   const stockLabel = formatStockLabel(detail);
+  const overallStockLabel = formatOverallStockLabel(detail);
   const minStock = toNumber(detail.minStockLevel);
   const stockLow =
     !sharedStock &&
@@ -415,6 +417,8 @@ export function ProductDetailPanel(props: Props) {
       isEmpty?: boolean;
       onActivate?: () => void;
       editContent?: React.ReactNode;
+      /** Secondary line under the value (e.g. overall stock). */
+      hint?: string;
     },
   ) => {
     const isEditing = quickEdit === editKey;
@@ -466,6 +470,11 @@ export function ProductDetailPanel(props: Props) {
             >
               {display}
             </p>
+            {opts.hint ? (
+              <p className="mt-0.5 text-[9px] tabular-nums leading-snug text-muted-foreground">
+                {opts.hint}
+              </p>
+            ) : null}
             {opts.canEdit ? (
               <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-medium text-primary/80 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/stat:opacity-100 sm:group-focus-visible/stat:opacity-100">
                 <Pencil className="size-2.5" aria-hidden />
@@ -909,7 +918,7 @@ export function ProductDetailPanel(props: Props) {
             },
           )}
           {renderPricingStatCell(
-            sharedStock ? "Available" : "Stock",
+            sharedStock ? "Available" : "In store",
             stockLabel,
             "stock",
             () => void saveQuickStock(),
@@ -925,6 +934,10 @@ export function ProductDetailPanel(props: Props) {
               onActivate:
                 sharedStock && onOpenBaseStock
                   ? onOpenBaseStock
+                  : undefined,
+              hint:
+                overallStockLabel !== "—"
+                  ? `Overall ${overallStockLabel}`
                   : undefined,
             },
           )}
@@ -954,7 +967,7 @@ export function ProductDetailPanel(props: Props) {
               </label>
               <label className="w-[5.5rem] shrink-0">
                 <span className={cn(productFormLabelClass, "mb-0.5 block")}>
-                  On hand
+                  In store
                 </span>
                 <input
                   autoFocus
@@ -963,7 +976,7 @@ export function ProductDetailPanel(props: Props) {
                   value={quickStock}
                   onChange={(e) => setQuickStock(e.target.value)}
                   placeholder="0"
-                  aria-label="On-hand quantity"
+                  aria-label="In-store quantity"
                 />
               </label>
               {(() => {
@@ -991,7 +1004,7 @@ export function ProductDetailPanel(props: Props) {
             </div>
             {quickStockBaselineLoading ? (
               <p className="mt-1 text-[10px] text-muted-foreground">
-                Loading current stock…
+                Loading in-store stock…
               </p>
             ) : quickStockBaseline != null ? (
               <p className="mt-1 text-[10px] tabular-nums text-muted-foreground">
@@ -1731,7 +1744,7 @@ export function ProductDetailPanel(props: Props) {
               onClick={onOpenBaseStock}
             >
               <PackagePlus className="size-3.5" aria-hidden />
-              Stock
+              Base stock
             </Button>
           ) : (
             <Button

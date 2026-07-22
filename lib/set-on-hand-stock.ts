@@ -82,7 +82,6 @@ export async function resolveStockHolderForEdit(opts: {
     const base =
       parseQty(detail.baseStockQty) ??
       parseQty(holder.stockQty) ??
-      parseQty(holder.currentStock) ??
       0;
     holderCurrent = base;
     if (isPackage && units != null && units > 0) {
@@ -94,8 +93,7 @@ export async function resolveStockHolderForEdit(opts: {
       displayCurrent = base;
     }
   } else {
-    holderCurrent =
-      parseQty(detail.stockQty) ?? parseQty(detail.currentStock) ?? 0;
+    holderCurrent = parseQty(detail.stockQty) ?? 0;
     displayCurrent = holderCurrent;
   }
 

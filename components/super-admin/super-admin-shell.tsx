@@ -74,6 +74,18 @@ function crumbLabel(pathname: string): { items: { label: string; href?: string }
       ],
     };
   }
+  if (
+    pathname === APP_ROUTES.superAdminPlatformGlobalCatalog ||
+    pathname.startsWith(`${APP_ROUTES.superAdminPlatformGlobalCatalog}/`)
+  ) {
+    return {
+      items: [
+        { label: "Overview", href: APP_ROUTES.superAdminDashboard },
+        { label: "Platform" },
+        { label: "Global catalog" },
+      ],
+    };
+  }
   return { items: [{ label: "Super admin" }] };
 }
 
@@ -228,6 +240,7 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           </Collapsible.Trigger>
           <Collapsible.Content className="overflow-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0">
             <div className="ml-1.5 space-y-0.5 border-l border-border/50 py-1 pl-3">
+              <NavLeaf href={APP_ROUTES.superAdminPlatformGlobalCatalog} label="Global catalog" match="prefix" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformPayments} label="Payment gateways" />
               <NavLeaf href={APP_ROUTES.superAdminPlatformIntegrations} label="Integrations" />
             </div>

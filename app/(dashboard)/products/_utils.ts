@@ -48,7 +48,6 @@ export function effectiveSupplierUnitCost(
   return buy ?? null;
 }
 
-/** Human-readable stock for catalog rows and detail (supports package variants). */
 /** Base product id for variants/packages (never a child variant id). */
 export function resolveCatalogParentId(
   detail: { id: string; variantOfItemId?: string | null } | null,
@@ -115,6 +114,11 @@ export function normalizeItemDetail<T extends ItemDetailRecord>(row: T): T {
   };
 }
 
+/**
+ * Human-readable **in-store** (branch on-hand) for catalog rows and detail.
+ * Uses `stockQty` / `baseStockQty` only — never falls back to business-wide
+ * `currentStock` (overall), which would blend the two numbers.
+ */
 export function formatStockLabel(
   row: {
     packageVariant?: boolean;
@@ -122,19 +126,15 @@ export function formatStockLabel(
     baseStockQty?: number | string | null;
     packageUnitsPerSale?: number | string | null;
     packagingUnitQty?: number | string | null;
-    currentStock?: number | string | null;
   } | null | undefined,
 ): string {
   if (!row) return "—";
   if (row.packageVariant) {
     const pkgs = toNumber(row.stockQty);
+    const units = packageUnitsPerSaleFromRow(row);
     const base =
       toNumber(row.baseStockQty) ??
-      (pkgs != null && packageUnitsPerSaleFromRow(row) != null
-        ? pkgs * packageUnitsPerSaleFromRow(row)!
-        : null) ??
-      toNumber(row.currentStock);
-    const units = packageUnitsPerSaleFromRow(row);
+      (pkgs != null && units != null ? pkgs * units : null);
     if (pkgs == null && base == null) return "—";
     const pkgPart = pkgs != null ? `${pkgs} pkg` : "—";
     if (base != null && units != null && units > 0) {
@@ -142,11 +142,22 @@ export function formatStockLabel(
     }
     return pkgPart;
   }
-  const onHand = toNumber(row.stockQty) ?? toNumber(row.currentStock);
+  const onHand = toNumber(row.stockQty);
   return onHand != null ? onHand.toLocaleString() : "—";
 }
 
-/** Branch on-hand in base units (packages → base for package variants). */
+/** Business-wide overall stock (`items.currentStock`) — distinct from in-store. */
+export function formatOverallStockLabel(
+  row: { currentStock?: number | string | null } | null | undefined,
+): string {
+  const n = toNumber(row?.currentStock);
+  return n != null ? n.toLocaleString() : "—";
+}
+
+/**
+ * Branch on-hand in base units (packages → base for package variants).
+ * Never uses overall `currentStock` as a stand-in for in-store qty.
+ */
 export function effectiveOnHand(
   detail: {
     packageVariant?: boolean;
@@ -154,7 +165,6 @@ export function effectiveOnHand(
     baseStockQty?: number | string | null;
     packageUnitsPerSale?: number | string | null;
     packagingUnitQty?: number | string | null;
-    currentStock?: number | string | null;
   } | null | undefined,
 ): number | null {
   if (!detail) return null;
@@ -164,9 +174,9 @@ export function effectiveOnHand(
     const pkgs = toNumber(detail.stockQty);
     const units = packageUnitsPerSaleFromRow(detail);
     if (pkgs != null && units != null) return pkgs * units;
-    return toNumber(detail.currentStock);
+    return null;
   }
-  return toNumber(detail.stockQty) ?? toNumber(detail.currentStock);
+  return toNumber(detail.stockQty);
 }
 
 export function formatAmount(value: number | null | undefined): string {
