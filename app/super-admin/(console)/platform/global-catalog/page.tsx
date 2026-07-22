@@ -34,6 +34,7 @@ import {
   type SaCatalogSummary,
   type SaGlobalCatalogMeta,
   type SaGlobalProduct,
+  type SaPromoteProgress,
   type SaPromoteResult,
   type SaSourceBusiness,
   type SaSourceItem,
@@ -123,6 +124,7 @@ export default function SuperAdminGlobalCatalogPage() {
   const [preview, setPreview] = useState<SaPromoteResult | null>(null);
   const [promoteAsPublished, setPromoteAsPublished] = useState(false);
   const [lastPromoteResult, setLastPromoteResult] = useState<SaPromoteResult | null>(null);
+  const [promoteProgress, setPromoteProgress] = useState<SaPromoteProgress | null>(null);
   const csvImportRef = useRef<HTMLInputElement>(null);
   const sourceFetchGen = useRef(0);
 
@@ -601,14 +603,25 @@ export default function SuperAdminGlobalCatalogPage() {
       return;
     }
     setBusy(true);
+    setPromoteProgress({
+      phase: "queued",
+      processed: 0,
+      total: n,
+      message: "Starting…",
+      chunkIndex: 0,
+      chunkCount: 1,
+    });
     try {
-      const result = await commitSaPromote({
-        sourceBusinessId,
-        itemIds: [...selectedSourceIds],
-        onConflict: "update",
-        publish: promoteAsPublished,
-        catalogId,
-      });
+      const result = await commitSaPromote(
+        {
+          sourceBusinessId,
+          itemIds: [...selectedSourceIds],
+          onConflict: "update",
+          publish: promoteAsPublished,
+          catalogId,
+        },
+        setPromoteProgress,
+      );
       setPreview(result);
       setLastPromoteResult(result);
       setSelectedSourceIds(new Set());
@@ -621,6 +634,7 @@ export default function SuperAdminGlobalCatalogPage() {
       toast.error(e instanceof Error ? e.message : "Promote failed.");
     } finally {
       setBusy(false);
+      setPromoteProgress(null);
     }
   };
 
@@ -801,6 +815,7 @@ export default function SuperAdminGlobalCatalogPage() {
           onPromoteAsPublishedChange={setPromoteAsPublished}
           publishableIds={promotedGlobalIds(lastPromoteResult)}
           busy={busy}
+          progress={promoteProgress}
           onPreview={() => void onPreviewPromote()}
           onCommit={() => void onCommitPromote()}
           onPublishPromoted={() => void onPublishPromotedDrafts()}
@@ -1177,6 +1192,7 @@ function PromotePanel({
   onPromoteAsPublishedChange,
   publishableIds,
   busy,
+  progress,
   onPreview,
   onCommit,
   onPublishPromoted,
@@ -1201,6 +1217,7 @@ function PromotePanel({
   onPromoteAsPublishedChange: (value: boolean) => void;
   publishableIds: string[];
   busy: boolean;
+  progress: SaPromoteProgress | null;
   onPreview: () => void;
   onCommit: () => void;
   onPublishPromoted: () => void;
@@ -1336,6 +1353,8 @@ function PromotePanel({
         </div>
       </div>
 
+      {progress ? <PromoteProgressCard progress={progress} /> : null}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <input
@@ -1367,6 +1386,86 @@ function PromotePanel({
       </div>
     </div>
   );
+}
+
+const PROMOTE_PHASE_LABELS: Record<SaPromoteProgress["phase"], string> = {
+  queued: "Queued",
+  processing: "Promoting",
+  finalizing: "Finishing up",
+};
+
+function PromoteProgressCard({ progress }: { progress: SaPromoteProgress }) {
+  const startedAtRef = useRef(Date.now());
+  const percent =
+    progress.total > 0
+      ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
+      : 0;
+  const indeterminate = progress.phase === "queued" || progress.processed === 0;
+  const elapsedMs = Date.now() - startedAtRef.current;
+  const etaLabel = estimatePromoteEta(progress.processed, progress.total, elapsedMs);
+
+  return (
+    <div
+      className="space-y-3 rounded-2xl border border-primary/25 bg-primary/[0.04] p-4"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="relative flex size-2.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+          </span>
+          <span className="text-sm font-medium">
+            {PROMOTE_PHASE_LABELS[progress.phase]}
+            {progress.chunkCount > 1
+              ? ` · batch ${progress.chunkIndex + 1} of ${progress.chunkCount}`
+              : ""}
+          </span>
+        </div>
+        <span className="font-heading text-sm font-semibold tabular-nums">
+          {progress.processed.toLocaleString()} / {progress.total.toLocaleString()}
+          {indeterminate ? "" : ` · ${percent}%`}
+        </span>
+      </div>
+
+      <div className="h-2.5 overflow-hidden rounded-full bg-primary/10">
+        {indeterminate ? (
+          <div className="h-full w-1/3 animate-[promote-slide_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-primary/30 via-primary to-primary/30" />
+        ) : (
+          <div
+            className="relative h-full rounded-full bg-gradient-to-r from-primary/70 to-primary transition-[width] duration-700 ease-out"
+            style={{ width: `${Math.max(percent, 2)}%` }}
+          >
+            <div className="absolute inset-0 animate-[promote-shimmer_1.6s_linear_infinite] bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="min-w-0 truncate">
+          {progress.message ?? "Working…"}
+        </span>
+        {etaLabel ? <span className="shrink-0 tabular-nums">{etaLabel}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+const ETA_MIN_SAMPLE_ITEMS = 5;
+const ETA_MIN_ELAPSED_MS = 4000;
+
+function estimatePromoteEta(processed: number, total: number, elapsedMs: number): string | null {
+  if (processed < ETA_MIN_SAMPLE_ITEMS || elapsedMs < ETA_MIN_ELAPSED_MS || processed >= total) {
+    return null;
+  }
+  const msPerItem = elapsedMs / processed;
+  const remainingMs = msPerItem * (total - processed);
+  const remainingSec = Math.round(remainingMs / 1000);
+  if (remainingSec < 60) return `~${Math.max(remainingSec, 5)}s left`;
+  const minutes = Math.floor(remainingSec / 60);
+  const seconds = remainingSec % 60;
+  return `~${minutes}m ${seconds.toString().padStart(2, "0")}s left`;
 }
 
 function Stat({

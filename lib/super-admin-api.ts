@@ -973,10 +973,22 @@ export async function previewSaPromote(body: {
   });
 }
 
-const SYNC_PROMOTE_MAX_ITEMS = 100;
+const SYNC_PROMOTE_MAX_ITEMS = 25;
 const JOB_PROMOTE_MAX_ITEMS = 500;
-const PROMOTE_JOB_POLL_MS = 1500;
-const PROMOTE_JOB_TIMEOUT_MS = 5 * 60 * 1000;
+const PROMOTE_JOB_POLL_MS = 1200;
+/** Fail only when the job stops making progress, not on a fixed wall clock. */
+const PROMOTE_JOB_STALL_TIMEOUT_MS = 3 * 60 * 1000;
+
+export type SaPromoteProgress = {
+  phase: "queued" | "processing" | "finalizing";
+  /** Items processed within the whole promote (across chunks). */
+  processed: number;
+  total: number;
+  /** Live status line from the worker, e.g. "Promoting 137 of 500 — Coca Cola 500ml". */
+  message: string | null;
+  chunkIndex: number;
+  chunkCount: number;
+};
 
 export type SaGlobalCatalogJobStatus = {
   id: string;
@@ -1015,10 +1027,15 @@ async function fetchSaPromoteJob(jobId: string): Promise<SaGlobalCatalogJobStatu
   );
 }
 
-async function waitForSaPromoteJob(jobId: string): Promise<SaPromoteResult> {
-  const started = Date.now();
-  while (Date.now() - started < PROMOTE_JOB_TIMEOUT_MS) {
+async function waitForSaPromoteJob(
+  jobId: string,
+  onJobUpdate?: (job: SaGlobalCatalogJobStatus) => void,
+): Promise<SaPromoteResult> {
+  let lastMovementAt = Date.now();
+  let lastSignature = "";
+  for (;;) {
     const job = await fetchSaPromoteJob(jobId);
+    onJobUpdate?.(job);
     if (job.status === "completed") {
       if (!job.result) {
         throw new Error(job.statusMessage || "Promote job completed without a result.");
@@ -1028,19 +1045,39 @@ async function waitForSaPromoteJob(jobId: string): Promise<SaPromoteResult> {
     if (job.status === "failed") {
       throw new Error(job.statusMessage || "Promote job failed.");
     }
+    const signature = `${job.status}:${job.rowsProcessed}:${job.statusMessage ?? ""}`;
+    if (signature !== lastSignature) {
+      lastSignature = signature;
+      lastMovementAt = Date.now();
+    } else if (Date.now() - lastMovementAt > PROMOTE_JOB_STALL_TIMEOUT_MS) {
+      throw new Error(
+        "Promote job stalled (no progress for 3 minutes). It may still finish in the background — refresh to check.",
+      );
+    }
     await new Promise((resolve) => setTimeout(resolve, PROMOTE_JOB_POLL_MS));
   }
-  throw new Error("Promote job timed out. Check job status and try again.");
 }
 
-export async function commitSaPromote(body: {
-  sourceBusinessId: string;
-  itemIds: string[];
-  onConflict?: "update" | "skip";
-  publish?: boolean;
-  catalogId?: string | null;
-}): Promise<SaPromoteResult> {
-  if (body.itemIds.length <= SYNC_PROMOTE_MAX_ITEMS) {
+export async function commitSaPromote(
+  body: {
+    sourceBusinessId: string;
+    itemIds: string[];
+    onConflict?: "update" | "skip";
+    publish?: boolean;
+    catalogId?: string | null;
+  },
+  onProgress?: (progress: SaPromoteProgress) => void,
+): Promise<SaPromoteResult> {
+  const total = body.itemIds.length;
+  if (total <= SYNC_PROMOTE_MAX_ITEMS) {
+    onProgress?.({
+      phase: "processing",
+      processed: 0,
+      total,
+      message: null,
+      chunkIndex: 0,
+      chunkCount: 1,
+    });
     return saRequest<SaPromoteResult>(`${API_ROUTES.superAdminGlobalCatalog}/promote`, {
       method: "POST",
       body: JSON.stringify(body),
@@ -1057,11 +1094,33 @@ export async function commitSaPromote(body: {
   let skippedCount = 0;
   let imageRehostCount = 0;
   const lines: SaPromoteLine[] = [];
+  let completedBefore = 0;
 
-  for (const itemIds of chunks) {
+  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+    const itemIds = chunks[chunkIndex];
+    const baseProcessed = completedBefore;
+    onProgress?.({
+      phase: "queued",
+      processed: baseProcessed,
+      total,
+      message: "Waiting for background worker…",
+      chunkIndex,
+      chunkCount: chunks.length,
+    });
     const chunkResult = await waitForSaPromoteJob(
       await enqueueSaPromoteJob({ ...body, itemIds }),
+      (job) => {
+        onProgress?.({
+          phase: job.status === "pending" ? "queued" : "processing",
+          processed: baseProcessed + (job.rowsProcessed ?? 0),
+          total,
+          message: job.statusMessage,
+          chunkIndex,
+          chunkCount: chunks.length,
+        });
+      },
     );
+    completedBefore += itemIds.length;
     createdCount += chunkResult.createdCount;
     updatedCount += chunkResult.updatedCount;
     skippedCount += chunkResult.skippedCount;
@@ -1069,6 +1128,14 @@ export async function commitSaPromote(body: {
     lines.push(...(chunkResult.lines ?? []));
   }
 
+  onProgress?.({
+    phase: "finalizing",
+    processed: total,
+    total,
+    message: "Wrapping up…",
+    chunkIndex: chunks.length - 1,
+    chunkCount: chunks.length,
+  });
   return { createdCount, updatedCount, skippedCount, imageRehostCount, lines };
 }
 

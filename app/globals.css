@@ -538,6 +538,25 @@
     animation: shimmer 2s infinite;
 }
 
+/* Super-admin promote job progress bar */
+@keyframes promote-slide {
+    0% {
+        transform: translateX(-120%);
+    }
+    100% {
+        transform: translateX(320%);
+    }
+}
+
+@keyframes promote-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
 @keyframes aisle-marquee {
     from {
         transform: translateX(0);
