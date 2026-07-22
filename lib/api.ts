@@ -6927,12 +6927,16 @@ export async function deletePathBLine(
 export async function postPathBSession(
   sessionId: string,
   body: PostPathBPayload,
+  opts?: { idempotencyKey?: string },
 ): Promise<PostPathBResult> {
   return request<PostPathBResult>(
     `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}/post`,
     {
       method: "POST",
       body,
+      ...(opts?.idempotencyKey?.trim()
+        ? { idempotencyKey: opts.idempotencyKey.trim() }
+        : {}),
     },
   );
 }

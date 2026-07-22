@@ -469,6 +469,8 @@ export function NewSupplyDrawer({
   const didAttemptRestoreRef = useRef(false);
   const didAttemptServerResumeRef = useRef(false);
   const serverSyncGenRef = useRef(0);
+  /** Stable key so double-submit / retry of Post supply does not create duplicate invoices. */
+  const postIdempotencyKeyRef = useRef<string | null>(null);
   /** Rows to merge onto the next supplier-link fetch (browser draft restore). */
   const pendingMergeRowsRef = useRef<SupplyDraftRowPersisted[] | null>(null);
   const rowsRef = useRef<SupplyDraftRow[]>([]);
@@ -1446,6 +1448,9 @@ export function NewSupplyDrawer({
     }
     setBusy(true);
     serverSyncGenRef.current += 1;
+    if (!postIdempotencyKeyRef.current) {
+      postIdempotencyKeyRef.current = nextIdempotencyKey();
+    }
     try {
       const syncRows: SyncableSupplyRow[] = rows.map((row) => {
         const payload = linePayload(row);
@@ -1514,7 +1519,9 @@ export function NewSupplyDrawer({
           };
         }),
       };
-      const postResult = await postPathBSession(sessionId, postBody);
+      const postResult = await postPathBSession(sessionId, postBody, {
+        idempotencyKey: postIdempotencyKeyRef.current ?? undefined,
+      });
 
       // Save extras/expenses to the new supply batch
       const sbId = postResult.supplyBatchId;
@@ -1576,6 +1583,7 @@ export function NewSupplyDrawer({
       setDraftRestoredAt(null);
       setServerSessionId(null);
       setServerSyncState("idle");
+      postIdempotencyKeyRef.current = null;
       if (priceErrors.length > 0) {
         setError(
           `Supply posted, but shelf price could not be updated for: ${priceErrors.join("; ")}`,
