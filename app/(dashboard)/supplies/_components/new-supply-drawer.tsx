@@ -951,7 +951,7 @@ export function NewSupplyDrawer({
               sellPrice: sell,
             };
           });
-          const sessionId = await ensureSupplyPathBSession({
+          const ensured = await ensureSupplyPathBSession({
             sessionId: serverSessionId,
             supplier,
             branchId,
@@ -966,11 +966,15 @@ export function NewSupplyDrawer({
           if (serverSyncGenRef.current !== gen) {
             return;
           }
-          const synced = await syncSupplyPathBLines(sessionId, syncRows);
+          const synced = await syncSupplyPathBLines(
+            ensured.sessionId,
+            syncRows,
+            { resetServerLineIds: !ensured.reused },
+          );
           if (serverSyncGenRef.current !== gen) {
             return;
           }
-          setServerSessionId(sessionId);
+          setServerSessionId(ensured.sessionId);
           setRows((prev) =>
             prev.map((row) => {
               const match = synced.find((s) => s.key === row.key);
@@ -1464,7 +1468,7 @@ export function NewSupplyDrawer({
           sellPrice: sell,
         };
       });
-      const sessionId = await ensureSupplyPathBSession({
+      const ensured = await ensureSupplyPathBSession({
         sessionId: serverSessionId,
         supplier,
         branchId,
@@ -1476,7 +1480,12 @@ export function NewSupplyDrawer({
           extras,
         }),
       });
-      const syncedRows = await syncSupplyPathBLines(sessionId, syncRows);
+      const syncedRows = await syncSupplyPathBLines(
+        ensured.sessionId,
+        syncRows,
+        { resetServerLineIds: !ensured.reused },
+      );
+      setServerSessionId(ensured.sessionId);
       const synced = syncedRows
         .map((s) => {
           const row = rows.find((r) => r.key === s.key);
@@ -1491,6 +1500,7 @@ export function NewSupplyDrawer({
       if (synced.length === 0) {
         throw new Error("Enter quantity and cost for at least one line.");
       }
+      const sessionId = ensured.sessionId;
       const postBody = {
         lines: synced.map(({ row, serverLineId }) => {
           const qty = parsePositiveQty(row.qtyStr) ?? 0;

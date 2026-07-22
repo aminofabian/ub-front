@@ -183,35 +183,52 @@ export async function ensureSupplyPathBSession(input: {
   receivedAtIso: string;
   notes: string | null;
   clientDraftJson: string | null;
-}): Promise<string> {
-  if (input.sessionId?.trim()) {
+}): Promise<{ sessionId: string; reused: boolean }> {
+  const create = async () => {
+    const created = await createPathBSession({
+      supplierId: input.supplier.id,
+      branchId: input.branchId.trim(),
+      receivedAt: input.receivedAtIso,
+      notes: input.notes,
+      clientDraftJson: input.clientDraftJson,
+    });
+    return { sessionId: created.id, reused: false as const };
+  };
+
+  if (!input.sessionId?.trim()) {
+    return create();
+  }
+
+  try {
     await patchPathBSession(input.sessionId.trim(), {
       receivedAt: input.receivedAtIso,
       notes: input.notes,
       clientDraftJson: input.clientDraftJson,
     });
-    return input.sessionId.trim();
+    return { sessionId: input.sessionId.trim(), reused: true };
+  } catch {
+    // Stale session or schema mismatch — start a fresh draft session.
+    return create();
   }
-  const created = await createPathBSession({
-    supplierId: input.supplier.id,
-    branchId: input.branchId.trim(),
-    receivedAt: input.receivedAtIso,
-    notes: input.notes,
-    clientDraftJson: input.clientDraftJson,
-  });
-  return created.id;
 }
 
 /**
  * Sync filled rows to the server draft; returns rows with serverLineId assigned.
  * Rows without a syncable payload are returned unchanged (serverLineId cleared if previously set).
+ * When {@link resetServerLineIds} is true, all lines are re-created (after a new session).
  */
 export async function syncSupplyPathBLines(
   sessionId: string,
   rows: SyncableSupplyRow[],
+  opts?: { resetServerLineIds?: boolean },
 ): Promise<SyncableSupplyRow[]> {
   const sid = sessionId.trim();
-  const syncable = rows
+  const reset = Boolean(opts?.resetServerLineIds);
+  const working = reset
+    ? rows.map((r) => ({ ...r, serverLineId: null }))
+    : rows;
+
+  const syncable = working
     .map((row) => ({ row, payload: toLinePayload(row) }))
     .filter((x): x is { row: SyncableSupplyRow; payload: AddPathBLinePayload } => x.payload != null);
 
@@ -221,37 +238,60 @@ export async function syncSupplyPathBLines(
       .filter((id): id is string => Boolean(id)),
   );
 
-  const knownIds = new Set(
-    rows
-      .map((r) => r.serverLineId?.trim())
-      .filter((id): id is string => Boolean(id)),
-  );
-  for (const id of knownIds) {
-    if (!keepIds.has(id)) {
-      try {
-        await deletePathBLine(sid, id);
-      } catch {
-        /* line may already be gone */
+  if (!reset) {
+    const knownIds = new Set(
+      working
+        .map((r) => r.serverLineId?.trim())
+        .filter((id): id is string => Boolean(id)),
+    );
+    for (const id of knownIds) {
+      if (!keepIds.has(id)) {
+        try {
+          await deletePathBLine(sid, id);
+        } catch {
+          /* line may already be gone */
+        }
       }
     }
   }
 
   const nextByKey = new Map<string, SyncableSupplyRow>();
-  for (const row of rows) {
+  for (const row of working) {
     nextByKey.set(row.key, { ...row, serverLineId: null });
   }
 
   for (const { row, payload } of syncable) {
-    if (row.serverLineId?.trim()) {
-      const updated = await patchPathBLine(sid, row.serverLineId.trim(), payload);
-      nextByKey.set(row.key, { ...row, serverLineId: updated.id });
-    } else {
-      const created = await addPathBLine(sid, payload);
-      nextByKey.set(row.key, { ...row, serverLineId: created.id });
+    // Prefer classic line payload if draft fields are rejected by an older schema.
+    const classicPayload: AddPathBLinePayload = {
+      description: payload.description,
+      amountMoney: payload.amountMoney,
+      suggestedItemId: payload.suggestedItemId,
+    };
+    const tryPayloads = [payload, classicPayload];
+    let saved: PathBLineRecord | null = null;
+    let lastError: unknown = null;
+    for (const body of tryPayloads) {
+      try {
+        if (row.serverLineId?.trim()) {
+          saved = await patchPathBLine(sid, row.serverLineId.trim(), body);
+        } else {
+          saved = await addPathBLine(sid, body);
+        }
+        lastError = null;
+        break;
+      } catch (e) {
+        lastError = e;
+      }
     }
+    if (!saved) {
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Could not sync supply line");
+    }
+    nextByKey.set(row.key, { ...row, serverLineId: saved.id });
   }
 
-  return rows.map((r) => nextByKey.get(r.key) ?? r);
+  return working.map((r) => nextByKey.get(r.key) ?? r);
 }
 
 export async function findLatestSupplyPathBDraft(opts: {
