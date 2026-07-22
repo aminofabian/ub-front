@@ -26,6 +26,7 @@ import { CommandGrid } from "@/components/business-hub/command-grid";
 import { HubAllClear } from "@/components/business-hub/hub-all-clear";
 import { PeriodToggle } from "@/components/business-hub/period-toggle";
 import { PostSetupChecklist } from "@/components/business-hub/post-setup-checklist";
+import { StockShelvesBanner } from "@/components/business-hub/stock-shelves-banner";
 import { PulseHero } from "@/components/business-hub/pulse-hero";
 import { RevenueBarChart } from "@/components/business-hub/revenue-bar-chart";
 import { StockHealthPanel } from "@/components/business-hub/stock-health-panel";
@@ -712,7 +713,9 @@ export function BusinessHubWorkspace() {
 
       <CommandGrid links={commandLinks} />
 
-      <PostSetupChecklist />
+      <StockShelvesBanner catalogueCount={catalogueCount} />
+
+      <PostSetupChecklist catalogueCount={catalogueCount} />
     </div>
   );
 }

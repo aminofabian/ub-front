@@ -30,6 +30,7 @@ import {
   type StoreTypeChoice,
 } from "@/lib/onboarding-questionnaire";
 import { cn } from "@/lib/utils";
+import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_LOGO_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
@@ -50,20 +51,29 @@ type Props = {
   onSkip: () => void;
   canBrowseGlobalCatalog?: boolean;
   onBrowseCatalog?: () => void;
+  onImportSuggestedPack?: () => void;
   onAddProductsManually?: () => void;
   onFinishLater?: () => void;
   /** ISO country for locality placeholders (defaults to KE examples). */
   countryCode?: string | null;
+  currency?: string | null;
   /** When true, step 6 shows empty-catalog copy instead of browse CTA. */
   catalogShellEmpty?: boolean;
   catalogLabel?: string | null;
+  suggestedPack?: OnboardingSuggestedPackPreview | null;
+  packLoading?: boolean;
 };
 
 function QuestionnaireProgress({ step }: { step: number }) {
-  const percent = Math.round((step / QUESTIONNAIRE_STEP_COUNT) * 100);
+  const answerSteps = QUESTIONNAIRE_STEP_COUNT - 1;
+  const clamped = Math.min(step, answerSteps);
+  const percent =
+    step >= QUESTIONNAIRE_STEP_COUNT
+      ? 100
+      : Math.round((clamped / answerSteps) * 100);
   const label =
-    percent >= 100
-      ? "You're all set — finish to complete setup"
+    step >= QUESTIONNAIRE_STEP_COUNT
+      ? "Last step — stock your shelves"
       : `You're ${percent}% done`;
 
   return (
@@ -71,7 +81,9 @@ function QuestionnaireProgress({ step }: { step: number }) {
       <div className="flex items-center justify-between gap-3 text-xs">
         <span className="font-medium text-[#374151]">{label}</span>
         <span className="tabular-nums text-[#9CA3AF]">
-          Step {step} of {QUESTIONNAIRE_STEP_COUNT}
+          {step >= QUESTIONNAIRE_STEP_COUNT
+            ? "Final step"
+            : `Step ${step} of ${answerSteps}`}
         </span>
       </div>
       <div
@@ -156,11 +168,15 @@ export function OnboardingQuestionnaire({
   onSkip,
   canBrowseGlobalCatalog = false,
   onBrowseCatalog,
+  onImportSuggestedPack,
   onAddProductsManually,
   onFinishLater,
   countryCode = null,
+  currency = null,
   catalogShellEmpty = false,
   catalogLabel = null,
+  suggestedPack = null,
+  packLoading = false,
 }: Props) {
   const [branchCount, setBranchCount] = useState<BranchCountChoice | "">(
     initialAnswers.branchCount ?? "",
@@ -496,6 +512,13 @@ export function OnboardingQuestionnaire({
       <div className="relative z-10 w-full max-w-md pb-8">
         <div className="mb-8 flex w-full max-w-md flex-col items-center gap-4">
           <KioskLogoMark size={44} variant="auth" />
+          {countryCode || currency ? (
+            <p className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1 text-[11px] font-medium text-[#6B7280]">
+              {[countryCode?.toUpperCase(), currency?.toUpperCase()]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
           <QuestionnaireProgress step={step} />
         </div>
 
@@ -581,7 +604,7 @@ export function OnboardingQuestionnaire({
               </h1>
               <p className="text-sm text-[#6B7280]">
                 Select all that apply — a mini mart can also include a butchery.
-                Next you&apos;ll pick which departments to enable.
+                We use this to suggest starter products at the end.
               </p>
               <div className="space-y-2.5 pt-2 text-left">
                 {STORE_TYPE_OPTIONS.map((opt) => (
@@ -608,11 +631,12 @@ export function OnboardingQuestionnaire({
           {step === 3 ? (
             <>
               <h1 className="text-xl font-semibold tracking-tight text-[#1F2937] sm:text-2xl">
-                Choose your departments
+                Choose your product sections
               </h1>
               <p className="text-sm text-[#6B7280]">
-                Suggested for {storeTypesLabel.toLowerCase()}. Pick what you
-                sell now, add your own, or skip this and add departments later.
+                Suggested for {storeTypesLabel.toLowerCase()}. These group items
+                at the till and in reports — pick what you sell now, add your
+                own, or continue and edit later.
               </p>
               <div className="flex items-center justify-center gap-3 pt-1 text-xs">
                 <button
@@ -646,7 +670,7 @@ export function OnboardingQuestionnaire({
                   htmlFor="onboarding-custom-department"
                   className="block text-xs font-medium text-[#6B7280]"
                 >
-                  Add custom department
+                  Add custom section
                 </label>
                 <div className="mt-1.5 flex gap-2">
                   <input
@@ -674,7 +698,7 @@ export function OnboardingQuestionnaire({
               </div>
               <p className="text-xs text-[#9CA3AF]">
                 {selectedDepartments.length === 0
-                  ? "No departments selected yet. You can continue and add them later."
+                  ? "No sections selected yet. You can continue and add them later."
                   : `${selectedDepartments.length} selected`}
               </p>
             </>
@@ -687,7 +711,7 @@ export function OnboardingQuestionnaire({
               </h1>
               <p className="text-sm text-[#6B7280]">
                 Turn on a web shop so customers can browse and order from your
-                website.
+                website. You can change this later in Settings.
               </p>
               <div className="space-y-2.5 pt-2 text-left">
                 {ONLINE_STORE_OPTIONS.map((opt) => (
@@ -696,7 +720,14 @@ export function OnboardingQuestionnaire({
                     selected={onlineStore === opt.value}
                     onClick={() => setOnlineStore(opt.value)}
                   >
-                    {opt.label}
+                    <span className="block font-medium">{opt.label}</span>
+                    <span className="mt-0.5 block text-xs text-[#9CA3AF]">
+                      {opt.value === "yes"
+                        ? businessSlug
+                          ? `Customers can shop at your storefront (/${businessSlug}).`
+                          : "Customers can browse and order from your web shop."
+                        : "Stay in-store only for now — turn online selling on anytime."}
+                    </span>
                   </OptionButton>
                 ))}
               </div>
@@ -866,36 +897,53 @@ export function OnboardingQuestionnaire({
               ) : (
                 <>
                   <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
-                    Import common products from the shared catalog in minutes —
-                    prices, barcodes, and categories included. You can always add
-                    your own products later.
+                    Import common products for your shop — prices and barcodes
+                    included. You can always add your own later.
                   </p>
-                  <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F0FDFA] mx-auto">
-                    <Package className="size-8 text-[#0D9488]" aria-hidden />
-                  </div>
-                  <ul className="mt-6 space-y-2 text-sm text-[#4B5563]">
-                    <li className="flex items-start gap-2">
-                      <Check
-                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                        aria-hidden
-                      />
-                      Browse starter products for your region
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check
-                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                        aria-hidden
-                      />
-                      Pick a starter pack or search by name or barcode
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check
-                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
-                        aria-hidden
-                      />
-                      Adjust prices and stock before importing
-                    </li>
-                  </ul>
+                  {packLoading ? (
+                    <div className="mt-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-6 text-center text-sm text-[#6B7280]">
+                      Finding a starter pack for you…
+                    </div>
+                  ) : suggestedPack ? (
+                    <div className="mt-6 rounded-2xl border border-[#99F6E4] bg-[#F0FDFA] p-4 text-left">
+                      <div className="flex items-start gap-3">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0D9488] shadow-sm">
+                          <Package className="size-5" aria-hidden />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-[#0F766E]">
+                            Suggested for your shop
+                          </p>
+                          <p className="mt-0.5 text-base font-semibold text-[#134E4A]">
+                            {suggestedPack.name}
+                          </p>
+                          <p className="mt-1 text-xs text-[#0F766E]/80">
+                            {suggestedPack.productCount} products
+                            {suggestedPack.samplePriceLabel
+                              ? ` · ${suggestedPack.samplePriceLabel}`
+                              : ""}
+                          </p>
+                          {suggestedPack.sampleNames.length > 0 ? (
+                            <p className="mt-2 line-clamp-2 text-xs text-[#4B5563]">
+                              Includes {suggestedPack.sampleNames.join(", ")}
+                              {suggestedPack.productCount >
+                              suggestedPack.sampleNames.length
+                                ? ", …"
+                                : ""}
+                            </p>
+                          ) : suggestedPack.description ? (
+                            <p className="mt-2 line-clamp-2 text-xs text-[#4B5563]">
+                              {suggestedPack.description}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F0FDFA] mx-auto">
+                      <Package className="size-8 text-[#0D9488]" aria-hidden />
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -912,13 +960,26 @@ export function OnboardingQuestionnaire({
           {step === 6 ? (
             <>
               {canBrowseGlobalCatalog && !catalogShellEmpty ? (
-                <button
-                  type="button"
-                  onClick={onBrowseCatalog}
-                  className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
-                >
-                  Browse product catalog
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={onImportSuggestedPack ?? onBrowseCatalog}
+                    className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
+                  >
+                    {suggestedPack
+                      ? `Import ${suggestedPack.name}`
+                      : "Browse product catalog"}
+                  </button>
+                  {suggestedPack ? (
+                    <button
+                      type="button"
+                      onClick={onBrowseCatalog}
+                      className="h-11 w-full rounded-xl border border-[#E5E7EB] bg-white text-[14px] font-medium text-[#374151] transition hover:bg-[#FAFAFA] active:scale-[0.99]"
+                    >
+                      Browse all products
+                    </button>
+                  ) : null}
+                </>
               ) : null}
               {catalogShellEmpty ? (
                 <button
@@ -961,7 +1022,7 @@ export function OnboardingQuestionnaire({
               {submitting
                 ? "Setting up your shop…"
                 : step === 5
-                  ? "Finish setup"
+                  ? "Create my shop"
                   : "Continue"}
             </button>
           )}

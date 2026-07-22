@@ -525,16 +525,34 @@ export function completeOnboardingQuestionnaire(
 }
 
 export function dismissOnboardingQuestionnaire(): void {
+  const current = readState();
   writeState({
     status: "dismissed",
-    step: 1,
-    answers: {},
+    step: Math.max(1, current.step || 1),
+    answers: current.answers,
     updatedAt: new Date().toISOString(),
   });
   void persistOnboardingQuestionnaireToServer({
     status: "dismissed",
-    step: 1,
-    answers: {},
+    step: Math.max(1, current.step || 1),
+    answers: current.answers,
+  });
+}
+
+/** Re-open a dismissed questionnaire without wiping progress. */
+export function resumeOnboardingQuestionnaire(): void {
+  const current = readState();
+  const next: OnboardingQuestionnaireState = {
+    status: "active",
+    step: Math.max(1, current.step || 1),
+    answers: current.answers,
+    updatedAt: new Date().toISOString(),
+  };
+  writeState(next);
+  void persistOnboardingQuestionnaireToServer({
+    status: "active",
+    step: next.step,
+    answers: next.answers,
   });
 }
 

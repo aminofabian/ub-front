@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, ShoppingCart, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  Package,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 
 import { APP_ROUTES } from "@/lib/config";
 import { HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
@@ -11,7 +17,14 @@ import { cn } from "@/lib/utils";
 
 const POST_SETUP_CHECKLIST_DISMISSED_KEY = "post-setup-checklist-dismissed";
 
-export function PostSetupChecklist() {
+type PostSetupChecklistProps = {
+  /** When known, stock item is marked done once count > 0. */
+  catalogueCount?: number | null;
+};
+
+export function PostSetupChecklist({
+  catalogueCount = null,
+}: PostSetupChecklistProps) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -33,6 +46,41 @@ export function PostSetupChecklist() {
     return null;
   }
 
+  const stocked = catalogueCount != null && catalogueCount > 0;
+
+  const items = [
+    {
+      href: `${APP_ROUTES.productsCatalog}?from=onboarding`,
+      label: stocked ? "Starter pack imported" : "Import a starter pack",
+      desc: stocked
+        ? "Your catalog has products — you’re ready to sell."
+        : "Stock shelves from the shared catalog in minutes.",
+      icon: Package,
+      done: stocked,
+    },
+    {
+      href: APP_ROUTES.sales,
+      label: "Record your first sale",
+      desc: "Use the cashier or quick sale to process a transaction.",
+      icon: ShoppingCart,
+      done: false,
+    },
+    {
+      href: APP_ROUTES.users,
+      label: "Invite your staff",
+      desc: "Add cashiers and managers so your team can help run the shop.",
+      icon: Users,
+      done: false,
+    },
+    {
+      href: APP_ROUTES.analytics,
+      label: "Check your reports",
+      desc: "See sales trends, profit margins, and top products.",
+      icon: BarChart3,
+      done: false,
+    },
+  ];
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
@@ -51,34 +99,26 @@ export function PostSetupChecklist() {
         </button>
       </div>
       <div className={cn(HUB_SURFACE, "divide-y divide-[#EEEEEE]")}>
-        {[
-          {
-            href: APP_ROUTES.sales,
-            label: "Record your first sale",
-            desc: "Use the cashier or quick sale to process a transaction.",
-            icon: ShoppingCart,
-          },
-          {
-            href: APP_ROUTES.users,
-            label: "Invite your staff",
-            desc: "Add cashiers and managers so your team can help run the shop.",
-            icon: Users,
-          },
-          {
-            href: APP_ROUTES.analytics,
-            label: "Check your reports",
-            desc: "See sales trends, profit margins, and top products.",
-            icon: BarChart3,
-          },
-        ].map((item) => (
+        {items.map((item) => (
           <Link
-            key={item.href}
+            key={item.href + item.label}
             href={item.href}
-            className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9F6F0]/60"
+            className={cn(
+              "flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9F6F0]/60",
+              item.done && "opacity-60",
+            )}
           >
-            <item.icon className="size-4 shrink-0 text-[#B08D48]" aria-hidden />
+            <item.icon
+              className={cn(
+                "size-4 shrink-0",
+                item.done ? "text-[#0D9488]" : "text-[#B08D48]",
+              )}
+              aria-hidden
+            />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-black">{item.label}</p>
+              <p className="text-sm font-medium text-black">
+                {item.done ? `✓ ${item.label}` : item.label}
+              </p>
               <p className="text-xs text-[#888888]">{item.desc}</p>
             </div>
             <ArrowRight

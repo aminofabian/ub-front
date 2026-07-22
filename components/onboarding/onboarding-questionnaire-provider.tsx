@@ -18,8 +18,16 @@ import { APP_ROUTES } from "@/lib/config";
 import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { applyOnboardingQuestionnaire } from "@/lib/onboarding-questionnaire-apply";
-import { fetchGlobalCatalogMeta } from "@/lib/api";
+import {
+  fetchGlobalCatalogMeta,
+  fetchGlobalCatalogPack,
+  type GlobalProductPackRecord,
+  type GlobalProductRecord,
+} from "@/lib/api";
 import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
+import { pickSuggestedOnboardingPack } from "@/lib/onboarding-suggested-pack";
+import type { OnboardingSuggestedPackPreview } from "@/lib/onboarding-suggested-pack";
+import { formatMoney } from "@/lib/money";
 import {
   activateOnboardingQuestionnaire,
   completeOnboardingQuestionnaire,
@@ -34,11 +42,13 @@ import {
 
 type OnboardingQuestionnaireContextValue = {
   active: boolean;
+  reopen: () => void;
 };
 
 const OnboardingQuestionnaireContext =
   createContext<OnboardingQuestionnaireContextValue>({
     active: false,
+    reopen: () => undefined,
   });
 
 export function useOnboardingQuestionnaire() {
@@ -61,6 +71,27 @@ function isCompleteAnswers(
     Boolean(answers.primaryColor?.trim()) &&
     Boolean(answers.accentColor?.trim())
   );
+}
+
+function buildPackPreview(
+  pack: GlobalProductPackRecord,
+  currency: string,
+  products: GlobalProductRecord[],
+): OnboardingSuggestedPackPreview {
+  const samples = products.slice(0, 4);
+  const priced = samples.find((p) => p.recommendedSellingPrice != null);
+  return {
+    id: pack.id,
+    name: pack.name,
+    description: pack.description,
+    productCount: pack.productCount,
+    currency,
+    sampleNames: samples.map((p) => p.name).filter(Boolean),
+    samplePriceLabel:
+      priced?.recommendedSellingPrice != null
+        ? `from ${formatMoney(priced.recommendedSellingPrice, currency)}`
+        : null,
+  };
 }
 
 export function OnboardingQuestionnaireProvider({
@@ -95,6 +126,9 @@ export function OnboardingQuestionnaireProvider({
   const [mounted, setMounted] = useState(false);
   const [catalogShellEmpty, setCatalogShellEmpty] = useState(false);
   const [catalogLabel, setCatalogLabel] = useState<string | null>(null);
+  const [suggestedPack, setSuggestedPack] =
+    useState<OnboardingSuggestedPackPreview | null>(null);
+  const [packLoading, setPackLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -106,6 +140,7 @@ export function OnboardingQuestionnaireProvider({
     }
     let cancelled = false;
     void (async () => {
+      setPackLoading(true);
       try {
         const meta = await fetchGlobalCatalogMeta();
         if (cancelled) return;
@@ -117,20 +152,52 @@ export function OnboardingQuestionnaireProvider({
           categoryId: null,
           packId: null,
         });
-        // Meta-only check: packs+categories empty means shell has nothing to browse.
         setCatalogShellEmpty(empty);
         setCatalogLabel(meta.catalogName?.trim() || meta.catalogCode || null);
+
+        if (empty) {
+          setSuggestedPack(null);
+          return;
+        }
+
+        const storeTypes = answers.storeTypes ?? [];
+        const pick = pickSuggestedOnboardingPack(meta.packs, storeTypes);
+        if (!pick) {
+          setSuggestedPack(null);
+          return;
+        }
+
+        try {
+          const detail = await fetchGlobalCatalogPack(pick.id, {
+            onlyNotImported: false,
+          });
+          if (cancelled) return;
+          setSuggestedPack(
+            buildPackPreview(pick, meta.currency, detail.products),
+          );
+        } catch {
+          if (!cancelled) {
+            setSuggestedPack(
+              buildPackPreview(pick, meta.currency, []),
+            );
+          }
+        }
       } catch {
         if (!cancelled) {
           setCatalogShellEmpty(false);
           setCatalogLabel(null);
+          setSuggestedPack(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setPackLoading(false);
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [step, canGlobalCatalog]);
+  }, [step, canGlobalCatalog, answers.storeTypes]);
 
   const startQuestionnaire = useCallback(() => {
     const stored = getOnboardingQuestionnaireState();
@@ -168,6 +235,17 @@ export function OnboardingQuestionnaireProvider({
     setActive(false);
     router.replace(`${APP_ROUTES.productsCatalog}?from=onboarding`);
   }, [router]);
+
+  const handleImportSuggestedPack = useCallback(() => {
+    if (!suggestedPack) {
+      handleBrowseCatalog();
+      return;
+    }
+    setActive(false);
+    router.replace(
+      `${APP_ROUTES.productsCatalog}?from=onboarding&packId=${encodeURIComponent(suggestedPack.id)}`,
+    );
+  }, [router, suggestedPack, handleBrowseCatalog]);
 
   const handleAddProductsManually = useCallback(() => {
     setActive(false);
@@ -254,7 +332,10 @@ export function OnboardingQuestionnaireProvider({
     ],
   );
 
-  const contextValue = useMemo(() => ({ active }), [active]);
+  const contextValue = useMemo(
+    () => ({ active, reopen: startQuestionnaire }),
+    [active, startQuestionnaire],
+  );
 
   const layer =
     active && mounted
@@ -267,8 +348,11 @@ export function OnboardingQuestionnaireProvider({
               businessSlug={business?.slug}
               brandingDisplayName={business?.branding?.displayName}
               countryCode={business?.countryCode}
+              currency={business?.currency}
               catalogShellEmpty={catalogShellEmpty}
               catalogLabel={catalogLabel}
+              suggestedPack={suggestedPack}
+              packLoading={packLoading}
               submitting={submitting}
               errorMessage={errorMessage}
               onContinue={(patch, extras) => {
@@ -278,6 +362,7 @@ export function OnboardingQuestionnaireProvider({
               onSkip={handleSkip}
               canBrowseGlobalCatalog={canGlobalCatalog}
               onBrowseCatalog={handleBrowseCatalog}
+              onImportSuggestedPack={handleImportSuggestedPack}
               onAddProductsManually={handleAddProductsManually}
               onFinishLater={handleFinishLater}
             />

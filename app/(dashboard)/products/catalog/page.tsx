@@ -56,7 +56,10 @@ import {
   isUnresolvedSkuConflict,
   suggestRenamedSku,
 } from "@/lib/global-catalog-sku-conflict";
-import { getBusinessStoreTypes } from "@/lib/business-store-type";
+import {
+  getBusinessStoreTypes,
+  isButcheryOnlyBusiness,
+} from "@/lib/business-store-type";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -128,8 +131,13 @@ export default function GlobalCatalogPage() {
   const [refreshBuy, setRefreshBuy] = useState(false);
   const [refreshImage, setRefreshImage] = useState(true);
   const [skipCustomSell, setSkipCustomSell] = useState(false);
-  const [createMissingCategories, setCreateMissingCategories] = useState(false);
+  const [createMissingCategories, setCreateMissingCategories] = useState(
+    () => searchParams.get("from") === "onboarding",
+  );
   const [replacing, setReplacing] = useState(false);
+
+  const fromOnboarding = searchParams.get("from") === "onboarding";
+  const packIdFromUrl = searchParams.get("packId");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -225,7 +233,17 @@ export default function GlobalCatalogPage() {
   useEffect(() => {
     if (autoPickedPackRef.current || !meta || initialLoading) return;
     if (selectedPackId != null) return;
-    if (searchParams.get("from") !== "onboarding") return;
+
+    if (packIdFromUrl) {
+      const fromUrl = orderedPacks.find((p) => p.id === packIdFromUrl);
+      if (fromUrl && fromUrl.productCount > 0) {
+        autoPickedPackRef.current = true;
+        setSelectedPackId(fromUrl.id);
+        return;
+      }
+    }
+
+    if (!fromOnboarding) return;
     const pick =
       readyPacks.find(
         (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
@@ -238,9 +256,21 @@ export default function GlobalCatalogPage() {
     initialLoading,
     selectedPackId,
     readyPacks,
+    orderedPacks,
     storeTypes,
-    searchParams,
+    fromOnboarding,
+    packIdFromUrl,
   ]);
+
+  const autoSelectedPackProductsRef = useRef(false);
+  useEffect(() => {
+    if (!fromOnboarding || !selectedPackId || initialLoading) return;
+    if (autoSelectedPackProductsRef.current) return;
+    const importable = products.filter((p) => !p.alreadyImported);
+    if (importable.length === 0) return;
+    autoSelectedPackProductsRef.current = true;
+    setSelected(new Map(importable.map((p) => [p.id, p])));
+  }, [fromOnboarding, selectedPackId, initialLoading, products]);
 
   const fetchProducts = useCallback(
     async ({
@@ -957,6 +987,17 @@ export default function GlobalCatalogPage() {
       } catch {
         /* ignore */
       }
+      if (fromOnboarding) {
+        toast.message(
+          `${importedNew + mergedCount} products ready in your catalog`,
+        );
+        router.replace(
+          isButcheryOnlyBusiness(business)
+            ? APP_ROUTES.butcher
+            : APP_ROUTES.business,
+        );
+        return;
+      }
       void fetchProducts({
         reset: true,
         page: 0,
@@ -1054,17 +1095,35 @@ export default function GlobalCatalogPage() {
     window.requestAnimationFrame(() => searchInputRef.current?.focus());
   }, []);
 
+  const onboardingToastRef = useRef(false);
   useEffect(() => {
-    if (searchParams.get("from") !== "onboarding") return;
+    if (!fromOnboarding) return;
     if (initialLoading) return;
+    if (onboardingToastRef.current) return;
     if (catalogShellEmpty) {
+      onboardingToastRef.current = true;
       toast.message(
         "No starter products for your country yet — add products manually or check back soon.",
       );
       return;
     }
-    toast.message("Pick products to import, or skip and add your own later.");
-  }, [searchParams, initialLoading, catalogShellEmpty]);
+    // Wait for pack auto-pick before toasting so the message matches the pack.
+    if (!selectedPack && readyPacks.length > 0) return;
+    onboardingToastRef.current = true;
+    if (selectedPack) {
+      toast.message(
+        `Review ${selectedPack.name}, then import — you can tweak prices first.`,
+      );
+      return;
+    }
+    toast.message("Pick a starter pack or products to import.");
+  }, [
+    fromOnboarding,
+    initialLoading,
+    catalogShellEmpty,
+    selectedPack,
+    readyPacks.length,
+  ]);
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
