@@ -33,6 +33,15 @@ import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { canAdminEditOnHandStock } from "@/lib/set-on-hand-stock";
 import { canLinkSupplierProducts } from "@/lib/supplier-access";
+import { getSessionTenantId } from "@/lib/auth";
+import {
+  clearNewSupplyDraft,
+  loadNewSupplyDraft,
+  mergeNewSupplyRowsOntoLinks,
+  newSupplyDraftHasProgress,
+  saveNewSupplyDraft,
+  type SupplyDraftRowPersisted,
+} from "@/lib/supply-draft-storage";
 import { cn } from "@/lib/utils";
 import { todayYmdLocal } from "@/lib/ymd-date";
 
@@ -378,6 +387,9 @@ export function NewSupplyDrawer({
   const { branches, branchId, setBranchId, branchesLoading, me, business } =
     useDashboard();
   const currency = business?.currency?.trim() || "KES";
+  const draftBusinessId =
+    business?.id?.trim() || getSessionTenantId()?.trim() || "";
+  const draftUserId = me?.id?.trim() || "";
   const canSetSellPrice = hasPermission(
     me?.permissions,
     Permission.PricingSellPriceSet,
@@ -422,12 +434,32 @@ export function NewSupplyDrawer({
   /** Optional expiry column — sell + margin stay visible. */
   const [showExpiry, setShowExpiry] = useState(false);
   const [deliveryExpanded, setDeliveryExpanded] = useState(true);
+  /** True after local draft restore (or confirmed empty) so auto-save may run. */
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestoredAt, setDraftRestoredAt] = useState<number | null>(null);
   const pricingGenRef = useRef(0);
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
   const packModalOpenRef = useRef(false);
   /** Ignore Post supply briefly after pack modal closes (click-through guard). */
   const suppressPostUntilRef = useRef(0);
+  const didAttemptRestoreRef = useRef(false);
+  /** Rows to merge onto the next supplier-link fetch (browser draft restore). */
+  const pendingMergeRowsRef = useRef<SupplyDraftRowPersisted[] | null>(null);
+  const rowsRef = useRef<SupplyDraftRow[]>([]);
+  const prevSupplierIdRef = useRef<string | null>(null);
+  const lastOpenSnapshotRef = useRef<{
+    businessId: string;
+    userId: string;
+    branchId: string;
+    supplier: SupplierRecord | null;
+    receivedAtLocal: string;
+    notes: string;
+    docRef: string;
+    rows: SupplyDraftRow[];
+    extras: { key: string; category: string; amount: string; desc: string }[];
+    showExpiry: boolean;
+  } | null>(null);
 
   useEffect(() => {
     addLineOpenRef.current = addLineOpen;
@@ -480,20 +512,39 @@ export function NewSupplyDrawer({
         branchId: branchId.trim() || undefined,
       });
       const active = list.filter((l) => l.active);
-      setRows(
-        active.map((link) => ({
-          key: newRowKey(),
-          source: "linked",
-          link,
-          item: null,
-          qtyStr: "",
-          unitStr: linkSeedUnitCost(link),
-          sellPriceStr: linkSeedShelfPrice(link),
-          sellPriceTouched: false,
-          expiry: "",
-        })),
-      );
-      if (active.length === 0) {
+      const seedRow = (link: SupplierItemLinkRecord): SupplyDraftRow => ({
+        key: newRowKey(),
+        source: "linked",
+        link,
+        item: null,
+        qtyStr: "",
+        unitStr: linkSeedUnitCost(link),
+        sellPriceStr: linkSeedShelfPrice(link),
+        sellPriceTouched: false,
+        expiry: "",
+      });
+      const mergeFrom =
+        pendingMergeRowsRef.current ??
+        (rowsRef.current.length > 0
+          ? (rowsRef.current as SupplyDraftRowPersisted[])
+          : null);
+      pendingMergeRowsRef.current = null;
+      if (mergeFrom && mergeFrom.length > 0) {
+        setRows(
+          mergeNewSupplyRowsOntoLinks(
+            active,
+            mergeFrom,
+            seedRow,
+            (row) =>
+              row.source === "linked" && row.link
+                ? row.link.itemId
+                : (row.item?.id ?? null),
+          ) as SupplyDraftRow[],
+        );
+      } else {
+        setRows(active.map(seedRow));
+      }
+      if (active.length === 0 && !(mergeFrom && mergeFrom.length > 0)) {
         setError(
           "No catalog products are linked to this supplier yet. Use Link product or link SKUs on the supplier profile.",
         );
@@ -502,15 +553,33 @@ export function NewSupplyDrawer({
       setError(
         e instanceof Error ? e.message : "Failed to load supplier catalog.",
       );
-      setRows([]);
+      const mergeFrom =
+        pendingMergeRowsRef.current ??
+        (rowsRef.current.length > 0
+          ? (rowsRef.current as SupplyDraftRowPersisted[])
+          : null);
+      pendingMergeRowsRef.current = null;
+      if (mergeFrom && mergeFrom.length > 0) {
+        setRows(mergeFrom as SupplyDraftRow[]);
+      } else {
+        setRows([]);
+      }
     } finally {
       setLinksLoading(false);
     }
-  }, [branchId, setRows, setLinksLoading, setError]);
+  }, [branchId]);
 
   useEffect(() => {
-     
+    rowsRef.current = rows;
+  }, [rows]);
+
+  useEffect(() => {
     if (!open) {
+      didAttemptRestoreRef.current = false;
+      pendingMergeRowsRef.current = null;
+      prevSupplierIdRef.current = null;
+      setDraftReady(false);
+      setDraftRestoredAt(null);
       setSupplier(null);
       setSupplierQuery("");
       setSupplierHits([]);
@@ -528,24 +597,194 @@ export function NewSupplyDrawer({
       setLinkModalSupplierId(null);
       return;
     }
+
+    if (didAttemptRestoreRef.current) {
+      return;
+    }
+    if (!draftBusinessId || !draftUserId) {
+      return;
+    }
+    didAttemptRestoreRef.current = true;
+
+    const stored = loadNewSupplyDraft(draftBusinessId, draftUserId);
+    if (stored && newSupplyDraftHasProgress(stored)) {
+      pendingMergeRowsRef.current = stored.rows;
+      setSupplier(stored.supplier);
+      setSupplierQuery("");
+      setSupplierHits([]);
+      setReceivedAtLocal(
+        stored.receivedAtLocal.trim() || defaultReceived,
+      );
+      setNotes(stored.notes);
+      setDocRef(stored.docRef);
+      setExtras(stored.extras);
+      setShowExpiry(stored.showExpiry);
+      setDeliveryExpanded(!stored.supplier);
+      setDraftRestoredAt(stored.updatedAt);
+      if (
+        stored.branchId.trim() &&
+        stored.branchId !== branchId &&
+        !branchLocked
+      ) {
+        setBranchId(stored.branchId);
+      }
+      if (!stored.supplier) {
+        setRows(stored.rows as SupplyDraftRow[]);
+        pendingMergeRowsRef.current = null;
+      }
+      setDraftReady(true);
+      return;
+    }
+
     if (initialSupplier) {
       setSupplier(initialSupplier);
       setSupplierQuery("");
       setSupplierHits([]);
       setDeliveryExpanded(false);
     }
-     
-  }, [open, defaultReceived, initialSupplier]);
+    setDraftReady(true);
+  }, [
+    open,
+    defaultReceived,
+    initialSupplier,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+    branchLocked,
+    setBranchId,
+  ]);
 
   useEffect(() => {
-     
-    if (supplier) {
-      void loadLinks(supplier.id);
-    } else {
-      setRows([]);
+    if (!supplier) {
+      prevSupplierIdRef.current = null;
+      if (pendingMergeRowsRef.current == null) {
+        setRows([]);
+      }
+      return;
     }
-     
+    const prevId = prevSupplierIdRef.current;
+    const supplierChanged = prevId != null && prevId !== supplier.id;
+    prevSupplierIdRef.current = supplier.id;
+    if (supplierChanged) {
+      pendingMergeRowsRef.current = null;
+      rowsRef.current = [];
+    }
+    void loadLinks(supplier.id);
   }, [supplier, loadLinks]);
+
+  useEffect(() => {
+    if (!open || !draftReady) {
+      return;
+    }
+    lastOpenSnapshotRef.current = {
+      businessId: draftBusinessId,
+      userId: draftUserId,
+      branchId,
+      supplier,
+      receivedAtLocal,
+      notes,
+      docRef,
+      rows,
+      extras,
+      showExpiry,
+    };
+  }, [
+    open,
+    draftReady,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+    supplier,
+    receivedAtLocal,
+    notes,
+    docRef,
+    rows,
+    extras,
+    showExpiry,
+  ]);
+
+  useEffect(() => {
+    if (!open || !draftReady || !draftBusinessId || !draftUserId) {
+      return;
+    }
+    const t = window.setTimeout(() => {
+      saveNewSupplyDraft({
+        businessId: draftBusinessId,
+        userId: draftUserId,
+        branchId,
+        supplier,
+        receivedAtLocal,
+        notes,
+        docRef,
+        rows,
+        extras,
+        showExpiry,
+      });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [
+    open,
+    draftReady,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+    supplier,
+    receivedAtLocal,
+    notes,
+    docRef,
+    rows,
+    extras,
+    showExpiry,
+  ]);
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+    const snap = lastOpenSnapshotRef.current;
+    if (!snap?.businessId || !snap.userId) {
+      return;
+    }
+    saveNewSupplyDraft(snap);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !draftReady) {
+      return;
+    }
+    const flush = () => {
+      const snap = lastOpenSnapshotRef.current;
+      if (!snap?.businessId || !snap.userId) {
+        return;
+      }
+      saveNewSupplyDraft(snap);
+    };
+    window.addEventListener("beforeunload", flush);
+    return () => window.removeEventListener("beforeunload", flush);
+  }, [open, draftReady]);
+
+  const discardLocalDraft = useCallback(() => {
+    if (draftBusinessId && draftUserId) {
+      clearNewSupplyDraft(draftBusinessId, draftUserId);
+    }
+    lastOpenSnapshotRef.current = null;
+    pendingMergeRowsRef.current = null;
+    setDraftRestoredAt(null);
+    setSupplier(null);
+    setSupplierQuery("");
+    setSupplierHits([]);
+    setRows([]);
+    setNotes("");
+    setDocRef("");
+    setExtras([]);
+    setError(null);
+    setReceivedAtLocal(defaultReceived);
+    setRowPricing({});
+    setLineSearchQuery("");
+    setLineFocus("all");
+    setShowExpiry(false);
+    setDeliveryExpanded(true);
+  }, [draftBusinessId, draftUserId, defaultReceived]);
 
   useEffect(() => {
     setLineSearchQuery("");
@@ -1059,6 +1298,11 @@ export function NewSupplyDrawer({
         }
       }
       onPosted();
+      if (draftBusinessId && draftUserId) {
+        clearNewSupplyDraft(draftBusinessId, draftUserId);
+      }
+      lastOpenSnapshotRef.current = null;
+      setDraftRestoredAt(null);
       if (priceErrors.length > 0) {
         setError(
           `Supply posted, but shelf price could not be updated for: ${priceErrors.join("; ")}`,
@@ -1141,6 +1385,34 @@ export function NewSupplyDrawer({
           void onSubmit();
         }}
       >
+        {draftRestoredAt != null ? (
+          <div
+            className={cn(
+              nsdAlert,
+              "flex flex-wrap items-center justify-between gap-2",
+            )}
+            role="status"
+          >
+            <p className="text-[11px] leading-snug">
+              Restored unsaved draft
+              {Number.isFinite(draftRestoredAt)
+                ? ` from ${new Date(draftRestoredAt).toLocaleString()}`
+                : ""}
+              . Edits are saved in this browser until you post.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0 rounded-none px-2 text-[11px]"
+              disabled={busy}
+              onClick={discardLocalDraft}
+            >
+              Discard draft
+            </Button>
+          </div>
+        ) : null}
+
         {!supplier ? <SupplyWorkflowRail steps={workflowSteps} /> : null}
 
         <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1fr)_min(13rem,20%)] lg:items-start">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowRight,
   Loader2,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useDashboard } from "@/components/dashboard-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +31,15 @@ import {
   type SupplierItemLinkRecord,
   type SupplierRecord,
 } from "@/lib/api";
+import {
+  cashierSupplyDraftHasProgress,
+  clearCashierSupplyDraft,
+  loadCashierSupplyDraft,
+  mergeCashierLinesOntoLinks,
+  saveCashierSupplyDraft,
+  type CashierSupplyLinePersisted,
+} from "@/lib/supply-draft-storage";
+import { getSessionTenantId } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type LineDraft = {
@@ -121,6 +131,10 @@ export function CashierReceiveStockModal({
   onPosted,
 }: CashierReceiveStockModalProps) {
   const code = currency.trim().toUpperCase() || "KES";
+  const { me, business } = useDashboard();
+  const draftBusinessId =
+    business?.id?.trim() || getSessionTenantId()?.trim() || "";
+  const draftUserId = me?.id?.trim() || "";
 
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierHits, setSupplierHits] = useState<SupplierRecord[]>([]);
@@ -131,15 +145,71 @@ export function CashierReceiveStockModal({
   const [linesBusy, setLinesBusy] = useState(false);
   const [filter, setFilter] = useState("");
   const [saving, setSaving] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestoredAt, setDraftRestoredAt] = useState<number | null>(null);
+
+  const didAttemptRestoreRef = useRef(false);
+  const pendingMergeLinesRef = useRef<CashierSupplyLinePersisted[] | null>(null);
+  const linesRef = useRef<LineDraft[]>([]);
+  const prevSupplierIdRef = useRef<string | null>(null);
+  const lastOpenSnapshotRef = useRef<{
+    businessId: string;
+    userId: string;
+    branchId: string;
+    supplier: SupplierRecord | null;
+    lines: LineDraft[];
+  } | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    linesRef.current = lines;
+  }, [lines]);
+
+  useEffect(() => {
+    if (!open) {
+      didAttemptRestoreRef.current = false;
+      pendingMergeLinesRef.current = null;
+      prevSupplierIdRef.current = null;
+      setDraftReady(false);
+      setDraftRestoredAt(null);
+      setSupplier(null);
+      setSupplierQuery("");
+      setSupplierHits([]);
+      setFilter("");
+      setLines([]);
+      return;
+    }
+
+    if (didAttemptRestoreRef.current) {
+      return;
+    }
+    if (!draftBusinessId || !draftUserId) {
+      return;
+    }
+    didAttemptRestoreRef.current = true;
+
+    const stored = loadCashierSupplyDraft(draftBusinessId, draftUserId);
+    if (stored && cashierSupplyDraftHasProgress(stored)) {
+      pendingMergeLinesRef.current = stored.lines;
+      setSupplier(stored.supplier);
+      setSupplierQuery("");
+      setSupplierHits([]);
+      setFilter("");
+      setDraftRestoredAt(stored.updatedAt);
+      if (!stored.supplier) {
+        setLines(stored.lines as LineDraft[]);
+        pendingMergeLinesRef.current = null;
+      }
+      setDraftReady(true);
+      return;
+    }
+
     setSupplier(initialSupplier ?? null);
     setSupplierQuery("");
     setSupplierHits([]);
     setFilter("");
     setLines([]);
-  }, [open, initialSupplier]);
+    setDraftReady(true);
+  }, [open, initialSupplier, draftBusinessId, draftUserId]);
 
   useEffect(() => {
     if (!open || supplier) {
@@ -180,20 +250,59 @@ export function CashierReceiveStockModal({
 
   useEffect(() => {
     if (!open || !supplier) {
-      setLines([]);
+      prevSupplierIdRef.current = null;
+      if (pendingMergeLinesRef.current == null) {
+        setLines([]);
+      }
       return;
     }
+
+    const prevId = prevSupplierIdRef.current;
+    const supplierChanged = prevId != null && prevId !== supplier.id;
+    prevSupplierIdRef.current = supplier.id;
+    if (supplierChanged) {
+      pendingMergeLinesRef.current = null;
+      linesRef.current = [];
+    }
+
     let cancelled = false;
     setLinesBusy(true);
     void fetchSupplierItemLinks(supplier.id, { branchId })
       .then((list) => {
         if (cancelled) return;
-        setLines(list.filter((l) => l.active).map(linkToDraft));
+        const active = list.filter((l) => l.active);
+        const mergeFrom =
+          pendingMergeLinesRef.current ??
+          (linesRef.current.length > 0
+            ? (linesRef.current as CashierSupplyLinePersisted[])
+            : null);
+        pendingMergeLinesRef.current = null;
+        if (mergeFrom && mergeFrom.length > 0) {
+          setLines(
+            mergeCashierLinesOntoLinks(
+              active,
+              mergeFrom,
+              linkToDraft,
+            ) as LineDraft[],
+          );
+        } else {
+          setLines(active.map(linkToDraft));
+        }
       })
       .catch(() => {
         if (!cancelled) {
-          setLines([]);
-          toast.error("Could not load supplier products");
+          const mergeFrom =
+            pendingMergeLinesRef.current ??
+            (linesRef.current.length > 0
+              ? (linesRef.current as CashierSupplyLinePersisted[])
+              : null);
+          pendingMergeLinesRef.current = null;
+          if (mergeFrom && mergeFrom.length > 0) {
+            setLines(mergeFrom as LineDraft[]);
+          } else {
+            setLines([]);
+            toast.error("Could not load supplier products");
+          }
         }
       })
       .finally(() => {
@@ -203,6 +312,91 @@ export function CashierReceiveStockModal({
       cancelled = true;
     };
   }, [open, supplier, branchId]);
+
+  useEffect(() => {
+    if (!open || !draftReady) {
+      return;
+    }
+    lastOpenSnapshotRef.current = {
+      businessId: draftBusinessId,
+      userId: draftUserId,
+      branchId,
+      supplier,
+      lines,
+    };
+  }, [
+    open,
+    draftReady,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+    supplier,
+    lines,
+  ]);
+
+  useEffect(() => {
+    if (!open || !draftReady || !draftBusinessId || !draftUserId) {
+      return;
+    }
+    const t = window.setTimeout(() => {
+      saveCashierSupplyDraft({
+        businessId: draftBusinessId,
+        userId: draftUserId,
+        branchId,
+        supplier,
+        lines,
+      });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [
+    open,
+    draftReady,
+    draftBusinessId,
+    draftUserId,
+    branchId,
+    supplier,
+    lines,
+  ]);
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+    const snap = lastOpenSnapshotRef.current;
+    if (!snap?.businessId || !snap.userId) {
+      return;
+    }
+    saveCashierSupplyDraft(snap);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !draftReady) {
+      return;
+    }
+    const flush = () => {
+      const snap = lastOpenSnapshotRef.current;
+      if (!snap?.businessId || !snap.userId) {
+        return;
+      }
+      saveCashierSupplyDraft(snap);
+    };
+    window.addEventListener("beforeunload", flush);
+    return () => window.removeEventListener("beforeunload", flush);
+  }, [open, draftReady]);
+
+  const discardLocalDraft = useCallback(() => {
+    if (draftBusinessId && draftUserId) {
+      clearCashierSupplyDraft(draftBusinessId, draftUserId);
+    }
+    lastOpenSnapshotRef.current = null;
+    pendingMergeLinesRef.current = null;
+    setDraftRestoredAt(null);
+    setSupplier(null);
+    setSupplierQuery("");
+    setSupplierHits([]);
+    setFilter("");
+    setLines([]);
+  }, [draftBusinessId, draftUserId]);
 
   const visibleLines = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -312,6 +506,11 @@ export function CashierReceiveStockModal({
           ? `Stock updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${code}`
           : `${readyLines.length} products updated · ${payable.toLocaleString("en-KE", { minimumFractionDigits: 2 })} ${code}`,
       );
+      if (draftBusinessId && draftUserId) {
+        clearCashierSupplyDraft(draftBusinessId, draftUserId);
+      }
+      lastOpenSnapshotRef.current = null;
+      setDraftRestoredAt(null);
       onPosted?.();
       onOpenChange(false);
     } catch (e) {
@@ -351,6 +550,31 @@ export function CashierReceiveStockModal({
         </div>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+          {draftRestoredAt != null ? (
+            <div
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2"
+              role="status"
+            >
+              <p className="text-[11px] leading-snug text-foreground">
+                Restored unsaved draft
+                {Number.isFinite(draftRestoredAt)
+                  ? ` from ${new Date(draftRestoredAt).toLocaleString()}`
+                  : ""}
+                .
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 shrink-0 rounded-lg px-2 text-[11px]"
+                disabled={saving}
+                onClick={discardLocalDraft}
+              >
+                Discard
+              </Button>
+            </div>
+          ) : null}
+
           {/* Supplier */}
           <section className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
