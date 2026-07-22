@@ -68,8 +68,14 @@ import {
   nsdTableCell,
   nsdTableHead,
   nsdTableRow,
+  nsdTableRowNeed,
   nsdTableRowReady,
   nsdTableTh,
+  nsdEntryLaneCell,
+  nsdEntryLaneHead,
+  nsdReadoutCell,
+  nsdStickyProductCell,
+  nsdStickyProductHead,
   SupplyDrawerSection,
   SupplyEmptyState,
   SupplyLinesToolbar,
@@ -1948,7 +1954,7 @@ export function NewSupplyDrawer({
                     })}
                   </div>
 
-                  <div className="hidden overflow-x-auto border-t border-border lg:block">
+                  <div className="hidden max-h-[min(70vh,40rem)] overflow-auto border-t border-border lg:block">
           <table
             className={cn(
               "w-full border-collapse border border-border text-left text-xs",
@@ -1957,14 +1963,55 @@ export function NewSupplyDrawer({
           >
             <thead>
               <tr className={nsdTableHead}>
-                <th className={cn(nsdTableTh, "min-w-[10rem]")}>Product</th>
-                <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Qty</th>
-                <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Cost</th>
-                <th className={cn(nsdTableTh, "w-[5.5rem] text-right")}>
+                <th className={cn(nsdTableTh, nsdStickyProductHead)}>
+                  Product
+                </th>
+                <th
+                  className={cn(
+                    nsdTableTh,
+                    nsdEntryLaneHead,
+                    "w-[5.25rem] text-right",
+                  )}
+                  title="Enter quantity first"
+                >
+                  <span className="mr-1 font-mono text-[9px] opacity-70">1</span>
+                  Qty
+                </th>
+                <th
+                  className={cn(
+                    nsdTableTh,
+                    nsdEntryLaneHead,
+                    "w-[5.25rem] text-right",
+                  )}
+                  title="Then unit cost"
+                >
+                  <span className="mr-1 font-mono text-[9px] opacity-70">2</span>
+                  Cost
+                </th>
+                <th
+                  className={cn(
+                    nsdTableTh,
+                    nsdReadoutCell,
+                    "w-[5.5rem] text-right",
+                  )}
+                  title="Qty × cost"
+                >
                   Total
                 </th>
-                <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Sell</th>
-                <th className={cn(nsdTableTh, "w-[4.25rem] text-right")}>
+                <th
+                  className={cn(nsdTableTh, "w-[5.25rem] text-right")}
+                  title="Optional shelf price"
+                >
+                  <span className="mr-1 font-mono text-[9px] opacity-70">3</span>
+                  Sell
+                </th>
+                <th
+                  className={cn(
+                    nsdTableTh,
+                    nsdReadoutCell,
+                    "w-[4.25rem] text-right",
+                  )}
+                >
                   Margin
                 </th>
                 {showExpiry ? (
@@ -1983,6 +2030,7 @@ export function NewSupplyDrawer({
                 const iid = rowItemId(row);
                 const hint = iid ? rowPricing[iid] : undefined;
                 const isReady = p != null;
+                const needsQty = qty == null;
                 const unitCost = parseNonNeg(row.unitStr);
                 const sellPrice = parseNonNeg(row.sellPriceStr);
                 const marginLabel =
@@ -2004,11 +2052,18 @@ export function NewSupplyDrawer({
                     data-nsd-row={row.key}
                     className={cn(
                       nsdTableRow,
-                      isReady && nsdTableRowReady,
+                      needsQty ? nsdTableRowNeed : null,
+                      isReady ? nsdTableRowReady : null,
                     )}
                   >
-                    <td className={cn(nsdTableCell, "py-1.5 align-middle")}>
-                      <div className="min-w-0">
+                    <td
+                      className={cn(
+                        nsdTableCell,
+                        nsdStickyProductCell,
+                        "bg-inherit py-1.5 align-middle",
+                      )}
+                    >
+                      <div className="min-w-0 pl-0.5">
                         {row.source === "adhoc" ? (
                           <ProductPickCell
                             sharp
@@ -2059,7 +2114,13 @@ export function NewSupplyDrawer({
                         ) : null}
                       </div>
                     </td>
-                    <td className={cn(nsdTableCell, "p-0 align-middle")}>
+                    <td
+                      className={cn(
+                        nsdTableCell,
+                        nsdEntryLaneCell,
+                        "p-0 align-middle",
+                      )}
+                    >
                       <SupplyQtyCell
                         compact
                         quiet
@@ -2086,7 +2147,13 @@ export function NewSupplyDrawer({
                         isReady={isReady}
                       />
                     </td>
-                    <td className={cn(nsdTableCell, "p-0 align-middle")}>
+                    <td
+                      className={cn(
+                        nsdTableCell,
+                        nsdEntryLaneCell,
+                        "p-0 align-middle",
+                      )}
+                    >
                       <SupplyCostCell
                         compact
                         quiet
@@ -2106,6 +2173,7 @@ export function NewSupplyDrawer({
                     <td
                       className={cn(
                         nsdTableCell,
+                        nsdReadoutCell,
                         "px-2 py-1.5 text-right align-middle",
                       )}
                       title={
@@ -2119,7 +2187,7 @@ export function NewSupplyDrawer({
                           "font-mono text-xs tabular-nums",
                           p != null
                             ? "font-semibold text-foreground"
-                            : "text-muted-foreground/50",
+                            : "text-muted-foreground/45",
                         )}
                       >
                         {p != null
@@ -2163,6 +2231,7 @@ export function NewSupplyDrawer({
                     <td
                       className={cn(
                         nsdTableCell,
+                        nsdReadoutCell,
                         "px-2 py-1.5 text-right align-middle",
                       )}
                       title={
@@ -2180,7 +2249,7 @@ export function NewSupplyDrawer({
                             ? "font-semibold text-red-700 dark:text-red-300"
                             : marginLabel
                               ? "text-primary"
-                              : "text-muted-foreground/50",
+                              : "text-muted-foreground/45",
                         )}
                       >
                         {belowCost

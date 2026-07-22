@@ -35,11 +35,11 @@ const TONE_SHELL: Record<ShelfTone, string> = {
 };
 
 const TONE_COMPACT_BG: Record<ShelfTone, string> = {
-  empty: "bg-background",
-  loading: "bg-muted/20",
+  empty: "bg-muted/40",
+  loading: "bg-muted/25",
   "below-cost": "bg-red-500/[0.07]",
   suggested: "bg-amber-500/[0.08]",
-  current: "bg-primary/[0.06]",
+  current: "bg-background",
   edited: "bg-background",
   readonly: "bg-muted/20",
 };
@@ -51,7 +51,19 @@ function shelfShellClass(
   h: string,
 ): string {
   if (compact && !touch) {
-    return cn("relative flex min-w-0 items-center px-1.5", h, TONE_COMPACT_BG[tone]);
+    return cn(
+      "relative mx-0.5 my-0.5 flex min-w-0 items-center rounded-sm px-1",
+      h,
+      "transition-[box-shadow,background-color,border-color] duration-100",
+      tone === "empty"
+        ? "border border-dashed border-border/80"
+        : cn(
+            "ring-1 ring-inset",
+            tone === "below-cost" ? "ring-red-500/45" : "ring-border/55",
+          ),
+      "focus-within:border-solid focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-primary/40",
+      TONE_COMPACT_BG[tone],
+    );
   }
   return cn(
     "relative flex min-w-0 items-center border transition-[border-color,background-color] duration-100",

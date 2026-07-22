@@ -12,9 +12,6 @@ import {
   supSectionHint,
   supSectionTitle,
   supTableCell,
-  supTableHead,
-  supTableRow,
-  supTableRowActive,
 } from "../../suppliers/_components/supplier-ui-tokens";
 
 export const nsdBorder = "border border-border";
@@ -55,7 +52,10 @@ export const nsdSectionHeader = cn(
 
 export const nsdCardInset = cn("rounded-none bg-muted/15", nsdBorder);
 
-export const nsdTableHead = supTableHead;
+export const nsdTableHead = cn(
+  "sticky top-0 z-20 border-b border-border bg-[#e8eef5] text-[10px] uppercase tracking-wide text-muted-foreground dark:bg-muted",
+  "shadow-[inset_0_-1px_0_0_hsl(var(--border))]",
+);
 
 export const nsdTableTh = cn(supTableCell, "whitespace-nowrap font-semibold");
 
@@ -66,9 +66,41 @@ export const nsdTableInput = cn(
   "h-7 text-sm tabular-nums",
 );
 
-export const nsdTableRow = supTableRow;
+export const nsdTableRow = cn(
+  "border-b border-border/60 transition-colors",
+  "odd:bg-background even:bg-muted/[0.35]",
+  "hover:bg-primary/[0.04]",
+  "focus-within:bg-primary/[0.08]",
+);
 
-export const nsdTableRowReady = supTableRowActive;
+/** Left rail: still needs quantity. */
+export const nsdTableRowNeed = "shadow-[inset_3px_0_0_0_#d97706]";
+
+/** Left rail: qty × cost ready (replaces full-row blue wash). */
+export const nsdTableRowReady =
+  "shadow-[inset_3px_0_0_0_hsl(var(--primary))]";
+
+/** Qty + Cost = the type-in lane. */
+export const nsdEntryLaneHead =
+  "bg-amber-500/[0.12] text-amber-950 dark:bg-amber-500/15 dark:text-amber-50";
+
+export const nsdEntryLaneCell =
+  "bg-amber-500/[0.06] dark:bg-amber-500/[0.08]";
+
+/** Computed / readout columns (Total, Margin). */
+export const nsdReadoutCell =
+  "bg-muted/30 dark:bg-muted/20";
+
+export const nsdStickyProductHead = cn(
+  "sticky left-0 z-30 min-w-[11rem] bg-[#e8eef5] dark:bg-muted",
+  "shadow-[2px_0_0_0_hsl(var(--border))]",
+);
+
+export const nsdStickyProductCell = cn(
+  "sticky left-0 z-10 min-w-[11rem]",
+  "shadow-[2px_0_0_0_hsl(var(--border))]",
+  "bg-inherit",
+);
 
 export const nsdStatTile = cn(
   "rounded-none border border-border bg-background px-2 py-1.5",

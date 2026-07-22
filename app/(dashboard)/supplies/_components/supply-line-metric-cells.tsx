@@ -43,14 +43,14 @@ const METRIC_SHELL: Record<MetricTone, string> = {
   out: "border-red-500/45 bg-red-500/[0.07]",
 };
 
-/** Spreadsheet cell fill — no inner border (table cell provides grid lines). */
+/** Spreadsheet cell fill — empty fields look typeable; filled stay calm. */
 const METRIC_COMPACT_BG: Record<MetricTone, string> = {
-  empty: "bg-background",
-  invalid: "bg-amber-500/[0.08]",
+  empty: "bg-muted/40",
+  invalid: "bg-amber-500/[0.10]",
   active: "bg-background",
-  ready: "bg-[#cfe2f3] dark:bg-primary/15",
-  computed: "bg-primary/[0.06]",
-  matched: "bg-primary/[0.05]",
+  ready: "bg-primary/[0.08]",
+  computed: "bg-muted/25",
+  matched: "bg-primary/[0.06]",
   readonly: "bg-muted/20",
   low: "bg-amber-500/[0.08]",
   out: "bg-red-500/[0.07]",
@@ -64,8 +64,20 @@ function metricShellClass(
 ): string {
   if (compact && !touch) {
     return cn(
-      "flex min-w-0 items-center px-1.5",
+      "mx-0.5 my-0.5 flex min-w-0 items-center rounded-sm px-1",
       "h-7",
+      "transition-[box-shadow,background-color,border-color] duration-100",
+      tone === "empty"
+        ? "border border-dashed border-border/80"
+        : cn(
+            "ring-1 ring-inset",
+            tone === "invalid"
+              ? "ring-amber-500/50"
+              : tone === "ready"
+                ? "ring-primary/35"
+                : "ring-border/55",
+          ),
+      "focus-within:border-solid focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-primary/40",
       METRIC_COMPACT_BG[tone],
       extra,
     );
