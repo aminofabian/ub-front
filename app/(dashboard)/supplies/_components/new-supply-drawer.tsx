@@ -639,7 +639,18 @@ export function NewSupplyDrawer({
     didAttemptRestoreRef.current = true;
 
     const stored = loadNewSupplyDraft(draftBusinessId, draftUserId);
-    if (stored && newSupplyDraftHasProgress(stored)) {
+    const storedSupplierId = stored?.supplier?.id ?? null;
+    const wantSupplierId = initialSupplier?.id ?? null;
+    const storedMatchesOpenContext =
+      !wantSupplierId ||
+      !storedSupplierId ||
+      storedSupplierId === wantSupplierId;
+
+    if (
+      stored &&
+      newSupplyDraftHasProgress(stored) &&
+      storedMatchesOpenContext
+    ) {
       pendingMergeRowsRef.current = stored.rows;
       setSupplier(stored.supplier);
       setSupplierQuery("");
@@ -669,11 +680,13 @@ export function NewSupplyDrawer({
       return;
     }
 
+    // Opening from a supplier page must not restore another supplier's draft.
     if (initialSupplier) {
       setSupplier(initialSupplier);
       setSupplierQuery("");
       setSupplierHits([]);
       setDeliveryExpanded(false);
+      setServerSessionId(null);
     }
     setDraftReady(true);
   }, [
@@ -690,6 +703,8 @@ export function NewSupplyDrawer({
   useEffect(() => {
     if (!supplier) {
       prevSupplierIdRef.current = null;
+      setServerSessionId(null);
+      setServerSyncState("idle");
       if (pendingMergeRowsRef.current == null) {
         setRows([]);
       }
@@ -701,6 +716,7 @@ export function NewSupplyDrawer({
     if (supplierChanged) {
       pendingMergeRowsRef.current = null;
       rowsRef.current = [];
+      serverSyncGenRef.current += 1;
       setServerSessionId(null);
       setServerSyncState("idle");
     }
@@ -829,19 +845,28 @@ export function NewSupplyDrawer({
     if (!branchId.trim()) {
       return;
     }
+    // Never resume "latest any supplier" — that can attach Oreste's draft while
+    // the user is receiving for Robinson.
+    const resumeSupplierId = supplier?.id ?? initialSupplier?.id;
+    if (!resumeSupplierId) {
+      return;
+    }
     didAttemptServerResumeRef.current = true;
     let cancelled = false;
     void (async () => {
       try {
         const latest = await findLatestSupplyPathBDraft({
           branchId,
-          supplierId: initialSupplier?.id,
+          supplierId: resumeSupplierId,
         });
         if (cancelled || !latest) {
           return;
         }
         const detail = await loadSupplyPathBDraftSession(latest.id);
         if (cancelled || detail.status !== "draft") {
+          return;
+        }
+        if (detail.supplierId !== resumeSupplierId) {
           return;
         }
         const supplierRec = await fetchSupplierById(detail.supplierId);
@@ -1733,12 +1758,23 @@ export function NewSupplyDrawer({
                 supplierLoading={supplierLoading}
                 onSupplierQueryChange={setSupplierQuery}
                 onSelectSupplier={(s) => {
+                  if (supplier?.id !== s.id) {
+                    serverSyncGenRef.current += 1;
+                    setServerSessionId(null);
+                    setServerSyncState("idle");
+                    setRows((prev) =>
+                      prev.map((r) => ({ ...r, serverLineId: null })),
+                    );
+                  }
                   setSupplier(s);
                   setSupplierQuery("");
                   setSupplierHits([]);
                   setDeliveryExpanded(false);
                 }}
                 onClearSupplier={() => {
+                  serverSyncGenRef.current += 1;
+                  setServerSessionId(null);
+                  setServerSyncState("idle");
                   setSupplier(null);
                   setSupplierQuery("");
                   setSupplierHits([]);

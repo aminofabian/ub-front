@@ -176,6 +176,24 @@ function toLinePayload(row: SyncableSupplyRow): AddPathBLinePayload | null {
   };
 }
 
+/** True when an existing Path B draft is safe to reuse for this supplier/branch. */
+export function pathBSessionMatchesSupplyContext(
+  detail: Pick<PathBSessionDetailRecord, "status" | "supplierId" | "branchId">,
+  input: { supplierId: string; branchId: string },
+): boolean {
+  if (detail.status !== "draft") {
+    return false;
+  }
+  if (detail.supplierId !== input.supplierId) {
+    return false;
+  }
+  const bid = input.branchId.trim();
+  if (bid && detail.branchId !== bid) {
+    return false;
+  }
+  return true;
+}
+
 export async function ensureSupplyPathBSession(input: {
   sessionId: string | null;
   supplier: SupplierRecord;
@@ -200,12 +218,22 @@ export async function ensureSupplyPathBSession(input: {
   }
 
   try {
-    await patchPathBSession(input.sessionId.trim(), {
+    const detail = await fetchPathBSession(input.sessionId.trim());
+    if (
+      !pathBSessionMatchesSupplyContext(detail, {
+        supplierId: input.supplier.id,
+        branchId: input.branchId,
+      })
+    ) {
+      // Never patch/post another supplier's (or branch's) draft session.
+      return create();
+    }
+    await patchPathBSession(detail.id, {
       receivedAt: input.receivedAtIso,
       notes: input.notes,
       clientDraftJson: input.clientDraftJson,
     });
-    return { sessionId: input.sessionId.trim(), reused: true };
+    return { sessionId: detail.id, reused: true };
   } catch {
     // Stale session or schema mismatch — start a fresh draft session.
     return create();

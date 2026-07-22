@@ -6,9 +6,42 @@ import {
   parseSupplyClientDraftJson,
   parseSupplyNotesParts,
   pathBLineToSyncFields,
+  pathBSessionMatchesSupplyContext,
 } from "@/lib/supply-pathb-draft-sync";
 
 describe("supply-pathb-draft-sync", () => {
+  it("rejects Path B session reuse across suppliers or branches", () => {
+    const base = {
+      status: "draft",
+      supplierId: "sup-oreste",
+      branchId: "br-1",
+    };
+    expect(
+      pathBSessionMatchesSupplyContext(base, {
+        supplierId: "sup-oreste",
+        branchId: "br-1",
+      }),
+    ).toBe(true);
+    expect(
+      pathBSessionMatchesSupplyContext(base, {
+        supplierId: "sup-robinson",
+        branchId: "br-1",
+      }),
+    ).toBe(false);
+    expect(
+      pathBSessionMatchesSupplyContext(base, {
+        supplierId: "sup-oreste",
+        branchId: "br-2",
+      }),
+    ).toBe(false);
+    expect(
+      pathBSessionMatchesSupplyContext(
+        { ...base, status: "posted" },
+        { supplierId: "sup-oreste", branchId: "br-1" },
+      ),
+    ).toBe(false);
+  });
+
   it("round-trips client draft json", () => {
     const raw = buildSupplyClientDraftJson({
       docRef: "INV-1",
