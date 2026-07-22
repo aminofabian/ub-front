@@ -41,7 +41,7 @@ export function TenantConsolePage() {
         <LandingHowItWorks />
         <LandingStats />
         <LandingTestimonials />
-        <LandingPricing />
+        <LandingPricing onCreateShop={openSignup} />
         <LandingCta onCreateShop={openSignup} />
       </main>
 

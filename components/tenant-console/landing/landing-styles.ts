@@ -74,10 +74,9 @@ const DARK = {
   brandMuted: "#3A3632",
 } as const;
 
-/* ── Active theme (light default) ── */
-const T = LIGHT;
+type LandingTheme = typeof LIGHT | typeof DARK;
 
-export function landingRootStyle(): CSSProperties {
+function themeVars(T: LandingTheme): CSSProperties {
   return {
     "--kiosk-bg": T.bg,
     "--kiosk-surface": T.surface,
@@ -115,6 +114,15 @@ export function landingRootStyle(): CSSProperties {
     backgroundColor: T.bg,
     color: T.text,
   } as CSSProperties;
+}
+
+export function landingRootStyle(): CSSProperties {
+  return themeVars(LIGHT);
+}
+
+/** Scoped dark palette — apply to a section to invert it against the page. */
+export function landingDarkSectionStyle(): CSSProperties {
+  return themeVars(DARK);
 }
 
 export { LIGHT as LANDING_LIGHT, DARK as LANDING_DARK };

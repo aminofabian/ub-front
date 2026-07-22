@@ -31,6 +31,10 @@ const PRO_FEATURES = [
   "Priority support",
 ] as const;
 
+type LandingPricingProps = {
+  onCreateShop: () => void;
+};
+
 function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
@@ -45,7 +49,7 @@ function CheckIcon() {
   );
 }
 
-export function LandingPricing() {
+export function LandingPricing({ onCreateShop }: LandingPricingProps) {
   return (
     <section
       id="pricing"
@@ -92,6 +96,7 @@ export function LandingPricing() {
             <button
               type="button"
               className={`${ghostCtaClass} w-full justify-center`}
+              onClick={onCreateShop}
             >
               Start your shop
             </button>
@@ -139,6 +144,7 @@ export function LandingPricing() {
             <button
               type="button"
               className={`${goldCtaClass} w-full justify-center`}
+              onClick={onCreateShop}
             >
               Start your shop
             </button>
@@ -148,7 +154,7 @@ export function LandingPricing() {
         <p className="mt-9 text-center text-[13px] text-[var(--kiosk-text-faint)]">
           Need more than 10 branches or a custom setup?{" "}
           <a
-            href="#"
+            href="mailto:support@kiosk.ke"
             className="text-[var(--kiosk-gold)] no-underline hover:underline"
           >
             Talk to us &rarr;

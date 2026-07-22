@@ -109,7 +109,9 @@ export function LandingHero({ onCreateShop }: LandingHeroProps) {
             </h1>
 
             <p className="landing-reveal landing-reveal-delay-2 mb-8 max-w-[26rem] text-[15px] leading-[1.7] text-[var(--kiosk-text-muted)] sm:mb-14 sm:text-[17px] md:mb-16 lg:max-w-[28rem]">
-              Get Kiosk free → No card needed. Set up in minutes.
+              Kiosk is the point of sale, inventory, and online storefront for
+              Kenyan shops — scan barcodes, take M-Pesa at the counter, and
+              keep selling when the network drops.
             </p>
 
             <div className="landing-reveal landing-reveal-delay-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">

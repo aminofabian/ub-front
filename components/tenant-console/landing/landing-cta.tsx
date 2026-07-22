@@ -15,7 +15,9 @@ export function LandingCta({ onCreateShop }: LandingCtaProps) {
             Ready when you are
           </p>
           <h2 className="relative z-[1] mb-4 font-heading text-[clamp(28px,7vw,52px)] leading-[1.08] tracking-[-0.03em] text-[var(--kiosk-text)]">
-            Ready to unify your operation?
+            Set up tonight.
+            <br />
+            Sell in the morning.
           </h2>
           <p className="relative z-[1] mx-auto mb-8 max-w-md text-base leading-[1.65] text-[var(--kiosk-text-soft)] sm:mb-10">
             Start for free. No credit card, no commitment — your subdomain in
@@ -29,11 +31,12 @@ export function LandingCta({ onCreateShop }: LandingCtaProps) {
             >
               Start your shop
             </button>
-            <span
+            <a
+              href="mailto:support@kiosk.ke?subject=Kiosk%20demo"
               className={`${ghostCtaClass} w-full justify-center border-[var(--kiosk-border-strong)] bg-[var(--kiosk-elevated)] !px-8 !py-3.5 !text-[15px] sm:w-auto`}
             >
               Book a demo
-            </span>
+            </a>
           </div>
         </div>
       </div>

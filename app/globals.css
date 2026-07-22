@@ -1480,6 +1480,11 @@ button:hover .tenant-monogram-shell {
     }
 }
 
+.landing-page .landing-marquee-mask {
+    mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+}
+
 .landing-page .landing-trust-pill {
     display: inline-flex;
     align-items: center;
@@ -1513,25 +1518,58 @@ button:hover .tenant-monogram-shell {
     flex-shrink: 0;
 }
 
-.landing-page .landing-stat-tile {
-    position: relative;
-    border-radius: 1rem;
-    border: 1px solid color-mix(in srgb, var(--kiosk-gold-border) 65%, var(--kiosk-border));
-    background: color-mix(in srgb, var(--kiosk-elevated) 88%, transparent);
-    padding: 1.35rem 1.25rem;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+.landing-page .landing-pillars {
+    border-top: 1px solid var(--kiosk-border);
+    border-bottom: 1px solid var(--kiosk-border);
 }
 
-.landing-page .landing-stat-tile::before {
-    content: "";
+.landing-page .landing-pillars-glow {
+    pointer-events: none;
     position: absolute;
-    top: 0;
-    left: 1.25rem;
-    right: 1.25rem;
-    height: 2px;
-    border-radius: 0 0 2px 2px;
-    background: linear-gradient(90deg, transparent, var(--kiosk-gold), transparent);
-    opacity: 0.65;
+    inset: 0;
+    background-image:
+        radial-gradient(
+            ellipse 55% 65% at 8% 0%,
+            color-mix(in srgb, var(--kiosk-gold) 13%, transparent),
+            transparent 60%
+        ),
+        radial-gradient(
+            ellipse 45% 55% at 95% 100%,
+            color-mix(in srgb, var(--kiosk-gold) 7%, transparent),
+            transparent 55%
+        ),
+        linear-gradient(var(--kiosk-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--kiosk-grid-line) 1px, transparent 1px);
+    background-size:
+        auto,
+        auto,
+        44px 44px,
+        44px 44px;
+}
+
+.landing-page .landing-pillar-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: color-mix(in srgb, var(--kiosk-elevated) 96%, transparent);
+    padding: 1.75rem 1.5rem 1.85rem;
+    transition: background-color 0.3s ease;
+}
+
+.landing-page .landing-pillar-tile:hover {
+    background: var(--kiosk-panel);
+}
+
+.landing-page .landing-pillar-rule {
+    margin-top: 1.1rem;
+    height: 1px;
+    width: 2.25rem;
+    background: color-mix(in srgb, var(--kiosk-gold) 55%, transparent);
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-page .landing-pillar-tile:hover .landing-pillar-rule {
+    width: 100%;
 }
 
 .landing-page .landing-quote-card {
@@ -1649,8 +1687,6 @@ button:hover .tenant-monogram-shell {
     }
 
     .landing-page .landing-trust-pill {
-        width: 100%;
-        justify-content: flex-start;
         font-size: 10px;
         padding: 0.4rem 0.65rem;
     }
