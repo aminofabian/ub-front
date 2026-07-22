@@ -14,15 +14,10 @@ export function categoryIconImageUrl(icon: string | null | undefined): string | 
   return /^https?:\/\//i.test(t) ? t : null
 }
 
-export function formatMoney(amount: number | string | null | undefined, currency = "KES"): string {
-  const value = typeof amount === "string" ? parseFloat(amount) : amount;
-  if (value == null || Number.isNaN(value)) {
-    return "—";
-  }
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
+export {
+  FALLBACK_CURRENCY,
+  formatMoney,
+  formatMoneyCompact,
+  localeForCurrency,
+  resolveCurrencyCode,
+} from "@/lib/money"

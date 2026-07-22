@@ -52,6 +52,17 @@ const COUNTRIES = [
   { code: "ZA", label: "South Africa" },
 ];
 
+/** Mirrors backend RegionDefaults for desktop default fill (override still allowed). */
+const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string }> =
+  {
+    KE: { currency: "KES", timezone: "Africa/Nairobi" },
+    UG: { currency: "UGX", timezone: "Africa/Kampala" },
+    TZ: { currency: "TZS", timezone: "Africa/Dar_es_Salaam" },
+    RW: { currency: "RWF", timezone: "Africa/Kigali" },
+    NG: { currency: "NGN", timezone: "Africa/Lagos" },
+    ZA: { currency: "ZAR", timezone: "Africa/Johannesburg" },
+  };
+
 export default function DesktopSetupPage() {
   const router = useRouter();
   const [submitState, setSubmitState] = useState<SubmitState>({ kind: "idle" });
@@ -169,7 +180,15 @@ export default function DesktopSetupPage() {
                 <select
                   className={inputClass}
                   value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setCountryCode(next);
+                    const defaults = COUNTRY_DEFAULTS[next];
+                    if (defaults) {
+                      setCurrency(defaults.currency);
+                      setTimezone(defaults.timezone);
+                    }
+                  }}
                 >
                   {COUNTRIES.map((c) => (
                     <option key={c.code} value={c.code}>

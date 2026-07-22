@@ -33,6 +33,7 @@ import {
   type ShiftRecord,
 } from "@/lib/api";
 import { isPrefillOpeningFromLastCloseEnabled } from "@/lib/shift-settings";
+import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 /** Centered shift / cash modals — dense layout to avoid inner scrolling on common viewports. */
@@ -81,17 +82,21 @@ export const KES_DENOMINATIONS = [
   { value: 5, type: "COIN", label: "KES 5" },
   { value: 1, type: "COIN", label: "KES 1" },
 ] as const;
+
+/** Note/coin breakdown is only defined for KES today — hide for other currencies. */
+export function supportsCashDenominationBreakdown(
+  currency?: string | null,
+): boolean {
+  return resolveCurrencyCode(currency) === "KES";
+}
+
 export const VARIANCE_THRESHOLD_AMBER = 1;
 export const VARIANCE_THRESHOLD_RED = 500;
-export function moneyStr(v: number | string | null | undefined): string {
-  if (v == null) return "—";
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n)
-    ? n.toLocaleString("en-KE", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    : String(v);
+export function moneyStr(
+  v: number | string | null | undefined,
+  currency?: string | null,
+): string {
+  return formatMoney(v, currency);
 }
 export function varianceColor(v: number | string | null | undefined): string {
   if (v == null) return "text-muted-foreground";
@@ -264,6 +269,9 @@ export function OpenShiftModal({
   lockBranchSelectionTo?: string | null;
 }) {
   const featureFlags = useFeatureFlags();
+  const dashboard = useOptionalDashboard();
+  const currency = resolveCurrencyCode(dashboard?.business?.currency);
+  const useDenomBreakdown = supportsCashDenominationBreakdown(currency);
   const prefillFromLastClose =
     isPrefillOpeningFromLastCloseEnabled(featureFlags);
 
@@ -272,6 +280,7 @@ export function OpenShiftModal({
   const [quantities, setQuantities] = useState<Record<number, number>>(
     createEmptyDenominationQuantities(),
   );
+  const [cashTotalStr, setCashTotalStr] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [prefillBusy, setPrefillBusy] = useState(false);
@@ -292,6 +301,7 @@ export function OpenShiftModal({
       setBranchId(initial);
       setNotes("");
       setQuantities(createEmptyDenominationQuantities());
+      setCashTotalStr("");
       setError("");
       setLoading(false);
       setPrefillHint(null);
@@ -301,7 +311,7 @@ export function OpenShiftModal({
 
   // Prefill from last closed shift when admin has enabled the option.
   useEffect(() => {
-    if (!open || !prefillFromLastClose || !branchId) {
+    if (!open || !prefillFromLastClose || !branchId || !useDenomBreakdown) {
       return;
     }
     let cancelled = false;
@@ -339,16 +349,18 @@ export function OpenShiftModal({
     return () => {
       cancelled = true;
     };
-  }, [open, prefillFromLastClose, branchId]);
+  }, [open, prefillFromLastClose, branchId, useDenomBreakdown]);
 
-  const totalCash = useMemo(
-    () =>
-      KES_DENOMINATIONS.reduce(
-        (sum, d) => sum + d.value * (quantities[d.value] || 0),
-        0,
-      ),
-    [quantities],
-  );
+  const totalCash = useMemo(() => {
+    if (!useDenomBreakdown) {
+      const n = Number(cashTotalStr);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return KES_DENOMINATIONS.reduce(
+      (sum, d) => sum + d.value * (quantities[d.value] || 0),
+      0,
+    );
+  }, [useDenomBreakdown, cashTotalStr, quantities]);
 
   const handleOpen = useCallback(async () => {
     if (!branchId) {
@@ -356,13 +368,19 @@ export function OpenShiftModal({
       return;
     }
     if (totalCash <= 0) {
-      setError("Please enter at least one denomination quantity.");
+      setError(
+        useDenomBreakdown
+          ? "Please enter at least one denomination quantity."
+          : "Please enter the opening cash total.",
+      );
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const entries = quantitiesToEntries(quantities);
+      const entries = useDenomBreakdown
+        ? quantitiesToEntries(quantities)
+        : [];
       const shift = await postOpenShift({
         branchId,
         openingCash: totalCash,
@@ -376,7 +394,15 @@ export function OpenShiftModal({
     } finally {
       setLoading(false);
     }
-  }, [branchId, notes, quantities, totalCash, onOpened, onClose]);
+  }, [
+    branchId,
+    notes,
+    quantities,
+    totalCash,
+    useDenomBreakdown,
+    onOpened,
+    onClose,
+  ]);
 
   return (
     <Dialog
@@ -396,9 +422,11 @@ export function OpenShiftModal({
                 Open New Shift
               </DialogTitle>
               <DialogDescription className="text-xs leading-snug sm:text-[13px] sm:leading-relaxed">
-                {prefillFromLastClose
-                  ? "Review the opening float (pre-filled from last close) and edit if needed."
-                  : "Count the opening float by denomination below."}
+                {useDenomBreakdown
+                  ? prefillFromLastClose
+                    ? "Review the opening float (pre-filled from last close) and edit if needed."
+                    : "Count the opening float by denomination below."
+                  : `Enter the opening cash total in ${currency}. Note/coin breakdown is only available for KES.`}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -432,16 +460,38 @@ export function OpenShiftModal({
             </div>
 
             <div className={SHIFT_MODAL_SECTION}>
-              <DenominationTable
-                title="Opening Float Count"
-                quantities={quantities}
-                onChange={setQuantities}
-              />
-              {prefillBusy ? (
+              {useDenomBreakdown ? (
+                <DenominationTable
+                  title="Opening Float Count"
+                  quantities={quantities}
+                  onChange={setQuantities}
+                />
+              ) : (
+                <div className="space-y-1.5">
+                  <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>
+                    Opening cash ({currency})
+                  </h4>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    inputMode="decimal"
+                    className={dashboardInputClass(false)}
+                    value={cashTotalStr}
+                    onChange={(e) => setCashTotalStr(e.target.value)}
+                    placeholder="0"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Total: {moneyStr(totalCash, currency)}
+                  </p>
+                </div>
+              )}
+              {useDenomBreakdown && prefillBusy ? (
                 <p className="mt-2 text-[11px] text-muted-foreground">
                   Loading last closing count…
                 </p>
-              ) : prefillHint ? (
+              ) : useDenomBreakdown && prefillHint ? (
                 <p className="mt-2 text-[11px] text-muted-foreground">
                   {prefillHint}
                 </p>
@@ -480,7 +530,7 @@ export function OpenShiftModal({
             disabled={loading || prefillBusy}
             onClick={handleOpen}
           >
-            {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash)})`}
+            {loading ? "Opening..." : `Open Shift (${moneyStr(totalCash, currency)})`}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -499,6 +549,8 @@ export function CloseShiftModal({
   onClosed: () => void;
 }) {
   const dashboard = useOptionalDashboard();
+  const currency = resolveCurrencyCode(dashboard?.business?.currency);
+  const useDenomBreakdown = supportsCashDenominationBreakdown(currency);
   const roleKey = dashboard?.me?.role?.key?.trim().toLowerCase() ?? "";
   const canSeeCashVarianceDetail =
     roleKey === "owner" || roleKey === "admin";
@@ -506,6 +558,7 @@ export function CloseShiftModal({
   const [quantities, setQuantities] = useState<Record<number, number>>(
     createEmptyDenominationQuantities(),
   );
+  const [cashTotalStr, setCashTotalStr] = useState("");
   const [notes, setNotes] = useState("");
   const [varianceReason, setVarianceReason] = useState("");
   const [error, setError] = useState("");
@@ -516,21 +569,34 @@ export function CloseShiftModal({
       // Pre-fill with opening quantities if no closing count yet
       const openQty = denomsToQuantities(shift.openingDenominations);
       setQuantities({ ...createEmptyDenominationQuantities(), ...openQty });
+      const openingTotal =
+        typeof shift.openingCash === "number"
+          ? shift.openingCash
+          : Number(shift.openingCash ?? 0);
+      setCashTotalStr(
+        useDenomBreakdown
+          ? ""
+          : Number.isFinite(openingTotal) && openingTotal > 0
+            ? String(openingTotal)
+            : "",
+      );
       setNotes("");
       setVarianceReason("");
       setError("");
       setLoading(false);
     }
-  }, [open, shift]);
+  }, [open, shift, useDenomBreakdown]);
 
-  const totalCash = useMemo(
-    () =>
-      KES_DENOMINATIONS.reduce(
-        (sum, d) => sum + d.value * (quantities[d.value] || 0),
-        0,
-      ),
-    [quantities],
-  );
+  const totalCash = useMemo(() => {
+    if (!useDenomBreakdown) {
+      const n = Number(cashTotalStr);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return KES_DENOMINATIONS.reduce(
+      (sum, d) => sum + d.value * (quantities[d.value] || 0),
+      0,
+    );
+  }, [useDenomBreakdown, cashTotalStr, quantities]);
 
   const expected = shift
     ? typeof shift.expectedClosingCash === "number"
@@ -559,7 +625,9 @@ export function CloseShiftModal({
     setError("");
     setLoading(true);
     try {
-      const entries = quantitiesToEntries(quantities);
+      const entries = useDenomBreakdown
+        ? quantitiesToEntries(quantities)
+        : [];
       await postCloseShift(shift.id, {
         countedClosingCash: totalCash || 0,
         notes: notes.trim() || null,
@@ -577,8 +645,9 @@ export function CloseShiftModal({
     shift,
     totalCash,
     notes,
-    varianceReason,
     quantities,
+    useDenomBreakdown,
+    varianceReason,
     showVarianceReason,
     canSeeCashVarianceDetail,
     onClosed,
@@ -616,13 +685,13 @@ export function CloseShiftModal({
                 <span>
                   <span className="text-muted-foreground">Expected</span>{" "}
                   <span className="font-semibold tabular-nums text-foreground">
-                    {moneyStr(expected)}
+                    {moneyStr(expected, currency)}
                   </span>
                 </span>
                 <span>
                   <span className="text-muted-foreground">Counted</span>{" "}
                   <span className="font-semibold tabular-nums text-foreground">
-                    {moneyStr(totalCash)}
+                    {moneyStr(totalCash, currency)}
                   </span>
                 </span>
                 <span>
@@ -634,7 +703,7 @@ export function CloseShiftModal({
                     )}
                   >
                     {variance >= 0 ? "+" : ""}
-                    {moneyStr(variance)}
+                    {moneyStr(variance, currency)}
                   </span>
                 </span>
               </div>
@@ -644,7 +713,7 @@ export function CloseShiftModal({
                 role="status"
               >
                 Your cash count doesn’t match the expected till balance. Recheck
-                your notes and coins
+                your {useDenomBreakdown ? "notes and coins" : "cash total"}
                 {showVarianceReason
                   ? ", then add a short note below so an admin can review."
                   : "."}
@@ -652,11 +721,33 @@ export function CloseShiftModal({
             ) : null}
 
             <div className={SHIFT_MODAL_SECTION}>
-              <DenominationTable
-                title="Closing Float Count"
-                quantities={quantities}
-                onChange={setQuantities}
-              />
+              {useDenomBreakdown ? (
+                <DenominationTable
+                  title="Closing Float Count"
+                  quantities={quantities}
+                  onChange={setQuantities}
+                />
+              ) : (
+                <div className="space-y-1.5">
+                  <h4 className={cn(SHIFT_MODAL_SECTION_TITLE, "mb-1.5")}>
+                    Closing cash ({currency})
+                  </h4>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    inputMode="decimal"
+                    className={dashboardInputClass(false)}
+                    value={cashTotalStr}
+                    onChange={(e) => setCashTotalStr(e.target.value)}
+                    placeholder="0"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Note/coin breakdown is only available for KES.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Variance reason */}
@@ -715,7 +806,7 @@ export function CloseShiftModal({
             </Button>
           </DialogClose>
           <Button type="button" disabled={loading} onClick={handleClose}>
-            {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash)})`}
+            {loading ? "Closing..." : `Close Shift (${moneyStr(totalCash, currency)})`}
           </Button>
         </DialogFooter>
       </DialogContent>

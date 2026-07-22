@@ -5,7 +5,9 @@ export type StoreTypeId =
   | "mini-mart"
   | "full-grocery"
   | "fresh-market"
-  | "mixed-shop";
+  | "mixed-shop"
+  | "cosmetics"
+  | "wines-spirits";
 
 const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "butchery",
@@ -13,6 +15,8 @@ const STORE_TYPE_ORDER: readonly StoreTypeId[] = [
   "full-grocery",
   "fresh-market",
   "mixed-shop",
+  "cosmetics",
+  "wines-spirits",
 ];
 
 type StoreTypeSource = {

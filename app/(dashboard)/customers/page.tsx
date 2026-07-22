@@ -23,6 +23,7 @@ import {
 } from "@/components/dashboard-page-ui";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFormatMoney } from "@/hooks/use-format-money";
 import { APP_ROUTES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { CreditSaleReminderSettings } from "@/components/credits/credit-sale-reminder-settings";
@@ -50,11 +51,6 @@ const DATE_FILTER_OPTIONS: { id: CustomerDatePreset; label: string }[] = [
   { id: "all", label: "All" },
 ];
 
-function formatKes(amount: number | string | null | undefined): string {
-  const n = Number(amount ?? 0);
-  return n.toLocaleString("en-KE", { style: "currency", currency: "KES" });
-}
-
 export default function CustomersPage() {
   const {
     loading,
@@ -63,6 +59,7 @@ export default function CustomersPage() {
     canManageCreditSettings,
     canReviewPaymentClaims,
   } = useDashboard();
+  const { formatMoneyCompact: formatKes } = useFormatMoney();
   const [rows, setRows] = useState<CustomerRecord[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [phoneFilter, setPhoneFilter] = useState("");

@@ -16,7 +16,9 @@ export type StoreTypeChoice =
   | "mini-mart"
   | "full-grocery"
   | "fresh-market"
-  | "mixed-shop";
+  | "mixed-shop"
+  | "cosmetics"
+  | "wines-spirits";
 
 export type OnlineStoreChoice = "yes" | "no";
 
@@ -75,6 +77,28 @@ export const BRANCH_LOCALITY_PLACEHOLDERS = [
   "Karen",
 ] as const;
 
+/** Country-aware locality examples (mirrors backend RegionDefaults). */
+export const BRANCH_LOCALITY_PLACEHOLDERS_BY_COUNTRY: Record<
+  string,
+  readonly string[]
+> = {
+  KE: BRANCH_LOCALITY_PLACEHOLDERS,
+  UG: ["Kampala", "Entebbe", "Jinja", "Gulu", "Mbarara"],
+  TZ: ["Dar es Salaam", "Arusha", "Mwanza", "Dodoma", "Zanzibar"],
+  RW: ["Kigali", "Butare", "Gisenyi", "Ruhengeri", "Musanze"],
+  NG: ["Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano"],
+  ZA: ["Johannesburg", "Cape Town", "Durban", "Pretoria", "Gqeberha"],
+};
+
+export function localityPlaceholdersForCountry(
+  countryCode?: string | null,
+): readonly string[] {
+  const code = countryCode?.trim().toUpperCase() ?? "";
+  return (
+    BRANCH_LOCALITY_PLACEHOLDERS_BY_COUNTRY[code] ?? BRANCH_LOCALITY_PLACEHOLDERS
+  );
+}
+
 export const STORE_TYPE_OPTIONS: readonly {
   value: StoreTypeChoice;
   label: string;
@@ -104,6 +128,16 @@ export const STORE_TYPE_OPTIONS: readonly {
     value: "mixed-shop",
     label: "Mixed shop",
     hint: "Groceries plus general retail",
+  },
+  {
+    value: "cosmetics",
+    label: "Cosmetics",
+    hint: "Beauty, skin care, hair, and grooming",
+  },
+  {
+    value: "wines-spirits",
+    label: "Wines & spirits",
+    hint: "Beer, wine, spirits, and mixers",
   },
 ];
 
@@ -181,11 +215,12 @@ export function branchCountToNumber(count: BranchCountChoice): number {
   return Number.parseInt(count, 10);
 }
 
-export function branchLocalityPlaceholder(index: number): string {
-  return (
-    BRANCH_LOCALITY_PLACEHOLDERS[index % BRANCH_LOCALITY_PLACEHOLDERS.length] ??
-    `Area ${index + 1}`
-  );
+export function branchLocalityPlaceholder(
+  index: number,
+  countryCode?: string | null,
+): string {
+  const list = localityPlaceholdersForCountry(countryCode);
+  return list[index % list.length] ?? `Area ${index + 1}`;
 }
 
 /** Formats a locality as a branch name, e.g. "Mirema" → "Mirema branch". */
@@ -205,8 +240,11 @@ export function parseBranchLocality(value: string): string {
   return value.replace(/\s+branch$/i, "").trim();
 }
 
-export function defaultBranchLocality(index: number): string {
-  return branchLocalityPlaceholder(index);
+export function defaultBranchLocality(
+  index: number,
+  countryCode?: string | null,
+): string {
+  return branchLocalityPlaceholder(index, countryCode);
 }
 
 /** True when the string looks like a URL slug rather than a human shop name. */

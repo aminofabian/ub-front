@@ -131,6 +131,37 @@ export const STORE_SECTION_STARTER_KITS: readonly StoreSectionStarterKit[] = [
       "Snacks",
     ],
   },
+  {
+    id: "cosmetics",
+    label: "Cosmetics",
+    sections: [
+      "Skin care",
+      "Hair care",
+      "Make-up",
+      "Fragrances",
+      "Personal care",
+      "Bath & body",
+      "Nails",
+      "Men's grooming",
+      "Baby care",
+      "Accessories",
+    ],
+  },
+  {
+    id: "wines-spirits",
+    label: "Wines & spirits",
+    sections: [
+      "Beer",
+      "Wine",
+      "Spirits",
+      "RTD & cider",
+      "Mixers",
+      "Soft drinks",
+      "Snacks",
+      "Tobacco",
+      "Glassware & accessories",
+    ],
+  },
 ];
 
 export type PendingSectionCreate = {

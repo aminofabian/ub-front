@@ -23,7 +23,10 @@ import {
   AUTH_TENANT_RESOLVE_ERROR,
   useTenantIdPrefill,
 } from "@/lib/auth-tenant-prefill";
-import { registerAccount, fetchMe, onboardBusiness } from "@/lib/api";
+import { fetchMe, registerAccount, onboardBusiness } from "@/lib/api";
+import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
+import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
+import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import { buyerHomePath, isBuyerAccount } from "@/lib/buyer-role";
 import { APP_ROUTES, slugDerivedShopUrl } from "@/lib/config";
 import { markOnboardingTourPending } from "@/lib/onboarding-tour";
@@ -47,7 +50,9 @@ function SignupPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [businessName, setBusinessName] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const { countries } = useSelfServeCountries();
   const router = useRouter();
 
   useEffect(() => {
@@ -165,7 +170,7 @@ function SignupPageContent() {
         return;
       }
 
-      const result = await onboardBusiness(host, businessName);
+      const result = await onboardBusiness(host, businessName, countryCode);
       if (!result?.tenantId) {
         setErrorMessage(
           "Could not create business. Please try a different name.",
@@ -332,6 +337,22 @@ function SignupPageContent() {
                   onChange={(event) => setBusinessName(event.target.value)}
                   autoComplete="organization"
                   required
+                />
+              </div>
+              <div>
+                <label
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  htmlFor="onboard-country"
+                >
+                  Where do you operate?
+                </label>
+                <SelfServeCountrySelect
+                  id="onboard-country"
+                  className={authInputClassName}
+                  value={countryCode}
+                  onChange={setCountryCode}
+                  countries={countries}
+                  disabled={isOnboarding}
                 />
               </div>
               <button

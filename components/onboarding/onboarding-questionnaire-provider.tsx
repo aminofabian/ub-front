@@ -18,6 +18,8 @@ import { APP_ROUTES } from "@/lib/config";
 import { isButcheryOnlyBusiness } from "@/lib/business-store-type";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { applyOnboardingQuestionnaire } from "@/lib/onboarding-questionnaire-apply";
+import { fetchGlobalCatalogMeta } from "@/lib/api";
+import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
 import {
   activateOnboardingQuestionnaire,
   completeOnboardingQuestionnaire,
@@ -91,10 +93,44 @@ export function OnboardingQuestionnaireProvider({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [catalogShellEmpty, setCatalogShellEmpty] = useState(false);
+  const [catalogLabel, setCatalogLabel] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (step !== 6 || !canGlobalCatalog) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const meta = await fetchGlobalCatalogMeta();
+        if (cancelled) return;
+        const empty = isGlobalCatalogShellEmpty({
+          meta,
+          productCount: 0,
+          totalElements: 0,
+          search: "",
+          categoryId: null,
+          packId: null,
+        });
+        // Meta-only check: packs+categories empty means shell has nothing to browse.
+        setCatalogShellEmpty(empty);
+        setCatalogLabel(meta.catalogName?.trim() || meta.catalogCode || null);
+      } catch {
+        if (!cancelled) {
+          setCatalogShellEmpty(false);
+          setCatalogLabel(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, canGlobalCatalog]);
 
   const startQuestionnaire = useCallback(() => {
     const stored = getOnboardingQuestionnaireState();
@@ -131,6 +167,11 @@ export function OnboardingQuestionnaireProvider({
   const handleBrowseCatalog = useCallback(() => {
     setActive(false);
     router.replace(`${APP_ROUTES.productsCatalog}?from=onboarding`);
+  }, [router]);
+
+  const handleAddProductsManually = useCallback(() => {
+    setActive(false);
+    router.replace(APP_ROUTES.products);
   }, [router]);
 
   const handleFinishLater = useCallback(() => {
@@ -225,6 +266,9 @@ export function OnboardingQuestionnaireProvider({
               businessName={business?.name}
               businessSlug={business?.slug}
               brandingDisplayName={business?.branding?.displayName}
+              countryCode={business?.countryCode}
+              catalogShellEmpty={catalogShellEmpty}
+              catalogLabel={catalogLabel}
               submitting={submitting}
               errorMessage={errorMessage}
               onContinue={(patch, extras) => {
@@ -234,6 +278,7 @@ export function OnboardingQuestionnaireProvider({
               onSkip={handleSkip}
               canBrowseGlobalCatalog={canGlobalCatalog}
               onBrowseCatalog={handleBrowseCatalog}
+              onAddProductsManually={handleAddProductsManually}
               onFinishLater={handleFinishLater}
             />
           </div>,

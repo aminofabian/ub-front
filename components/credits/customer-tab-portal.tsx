@@ -31,6 +31,7 @@ import {
   STOREFRONT_ON_PRIMARY,
 } from "@/lib/storefront-theme";
 import { cn } from "@/lib/utils";
+import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 
 type Branding = {
   shopName: string;
@@ -57,28 +58,19 @@ function toNum(v: unknown): number {
 }
 
 function fmtMoney(amount: unknown, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: currency.length >= 3 ? currency : "KES",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(toNum(amount));
-  } catch {
-    return `${currency} ${toNum(amount).toFixed(2)}`;
-  }
+  return formatMoney(toNum(amount), resolveCurrencyCode(currency));
 }
 
 function fmtQty(v: unknown): string {
   const n = toNum(v);
   if (!Number.isFinite(n)) return "";
   if (Number.isInteger(n)) return String(n);
-  return n.toLocaleString("en-KE", { maximumFractionDigits: 3 });
+  return n.toLocaleString("en", { maximumFractionDigits: 3 });
 }
 
 function fmtDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat("en-KE", {
+    return new Intl.DateTimeFormat("en", {
       day: "numeric",
       month: "short",
       hour: "2-digit",

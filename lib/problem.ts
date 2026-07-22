@@ -42,6 +42,7 @@ const GENERIC_PROBLEM_TITLES = new Set([
   "Unauthorized",
   "Forbidden",
   "Not Found",
+  "Conflict",
   "Internal Server Error",
 ]);
 

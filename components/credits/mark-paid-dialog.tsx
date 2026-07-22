@@ -18,15 +18,7 @@ import {
   type OutstandingTabRowRecord,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-function fmtKes(n: number): string {
-  return n.toLocaleString("en-KE", {
-    style: "currency",
-    currency: "KES",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
+import { useFormatMoney } from "@/hooks/use-format-money";
 
 function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
@@ -47,6 +39,7 @@ export function MarkPaidDialog({
   customer,
   onPaid,
 }: MarkPaidDialogProps) {
+  const { formatMoneyCompact: fmtMoney } = useFormatMoney();
   const owed = toNum(customer?.balanceOwed);
   const [mode, setMode] = useState<"full" | "partial">("full");
   const [amountStr, setAmountStr] = useState("");
@@ -79,7 +72,7 @@ export function MarkPaidDialog({
       return;
     }
     if (amount > owed + 0.001) {
-      setError(`Amount cannot exceed ${fmtKes(owed)}.`);
+      setError(`Amount cannot exceed ${fmtMoney(owed)}.`);
       return;
     }
     setSubmitting(true);
@@ -119,7 +112,7 @@ export function MarkPaidDialog({
               Owed now
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {fmtKes(owed)}
+              {fmtMoney(owed)}
             </p>
             {customer?.primaryPhone?.trim() ? (
               <p className="mt-0.5 text-xs text-muted-foreground">

@@ -3,8 +3,9 @@
 import Link from "next/link";
 
 import { HUB_ACCENT, HUB_MUTED, HUB_SURFACE } from "@/lib/business-hub/constants";
-import { fmtKes, toNum } from "@/lib/business-hub/formatters";
+import { toNum } from "@/lib/business-hub/formatters";
 import { cn } from "@/lib/utils";
+import { useFormatMoney } from "@/hooks/use-format-money";
 
 export type TopMover = {
   itemId: string;
@@ -13,6 +14,7 @@ export type TopMover = {
 };
 
 export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
+  const { formatMoneyCompact } = useFormatMoney();
   if (movers.length === 0) return null;
 
   const rows = movers.slice(0, 5);
@@ -54,7 +56,7 @@ export function TopMoversPanel({ movers }: { movers: TopMover[] }) {
                     </span>
                   </div>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-black">
-                    {fmtKes(revenue)}
+                    {formatMoneyCompact(revenue)}
                   </span>
                 </div>
                 <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#F3F0EA]">

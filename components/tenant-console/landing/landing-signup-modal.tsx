@@ -27,6 +27,8 @@ import {
   landingRootStyle,
   sectionLabelPillClass,
 } from "./landing-styles";
+import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
+import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 
 type LandingSignupModalProps = {
   open: boolean;
@@ -46,6 +48,7 @@ export function LandingSignupModal({
 }: LandingSignupModalProps) {
   const [step, setStep] = useState<SignupStep>(1);
   const [businessName, setBusinessName] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [tenantSlug, setTenantSlug] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -53,10 +56,12 @@ export function LandingSignupModal({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { countries } = useSelfServeCountries();
 
   const resetState = () => {
     setStep(1);
     setBusinessName("");
+    setCountryCode(DEFAULT_SELFSERVE_COUNTRY_CODE);
     setTenantSlug("");
     setName("");
     setEmail("");
@@ -94,7 +99,7 @@ export function LandingSignupModal({
         return;
       }
 
-      const result = await onboardBusiness(host, businessName);
+      const result = await onboardBusiness(host, businessName, countryCode);
       if (!result?.tenantId) {
         setErrorMessage(
           "Could not create business. Please try a different name.",
@@ -207,9 +212,12 @@ export function LandingSignupModal({
                 <div className="mt-6">
                   <LandingOnboarding
                     businessName={businessName}
+                    countryCode={countryCode}
+                    countries={countries}
                     errorMessage={errorMessage}
                     isSubmitting={isSubmitting}
                     onBusinessNameChange={setBusinessName}
+                    onCountryCodeChange={setCountryCode}
                     onSubmit={onStep1Submit}
                     onBack={() => onOpenChange(false)}
                   />

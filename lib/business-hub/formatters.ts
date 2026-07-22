@@ -1,20 +1,18 @@
+import { formatMoneyCompact } from "@/lib/money";
 import { parseISODate } from "@/lib/analytics-date-range";
 
 import type { Period } from "./types";
 
-const KES = new Intl.NumberFormat("en-KE", {
-  style: "currency",
-  currency: "KES",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
+/** @deprecated Prefer {@link fmtMoney} with an explicit currency. */
 export function fmtKes(n: number | string | null | undefined): string {
-  if (n == null) return "—";
-  const v = typeof n === "string" ? parseFloat(n) : n;
-  if (isNaN(v)) return "—";
-  if (Math.abs(v) >= 1_000_000) return `KES ${(v / 1_000_000).toFixed(1)}M`;
-  return KES.format(v);
+  return formatMoneyCompact(n, "KES");
+}
+
+export function fmtMoney(
+  n: number | string | null | undefined,
+  currency?: string | null,
+): string {
+  return formatMoneyCompact(n, currency);
 }
 
 export function fmtPct(n: number | string | null | undefined): string {
@@ -26,7 +24,7 @@ export function fmtPct(n: number | string | null | undefined): string {
 
 export function fmtCount(n: number | null | undefined): string {
   if (n == null) return "—";
-  return n.toLocaleString("en-KE");
+  return n.toLocaleString("en");
 }
 
 export function toNum(n: number | string | null | undefined): number {

@@ -23,6 +23,7 @@ import { MarkPaidDialog } from "@/components/credits/mark-paid-dialog";
 import { RemindPaymentButtons } from "@/components/credits/remind-payment-buttons";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
+import { useFormatMoney } from "@/hooks/use-format-money";
 import { useSessionBranch } from "@/hooks/use-session-scope";
 import {
   fetchOutstandingTabs,
@@ -56,15 +57,6 @@ function toNum(n: number | string | null | undefined): number {
   if (n == null) return 0;
   const v = typeof n === "number" ? n : Number(n);
   return Number.isFinite(v) ? v : 0;
-}
-
-function fmtKes(n: number): string {
-  return n.toLocaleString("en-KE", {
-    style: "currency",
-    currency: "KES",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 }
 
 function fmtTime(iso: string): string {
@@ -144,6 +136,7 @@ export function CreditActivityPage() {
     canReviewPaymentClaims,
     canManageCreditSettings,
   } = useDashboard();
+  const { formatMoneyCompact: fmtKes } = useFormatMoney();
   const { branchId } = useSessionBranch();
   const [period, setPeriod] = useState<CreditPeriod>("today");
   const [rows, setRows] = useState<PaymentLedgerRow[]>([]);

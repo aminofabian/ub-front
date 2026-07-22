@@ -3,6 +3,7 @@
  */
 
 import { getServerApiOrigin } from "@/lib/config";
+import { formatMoney, resolveCurrencyCode } from "@/lib/money";
 import { resolvePublicItemIdFromShopUrlSegment } from "@/lib/shop-item-url";
 
 export type PublicCatalogItemCard = {
@@ -371,18 +372,7 @@ export function formatDisplayPrice(
   if (!hasCatalogPrice(amount)) {
     return "";
   }
-  const code = currency.length === 3 ? currency : "KES";
-  try {
-    // Force en-KE so KES stays consistent (avoids locale NBSP / grouping quirks).
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: code,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${code} ${amount.toFixed(2)}`;
-  }
+  return formatMoney(amount, resolveCurrencyCode(currency));
 }
 
 export function computeMargin(

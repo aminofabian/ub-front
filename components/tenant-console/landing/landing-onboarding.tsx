@@ -3,14 +3,19 @@
 import { ArrowRight } from "lucide-react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
+import type { SelfServeCountry } from "@/lib/selfserve-countries";
 
 import { goldCtaClass } from "./landing-styles";
 
 type LandingOnboardingProps = {
   businessName: string;
+  countryCode: string;
+  countries: readonly SelfServeCountry[];
   errorMessage: string;
   isSubmitting: boolean;
   onBusinessNameChange: (value: string) => void;
+  onCountryCodeChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onBack: () => void;
 };
@@ -20,9 +25,12 @@ const inputClass =
 
 export function LandingOnboarding({
   businessName,
+  countryCode,
+  countries,
   errorMessage,
   isSubmitting,
   onBusinessNameChange,
+  onCountryCodeChange,
   onSubmit,
   onBack,
 }: LandingOnboardingProps) {
@@ -45,6 +53,22 @@ export function LandingOnboarding({
             autoComplete="organization"
             required
             autoFocus
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="landing-country"
+            className="mb-2 block text-sm font-medium text-[#141412]"
+          >
+            Where do you operate?
+          </label>
+          <SelfServeCountrySelect
+            id="landing-country"
+            className={inputClass}
+            value={countryCode}
+            onChange={onCountryCodeChange}
+            countries={countries}
+            disabled={isSubmitting}
           />
         </div>
         <button

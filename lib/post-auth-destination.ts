@@ -82,6 +82,8 @@ export function formatBusinessStoreTypesLabel(
     "full-grocery": "Full grocery",
     "fresh-market": "Fresh market",
     "mixed-shop": "Mixed shop",
+    cosmetics: "Cosmetics",
+    "wines-spirits": "Wines & spirits",
   };
   const types = getBusinessStoreTypes(business);
   if (types.length === 0) {

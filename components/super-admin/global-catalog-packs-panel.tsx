@@ -24,6 +24,8 @@ const STORE_KIT_OPTIONS = [
   { value: "full-grocery", label: "Full grocery" },
   { value: "fresh-market", label: "Fresh market" },
   { value: "mixed-shop", label: "Mixed shop" },
+  { value: "cosmetics", label: "Cosmetics" },
+  { value: "wines-spirits", label: "Wines & spirits" },
 ] as const;
 
 type GlobalCatalogPacksPanelProps = {

@@ -8,9 +8,9 @@ import {
   Loader2,
   Package,
   PackagePlus,
+  PenLine,
   Search,
   ShoppingCart,
-  Sparkles,
   Store,
 } from "lucide-react";
 
@@ -22,12 +22,17 @@ import {
   GlobalCatalogLoadMoreSkeleton,
   GlobalCatalogProductTableSkeleton,
 } from "@/components/products/global-catalog-product-skeleton";
+import { GlobalCatalogBuildPaths } from "@/components/products/global-catalog-build-paths";
+import { GlobalCatalogReviewImportDialog } from "@/components/products/global-catalog-review-import-dialog";
 import { useGlobalCatalogTenantSync } from "@/hooks/use-global-catalog-tenant-sync";
 import { hasPermission, Permission } from "@/lib/permissions";
 import { cn, formatMoney } from "@/lib/utils";
+import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
+import { APP_ROUTES } from "@/lib/config";
 import {
   ApiRequestError,
   type GlobalCatalogAdoptLine,
+  type GlobalCatalogAdoptProgress,
   type GlobalCatalogAdoptResult,
   type GlobalCategoryRecord,
   type GlobalProductPackRecord,
@@ -45,14 +50,9 @@ import {
   replaceGlobalCatalog,
 } from "@/lib/api";
 import {
-  adoptStatusClassName,
-  adoptStatusPresentation,
-} from "@/lib/global-catalog-adopt-status";
-import {
   allocateRenamedSkuAvoiding,
   isImportableAdoptStatus,
   isSkippablePreviewStatus,
-  isSkuConflictStatus,
   isUnresolvedSkuConflict,
   suggestRenamedSku,
 } from "@/lib/global-catalog-sku-conflict";
@@ -113,6 +113,8 @@ export default function GlobalCatalogPage() {
   const [selected, setSelected] = useState<Map<string, GlobalProductRecord>>(new Map());
   const [reviewOpen, setReviewOpen] = useState(false);
   const [adopting, setAdopting] = useState(false);
+  const [importProgress, setImportProgress] =
+    useState<GlobalCatalogAdoptProgress | null>(null);
   const [lineOverrides, setLineOverrides] = useState<Map<string, GlobalCatalogAdoptLine>>(new Map());
   const [skippedProductIds, setSkippedProductIds] = useState<Set<string>>(new Set());
   const [hideImported, setHideImported] = useState(true);
@@ -189,17 +191,56 @@ export default function GlobalCatalogPage() {
 
   const orderedPacks = useMemo(() => {
     const packs = meta?.packs ?? [];
-    if (storeTypes.length === 0 || packs.length === 0) {
+    if (packs.length === 0) {
       return packs;
     }
     const preferred = new Set<string>(storeTypes);
     return [...packs].sort((a, b) => {
+      const aReady = a.productCount > 0 ? 0 : 1;
+      const bReady = b.productCount > 0 ? 0 : 1;
+      if (aReady !== bReady) return aReady - bReady;
       const aMatch = a.storeKitId && preferred.has(a.storeKitId) ? 0 : 1;
       const bMatch = b.storeKitId && preferred.has(b.storeKitId) ? 0 : 1;
       if (aMatch !== bMatch) return aMatch - bMatch;
       return a.sortOrder - b.sortOrder;
     });
   }, [meta?.packs, storeTypes]);
+
+  const readyPacks = useMemo(
+    () => orderedPacks.filter((p) => p.productCount > 0),
+    [orderedPacks],
+  );
+  const comingSoonPacks = useMemo(
+    () => orderedPacks.filter((p) => p.productCount <= 0),
+    [orderedPacks],
+  );
+  const selectedPack = useMemo(
+    () => orderedPacks.find((p) => p.id === selectedPackId) ?? null,
+    [orderedPacks, selectedPackId],
+  );
+  const selectedPackEmpty = !!selectedPack && selectedPack.productCount <= 0;
+  const suggestedReadyPack = readyPacks[0] ?? null;
+
+  const autoPickedPackRef = useRef(false);
+  useEffect(() => {
+    if (autoPickedPackRef.current || !meta || initialLoading) return;
+    if (selectedPackId != null) return;
+    if (searchParams.get("from") !== "onboarding") return;
+    const pick =
+      readyPacks.find(
+        (p) => !!p.storeKitId && storeTypes.some((t) => t === p.storeKitId),
+      ) ?? readyPacks[0];
+    if (!pick) return;
+    autoPickedPackRef.current = true;
+    setSelectedPackId(pick.id);
+  }, [
+    meta,
+    initialLoading,
+    selectedPackId,
+    readyPacks,
+    storeTypes,
+    searchParams,
+  ]);
 
   const fetchProducts = useCallback(
     async ({
@@ -354,12 +395,6 @@ export default function GlobalCatalogPage() {
   }, [loadMore]);
 
   useEffect(() => {
-    if (searchParams.get("from") === "onboarding") {
-      toast.message("Pick products to import, or skip and add your own later.");
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
     void loadMeta();
     void loadTenantCategories();
   }, [loadMeta, loadTenantCategories]);
@@ -443,6 +478,46 @@ export default function GlobalCatalogPage() {
     });
   };
 
+  const applyBulkDefaults = (patch: Partial<GlobalCatalogAdoptLine>) => {
+    if (Object.keys(patch).length === 0) return;
+    const targets = selectedImportable.filter((product) => !skippedProductIds.has(product.id));
+    if (targets.length === 0) return;
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      for (const product of targets) {
+        const existing = next.get(product.id) ?? { globalProductId: product.id };
+        next.set(product.id, { ...existing, ...patch });
+      }
+      return next;
+    });
+    toast.success(`Applied defaults to ${targets.length} products`);
+  };
+
+  const skipSingleProduct = (productId: string) => {
+    setSkippedProductIds((prev) => new Set(prev).add(productId));
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(productId) ?? { globalProductId: productId };
+      next.set(productId, { ...existing, onSkuConflict: "skip" });
+      return next;
+    });
+  };
+
+  const unskipSingleProduct = (productId: string) => {
+    setSkippedProductIds((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      return next;
+    });
+    setLineOverrides((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(productId);
+      if (!existing) return prev;
+      next.set(productId, { ...existing, onSkuConflict: undefined });
+      return next;
+    });
+  };
+
   const buildLines = useCallback((): GlobalCatalogAdoptLine[] => {
     return selectedImportable
       .filter((p) => !skippedProductIds.has(p.id))
@@ -498,14 +573,6 @@ export default function GlobalCatalogPage() {
     }, 350);
     return () => window.clearTimeout(timer);
   }, [reviewOpen, runPreview, lineOverrides, selectedImportable, skippedProductIds, createMissingCategories]);
-
-  const previewByProductId = useMemo(() => {
-    const map = new Map<string, GlobalCatalogAdoptResult["lines"][number]>();
-    for (const line of previewResult?.lines ?? []) {
-      map.set(line.globalProductId, line);
-    }
-    return map;
-  }, [previewResult]);
 
   const readyImportCount = useMemo(
     () =>
@@ -804,7 +871,6 @@ export default function GlobalCatalogPage() {
       toast.error("No branch selected");
       return;
     }
-    setAdopting(true);
     try {
       const lines = buildLines();
       const preview =
@@ -839,8 +905,20 @@ export default function GlobalCatalogPage() {
         setPreviewResult(preview);
         return;
       }
+
+      setAdopting(true);
+      setImportProgress({
+        phase: "importing",
+        processed: 0,
+        total: Math.max(lines.length, 1),
+        percent: 4,
+        message: "Importing…",
+      });
+
       const result = await globalCatalogAdopt(defaultBranchId, lines, {
         createMissingCategories,
+        packId: selectedPackId,
+        onProgress: setImportProgress,
       });
       const importedNew = result.lines.filter((l) => l.status === "imported").length;
       const mergedCount = result.lines.filter((l) => l.status === "merged").length;
@@ -854,6 +932,14 @@ export default function GlobalCatalogPage() {
         setPreviewResult(result);
         return;
       }
+      setImportProgress({
+        phase: "finishing",
+        processed: lines.length,
+        total: Math.max(lines.length, 1),
+        percent: 100,
+        message: "Import complete",
+      });
+      await new Promise((resolve) => window.setTimeout(resolve, 650));
       toast.success(
         mergedCount > 0
           ? `Imported ${importedNew} · linked ${mergedCount} to existing`
@@ -883,6 +969,7 @@ export default function GlobalCatalogPage() {
       }
     } finally {
       setAdopting(false);
+      setImportProgress(null);
     }
   };
 
@@ -929,10 +1016,55 @@ export default function GlobalCatalogPage() {
   const currency = business?.currency?.trim() || "KES";
   const isSearching = searchInput !== debouncedSearch;
   const showEmptyState = !initialLoading && products.length === 0;
+  const catalogShellEmpty =
+    showEmptyState &&
+    isGlobalCatalogShellEmpty({
+      meta,
+      productCount: products.length,
+      totalElements,
+      search: debouncedSearch,
+      categoryId: selectedCategoryId,
+      packId: selectedPackId,
+    });
   const loadedLabel =
     totalElements != null && totalElements > products.length
       ? `${products.length} of ${totalElements}`
       : `${products.length}`;
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const goCreateFromScratch = useCallback(() => {
+    router.push(`${APP_ROUTES.products}?onboarding=create-product`);
+  }, [router]);
+
+  const goSuggestedPack = useCallback(() => {
+    if (suggestedReadyPack) {
+      setSelectedCategoryId(null);
+      setSelectedPackId(suggestedReadyPack.id);
+      return;
+    }
+    setSelectedPackId(null);
+    setSelectedCategoryId(null);
+  }, [suggestedReadyPack]);
+
+  const goBrowseAll = useCallback(() => {
+    setSelectedPackId(null);
+    setSelectedCategoryId(null);
+    setSearchInput("");
+    window.requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("from") !== "onboarding") return;
+    if (initialLoading) return;
+    if (catalogShellEmpty) {
+      toast.message(
+        "No starter products for your country yet — add products manually or check back soon.",
+      );
+      return;
+    }
+    toast.message("Pick products to import, or skip and add your own later.");
+  }, [searchParams, initialLoading, catalogShellEmpty]);
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
@@ -942,27 +1074,35 @@ export default function GlobalCatalogPage() {
             <ArrowLeft className="size-4" />
           </Button>
           <div>
-            <h1 className="text-sm font-semibold">Add products from catalog</h1>
-            <ActiveScopeSubtitle className="text-[11px]" />
+            <h1 className="text-sm font-semibold">Stock your shelves</h1>
             <p className="text-xs text-muted-foreground">
-              {meta?.catalogName ?? "Global catalog"}
-              {meta?.catalogCode ? (
-                <span className="ml-1 font-mono text-muted-foreground/80">
-                  ({meta.catalogCode})
+              Import from a pack, hunt the catalog, or invent a product from
+              scratch.
+            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground/80">
+              <ActiveScopeSubtitle className="text-[11px]" />
+              {meta?.catalogName ? (
+                <span>
+                  · {meta.catalogName}
+                  {meta.catalogCode ? (
+                    <span className="ml-1 font-mono opacity-80">
+                      ({meta.catalogCode})
+                    </span>
+                  ) : null}
                 </span>
               ) : null}
               {!initialLoading && products.length > 0 ? (
-                <span className="ml-1.5 tabular-nums text-muted-foreground/70">
+                <span className="tabular-nums opacity-70">
                   · {loadedLabel} shown
                 </span>
               ) : null}
               {syncing ? (
-                <span className="ml-2 inline-flex items-center gap-1 text-primary/80">
+                <span className="inline-flex items-center gap-1 text-primary/80">
                   <span className="size-1.5 animate-pulse rounded-full bg-primary" />
                   Updating…
                 </span>
               ) : null}
-            </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -971,11 +1111,25 @@ export default function GlobalCatalogPage() {
               {selected.size} selected
             </span>
           )}
+          <Button
+            size="sm"
+            className="gap-1.5 shadow-sm"
+            onClick={goCreateFromScratch}
+          >
+            <PenLine className="size-3.5" />
+            <span className="hidden sm:inline">Add from scratch</span>
+            <span className="sm:hidden">Scratch</span>
+          </Button>
           {selectedPackId && canAdopt ? (
             <Button
               size="sm"
               variant="outline"
-              disabled={replacing || !defaultBranchId}
+              disabled={replacing || !defaultBranchId || selectedPackEmpty}
+              title={
+                selectedPackEmpty
+                  ? "This pack has no products yet"
+                  : "Replace your catalogue with this pack (empty shops only)"
+              }
               onClick={() => void handleReplaceWithPack()}
             >
               {replacing ? (
@@ -999,68 +1153,126 @@ export default function GlobalCatalogPage() {
           <Button
             size="sm"
             disabled={selectedImportable.length === 0 || !canAdopt}
+            title={
+              selectedImportable.length === 0
+                ? "Select products below to enable import"
+                : undefined
+            }
             onClick={handlePreview}
           >
             <ShoppingCart className="mr-1.5 size-4" />
             Review & import
+            {selectedImportable.length > 0
+              ? ` (${selectedImportable.length})`
+              : ""}
           </Button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-64 shrink-0 flex-col border-r bg-muted/30 lg:flex">
+        <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/20 lg:flex">
           <div className="flex-1 overflow-auto p-3">
             <div className="mb-4">
-              <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <Package className="size-3.5" /> Starter packs
               </h3>
+              <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
+                Stocked packs first. Empty ones are coming soon.
+              </p>
               <div className="space-y-1">
-                {orderedPacks.map((pack) => {
-                  const recommended = !!pack.storeKitId && storeTypes.some((t) => t === pack.storeKitId);
+                {readyPacks.map((pack) => {
+                  const recommended =
+                    !!pack.storeKitId &&
+                    storeTypes.some((t) => t === pack.storeKitId);
+                  const active = selectedPackId === pack.id;
                   return (
-                  <button
-                    key={pack.id}
-                    onClick={() => {
-                      setSelectedCategoryId(null);
-                      setSelectedPackId(pack.id === selectedPackId ? null : pack.id);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                      selectedPackId === pack.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    <span className="truncate">
-                      {pack.name}
-                      {recommended ? (
-                        <span className="ml-1 opacity-70">· for you</span>
-                      ) : null}
-                    </span>
-                    <span className="shrink-0 tabular-nums opacity-70">{pack.productCount}</span>
-                  </button>
+                    <button
+                      key={pack.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategoryId(null);
+                        setSelectedPackId(pack.id === selectedPackId ? null : pack.id);
+                      }}
+                      className={cn(
+                        "flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                        active
+                          ? "border-primary bg-primary/10 text-foreground shadow-sm"
+                          : "border-transparent hover:border-border hover:bg-muted/60",
+                      )}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-medium">
+                          {pack.name}
+                        </span>
+                        {recommended ? (
+                          <span className="mt-0.5 inline-flex rounded-full bg-primary/15 px-1.5 py-px text-[10px] font-medium text-primary">
+                            Matches your shop
+                          </span>
+                        ) : null}
+                      </span>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] tabular-nums",
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {pack.productCount}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
+              {comingSoonPacks.length > 0 ? (
+                <div className="mt-3 space-y-1">
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    Coming soon
+                  </p>
+                  {comingSoonPacks.map((pack) => {
+                    const active = selectedPackId === pack.id;
+                    return (
+                      <button
+                        key={pack.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategoryId(null);
+                          setSelectedPackId(pack.id === selectedPackId ? null : pack.id);
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
+                          active
+                            ? "bg-muted text-foreground"
+                            : "hover:bg-muted/50",
+                        )}
+                      >
+                        <span className="truncate">{pack.name}</span>
+                        <span className="shrink-0 text-[10px] opacity-70">0</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
 
             <div className="my-3 border-t" />
 
             <div>
               <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <BookOpen className="size-3.5" /> Categories
+                <BookOpen className="size-3.5" /> Browse by category
               </h3>
               <div className="space-y-1">
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedPackId(null);
                     setSelectedCategoryId(null);
                   }}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                    "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
                     selectedCategoryId === null && selectedPackId === null
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
+                      ? "bg-primary/10 font-medium text-foreground ring-1 ring-primary/30"
+                      : "hover:bg-muted",
                   )}
                 >
                   <Store className="size-3.5" /> All products
@@ -1068,15 +1280,18 @@ export default function GlobalCatalogPage() {
                 {meta?.categories.map((cat) => (
                   <button
                     key={cat.id}
+                    type="button"
                     onClick={() => {
                       setSelectedPackId(null);
-                      setSelectedCategoryId(cat.id === selectedCategoryId ? null : cat.id);
+                      setSelectedCategoryId(
+                        cat.id === selectedCategoryId ? null : cat.id,
+                      );
                     }}
                     className={cn(
-                      "w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                      "w-full rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
                       selectedCategoryId === cat.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
+                        ? "bg-primary/10 font-medium text-foreground ring-1 ring-primary/30"
+                        : "hover:bg-muted",
                     )}
                   >
                     {cat.name}
@@ -1088,7 +1303,46 @@ export default function GlobalCatalogPage() {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center gap-2 border-b p-3">
+          <div className="flex shrink-0 flex-col gap-2 border-b bg-card/40 p-3">
+            {selectedPack || selectedCategoryId ? (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Viewing</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 font-medium">
+                  {selectedPack ? (
+                    <>
+                      <Package className="size-3.5 text-primary" />
+                      {selectedPack.name}
+                      {selectedPackEmpty ? (
+                        <span className="rounded bg-amber-500/15 px-1.5 py-px text-[10px] font-medium text-amber-800 dark:text-amber-200">
+                          Empty
+                        </span>
+                      ) : (
+                        <span className="tabular-nums text-muted-foreground">
+                          {selectedPack.productCount}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="size-3.5 text-primary" />
+                      {meta?.categories.find((c) => c.id === selectedCategoryId)
+                        ?.name ?? "Category"}
+                    </>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  onClick={() => {
+                    setSelectedPackId(null);
+                    setSelectedCategoryId(null);
+                  }}
+                >
+                  Clear filter
+                </button>
+              </div>
+            ) : null}
+            <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search
                 className={cn(
@@ -1097,6 +1351,7 @@ export default function GlobalCatalogPage() {
                 )}
               />
               <Input
+                ref={searchInputRef}
                 placeholder="Search by name, brand, or barcode..."
                 className="pl-9"
                 value={searchInput}
@@ -1120,9 +1375,15 @@ export default function GlobalCatalogPage() {
                 Clear
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={selectAllVisible}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={products.length === 0}
+              onClick={selectAllVisible}
+            >
               Select all
             </Button>
+            </div>
           </div>
 
           <div
@@ -1224,18 +1485,110 @@ export default function GlobalCatalogPage() {
             </table>
 
             {showEmptyState ? (
-              <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-                <div className="mb-4 flex size-14 items-center justify-center rounded-2xl border bg-muted/40">
-                  <Sparkles className="size-6 text-muted-foreground" />
-                </div>
-                <p className="text-sm font-medium">No products to show</p>
-                <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-                  {debouncedSearch
-                    ? `Nothing matched "${debouncedSearch}". Try a different search or category.`
-                    : hideImported
-                      ? "Everything in this view is already in your catalog, or this pack is empty."
-                      : "Try another category or starter pack."}
-                </p>
+              <div className="flex flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+                {catalogShellEmpty ? (
+                  <div className="w-full text-center">
+                    <GlobalCatalogBuildPaths
+                      suggestedPackName={suggestedReadyPack?.name}
+                      onScratch={goCreateFromScratch}
+                      onPack={goSuggestedPack}
+                      onBrowse={goBrowseAll}
+                    />
+                    <p className="mt-6 text-[11px] text-muted-foreground">
+                      {meta?.catalogName
+                        ? `${meta.catalogName} is still light on templates`
+                        : "Regional templates are still landing"}
+                      — creating from scratch always works.
+                    </p>
+                  </div>
+                ) : selectedPackEmpty ? (
+                  <div className="w-full max-w-2xl text-center">
+                    <p className="text-sm font-semibold">
+                      {selectedPack?.name ?? "This pack"} isn’t stocked yet
+                    </p>
+                    <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
+                      Empty packs are placeholders for what’s coming. Meanwhile —
+                      invent one product, or switch to a stocked pack.
+                    </p>
+                    <div className="mt-6">
+                      <GlobalCatalogBuildPaths
+                        compact
+                        suggestedPackName={suggestedReadyPack?.name}
+                        onScratch={goCreateFromScratch}
+                        onPack={goSuggestedPack}
+                        onBrowse={goBrowseAll}
+                      />
+                    </div>
+                  </div>
+                ) : debouncedSearch ? (
+                  <div className="w-full max-w-lg text-center">
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
+                      <Search className="size-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">
+                      No luck for &ldquo;{debouncedSearch}&rdquo;
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Templates miss local gems all the time. Name it yourself,
+                      or try a different search.
+                    </p>
+                    <div className="mt-5">
+                      <GlobalCatalogBuildPaths
+                        compact
+                        suggestedPackName={suggestedReadyPack?.name}
+                        onScratch={goCreateFromScratch}
+                        onPack={goSuggestedPack}
+                        onBrowse={() => {
+                          setSearchInput("");
+                          goBrowseAll();
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : hideImported ? (
+                  <div className="w-full max-w-lg text-center">
+                    <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
+                      <Package className="size-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold">
+                      Everything here is already on your shelves
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Nice progress. Reveal imported items, try another pack, or
+                      invent something new.
+                    </p>
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setHideImported(false)}
+                      >
+                        Show imported products
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={goCreateFromScratch}
+                      >
+                        <PenLine className="size-3.5" />
+                        Add from scratch
+                      </Button>
+                      {suggestedReadyPack &&
+                      suggestedReadyPack.id !== selectedPackId ? (
+                        <Button size="sm" variant="ghost" onClick={goSuggestedPack}>
+                          Try {suggestedReadyPack.name}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <GlobalCatalogBuildPaths
+                    suggestedPackName={suggestedReadyPack?.name}
+                    onScratch={goCreateFromScratch}
+                    onPack={goSuggestedPack}
+                    onBrowse={goBrowseAll}
+                  />
+                )}
               </div>
             ) : null}
 
@@ -1259,11 +1612,39 @@ export default function GlobalCatalogPage() {
             ) : null}
 
             {!initialLoading && !hasMore && products.length > 0 ? (
-              <p className="pb-6 pt-2 text-center text-[11px] text-muted-foreground/50">
+              <p className="pb-20 pt-2 text-center text-[11px] text-muted-foreground/50">
                 You&apos;ve reached the end · {products.length} products
               </p>
+            ) : !showEmptyState && !initialLoading ? (
+              <div className="h-16" aria-hidden />
             ) : null}
           </div>
+
+          {!showEmptyState && !initialLoading ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+              <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-border/80 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
+                  Can&apos;t find it?
+                </span>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-full"
+                  onClick={goCreateFromScratch}
+                >
+                  <PenLine className="size-3.5" />
+                  Invent one
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 rounded-full text-xs"
+                  onClick={goBrowseAll}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </main>
       </div>
 
@@ -1328,352 +1709,47 @@ export default function GlobalCatalogPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
-          <DialogHeader className="px-4 pt-4">
-            <DialogTitle>Review & import</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-auto px-4 pb-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">
-                {selectedImportable.length} selected · importing into{" "}
-                {branches.find((b) => b.id === defaultBranchId)?.name ?? "default branch"}
-              </p>
-              {previewLoading ? (
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Checking…
-                </span>
-              ) : previewResult ? (
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {readyImportCount} ready
-                  {previewResult.skippedCount > 0
-                    ? ` · ${previewResult.skippedCount} will skip`
-                    : ""}
-                </span>
-              ) : null}
-            </div>
-            <label className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 rounded border"
-                checked={createMissingCategories}
-                onChange={(e) => setCreateMissingCategories(e.target.checked)}
-              />
-              <span>
-                Create missing categories from catalog hints (when your shop has no matching
-                category slug)
-              </span>
-            </label>
-            {previewResult && !previewLoading ? (
-              <div className="mt-3 space-y-2 rounded-lg border border-border/80 bg-muted/20 p-3">
-                <p className="text-[11px] font-medium text-foreground">
-                  Bulk actions
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {unresolvedConflictLines.length > 0 ? (
-                    <>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs"
-                        onClick={bulkSkipSkuConflicts}
-                      >
-                        Skip {unresolvedConflictLines.length} conflicts
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs"
-                        onClick={bulkRenameSkuConflicts}
-                      >
-                        Rename all conflicts
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={bulkMergeSkuConflicts}
-                      >
-                        Merge all conflicts
-                      </Button>
-                    </>
-                  ) : null}
-                  {duplicateImportLines.length > 0 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={bulkSkipDuplicates}
-                    >
-                      Skip {duplicateImportLines.length} duplicates
-                    </Button>
-                  ) : null}
-                  {nonImportableLines.length > 0 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={bulkSkipAllProblems}
-                    >
-                      Skip all problems ({nonImportableLines.length})
-                    </Button>
-                  ) : null}
-                  {skippedProductIds.size > 0 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs"
-                      onClick={bulkClearSkipped}
-                    >
-                      Undo skips ({skippedProductIds.size})
-                    </Button>
-                  ) : null}
-                </div>
-                {unresolvedConflictLines.length > 0 ? (
-                  <p className="text-[10px] text-muted-foreground">
-                    Conflicts need a choice: skip (exclude), rename (new SKU), or
-                    merge (link to existing product).
-                  </p>
-                ) : skippablePreviewLines.length > 0 ? (
-                  <p className="text-[10px] text-muted-foreground">
-                    Some rows cannot be imported as-is — skip them or resolve
-                    individually below.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="mt-3 space-y-3">
-              {selectedImportable.map((p) => {
-                const override = lineOverrides.get(p.id);
-                const previewLine = previewByProductId.get(p.id);
-                const isSkipped = skippedProductIds.has(p.id);
-                const status = previewLine
-                  ? adoptStatusPresentation(previewLine.status)
-                  : isSkipped
-                    ? { label: "Skipped", tone: "skip" as const }
-                    : null;
-                const conflictSku =
-                  previewLine?.sku ??
-                  override?.sku ??
-                  p.skuTemplate ??
-                  "";
-                const showConflictActions =
-                  isSkuConflictStatus(previewLine?.status) && !isSkipped;
-                const globalCategory = meta?.categories.find((c) => c.id === p.globalCategoryId);
-                const slugHint = globalCategory?.tenantCategorySlugHint?.trim();
-                const suggestedCategoryId = slugHint
-                  ? tenantCategories.find((category) => category.slug === slugHint)?.id ?? ""
-                  : "";
-                return (
-                  <div
-                    key={p.id}
-                    className={cn(
-                      "rounded-lg border p-3",
-                      (status?.tone === "skip" || isSkipped) && "opacity-70",
-                      status?.tone === "error" && "border-destructive/40",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{p.name}</p>
-                      {status ? (
-                        <span
-                          className={cn(
-                            "rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
-                            adoptStatusClassName(status.tone),
-                          )}
-                        >
-                          {status.label}
-                        </span>
-                      ) : null}
-                    </div>
-                    {previewLine?.message ? (
-                      <p className="mt-1 text-[11px] text-muted-foreground">{previewLine.message}</p>
-                    ) : null}
-                    {showConflictActions ? (
-                      <div className="mt-2 space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
-                        <p className="text-[11px] font-medium text-amber-900 dark:text-amber-100">
-                          SKU <span className="font-mono">{conflictSku}</span> is already
-                          in your catalog. Choose what to do:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs"
-                            onClick={() => markSkuConflictSkip(p.id)}
-                          >
-                            Skip
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs"
-                            onClick={() =>
-                              markSkuConflictRename(p.id, conflictSku)
-                            }
-                          >
-                            Rename
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => markSkuConflictMerge(p.id)}
-                          >
-                            Merge
-                          </Button>
-                          {previewLine?.itemId ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 text-xs"
-                              onClick={() =>
-                                router.push(`/products?product=${previewLine.itemId}`)
-                              }
-                            >
-                              View existing
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : null}
-                    {override?.onSkuConflict === "merge" && !isSkipped ? (
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Will link this catalog item to your existing product
-                        {previewLine?.itemId ? (
-                          <>
-                            {" "}
-                            <button
-                              type="button"
-                              className="font-medium text-primary underline-offset-2 hover:underline"
-                              onClick={() =>
-                                router.push(`/products?product=${previewLine.itemId}`)
-                              }
-                            >
-                              (view)
-                            </button>
-                          </>
-                        ) : null}
-                        .
-                      </p>
-                    ) : null}
-                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">SKU</label>
-                        <Input
-                          className="h-8 text-xs"
-                          value={override?.sku ?? p.skuTemplate ?? ""}
-                          onChange={(e) => updateOverride(p.id, { sku: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Category</label>
-                        <select
-                          className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
-                          value={override?.categoryId ?? suggestedCategoryId}
-                          onChange={(e) =>
-                            updateOverride(p.id, {
-                              categoryId: e.target.value || undefined,
-                            })
-                          }
-                        >
-                          <option value="">Uncategorized</option>
-                          {tenantCategories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Buy price</label>
-                        <Input
-                          type="number"
-                          className="h-8 text-xs"
-                          value={override?.buyingPrice ?? p.recommendedBuyingPrice ?? ""}
-                          onChange={(e) => updateOverride(p.id, { buyingPrice: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Sell price</label>
-                        <Input
-                          type="number"
-                          className="h-8 text-xs"
-                          value={override?.sellingPrice ?? p.recommendedSellingPrice ?? ""}
-                          onChange={(e) => updateOverride(p.id, { sellingPrice: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Open stock</label>
-                        <Input
-                          type="number"
-                          className="h-8 text-xs"
-                          value={override?.openingQty ?? ""}
-                          onChange={(e) => updateOverride(p.id, { openingQty: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Reorder level</label>
-                        <Input
-                          type="number"
-                          className="h-8 text-xs"
-                          value={override?.reorderLevel ?? p.defaultReorderLevel ?? ""}
-                          onChange={(e) => updateOverride(p.id, { reorderLevel: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Reorder qty</label>
-                        <Input
-                          type="number"
-                          className="h-8 text-xs"
-                          value={override?.reorderQty ?? p.defaultReorderQty ?? ""}
-                          onChange={(e) => updateOverride(p.id, { reorderQty: Number(e.target.value) })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase text-muted-foreground">Min stock</label>
-                        <Input
-                          type="number"
-                          className="h-8 text-xs"
-                          value={override?.minStockLevel ?? p.defaultMinStockLevel ?? ""}
-                          onChange={(e) => updateOverride(p.id, { minStockLevel: Number(e.target.value) })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <Button
-              className="mt-4 w-full"
-              disabled={
-                adopting ||
-                previewLoading ||
-                !canAdopt ||
-                readyImportCount === 0 ||
-                unresolvedConflictCount > 0
-              }
-              onClick={handleAdopt}
-            >
-              {adopting ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <PackagePlus className="mr-2 size-4" />
-              )}
-              Import {readyImportCount > 0 ? readyImportCount : selected.size} products
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <GlobalCatalogReviewImportDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        products={selectedImportable}
+        branchName={
+          branches.find((b) => b.id === defaultBranchId)?.name ?? "default branch"
+        }
+        currency={meta?.currency}
+        tenantCategories={tenantCategories}
+        metaCategories={meta?.categories ?? []}
+        lineOverrides={lineOverrides}
+        skippedProductIds={skippedProductIds}
+        previewResult={previewResult}
+        previewLoading={previewLoading}
+        readyImportCount={readyImportCount}
+        createMissingCategories={createMissingCategories}
+        onCreateMissingCategoriesChange={setCreateMissingCategories}
+        adopting={adopting}
+        importProgress={importProgress}
+        canAdopt={canAdopt}
+        unresolvedConflictCount={unresolvedConflictCount}
+        unresolvedConflictLines={unresolvedConflictLines}
+        duplicateImportLines={duplicateImportLines}
+        nonImportableLines={nonImportableLines}
+        skippablePreviewLines={skippablePreviewLines}
+        onUpdateOverride={updateOverride}
+        onApplyBulkDefaults={applyBulkDefaults}
+        onMarkSkuConflictSkip={markSkuConflictSkip}
+        onMarkSkuConflictRename={markSkuConflictRename}
+        onMarkSkuConflictMerge={markSkuConflictMerge}
+        onSkipProduct={skipSingleProduct}
+        onUnskipProduct={unskipSingleProduct}
+        onBulkSkipSkuConflicts={bulkSkipSkuConflicts}
+        onBulkRenameSkuConflicts={bulkRenameSkuConflicts}
+        onBulkMergeSkuConflicts={bulkMergeSkuConflicts}
+        onBulkSkipDuplicates={bulkSkipDuplicates}
+        onBulkSkipAllProblems={bulkSkipAllProblems}
+        onBulkClearSkipped={bulkClearSkipped}
+        onImport={handleAdopt}
+        onViewExisting={(itemId) => router.push(`/products?product=${itemId}`)}
+      />
     </div>
   );
 }

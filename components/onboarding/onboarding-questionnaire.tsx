@@ -50,7 +50,13 @@ type Props = {
   onSkip: () => void;
   canBrowseGlobalCatalog?: boolean;
   onBrowseCatalog?: () => void;
+  onAddProductsManually?: () => void;
   onFinishLater?: () => void;
+  /** ISO country for locality placeholders (defaults to KE examples). */
+  countryCode?: string | null;
+  /** When true, step 6 shows empty-catalog copy instead of browse CTA. */
+  catalogShellEmpty?: boolean;
+  catalogLabel?: string | null;
 };
 
 function QuestionnaireProgress({ step }: { step: number }) {
@@ -150,7 +156,11 @@ export function OnboardingQuestionnaire({
   onSkip,
   canBrowseGlobalCatalog = false,
   onBrowseCatalog,
+  onAddProductsManually,
   onFinishLater,
+  countryCode = null,
+  catalogShellEmpty = false,
+  catalogLabel = null,
 }: Props) {
   const [branchCount, setBranchCount] = useState<BranchCountChoice | "">(
     initialAnswers.branchCount ?? "",
@@ -512,11 +522,12 @@ export function OnboardingQuestionnaire({
               {branchSlots > 0 ? (
                 <div className="space-y-3 border-t border-[#F3F4F6] pt-4 text-left">
                   <p className="text-xs font-medium text-[#6B7280]">
-                    Name each branch (e.g. Mirema branch, Kasarani branch)
+                    Name each branch (area or suburb)
                   </p>
                   {branchLocalities.map((locality, index) => {
                     const preview = formatBranchDisplayName(
-                      locality || branchLocalityPlaceholder(index),
+                      locality ||
+                        branchLocalityPlaceholder(index, countryCode),
                     );
                     return (
                       <label key={index} className="block">
@@ -539,7 +550,10 @@ export function OnboardingQuestionnaire({
                               });
                             }}
                             className="min-w-0 flex-1 bg-transparent px-4 text-[15px] text-[#1F2937] outline-none"
-                            placeholder={branchLocalityPlaceholder(index)}
+                            placeholder={branchLocalityPlaceholder(
+                              index,
+                              countryCode,
+                            )}
                             aria-label={`Branch ${index + 1} area name`}
                           />
                           <span className="shrink-0 border-l border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#6B7280]">
@@ -821,28 +835,69 @@ export function OnboardingQuestionnaire({
               <h2 className="text-center text-[22px] font-semibold tracking-tight text-[#1F2937]">
                 Stock your shelves
               </h2>
-              <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
-                Import common products from the shared catalog in minutes — prices,
-                barcodes, and categories included. You can always add your own
-                products later.
-              </p>
-              <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F0FDFA] mx-auto">
-                <Package className="size-8 text-[#0D9488]" aria-hidden />
-              </div>
-              <ul className="mt-6 space-y-2 text-sm text-[#4B5563]">
-                <li className="flex items-start gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-[#0D9488]" aria-hidden />
-                  Browse 2,000+ starter products for Kenyan retail
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-[#0D9488]" aria-hidden />
-                  Pick a starter pack or search by name or barcode
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-[#0D9488]" aria-hidden />
-                  Adjust prices and stock before importing
-                </li>
-              </ul>
+              {catalogShellEmpty ? (
+                <>
+                  <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
+                    {catalogLabel
+                      ? `${catalogLabel} does not have starter products yet.`
+                      : "No starter products for your country yet."}{" "}
+                    Add products manually, or check back soon.
+                  </p>
+                  <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] mx-auto">
+                    <Package className="size-8 text-[#9CA3AF]" aria-hidden />
+                  </div>
+                  <ul className="mt-6 space-y-2 text-sm text-[#4B5563]">
+                    <li className="flex items-start gap-2">
+                      <Check
+                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                        aria-hidden
+                      />
+                      Add products one by one from Products
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check
+                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                        aria-hidden
+                      />
+                      Come back to the catalog later when templates arrive
+                    </li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
+                    Import common products from the shared catalog in minutes —
+                    prices, barcodes, and categories included. You can always add
+                    your own products later.
+                  </p>
+                  <div className="mt-8 flex size-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-[#F0FDFA] mx-auto">
+                    <Package className="size-8 text-[#0D9488]" aria-hidden />
+                  </div>
+                  <ul className="mt-6 space-y-2 text-sm text-[#4B5563]">
+                    <li className="flex items-start gap-2">
+                      <Check
+                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                        aria-hidden
+                      />
+                      Browse starter products for your region
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check
+                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                        aria-hidden
+                      />
+                      Pick a starter pack or search by name or barcode
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check
+                        className="mt-0.5 size-4 shrink-0 text-[#0D9488]"
+                        aria-hidden
+                      />
+                      Adjust prices and stock before importing
+                    </li>
+                  </ul>
+                </>
+              )}
             </>
           ) : null}
         </div>
@@ -856,7 +911,7 @@ export function OnboardingQuestionnaire({
         <div className="mt-8 space-y-3">
           {step === 6 ? (
             <>
-              {canBrowseGlobalCatalog ? (
+              {canBrowseGlobalCatalog && !catalogShellEmpty ? (
                 <button
                   type="button"
                   onClick={onBrowseCatalog}
@@ -865,17 +920,28 @@ export function OnboardingQuestionnaire({
                   Browse product catalog
                 </button>
               ) : null}
+              {catalogShellEmpty ? (
+                <button
+                  type="button"
+                  onClick={onAddProductsManually ?? onBrowseCatalog}
+                  className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
+                >
+                  Add products manually
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={onFinishLater}
                 className={cn(
                   "h-12 w-full rounded-xl border text-[15px] font-semibold transition active:scale-[0.99]",
-                  canBrowseGlobalCatalog
+                  canBrowseGlobalCatalog && !catalogShellEmpty
                     ? "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#FAFAFA]"
-                    : "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]",
+                    : catalogShellEmpty
+                      ? "border-[#E5E7EB] bg-white text-[#374151] hover:bg-[#FAFAFA]"
+                      : "bg-[#0D9488] text-white shadow-md hover:bg-[#0F766E]",
                 )}
               >
-                {canBrowseGlobalCatalog
+                {canBrowseGlobalCatalog || catalogShellEmpty
                   ? "I'll add products later"
                   : "Continue to dashboard"}
               </button>

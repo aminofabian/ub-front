@@ -32,6 +32,9 @@ import {
   resolveBusinessByEmail,
   type LoginBranchOption,
 } from "@/lib/api";
+import { SelfServeCountrySelect } from "@/components/onboarding/selfserve-country-select";
+import { useSelfServeCountries } from "@/hooks/use-selfserve-countries";
+import { DEFAULT_SELFSERVE_COUNTRY_CODE } from "@/lib/selfserve-countries";
 import {
   APP_ROUTES,
   slugDerivedShopUrl,
@@ -83,7 +86,9 @@ function LoginPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [businessName, setBusinessName] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_SELFSERVE_COUNTRY_CODE);
   const [isOnboarding, setIsOnboarding] = useState(false);
+  const { countries } = useSelfServeCountries();
   const router = useRouter();
   const loginNextHint = searchParams.get("next")?.trim() ?? "";
 
@@ -281,7 +286,7 @@ function LoginPageContent() {
         return;
       }
 
-      const result = await onboardBusiness(host, businessName);
+      const result = await onboardBusiness(host, businessName, countryCode);
       if (!result?.tenantId) {
         setErrorMessage(
           "Could not create business. Please try a different name.",
@@ -402,6 +407,19 @@ function LoginPageContent() {
                 autoComplete="organization"
                 autoFocus
                 required
+              />
+            </div>
+            <div>
+              <label className={fieldLabelClass} htmlFor="onboard-country">
+                Where do you operate?
+              </label>
+              <SelfServeCountrySelect
+                id="onboard-country"
+                className={authInputClassName}
+                value={countryCode}
+                onChange={setCountryCode}
+                countries={countries}
+                disabled={isOnboarding}
               />
             </div>
             {errorMessage ? (

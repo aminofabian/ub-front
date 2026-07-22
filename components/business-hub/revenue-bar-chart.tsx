@@ -6,11 +6,11 @@ import {
   HUB_SURFACE,
 } from "@/lib/business-hub/constants";
 import type { DailyRevenuePoint } from "@/lib/business-hub/build-daily-revenue-series";
-import { fmtKes } from "@/lib/business-hub/formatters";
+import { useFormatMoney } from "@/hooks/use-format-money";
 import { cn } from "@/lib/utils";
 
-/** Compact KES for bar tops — keeps the runway readable without hover. */
-function fmtBarKes(n: number): string {
+/** Compact amounts for bar tops — keeps the runway readable without hover. */
+function fmtBarAmount(n: number): string {
   if (n <= 0) return "";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 10_000) return `${Math.round(n / 1000)}k`;
@@ -34,6 +34,7 @@ export function RevenueBarChart({
   caption?: string;
   title?: string;
 }) {
+  const { formatMoneyCompact } = useFormatMoney();
   const max = Math.max(...points.map((p) => p.value), 1);
   const showEveryLabel = points.length <= 8;
   const activeDays = points.filter((p) => p.value > 0).length;
@@ -103,7 +104,7 @@ export function RevenueBarChart({
                   <span className="font-medium">{point.label}</span>
                   <span className="mx-1 text-[#CCCCCC]">·</span>
                   <span className="tabular-nums font-semibold">
-                    {fmtKes(point.value)}
+                    {formatMoneyCompact(point.value)}
                   </span>
                 </div>
 
@@ -119,7 +120,7 @@ export function RevenueBarChart({
                           isHighlight ? "text-[#8A6B2E]" : "text-[#6B6B6B]",
                         )}
                       >
-                        {fmtBarKes(point.value)}
+                        {fmtBarAmount(point.value)}
                       </span>
                       <div
                         className="w-full max-w-[32px] origin-bottom rounded-t-md transition-[height,background-color] duration-500 ease-out"

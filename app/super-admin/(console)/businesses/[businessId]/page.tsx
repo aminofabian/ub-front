@@ -50,6 +50,9 @@ function BusinessDetailInner() {
     searchParams.get("active") !== "0",
   );
   const [globalCatalogCode, setGlobalCatalogCode] = useState("");
+  const [bizCountry, setBizCountry] = useState("KE");
+  const [bizCurrency, setBizCurrency] = useState("KES");
+  const [bizTimezone, setBizTimezone] = useState("Africa/Nairobi");
   const [selectedUserId, setSelectedUserId] = useState("");
 
   const loadBusiness = useCallback(async () => {
@@ -60,6 +63,9 @@ function BusinessDetailInner() {
       setBizTier(row.subscriptionTier ?? "");
       setBizActive(row.active);
       setGlobalCatalogCode(row.globalCatalogCode ?? "");
+      setBizCountry(row.countryCode || "KE");
+      setBizCurrency(row.currency || "KES");
+      setBizTimezone(row.timezone || "Africa/Nairobi");
     } catch {
       /* name/tier still come from query params as fallback */
     }
@@ -153,11 +159,34 @@ function BusinessDetailInner() {
     setBusy(true);
     setError("");
     try {
+      const nextCountry = bizCountry.trim().toUpperCase();
+      const nextCurrency = bizCurrency.trim().toUpperCase();
+      const nextTimezone = bizTimezone.trim();
+      const loaded = await fetchSaBusiness(businessId);
+      const regionChanged =
+        nextCountry !== (loaded.countryCode || "").toUpperCase() ||
+        nextCurrency !== (loaded.currency || "").toUpperCase();
+      let acknowledgeRegionRisk: boolean | undefined;
+      if (regionChanged) {
+        const confirmed = window.confirm(
+          "Changing country or currency re-labels existing amounts without converting them " +
+            "(e.g. 1,200 KES becomes 1,200 UGX).\n\n" +
+            "If this shop already has products or sales, the API will require this confirmation. Continue?",
+        );
+        if (!confirmed) {
+          return;
+        }
+        acknowledgeRegionRisk = true;
+      }
       await patchSaBusiness(businessId, {
         name: bizName.trim() || undefined,
         subscriptionTier: bizTier.trim() || undefined,
         active: bizActive,
         globalCatalogCode: globalCatalogCode.trim(),
+        countryCode: nextCountry || undefined,
+        currency: nextCurrency || undefined,
+        timezone: nextTimezone || undefined,
+        acknowledgeRegionRisk,
       });
       router.replace(
         `/super-admin/businesses/${encodeURIComponent(businessId)}?name=${encodeURIComponent(bizName.trim())}`,
@@ -307,6 +336,39 @@ function BusinessDetailInner() {
               onChange={(ev) => setBizActive(ev.target.checked)}
             />
             Active
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Country code</span>
+            <input
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono uppercase"
+              value={bizCountry}
+              onChange={(ev) => setBizCountry(ev.target.value)}
+              maxLength={2}
+              placeholder="KE"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Currency</span>
+            <input
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono uppercase"
+              value={bizCurrency}
+              onChange={(ev) => setBizCurrency(ev.target.value)}
+              maxLength={3}
+              placeholder="KES"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Timezone</span>
+            <input
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={bizTimezone}
+              onChange={(ev) => setBizTimezone(ev.target.value)}
+              placeholder="Africa/Nairobi"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Changing country/currency on a shop with products or sales requires
+              an explicit confirmation — amounts are re-labeled, not converted.
+            </span>
           </label>
           <label className="block">
             <span className="text-sm font-medium">Global catalog code</span>

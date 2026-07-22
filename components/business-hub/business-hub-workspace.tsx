@@ -45,7 +45,7 @@ import {
 } from "@/lib/business-hub/build-daily-revenue-series";
 import {
   fmtCount,
-  fmtKes,
+  fmtMoney,
   fmtPct,
   fmtTrendPct,
   formatPeriodSubtitle,
@@ -122,6 +122,11 @@ export function BusinessHubWorkspace() {
   );
   const [weekRegister, setWeekRegister] =
     useState<SalesRegisterResponse | null>(null);
+  const currency = business?.currency;
+  const money = useCallback(
+    (n: number | string | null | undefined) => fmtMoney(n, currency),
+    [currency],
+  );
   const [prevWeekRegister, setPrevWeekRegister] =
     useState<SalesRegisterResponse | null>(null);
   const [valuation, setValuation] =
@@ -372,7 +377,7 @@ export function BusinessHubWorkspace() {
       },
       {
         label: "Gross profit",
-        value: canViewAnalytics ? fmtKes(grossProfit) : "—",
+        value: canViewAnalytics ? money(grossProfit) : "—",
         hint: canViewAnalytics
           ? margin != null
             ? `${fmtPct(margin)} margin`
@@ -388,10 +393,10 @@ export function BusinessHubWorkspace() {
         label: isToday ? "Avg ticket" : "Avg / day",
         value: isToday
           ? ticket != null
-            ? fmtKes(ticket)
+            ? money(ticket)
             : "—"
           : chartPoints.length > 0
-            ? fmtKes(revenue / chartPoints.length)
+            ? money(revenue / chartPoints.length)
             : "—",
         hint: isToday
           ? ticket != null
@@ -442,7 +447,7 @@ export function BusinessHubWorkspace() {
       items.push({
         id: "stock-value",
         label: "Stock value",
-        value: fmtKes(valuation?.totalExtensionValue),
+        value: money(valuation?.totalExtensionValue),
         detail: "Inventory at cost on hand",
         href: APP_ROUTES.inventoryValuation,
         tone: "ok" as const,
@@ -480,7 +485,7 @@ export function BusinessHubWorkspace() {
       items.push({
         id: "payables",
         label: "Open payables",
-        value: fmtKes(payablesOpen),
+        value: money(payablesOpen),
         detail: "Supplier bills still outstanding",
         href: APP_ROUTES.purchasingApAging,
         tone: "watch" as const,
@@ -677,7 +682,7 @@ export function BusinessHubWorkspace() {
       <PulseHero
         eyebrow={isToday ? "Today's pulse" : "This week's pulse"}
         revenueLabel={isToday ? "Revenue today" : "Revenue this week"}
-        revenue={fmtKes(revenue)}
+        revenue={money(revenue)}
         headline={headline}
         trend={revenueTrend}
         trendTone={revenueFooterTone}

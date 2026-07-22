@@ -184,6 +184,11 @@ export type PatchSaBusinessPayload = {
   subscriptionTier?: string;
   active?: boolean;
   globalCatalogCode?: string | null;
+  currency?: string;
+  countryCode?: string;
+  timezone?: string;
+  /** Required when changing country/currency on a shop with products or sales. */
+  acknowledgeRegionRisk?: boolean;
 };
 
 export async function fetchSaBusiness(businessId: string): Promise<SaBusinessRow> {

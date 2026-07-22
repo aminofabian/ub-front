@@ -276,6 +276,8 @@ function fetchWithClientTimeout(
 
 const PUBLIC_HOST_RESOLVE_PATH = "/api/v1/public/host/resolve";
 const PUBLIC_HOST_ONBOARD_PATH = "/api/v1/public/host/onboard";
+const PUBLIC_HOST_SELFSERVE_COUNTRIES_PATH =
+  "/api/v1/public/host/selfserve-countries";
 const PUBLIC_HOST_RESOLVE_BY_EMAIL_PATH =
   "/api/v1/public/host/resolve-by-email";
 
@@ -312,17 +314,25 @@ export async function fetchTenantIdForHost(
  * Self-service business onboarding: creates a business for an unmapped host
  * so the visitor can proceed to login or signup.
  *
+ * @param countryCode optional ISO country (defaults to KE on the server when omitted)
  * @returns full host-resolve response with tenantId, tenantName, slug, etc.
  */
 export async function onboardBusiness(
   host: string,
   name: string,
-): Promise<{ tenantId: string; tenantName: string; slug: string } | null> {
+  countryCode?: string,
+): Promise<{
+  tenantId: string;
+  tenantName: string;
+  slug: string;
+  countryCode: string | null;
+} | null> {
   const h = host.trim();
   const n = name.trim();
   if (!h || !n) {
     return null;
   }
+  const code = countryCode?.trim().toUpperCase() ?? "";
   const url = apiUrl(PUBLIC_HOST_ONBOARD_PATH);
   try {
     const response = await fetch(url, {
@@ -331,7 +341,11 @@ export async function onboardBusiness(
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name: n, host: h }),
+      body: JSON.stringify({
+        name: n,
+        host: h,
+        ...(code ? { countryCode: code } : {}),
+      }),
     });
     if (!response.ok) {
       const problem = await response.json().catch(() => null);
@@ -345,6 +359,7 @@ export async function onboardBusiness(
       tenantId?: unknown;
       tenantName?: unknown;
       slug?: unknown;
+      countryCode?: unknown;
     };
     const tenantId =
       typeof payload.tenantId === "string" ? payload.tenantId.trim() : "";
@@ -356,12 +371,74 @@ export async function onboardBusiness(
       tenantName:
         typeof payload.tenantName === "string" ? payload.tenantName.trim() : "",
       slug: typeof payload.slug === "string" ? payload.slug.trim() : "",
+      countryCode:
+        typeof payload.countryCode === "string"
+          ? payload.countryCode.trim().toUpperCase()
+          : null,
     };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
     }
     return null;
+  }
+}
+
+/**
+ * Countries enabled for cloud self-serve onboarding (picker source of truth).
+ */
+export async function fetchSelfServeCountries(): Promise<
+  import("@/lib/selfserve-countries").SelfServeCountry[]
+> {
+  const url = apiUrl(PUBLIC_HOST_SELFSERVE_COUNTRIES_PATH);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const payload = (await response.json()) as unknown;
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+    const out: import("@/lib/selfserve-countries").SelfServeCountry[] = [];
+    for (const row of payload) {
+      if (!row || typeof row !== "object") continue;
+      const o = row as Record<string, unknown>;
+      const countryCode =
+        typeof o.countryCode === "string"
+          ? o.countryCode.trim().toUpperCase()
+          : "";
+      const label = typeof o.label === "string" ? o.label.trim() : "";
+      const currency =
+        typeof o.currency === "string" ? o.currency.trim().toUpperCase() : "";
+      const timezone = typeof o.timezone === "string" ? o.timezone.trim() : "";
+      const dialCode = typeof o.dialCode === "string" ? o.dialCode.trim() : "";
+      if (!countryCode || !label || !currency || !timezone) continue;
+      const localityPlaceholders = Array.isArray(o.localityPlaceholders)
+        ? o.localityPlaceholders.filter(
+            (v): v is string => typeof v === "string" && v.trim().length > 0,
+          )
+        : [];
+      out.push({
+        countryCode,
+        label,
+        currency,
+        timezone,
+        dialCode,
+        localityPlaceholders,
+        cashCreditOnly: o.cashCreditOnly === true,
+        paymentHint:
+          typeof o.paymentHint === "string" && o.paymentHint.trim().length > 0
+            ? o.paymentHint.trim()
+            : null,
+      });
+    }
+    return out;
+  } catch {
+    return [];
   }
 }
 
@@ -857,6 +934,10 @@ export type PatchBusinessPayload = {
   inventory?: InventoryPatchPayload;
   featureFlags?: FeatureFlagsPatchPayload;
   globalCatalogCode?: string | null;
+  /** Locked after onboarding completed/dismissed. */
+  currency?: string;
+  countryCode?: string;
+  timezone?: string;
 };
 
 export type BrandingPatchPayload = {
@@ -3631,6 +3712,7 @@ async function enqueueGlobalCatalogAdoptJob(
   openingBranchId: string,
   lines: GlobalCatalogAdoptLine[],
   createMissingCategories?: boolean,
+  packId?: string,
 ): Promise<string> {
   const created = await request<{ jobId: string }>(
     `${API_ROUTES.globalCatalog}/adopt/jobs`,
@@ -3640,6 +3722,7 @@ async function enqueueGlobalCatalogAdoptJob(
         openingBranchId,
         lines,
         createMissingCategories: createMissingCategories === true,
+        ...(packId ? { packId } : {}),
       },
     },
   );
@@ -3652,10 +3735,74 @@ async function fetchGlobalCatalogAdoptJob(jobId: string): Promise<GlobalCatalogJ
   );
 }
 
-async function waitForGlobalCatalogAdoptJob(jobId: string): Promise<GlobalCatalogAdoptResult> {
+export type GlobalCatalogAdoptProgress = {
+  phase: "queued" | "importing" | "finishing";
+  processed: number;
+  total: number;
+  percent: number;
+  message?: string | null;
+};
+
+function reportAdoptProgress(
+  onProgress: ((progress: GlobalCatalogAdoptProgress) => void) | undefined,
+  progress: GlobalCatalogAdoptProgress,
+) {
+  onProgress?.(progress);
+}
+
+function adoptProgressFromJob(
+  job: GlobalCatalogJobStatus,
+  fallbackTotal: number,
+): GlobalCatalogAdoptProgress {
+  const total = Math.max(job.rowsTotal ?? fallbackTotal, 1);
+  const processed = Math.min(Math.max(job.rowsProcessed, 0), total);
+  if (job.status === "pending") {
+    return {
+      phase: "queued",
+      processed: 0,
+      total,
+      percent: 2,
+      message: job.statusMessage ?? "Queued…",
+    };
+  }
+  if (job.status === "completed") {
+    return {
+      phase: "finishing",
+      processed: total,
+      total,
+      percent: 100,
+      message: job.statusMessage ?? "Finishing…",
+    };
+  }
+  const percent = Math.min(99, Math.max(4, Math.round((processed / total) * 100)));
+  return {
+    phase: "importing",
+    processed,
+    total,
+    percent,
+    message: job.statusMessage,
+  };
+}
+
+async function waitForGlobalCatalogAdoptJob(
+  jobId: string,
+  opts?: {
+    fallbackTotal?: number;
+    onProgress?: (progress: GlobalCatalogAdoptProgress) => void;
+  },
+): Promise<GlobalCatalogAdoptResult> {
   const started = Date.now();
+  const fallbackTotal = Math.max(opts?.fallbackTotal ?? 1, 1);
+  reportAdoptProgress(opts?.onProgress, {
+    phase: "queued",
+    processed: 0,
+    total: fallbackTotal,
+    percent: 2,
+    message: "Queued…",
+  });
   while (Date.now() - started < ADOPT_JOB_TIMEOUT_MS) {
     const job = await fetchGlobalCatalogAdoptJob(jobId);
+    reportAdoptProgress(opts?.onProgress, adoptProgressFromJob(job, fallbackTotal));
     if (job.status === "completed") {
       if (!job.result) {
         throw new Error(job.statusMessage || "Adopt job completed without a result.");
@@ -3670,21 +3817,85 @@ async function waitForGlobalCatalogAdoptJob(jobId: string): Promise<GlobalCatalo
   throw new Error("Adopt job timed out. Check job status and try again.");
 }
 
+async function adoptWithSimulatedProgress<T>(
+  total: number,
+  onProgress: ((progress: GlobalCatalogAdoptProgress) => void) | undefined,
+  work: () => Promise<T>,
+): Promise<T> {
+  const safeTotal = Math.max(total, 1);
+  let stopped = false;
+  let shown = 0;
+  reportAdoptProgress(onProgress, {
+    phase: "importing",
+    processed: 0,
+    total: safeTotal,
+    percent: 4,
+    message: "Importing…",
+  });
+  const timer = setInterval(() => {
+    if (stopped) return;
+    const step = Math.max(1, Math.ceil(safeTotal / 18));
+    shown = Math.min(shown + step, Math.floor(safeTotal * 0.9));
+    reportAdoptProgress(onProgress, {
+      phase: "importing",
+      processed: shown,
+      total: safeTotal,
+      percent: Math.min(90, Math.round((shown / safeTotal) * 100)),
+      message: "Importing…",
+    });
+  }, 180);
+  try {
+    const result = await work();
+    stopped = true;
+    reportAdoptProgress(onProgress, {
+      phase: "finishing",
+      processed: safeTotal,
+      total: safeTotal,
+      percent: 100,
+      message: "Finishing…",
+    });
+    return result;
+  } finally {
+    stopped = true;
+    clearInterval(timer);
+  }
+}
+
 export async function globalCatalogAdopt(
   openingBranchId: string,
   lines: GlobalCatalogAdoptLine[],
-  opts?: { createMissingCategories?: boolean },
+  opts?: {
+    createMissingCategories?: boolean;
+    packId?: string | null;
+    onProgress?: (progress: GlobalCatalogAdoptProgress) => void;
+  },
 ): Promise<GlobalCatalogAdoptResult> {
   const createMissingCategories = opts?.createMissingCategories === true;
+  const packId = opts?.packId?.trim() || undefined;
+  const onProgress = opts?.onProgress;
+  const body = {
+    openingBranchId,
+    lines,
+    createMissingCategories,
+    ...(packId ? { packId } : {}),
+  };
   const result =
     lines.length > SYNC_ADOPT_MAX_LINES
       ? await waitForGlobalCatalogAdoptJob(
-          await enqueueGlobalCatalogAdoptJob(openingBranchId, lines, createMissingCategories),
+          await enqueueGlobalCatalogAdoptJob(
+            openingBranchId,
+            lines,
+            createMissingCategories,
+            packId,
+          ),
+          { fallbackTotal: lines.length, onProgress },
         )
-      : await request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt`, {
-          method: "POST",
-          body: { openingBranchId, lines, createMissingCategories },
-        });
+      : await adoptWithSimulatedProgress(lines.length, onProgress, () =>
+          request<GlobalCatalogAdoptResult>(`${API_ROUTES.globalCatalog}/adopt`, {
+            method: "POST",
+            body,
+          }),
+        );
   const { notifyTenantCatalogChanged } =
     await import("@/lib/tenant-catalog-events");
   notifyTenantCatalogChanged();
