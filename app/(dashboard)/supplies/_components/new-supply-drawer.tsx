@@ -27,6 +27,7 @@ import {
 } from "@/lib/api";
 import { itemCatalogDisplayTitle } from "@/lib/cashier-item-display";
 import { isBranchLockedRole } from "@/lib/branch-access";
+import { nextIdempotencyKey } from "@/lib/idempotency-key";
 import { ONBOARDING_TARGETS } from "@/lib/onboarding-tour";
 import { useScopeChangeGuard } from "@/hooks/use-scope-change-guard";
 import { hasPermission, Permission } from "@/lib/permissions";
