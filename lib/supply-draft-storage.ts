@@ -31,6 +31,7 @@ export type SupplyDraftRowPersisted = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  serverLineId?: string | null;
 };
 
 export type NewSupplyDraftPersisted = {
@@ -46,6 +47,8 @@ export type NewSupplyDraftPersisted = {
   rows: SupplyDraftRowPersisted[];
   extras: SupplyDraftExtraPersisted[];
   showExpiry: boolean;
+  /** Open Path B draft session id when server sync is active. */
+  serverSessionId?: string | null;
 };
 
 export type CashierSupplyLinePersisted = {

@@ -6607,6 +6607,8 @@ export type CreatePathBSessionPayload = {
   /** ISO-8601 instant (e.g. from `Date.toISOString()`). */
   receivedAt: string;
   notes?: string | null;
+  /** Opaque JSON for client draft extras / UI flags. */
+  clientDraftJson?: string | null;
 };
 
 export type PathBLineRecord = {
@@ -6616,6 +6618,11 @@ export type PathBLineRecord = {
   amountMoney: number | string;
   suggestedItemId: string | null;
   lineStatus: string;
+  draftQty?: number | string | null;
+  draftUnitCost?: number | string | null;
+  draftSellPrice?: number | string | null;
+  /** ISO date `YYYY-MM-DD`. */
+  draftExpiryDate?: string | null;
 };
 
 export type PathBSessionDetailRecord = {
@@ -6625,6 +6632,7 @@ export type PathBSessionDetailRecord = {
   receivedAt: string;
   notes: string | null;
   status: string;
+  clientDraftJson?: string | null;
   lines: PathBLineRecord[];
 };
 
@@ -6632,6 +6640,17 @@ export type AddPathBLinePayload = {
   description: string;
   amountMoney: number | string;
   suggestedItemId?: string | null;
+  draftQty?: number | string | null;
+  draftUnitCost?: number | string | null;
+  draftSellPrice?: number | string | null;
+  /** ISO date `YYYY-MM-DD`. */
+  draftExpiryDate?: string | null;
+};
+
+export type PatchPathBSessionPayload = {
+  receivedAt?: string;
+  notes?: string | null;
+  clientDraftJson?: string | null;
 };
 
 export type PostPathBLineBreakdownPayload = {
@@ -6854,6 +6873,16 @@ export async function createPathBSession(
     method: "POST",
     body,
   });
+}
+
+export async function patchPathBSession(
+  sessionId: string,
+  body: PatchPathBSessionPayload,
+): Promise<PathBSessionDetailRecord> {
+  return request<PathBSessionDetailRecord>(
+    `${PATH_B_SESSIONS}/${encodeURIComponent(sessionId.trim())}`,
+    { method: "PATCH", body },
+  );
 }
 
 export async function fetchPathBSession(

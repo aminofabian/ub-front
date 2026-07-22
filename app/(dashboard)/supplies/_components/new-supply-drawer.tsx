@@ -14,10 +14,9 @@ import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/components/dashboard-provider";
 import {
   addItemSupplierLink,
-  addPathBLine,
   addSupplyBatchExpense,
-  createPathBSession,
   fetchSellPriceSuggestion,
+  fetchSupplierById,
   fetchSupplierItemLinks,
   fetchSuppliersPage,
   postPathBSession,
@@ -42,6 +41,19 @@ import {
   saveNewSupplyDraft,
   type SupplyDraftRowPersisted,
 } from "@/lib/supply-draft-storage";
+import {
+  buildSupplyClientDraftJson,
+  clearSupplyPathBDraftLines,
+  composeSupplySessionNotes,
+  ensureSupplyPathBSession,
+  findLatestSupplyPathBDraft,
+  loadSupplyPathBDraftSession,
+  parseSupplyClientDraftJson,
+  parseSupplyNotesParts,
+  pathBLineToSyncFields,
+  syncSupplyPathBLines,
+  type SyncableSupplyRow,
+} from "@/lib/supply-pathb-draft-sync";
 import { cn } from "@/lib/utils";
 import { todayYmdLocal } from "@/lib/ymd-date";
 
@@ -125,6 +137,7 @@ export type SupplyDraftRow = {
   sellPriceStr: string;
   sellPriceTouched: boolean;
   expiry: string;
+  serverLineId?: string | null;
 };
 
 function newRowKey(): string {
@@ -437,6 +450,10 @@ export function NewSupplyDrawer({
   /** True after local draft restore (or confirmed empty) so auto-save may run. */
   const [draftReady, setDraftReady] = useState(false);
   const [draftRestoredAt, setDraftRestoredAt] = useState<number | null>(null);
+  const [serverSessionId, setServerSessionId] = useState<string | null>(null);
+  const [serverSyncState, setServerSyncState] = useState<
+    "idle" | "syncing" | "synced" | "error"
+  >("idle");
   const pricingGenRef = useRef(0);
   const linesSectionRef = useRef<HTMLDivElement | null>(null);
   const addLineOpenRef = useRef(false);
@@ -444,6 +461,8 @@ export function NewSupplyDrawer({
   /** Ignore Post supply briefly after pack modal closes (click-through guard). */
   const suppressPostUntilRef = useRef(0);
   const didAttemptRestoreRef = useRef(false);
+  const didAttemptServerResumeRef = useRef(false);
+  const serverSyncGenRef = useRef(0);
   /** Rows to merge onto the next supplier-link fetch (browser draft restore). */
   const pendingMergeRowsRef = useRef<SupplyDraftRowPersisted[] | null>(null);
   const rowsRef = useRef<SupplyDraftRow[]>([]);
@@ -459,6 +478,7 @@ export function NewSupplyDrawer({
     rows: SupplyDraftRow[];
     extras: { key: string; category: string; amount: string; desc: string }[];
     showExpiry: boolean;
+    serverSessionId?: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -576,10 +596,13 @@ export function NewSupplyDrawer({
   useEffect(() => {
     if (!open) {
       didAttemptRestoreRef.current = false;
+      didAttemptServerResumeRef.current = false;
       pendingMergeRowsRef.current = null;
       prevSupplierIdRef.current = null;
       setDraftReady(false);
       setDraftRestoredAt(null);
+      setServerSessionId(null);
+      setServerSyncState("idle");
       setSupplier(null);
       setSupplierQuery("");
       setSupplierHits([]);
@@ -621,6 +644,7 @@ export function NewSupplyDrawer({
       setShowExpiry(stored.showExpiry);
       setDeliveryExpanded(!stored.supplier);
       setDraftRestoredAt(stored.updatedAt);
+      setServerSessionId(stored.serverSessionId?.trim() || null);
       if (
         stored.branchId.trim() &&
         stored.branchId !== branchId &&
@@ -668,6 +692,8 @@ export function NewSupplyDrawer({
     if (supplierChanged) {
       pendingMergeRowsRef.current = null;
       rowsRef.current = [];
+      setServerSessionId(null);
+      setServerSyncState("idle");
     }
     void loadLinks(supplier.id);
   }, [supplier, loadLinks]);
@@ -687,6 +713,7 @@ export function NewSupplyDrawer({
       rows,
       extras,
       showExpiry,
+      serverSessionId,
     };
   }, [
     open,
@@ -701,6 +728,7 @@ export function NewSupplyDrawer({
     rows,
     extras,
     showExpiry,
+    serverSessionId,
   ]);
 
   useEffect(() => {
@@ -719,6 +747,7 @@ export function NewSupplyDrawer({
         rows,
         extras,
         showExpiry,
+        serverSessionId,
       });
     }, 400);
     return () => window.clearTimeout(t);
@@ -735,6 +764,7 @@ export function NewSupplyDrawer({
     rows,
     extras,
     showExpiry,
+    serverSessionId,
   ]);
 
   useEffect(() => {
@@ -763,13 +793,221 @@ export function NewSupplyDrawer({
     return () => window.removeEventListener("beforeunload", flush);
   }, [open, draftReady]);
 
+  /** Resume a Path B server draft when this browser has no local draft. */
+  useEffect(() => {
+    if (!open || !draftReady || didAttemptServerResumeRef.current) {
+      return;
+    }
+    if (serverSessionId) {
+      didAttemptServerResumeRef.current = true;
+      return;
+    }
+    const hasTypedProgress =
+      rows.some(
+        (r) =>
+          r.qtyStr.trim() ||
+          r.expiry.trim() ||
+          r.sellPriceTouched ||
+          r.source === "adhoc" ||
+          Boolean(r.serverLineId),
+      ) ||
+      Boolean(notes.trim() || docRef.trim()) ||
+      extras.some((e) => e.amount.trim() || e.desc.trim());
+    if (hasTypedProgress) {
+      didAttemptServerResumeRef.current = true;
+      return;
+    }
+    if (!branchId.trim()) {
+      return;
+    }
+    didAttemptServerResumeRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const latest = await findLatestSupplyPathBDraft({
+          branchId,
+          supplierId: initialSupplier?.id,
+        });
+        if (cancelled || !latest) {
+          return;
+        }
+        const detail = await loadSupplyPathBDraftSession(latest.id);
+        if (cancelled || detail.status !== "draft") {
+          return;
+        }
+        const supplierRec = await fetchSupplierById(detail.supplierId);
+        if (cancelled) {
+          return;
+        }
+        const noteParts = parseSupplyNotesParts(detail.notes);
+        const client = parseSupplyClientDraftJson(detail.clientDraftJson);
+        const mergeRows: SupplyDraftRowPersisted[] = detail.lines
+          .filter((l) => l.lineStatus === "pending" && l.suggestedItemId)
+          .map((line) => {
+            const fields = pathBLineToSyncFields(line);
+            return {
+              key: newRowKey(),
+              source: "linked" as const,
+              link: {
+                id: `draft-${line.id}`,
+                itemId: line.suggestedItemId as string,
+                itemName: line.descriptionText,
+                sku: "",
+                primary: false,
+                active: true,
+              },
+              item: null,
+              qtyStr: fields.qtyStr,
+              unitStr: fields.unitStr,
+              sellPriceStr: fields.sellPriceStr,
+              sellPriceTouched: fields.sellPriceTouched,
+              expiry: fields.expiry,
+              serverLineId: line.id,
+            };
+          });
+        pendingMergeRowsRef.current = mergeRows;
+        setSupplier(supplierRec);
+        setNotes(noteParts.notes);
+        setDocRef(client?.docRef ?? noteParts.docRef);
+        setExtras(client?.extras ?? []);
+        setShowExpiry(Boolean(client?.showExpiry));
+        setDeliveryExpanded(false);
+        setServerSessionId(detail.id);
+        setDraftRestoredAt(Date.now());
+        if (
+          detail.branchId.trim() &&
+          detail.branchId !== branchId &&
+          !branchLocked
+        ) {
+          setBranchId(detail.branchId);
+        }
+        const received = new Date(detail.receivedAt);
+        if (Number.isFinite(received.getTime())) {
+          received.setMinutes(
+            received.getMinutes() - received.getTimezoneOffset(),
+          );
+          setReceivedAtLocal(received.toISOString().slice(0, 16));
+        }
+      } catch {
+        /* no server draft / offline */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    open,
+    draftReady,
+    serverSessionId,
+    supplier,
+    notes,
+    docRef,
+    rows,
+    extras,
+    branchId,
+    initialSupplier?.id,
+    branchLocked,
+    setBranchId,
+  ]);
+
+  /** Debounced Path B server draft sync for filled lines. */
+  useEffect(() => {
+    if (!open || !draftReady || !supplier || !branchId.trim() || busy) {
+      return;
+    }
+    const syncableCount = rows.filter((r) => linePayload(r) != null).length;
+    if (syncableCount === 0 && !serverSessionId) {
+      return;
+    }
+    const gen = ++serverSyncGenRef.current;
+    const t = window.setTimeout(() => {
+      void (async () => {
+        setServerSyncState("syncing");
+        try {
+          const syncRows: SyncableSupplyRow[] = rows.map((row) => {
+            const payload = linePayload(row);
+            const qty = parsePositiveQty(row.qtyStr);
+            const unitCost = parseNonNeg(row.unitStr);
+            const sell = parseRetailPrice(row.sellPriceStr);
+            return {
+              key: row.key,
+              serverLineId: row.serverLineId,
+              qtyStr: row.qtyStr,
+              unitStr: row.unitStr,
+              sellPriceStr: row.sellPriceStr,
+              sellPriceTouched: row.sellPriceTouched,
+              expiry: row.expiry,
+              description: payload?.description ?? rowLabel(row),
+              suggestedItemId: payload?.suggestedItemId ?? rowItemId(row),
+              amountMoney: payload?.amountMoney ?? null,
+              qty,
+              unitCost,
+              sellPrice: sell,
+            };
+          });
+          const sessionId = await ensureSupplyPathBSession({
+            sessionId: serverSessionId,
+            supplier,
+            branchId,
+            receivedAtIso: new Date(receivedAtLocal).toISOString(),
+            notes: composeSupplySessionNotes(docRef, notes),
+            clientDraftJson: buildSupplyClientDraftJson({
+              docRef,
+              showExpiry,
+              extras,
+            }),
+          });
+          if (serverSyncGenRef.current !== gen) {
+            return;
+          }
+          const synced = await syncSupplyPathBLines(sessionId, syncRows);
+          if (serverSyncGenRef.current !== gen) {
+            return;
+          }
+          setServerSessionId(sessionId);
+          setRows((prev) =>
+            prev.map((row) => {
+              const match = synced.find((s) => s.key === row.key);
+              if (!match) {
+                return row;
+              }
+              return { ...row, serverLineId: match.serverLineId ?? null };
+            }),
+          );
+          setServerSyncState("synced");
+        } catch {
+          if (serverSyncGenRef.current === gen) {
+            setServerSyncState("error");
+          }
+        }
+      })();
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [
+    open,
+    draftReady,
+    supplier,
+    branchId,
+    busy,
+    rows,
+    serverSessionId,
+    receivedAtLocal,
+    docRef,
+    notes,
+    showExpiry,
+    extras,
+  ]);
+
   const discardLocalDraft = useCallback(() => {
+    const sid = serverSessionId?.trim();
     if (draftBusinessId && draftUserId) {
       clearNewSupplyDraft(draftBusinessId, draftUserId);
     }
     lastOpenSnapshotRef.current = null;
     pendingMergeRowsRef.current = null;
     setDraftRestoredAt(null);
+    setServerSessionId(null);
+    setServerSyncState("idle");
     setSupplier(null);
     setSupplierQuery("");
     setSupplierHits([]);
@@ -784,7 +1022,10 @@ export function NewSupplyDrawer({
     setLineFocus("all");
     setShowExpiry(false);
     setDeliveryExpanded(true);
-  }, [draftBusinessId, draftUserId, defaultReceived]);
+    if (sid) {
+      void clearSupplyPathBDraftLines(sid);
+    }
+  }, [draftBusinessId, draftUserId, defaultReceived, serverSessionId]);
 
   useEffect(() => {
     setLineSearchQuery("");
@@ -1170,22 +1411,6 @@ export function NewSupplyDrawer({
     setRows((r) => r.filter((row) => row.key !== key));
   };
 
-  const persistLine = async (
-    sessionId: string,
-    row: SupplyDraftRow,
-  ): Promise<{ row: SupplyDraftRow; serverLineId: string }> => {
-    const payload = linePayload(row);
-    if (!payload) {
-      throw new Error("Invalid line");
-    }
-    const created = await addPathBLine(sessionId, {
-      description: payload.description,
-      amountMoney: payload.amountMoney,
-      suggestedItemId: payload.suggestedItemId,
-    });
-    return { row, serverLineId: created.id };
-  };
-
   const onSubmit = async () => {
     setError(null);
     if (!supplier) {
@@ -1210,25 +1435,55 @@ export function NewSupplyDrawer({
       return;
     }
     setBusy(true);
+    serverSyncGenRef.current += 1;
     try {
-      const noteParts = [
-        docRef.trim() ? `Supplier document ref: ${docRef.trim()}` : "",
-        notes.trim(),
-      ].filter(Boolean);
-      const session = await createPathBSession({
-        supplierId: supplier.id,
-        branchId: branchId.trim(),
-        receivedAt: new Date(receivedAtLocal).toISOString(),
-        notes: noteParts.length ? noteParts.join("\n") : null,
+      const syncRows: SyncableSupplyRow[] = rows.map((row) => {
+        const payload = linePayload(row);
+        const qty = parsePositiveQty(row.qtyStr);
+        const unitCost = parseNonNeg(row.unitStr);
+        const sell = parseRetailPrice(row.sellPriceStr);
+        return {
+          key: row.key,
+          serverLineId: row.serverLineId,
+          qtyStr: row.qtyStr,
+          unitStr: row.unitStr,
+          sellPriceStr: row.sellPriceStr,
+          sellPriceTouched: row.sellPriceTouched,
+          expiry: row.expiry,
+          description: payload?.description ?? rowLabel(row),
+          suggestedItemId: payload?.suggestedItemId ?? rowItemId(row),
+          amountMoney: payload?.amountMoney ?? null,
+          qty,
+          unitCost,
+          sellPrice: sell,
+        };
       });
-      const sessionId = session.id;
-      const synced: { row: SupplyDraftRow; serverLineId: string }[] = [];
-      for (const row of rows) {
-        if (parsePositiveQty(row.qtyStr) == null || !linePayload(row)) {
-          continue;
-        }
-        // Sequential: server line order matches UI order.
-        synced.push(await persistLine(sessionId, row));
+      const sessionId = await ensureSupplyPathBSession({
+        sessionId: serverSessionId,
+        supplier,
+        branchId,
+        receivedAtIso: new Date(receivedAtLocal).toISOString(),
+        notes: composeSupplySessionNotes(docRef, notes),
+        clientDraftJson: buildSupplyClientDraftJson({
+          docRef,
+          showExpiry,
+          extras,
+        }),
+      });
+      const syncedRows = await syncSupplyPathBLines(sessionId, syncRows);
+      const synced = syncedRows
+        .map((s) => {
+          const row = rows.find((r) => r.key === s.key);
+          if (!row || !s.serverLineId || linePayload(row) == null) {
+            return null;
+          }
+          return { row, serverLineId: s.serverLineId };
+        })
+        .filter(
+          (x): x is { row: SupplyDraftRow; serverLineId: string } => x != null,
+        );
+      if (synced.length === 0) {
+        throw new Error("Enter quantity and cost for at least one line.");
       }
       const postBody = {
         lines: synced.map(({ row, serverLineId }) => {
@@ -1303,6 +1558,8 @@ export function NewSupplyDrawer({
       }
       lastOpenSnapshotRef.current = null;
       setDraftRestoredAt(null);
+      setServerSessionId(null);
+      setServerSyncState("idle");
       if (priceErrors.length > 0) {
         setError(
           `Supply posted, but shelf price could not be updated for: ${priceErrors.join("; ")}`,
@@ -1385,7 +1642,7 @@ export function NewSupplyDrawer({
           void onSubmit();
         }}
       >
-        {draftRestoredAt != null ? (
+        {draftRestoredAt != null || serverSessionId ? (
           <div
             className={cn(
               nsdAlert,
@@ -1394,11 +1651,20 @@ export function NewSupplyDrawer({
             role="status"
           >
             <p className="text-[11px] leading-snug">
-              Restored unsaved draft
-              {Number.isFinite(draftRestoredAt)
-                ? ` from ${new Date(draftRestoredAt).toLocaleString()}`
-                : ""}
-              . Edits are saved in this browser until you post.
+              {draftRestoredAt != null
+                ? `Restored unsaved draft${
+                    Number.isFinite(draftRestoredAt)
+                      ? ` from ${new Date(draftRestoredAt).toLocaleString()}`
+                      : ""
+                  }. `
+                : null}
+              {serverSessionId
+                ? serverSyncState === "syncing"
+                  ? "Saving to server…"
+                  : serverSyncState === "error"
+                    ? "Server save failed — browser draft is still kept."
+                    : "Also saved on the server for this branch."
+                : "Edits are saved in this browser until you post."}
             </p>
             <Button
               type="button"
@@ -1686,7 +1952,7 @@ export function NewSupplyDrawer({
           <table
             className={cn(
               "w-full border-collapse border border-border text-left text-xs",
-              showExpiry ? "min-w-[44rem]" : "min-w-[36rem]",
+              showExpiry ? "min-w-[50rem]" : "min-w-[42rem]",
             )}
           >
             <thead>
@@ -1694,6 +1960,9 @@ export function NewSupplyDrawer({
                 <th className={cn(nsdTableTh, "min-w-[10rem]")}>Product</th>
                 <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Qty</th>
                 <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Cost</th>
+                <th className={cn(nsdTableTh, "w-[5.5rem] text-right")}>
+                  Total
+                </th>
                 <th className={cn(nsdTableTh, "w-[5rem] text-right")}>Sell</th>
                 <th className={cn(nsdTableTh, "w-[4.25rem] text-right")}>
                   Margin
@@ -1833,6 +2102,33 @@ export function NewSupplyDrawer({
                         disabled={busy}
                         referenceCost={referenceCost}
                       />
+                    </td>
+                    <td
+                      className={cn(
+                        nsdTableCell,
+                        "px-2 py-1.5 text-right align-middle",
+                      )}
+                      title={
+                        p != null
+                          ? `Line total: ${formatSupplyMoneyCompact(p.amountMoney, currency)}`
+                          : "Enter qty and cost"
+                      }
+                    >
+                      <span
+                        className={cn(
+                          "font-mono text-xs tabular-nums",
+                          p != null
+                            ? "font-semibold text-foreground"
+                            : "text-muted-foreground/50",
+                        )}
+                      >
+                        {p != null
+                          ? p.amountMoney.toLocaleString("en-KE", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "—"}
+                      </span>
                     </td>
                     <td className={cn(nsdTableCell, "p-0 align-middle")}>
                       <SupplyShelfPriceCell
