@@ -29,6 +29,7 @@ import { hasPermission, Permission } from "@/lib/permissions";
 import { cn, formatMoney } from "@/lib/utils";
 import { isGlobalCatalogShellEmpty } from "@/lib/global-catalog-empty";
 import { APP_ROUTES } from "@/lib/config";
+import { flattenGlobalCategoriesForNav } from "@/lib/global-catalog-category-nav";
 import {
   ApiRequestError,
   type GlobalCatalogAdoptLine,
@@ -228,6 +229,10 @@ export default function GlobalCatalogPage() {
   );
   const selectedPackEmpty = !!selectedPack && selectedPack.productCount <= 0;
   const suggestedReadyPack = readyPacks[0] ?? null;
+  const categoryNavNodes = useMemo(
+    () => flattenGlobalCategoriesForNav(meta?.categories ?? []),
+    [meta?.categories],
+  );
 
   const autoPickedPackRef = useRef(false);
   useEffect(() => {
@@ -1336,7 +1341,7 @@ export default function GlobalCatalogPage() {
                 >
                   <Store className="size-3.5" /> All products
                 </button>
-                {meta?.categories.map((cat) => (
+                {categoryNavNodes.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
@@ -1346,11 +1351,13 @@ export default function GlobalCatalogPage() {
                         cat.id === selectedCategoryId ? null : cat.id,
                       );
                     }}
+                    style={{ paddingLeft: `${0.625 + cat.depth * 0.75}rem` }}
                     className={cn(
-                      "w-full rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors",
+                      "w-full rounded-lg py-1.5 pr-2.5 text-left text-xs transition-colors",
                       selectedCategoryId === cat.id
                         ? "bg-primary/10 font-medium text-foreground ring-1 ring-primary/30"
                         : "hover:bg-muted",
+                      cat.depth > 0 && "text-muted-foreground",
                     )}
                   >
                     {cat.name}
