@@ -82,8 +82,8 @@ export function GlobalCatalogBuildPaths({
           How do you want to stock the shelves?
         </h2>
         <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-          Invent one SKU, import a starter pack, or hunt the full catalog —
-          your call.
+          Add products yourself, import a ready-made pack, or search the full
+          catalog.
         </p>
       </div>
 
@@ -179,7 +179,7 @@ export function GlobalCatalogBuildPaths({
               <Search className="size-4" />
             </div>
             <p className="text-sm font-semibold leading-snug">
-              Hunt the full catalog
+              Search the full catalog
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
               Search by name, brand, or barcode across every template.

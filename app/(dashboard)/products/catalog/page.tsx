@@ -1140,8 +1140,8 @@ export default function GlobalCatalogPage() {
           <div>
             <h1 className="text-sm font-semibold">Stock your shelves</h1>
             <p className="text-xs text-muted-foreground">
-              Import from a pack, hunt the catalog, or invent a product from
-              scratch.
+              Tick the products you sell, then press{" "}
+              <span className="font-medium text-foreground">Review &amp; import</span>.
             </p>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground/80">
               <ActiveScopeSubtitle className="text-[11px]" />
@@ -1177,12 +1177,13 @@ export default function GlobalCatalogPage() {
           )}
           <Button
             size="sm"
-            className="gap-1.5 shadow-sm"
+            variant="outline"
+            className="gap-1.5"
             onClick={goCreateFromScratch}
           >
             <PenLine className="size-3.5" />
-            <span className="hidden sm:inline">Add from scratch</span>
-            <span className="sm:hidden">Scratch</span>
+            <span className="hidden sm:inline">Add your own product</span>
+            <span className="sm:hidden">Add own</span>
           </Button>
           {selectedPackId && canAdopt ? (
             <Button
@@ -1241,7 +1242,7 @@ export default function GlobalCatalogPage() {
                 <Package className="size-3.5" /> Starter packs
               </h3>
               <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
-                Stocked packs first. Empty ones are coming soon.
+                Ready-made product bundles. Pick one to see what&apos;s inside.
               </p>
               <div className="space-y-1">
                 {readyPacks.map((pack) => {
@@ -1434,7 +1435,7 @@ export default function GlobalCatalogPage() {
                 onChange={(e) => setHideImported(e.target.checked)}
                 className="size-4 rounded border"
               />
-              Hide already in catalog
+              Hide items you already have
             </label>
             {selected.size > 0 && (
               <Button variant="ghost" size="sm" onClick={clearSelection}>
@@ -1477,10 +1478,11 @@ export default function GlobalCatalogPage() {
                     return (
                       <tr
                         key={p.id}
+                        onClick={() => toggleProduct(p)}
                         className={cn(
-                          "border-b motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
+                          "cursor-pointer border-b transition-colors hover:bg-muted/40 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
                           p.alreadyImported && "opacity-50",
-                          selected.has(p.id) && "bg-muted/80"
+                          selected.has(p.id) && "bg-primary/5 hover:bg-primary/10"
                         )}
                         style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
                       >
@@ -1490,6 +1492,7 @@ export default function GlobalCatalogPage() {
                             checked={selected.has(p.id)}
                             disabled={false}
                             onChange={() => toggleProduct(p)}
+                            onClick={(e) => e.stopPropagation()}
                             className="size-4 rounded border"
                           />
                         </td>
@@ -1517,7 +1520,10 @@ export default function GlobalCatalogPage() {
                                     <button
                                       type="button"
                                       className="text-primary underline-offset-2 hover:underline"
-                                      onClick={() => router.push(`/products?product=${p.adoptedItemId}`)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/products?product=${p.adoptedItemId}`);
+                                      }}
                                     >
                                       In your catalog
                                     </button>
@@ -1573,8 +1579,8 @@ export default function GlobalCatalogPage() {
                       {selectedPack?.name ?? "This pack"} isn’t stocked yet
                     </p>
                     <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
-                      Empty packs are placeholders for what’s coming. Meanwhile —
-                      invent one product, or switch to a stocked pack.
+                      Products for this pack are on the way. Meanwhile, add your
+                      own product or pick another pack.
                     </p>
                     <div className="mt-6">
                       <GlobalCatalogBuildPaths
@@ -1595,7 +1601,7 @@ export default function GlobalCatalogPage() {
                       No luck for &ldquo;{debouncedSearch}&rdquo;
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Templates miss local gems all the time. Name it yourself,
+                      Not every product is in the catalog yet. Add it yourself,
                       or try a different search.
                     </p>
                     <div className="mt-5">
@@ -1620,8 +1626,8 @@ export default function GlobalCatalogPage() {
                       Everything here is already on your shelves
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Nice progress. Reveal imported items, try another pack, or
-                      invent something new.
+                      Nice progress. Show what you&apos;ve imported, try another
+                      pack, or add a new product.
                     </p>
                     <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                       <Button
@@ -1679,7 +1685,8 @@ export default function GlobalCatalogPage() {
 
             {!initialLoading && !hasMore && products.length > 0 ? (
               <p className="pb-20 pt-2 text-center text-[11px] text-muted-foreground/50">
-                You&apos;ve reached the end · {products.length} products
+                You&apos;ve reached the end · {products.length} product
+                {products.length === 1 ? "" : "s"}
               </p>
             ) : !showEmptyState && !initialLoading ? (
               <div className="h-16" aria-hidden />
@@ -1688,27 +1695,56 @@ export default function GlobalCatalogPage() {
 
           {!showEmptyState && !initialLoading ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
-              <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-border/80 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
-                <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
-                  Can&apos;t find it?
-                </span>
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 rounded-full"
-                  onClick={goCreateFromScratch}
-                >
-                  <PenLine className="size-3.5" />
-                  Invent one
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 rounded-full text-xs"
-                  onClick={goBrowseAll}
-                >
-                  Clear filters
-                </Button>
-              </div>
+              {selected.size > 0 ? (
+                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-primary/40 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                  <span className="pl-2 text-xs font-medium tabular-nums">
+                    {selected.size} selected
+                  </span>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-full"
+                    disabled={selectedImportable.length === 0 || !canAdopt}
+                    onClick={handlePreview}
+                  >
+                    <ShoppingCart className="size-3.5" />
+                    Review &amp; import
+                    {selectedImportable.length > 0
+                      ? ` (${selectedImportable.length})`
+                      : ""}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-full text-xs"
+                    onClick={clearSelection}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              ) : (
+                <div className="pointer-events-auto flex max-w-xl items-center gap-2 rounded-full border border-border/80 bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-400">
+                  <span className="hidden pl-2 text-[11px] text-muted-foreground sm:inline">
+                    Can&apos;t find a product?
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 rounded-full"
+                    onClick={goCreateFromScratch}
+                  >
+                    <PenLine className="size-3.5" />
+                    Add your own
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-full text-xs"
+                    onClick={goBrowseAll}
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              )}
             </div>
           ) : null}
         </main>
