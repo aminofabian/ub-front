@@ -368,9 +368,7 @@ function VerifyEmailContent() {
             variant="outline"
             disabled={busy}
           >
-            {busy && verifyPhase !== "verifying"
-              ? "Sending…"
-              : "Resend verification link"}
+            {busy ? "Sending…" : "Resend verification link"}
           </Button>
         </form>
       ) : null}
