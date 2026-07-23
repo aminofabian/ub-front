@@ -965,6 +965,24 @@ export async function fetchAllSaSourceItemIds(params: {
   return ids;
 }
 
+export type SaArchiveCatalogResult = {
+  archivedProductCount: number;
+  deactivatedCategoryCount: number;
+};
+
+/** Archives every product + deactivates every category in the catalog (replace-before-promote). */
+export async function saArchiveCatalogProducts(
+  catalogId?: string | null,
+): Promise<SaArchiveCatalogResult> {
+  const query = new URLSearchParams();
+  withCatalogId(query, catalogId);
+  const qs = query.toString();
+  return saRequest<SaArchiveCatalogResult>(
+    `${API_ROUTES.superAdminGlobalCatalog}/products/archive-all${qs ? `?${qs}` : ""}`,
+    { method: "POST" },
+  );
+}
+
 export async function previewSaPromote(body: {
   sourceBusinessId: string;
   itemIds: string[];

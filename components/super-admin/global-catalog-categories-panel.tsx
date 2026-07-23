@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { flattenGlobalCategoriesForNav } from "@/lib/global-catalog-category-nav";
 import {
   createSaGlobalCategory,
   fetchSaGlobalCategories,
@@ -115,8 +116,22 @@ export function GlobalCatalogCategoriesPanel({
     }
   };
 
-  const roots = rows.filter((r) => !r.parentId);
-  const childrenOf = (id: string) => rows.filter((r) => r.parentId === id);
+  const treeRows = useMemo(
+    () =>
+      flattenGlobalCategoriesForNav(
+        rows.map((r) => ({
+          id: r.id,
+          parentId: r.parentId,
+          name: r.name,
+          slug: r.slug,
+          position: r.position,
+        })),
+      ).map((node) => {
+        const full = rows.find((r) => r.id === node.id)!;
+        return { ...full, depth: node.depth };
+      }),
+    [rows],
+  );
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
@@ -130,29 +145,17 @@ export function GlobalCatalogCategoriesPanel({
           </Button>
         </div>
         <ul className="max-h-[32rem] divide-y divide-border/60 overflow-y-auto">
-          {roots.map((root) => (
-            <li key={root.id}>
+          {treeRows.map((row) => (
+            <li key={row.id}>
               <CategoryRow
-                row={root}
-                depth={0}
-                selected={selectedId === root.id && !creating}
+                row={row}
+                depth={row.depth}
+                selected={selectedId === row.id && !creating}
                 onSelect={() => {
                   setCreating(false);
-                  setSelectedId(root.id);
+                  setSelectedId(row.id);
                 }}
               />
-              {childrenOf(root.id).map((child) => (
-                <CategoryRow
-                  key={child.id}
-                  row={child}
-                  depth={1}
-                  selected={selectedId === child.id && !creating}
-                  onSelect={() => {
-                    setCreating(false);
-                    setSelectedId(child.id);
-                  }}
-                />
-              ))}
             </li>
           ))}
         </ul>
@@ -201,10 +204,12 @@ export function GlobalCatalogCategoriesPanel({
                 onChange={(e) => setParentId(e.target.value)}
               >
                 <option value="">None (root)</option>
-                {rows
+                {treeRows
                   .filter((r) => r.id !== selectedId)
                   .map((r) => (
                     <option key={r.id} value={r.id}>
+                      {"—".repeat(r.depth)}
+                      {r.depth > 0 ? " " : ""}
                       {r.name}
                     </option>
                   ))}

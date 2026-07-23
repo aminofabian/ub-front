@@ -30,6 +30,7 @@ import {
   patchSaGlobalProduct,
   previewSaPromote,
   publishSaGlobalProducts,
+  saArchiveCatalogProducts,
   uploadSaGlobalProductImage,
   type SaCatalogSummary,
   type SaGlobalCatalogMeta,
@@ -123,6 +124,8 @@ export default function SuperAdminGlobalCatalogPage() {
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<SaPromoteResult | null>(null);
   const [promoteAsPublished, setPromoteAsPublished] = useState(false);
+  /** Archive everything in the target catalog first so the promote replaces it exactly. */
+  const [replaceCatalog, setReplaceCatalog] = useState(false);
   const [lastPromoteResult, setLastPromoteResult] = useState<SaPromoteResult | null>(null);
   const [promoteProgress, setPromoteProgress] = useState<SaPromoteProgress | null>(null);
   /** Default on: only show / select items not yet in the global catalog. */
@@ -625,9 +628,13 @@ export default function SuperAdminGlobalCatalogPage() {
     if (!sourceBusinessId || selectedSourceIds.size === 0) return;
     const n = selectedSourceIds.size;
     const statusLabel = promoteAsPublished ? "published" : "drafts";
+    const replaceWarning = replaceCatalog
+      ? `\n\nCLEAR OLD CATALOG: every product and category currently in "${meta?.catalogName ?? "this catalog"}" will be archived first, so the result matches the source shop exactly.`
+      : "";
     if (
       !window.confirm(
         `Promote ${n.toLocaleString()} product${n === 1 ? "" : "s"} as ${statusLabel} into the global catalog?` +
+          replaceWarning +
           (n > PROMOTE_PREVIEW_MAX_ITEMS
             ? "\n\nLarge batches run as background jobs and may take a few minutes."
             : ""),
@@ -640,11 +647,19 @@ export default function SuperAdminGlobalCatalogPage() {
       phase: "queued",
       processed: 0,
       total: n,
-      message: "Starting…",
+      message: replaceCatalog ? "Archiving current catalog contents…" : "Starting…",
       chunkIndex: 0,
       chunkCount: 1,
     });
     try {
+      if (replaceCatalog) {
+        const archived = await saArchiveCatalogProducts(catalogId);
+        toast.message(
+          `Archived ${archived.archivedProductCount.toLocaleString()} existing product${
+            archived.archivedProductCount === 1 ? "" : "s"
+          } before promoting.`,
+        );
+      }
       const result = await commitSaPromote(
         {
           sourceBusinessId,
@@ -852,6 +867,8 @@ export default function SuperAdminGlobalCatalogPage() {
           preview={preview}
           promoteAsPublished={promoteAsPublished}
           onPromoteAsPublishedChange={setPromoteAsPublished}
+          replaceCatalog={replaceCatalog}
+          onReplaceCatalogChange={setReplaceCatalog}
           hideAlreadyInGlobal={hideAlreadyInGlobal}
           onHideAlreadyInGlobalChange={(value) => {
             setHideAlreadyInGlobal(value);
@@ -1244,6 +1261,8 @@ function PromotePanel({
   preview,
   promoteAsPublished,
   onPromoteAsPublishedChange,
+  replaceCatalog,
+  onReplaceCatalogChange,
   hideAlreadyInGlobal,
   onHideAlreadyInGlobalChange,
   publishableIds,
@@ -1271,6 +1290,8 @@ function PromotePanel({
   preview: SaPromoteResult | null;
   promoteAsPublished: boolean;
   onPromoteAsPublishedChange: (value: boolean) => void;
+  replaceCatalog: boolean;
+  onReplaceCatalogChange: (value: boolean) => void;
   hideAlreadyInGlobal: boolean;
   onHideAlreadyInGlobalChange: (value: boolean) => void;
   publishableIds: string[];
@@ -1437,6 +1458,39 @@ function PromotePanel({
       </div>
 
       {progress ? <PromoteProgressCard progress={progress} /> : null}
+
+      <div
+        className={cn(
+          "rounded-xl border px-3 py-3",
+          replaceCatalog
+            ? "border-destructive/40 bg-destructive/5"
+            : "border-border/70 bg-muted/20",
+        )}
+      >
+        <label className="flex items-start gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 rounded border"
+            checked={replaceCatalog}
+            onChange={(e) => onReplaceCatalogChange(e.target.checked)}
+          />
+          <span>
+            <span
+              className={cn(
+                "font-medium",
+                replaceCatalog ? "text-destructive" : "text-foreground",
+              )}
+            >
+              Clear old catalog first
+            </span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+              Archives every product and category currently in this catalog before
+              promoting, so the result matches the source shop (e.g. Palmart)
+              instead of mixing with the old seed. Recommended for a full replace.
+            </span>
+          </span>
+        </label>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
