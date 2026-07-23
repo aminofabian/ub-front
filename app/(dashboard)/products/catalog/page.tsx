@@ -148,6 +148,10 @@ export default function GlobalCatalogPage() {
   const syncingRef = useRef(false);
   const selectedPackIdRef = useRef<string | null>(null);
   const productsCountRef = useRef(0);
+  /** Pack id the current `products` list belongs to (null = browse-all). */
+  const productsSourcePackIdRef = useRef<string | null>(null);
+  /** Last pack we auto-selected rows for (onboarding only). */
+  const autoSelectedForPackIdRef = useRef<string | null>(null);
 
   const defaultBranchId = branchId || branches[0]?.id;
 
@@ -267,13 +271,16 @@ export default function GlobalCatalogPage() {
     packIdFromUrl,
   ]);
 
-  const autoSelectedPackProductsRef = useRef(false);
+  // Auto-select every importable product in the starter pack once it has loaded.
+  // Wait until `products` belongs to `selectedPackId` — otherwise we latch onto
+  // the previous browse page (often 50 rows) and leave pack checkboxes empty.
   useEffect(() => {
     if (!fromOnboarding || !selectedPackId || initialLoading) return;
-    if (autoSelectedPackProductsRef.current) return;
+    if (productsSourcePackIdRef.current !== selectedPackId) return;
+    if (autoSelectedForPackIdRef.current === selectedPackId) return;
     const importable = products.filter((p) => !p.alreadyImported);
     if (importable.length === 0) return;
-    autoSelectedPackProductsRef.current = true;
+    autoSelectedForPackIdRef.current = selectedPackId;
     setSelected(new Map(importable.map((p) => [p.id, p])));
   }, [fromOnboarding, selectedPackId, initialLoading, products]);
 
@@ -300,9 +307,13 @@ export default function GlobalCatalogPage() {
 
       try {
         if (packId) {
+          if (reset) {
+            productsSourcePackIdRef.current = null;
+          }
           const pack = await fetchGlobalCatalogPack(packId, {
             onlyNotImported: hideImported,
           });
+          productsSourcePackIdRef.current = packId;
           setProducts(pack.products);
           setHasMore(false);
           hasMoreRef.current = false;
@@ -319,6 +330,9 @@ export default function GlobalCatalogPage() {
           size: PAGE_SIZE,
         });
 
+        if (reset) {
+          productsSourcePackIdRef.current = null;
+        }
         setProducts((prev) => (reset ? result.content : [...prev, ...result.content]));
         const nextHasMore = !result.last;
         setHasMore(nextHasMore);
@@ -348,6 +362,7 @@ export default function GlobalCatalogPage() {
         const pack = await fetchGlobalCatalogPack(selectedPackId, {
           onlyNotImported: hideImported,
         });
+        productsSourcePackIdRef.current = selectedPackId;
         setProducts(pack.products);
         setTotalElements(pack.products.length);
         pruneSelectedImported(pack.products);
@@ -484,6 +499,7 @@ export default function GlobalCatalogPage() {
     setSelected((prev) => {
       const next = new Map(prev);
       for (const p of products) {
+        if (p.alreadyImported) continue;
         next.set(p.id, p);
       }
       return next;
@@ -1117,11 +1133,13 @@ export default function GlobalCatalogPage() {
     onboardingToastRef.current = true;
     if (selectedPack) {
       toast.message(
-        `Review ${selectedPack.name}, then import — you can tweak prices first.`,
+        `${selectedPack.name} is ready — all items are selected to sell. Review prices, then import.`,
       );
       return;
     }
-    toast.message("Pick a starter pack or products to import.");
+    toast.message(
+      "Pick a starter pack to import ready-made products, or select items below.",
+    );
   }, [
     fromOnboarding,
     initialLoading,
@@ -1138,10 +1156,23 @@ export default function GlobalCatalogPage() {
             <ArrowLeft className="size-4" />
           </Button>
           <div>
-            <h1 className="text-sm font-semibold">Stock your shelves</h1>
+            <h1 className="text-sm font-semibold">
+              {fromOnboarding ? "Import products we already have" : "Stock your shelves"}
+            </h1>
             <p className="text-xs text-muted-foreground">
-              Tick the products you sell, then press{" "}
-              <span className="font-medium text-foreground">Review &amp; import</span>.
+              {fromOnboarding ? (
+                <>
+                  These are ready-made products with barcodes and prices. Everything
+                  in the pack is selected to sell — uncheck anything you don&apos;t
+                  carry, then press{" "}
+                  <span className="font-medium text-foreground">Review &amp; import</span>.
+                </>
+              ) : (
+                <>
+                  Import ready-made products with barcodes and prices, then press{" "}
+                  <span className="font-medium text-foreground">Review &amp; import</span>.
+                </>
+              )}
             </p>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground/80">
               <ActiveScopeSubtitle className="text-[11px]" />
@@ -1242,7 +1273,8 @@ export default function GlobalCatalogPage() {
                 <Package className="size-3.5" /> Starter packs
               </h3>
               <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
-                Ready-made product bundles. Pick one to see what&apos;s inside.
+                Bundles of products shops like yours already sell. Open one to
+                import them in a click.
               </p>
               <div className="space-y-1">
                 {readyPacks.map((pack) => {
@@ -1445,10 +1477,10 @@ export default function GlobalCatalogPage() {
             <Button
               variant="outline"
               size="sm"
-              disabled={products.length === 0}
+              disabled={products.every((p) => p.alreadyImported)}
               onClick={selectAllVisible}
             >
-              Select all
+              {fromOnboarding ? "Select all to sell" : "Select all"}
             </Button>
             </div>
           </div>

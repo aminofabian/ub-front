@@ -52,6 +52,15 @@ const AUTH_MODE = {
 
 type AuthMode = (typeof AUTH_MODE)[keyof typeof AUTH_MODE];
 
+/** `?mode=office` (or `password`) opens the Office tab; anything else stays on Till. */
+function authModeFromSearchParam(raw: string | null): AuthMode {
+  const value = raw?.trim().toLowerCase() ?? "";
+  if (value === "office" || value === AUTH_MODE.password) {
+    return AUTH_MODE.password;
+  }
+  return AUTH_MODE.pin;
+}
+
 const primaryCtaClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--auth-accent)] text-[var(--auth-accent-ink)] text-[15px] font-semibold shadow-md transition hover:bg-[var(--auth-primary-hover)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60";
 
@@ -66,8 +75,11 @@ function LoginPageContent() {
   const passwordMinLength = tenant?.authConfig?.passwordPolicy?.minLength ?? 8;
   const tenantGreeting =
     tenant?.branding?.displayName ?? tenant?.tenantName ?? null;
-  // Always start on Till (PIN). Same on server + client to avoid hydration mismatch.
-  const [mode, setMode] = useState<AuthMode>(AUTH_MODE.pin);
+  // Default Till (PIN); `?mode=office` selects Office. Init from searchParams
+  // (same pattern as email) so server + client stay aligned under Suspense.
+  const [mode, setMode] = useState<AuthMode>(() =>
+    authModeFromSearchParam(searchParams.get("mode")),
+  );
   const [, ensureTenantResolved] = useTenantIdPrefill(tenant?.tenantId);
   const [email, setEmail] = useState(
     () => searchParams.get("email")?.trim() ?? "",

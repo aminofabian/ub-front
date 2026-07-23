@@ -147,7 +147,7 @@ export const ONLINE_STORE_OPTIONS: readonly {
 }[] = [
   {
     value: "yes",
-    label: "Yes — set up my online store",
+    label: "Yes — set up my online store (recommended)",
   },
   {
     value: "no",

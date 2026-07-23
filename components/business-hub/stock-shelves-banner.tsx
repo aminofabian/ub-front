@@ -56,10 +56,12 @@ export function StockShelvesBanner({
           <Package className="size-4" aria-hidden />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-black">Stock your shelves</p>
+          <p className="text-sm font-medium text-black">
+            Import products we already have
+          </p>
           <p className={cn("text-xs", HUB_MUTED)}>
-            Import a starter pack so you can start selling — prices and barcodes
-            included.
+            Add ready-made products with barcodes and prices — then start
+            selling.
           </p>
         </div>
       </div>

@@ -22,6 +22,8 @@ import { APP_ROUTES } from "@/lib/config";
 import { markOnboardingTourPending } from "@/lib/onboarding-tour";
 
 const REDIRECT_SECONDS = 10;
+/** Shop owners verify then sign in with email/password (Office), not till PIN. */
+const POST_VERIFY_LOGIN_HREF = `${APP_ROUTES.staffLogin}?mode=office`;
 
 type VerifyPhase = "idle" | "verifying" | "success" | "failed";
 
@@ -73,7 +75,7 @@ function VerifyEmailContent() {
       return;
     }
     if (redirectSeconds <= 0) {
-      router.replace(APP_ROUTES.staffLogin);
+      router.replace(POST_VERIFY_LOGIN_HREF);
       return;
     }
     const timer = window.setTimeout(() => {
@@ -277,7 +279,7 @@ function VerifyEmailContent() {
 
         <p className="mt-6 text-center text-sm">
           <Link
-            href={APP_ROUTES.staffLogin}
+            href={POST_VERIFY_LOGIN_HREF}
             className="font-medium text-primary underline underline-offset-2"
           >
             Back to staff sign in

@@ -196,7 +196,7 @@ export function OnboardingQuestionnaire({
   );
   const [customDepartmentName, setCustomDepartmentName] = useState("");
   const [onlineStore, setOnlineStore] = useState<OnlineStoreChoice | "">(
-    initialAnswers.onlineStore ?? "",
+    initialAnswers.onlineStore ?? "yes",
   );
   const [displayName, setDisplayName] = useState(() => {
     const saved = initialAnswers.displayName?.trim();
@@ -864,7 +864,7 @@ export function OnboardingQuestionnaire({
           {step === 6 ? (
             <>
               <h2 className="text-center text-[22px] font-semibold tracking-tight text-[#1F2937]">
-                Stock your shelves
+                Import products we already have
               </h2>
               {catalogShellEmpty ? (
                 <>
@@ -897,8 +897,9 @@ export function OnboardingQuestionnaire({
               ) : (
                 <>
                   <p className="mt-2 text-center text-sm leading-relaxed text-[#6B7280]">
-                    Import common products for your shop — prices and barcodes
-                    included. You can always add your own later.
+                    Skip typing every item — import products shops like yours
+                    already sell, with barcodes and prices filled in. They will
+                    be ready to sell as soon as you import.
                   </p>
                   {packLoading ? (
                     <div className="mt-6 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-6 text-center text-sm text-[#6B7280]">
@@ -967,7 +968,7 @@ export function OnboardingQuestionnaire({
                     className="h-12 w-full rounded-xl bg-[#0D9488] text-[15px] font-semibold text-white shadow-md transition hover:bg-[#0F766E] active:scale-[0.99]"
                   >
                     {suggestedPack
-                      ? `Import ${suggestedPack.name}`
+                      ? `Import ${suggestedPack.name} to sell`
                       : "Browse product catalog"}
                   </button>
                   {suggestedPack ? (
