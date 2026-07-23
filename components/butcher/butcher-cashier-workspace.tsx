@@ -45,6 +45,7 @@ import {
 } from "@/lib/butcher-pos";
 import { formatKg } from "@/lib/butcher-scale";
 import {
+  butcherCategoryRailClass,
   butcherChargeButtonClass,
   butcherInputClass,
   butcherPayChipClass,
@@ -822,7 +823,7 @@ export function ButcherCashierWorkspace() {
           </button>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none lg:hidden">
           {categories.map((cat) => (
             <button
               key={cat.id ?? "all"}
@@ -863,6 +864,35 @@ export function ButcherCashierWorkspace() {
           )}
         </div>
       </section>
+
+      {/* Category rail — desktop */}
+      <aside className="hidden min-h-0 w-[9.5rem] shrink-0 flex-col xl:w-[10.5rem] lg:flex">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-panel)/0.5)]">
+          <div className="shrink-0 border-b border-[rgb(var(--bp-border))] px-3 py-2.5">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--bp-fg-soft))]">
+              Category
+            </h2>
+          </div>
+          <nav
+            aria-label="Product categories"
+            className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2"
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat.id ?? "all"}
+                type="button"
+                onClick={() => setCategoryId(cat.id)}
+                className={butcherCategoryRailClass(categoryId === cat.id)}
+              >
+                {cat.label}
+              </button>
+            ))}
+            {itemTypesLoading ? (
+              <span className="px-1 py-2 text-xs text-[rgb(var(--bp-fg-muted))]">Loading…</span>
+            ) : null}
+          </nav>
+        </div>
+      </aside>
 
       {/* Order panel — mockup-style card */}
       <aside className="flex min-h-0 w-full shrink-0 flex-col max-h-[min(42dvh,26rem)] lg:max-h-none lg:h-full lg:w-[min(100%,20rem)] xl:w-[22rem]">

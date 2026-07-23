@@ -13,6 +13,15 @@ export function butcherPillClass(active: boolean): string {
     : `${butcherPillBase} border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface)/0.8)] text-[rgb(var(--bp-fg-faint))] hover:border-[rgb(var(--bp-border))] hover:text-[rgb(var(--bp-fg-soft))]`;
 }
 
+const butcherCategoryRailBase =
+  "w-full shrink-0 rounded-lg border px-2.5 py-2.5 text-left text-xs font-semibold leading-snug transition touch-manipulation";
+
+export function butcherCategoryRailClass(active: boolean): string {
+  return active
+    ? `${butcherCategoryRailBase} border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_16%,transparent)] text-[var(--pos-primary)]`
+    : `${butcherCategoryRailBase} border-[rgb(var(--bp-border))] bg-[rgb(var(--bp-surface)/0.8)] text-[rgb(var(--bp-fg-faint))] hover:border-[rgb(var(--bp-border))] hover:text-[rgb(var(--bp-fg-soft))]`;
+}
+
 export function butcherPayChipClass(active: boolean): string {
   return active
     ? "rounded-lg border border-[color-mix(in_srgb,var(--pos-primary)_55%,transparent)] bg-[color-mix(in_srgb,var(--pos-primary)_18%,transparent)] py-2 text-xs font-semibold text-[var(--pos-primary)]"

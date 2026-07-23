@@ -31,7 +31,7 @@ type ButcherThemeProviderProps = {
 };
 
 export function ButcherThemeProvider({ children }: ButcherThemeProviderProps) {
-  const [theme, setTheme] = useState<ButcherTheme>("dark");
+  const [theme, setTheme] = useState<ButcherTheme>("light");
 
   useEffect(() => {
     setTheme(readButcherTheme());
