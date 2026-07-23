@@ -503,6 +503,16 @@ export type SaGlobalPackDetail = {
   productIds: string[];
 };
 
+export type SaGlobalProductImage = {
+  id: string;
+  imageUrl: string;
+  imagePublicId: string | null;
+  sortOrder: number;
+  altText: string | null;
+  width: number | null;
+  height: number | null;
+};
+
 export type SaGlobalProduct = {
   id: string;
   catalogId: string;
@@ -511,12 +521,16 @@ export type SaGlobalProduct = {
   name: string;
   brand: string | null;
   size: string | null;
+  variantName?: string | null;
   description: string | null;
   barcode: string | null;
   unitType: string;
   weighed: boolean;
   sellable: boolean;
   stocked: boolean;
+  packageVariant?: boolean;
+  packagingUnitName?: string | null;
+  packagingUnitQty?: number | null;
   recommendedBuyingPrice: number | null;
   recommendedSellingPrice: number | null;
   suggestedMarginPct: number | null;
@@ -527,6 +541,7 @@ export type SaGlobalProduct = {
   expiresAfterDays: number | null;
   imageUrl: string | null;
   imagePublicId: string | null;
+  images?: SaGlobalProductImage[];
   itemTypeKeyHint: string | null;
   status: string;
   sortOrder: number;

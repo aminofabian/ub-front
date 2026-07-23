@@ -3541,6 +3541,15 @@ export type GlobalCatalogMetaRecord = {
   packs: GlobalProductPackRecord[];
 };
 
+export type GlobalProductImageRecord = {
+  id: string;
+  imageUrl: string;
+  sortOrder: number;
+  altText?: string | null;
+  width?: number | null;
+  height?: number | null;
+};
+
 export type GlobalProductRecord = {
   id: string;
   catalogId: string;
@@ -3550,12 +3559,16 @@ export type GlobalProductRecord = {
   name: string;
   brand?: string | null;
   size?: string | null;
+  variantName?: string | null;
   description?: string | null;
   barcode?: string | null;
   unitType: string;
   weighed: boolean;
   sellable: boolean;
   stocked: boolean;
+  packageVariant?: boolean;
+  packagingUnitName?: string | null;
+  packagingUnitQty?: number | null;
   recommendedBuyingPrice?: number | null;
   recommendedSellingPrice?: number | null;
   suggestedMarginPct?: number | null;
@@ -3565,6 +3578,8 @@ export type GlobalProductRecord = {
   hasExpiry: boolean;
   expiresAfterDays?: number | null;
   imageUrl?: string | null;
+  /** Full gallery when present; cover is also mirrored in imageUrl. */
+  images?: GlobalProductImageRecord[];
   itemTypeKeyHint?: string | null;
   sortOrder: number;
   alreadyImported: boolean;
